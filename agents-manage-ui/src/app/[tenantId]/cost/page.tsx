@@ -18,7 +18,7 @@ const TIME_RANGES = {
   '30d': { label: 'Last 30 days', hours: 24 * 30 },
 } as const;
 
-export default function TenantUsagePage({ params }: { params: Promise<{ tenantId: string }> }) {
+export default function TenantUsagePage({ params }: PageProps<'/[tenantId]/cost'>) {
   const { tenantId } = use(params);
   const {
     timeRange: selectedTimeRange,
@@ -52,7 +52,7 @@ export default function TenantUsagePage({ params }: { params: Promise<{ tenantId
   }, [selectedTimeRange, customStartDate, customEndDate]);
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Cost & Token Usage"
         description="Estimated costs and token usage across your agents"
@@ -67,7 +67,7 @@ export default function TenantUsagePage({ params }: { params: Promise<{ tenantId
           TriggerComponent={
             <FilterTriggerComponent
               filterLabel={selectedProjectId ? 'Project' : 'All projects'}
-              isRemovable={true}
+              isRemovable
               onDeleteFilter={() => setProjectId(null)}
               multipleCheckboxValues={selectedProjectId ? [selectedProjectId] : []}
               options={projects.map((p) => ({ value: p.projectId, label: p.name }))}
