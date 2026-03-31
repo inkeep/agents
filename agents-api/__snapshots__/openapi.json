@@ -4657,7 +4657,6 @@
           }
         },
         "required": [
-          "id",
           "conversationId",
           "type"
         ],
