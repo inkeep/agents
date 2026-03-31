@@ -1,0 +1,78 @@
+name: Preview Janitor
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Report stale preview state without deleting anything
+        required: false
+        default: true
+        type: boolean
+      cleanup_railway:
+        description: Delete stale Railway PR environments
+        required: false
+        default: true
+        type: boolean
+      cleanup_vercel:
+        description: Delete stale branch-scoped Vercel preview env vars
+        required: false
+        default: true
+        type: boolean
+      delete_unknown_railway_envs:
+        description: Delete Railway PR environments whose GitHub PR lookup returns 404
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: preview-janitor
+  cancel-in-progress: false
+
+jobs:
+  cleanup-railway:
+    name: Cleanup Stale Railway Preview Envs
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.cleanup_railway }}
+    concurrency:
+      group: preview-railway-${{ vars.RAILWAY_PROJECT_ID || 'default' }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Cleanup stale Railway preview environments
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN || secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'true' || 'false' }}
+          DELETE_UNKNOWN_PREVIEW_ENVS: ${{ github.event_name == 'workflow_dispatch' && inputs.delete_unknown_railway_envs && 'true' || 'false' }}
+        run: bash .github/scripts/preview/cleanup-stale-railway-envs.sh
+
+  cleanup-vercel:
+    name: Cleanup Stale Vercel Preview Env Vars
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.cleanup_vercel }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Cleanup stale Vercel preview env vars
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_API_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
+          VERCEL_MANAGE_UI_PROJECT_ID: ${{ secrets.VERCEL_MANAGE_UI_PROJECT_ID }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'true' || 'false' }}
+        run: bash .github/scripts/preview/cleanup-vercel-stale-env.sh

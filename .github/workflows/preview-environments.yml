@@ -46,6 +46,11 @@ on:
         required: false
         default: false
         type: boolean
+      recreate_preview:
+        description: Delete and recreate the PR preview environment before provisioning
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -71,6 +76,7 @@ jobs:
       ui_url: ${{ steps.compute.outputs.ui_url }}
       is_internal_pr: ${{ steps.compute.outputs.is_internal_pr }}
       preview_enabled: ${{ steps.compute.outputs.preview_enabled }}
+      recreate_preview: ${{ steps.compute.outputs.recreate_preview }}
     steps:
       - name: Compute context
         id: compute
@@ -80,6 +86,7 @@ jobs:
           EVENT_PR_BRANCH: ${{ github.event.pull_request.head.ref }}
           INPUT_PR_NUMBER: ${{ inputs.pr_number }}
           INPUT_FORCE_ENABLE: ${{ inputs.force_enable }}
+          INPUT_RECREATE_PREVIEW: ${{ inputs.recreate_preview }}
           EVENT_REPO_FULL_NAME: ${{ github.event.pull_request.head.repo.full_name }}
           WORKFLOW_REPO_FULL_NAME: ${{ github.repository }}
           GITHUB_API_URL: ${{ github.api_url }}
@@ -131,12 +138,18 @@ jobs:
             PREVIEW_ENABLED="true"
           fi
 
+          RECREATE_PREVIEW="false"
+          if [ "${EVENT_NAME:-}" = "workflow_dispatch" ] && [ "${INPUT_RECREATE_PREVIEW:-false}" = "true" ]; then
+            RECREATE_PREVIEW="true"
+          fi
+
           echo "pr_number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
           echo "pr_branch=${PR_BRANCH}" >> "$GITHUB_OUTPUT"
           echo "api_url=${API_URL}" >> "$GITHUB_OUTPUT"
           echo "ui_url=${UI_URL}" >> "$GITHUB_OUTPUT"
           echo "is_internal_pr=${IS_INTERNAL_PR}" >> "$GITHUB_OUTPUT"
           echo "preview_enabled=${PREVIEW_ENABLED}" >> "$GITHUB_OUTPUT"
+          echo "recreate_preview=${RECREATE_PREVIEW}" >> "$GITHUB_OUTPUT"
 
       - name: Summary
         run: |
@@ -148,6 +161,7 @@ jobs:
             echo "- UI URL: \`${{ steps.compute.outputs.ui_url }}\`"
             echo "- Internal PR: \`${{ steps.compute.outputs.is_internal_pr }}\`"
             echo "- Preview flow enabled: \`${{ steps.compute.outputs.preview_enabled }}\`"
+            echo "- Manual recreate requested: \`${{ steps.compute.outputs.recreate_preview }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
   preview-disabled:
@@ -207,6 +221,7 @@ jobs:
           RAILWAY_SPICEDB_ENDPOINT_TEMPLATE: ${{ vars.RAILWAY_SPICEDB_ENDPOINT_TEMPLATE || '' }}
           SPICEDB_PRESHARED_KEY: ${{ secrets.PREVIEW_SPICEDB_PRESHARED_KEY }}
           PR_NUMBER: ${{ needs.compute-context.outputs.pr_number }}
+          RECREATE_PREVIEW_ENV: ${{ needs.compute-context.outputs.recreate_preview }}
         run: bash .github/scripts/preview/provision-railway.sh
 
   bootstrap-preview-auth:
