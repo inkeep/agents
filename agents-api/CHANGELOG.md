@@ -1,5 +1,15 @@
 # @inkeep/agents-api
 
+## 0.63.3
+
+### Patch Changes
+
+- cfcdc30: Fix anonymous auth path accepting arbitrary tenant/project headers for global apps
+  - @inkeep/agents-core@0.63.3
+  - @inkeep/agents-email@0.63.3
+  - @inkeep/agents-mcp@0.63.3
+  - @inkeep/agents-work-apps@0.63.3
+
 ## 0.63.2
 
 ### Patch Changes
