@@ -70,55 +70,17 @@ You are a helpful assistant for {{headers.user_id}}!.
 
 ## Forwarding Headers to MCP Servers
 
-Header values can be forwarded to MCP servers as outbound request headers using `{{headers.*}}` template syntax. When an agent calls a tool on an MCP server, any templates in the connection's headers are resolved from the validated and cached header values before the request is sent.
+You can forward header values to MCP servers using `{{headers.*}}` templates. These templates are resolved at runtime from the incoming request headers before each tool call.
 
-This is useful for:
+1. Define the header in your agent's [headers schema](#configuring-headers) (use lowercase keys)
+2. [Register the MCP server](/visual-builder/tools/mcp-servers) — leave the Credential field blank if auth comes entirely from forwarded headers
+3. Connect the MCP server to a Sub Agent, then click on the connection. In the **Headers** field, reference the schema properties:
 
-- **Per-user authentication** — passing each user's API token to a third-party MCP server
-- **Tenant isolation** — routing requests with tenant-specific identifiers
-- **Request tracing** — propagating correlation IDs or session tokens through to downstream services
+```json
+{
+  "Authorization": "Bearer {{headers.auth_token}}",
+  "X-Tenant-Id": "{{headers.tenant_id}}"
+}
+```
 
-### Configuring MCP connection headers
-
-<Steps>
-  <Step>
-    **Define the headers your agent expects**
-
-    In the agent's [headers schema](#configuring-headers), declare the values you want to forward. Use lowercase keys:
-
-    ```json
-    {
-      "type": "object",
-      "properties": {
-        "api_token": {
-          "type": "string"
-        },
-        "tenant_id": {
-          "type": "string"
-        }
-      },
-      "required": ["api_token"],
-      "additionalProperties": false
-    }
-    ```
-  </Step>
-  <Step>
-    **Register the MCP server**
-
-    Go to [MCP Servers](/visual-builder/tools/mcp-servers) and register the remote server. If authentication will be provided entirely through forwarded headers, leave the Credential field blank.
-  </Step>
-  <Step>
-    **Connect the MCP server to a Sub Agent and configure headers**
-
-    Drag the MCP server onto the canvas, connect it to a Sub Agent, then click on the MCP Server. In the **Headers** field, use `{{headers.*}}` templates referencing the schema properties:
-
-    ```json
-    {
-      "Authorization": "Bearer {{headers.api_token}}",
-      "X-Tenant-Id": "{{headers.tenant_id}}"
-    }
-    ```
-
-    Templates are resolved at runtime using the validated header values from the incoming request.
-  </Step>
-</Steps>
+See [MCP Servers — Dynamic credential pass-through](/visual-builder/tools/mcp-servers#dynamic-credential-pass-through) for more on authentication.

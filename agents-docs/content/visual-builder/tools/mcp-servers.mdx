@@ -139,14 +139,14 @@ For in-product copilots where each end user has their own credentials for the MC
 
 ```json
 {
-  "Authorization": "Bearer {{headers.mcp_token}}"
+  "Authorization": "Bearer {{headers.auth_token}}"
 }
 ```
 
 The template is resolved at runtime using the validated header from the incoming request and sent as an outbound header to the MCP server on every tool call.
 
 <Note>
-  Header keys are normalized to **lowercase**. Use lowercase property names in your headers schema (e.g., `mcp_token`, not `mcpToken`) and matching lowercase template variables. See [Headers — Forwarding Headers to MCP Servers](/visual-builder/headers#forwarding-headers-to-mcp-servers) for a full walkthrough.
+  Header keys are normalized to **lowercase**. Use lowercase property names in your headers schema (e.g., `auth_token`, not `authToken`) and matching lowercase template variables. See [Headers — Forwarding Headers to MCP Servers](/visual-builder/headers#forwarding-headers-to-mcp-servers) for a full walkthrough.
 </Note>
 
 ## Finding more remote MCP servers
