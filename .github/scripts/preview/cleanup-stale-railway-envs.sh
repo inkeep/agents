@@ -81,8 +81,8 @@ unknown_names=()
 while IFS= read -r row; do
   [ -z "${row}" ] && continue
 
-  env_id="$(printf '%s' "${row}" | base64 -d | jq -r '.id')"
-  env_name="$(printf '%s' "${row}" | base64 -d | jq -r '.name')"
+  env_id="$(jq -r '.id' <<< "${row}")"
+  env_name="$(jq -r '.name' <<< "${row}")"
   pr_number="${env_name#pr-}"
 
   pr_state="$(github_pr_state "${pr_number}")" || {
@@ -93,7 +93,6 @@ while IFS= read -r row; do
   case "${pr_state}" in
     open)
       kept=$((kept + 1))
-      kept_names+=("${env_name}")
       ;;
     closed)
       stale_targets=$((stale_targets + 1))
@@ -127,7 +126,7 @@ while IFS= read -r row; do
       errors=$((errors + 1))
       ;;
   esac
-done < <(jq -r '.[] | @base64' <<< "${PR_ENVIRONMENTS_JSON}")
+done < <(jq -rc '.[]' <<< "${PR_ENVIRONMENTS_JSON}")
 
 if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
   {

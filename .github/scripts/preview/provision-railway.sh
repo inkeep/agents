@@ -184,10 +184,9 @@ resolve_runtime_vars() {
     run_db_url="$(json_get_var "${rendered_service_env_json}" "${RAILWAY_RUN_DB_URL_KEY}")"
     spicedb_endpoint="$(json_get_var "${rendered_service_env_json}" "${RAILWAY_SPICEDB_ENDPOINT_KEY}")"
 
-    if [ -n "${manage_db_url}" ] &&
-      [ -n "${run_db_url}" ] &&
-      [ -n "${spicedb_endpoint}" ] &&
-      ! printf '%s' "${manage_db_url}${run_db_url}${spicedb_endpoint}" | grep -q '\$[{][{]'; then
+    if ! runtime_var_is_unresolved "${manage_db_url}" &&
+      ! runtime_var_is_unresolved "${run_db_url}" &&
+      ! runtime_var_is_unresolved "${spicedb_endpoint}"; then
       MANAGE_DB_URL="${manage_db_url}"
       RUN_DB_URL="${run_db_url}"
       SPICEDB_ENDPOINT="${spicedb_endpoint}"
@@ -197,13 +196,13 @@ resolve_runtime_vars() {
     if [ "${attempt}" -lt "${max_attempts}" ]; then
       if preview_should_log_wait_attempt "${attempt}" "${max_attempts}"; then
         unresolved=()
-        if [ -z "${manage_db_url}" ] || printf '%s' "${manage_db_url}" | grep -q '\$[{][{]'; then
+        if runtime_var_is_unresolved "${manage_db_url}"; then
           unresolved+=("${RAILWAY_MANAGE_DB_URL_KEY}")
         fi
-        if [ -z "${run_db_url}" ] || printf '%s' "${run_db_url}" | grep -q '\$[{][{]'; then
+        if runtime_var_is_unresolved "${run_db_url}"; then
           unresolved+=("${RAILWAY_RUN_DB_URL_KEY}")
         fi
-        if [ -z "${spicedb_endpoint}" ] || printf '%s' "${spicedb_endpoint}" | grep -q '\$[{][{]'; then
+        if runtime_var_is_unresolved "${spicedb_endpoint}"; then
           unresolved+=("${RAILWAY_SPICEDB_ENDPOINT_KEY}")
         fi
         preview_log "Waiting for Railway runtime variable interpolation in ${RAILWAY_ENV_NAME} (attempt ${attempt}/${max_attempts}): ${unresolved[*]}"
@@ -235,6 +234,12 @@ preview_log "Ensuring required runtime variables are seeded for ${RAILWAY_ENV_NA
 ensure_runtime_var_seeded "${RAILWAY_MANAGE_DB_URL_KEY}" "${RAILWAY_MANAGE_DB_URL_TEMPLATE:-}"
 ensure_runtime_var_seeded "${RAILWAY_RUN_DB_URL_KEY}" "${RAILWAY_RUN_DB_URL_TEMPLATE:-}"
 ensure_runtime_var_seeded "${RAILWAY_SPICEDB_ENDPOINT_KEY}" "${RAILWAY_SPICEDB_ENDPOINT_TEMPLATE:-${DEFAULT_SPICEDB_ENDPOINT_TEMPLATE}}"
+
+runtime_var_is_unresolved() {
+  local value="${1:-}"
+
+  [ -z "${value}" ] || printf '%s' "${value}" | grep -q '\$[{][{]'
+}
 
 preview_log "Resolving rendered runtime variables for ${RAILWAY_ENV_NAME}."
 resolve_runtime_vars
