@@ -12,7 +12,10 @@ const evaluatorQueryKeys = {
 export function useEvaluatorsQuery({
   enabled = true,
   agentId,
-}: { enabled?: boolean; agentId?: string } = {}) {
+}: {
+  enabled?: boolean;
+  agentId?: string;
+} = {}) {
   'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 

@@ -168,9 +168,7 @@ export function DatasetRunConfigForm({
           const names = unscopedEvaluators
             .map((id) => evaluators.find((e) => e.id === id)?.name ?? id)
             .join(', ');
-          toast.error(
-            `The following evaluators are not scoped to the selected agents: ${names}`
-          );
+          toast.error(`The following evaluators are not scoped to the selected agents: ${names}`);
           return;
         }
       }

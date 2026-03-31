@@ -83,9 +83,7 @@ export function EvaluatorViewDialog({
               {loadingScope ? (
                 <span className="text-sm text-muted-foreground">Loading...</span>
               ) : scopedAgentIds.length === 0 ? (
-                <span className="text-sm text-muted-foreground">
-                  All agents (project-wide)
-                </span>
+                <span className="text-sm text-muted-foreground">All agents (project-wide)</span>
               ) : (
                 <div className="flex flex-wrap gap-1.5">
                   {scopedAgentIds.map((id) => (
