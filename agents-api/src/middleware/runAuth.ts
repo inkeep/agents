@@ -597,6 +597,8 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
   }
 
   let endUserId: string | undefined;
+  let anonTid: string | undefined;
+  let anonPid: string | undefined;
   let authMethod:
     | 'app_credential_web_client'
     | 'app_credential_api'
@@ -792,6 +794,8 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       }
 
       endUserId = payload.sub;
+      anonTid = typeof payload.tid === 'string' ? payload.tid : undefined;
+      anonPid = typeof payload.pid === 'string' ? payload.pid : undefined;
     } catch (err) {
       const errorType =
         err instanceof errors.JWTExpired
@@ -825,8 +829,8 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
   return {
     authResult: {
       apiKey: bearerToken || appIdHeader,
-      tenantId: app.tenantId || reqData.tenantId || '',
-      projectId: app.projectId || reqData.projectId || '',
+      tenantId: app.tenantId || anonTid || '',
+      projectId: app.projectId || anonPid || '',
       agentId,
       apiKeyId: `app:${app.id}`,
       metadata: {

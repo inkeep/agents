@@ -6417,6 +6417,7 @@
             "enum": [
               "bad_request",
               "unauthorized",
+              "payment_required",
               "forbidden",
               "not_found",
               "conflict",
@@ -11808,6 +11809,129 @@
         ]
       }
     },
+    "/manage/tenants/{tenantId}/entitlements": {
+      "get": {
+        "description": "List all entitlements for the current organization.",
+        "operationId": "list-org-entitlements",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "entitlements": {
+                      "items": {
+                        "properties": {
+                          "maxValue": {
+                            "example": 10,
+                            "type": "integer"
+                          },
+                          "resourceType": {
+                            "example": "seat:admin",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "resourceType",
+                          "maxValue"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "entitlements"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "List of entitlements retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Org Entitlements",
+        "tags": [
+          "Entitlements"
+        ],
+        "x-authz": {
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
+          "permission": "member",
+          "resource": "organization"
+        }
+      }
+    },
     "/manage/tenants/{tenantId}/github/install-url": {
       "get": {
         "description": "Generates a URL to install the GitHub App on an organization or user account. The URL includes a signed state parameter that encodes the tenant ID and expires after 10 minutes. After installation, GitHub will redirect back to our callback endpoint with this state.",
@@ -13144,6 +13268,10 @@
           "description": "Requires organization admin role",
           "permission": "admin",
           "resource": "organization"
+        },
+        "x-entitlement": {
+          "description": "Subject to quota:project limit when configured for the organization",
+          "resourceType": "quota:project"
         }
       }
     },
@@ -13825,6 +13953,10 @@
           "description": "Requires organization admin role",
           "permission": "admin",
           "resource": "organization"
+        },
+        "x-entitlement": {
+          "description": "Subject to quota:project limit when configured for the organization",
+          "resourceType": "quota:project"
         }
       }
     },
@@ -44104,6 +44236,10 @@
     {
       "description": "Operations for managing data components",
       "name": "Data Components"
+    },
+    {
+      "description": "Operations for managing organization entitlements",
+      "name": "Entitlements"
     },
     {
       "description": "Operations for managing evaluations",
