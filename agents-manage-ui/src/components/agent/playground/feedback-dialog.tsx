@@ -29,14 +29,16 @@ interface FeedbackDialogProps {
   onNegativeFeedbackSubmit?: (feedback: string) => void;
 }
 
-const feedbackSchema = z.object({
-  type: z.enum(['positive', 'negative']),
-  scope: z.enum(['message', 'conversation']),
-  feedback: z
-    .string()
-    .min(1, 'Please provide details.')
-    .max(1000, 'Feedback must be less than 1000 characters'),
-});
+const feedbackSchema = z
+  .object({
+    type: z.enum(['positive', 'negative']),
+    scope: z.enum(['message', 'conversation']),
+    feedback: z.string().max(1000, 'Feedback must be less than 1000 characters').optional(),
+  })
+  .refine((data) => data.type === 'positive' || (data.feedback && data.feedback.length > 0), {
+    message: 'Please provide details for negative feedback.',
+    path: ['feedback'],
+  });
 
 type FeedbackFormData = z.infer<typeof feedbackSchema>;
 
@@ -85,7 +87,7 @@ export const FeedbackDialog = ({
         conversationId,
         messageId: scope === 'message' ? messageId : undefined,
         type,
-        details: feedback,
+        details: feedback || null,
       });
 
       if (!result.success) {
@@ -105,7 +107,7 @@ export const FeedbackDialog = ({
       return;
     }
 
-    onNegativeFeedbackSubmit?.(feedback);
+    if (feedback) onNegativeFeedbackSubmit?.(feedback);
     toast.success('Feedback saved');
     onOpenChange(false);
   };

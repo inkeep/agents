@@ -158,6 +158,7 @@ export function FeedbackTable({
               <Button
                 variant={typeFilter === 'positive' ? 'default' : 'outline'}
                 size="sm"
+                aria-pressed={typeFilter === 'positive'}
                 onClick={() => {
                   const next = typeFilter === 'positive' ? undefined : ('positive' as const);
                   setTypeFilter(next);
@@ -170,6 +171,7 @@ export function FeedbackTable({
               <Button
                 variant={typeFilter === 'negative' ? 'default' : 'outline'}
                 size="sm"
+                aria-pressed={typeFilter === 'negative'}
                 onClick={() => {
                   const next = typeFilter === 'negative' ? undefined : ('negative' as const);
                   setTypeFilter(next);
@@ -182,8 +184,9 @@ export function FeedbackTable({
             </div>
 
             <div className="relative w-full md:w-[260px]">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-white/40" />
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-white/40" aria-hidden="true" />
               <Input
+                aria-label="Filter by conversation ID"
                 value={conversationId}
                 onChange={(e) => {
                   const v = e.target.value;
@@ -198,6 +201,7 @@ export function FeedbackTable({
                   variant="ghost"
                   size="icon"
                   className="absolute right-0 top-0 h-9 w-9"
+                  aria-label="Clear filter"
                   onClick={() => {
                     setConversationId('');
                     debouncedConversationFilter('');

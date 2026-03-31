@@ -7,16 +7,13 @@ import type {
   PaginationConfig,
   ProjectScopeConfig,
 } from '../../types/index';
+import { projectScopedWhere } from '../manage/scope-helpers';
 
 export const getFeedbackById =
   (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; feedbackId: string }) => {
     return db.query.feedback.findFirst({
-      where: and(
-        eq(feedback.tenantId, params.scopes.tenantId),
-        eq(feedback.projectId, params.scopes.projectId),
-        eq(feedback.id, params.feedbackId)
-      ),
+      where: and(projectScopedWhere(feedback, params.scopes), eq(feedback.id, params.feedbackId)),
     });
   };
 
@@ -49,10 +46,7 @@ export const listFeedback =
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
-    const conditions = [
-      eq(feedback.tenantId, params.scopes.tenantId),
-      eq(feedback.projectId, params.scopes.projectId),
-    ];
+    const conditions = [projectScopedWhere(feedback, params.scopes)];
 
     if (params.conversationId) {
       conditions.push(eq(feedback.conversationId, params.conversationId));
@@ -114,13 +108,7 @@ export const updateFeedback =
         ...params.data,
         updatedAt: now,
       })
-      .where(
-        and(
-          eq(feedback.tenantId, params.scopes.tenantId),
-          eq(feedback.projectId, params.scopes.projectId),
-          eq(feedback.id, params.feedbackId)
-        )
-      )
+      .where(and(projectScopedWhere(feedback, params.scopes), eq(feedback.id, params.feedbackId)))
       .returning();
 
     return updated;
@@ -131,13 +119,7 @@ export const deleteFeedback =
   async (params: { scopes: ProjectScopeConfig; feedbackId: string }) => {
     const [deleted] = await db
       .delete(feedback)
-      .where(
-        and(
-          eq(feedback.tenantId, params.scopes.tenantId),
-          eq(feedback.projectId, params.scopes.projectId),
-          eq(feedback.id, params.feedbackId)
-        )
-      )
+      .where(and(projectScopedWhere(feedback, params.scopes), eq(feedback.id, params.feedbackId)))
       .returning();
 
     return deleted;
