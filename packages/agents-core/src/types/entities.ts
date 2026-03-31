@@ -168,6 +168,8 @@ import type {
   ProjectMetadataSelectSchema,
   ProjectSelectSchema,
   ProjectUpdateSchema,
+  AddScheduledTriggerUserRequestSchema,
+  LastRunSummarySchema,
   ScheduledTriggerApiInsertSchema,
   ScheduledTriggerApiSelectSchema,
   ScheduledTriggerApiUpdateSchema,
@@ -177,6 +179,8 @@ import type {
   ScheduledTriggerInvocationUpdateSchema,
   ScheduledTriggerSelectSchema,
   ScheduledTriggerUpdateSchema,
+  ScheduledTriggerUsersResponseSchema,
+  SetScheduledTriggerUsersRequestSchema,
   SchedulerStateSelectSchema,
   SkillApiInsertSchema,
   SkillApiSelectSchema,
@@ -461,6 +465,13 @@ export type ScheduledTriggerInvocationInsert = z.infer<
 export type ScheduledTriggerInvocationUpdate = z.infer<
   typeof ScheduledTriggerInvocationUpdateSchema
 >;
+
+export type LastRunSummary = z.infer<typeof LastRunSummarySchema>;
+export type SetScheduledTriggerUsersRequest = z.infer<
+  typeof SetScheduledTriggerUsersRequestSchema
+>;
+export type AddScheduledTriggerUserRequest = z.infer<typeof AddScheduledTriggerUserRequestSchema>;
+export type ScheduledTriggerUsersResponse = z.infer<typeof ScheduledTriggerUsersResponseSchema>;
 
 export type SchedulerState = z.infer<typeof SchedulerStateSelectSchema>;
 

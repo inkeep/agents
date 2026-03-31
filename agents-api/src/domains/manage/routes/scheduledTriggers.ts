@@ -15,6 +15,7 @@ import {
   getScheduledTriggerById,
   getScheduledTriggerInvocationById,
   getScheduledTriggerRunInfoBatch,
+  getScheduledTriggerUsersBatch,
   getWaitUntil,
   interpolateTemplate,
   listScheduledTriggerInvocationsPaginated,
@@ -123,10 +124,16 @@ app.openapi(
       triggerId: trigger.id,
     }));
 
-    const runInfoMap = await getScheduledTriggerRunInfoBatch(runDbClient)({
-      scopes: { tenantId, projectId },
-      triggerIds,
-    });
+    const [runInfoMap, usersBatchMap] = await Promise.all([
+      getScheduledTriggerRunInfoBatch(runDbClient)({
+        scopes: { tenantId, projectId },
+        triggerIds,
+      }),
+      getScheduledTriggerUsersBatch(runDbClient)({
+        tenantId,
+        scheduledTriggerIds: data.map((t) => t.id),
+      }),
+    ]);
 
     const dataWithRunInfo = data.map((trigger) => {
       const { tenantId: _tid, projectId: _pid, agentId: _aid, ...rest } = trigger;
@@ -136,6 +143,8 @@ app.openapi(
         lastRunConversationIds: [],
         nextRunAt: null,
       };
+      const triggerUserIds = usersBatchMap.get(trigger.id) ?? [];
+      const userCount = triggerUserIds.length;
 
       // Calculate nextRunAt if it's null and trigger is enabled
       if (!runInfo.nextRunAt && trigger.enabled) {
@@ -167,6 +176,15 @@ app.openapi(
       return {
         ...rest,
         ...runInfo,
+        runAsUserIds: triggerUserIds,
+        userCount,
+        lastRunSummary: null as {
+          total: number;
+          completed: number;
+          failed: number;
+          running: number;
+          pending: number;
+        } | null,
       };
     });
 
