@@ -1,6 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import {
   addAppAuthKey,
   deleteAppAuthKey,
@@ -71,7 +70,6 @@ export async function updateAppAuthSettingsAction(
         },
       },
     });
-    revalidatePath(`/${tenantId}/projects/${projectId}/apps`);
     return { success: true };
   } catch (error) {
     if (error instanceof ApiError) {
