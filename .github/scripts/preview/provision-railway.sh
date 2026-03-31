@@ -26,24 +26,26 @@ require_env_vars \
   GITHUB_STEP_SUMMARY
 
 RAILWAY_ENV_NAME="$(pr_env_name "${PR_NUMBER}")"
+RAILWAY_TEMPLATE_ENV_ID="$(railway_wait_for_environment_id "${RAILWAY_PROJECT_ID}" "${RAILWAY_TEMPLATE_ENVIRONMENT}" 5 1)"
+OUTPUT_SERVICE_ID="$(railway_project_service_id "${RAILWAY_PROJECT_ID}" "${RAILWAY_OUTPUT_SERVICE}")"
+SPICEDB_SERVICE_ID="$(railway_project_service_id "${RAILWAY_PROJECT_ID}" "${RAILWAY_SPICEDB_SERVICE}")"
 
-if ! railway link \
-  --project "${RAILWAY_PROJECT_ID}" \
-  --service "${RAILWAY_OUTPUT_SERVICE}" \
-  --environment "${RAILWAY_TEMPLATE_ENVIRONMENT}" \
-  >/dev/null; then
-  echo "Failed to link Railway CLI to project ${RAILWAY_PROJECT_ID} service ${RAILWAY_OUTPUT_SERVICE} env ${RAILWAY_TEMPLATE_ENVIRONMENT}." >&2
+if [ -z "${OUTPUT_SERVICE_ID}" ]; then
+  echo "Unable to resolve Railway output service ${RAILWAY_OUTPUT_SERVICE} in project ${RAILWAY_PROJECT_ID}." >&2
+  exit 1
+fi
+
+if [ -z "${SPICEDB_SERVICE_ID}" ]; then
+  echo "Unable to resolve Railway SpiceDB service ${RAILWAY_SPICEDB_SERVICE} in project ${RAILWAY_PROJECT_ID}." >&2
   exit 1
 fi
 
 ENV_EXISTS="$(railway_env_exists_count "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}")"
 
 if [ "${ENV_EXISTS}" = "0" ]; then
-  if ! railway environment new "${RAILWAY_ENV_NAME}" \
-    --copy "${RAILWAY_TEMPLATE_ENVIRONMENT}"; then
+  if ! railway_environment_create_from_source "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" "${RAILWAY_TEMPLATE_ENV_ID}" >/dev/null; then
     echo "Initial create attempt failed; re-checking whether ${RAILWAY_ENV_NAME} now exists."
-    ENV_EXISTS="$(railway_env_exists_count "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}")"
-    if [ "${ENV_EXISTS}" = "0" ]; then
+    if ! railway_wait_for_environment_id "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" 20 4 >/dev/null; then
       echo "Failed to create Railway environment ${RAILWAY_ENV_NAME}."
       exit 1
     fi
@@ -52,22 +54,18 @@ else
   echo "Railway environment ${RAILWAY_ENV_NAME} already exists"
 fi
 
+RAILWAY_ENV_ID="$(railway_wait_for_environment_id "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" 20 4)"
+
 railway_ensure_tcp_proxy "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" "${RAILWAY_MANAGE_DB_SERVICE}" "${RAILWAY_MANAGE_DB_TCP_PORT}"
 railway_ensure_tcp_proxy "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" "${RAILWAY_RUN_DB_SERVICE}" "${RAILWAY_RUN_DB_TCP_PORT}"
 railway_ensure_tcp_proxy "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" "${RAILWAY_SPICEDB_SERVICE}" "${RAILWAY_SPICEDB_TCP_PORT}"
 
 TEMPLATE_SERVICE_ENV_JSON="$(
-  railway variable list \
-    --service "${RAILWAY_OUTPUT_SERVICE}" \
-    --environment "${RAILWAY_TEMPLATE_ENVIRONMENT}" \
-    --json
+  railway_variables_json "${RAILWAY_PROJECT_ID}" "${RAILWAY_TEMPLATE_ENV_ID}" "${OUTPUT_SERVICE_ID}" true
 )"
 
 SERVICE_ENV_JSON="$(
-  railway variable list \
-    --service "${RAILWAY_OUTPUT_SERVICE}" \
-    --environment "${RAILWAY_ENV_NAME}" \
-    --json
+  railway_variables_json "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_ID}" "${OUTPUT_SERVICE_ID}" true
 )"
 
 json_get_var() {
@@ -82,10 +80,7 @@ validate_spicedb_preshared_key() {
   local current_value=""
 
   spicedb_service_env_json="$(
-    railway variable list \
-      --service "${RAILWAY_SPICEDB_SERVICE}" \
-      --environment "${RAILWAY_ENV_NAME}" \
-      --json
+    railway_variables_json "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_ID}" "${SPICEDB_SERVICE_ID}" true
   )"
   current_value="$(json_get_var "${spicedb_service_env_json}" "${RAILWAY_SPICEDB_PRESHARED_KEY_KEY}")"
 
@@ -104,12 +99,8 @@ validate_spicedb_preshared_key() {
 
 refresh_service_env_dump() {
   SERVICE_ENV_JSON="$(
-    railway variable list \
-      --service "${RAILWAY_OUTPUT_SERVICE}" \
-      --environment "${RAILWAY_ENV_NAME}" \
-      --json
+    railway_variables_json "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_ID}" "${OUTPUT_SERVICE_ID}" true
   )"
-  SERVICE_ENV_DUMP="$(jq -r 'to_entries[] | "\(.key)=\(.value)"' <<< "${SERVICE_ENV_JSON}")"
 }
 
 ensure_runtime_var_seeded() {
@@ -118,12 +109,17 @@ ensure_runtime_var_seeded() {
   local existing=""
   local seed_value=""
   local source_label=""
+  local action="Seeded"
+
+  existing="$(json_get_var "${SERVICE_ENV_JSON}" "${key}")"
 
   if [ -n "${explicit_template}" ]; then
+    if [ "${existing}" = "${explicit_template}" ]; then
+      return
+    fi
     seed_value="${explicit_template}"
     source_label="repository template override"
   else
-    existing="$(json_get_var "${SERVICE_ENV_JSON}" "${key}")"
     if [ -n "${existing}" ]; then
       return
     fi
@@ -138,32 +134,48 @@ ensure_runtime_var_seeded() {
     exit 1
   fi
 
-  railway variable set \
-    --service "${RAILWAY_OUTPUT_SERVICE}" \
-    --environment "${RAILWAY_ENV_NAME}" \
-    --skip-deploys \
-    "${key}=${seed_value}" >/dev/null
+  railway_variable_collection_upsert \
+    "${RAILWAY_PROJECT_ID}" \
+    "${RAILWAY_ENV_ID}" \
+    "${OUTPUT_SERVICE_ID}" \
+    true \
+    "$(jq -nc --arg key "${key}" --arg value "${seed_value}" '{($key): $value}')" >/dev/null
 
-  echo "Seeded ${key} in ${RAILWAY_ENV_NAME} from ${source_label}."
+  if [ -n "${existing}" ]; then
+    action="Updated"
+  fi
+
+  echo "${action} ${key} in ${RAILWAY_ENV_NAME} from ${source_label}."
   refresh_service_env_dump
 }
 
-extract_runtime_var() {
-  local key="$1"
-  local max_attempts="${2:-30}"
-  local sleep_seconds="${3:-2}"
+resolve_runtime_vars() {
+  local max_attempts="${1:-20}"
+  local sleep_seconds="${2:-4}"
   local attempt=""
-  local line=""
+  local key=""
   local value=""
+  local rendered_service_env_json=""
+  local manage_db_url=""
+  local run_db_url=""
+  local spicedb_endpoint=""
 
   for attempt in $(seq 1 "${max_attempts}"); do
-    line="$(printf '%s\n' "${SERVICE_ENV_DUMP}" | grep -m1 "^${key}=" || true)"
-    if [ -n "${line}" ]; then
-      value="${line#*=}"
-      if ! printf '%s' "${value}" | grep -q '\$[{][{]'; then
-        printf '%s' "${value}"
-        return 0
-      fi
+    rendered_service_env_json="$(
+      railway_variables_json "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_ID}" "${OUTPUT_SERVICE_ID}"
+    )"
+    manage_db_url="$(json_get_var "${rendered_service_env_json}" "${RAILWAY_MANAGE_DB_URL_KEY}")"
+    run_db_url="$(json_get_var "${rendered_service_env_json}" "${RAILWAY_RUN_DB_URL_KEY}")"
+    spicedb_endpoint="$(json_get_var "${rendered_service_env_json}" "${RAILWAY_SPICEDB_ENDPOINT_KEY}")"
+
+    if [ -n "${manage_db_url}" ] &&
+      [ -n "${run_db_url}" ] &&
+      [ -n "${spicedb_endpoint}" ] &&
+      ! printf '%s' "${manage_db_url}${run_db_url}${spicedb_endpoint}" | grep -q '\$[{][{]'; then
+      MANAGE_DB_URL="${manage_db_url}"
+      RUN_DB_URL="${run_db_url}"
+      SPICEDB_ENDPOINT="${spicedb_endpoint}"
+      return 0
     fi
 
     if [ "${attempt}" -lt "${max_attempts}" ]; then
@@ -172,11 +184,17 @@ extract_runtime_var() {
     fi
   done
 
-  if [ -z "${line}" ]; then
-    echo "Missing runtime variable ${key} in Railway service ${RAILWAY_OUTPUT_SERVICE} for env ${RAILWAY_ENV_NAME}." >&2
-  else
-    echo "Runtime variable ${key} is unresolved (${value}) after waiting for Railway interpolation." >&2
-  fi
+  for key in \
+    "${RAILWAY_MANAGE_DB_URL_KEY}" \
+    "${RAILWAY_RUN_DB_URL_KEY}" \
+    "${RAILWAY_SPICEDB_ENDPOINT_KEY}"; do
+    value="$(json_get_var "${rendered_service_env_json}" "${key}")"
+    if [ -z "${value}" ]; then
+      echo "Missing runtime variable ${key} in Railway service ${RAILWAY_OUTPUT_SERVICE} for env ${RAILWAY_ENV_NAME}." >&2
+    else
+      echo "Runtime variable ${key} is unresolved (${value}) after waiting for Railway interpolation." >&2
+    fi
+  done
   exit 1
 }
 
@@ -188,9 +206,7 @@ ensure_runtime_var_seeded "${RAILWAY_MANAGE_DB_URL_KEY}" "${RAILWAY_MANAGE_DB_UR
 ensure_runtime_var_seeded "${RAILWAY_RUN_DB_URL_KEY}" "${RAILWAY_RUN_DB_URL_TEMPLATE:-}"
 ensure_runtime_var_seeded "${RAILWAY_SPICEDB_ENDPOINT_KEY}" "${RAILWAY_SPICEDB_ENDPOINT_TEMPLATE:-${DEFAULT_SPICEDB_ENDPOINT_TEMPLATE}}"
 
-MANAGE_DB_URL="$(extract_runtime_var "${RAILWAY_MANAGE_DB_URL_KEY}")"
-RUN_DB_URL="$(extract_runtime_var "${RAILWAY_RUN_DB_URL_KEY}")"
-SPICEDB_ENDPOINT="$(extract_runtime_var "${RAILWAY_SPICEDB_ENDPOINT_KEY}")"
+resolve_runtime_vars
 
 mask_env_vars MANAGE_DB_URL RUN_DB_URL SPICEDB_ENDPOINT SPICEDB_PRESHARED_KEY
 

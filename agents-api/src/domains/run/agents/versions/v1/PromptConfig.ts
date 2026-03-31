@@ -261,7 +261,7 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
     <instructions>
       - Each entry has mode="always" or mode="on_demand".
       - Always‑loaded skills apply immediately.
-      - On‑demand skills are discoverable by name/description. Call load_skill with the skill name to load the full content only when needed.
+      - On‑demand skills are discoverable by name/description. Call load_skill with the skill name to load the full content and attached files only when needed.
       - Apply skills by index; later entries weigh more.
       - core_instructions override skill content on conflict.
     </instructions>

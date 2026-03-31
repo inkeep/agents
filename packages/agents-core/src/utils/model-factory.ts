@@ -16,7 +16,7 @@ import { gatewayCostMiddleware } from './usage-cost-middleware';
 
 const logger = getLogger('ModelFactory');
 
-const GATEWAY_ROUTABLE_PROVIDERS = ['anthropic', 'openai', 'google'] as const;
+import { GATEWAY_ROUTABLE_PROVIDERS_SET } from '../constants/models.js';
 
 // NVIDIA NIM default provider instance
 const nimDefault = createOpenAICompatible({
@@ -206,13 +206,14 @@ export class ModelFactory {
 
     const shouldRouteViaGateway =
       !!process.env.AI_GATEWAY_API_KEY &&
-      (GATEWAY_ROUTABLE_PROVIDERS as readonly string[]).includes(provider) &&
+      GATEWAY_ROUTABLE_PROVIDERS_SET.has(provider) &&
       Object.keys(providerConfig).length === 0;
 
     let model: LanguageModel;
 
     if (shouldRouteViaGateway) {
-      model = gateway(`${provider}/${modelName}`);
+      const hasAllowedProviders = !!modelSettings.allowedProviders?.length;
+      model = gateway(hasAllowedProviders ? modelName : `${provider}/${modelName}`);
     } else if (
       provider !== 'mock' &&
       (provider === 'azure' || Object.keys(providerConfig).length > 0)
@@ -348,13 +349,34 @@ export class ModelFactory {
     const model = ModelFactory.createModel({
       model: modelString,
       providerOptions: modelSettings?.providerOptions,
+      allowedProviders: modelSettings?.allowedProviders,
     });
 
     const generationParams = ModelFactory.getGenerationParams(modelSettings?.providerOptions);
-    const streamProviderOptions = ModelFactory.extractStreamProviderOptions(
+    let streamProviderOptions = ModelFactory.extractStreamProviderOptions(
       modelSettings?.providerOptions
     );
     const maxDuration = modelSettings?.providerOptions?.maxDuration as number | undefined;
+
+    if (process.env.AI_GATEWAY_API_KEY) {
+      const hasAllowedProviders = !!modelSettings?.allowedProviders?.length;
+      const hasFallbackModels = !!modelSettings?.fallbackModels?.length;
+
+      if (hasAllowedProviders || hasFallbackModels) {
+        const existingGateway = (streamProviderOptions?.gateway ?? {}) as Record<string, unknown>;
+        streamProviderOptions = {
+          ...streamProviderOptions,
+          gateway: {
+            ...existingGateway,
+            ...(hasFallbackModels && { models: modelSettings.fallbackModels }),
+            ...(hasAllowedProviders && {
+              order: modelSettings.allowedProviders,
+              only: modelSettings.allowedProviders,
+            }),
+          } as JSONObject,
+        };
+      }
+    }
 
     return {
       model,

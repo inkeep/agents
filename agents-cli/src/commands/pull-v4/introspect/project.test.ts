@@ -82,12 +82,6 @@ describe('pull-v4 introspect generator', () => {
           id: 'linear-ticket-filer',
           name: 'Linear Ticket Filer',
           defaultSubAgentId: 'avkkjrdavvv12h0g0dpv622222',
-          scheduledTriggers: {
-            fj08bu36pfj1pi0p580d3: {
-              id: 'fj08bu36pfj1pi0p580d3',
-              name: 'my scheduled trigger',
-            },
-          },
           subAgents: {
             avkkjrdavvv12h0g0dpv622222: {
               id: 'avkkjrdavvv12h0g0dpv622222',

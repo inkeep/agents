@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2 } from 'lucide-react';
+import { GitBranch, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -44,6 +44,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useAuthSession } from '@/hooks/use-auth';
+import { useBranches } from '@/hooks/use-branches';
 import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
 import { useOrgMembers } from '@/hooks/use-org-members';
 import {
@@ -76,6 +77,7 @@ const scheduledTriggerFormSchema = z
     retryDelaySeconds: z.coerce.number().int().min(10).max(3600).default(60),
     timeoutSeconds: z.coerce.number().int().min(30).max(780).default(780),
     runAsUserId: z.string().optional(),
+    ref: z.string().default('main'),
   })
   .refine(
     (data) => {
@@ -117,6 +119,7 @@ export function ScheduledTriggerForm({
   const { user } = useAuthSession();
   const { isAdmin, isLoading: isAdminLoading } = useIsOrgAdmin();
   const { members: orgMembers, isLoading: isMembersLoading } = useOrgMembers(tenantId, projectId);
+  const { branches, isLoading: isBranchesLoading } = useBranches(tenantId, projectId);
 
   // Non-admins can only assign triggers to themselves
   const selectableMembers = isAdmin ? orgMembers : orgMembers.filter((m) => m.id === user?.id);
@@ -144,6 +147,7 @@ export function ScheduledTriggerForm({
         retryDelaySeconds: p?.retryDelaySeconds ? Number(p.retryDelaySeconds) : 60,
         timeoutSeconds: p?.timeoutSeconds ? Number(p.timeoutSeconds) : 780,
         runAsUserId: undefined,
+        ref: p?.ref || '',
       };
     }
 
@@ -162,6 +166,7 @@ export function ScheduledTriggerForm({
       retryDelaySeconds: trigger.retryDelaySeconds ?? 60,
       timeoutSeconds: trigger.timeoutSeconds ?? 780,
       runAsUserId: trigger.runAsUserId ?? undefined,
+      ref: trigger.ref ?? '',
     };
   };
 
@@ -209,6 +214,7 @@ export function ScheduledTriggerForm({
         maxRetries: data.maxRetries,
         retryDelaySeconds: data.retryDelaySeconds,
         timeoutSeconds: data.timeoutSeconds,
+        ref: data.ref || 'main',
       };
 
       if (mode === 'edit') {
@@ -331,6 +337,41 @@ export function ScheduledTriggerForm({
                 </FormItem>
               )}
             />
+          </CardContent>
+        </Card>
+
+        {/* Agent Version */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <GitBranch className="h-5 w-5" />
+              Agent Version
+            </CardTitle>
+            <CardDescription>
+              Choose which branch of agent configuration this trigger runs against. Use this to test
+              agent changes on a feature branch before merging.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isBranchesLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading branches...
+              </div>
+            ) : (
+              <GenericSelect
+                control={form.control}
+                name="ref"
+                label="Branch"
+                description="Defaults to main if not specified. Select a feature branch to run the trigger against that branch's agent configuration."
+                options={branches.map((branch) => ({
+                  value: branch.isDefault ? '' : branch.name,
+                  label: branch.name,
+                }))}
+                placeholder="main"
+                selectTriggerClassName="w-full"
+              />
+            )}
           </CardContent>
         </Card>
 

@@ -43,6 +43,27 @@ export async function createDatasetRunConfig(
   );
 }
 
+export interface TriggerDatasetRunResponse {
+  datasetRunId: string;
+  status: 'pending';
+  totalItems: number;
+}
+
+export async function triggerDatasetRun(
+  tenantId: string,
+  projectId: string,
+  runConfigId: string,
+  data?: { evaluatorIds?: string[] }
+): Promise<TriggerDatasetRunResponse> {
+  return makeManagementApiRequest<TriggerDatasetRunResponse>(
+    `tenants/${tenantId}/projects/${projectId}/evals/dataset-run-configs/${runConfigId}/run`,
+    {
+      method: 'POST',
+      body: JSON.stringify(data ?? {}),
+    }
+  );
+}
+
 export async function updateDatasetRunConfig(
   tenantId: string,
   projectId: string,

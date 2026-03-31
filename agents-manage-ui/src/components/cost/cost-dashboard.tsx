@@ -49,7 +49,9 @@ interface UsageSummaryRow {
 
 export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostDashboardProps) {
   const [summaryByModel, setSummaryByModel] = useState<UsageSummaryRow[]>([]);
+  const [summaryByAgent, setSummaryByAgent] = useState<UsageSummaryRow[]>([]);
   const [summaryByType, setSummaryByType] = useState<UsageSummaryRow[]>([]);
+  const [summaryByProvider, setSummaryByProvider] = useState<UsageSummaryRow[]>([]);
   const [events, setEvents] = useState<SigNozUsageEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -60,14 +62,18 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
       const start = new Date(startTime).getTime();
       const end = new Date(endTime).getTime();
 
-      const [byModel, byType, eventsList] = await Promise.all([
+      const [byModel, byAgent, byType, byProvider, eventsList] = await Promise.all([
         client.getUsageCostSummary(start, end, 'model', projectId),
+        client.getUsageCostSummary(start, end, 'agent', projectId),
         client.getUsageCostSummary(start, end, 'generation_type', projectId),
+        client.getUsageCostSummary(start, end, 'provider', projectId),
         client.getUsageEventsList(start, end, projectId, undefined, 200),
       ]);
 
       setSummaryByModel(byModel);
+      setSummaryByAgent(byAgent);
       setSummaryByType(byType);
+      setSummaryByProvider(byProvider);
       setEvents(eventsList);
     } catch (error) {
       console.error('Failed to fetch usage data:', error);
@@ -110,14 +116,19 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
     <>
       <UsageStatCards totals={totals} modelCount={summaryByModel.length} isLoading={isLoading} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         <UsageBreakdownTable title="Cost by Model" data={summaryByModel} isLoading={isLoading} />
         <UsageBreakdownTable
-          title="Cost by Type"
-          data={summaryByType}
+          title="Cost by Agent"
+          data={summaryByAgent}
           isLoading={isLoading}
-          formatGroupKey={(key) => key.replace(/_/g, ' ')}
-          groupLabel="Generation Type"
+          groupLabel="Agent"
+        />
+        <UsageBreakdownTable
+          title="Cost by Provider"
+          data={summaryByProvider}
+          isLoading={isLoading}
+          groupLabel="Provider"
         />
       </div>
 
@@ -169,6 +180,14 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
           />
         </div>
       </div>
+
+      <UsageBreakdownTable
+        title="Cost by Generation Type"
+        data={summaryByType}
+        isLoading={isLoading}
+        formatGroupKey={(key) => key.replace(/_/g, ' ')}
+        groupLabel="Generation Type"
+      />
     </>
   );
 }
@@ -311,70 +330,70 @@ function UsageEventsTable({
         ) : events.length === 0 ? (
           <p className="text-sm text-muted-foreground">No cost events for this period</p>
         ) : (
-          <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Model</TableHead>
-                  <TableHead className="text-right">Cost</TableHead>
-                  <TableHead className="text-right">In</TableHead>
-                  <TableHead className="text-right">Out</TableHead>
-                  <TableHead>Agent</TableHead>
-                  <TableHead>Sub Agent</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Conversation</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {events.map((event) => (
-                  <TableRow key={event.spanId}>
-                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                      {formatDateAgo(event.timestamp)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="font-mono text-xs">
-                        {event.generationType.replace(/_/g, ' ')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">{event.model}</TableCell>
-                    <TableCell className="text-right font-medium">
-                      {event.estimatedCostUsd ? formatCost(event.estimatedCostUsd) : '—'}
-                    </TableCell>
-                    <TableCell className="text-right text-muted-foreground">
-                      {formatTokens(event.inputTokens)}
-                    </TableCell>
-                    <TableCell className="text-right text-muted-foreground">
-                      {formatTokens(event.outputTokens)}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">{event.agentId || '—'}</TableCell>
-                    <TableCell className="font-mono text-xs">{event.subAgentId || '—'}</TableCell>
-                    <TableCell>
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[event.status] ?? ''}`}
+          <Table className="min-w-max" containerClassName="max-h-[500px] overflow-y-auto">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Time</TableHead>
+                <TableHead>Conversation</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Model</TableHead>
+                <TableHead>Provider</TableHead>
+                <TableHead className="text-right">Cost</TableHead>
+                <TableHead className="text-right">In</TableHead>
+                <TableHead className="text-right">Out</TableHead>
+                <TableHead>Agent</TableHead>
+                <TableHead>Sub Agent</TableHead>
+                <TableHead>Type</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {events.map((event) => (
+                <TableRow key={event.spanId}>
+                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                    {formatDateAgo(event.timestamp)}
+                  </TableCell>
+                  <TableCell>
+                    {projectId && event.conversationId ? (
+                      <Link
+                        href={`/${tenantId}/projects/${projectId}/traces/conversations/${event.conversationId}`}
+                        className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                       >
-                        {event.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {projectId && event.conversationId ? (
-                        <Link
-                          href={`/${tenantId}/projects/${projectId}/traces/conversations/${event.conversationId}`}
-                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                        >
-                          <ExternalLink className="h-3 w-3" />
-                          View trace
-                        </Link>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                        <ExternalLink className="h-3 w-3" />
+                        View trace
+                      </Link>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[event.status] ?? ''}`}
+                    >
+                      {event.status}
+                    </span>
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">{event.model}</TableCell>
+                  <TableCell className="font-mono text-xs">{event.provider || '—'}</TableCell>
+                  <TableCell className="text-right font-medium">
+                    {event.estimatedCostUsd ? formatCost(event.estimatedCostUsd) : '—'}
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground">
+                    {formatTokens(event.inputTokens)}
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground">
+                    {formatTokens(event.outputTokens)}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">{event.agentId || '—'}</TableCell>
+                  <TableCell className="font-mono text-xs">{event.subAgentId || '—'}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="font-mono text-xs">
+                      {event.generationType.replace(/_/g, ' ')}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </CardContent>
     </Card>

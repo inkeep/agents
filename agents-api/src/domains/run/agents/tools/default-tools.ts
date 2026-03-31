@@ -197,11 +197,15 @@ export function createLoadSkillTool(ctx: AgentRunContext): Tool<
     name: string;
     description: string;
     content: string;
+    files: Array<{
+      filePath: string;
+      content: string;
+    }>;
   }
 > {
   return tool({
     description:
-      'Load an on-demand skill by name and return its full content so you can apply it in this conversation.',
+      'Load an on-demand skill by name and return its full content plus any attached files so you can apply it in this conversation.',
     inputSchema: z.object({
       name: z.string().describe('The skill name from the on-demand skills list.'),
     }),
@@ -217,6 +221,7 @@ export function createLoadSkillTool(ctx: AgentRunContext): Tool<
         name: skill.name,
         description: skill.description,
         content: skill.content,
+        files: skill.files ?? [],
       };
     },
   });

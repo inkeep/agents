@@ -28,6 +28,12 @@ describe('useCapabilitiesQuery', () => {
         sandbox: {
           configured: true,
         },
+        modelFallback: {
+          enabled: false,
+        },
+        costTracking: {
+          enabled: false,
+        },
       },
     });
 

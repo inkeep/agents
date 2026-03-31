@@ -1379,15 +1379,34 @@ describe('Agent Conditional Tool Availability', () => {
       skills: [
         {
           id: 'always-loaded-skill',
+          subAgentSkillId: 'sub-agent-skill-1',
           name: 'always-loaded-skill',
           content: '',
+          description: 'Always loaded skill',
+          metadata: null,
+          index: 0,
           alwaysLoaded: false,
+          files: [],
         },
         {
           id: 'on-demand-skill',
+          subAgentSkillId: 'sub-agent-skill-2',
           name: 'on-demand-skill',
           content: '',
+          description: 'On demand skill',
+          metadata: null,
+          index: 1,
           alwaysLoaded: false,
+          files: [
+            {
+              filePath: 'SKILL.md',
+              content: 'Primary skill instructions',
+            },
+            {
+              filePath: 'templates/example.md',
+              content: 'Nested file content',
+            },
+          ],
         },
       ] as AgentConfig['skills'],
     };
@@ -1400,6 +1419,16 @@ describe('Agent Conditional Tool Availability', () => {
     expect(result).toMatchObject({
       id: 'on-demand-skill',
       name: 'on-demand-skill',
+      files: [
+        {
+          filePath: 'SKILL.md',
+          content: 'Primary skill instructions',
+        },
+        {
+          filePath: 'templates/example.md',
+          content: 'Nested file content',
+        },
+      ],
     });
   });
 });

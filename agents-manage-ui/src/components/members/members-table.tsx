@@ -25,6 +25,7 @@ import {
 import { useAuthClient } from '@/contexts/auth-client';
 import { createPasswordResetLink } from '@/lib/actions/password-reset';
 import type { UserProvider } from '@/lib/actions/user-accounts';
+
 import { InvitationActionsMenu } from './components/invitation-actions-menu';
 import { MemberActionsMenu } from './components/member-actions-menu';
 import { MemberConfirmationModals } from './components/member-confirmation-modals';
@@ -117,8 +118,22 @@ export function MembersTable({
       });
 
       if (error) {
+        const isEntitlementError = error.code === 'ENTITLEMENT_LIMIT_REACHED';
         toast.error('Failed to update role', {
-          description: error.message || 'An error occurred while updating the role.',
+          description: isEntitlementError
+            ? isOrgAdmin
+              ? error.message
+              : `${error.message}. Contact your organization admin.`
+            : error.message || 'An error occurred while updating the role.',
+          ...(isEntitlementError &&
+            isOrgAdmin && {
+              action: {
+                label: 'See usage',
+                onClick: () => {
+                  window.location.href = `/${organizationId}/billing`;
+                },
+              },
+            }),
         });
         return;
       }
@@ -326,20 +341,22 @@ export function MembersTable({
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              {ROLE_OPTIONS.map((r) => (
-                                <DropdownMenuItem
-                                  key={r.value}
-                                  onClick={() => handleRoleChange(member, r.value)}
-                                  className={role === r.value ? 'bg-muted' : ''}
-                                >
-                                  <div className="flex flex-col">
-                                    <span>{r.label}</span>
-                                    <span className="text-xs text-muted-foreground">
-                                      {r.description}
-                                    </span>
-                                  </div>
-                                </DropdownMenuItem>
-                              ))}
+                              {ROLE_OPTIONS.map((r) => {
+                                return (
+                                  <DropdownMenuItem
+                                    key={r.value}
+                                    onClick={() => handleRoleChange(member, r.value)}
+                                    className={role === r.value ? 'bg-muted' : ''}
+                                  >
+                                    <div className="flex flex-col">
+                                      <span>{r.label}</span>
+                                      <span className="text-xs text-muted-foreground">
+                                        {r.description}
+                                      </span>
+                                    </div>
+                                  </DropdownMenuItem>
+                                );
+                              })}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         ) : (

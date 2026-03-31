@@ -177,6 +177,8 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
 
       {viewingEvaluator && (
         <EvaluatorViewDialog
+          tenantId={tenantId}
+          projectId={projectId}
           evaluator={viewingEvaluator}
           isOpen={!!viewingEvaluator}
           onOpenChange={(open) => {
