@@ -2,4 +2,4 @@
 "@inkeep/agents-manage-ui": patch
 ---
 
-Fix panel layout error when toggling side pane visibility
+fix `Uncaught Error: Previous layout not found for panel index 2` when resizing `Try it` side-pane
