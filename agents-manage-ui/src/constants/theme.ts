@@ -51,4 +51,5 @@ export const STATIC_LABELS = Object.freeze({
   'no-organization-found': 'No organization found',
   skills: 'Skills',
   profile: 'Profile',
+  cost: 'Cost',
 });
