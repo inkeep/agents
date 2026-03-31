@@ -3,6 +3,8 @@ import { z } from '@hono/zod-openapi';
 import { schemaValidationDefaults } from '../constants/schema-validation/defaults';
 // Config DB imports (Doltgres - versioned)
 import {
+  agentDatasetRelations,
+  agentEvaluatorRelations,
   agents,
   artifactComponents,
   contextConfigs,
@@ -208,20 +210,18 @@ export const ModelSettingsSchema = z
     providerOptions: z.record(z.string(), z.unknown()).optional().openapi({
       description: 'The provider options to use for the project.',
     }),
+    fallbackModels: z.array(z.string().nonempty()).optional().openapi({
+      description:
+        'Ordered list of fallback models if the primary fails. Requires AI Gateway. Format: provider/model (e.g. "openai/gpt-5.2").',
+    }),
+    allowedProviders: z.array(z.string().nonempty()).optional().openapi({
+      description:
+        'Restrict and prioritize which providers can serve requests. Order determines preference. Requires AI Gateway. (e.g. ["bedrock", "anthropic"]).',
+    }),
   })
   .openapi('ModelSettings');
 
 export type ModelSettings = z.infer<typeof ModelSettingsSchema>;
-
-export const SimulationAgentSchema = z
-  .object({
-    stopWhen: StopWhenSchema.optional(),
-    prompt: z.string(),
-    model: ModelSettingsSchema,
-  })
-  .openapi('SimulationAgent');
-
-export type SimulationAgent = z.infer<typeof SimulationAgentSchema>;
 
 export const ModelSchema = z
   .object({
@@ -1455,20 +1455,10 @@ export const DatasetRunItemSchema = DatasetItemApiSelectSchema.pick({
   id: true,
   input: true,
   expectedOutput: true,
-  simulationAgent: true,
 })
   .partial()
   .extend({ agentId: z.string() })
   .openapi('DatasetRunItem');
-
-export const TriggerDatasetRunSchema = z
-  .object({
-    datasetRunId: z.string(),
-    items: z.array(DatasetRunItemSchema),
-    evaluatorIds: z.array(z.string()).optional(),
-    evaluationRunId: z.string().optional(),
-  })
-  .openapi('TriggerDatasetRun');
 
 export const TriggerConversationEvaluationSchema = z
   .object({
@@ -1524,6 +1514,38 @@ export const DatasetRunConfigApiInsertSchema = createApiInsertSchema(DatasetRunC
 export const DatasetRunConfigApiUpdateSchema = createApiUpdateSchema(DatasetRunConfigUpdateSchema)
   .omit({ id: true })
   .openapi('DatasetRunConfigUpdate');
+
+export const AgentDatasetRelationSelectSchema = createSelectSchema(agentDatasetRelations);
+export const AgentDatasetRelationInsertSchema = createInsertSchema(agentDatasetRelations).extend({
+  id: ResourceIdSchema,
+});
+export const AgentDatasetRelationUpdateSchema = AgentDatasetRelationInsertSchema.partial();
+
+export const AgentDatasetRelationApiSelectSchema = createApiSchema(
+  AgentDatasetRelationSelectSchema
+).openapi('AgentDatasetRelation');
+export const AgentDatasetRelationApiInsertSchema = createApiInsertSchema(
+  AgentDatasetRelationInsertSchema
+)
+  .omit({ id: true })
+  .openapi('AgentDatasetRelationCreate');
+
+export const AgentEvaluatorRelationSelectSchema = createSelectSchema(agentEvaluatorRelations);
+export const AgentEvaluatorRelationInsertSchema = createInsertSchema(
+  agentEvaluatorRelations
+).extend({
+  id: ResourceIdSchema,
+});
+export const AgentEvaluatorRelationUpdateSchema = AgentEvaluatorRelationInsertSchema.partial();
+
+export const AgentEvaluatorRelationApiSelectSchema = createApiSchema(
+  AgentEvaluatorRelationSelectSchema
+).openapi('AgentEvaluatorRelation');
+export const AgentEvaluatorRelationApiInsertSchema = createApiInsertSchema(
+  AgentEvaluatorRelationInsertSchema
+)
+  .omit({ id: true })
+  .openapi('AgentEvaluatorRelationCreate');
 
 export const DatasetRunConfigAgentRelationSelectSchema = createSelectSchema(
   datasetRunConfigAgentRelations

@@ -65,6 +65,7 @@ export {
   SEAT_RESOURCE_TYPES,
 } from './auth/entitlement-constants';
 export * from './constants/context-breakdown';
+export { GATEWAY_ROUTABLE_PROVIDERS_SET } from './constants/models';
 export * from './constants/otel-attributes';
 export * from './constants/signoz-queries';
 export { CredentialStoreType, MCPTransportType } from './types';
