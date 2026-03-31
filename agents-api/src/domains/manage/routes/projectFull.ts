@@ -4,6 +4,7 @@ import {
   cascadeDeleteByProject,
   checkoutBranch,
   commonGetErrorResponses,
+  countProjectsInRuntime,
   createApiError,
   createFullProjectServerSide,
   createProjectMetadataAndBranch,
@@ -22,6 +23,7 @@ import {
   getProjectMetadata,
   listTriggers,
   type OrgRole,
+  QUOTA_RESOURCE_TYPES,
   type ResolvedRef,
   removeProjectFromSpiceDb,
   syncProjectToSpiceDb,
@@ -30,6 +32,7 @@ import {
   type TriggerSelect,
   throwIfUniqueConstraintError,
   updateFullProjectServerSide,
+  withEntitlementLock,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, registerAuthzMeta } from '@inkeep/agents-core/middleware';
 import { HTTPException } from 'hono/http-exception';
@@ -38,6 +41,7 @@ import runDbClient from '../../../data/db/runDbClient';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
+import { requireEntitlement } from '../../../middleware/requireEntitlement';
 import { requirePermission } from '../../../middleware/requirePermission';
 import type { ManageAppVariables } from '../../../types/app';
 import {
@@ -94,6 +98,11 @@ app.openapi(
     description:
       'Create a complete project with all Agents, Sub Agents, tools, and relationships from JSON definition',
     permission: requirePermission({ project: ['create'] }),
+    entitlement: requireEntitlement({
+      resourceType: QUOTA_RESOURCE_TYPES.PROJECT,
+      countFn: (tenantId) => countProjectsInRuntime(runDbClient)({ tenantId }),
+      label: 'Project',
+    }),
     request: {
       params: TenantParamsSchema,
       body: {
@@ -456,49 +465,69 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
     // participant — if DB commit fails after SpiceDB succeeds, orphaned auth relationships
     // may remain in SpiceDB (safe due to deny-by-default).
     const updatedProject: FullProjectSelect = isCreate
-      ? await runDbClient.transaction(async (runTx) => {
-          return await configDb.transaction(async (configTx) => {
-            // Create project with branch first
-            await createProjectMetadataAndBranch(
-              runTx,
-              configTx
-            )({
-              tenantId,
-              projectId,
-              createdBy: userId,
-            });
-
-            logger.info({ tenantId, projectId }, 'Created project with branch (upsert)');
-
-            // Checkout the project main branch
-            const projectMainBranch = getProjectMainBranchName(tenantId, projectId);
-            await checkoutBranch(configTx)({
-              branchName: projectMainBranch,
-              autoCommitPending: true,
-            });
-
-            // Create the full project config
-            const project = await createFullProjectServerSide(configTx)({
-              scopes: { tenantId, projectId },
-              projectData: validatedProjectData,
-            });
-
-            // Sync to SpiceDB — if this throws, both DB transactions roll back.
-            // Note: if this succeeds but a subsequent DB commit fails, SpiceDB retains
-            // the auth relationships (orphaned but safe due to deny-by-default).
-            if (userId) {
-              await syncProjectToSpiceDb({
-                tenantId,
-                projectId,
-                creatorUserId: userId,
-              });
-            } else {
-              logger.warn({ tenantId, projectId }, 'Skipping SpiceDB sync — no userId available');
+      ? await withEntitlementLock(
+          runDbClient,
+          tenantId,
+          QUOTA_RESOURCE_TYPES.PROJECT,
+          async (limit, _tx) => {
+            if (limit !== null) {
+              const current = await countProjectsInRuntime(runDbClient)({ tenantId });
+              if (current >= limit) {
+                throw createApiError({
+                  code: 'payment_required',
+                  message: `Project limit reached (${current}/${limit})`,
+                  instance: c.req.path,
+                  extensions: {
+                    resourceType: QUOTA_RESOURCE_TYPES.PROJECT,
+                    current,
+                    limit,
+                  },
+                });
+              }
             }
 
-            return project;
-          });
-        })
+            return runDbClient.transaction(async (runTx) => {
+              return await configDb.transaction(async (configTx) => {
+                await createProjectMetadataAndBranch(
+                  runTx,
+                  configTx
+                )({
+                  tenantId,
+                  projectId,
+                  createdBy: userId,
+                });
+
+                logger.info({ tenantId, projectId }, 'Created project with branch (upsert)');
+
+                const projectMainBranch = getProjectMainBranchName(tenantId, projectId);
+                await checkoutBranch(configTx)({
+                  branchName: projectMainBranch,
+                  autoCommitPending: true,
+                });
+
+                const project = await createFullProjectServerSide(configTx)({
+                  scopes: { tenantId, projectId },
+                  projectData: validatedProjectData,
+                });
+
+                if (userId) {
+                  await syncProjectToSpiceDb({
+                    tenantId,
+                    projectId,
+                    creatorUserId: userId,
+                  });
+                } else {
+                  logger.warn(
+                    { tenantId, projectId },
+                    'Skipping SpiceDB sync — no userId available'
+                  );
+                }
+
+                return project;
+              });
+            });
+          }
+        )
       : await updateFullProjectServerSide(configDb)({
           scopes: { tenantId, projectId },
           projectData: validatedProjectData,
