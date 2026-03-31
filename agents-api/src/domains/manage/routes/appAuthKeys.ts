@@ -151,7 +151,6 @@ app.openapi(
     const updatedKeys = [...existingKeys, newKey];
     const updatedAuth = {
       ...appRecord.config.webClient.auth,
-      allowAnonymous: appRecord.config.webClient.auth?.allowAnonymous ?? false,
       publicKeys: updatedKeys,
     };
 
@@ -222,7 +221,6 @@ app.openapi(
     const updatedKeys = existingKeys.filter((k) => k.kid !== kid);
     const updatedAuth = {
       ...appRecord.config.webClient.auth,
-      allowAnonymous: appRecord.config.webClient.auth?.allowAnonymous ?? false,
       publicKeys: updatedKeys,
     };
 

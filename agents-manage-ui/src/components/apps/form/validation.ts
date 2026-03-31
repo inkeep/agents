@@ -38,7 +38,6 @@ const webClientFields = {
     .optional()
     .refine(validateDomainList, { message: DOMAIN_VALIDATION_MESSAGE }),
   audience: z.string().optional(),
-  requireAuth: z.boolean().optional(),
 };
 
 export const AppCreateFormSchema = z.object({

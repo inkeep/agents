@@ -130,23 +130,31 @@ export function AppUpdateForm({
         return;
       }
 
+      let hasKeyFailure = false;
+
       for (const kid of kidsToDelete) {
         const deleteResult = await deleteAppAuthKeyAction(tenantId, projectId, app.id, kid);
         if (!deleteResult.success) {
           toast.error(deleteResult.error || `Failed to delete key ${kid}`);
-          return;
+          hasKeyFailure = true;
+          break;
         }
       }
 
-      for (const key of pendingKeysToAdd) {
-        const addResult = await addAppAuthKeyAction(tenantId, projectId, app.id, key);
-        if (!addResult.success) {
-          toast.error(addResult.error || `Failed to add key ${key.kid}`);
-          return;
+      if (!hasKeyFailure) {
+        for (const key of pendingKeysToAdd) {
+          const addResult = await addAppAuthKeyAction(tenantId, projectId, app.id, key);
+          if (!addResult.success) {
+            toast.error(addResult.error || `Failed to add key ${key.kid}`);
+            hasKeyFailure = true;
+            break;
+          }
         }
       }
 
-      toast.success('App updated successfully');
+      if (!hasKeyFailure) {
+        toast.success('App updated successfully');
+      }
       onAppUpdated();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';

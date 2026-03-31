@@ -814,6 +814,35 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
     });
   });
 
+  describe('misconfiguration guard', () => {
+    it('should return 401 when allowAnonymous is false but no public keys configured', async () => {
+      const anonSecret = new TextEncoder().encode('test-anon-secret-for-jwt-signing-1234');
+      const anonToken = await new SignJWT({ app: 'app_test123', type: 'anonymous' })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setSubject('anon_test_user')
+        .setIssuer('inkeep')
+        .setIssuedAt()
+        .setExpirationTime(Math.floor(Date.now() / 1000) + 3600)
+        .sign(anonSecret);
+
+      const appRecord = makeAppWithAuth([], undefined, {}, { allowAnonymous: false });
+      mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
+
+      const { app: testApp } = createTestApp();
+      const res = await testApp.request('/test', {
+        headers: {
+          Authorization: `Bearer ${anonToken}`,
+          'x-inkeep-app-id': 'app_test123',
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(401);
+      const body = await res.json();
+      expect(body.detail).toContain('no public keys are configured');
+    });
+  });
+
   describe('error response formatting', () => {
     it('should return unauthorized code (not internal_server_error) for auth failures', async () => {
       const token = await signJwt(rsaPrivateKey, 'RS256', {}, { kid: 'wrong-kid', sub: 'user_1' });

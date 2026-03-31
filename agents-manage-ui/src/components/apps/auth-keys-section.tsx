@@ -1,6 +1,6 @@
 'use client';
 
-import { Copy, KeyRound, Plus, Trash2 } from 'lucide-react';
+import { AlertTriangle, Copy, KeyRound, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
@@ -183,6 +183,16 @@ export function AuthKeysSection({
         </div>
         <Switch id="require-auth" checked={requireAuth} onCheckedChange={onRequireAuthChange} />
       </div>
+
+      {requireAuth && allDisplayKeys.length === 0 && (
+        <div className="flex items-start gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+          <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+          <span>
+            Authentication is required but no public keys are configured. All requests will be
+            rejected until at least one key is added.
+          </span>
+        </div>
+      )}
 
       {showAddForm && (
         <div className="space-y-3 rounded-md border p-3">

@@ -10577,7 +10577,6 @@
       "WebClientAuthConfig": {
         "properties": {
           "allowAnonymous": {
-            "default": false,
             "type": "boolean"
           },
           "audience": {

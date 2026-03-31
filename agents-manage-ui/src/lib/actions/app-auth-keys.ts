@@ -6,7 +6,6 @@ import {
   fetchAppAuthKeys,
   type PublicKeyConfig,
 } from '../api/app-auth-keys';
-import { updateApp } from '../api/apps';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
 
@@ -39,38 +38,6 @@ export async function addAppAuthKeyAction(
   try {
     const key = await addAppAuthKey(tenantId, projectId, appId, body);
     return { success: true, data: key };
-  } catch (error) {
-    if (error instanceof ApiError) {
-      return { success: false, error: error.message, code: error.error.code };
-    }
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-      code: 'unknown_error',
-    };
-  }
-}
-
-export async function updateAppAuthSettingsAction(
-  tenantId: string,
-  projectId: string,
-  appId: string,
-  allowAnonymous: boolean,
-  allowedDomains: string[]
-): Promise<ActionResult<void>> {
-  try {
-    await updateApp(tenantId, projectId, appId, {
-      config: {
-        type: 'web_client',
-        webClient: {
-          allowedDomains,
-          auth: {
-            allowAnonymous,
-          },
-        },
-      },
-    });
-    return { success: true };
   } catch (error) {
     if (error instanceof ApiError) {
       return { success: false, error: error.message, code: error.error.code };

@@ -211,6 +211,13 @@
       "when": 1774957339561,
       "tag": "0029_burly_satana",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1775145600000,
+      "tag": "0030_set-allow-anonymous-for-existing-apps",
+      "breakpoints": true
     }
   ]
 }
