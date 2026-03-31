@@ -31,16 +31,34 @@ export type TriggerPayload = {
   scheduledTriggerId: string;
   scheduledFor: string;
   ref: string;
+  runAsUserId?: string;
+  delayBeforeExecutionMs?: number;
 };
 
-function generateIdempotencyKey(scheduledTriggerId: string, scheduledFor: string): string {
+function generateIdempotencyKey(
+  scheduledTriggerId: string,
+  scheduledFor: string,
+  userId?: string
+): string {
+  if (userId) {
+    return `sched_${scheduledTriggerId}_${userId}_${scheduledFor}`;
+  }
   return `sched_${scheduledTriggerId}_${scheduledFor}`;
 }
 
 async function _scheduledTriggerRunnerWorkflow(payload: TriggerPayload) {
   'use workflow';
 
-  const { tenantId, projectId, agentId, scheduledTriggerId, scheduledFor, ref } = payload;
+  const {
+    tenantId,
+    projectId,
+    agentId,
+    scheduledTriggerId,
+    scheduledFor,
+    ref,
+    runAsUserId: payloadRunAsUserId,
+    delayBeforeExecutionMs,
+  } = payload;
   const metadata = getWorkflowMetadata();
   const runnerId = metadata.workflowRunId;
 
@@ -67,8 +85,13 @@ async function _scheduledTriggerRunnerWorkflow(payload: TriggerPayload) {
   }
 
   const trigger = enabledCheck.trigger;
+  const resolvedRunAsUserId = payloadRunAsUserId ?? trigger.runAsUserId ?? undefined;
 
-  const idempotencyKey = generateIdempotencyKey(scheduledTriggerId, scheduledFor);
+  const idempotencyKey = generateIdempotencyKey(
+    scheduledTriggerId,
+    scheduledFor,
+    payloadRunAsUserId
+  );
   const { invocation, alreadyExists } = await createInvocationIdempotentStep({
     tenantId,
     projectId,
@@ -78,10 +101,15 @@ async function _scheduledTriggerRunnerWorkflow(payload: TriggerPayload) {
     payload: trigger.payload ?? null,
     idempotencyKey,
     ref,
+    runAsUserId: resolvedRunAsUserId,
   });
 
   if (alreadyExists && invocation.status !== 'pending') {
     return { status: 'already_executed', invocationId: invocation.id };
+  }
+
+  if (delayBeforeExecutionMs && delayBeforeExecutionMs > 0) {
+    await sleep(delayBeforeExecutionMs);
   }
 
   let attemptNumber = invocation.attemptNumber;
@@ -118,7 +146,7 @@ async function _scheduledTriggerRunnerWorkflow(payload: TriggerPayload) {
       messageTemplate: trigger.messageTemplate,
       payload: trigger.payload ?? null,
       timeoutSeconds: trigger.timeoutSeconds,
-      runAsUserId: trigger.runAsUserId,
+      runAsUserId: resolvedRunAsUserId,
       cronTimezone: trigger.cronTimezone,
       ref,
     });
