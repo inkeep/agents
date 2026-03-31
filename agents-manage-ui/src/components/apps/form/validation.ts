@@ -44,7 +44,7 @@ const webClientFields = {
 export const AppCreateFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
-  defaultAgentId: z.string().optional(),
+  defaultAgentId: z.string().min(1, 'Default agent is required'),
   prompt: z.string().optional(),
   ...webClientFields,
 });
@@ -52,7 +52,7 @@ export const AppCreateFormSchema = z.object({
 export const AppUpdateFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
-  defaultAgentId: z.string().optional(),
+  defaultAgentId: z.string().min(1, 'Default agent is required'),
   prompt: z.string().optional(),
   enabled: z.boolean(),
   ...webClientFields,

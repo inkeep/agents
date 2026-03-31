@@ -135,7 +135,7 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
           options={agentOptions}
           placeholder="Select a default agent"
           searchPlaceholder="Search agents..."
-          clearable
+          isRequired
         />
         {appType === 'web_client' && (
           <GenericInput

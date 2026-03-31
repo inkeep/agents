@@ -191,7 +191,7 @@ export function AppUpdateForm({
           options={agentOptions}
           placeholder="Select a default agent"
           searchPlaceholder="Search agents..."
-          clearable
+          isRequired
         />
 
         {app.type === 'web_client' && (
