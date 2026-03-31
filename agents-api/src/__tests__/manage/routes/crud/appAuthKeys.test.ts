@@ -284,6 +284,66 @@ describe('App Auth Keys Routes', () => {
     });
   });
 
+  describe('Key operations preserve allowAnonymous', () => {
+    it('should preserve allowAnonymous when adding a key', async () => {
+      const tenantId = await createTestTenantWithOrg('auth-keys-preserve-anon-add');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const app = await createTestApp(tenantId, projectId);
+
+      await makeRequest(appUrl(tenantId, projectId, app.id), {
+        method: 'PATCH',
+        body: JSON.stringify({
+          config: {
+            type: 'web_client',
+            webClient: { allowedDomains: ['example.com'], auth: { allowAnonymous: true } },
+          },
+        }),
+      });
+
+      const pem = await rsaPem();
+      await makeRequest(keysUrl(tenantId, projectId, app.id), {
+        method: 'POST',
+        body: JSON.stringify({ kid: 'new-key', publicKey: pem, algorithm: 'RS256' }),
+      });
+
+      const getRes = await makeRequest(appUrl(tenantId, projectId, app.id));
+      const appBody = await getRes.json();
+      expect(appBody.data.config.webClient.auth.allowAnonymous).toBe(true);
+    });
+
+    it('should preserve allowAnonymous when deleting a key', async () => {
+      const tenantId = await createTestTenantWithOrg('auth-keys-preserve-anon-del');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const app = await createTestApp(tenantId, projectId);
+
+      const pem = await rsaPem();
+      await makeRequest(keysUrl(tenantId, projectId, app.id), {
+        method: 'POST',
+        body: JSON.stringify({ kid: 'del-key', publicKey: pem, algorithm: 'RS256' }),
+      });
+
+      await makeRequest(appUrl(tenantId, projectId, app.id), {
+        method: 'PATCH',
+        body: JSON.stringify({
+          config: {
+            type: 'web_client',
+            webClient: { allowedDomains: ['example.com'], auth: { allowAnonymous: true } },
+          },
+        }),
+      });
+
+      await makeRequest(`${keysUrl(tenantId, projectId, app.id)}/del-key`, {
+        method: 'DELETE',
+      });
+
+      const getRes = await makeRequest(appUrl(tenantId, projectId, app.id));
+      const appBody = await getRes.json();
+      expect(appBody.data.config.webClient.auth.allowAnonymous).toBe(true);
+    });
+  });
+
   describe('DELETE /auth/keys/:kid', () => {
     it('should delete a key by kid', async () => {
       const tenantId = await createTestTenantWithOrg('auth-keys-delete');
