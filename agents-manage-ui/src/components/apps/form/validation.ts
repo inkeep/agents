@@ -32,15 +32,21 @@ function validateDomainList(val: string | undefined) {
 const DOMAIN_VALIDATION_MESSAGE =
   'Enter valid domains separated by commas (e.g. "example.com, *.example.com"). At least one domain is required for web client apps.';
 
+const webClientFields = {
+  allowedDomains: z
+    .string()
+    .optional()
+    .refine(validateDomainList, { message: DOMAIN_VALIDATION_MESSAGE }),
+  audience: z.string().optional(),
+  requireAuth: z.boolean().optional(),
+};
+
 export const AppCreateFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
   defaultAgentId: z.string().optional(),
   prompt: z.string().optional(),
-  allowedDomains: z
-    .string()
-    .optional()
-    .refine(validateDomainList, { message: DOMAIN_VALIDATION_MESSAGE }),
+  ...webClientFields,
 });
 
 export const AppUpdateFormSchema = z.object({
@@ -49,11 +55,7 @@ export const AppUpdateFormSchema = z.object({
   defaultAgentId: z.string().optional(),
   prompt: z.string().optional(),
   enabled: z.boolean(),
-  allowedDomains: z
-    .string()
-    .optional()
-    .refine(validateDomainList, { message: DOMAIN_VALIDATION_MESSAGE }),
-  audience: z.string().optional(),
+  ...webClientFields,
 });
 
 export type AppCreateFormInput = z.infer<typeof AppCreateFormSchema>;

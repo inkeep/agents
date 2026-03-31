@@ -1,7 +1,7 @@
 'use client';
 
 import { Copy, KeyRound, Plus, Trash2 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,13 +17,19 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import {
-  addAppAuthKeyAction,
-  deleteAppAuthKeyAction,
-  fetchAppAuthKeysAction,
-  updateAppAuthSettingsAction,
-} from '@/lib/actions/app-auth-keys';
-import type { PublicKeyConfig } from '@/lib/api/app-auth-keys';
+
+export interface PendingKey {
+  kid: string;
+  publicKey: string;
+  algorithm: string;
+}
+
+export interface PublicKeyDisplay {
+  kid: string;
+  publicKey: string;
+  algorithm: string;
+  addedAt?: string;
+}
 
 const ALGORITHM_OPTIONS = [
   { value: 'RS256', label: 'RS256' },
@@ -32,124 +38,65 @@ const ALGORITHM_OPTIONS = [
 ] as const;
 
 interface AuthKeysSectionProps {
-  tenantId: string;
-  projectId: string;
-  appId: string;
-  allowAnonymous?: boolean;
-  allowedDomains: string[];
+  keys: PublicKeyDisplay[];
+  requireAuth: boolean;
+  onKeysChange: (keys: PublicKeyDisplay[]) => void;
+  onRequireAuthChange: (requireAuth: boolean) => void;
+  pendingKeysToAdd: PendingKey[];
+  onPendingKeysToAddChange: (keys: PendingKey[]) => void;
+  kidsToDelete: string[];
+  onKidsToDeleteChange: (kids: string[]) => void;
 }
 
 export function AuthKeysSection({
-  tenantId,
-  projectId,
-  appId,
-  allowAnonymous,
-  allowedDomains,
+  keys,
+  requireAuth,
+  onKeysChange,
+  onRequireAuthChange,
+  pendingKeysToAdd,
+  onPendingKeysToAddChange,
+  kidsToDelete,
+  onKidsToDeleteChange,
 }: AuthKeysSectionProps) {
-  const [keys, setKeys] = useState<PublicKeyConfig[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [isAdding, setIsAdding] = useState(false);
-  const [deletingKid, setDeletingKid] = useState<string | null>(null);
-  const [requireAuth, setRequireAuth] = useState(allowAnonymous === false);
-  const [isUpdatingAuth, setIsUpdatingAuth] = useState(false);
-
-  useEffect(() => {
-    setRequireAuth(allowAnonymous === false);
-  }, [allowAnonymous]);
-
   const [kid, setKid] = useState('');
   const [algorithm, setAlgorithm] = useState('RS256');
   const [publicKey, setPublicKey] = useState('');
 
-  const loadKeys = useCallback(async () => {
-    const result = await fetchAppAuthKeysAction(tenantId, projectId, appId);
-    if (result.success && result.data) {
-      setKeys(result.data);
-    } else {
-      toast.error(result.error || 'Failed to load authentication keys');
-    }
-    setIsLoading(false);
-  }, [tenantId, projectId, appId]);
+  const visibleKeys = keys.filter((k) => !kidsToDelete.includes(k.kid));
+  const allDisplayKeys = [
+    ...visibleKeys,
+    ...pendingKeysToAdd.map((k) => ({ ...k, addedAt: undefined })),
+  ];
 
-  useEffect(() => {
-    loadKeys();
-  }, [loadKeys]);
-
-  const handleAdd = async () => {
+  const handleAdd = () => {
     if (!kid.trim() || !publicKey.trim()) return;
-    setIsAdding(true);
-    try {
-      const result = await addAppAuthKeyAction(tenantId, projectId, appId, {
-        kid: kid.trim(),
-        publicKey: publicKey.trim(),
-        algorithm,
-      });
-      if (result.success) {
-        toast.success('Public key added');
-        setKid('');
-        setAlgorithm('RS256');
-        setPublicKey('');
-        setShowAddForm(false);
-        await loadKeys();
-      } else {
-        toast.error(result.error || 'Failed to add key');
-      }
-    } finally {
-      setIsAdding(false);
+
+    const allKids = [...allDisplayKeys.map((k) => k.kid)];
+    if (allKids.includes(kid.trim())) {
+      toast.error(`A key with ID "${kid.trim()}" already exists`);
+      return;
     }
+
+    onPendingKeysToAddChange([
+      ...pendingKeysToAdd,
+      { kid: kid.trim(), publicKey: publicKey.trim(), algorithm },
+    ]);
+    setKid('');
+    setAlgorithm('RS256');
+    setPublicKey('');
+    setShowAddForm(false);
   };
 
-  const handleDelete = async (kidToDelete: string) => {
-    setDeletingKid(kidToDelete);
-    try {
-      const result = await deleteAppAuthKeyAction(tenantId, projectId, appId, kidToDelete);
-      if (result.success) {
-        toast.success('Public key removed');
-        await loadKeys();
-      } else {
-        toast.error(result.error || 'Failed to remove key');
-      }
-    } finally {
-      setDeletingKid(null);
+  const handleDelete = (kidToDelete: string) => {
+    const isPending = pendingKeysToAdd.some((k) => k.kid === kidToDelete);
+    if (isPending) {
+      onPendingKeysToAddChange(pendingKeysToAdd.filter((k) => k.kid !== kidToDelete));
+    } else {
+      onKidsToDeleteChange([...kidsToDelete, kidToDelete]);
     }
+    onKeysChange(keys);
   };
-
-  const handleToggleRequireAuth = async (checked: boolean) => {
-    setRequireAuth(checked);
-    setIsUpdatingAuth(true);
-    try {
-      const result = await updateAppAuthSettingsAction(
-        tenantId,
-        projectId,
-        appId,
-        !checked,
-        allowedDomains
-      );
-      if (result.success) {
-        toast.success(
-          checked ? 'Authentication required for all users' : 'Anonymous access allowed'
-        );
-      } else {
-        setRequireAuth(!checked);
-        toast.error(result.error || 'Failed to update auth settings');
-      }
-    } catch {
-      setRequireAuth(!checked);
-      toast.error('Failed to update auth settings');
-    } finally {
-      setIsUpdatingAuth(false);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">Authentication</Label>
-        <p className="text-sm text-muted-foreground">Loading keys...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-3">
@@ -163,16 +110,16 @@ export function AuthKeysSection({
         )}
       </div>
 
-      {keys.length === 0 && !showAddForm && (
+      {allDisplayKeys.length === 0 && !showAddForm && (
         <p className="text-sm text-muted-foreground">
           No public keys configured. Add a key to enable authenticated sessions.
         </p>
       )}
 
-      {keys.length > 0 && (
+      {allDisplayKeys.length > 0 && (
         <TooltipProvider delayDuration={300}>
           <div className="space-y-2">
-            {keys.map((key) => (
+            {allDisplayKeys.map((key) => (
               <div
                 key={key.kid}
                 className="flex items-center justify-between rounded-md border p-2 text-sm"
@@ -190,9 +137,16 @@ export function AuthKeysSection({
                       <KeyRound className="size-3.5 shrink-0 text-muted-foreground" />
                       <span className="font-mono truncate">{key.kid}</span>
                       <Badge variant="code">{key.algorithm}</Badge>
-                      <span className="text-muted-foreground text-xs shrink-0">
-                        {new Date(key.addedAt).toLocaleDateString()}
-                      </span>
+                      {key.addedAt && (
+                        <span className="text-muted-foreground text-xs shrink-0">
+                          {new Date(key.addedAt).toLocaleDateString()}
+                        </span>
+                      )}
+                      {!key.addedAt && (
+                        <Badge variant="outline" className="text-xs">
+                          New
+                        </Badge>
+                      )}
                       <Copy className="size-3 shrink-0 text-muted-foreground" aria-hidden="true" />
                     </button>
                   </TooltipTrigger>
@@ -207,7 +161,6 @@ export function AuthKeysSection({
                   variant="ghost"
                   size="sm"
                   className="h-7 w-7 p-0 shrink-0 text-muted-foreground hover:text-destructive"
-                  disabled={deletingKid === key.kid}
                   onClick={() => handleDelete(key.kid)}
                   aria-label={`Remove key ${key.kid}`}
                 >
@@ -228,12 +181,7 @@ export function AuthKeysSection({
             When enabled, all users must present a valid signed JWT. Anonymous access is blocked.
           </p>
         </div>
-        <Switch
-          id="require-auth"
-          checked={requireAuth}
-          onCheckedChange={handleToggleRequireAuth}
-          disabled={isUpdatingAuth}
-        />
+        <Switch id="require-auth" checked={requireAuth} onCheckedChange={onRequireAuthChange} />
       </div>
 
       {showAddForm && (
@@ -298,10 +246,10 @@ export function AuthKeysSection({
             <Button
               type="button"
               size="sm"
-              disabled={!kid.trim() || !publicKey.trim() || isAdding}
+              disabled={!kid.trim() || !publicKey.trim()}
               onClick={handleAdd}
             >
-              {isAdding ? 'Adding...' : 'Add Key'}
+              Add Key
             </Button>
           </div>
         </div>

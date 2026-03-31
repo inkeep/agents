@@ -2,14 +2,22 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams } from 'next/navigation';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import {
+  AuthKeysSection,
+  type PendingKey,
+  type PublicKeyDisplay,
+} from '@/components/apps/auth-keys-section';
 import { GenericComboBox } from '@/components/form/generic-combo-box';
 import { GenericInput } from '@/components/form/generic-input';
 import type { SelectOption } from '@/components/form/generic-select';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
+import { Separator } from '@/components/ui/separator';
+import { addAppAuthKeyAction } from '@/lib/actions/app-auth-keys';
 import { createAppAction } from '@/lib/actions/apps';
 import type { AppCreateResponse } from '@/lib/api/apps';
 import { type AppCreateFormInput, AppCreateFormSchema } from './validation';
@@ -23,6 +31,10 @@ interface AppCreateFormProps {
 export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreateFormProps) {
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
 
+  const [pendingKeysToAdd, setPendingKeysToAdd] = useState<PendingKey[]>([]);
+  const [kidsToDelete, setKidsToDelete] = useState<string[]>([]);
+  const [requireAuth, setRequireAuth] = useState(false);
+
   const form = useForm<AppCreateFormInput>({
     resolver: zodResolver(AppCreateFormSchema),
     defaultValues: {
@@ -31,6 +43,7 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
       defaultAgentId: '',
       prompt: '',
       allowedDomains: appType === 'web_client' ? '' : undefined,
+      audience: '',
     },
     mode: 'onChange',
   });
@@ -39,6 +52,13 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
 
   const onSubmit = form.handleSubmit(async (data) => {
     try {
+      const authConfig: Record<string, unknown> = {
+        allowAnonymous: !requireAuth,
+      };
+      if (data.audience?.trim()) {
+        authConfig.audience = data.audience.trim();
+      }
+
       const payload: Record<string, unknown> = {
         name: data.name,
         description: data.description || undefined,
@@ -55,6 +75,7 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
                     .split(',')
                     .map((d: string) => d.trim())
                     .filter(Boolean),
+                  auth: authConfig,
                 },
               }
             : { type: 'api', api: {} },
@@ -65,15 +86,31 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
         toast.error(result.error || 'Failed to create app');
         return;
       }
-      if (result.data) {
-        onAppCreated(result.data);
+      if (!result.data) {
+        toast.error('Failed to create app');
+        return;
       }
+
+      const appId = result.data.app.id;
+
+      for (const key of pendingKeysToAdd) {
+        const addResult = await addAppAuthKeyAction(tenantId, projectId, appId, key);
+        if (!addResult.success) {
+          toast.error(addResult.error || `Failed to add key ${key.kid}`);
+          onAppCreated(result.data);
+          return;
+        }
+      }
+
       toast.success('App created successfully');
+      onAppCreated(result.data);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
   });
+
+  const emptyServerKeys: PublicKeyDisplay[] = [];
 
   return (
     <Form {...form}>
@@ -119,9 +156,32 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
           rows={4}
         />
 
+        {appType === 'web_client' && (
+          <>
+            <Separator />
+            <AuthKeysSection
+              keys={emptyServerKeys}
+              requireAuth={requireAuth}
+              onKeysChange={() => {}}
+              onRequireAuthChange={setRequireAuth}
+              pendingKeysToAdd={pendingKeysToAdd}
+              onPendingKeysToAddChange={setPendingKeysToAdd}
+              kidsToDelete={kidsToDelete}
+              onKidsToDeleteChange={setKidsToDelete}
+            />
+            <GenericInput
+              control={form.control}
+              name="audience"
+              label="Audience (aud)"
+              placeholder="https://your-app.example.com"
+              description="Optional. When set, tokens must include a matching aud claim."
+            />
+          </>
+        )}
+
         <div className="flex justify-end">
           <Button type="submit" disabled={isSubmitting}>
-            Create App
+            {isSubmitting ? 'Creating...' : 'Create App'}
           </Button>
         </div>
       </form>
