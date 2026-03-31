@@ -161,13 +161,11 @@ app.openapi(
       type: 'web_client';
       webClient: {
         allowedDomains: string[];
-        auth?: {
-          allowAnonymous?: boolean;
-        };
+        allowAnonymous?: boolean;
       };
     };
 
-    if (config.webClient.auth?.allowAnonymous === false) {
+    if (config.webClient.allowAnonymous === false) {
       throw createApiError({
         code: 'unauthorized',
         message: 'Anonymous sessions are disabled for this app. Authentication is required.',

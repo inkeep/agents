@@ -619,9 +619,9 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       return { authResult: null, failureMessage: 'Bearer token required for web_client app' };
     }
 
-    const publicKeys = config.webClient.auth?.publicKeys ?? [];
+    const publicKeys = config.webClient.publicKeys ?? [];
     const hasAuthConfigured = publicKeys.length > 0;
-    const allowAnonymous = config.webClient.auth?.allowAnonymous !== false;
+    const allowAnonymous = config.webClient.allowAnonymous !== false;
 
     if (!hasAuthConfigured && !allowAnonymous) {
       logger.debug(
@@ -638,7 +638,7 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       const asymResult = await tryAsymmetricJwtVerification(
         bearerToken,
         publicKeys,
-        config.webClient.auth?.audience,
+        config.webClient.audience,
         app.id
       );
 
@@ -710,7 +710,7 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
           }
 
           // Opt-in SpiceDB validation for global apps
-          if (config.webClient.auth?.validateScopeClaims) {
+          if (config.webClient.validateScopeClaims) {
             try {
               const canUse = await canUseProjectStrict({
                 userId: asymResult.endUserId,

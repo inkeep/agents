@@ -75,7 +75,7 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
                     .split(',')
                     .map((d: string) => d.trim())
                     .filter(Boolean),
-                  auth: authConfig,
+                  ...authConfig,
                 },
               }
             : { type: 'api', api: {} },

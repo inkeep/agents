@@ -206,7 +206,7 @@ describe('App Auth Keys Routes', () => {
         body: JSON.stringify({
           config: {
             type: 'web_client',
-            webClient: { allowedDomains: ['*'], auth: { allowAnonymous: true } },
+            webClient: { allowedDomains: ['*'], allowAnonymous: true },
           },
         }),
       });
@@ -214,7 +214,7 @@ describe('App Auth Keys Routes', () => {
       expect(res.status).toBe(200);
       const getRes = await makeRequest(appUrl(tenantId, projectId, app.id));
       const appBody = await getRes.json();
-      expect(appBody.data.config.webClient.auth.allowAnonymous).toBe(true);
+      expect(appBody.data.config.webClient.allowAnonymous).toBe(true);
     });
 
     it('should preserve existing keys when updating allowAnonymous via app PATCH', async () => {
@@ -234,7 +234,7 @@ describe('App Auth Keys Routes', () => {
         body: JSON.stringify({
           config: {
             type: 'web_client',
-            webClient: { allowedDomains: ['*'], auth: { allowAnonymous: true } },
+            webClient: { allowedDomains: ['*'], allowAnonymous: true },
           },
         }),
       });
@@ -258,7 +258,7 @@ describe('App Auth Keys Routes', () => {
             type: 'web_client',
             webClient: {
               allowedDomains: ['example.com'],
-              auth: { audience: 'https://my-app.example.com' },
+              audience: 'https://my-app.example.com',
             },
           },
         }),
@@ -271,7 +271,7 @@ describe('App Auth Keys Routes', () => {
             type: 'web_client',
             webClient: {
               allowedDomains: ['example.com'],
-              auth: { allowAnonymous: true },
+              allowAnonymous: true,
             },
           },
         }),
@@ -279,8 +279,8 @@ describe('App Auth Keys Routes', () => {
 
       const getRes = await makeRequest(appUrl(tenantId, projectId, app.id));
       const appBody = await getRes.json();
-      expect(appBody.data.config.webClient.auth.audience).toBe('https://my-app.example.com');
-      expect(appBody.data.config.webClient.auth.allowAnonymous).toBe(true);
+      expect(appBody.data.config.webClient.audience).toBe('https://my-app.example.com');
+      expect(appBody.data.config.webClient.allowAnonymous).toBe(true);
     });
   });
 
@@ -304,7 +304,8 @@ describe('App Auth Keys Routes', () => {
             type: 'web_client',
             webClient: {
               allowedDomains: ['example.com'],
-              auth: { publicKeys: [], allowAnonymous: true },
+              publicKeys: [],
+              allowAnonymous: true,
             },
           },
         }),
@@ -330,7 +331,7 @@ describe('App Auth Keys Routes', () => {
         body: JSON.stringify({
           config: {
             type: 'web_client',
-            webClient: { allowedDomains: ['example.com'], auth: { allowAnonymous: true } },
+            webClient: { allowedDomains: ['example.com'], allowAnonymous: true },
           },
         }),
       });
@@ -343,7 +344,7 @@ describe('App Auth Keys Routes', () => {
 
       const getRes = await makeRequest(appUrl(tenantId, projectId, app.id));
       const appBody = await getRes.json();
-      expect(appBody.data.config.webClient.auth.allowAnonymous).toBe(true);
+      expect(appBody.data.config.webClient.allowAnonymous).toBe(true);
     });
 
     it('should preserve allowAnonymous when deleting a key', async () => {
@@ -363,7 +364,7 @@ describe('App Auth Keys Routes', () => {
         body: JSON.stringify({
           config: {
             type: 'web_client',
-            webClient: { allowedDomains: ['example.com'], auth: { allowAnonymous: true } },
+            webClient: { allowedDomains: ['example.com'], allowAnonymous: true },
           },
         }),
       });
@@ -374,7 +375,7 @@ describe('App Auth Keys Routes', () => {
 
       const getRes = await makeRequest(appUrl(tenantId, projectId, app.id));
       const appBody = await getRes.json();
-      expect(appBody.data.config.webClient.auth.allowAnonymous).toBe(true);
+      expect(appBody.data.config.webClient.allowAnonymous).toBe(true);
     });
   });
 

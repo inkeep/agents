@@ -332,7 +332,7 @@ describe('Anonymous Session — allowAnonymous enforcement', () => {
             type: 'web_client',
             webClient: {
               allowedDomains: ['help.customer.com'],
-              auth: { allowAnonymous },
+              allowAnonymous,
             },
           },
         }),

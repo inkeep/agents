@@ -79,7 +79,7 @@ describe('WebClientAuthConfigSchema', () => {
   });
 });
 
-describe('WebClientConfigSchema with auth', () => {
+describe('WebClientConfigSchema with auth fields', () => {
   const baseConfig = {
     type: 'web_client' as const,
     webClient: {
@@ -87,30 +87,28 @@ describe('WebClientConfigSchema with auth', () => {
     },
   };
 
-  it('accepts config without auth (backward compatible)', () => {
+  it('accepts config without auth fields (backward compatible)', () => {
     const result = WebClientConfigSchema.parse(baseConfig);
-    expect(result.webClient.auth).toBeUndefined();
+    expect(result.webClient.publicKeys).toBeUndefined();
   });
 
-  it('accepts config with auth block', () => {
+  it('accepts config with auth fields directly on webClient', () => {
     const result = WebClientConfigSchema.parse({
       ...baseConfig,
       webClient: {
         ...baseConfig.webClient,
-        auth: {
-          publicKeys: [
-            {
-              kid: 'key-1',
-              publicKey: 'pem-data',
-              algorithm: 'ES256',
-              addedAt: '2026-03-24T00:00:00Z',
-            },
-          ],
-          audience: 'https://api.example.com',
-        },
+        publicKeys: [
+          {
+            kid: 'key-1',
+            publicKey: 'pem-data',
+            algorithm: 'ES256',
+            addedAt: '2026-03-24T00:00:00Z',
+          },
+        ],
+        audience: 'https://api.example.com',
       },
     });
-    expect(result.webClient.auth?.publicKeys).toHaveLength(1);
-    expect(result.webClient.auth?.audience).toBe('https://api.example.com');
+    expect(result.webClient.publicKeys).toHaveLength(1);
+    expect(result.webClient.audience).toBe('https://api.example.com');
   });
 });

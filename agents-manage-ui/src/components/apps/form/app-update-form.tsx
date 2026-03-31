@@ -36,10 +36,8 @@ interface AppUpdateFormProps {
 
 interface WebClientConfigShape {
   allowedDomains?: string[];
-  auth?: {
-    audience?: string;
-    allowAnonymous?: boolean;
-  };
+  audience?: string;
+  allowAnonymous?: boolean;
 }
 
 export function AppUpdateForm({
@@ -57,7 +55,7 @@ export function AppUpdateForm({
   const [serverKeys, setServerKeys] = useState<PublicKeyDisplay[]>([]);
   const [pendingKeysToAdd, setPendingKeysToAdd] = useState<PendingKey[]>([]);
   const [kidsToDelete, setKidsToDelete] = useState<string[]>([]);
-  const [requireAuth, setRequireAuth] = useState(webConfig?.auth?.allowAnonymous !== true);
+  const [requireAuth, setRequireAuth] = useState(webConfig?.allowAnonymous !== true);
   const [isLoadingKeys, setIsLoadingKeys] = useState(app.type === 'web_client');
 
   const loadKeys = useCallback(async () => {
@@ -84,7 +82,7 @@ export function AppUpdateForm({
       ...(app.type === 'web_client' && webConfig
         ? {
             allowedDomains: webConfig.allowedDomains?.join(', ') ?? '',
-            audience: webConfig.auth?.audience ?? '',
+            audience: webConfig?.audience ?? '',
           }
         : {}),
     },
@@ -112,11 +110,8 @@ export function AppUpdateForm({
             .filter(Boolean),
         };
 
-        webClientConfig.auth = {
-          ...((webConfig?.auth as Record<string, unknown>) ?? {}),
-          audience: data.audience?.trim() || undefined,
-          allowAnonymous: !requireAuth,
-        };
+        webClientConfig.audience = data.audience?.trim() || undefined;
+        webClientConfig.allowAnonymous = !requireAuth;
 
         payload.config = {
           type: 'web_client',

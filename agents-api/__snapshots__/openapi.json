@@ -10574,27 +10574,6 @@
         "example": "user_123",
         "type": "string"
       },
-      "WebClientAuthConfig": {
-        "properties": {
-          "allowAnonymous": {
-            "type": "boolean"
-          },
-          "audience": {
-            "type": "string"
-          },
-          "publicKeys": {
-            "default": [],
-            "items": {
-              "$ref": "#/components/schemas/PublicKeyConfig"
-            },
-            "type": "array"
-          },
-          "validateScopeClaims": {
-            "type": "boolean"
-          }
-        },
-        "type": "object"
-      },
       "WebClientConfig": {
         "properties": {
           "type": {
@@ -10605,6 +10584,9 @@
           },
           "webClient": {
             "properties": {
+              "allowAnonymous": {
+                "type": "boolean"
+              },
               "allowedDomains": {
                 "items": {
                   "minLength": 1,
@@ -10614,8 +10596,18 @@
                 "minItems": 1,
                 "type": "array"
               },
-              "auth": {
-                "$ref": "#/components/schemas/WebClientAuthConfig"
+              "audience": {
+                "type": "string"
+              },
+              "publicKeys": {
+                "default": [],
+                "items": {
+                  "$ref": "#/components/schemas/PublicKeyConfig"
+                },
+                "type": "array"
+              },
+              "validateScopeClaims": {
+                "type": "boolean"
               }
             },
             "required": [
@@ -10640,6 +10632,9 @@
           },
           "webClient": {
             "properties": {
+              "allowAnonymous": {
+                "type": "boolean"
+              },
               "allowedDomains": {
                 "items": {
                   "minLength": 1,
@@ -10649,8 +10644,18 @@
                 "minItems": 1,
                 "type": "array"
               },
-              "auth": {
-                "$ref": "#/components/schemas/WebClientAuthConfig"
+              "audience": {
+                "type": "string"
+              },
+              "publicKeys": {
+                "default": [],
+                "items": {
+                  "$ref": "#/components/schemas/PublicKeyConfig"
+                },
+                "type": "array"
+              },
+              "validateScopeClaims": {
+                "type": "boolean"
               }
             },
             "required": [

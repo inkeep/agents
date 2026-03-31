@@ -1,3 +1,4 @@
+import { ALLOWED_DOMAIN_PATTERN } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 
 export const APP_TYPE_OPTIONS = [
@@ -12,12 +13,6 @@ export const APP_TYPE_OPTIONS = [
     description: 'For server-to-server API access',
   },
 ] as const;
-
-// Duplicated from @inkeep/agents-core/validation/schemas — cannot import from
-// the barrel export here because it pulls in server-only modules (pg, dns, fs)
-// that break the Next.js client bundle.
-const ALLOWED_DOMAIN_PATTERN =
-  /^(\*|\*\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*(:\d{1,5})?)$/;
 
 function validateDomainList(val: string | undefined) {
   if (val === undefined) return true;

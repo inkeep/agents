@@ -102,11 +102,9 @@ function makeAppWithAuth(
       type: 'web_client',
       webClient: {
         allowedDomains: ['https://example.com'],
-        auth: {
-          publicKeys,
-          ...(audience !== undefined ? { audience } : {}),
-          ...authOverrides,
-        },
+        publicKeys,
+        ...(audience !== undefined ? { audience } : {}),
+        ...authOverrides,
       },
     },
     ...overrides,
