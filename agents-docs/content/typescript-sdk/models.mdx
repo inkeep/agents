@@ -442,7 +442,7 @@ Like `fallbackModels`, `allowedProviders` inherits through the project → agent
 
 ### Combining Both
 
-Both features can be used together. This tries `claude-sonnet-4-5` via Bedrock, then Anthropic. If both fail, it falls through to the fallback models in order:
+Both features can be used together. With this configuration, `allowedProviders` restricts and prioritizes which providers can serve the primary model, while `fallbackModels` defines alternative models to try if the primary model is unavailable:
 
 ```typescript
 models: {
