@@ -329,8 +329,20 @@ export async function buildSystemPrompt(
   );
   const clientCurrentTime = getClientCurrentTime(ctx);
 
-  const appId = ctx.executionContext.metadata?.appId;
-  const appPrompt = appId ? (await getAppById(runDbClient)(appId))?.prompt || undefined : undefined;
+  // Use appPrompt from metadata if already resolved (parent agent path).
+  // For sub-agents (A2A), only appId is forwarded — resolve the prompt from DB.
+  let appPrompt = ctx.executionContext.metadata?.appPrompt;
+  if (!appPrompt && ctx.executionContext.metadata?.appId) {
+    try {
+      const app = await getAppById(runDbClient)(ctx.executionContext.metadata.appId);
+      appPrompt = app?.prompt || undefined;
+    } catch (error) {
+      logger.warn(
+        { appId: ctx.executionContext.metadata.appId, error: error instanceof Error ? error.message : 'Unknown error' },
+        'Failed to fetch app prompt for sub-agent, continuing without it'
+      );
+    }
+  }
 
   const config: SystemPromptV1 = {
     corePrompt: processedPrompt,

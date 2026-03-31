@@ -764,6 +764,7 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
               initiatedBy: { type: 'user' as const, id: endUserId },
               authMethod,
               appId: app.id,
+              appPrompt: app.prompt || undefined,
               ...(Object.keys(verifiedClaims).length > 0 ? { verifiedClaims } : {}),
             },
           },
@@ -836,6 +837,7 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
         ...(endUserId ? { initiatedBy: { type: 'user' as const, id: endUserId } } : {}),
         authMethod,
         appId: app.id,
+        appPrompt: app.prompt || undefined,
       },
     },
   };
@@ -884,7 +886,9 @@ function createDevContext(reqData: RequestData): AuthResult {
 async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
   const { apiKey, subAgentId } = reqData;
 
-  if (reqData.appId) {
+  // When subAgentId is set, this is an internal A2A call — skip app credential auth.
+  // The appId is forwarded for context only; the sub-agent authenticates via its own token.
+  if (reqData.appId && !subAgentId) {
     if (!apiKey) {
       return { authResult: null, failureMessage: 'Bearer token required for app credential auth' };
     }

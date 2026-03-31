@@ -126,7 +126,7 @@ function makeWebClientApp(overrides: Record<string, unknown> = {}) {
   };
 }
 
-describe('appId in executionContext.metadata', () => {
+describe('app prompt resolution via appId', () => {
   let app: Hono;
   const originalEnv = process.env.ENVIRONMENT;
 
@@ -147,27 +147,8 @@ describe('appId in executionContext.metadata', () => {
     process.env.ENVIRONMENT = originalEnv;
   });
 
-  describe('API key auth without app', () => {
-    it('should not set metadata.appId when x-inkeep-app-id header is absent', async () => {
-      validateAndGetApiKeyMock.mockResolvedValueOnce(makeApiKey());
-
-      app.use('*', apiKeyAuth());
-      app.get('/', (c) => c.json((c as any).get('executionContext')));
-
-      const res = await app.request('/', {
-        headers: {
-          Authorization: 'Bearer sk_test_1234567890abcdef.verylongsecretkey',
-        },
-      });
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.metadata?.appId).toBeUndefined();
-    });
-  });
-
-  describe('app credential auth sets appId from DB', () => {
-    it('should set metadata.appId from the app record', async () => {
+  describe('app credential auth sets appId and appPrompt from DB', () => {
+    it('should set both metadata.appId and metadata.appPrompt', async () => {
       const appRecord = makeWebClientApp({ prompt: 'Prompt from database' });
       getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
       validateOriginMock.mockReturnValue(true);
@@ -196,16 +177,58 @@ describe('appId in executionContext.metadata', () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.metadata.appId).toBe('app-id-1');
+      expect(body.metadata.appPrompt).toBe('Prompt from database');
+    });
+  });
+
+  describe('A2A forwarding: x-inkeep-app-id with sub-agent skips app credential auth', () => {
+    it('should set metadata.appId from header when sub-agent-id is present', async () => {
+      validateAndGetApiKeyMock.mockResolvedValueOnce(makeApiKey());
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => c.json((c as any).get('executionContext')));
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: 'Bearer sk_test_1234567890abcdef.verylongsecretkey',
+          'x-inkeep-app-id': 'app-id-1',
+          'x-inkeep-sub-agent-id': 'sub-agent-1',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.metadata.appId).toBe('app-id-1');
     });
 
-    it('should not override DB-sourced appId with header value', async () => {
-      const appRecord = makeWebClientApp({ id: 'app-from-db' });
+    it('should not set metadata.appId when headers are absent', async () => {
+      validateAndGetApiKeyMock.mockResolvedValueOnce(makeApiKey());
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => c.json((c as any).get('executionContext')));
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: 'Bearer sk_test_1234567890abcdef.verylongsecretkey',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.metadata?.appId).toBeUndefined();
+    });
+  });
+
+  describe('non-ASCII app prompt does not break headers', () => {
+    it('should handle smart quotes and unicode in app prompt via DB without header encoding issues', async () => {
+      const unicodePrompt = 'Be helpful and concise. Use \u2018smart quotes\u2019 and emoji \ud83d\ude80';
+      const appRecord = makeWebClientApp({ prompt: unicodePrompt });
       getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
       validateOriginMock.mockReturnValue(true);
       jwtVerifyMock.mockResolvedValueOnce({
         payload: {
           sub: 'anon_test-uuid',
-          app: 'app-from-db',
+          app: 'app-id-1',
           tid: 'tenant_1',
           pid: 'project_1',
           type: 'anonymous',
@@ -218,7 +241,7 @@ describe('appId in executionContext.metadata', () => {
       const res = await app.request('/', {
         headers: {
           Authorization: `Bearer ${VALID_ANON_JWT}`,
-          'x-inkeep-app-id': 'app-from-db',
+          'x-inkeep-app-id': 'app-id-1',
           'x-inkeep-agent-id': 'agent-1',
           Origin: 'https://help.customer.com',
         },
@@ -226,7 +249,8 @@ describe('appId in executionContext.metadata', () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.metadata.appId).toBe('app-from-db');
+      expect(body.metadata.appId).toBe('app-id-1');
+      expect(body.metadata.appPrompt).toBe(unicodePrompt);
     });
   });
 });

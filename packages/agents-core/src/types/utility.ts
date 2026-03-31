@@ -329,6 +329,7 @@ export interface BaseExecutionContext {
       | 'app_credential_api'
       | 'app_credential_web_client_authenticated';
     appId?: string;
+    appPrompt?: string;
   };
 }
 
