@@ -10,7 +10,6 @@ import type {
   MessageContent,
   Models,
   ResolvedRef,
-  SubAgentSkillWithIndex,
   SubAgentStopWhen,
 } from '@inkeep/agents-core';
 import type { FinishReason, StepResult, ToolSet } from 'ai';
@@ -21,6 +20,7 @@ import type { ImageDetail } from '../types/chat';
 import type { SandboxConfig } from '../types/executionContext';
 import type { SystemPromptBuilder } from './SystemPromptBuilder';
 import type { AgentMcpManager } from './services/AgentMcpManager';
+import type { SkillData } from './types';
 
 export type AiSdkTextPart = {
   type: 'text';
@@ -183,7 +183,7 @@ export type AgentConfig = {
   }>;
   contextConfigId?: string;
   dataComponents?: DataComponentApiInsert[];
-  skills?: SubAgentSkillWithIndex[];
+  skills?: SkillData[];
   artifactComponents?: ArtifactComponentApiInsert[];
   conversationHistoryConfig?: AgentConversationHistoryConfig;
   models?: Models;
