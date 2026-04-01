@@ -125,7 +125,7 @@ async function dispatchSingleTrigger(trigger: ScheduledTrigger): Promise<number>
     await start(scheduledTriggerRunnerWorkflow, [payload]);
     workflowsStarted = 1;
   } else {
-    logger.info(
+    logger.warn(
       { scheduledTriggerId, tenantId, projectId },
       'Trigger has no associated users and no runAsUserId, skipping execution'
     );
