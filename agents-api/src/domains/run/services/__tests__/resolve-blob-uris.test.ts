@@ -281,4 +281,57 @@ describe('resolveMessagesListBlobUris', () => {
     });
     expect(resolved[1].content).toEqual({ text: 'No file parts' });
   });
+
+  it('resolves presigned URLs for multiple messages in a list', async () => {
+    const { getBlobStorageProvider } = await import('../blob-storage/index');
+    mockGetPresignedUrl
+      .mockResolvedValueOnce('https://bucket.s3.amazonaws.com/signed-1')
+      .mockResolvedValueOnce('https://bucket.s3.amazonaws.com/signed-2');
+    vi.mocked(getBlobStorageProvider).mockReturnValue({
+      upload: vi.fn(),
+      download: vi.fn(),
+      delete: vi.fn(),
+      getPresignedUrl: mockGetPresignedUrl,
+    });
+
+    const messages = [
+      {
+        id: 'msg-1',
+        content: {
+          text: 'First',
+          parts: [
+            {
+              kind: 'file',
+              data: 'blob://v1/t_tenant/media/p_project/conv/c_conversation/m_msg1/hash1.png',
+              metadata: { mimeType: 'image/png' },
+            },
+          ],
+        },
+      },
+      {
+        id: 'msg-2',
+        content: {
+          text: 'Second',
+          parts: [
+            {
+              kind: 'file',
+              data: 'blob://v1/t_tenant/media/p_project/conv/c_conversation/m_msg2/hash2.pdf',
+              metadata: { mimeType: 'application/pdf' },
+            },
+          ],
+        },
+      },
+      {
+        id: 'msg-3',
+        content: { text: 'No attachments' },
+      },
+    ];
+
+    const resolved = await resolveMessagesListBlobUris(messages);
+
+    expect(resolved[0].content.parts?.[0]?.data).toBe('https://bucket.s3.amazonaws.com/signed-1');
+    expect(resolved[1].content.parts?.[0]?.data).toBe('https://bucket.s3.amazonaws.com/signed-2');
+    expect(resolved[2].content).toEqual({ text: 'No attachments' });
+    expect(mockGetPresignedUrl).toHaveBeenCalledTimes(2);
+  });
 });
