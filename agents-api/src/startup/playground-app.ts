@@ -50,7 +50,6 @@ export async function ensurePlaygroundAppConfig(): Promise<void> {
   }
 
   const webClient = { ...app.config.webClient } as Record<string, unknown>;
-  const auth = { ...((webClient.auth ?? {}) as Record<string, unknown>) };
   let configChanged = false;
 
   // --- Domain verification (additive, but replaces wildcard) ---
@@ -93,7 +92,7 @@ export async function ensurePlaygroundAppConfig(): Promise<void> {
   if (publicKeyB64) {
     const publicKeyPem = Buffer.from(publicKeyB64, 'base64').toString('utf-8');
     const kid = await derivePlaygroundKid(publicKeyPem);
-    const existingKeys = (auth.publicKeys ?? []) as Array<{
+    const existingKeys = (webClient.publicKeys ?? []) as Array<{
       kid: string;
       publicKey: string;
       algorithm: string;
@@ -109,7 +108,7 @@ export async function ensurePlaygroundAppConfig(): Promise<void> {
       };
 
       const updatedKeys = [...existingKeys, newKey];
-      webClient.auth = { ...auth, publicKeys: updatedKeys };
+      webClient.publicKeys = updatedKeys;
       configChanged = true;
 
       logger.info({ appId, kid }, 'Registering playground public key');

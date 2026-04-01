@@ -1,6 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import {
   addAppAuthKey,
   deleteAppAuthKey,
@@ -38,7 +37,6 @@ export async function addAppAuthKeyAction(
 ): Promise<ActionResult<PublicKeyConfig>> {
   try {
     const key = await addAppAuthKey(tenantId, projectId, appId, body);
-    revalidatePath(`/${tenantId}/projects/${projectId}/apps`);
     return { success: true, data: key };
   } catch (error) {
     if (error instanceof ApiError) {
@@ -60,7 +58,6 @@ export async function deleteAppAuthKeyAction(
 ): Promise<ActionResult<void>> {
   try {
     await deleteAppAuthKey(tenantId, projectId, appId, kid);
-    revalidatePath(`/${tenantId}/projects/${projectId}/apps`);
     return { success: true };
   } catch (error) {
     if (error instanceof ApiError) {
