@@ -161,6 +161,7 @@ Both transports share the same event dispatcher and handlers. The Socket Mode ad
 packages/agents-work-apps/src/slack/
 ├── README.md                 # This file
 ├── slack-app-manifest.json   # Slack app configuration template
+├── slack-scopes.ts           # Bot scopes derived from manifest (single source of truth)
 ├── dispatcher.ts             # Shared event dispatcher (used by both HTTP and Socket Mode)
 ├── socket-mode.ts            # Socket Mode adapter (local dev only)
 ├── tracer.ts                 # OTel tracing utilities

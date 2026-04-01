@@ -1,6 +1,11 @@
-import { MCPServerType, MCPTransportType, McpClient } from '@inkeep/agents-core';
+import {
+  configureComposioMCPServer,
+  MCPServerType,
+  MCPTransportType,
+  McpClient,
+} from '@inkeep/agents-core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { AgentMcpManager } from '../../../domains/run/agents/AgentMcpManager';
+import { AgentMcpManager } from '../../../domains/run/agents/services/AgentMcpManager';
 
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
@@ -9,6 +14,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     McpClient: vi.fn(),
     configureComposioMCPServer: vi.fn(),
     isGithubWorkAppTool: vi.fn(() => false),
+    isSlackWorkAppTool: vi.fn(() => false),
   };
 });
 
@@ -20,7 +26,7 @@ vi.mock('ai', async (importOriginal) => {
   };
 });
 
-vi.mock('../../../domains/run/services/AgentSession', () => ({
+vi.mock('../../../domains/run/session/AgentSession', () => ({
   agentSessionManager: { recordEvent: vi.fn() },
 }));
 
@@ -32,7 +38,11 @@ vi.mock('../../../domains/run/utils/tracer', () => ({
 }));
 
 vi.mock('../../../env', () => ({
-  env: { GITHUB_MCP_API_KEY: 'test-github-key' },
+  env: {
+    GITHUB_MCP_API_KEY: 'test-github-key',
+    SLACK_MCP_API_KEY: 'test-slack-key',
+    INKEEP_AGENTS_API_URL: 'https://api.inkeep.example',
+  },
 }));
 
 let mockMcpClient: {
@@ -63,7 +73,9 @@ function createMcpTool(overrides: Record<string, any> = {}): any {
   };
 }
 
-function createManager(options: { credentialStuffer?: any } = {}): AgentMcpManager {
+function createManager(
+  options: { credentialStuffer?: any; forwardedHeaders?: Record<string, string> } = {}
+): AgentMcpManager {
   const config = {
     id: 'sub-agent-1',
     agentId: 'parent-agent-1',
@@ -72,7 +84,7 @@ function createManager(options: { credentialStuffer?: any } = {}): AgentMcpManag
     name: 'Test Sub-Agent',
     userId: undefined,
     contextConfigId: undefined,
-    forwardedHeaders: undefined,
+    forwardedHeaders: options.forwardedHeaders,
   } as any;
 
   const executionContext = {
@@ -159,6 +171,165 @@ describe('AgentMcpManager', () => {
       const result = await createManager().getToolSet(mcpTool);
 
       expect(result.serverInstructions).toBe('Server default instructions');
+    });
+  });
+
+  describe('Slack MCP API key forwarding', () => {
+    test('injects Slack API key only for trusted Slack MCP endpoint', async () => {
+      const { isSlackWorkAppTool } = await import('@inkeep/agents-core');
+      vi.mocked(isSlackWorkAppTool).mockReturnValue(true);
+
+      const trustedSlackTool = createMcpTool({
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://api.inkeep.example/work-apps/slack/mcp' },
+          },
+        },
+      });
+
+      await createManager().getToolSet(trustedSlackTool);
+      expect(vi.mocked(McpClient).mock.calls[0]?.[0]?.server?.headers?.Authorization).toBe(
+        'Bearer test-slack-key'
+      );
+
+      const untrustedSlackTool = createMcpTool({
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://attacker.example/work-apps/slack/mcp' },
+          },
+        },
+      });
+
+      await createManager().getToolSet(untrustedSlackTool);
+      expect(vi.mocked(McpClient).mock.calls[1]?.[0]?.server?.headers?.Authorization).toBe(
+        undefined
+      );
+    });
+
+    test('does not allow forwarded headers to override trusted Slack auth headers', async () => {
+      const { isSlackWorkAppTool } = await import('@inkeep/agents-core');
+      vi.mocked(isSlackWorkAppTool).mockReturnValue(true);
+
+      const trustedSlackTool = createMcpTool({
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://api.inkeep.example/work-apps/slack/mcp' },
+          },
+        },
+      });
+
+      await createManager({
+        forwardedHeaders: {
+          Authorization: 'Bearer attacker-token',
+          'x-inkeep-tenant-id': 'attacker-tenant',
+          'x-inkeep-project-id': 'attacker-project',
+          'x-inkeep-tool-id': 'attacker-tool',
+          'x-custom-forwarded': 'allowed',
+        },
+      }).getToolSet(trustedSlackTool);
+
+      const headers = vi.mocked(McpClient).mock.calls[0]?.[0]?.server?.headers;
+      expect(headers?.Authorization).toBe('Bearer test-slack-key');
+      expect(headers?.['x-inkeep-tenant-id']).toBe('tenant-1');
+      expect(headers?.['x-inkeep-project-id']).toBe('project-1');
+      expect(headers?.['x-inkeep-tool-id']).toBe('test-tool-id');
+      expect(headers?.['x-custom-forwarded']).toBe('allowed');
+    });
+
+    test('blocks case-insensitive header override attempts on Slack headers', async () => {
+      const { isSlackWorkAppTool } = await import('@inkeep/agents-core');
+      vi.mocked(isSlackWorkAppTool).mockReturnValue(true);
+
+      const trustedSlackTool = createMcpTool({
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://api.inkeep.example/work-apps/slack/mcp' },
+          },
+        },
+      });
+
+      await createManager({
+        forwardedHeaders: {
+          authorization: 'Bearer attacker-token',
+          'X-INKEEP-TENANT-ID': 'attacker-tenant',
+          'X-Inkeep-Project-Id': 'attacker-project',
+        },
+      }).getToolSet(trustedSlackTool);
+
+      const headers = vi.mocked(McpClient).mock.calls[0]?.[0]?.server?.headers;
+      expect(headers?.Authorization).toBe('Bearer test-slack-key');
+      expect(headers?.['x-inkeep-tenant-id']).toBe('tenant-1');
+      expect(headers?.['x-inkeep-project-id']).toBe('project-1');
+    });
+  });
+
+  describe('GitHub MCP API key forwarding', () => {
+    test('injects GitHub API key only for trusted GitHub MCP endpoint', async () => {
+      const { isGithubWorkAppTool } = await import('@inkeep/agents-core');
+      vi.mocked(isGithubWorkAppTool).mockReturnValue(true);
+
+      const trustedGithubTool = createMcpTool({
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://api.inkeep.example/work-apps/github/mcp' },
+          },
+        },
+      });
+
+      await createManager().getToolSet(trustedGithubTool);
+      expect(vi.mocked(McpClient).mock.calls[0]?.[0]?.server?.headers?.Authorization).toBe(
+        'Bearer test-github-key'
+      );
+
+      const untrustedGithubTool = createMcpTool({
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://attacker.example/work-apps/github/mcp' },
+          },
+        },
+      });
+
+      await createManager().getToolSet(untrustedGithubTool);
+      expect(vi.mocked(McpClient).mock.calls[1]?.[0]?.server?.headers?.Authorization).toBe(
+        undefined
+      );
+    });
+
+    test('does not allow forwarded headers to override trusted GitHub auth headers', async () => {
+      const { isGithubWorkAppTool } = await import('@inkeep/agents-core');
+      vi.mocked(isGithubWorkAppTool).mockReturnValue(true);
+
+      const trustedGithubTool = createMcpTool({
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://api.inkeep.example/work-apps/github/mcp' },
+          },
+        },
+      });
+
+      await createManager({
+        forwardedHeaders: {
+          Authorization: 'Bearer attacker-token',
+          'x-inkeep-tenant-id': 'attacker-tenant',
+          'x-inkeep-project-id': 'attacker-project',
+          'x-inkeep-tool-id': 'attacker-tool',
+          'x-custom-forwarded': 'allowed',
+        },
+      }).getToolSet(trustedGithubTool);
+
+      const headers = vi.mocked(McpClient).mock.calls[0]?.[0]?.server?.headers;
+      expect(headers?.Authorization).toBe('Bearer test-github-key');
+      expect(headers?.['x-inkeep-tenant-id']).toBe('tenant-1');
+      expect(headers?.['x-inkeep-project-id']).toBe('project-1');
+      expect(headers?.['x-inkeep-tool-id']).toBe('test-tool-id');
+      expect(headers?.['x-custom-forwarded']).toBe('allowed');
     });
   });
 
@@ -447,6 +618,134 @@ describe('AgentMcpManager', () => {
       expect(result.mcpServerName).toBe('My Server');
       expect(result.toolPolicies).toEqual({});
       expect(result.tools).toBe(mockTools);
+    });
+  });
+
+  describe('Composio connectedAccountId pinning', () => {
+    test('calls configureComposioMCPServer with connectedAccountId when present in credential reference', async () => {
+      const mockCredentialStuffer = {
+        buildMcpServerConfig: vi.fn().mockResolvedValue({
+          type: MCPTransportType.streamableHttp,
+          url: 'https://backend.composio.dev/v3/mcp/server-123',
+          headers: {},
+        }),
+      };
+
+      const mcpTool = createMcpTool({
+        id: 'composio-tool',
+        name: 'Composio Gmail',
+        credentialReferenceId: 'cred-ref-composio',
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://backend.composio.dev/v3/mcp/server-123' },
+          },
+        },
+      });
+
+      const manager = new AgentMcpManager(
+        {
+          id: 'sub-1',
+          agentId: 'agent-1',
+          tenantId: 'tenant-abc',
+          projectId: 'project-xyz',
+          name: 'Agent',
+        } as any,
+        {
+          project: {
+            agents: {},
+            credentialReferences: {
+              'cred-ref-composio': {
+                credentialStoreId: 'composio-default',
+                retrievalParams: { connectedAccountId: 'ca_pinned-123' },
+              },
+            },
+          },
+        } as any,
+        mockCredentialStuffer as any,
+        () => 'conv-1',
+        () => 'stream-1',
+        () => undefined
+      );
+
+      await manager.getToolSet(mcpTool);
+
+      expect(configureComposioMCPServer).toHaveBeenCalledWith(
+        expect.anything(),
+        'tenant-abc',
+        'project-xyz',
+        'project',
+        undefined,
+        'ca_pinned-123'
+      );
+    });
+
+    test('does NOT call configureComposioMCPServer when connectedAccountId is missing for Composio tool', async () => {
+      const mockCredentialStuffer = {
+        buildMcpServerConfig: vi.fn().mockResolvedValue({
+          type: MCPTransportType.streamableHttp,
+          url: 'https://backend.composio.dev/v3/mcp/server-123',
+          headers: {},
+        }),
+      };
+
+      const mcpTool = createMcpTool({
+        id: 'composio-tool-no-pin',
+        name: 'Composio Gmail Unpinned',
+        credentialReferenceId: 'cred-ref-no-pin',
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://backend.composio.dev/v3/mcp/server-123' },
+          },
+        },
+      });
+
+      const manager = new AgentMcpManager(
+        {
+          id: 'sub-1',
+          agentId: 'agent-1',
+          tenantId: 'tenant-abc',
+          projectId: 'project-xyz',
+          name: 'Agent',
+        } as any,
+        {
+          project: {
+            agents: {},
+            credentialReferences: {
+              'cred-ref-no-pin': {
+                credentialStoreId: 'composio-default',
+                retrievalParams: {},
+              },
+            },
+          },
+        } as any,
+        mockCredentialStuffer as any,
+        () => 'conv-1',
+        () => 'stream-1',
+        () => undefined
+      );
+
+      await manager.getToolSet(mcpTool);
+
+      expect(configureComposioMCPServer).not.toHaveBeenCalled();
+    });
+
+    test('does NOT call configureComposioMCPServer when no credential reference exists for Composio tool', async () => {
+      const mcpTool = createMcpTool({
+        id: 'composio-tool-no-cred',
+        name: 'Composio No Cred',
+        config: {
+          type: 'mcp',
+          mcp: {
+            server: { url: 'https://backend.composio.dev/v3/mcp/server-123' },
+          },
+        },
+      });
+
+      await createManager().getToolSet(mcpTool);
+
+      expect(configureComposioMCPServer).not.toHaveBeenCalled();
     });
   });
 });

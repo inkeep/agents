@@ -1,6 +1,34 @@
+import { HTTPException } from 'hono/http-exception';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as execModule from '../../../domains/run/handlers/executionHandler';
+import { PdfUrlIngestionError } from '../../../domains/run/services/blob-storage/file-security-errors';
 import { makeRequest } from '../../utils/testRequest';
+
+const buildDataUri = (mimeType: string, bytes: Buffer): string => {
+  return `data:${mimeType};base64,${bytes.toString('base64')}`;
+};
+
+const TEXT_DOCUMENT_LIMIT_BYTES = 256 * 1024;
+
+const buildOpenAiTextAttachmentRequest = (options: { fileData: string; filename?: string }) => ({
+  model: 'claude-3-sonnet',
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Summarize this document' },
+        {
+          type: 'file',
+          file: {
+            file_data: options.fileData,
+            ...(options.filename === undefined ? {} : { filename: options.filename }),
+          },
+        },
+      ],
+    },
+  ],
+  conversationId: 'conv-123',
+});
 
 // Mock context exports used by the chat route (routes/chat.ts imports from ../context)
 vi.mock('../../../domains/run/context', () => ({
@@ -14,6 +42,20 @@ vi.mock('../../../domains/run/context', () => ({
     await next();
   }),
 }));
+
+vi.mock(
+  '../../../domains/run/services/blob-storage/file-upload-helpers',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('../../../domains/run/services/blob-storage/file-upload-helpers')
+      >();
+    return {
+      ...actual,
+      inlineExternalPdfUrlParts: vi.fn(async (parts) => parts),
+    };
+  }
+);
 
 // Mock Management API calls used by projectConfigMiddleware so tests don't hit network
 const getFullProjectMock = vi.fn();
@@ -70,7 +112,7 @@ vi.mock('../../data/db/dbClient.js', () => {
   };
 });
 
-vi.mock('../../../domains/run/utils/stream-helpers.js', () => ({
+vi.mock('../../../domains/run/stream/stream-helpers.js', () => ({
   createSSEStreamHelper: vi.fn().mockReturnValue({
     writeRole: vi.fn().mockResolvedValue(undefined),
     writeContent: vi.fn().mockResolvedValue(undefined),
@@ -84,7 +126,7 @@ vi.mock('../../../domains/run/utils/stream-helpers.js', () => ({
   }),
 }));
 
-vi.mock('../../../domains/run/utils/stream-helpers', () => ({
+vi.mock('../../../domains/run/stream/stream-helpers', () => ({
   createSSEStreamHelper: vi.fn().mockReturnValue({
     writeRole: vi.fn().mockResolvedValue(undefined),
     writeContent: vi.fn().mockResolvedValue(undefined),
@@ -257,6 +299,213 @@ describe('Chat Routes', () => {
       expect(response.headers.get('content-type')).toBe('text/event-stream');
     });
 
+    it('should accept inline PDF content item in OpenAI-style messages', async () => {
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Summarize this document' },
+                {
+                  type: 'file',
+                  file: {
+                    file_data: 'data:application/pdf;base64,JVBERi0xLjQK',
+                    filename: 'document.pdf',
+                  },
+                },
+              ],
+            },
+          ],
+          conversationId: 'conv-123',
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toBe('text/event-stream');
+    });
+
+    it('should accept inline text document content item in OpenAI-style messages', async () => {
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify(
+          buildOpenAiTextAttachmentRequest({
+            fileData: 'data:text/plain;base64,aGVsbG8gd29ybGQ=',
+            filename: 'notes.txt',
+          })
+        ),
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toBe('text/event-stream');
+    });
+
+    it('should accept inline text document content item without filename in OpenAI-style messages', async () => {
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify(
+          buildOpenAiTextAttachmentRequest({
+            fileData: buildDataUri('text/plain', Buffer.from('hello world', 'utf8')),
+          })
+        ),
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toBe('text/event-stream');
+    });
+
+    it('should accept inline text document content item exactly at the 256 KB limit in OpenAI-style messages', async () => {
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify(
+          buildOpenAiTextAttachmentRequest({
+            fileData: buildDataUri('text/plain', Buffer.alloc(TEXT_DOCUMENT_LIMIT_BYTES, 0x61)),
+            filename: 'boundary.txt',
+          })
+        ),
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toBe('text/event-stream');
+    });
+
+    it('should reject malformed base64 text document content item in OpenAI-style messages', async () => {
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify(
+          buildOpenAiTextAttachmentRequest({
+            fileData: 'data:text/plain;base64,!!!not-base64!!!',
+            filename: 'bad.txt',
+          })
+        ),
+        expectError: true,
+      });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should reject oversized text document content item in OpenAI-style messages', async () => {
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify(
+          buildOpenAiTextAttachmentRequest({
+            fileData: buildDataUri('text/plain', Buffer.alloc(TEXT_DOCUMENT_LIMIT_BYTES + 1, 0x61)),
+            filename: 'too-large.txt',
+          })
+        ),
+        expectError: true,
+      });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should reject binary payload masquerading as text/plain in OpenAI-style messages', async () => {
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify(
+          buildOpenAiTextAttachmentRequest({
+            fileData: buildDataUri('text/plain', Buffer.from([0x00, 0x9f, 0x92, 0x96, 0xff, 0x00])),
+            filename: 'binary.txt',
+          })
+        ),
+        expectError: true,
+      });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should accept inline HTML content item in OpenAI-style messages', async () => {
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Summarize this HTML file' },
+                {
+                  type: 'file',
+                  file: {
+                    file_data: 'data:text/html;base64,PGgxPkhlbGxvPC9oMT4=',
+                    filename: 'page.html',
+                  },
+                },
+              ],
+            },
+          ],
+          conversationId: 'conv-123',
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toBe('text/event-stream');
+    });
+
+    it('should accept inline JSON content item in OpenAI-style messages', async () => {
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Summarize this JSON file' },
+                {
+                  type: 'file',
+                  file: {
+                    file_data: 'data:application/json;base64,eyJoZWxsbyI6IndvcmxkIn0=',
+                    filename: 'payload.json',
+                  },
+                },
+              ],
+            },
+          ],
+          conversationId: 'conv-123',
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toBe('text/event-stream');
+    });
+
+    it('should return 400 when PDF URL ingestion fails', async () => {
+      const { inlineExternalPdfUrlParts } = await import(
+        '../../../domains/run/services/blob-storage/file-upload-helpers'
+      );
+      vi.mocked(inlineExternalPdfUrlParts).mockRejectedValueOnce(
+        new PdfUrlIngestionError('https://example.com/report.pdf')
+      );
+
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Summarize this document' },
+                {
+                  type: 'file',
+                  file: {
+                    file_data: 'https://example.com/report.pdf',
+                    filename: 'document.pdf',
+                  },
+                },
+              ],
+            },
+          ],
+          conversationId: 'conv-123',
+        }),
+      });
+
+      expect(response.status).toBe(400);
+    });
+
     it('should handle conversation creation', async () => {
       const response = await makeRequest('/run/v1/chat/completions', {
         method: 'POST',
@@ -277,6 +526,23 @@ describe('Chat Routes', () => {
           tenantId: 'test-tenant',
         })
       );
+    });
+
+    it('should not set userId on conversation when no endUserId in auth metadata (backward compat)', async () => {
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [{ role: 'user', content: 'Legacy API key request' }],
+        }),
+      });
+
+      expect(response.status).toBe(200);
+
+      const { createOrGetConversation } = await import('@inkeep/agents-core');
+      const innerFn = vi.mocked(createOrGetConversation).mock.results[0].value;
+      const callArgs = vi.mocked(innerFn).mock.calls[0][0];
+      expect(callArgs.userId).toBeUndefined();
     });
 
     it('should validate required fields', async () => {
@@ -343,6 +609,45 @@ describe('Chat Routes', () => {
       // The error handling should be in the stream content, not the status code
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toBe('text/event-stream');
+    });
+
+    it('should pass through HTTPException without wrapping (e.g. 401 from auth)', async () => {
+      const { createOrGetConversation } = await import('@inkeep/agents-core');
+      vi.mocked(createOrGetConversation).mockReturnValueOnce(
+        vi.fn().mockRejectedValue(new HTTPException(401, { message: 'Unauthorized' }))
+      );
+
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [{ role: 'user', content: 'Hello' }],
+        }),
+        expectError: true,
+      });
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should return static message for unexpected errors (no error.message leak)', async () => {
+      const { createOrGetConversation } = await import('@inkeep/agents-core');
+      vi.mocked(createOrGetConversation).mockReturnValueOnce(
+        vi.fn().mockRejectedValue(new Error('connect ECONNREFUSED 10.0.0.5:5432'))
+      );
+
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [{ role: 'user', content: 'Hello' }],
+        }),
+        expectError: true,
+      });
+
+      expect(response.status).toBe(500);
+      const body = await response.json();
+      expect(body.detail).toBe('Failed to process chat completion');
+      expect(body.detail).not.toContain('ECONNREFUSED');
     });
   });
 });

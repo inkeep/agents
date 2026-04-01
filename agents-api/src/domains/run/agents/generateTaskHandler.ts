@@ -12,10 +12,10 @@ import {
   type TextPart,
   withRef,
 } from '@inkeep/agents-core';
-import manageDbPool from 'src/data/db/manageDbPool';
+import manageDbPool from '../../../data/db/manageDbPool';
 import { getLogger } from '../../../logger';
 import type { A2ATask, A2ATaskResult } from '../a2a/types';
-import { agentSessionManager } from '../services/AgentSession';
+import { agentSessionManager } from '../session/AgentSession';
 import { getUserIdFromContext, type SandboxConfig } from '../types/executionContext';
 import { resolveModelConfig } from '../utils/model-resolver';
 import {
@@ -29,7 +29,7 @@ import {
 } from '../utils/project';
 import { Agent } from './Agent';
 import { buildTransferRelationConfig } from './relationTools';
-import { toolSessionManager } from './ToolSessionManager';
+import { toolSessionManager } from './services/ToolSessionManager';
 
 const logger = getLogger('generateTaskHandler');
 
@@ -189,7 +189,7 @@ export const createTaskHandler = (
           );
         })) ?? [];
 
-      const skills = getSkillsForSubAgent({ subAgent: currentSubAgent });
+      const skills = getSkillsForSubAgent({ project, subAgent: currentSubAgent });
 
       agent = new Agent(
         {
@@ -197,6 +197,7 @@ export const createTaskHandler = (
           tenantId,
           projectId,
           agentId,
+          agentName: currentAgent.name,
           baseUrl: config.baseUrl,
           apiKey: config.apiKey,
           userId: config.userId,
@@ -332,6 +333,26 @@ export const createTaskHandler = (
       agent.setDelegationStatus(isDelegation);
       agent.setDelegationId(delegationId);
 
+      const durableWorkflowRunId = task.context?.metadata?.durable_workflow_run_id as
+        | string
+        | undefined;
+      const approvedToolCallsRaw = task.context?.metadata?.approved_tool_calls;
+      const approvedToolCalls =
+        approvedToolCallsRaw !== undefined
+          ? typeof approvedToolCallsRaw === 'string'
+            ? (JSON.parse(approvedToolCallsRaw) as Record<
+                string,
+                Array<{ approved: boolean; reason?: string; originalToolCallId?: string }>
+              >)
+            : (approvedToolCallsRaw as Record<
+                string,
+                Array<{ approved: boolean; reason?: string; originalToolCallId?: string }>
+              >)
+          : undefined;
+
+      agent.setDurableWorkflowRunId(durableWorkflowRunId);
+      agent.setApprovedToolCalls(approvedToolCalls);
+
       if (isDelegation) {
         logger.info(
           { subAgentId: config.subAgentId, taskId: task.id, delegationId },
@@ -377,6 +398,30 @@ export const createTaskHandler = (
         },
       });
 
+      const pendingApproval = agent.getPendingDurableApproval();
+      if (pendingApproval) {
+        return {
+          status: { state: TaskState.Completed },
+          artifacts: [
+            {
+              artifactId: generateId(),
+              parts: [
+                {
+                  kind: 'data' as const,
+                  data: {
+                    type: 'durable-approval-required',
+                    toolCallId: pendingApproval.toolCallId,
+                    toolName: pendingApproval.toolName,
+                    args: pendingApproval.args,
+                  },
+                },
+              ],
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        };
+      }
+
       const stepContents =
         response.steps && Array.isArray(response.steps)
           ? response.steps.flatMap((step: any) => {
@@ -421,14 +466,13 @@ export const createTaskHandler = (
                 output !== null &&
                 'type' in output &&
                 'targetSubAgentId' in output &&
-                (output as any).type === 'transfer' &&
-                typeof (output as any).targetSubAgentId === 'string'
+                (output as { type: unknown }).type === 'transfer' &&
+                typeof (output as { targetSubAgentId: unknown }).targetSubAgentId === 'string'
               );
             };
 
             const responseText =
-              (response as any).text ||
-              ((response as any).object ? JSON.stringify((response as any).object) : '');
+              response.text || (response.object ? JSON.stringify(response.object) : '');
             const transferReason =
               responseText ||
               allThoughts[allThoughts.length - 1]?.text ||
@@ -502,6 +546,18 @@ export const createTaskHandler = (
         }
         return { kind: 'text' as const, text: part.text };
       });
+
+      const denialRedirects = agent?.getTaskDenialRedirects() ?? [];
+      if (denialRedirects.length > 0) {
+        const sanitize = (s: string) => s.replace(/\n/g, ' ').slice(0, 200);
+        const redirectNote = denialRedirects
+          .map((d) => `- ${d.toolName} (${d.toolCallId}): ${sanitize(d.reason)}`)
+          .join('\n');
+        parts.unshift({
+          kind: 'text' as const,
+          text: `[NOTE: Some tool calls were denied during task execution, which may have changed the original request:\n${redirectNote}\nThe result below reflects the actual execution.]\n\n`,
+        });
+      }
 
       return {
         status: { state: TaskState.Completed },

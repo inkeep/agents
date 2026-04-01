@@ -10,15 +10,15 @@ The chat button component is a simple way to trigger the Inkeep chat bubble.
 
 <CodeGroup>
 ```bash title="npm"
-npm install @inkeep/agents-ui
+npm install @inkeep/agents-ui-cloud
 ```
 
 ```bash title="yarn"
-yarn add @inkeep/agents-ui
+yarn add @inkeep/agents-ui-cloud
 ```
 
 ```bash title="pnpm"
-pnpm add @inkeep/agents-ui
+pnpm add @inkeep/agents-ui-cloud
 ```
 
 </CodeGroup>
@@ -31,12 +31,12 @@ pnpm add @inkeep/agents-ui
     Use an API key for secure authentication in production:
 
     ```tsx
-    import { InkeepChatButton, type InkeepChatButtonProps } from "@inkeep/agents-ui";
+    import { InkeepChatButton, type InkeepChatButtonProps } from "@inkeep/agents-ui-cloud";
 
     const buttonProps: InkeepChatButtonProps = {
       aiChatSettings: {
-        agentUrl: "https://your-api.example.com/api/chat",
-        apiKey: process.env.REACT_APP_INKEEP_API_KEY, // Your API key
+        baseUrl: "https://your-api.example.com",
+        appId: process.env.REACT_APP_INKEEP_APP_ID, // Your app ID
       },
     };
 
@@ -61,16 +61,12 @@ pnpm add @inkeep/agents-ui
     import {
       InkeepChatButton,
       type InkeepChatButtonProps,
-    } from "@inkeep/agents-ui";
+    } from "@inkeep/agents-ui-cloud";
 
     const buttonProps: InkeepChatButtonProps = {
       aiChatSettings: {
-        agentUrl: "http://localhost:3003/api/chat",
-        headers: {
-          "x-inkeep-tenant-id": "your-tenant-id",
-          "x-inkeep-project-id": "your-project-id",
-          "x-inkeep-agent-id": "your-agent-id",
-        },
+        baseUrl: "http://localhost:3003",
+        appId: process.env.REACT_APP_INKEEP_APP_ID, // Your app ID
       },
     };
 

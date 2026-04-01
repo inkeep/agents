@@ -287,7 +287,29 @@ app.post('/', async (c) => {
     );
   }
 
-  const tokenResult = await generateInstallationAccessToken(installation.installationId);
+  const repositoryId = Number.parseInt(claims.repository_id, 10);
+  if (!Number.isSafeInteger(repositoryId) || repositoryId <= 0) {
+    const errorMessage = 'OIDC token contains an invalid repository_id claim';
+    logger.warn(
+      { repository: claims.repository, repositoryId: claims.repository_id },
+      errorMessage
+    );
+    c.header('Content-Type', 'application/problem+json');
+    return c.json(
+      {
+        title: 'Bad Request',
+        status: 400,
+        detail: errorMessage,
+        error: errorMessage,
+      },
+      400
+    );
+  }
+
+  const tokenResult = await generateInstallationAccessToken(
+    installation.installationId,
+    repositoryId
+  );
 
   if (!tokenResult.success) {
     const { errorType, message } = tokenResult;

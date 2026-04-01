@@ -2,17 +2,19 @@ import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   canUseProject,
   createApiError,
+  derivePlaygroundKid,
   ErrorResponseSchema,
   getAgentById,
   type OrgRole,
   projectExists,
-  signTempToken,
   TenantParamsSchema,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedManageTenantAuth } from '@inkeep/agents-core/middleware';
+import { exportSPKI, importPKCS8, SignJWT } from 'jose';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import type { ManageAppVariables } from '../../../types/app';
+import { isCopilotAgent } from '../../../utils/copilot';
 
 const logger = getLogger('playgroundToken');
 
@@ -87,21 +89,38 @@ app.openapi(
       'Generating temporary JWT token for playground'
     );
 
-    // Check SpiceDB 'use' permission for this project
-    // This allows project_admin and project_member roles, but not project_viewer
-    const canUse = await canUseProject({
-      userId,
-      tenantId,
-      projectId,
-      orgRole: tenantRole,
-    });
+    // Copilot bypass — skip SpiceDB check when targeting the copilot agent.
+    // Any authenticated user can use the copilot; target-resource authz is
+    // enforced by the copilot agent via forwarded session cookies.
+    const isCopilotRequest = isCopilotAgent({ tenantId, projectId, agentId });
 
-    if (!canUse) {
-      logger.warn({ userId, tenantId, projectId }, 'User does not have use permission on project');
-      throw createApiError({
-        code: 'not_found',
-        message: 'Project not found',
+    if (isCopilotRequest) {
+      logger.info(
+        { userId, tenantId, projectId, agentId },
+        'Copilot bypass: skipping canUseProject check'
+      );
+    }
+
+    if (!isCopilotRequest) {
+      // Check SpiceDB 'use' permission for this project
+      // This allows project_admin and project_member roles, but not project_viewer
+      const canUse = await canUseProject({
+        userId,
+        tenantId,
+        projectId,
+        orgRole: tenantRole,
       });
+
+      if (!canUse) {
+        logger.warn(
+          { userId, tenantId, projectId },
+          'User does not have use permission on project'
+        );
+        throw createApiError({
+          code: 'not_found',
+          message: 'Project not found',
+        });
+      }
     }
 
     // Verify project exists and belongs to the tenant
@@ -134,22 +153,34 @@ app.openapi(
     const privateKeyPem = Buffer.from(env.INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY, 'base64').toString(
       'utf-8'
     );
+    const privateKey = await importPKCS8(privateKeyPem, 'RS256');
 
-    const result = await signTempToken(privateKeyPem, {
-      tenantId,
-      projectId,
+    // Derive kid from the corresponding public key (same logic as startup/playground-app.ts)
+    const publicKeyPem = env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY
+      ? Buffer.from(env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY, 'base64').toString('utf-8')
+      : await exportSPKI(privateKey);
+    const kid = await derivePlaygroundKid(publicKeyPem);
+
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+    const token = await new SignJWT({
+      tid: tenantId,
+      pid: projectId,
       agentId,
-      type: 'temporary',
-      initiatedBy: { type: 'user', id: userId },
-      sub: userId,
-    });
+    })
+      .setProtectedHeader({ alg: 'RS256', kid })
+      .setSubject(userId)
+      .setIssuedAt()
+      .setExpirationTime('1h')
+      .sign(privateKey);
 
-    logger.info({ userId, expiresAt: result.expiresAt }, 'Temporary JWT token generated');
+    logger.info({ userId, expiresAt }, 'Playground JWT token generated (app-credential format)');
 
     return c.json(
       {
-        apiKey: result.token,
-        expiresAt: result.expiresAt,
+        apiKey: token,
+        expiresAt,
+        appId: env.INKEEP_PLAYGROUND_APP_ID || 'app_playground',
       },
       200
     );

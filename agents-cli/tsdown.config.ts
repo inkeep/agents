@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsdown';
 
 export default defineConfig({
-  entry: ['src/**/*.ts', '!**/__tests__', '!**/__snapshots__', '!**/*.test.ts'],
+  entry: ['src/**/*.ts', 'src/**/*.tsx', '!**/__tests__', '!**/__snapshots__', '!**/*.test.ts'],
   format: 'esm',
   target: 'node20',
   dts: true,
@@ -9,6 +9,7 @@ export default defineConfig({
   outDir: 'dist',
   shims: true,
   unbundle: true,
+  sourcemap: true,
   // Keep .js extension (tsdown 0.18+ defaults to .mjs)
   outExtensions() {
     return { js: '.js', dts: '.d.ts' };

@@ -615,7 +615,10 @@ describe('API Keys Data Access', () => {
         update: mockUpdate,
       } as any;
 
-      await updateApiKeyLastUsed(mockDb)(apiKeyId);
+      await updateApiKeyLastUsed(mockDb)({
+        id: apiKeyId,
+        scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
+      });
 
       expect(mockUpdate).toHaveBeenCalled();
       // Verify the set method was called with lastUsedAt

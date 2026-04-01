@@ -1,5 +1,12 @@
 import type { Artifact } from '@inkeep/agents-core';
-import { V1_BREAKDOWN_SCHEMA } from '@inkeep/agents-core';
+import {
+  type AssembleResult,
+  type BreakdownComponentDef,
+  calculateBreakdownTotal,
+  createEmptyBreakdown,
+  estimateTokens,
+  V1_BREAKDOWN_SCHEMA,
+} from '@inkeep/agents-core';
 import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
 import systemPromptTemplate from '../../../../../../templates/v1/prompt/system-prompt.xml?raw';
 import toolTemplate from '../../../../../../templates/v1/prompt/tool.xml?raw';
@@ -7,22 +14,14 @@ import artifactTemplate from '../../../../../../templates/v1/shared/artifact.xml
 import artifactRetrievalGuidance from '../../../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
 import dataComponentTemplate from '../../../../../../templates/v1/shared/data-component.xml?raw';
 import dataComponentsTemplate from '../../../../../../templates/v1/shared/data-components.xml?raw';
+import { ArtifactCreateSchema } from '../../../artifacts/artifact-component-schema';
 import { ARTIFACT_TAG, ARTIFACT_TOOL, SENTINEL_KEY } from '../../../constants/artifact-syntax';
-
-import { ArtifactCreateSchema } from '../../../utils/artifact-component-schema';
 import {
   buildSchemaShape,
   type ExtendedJsonSchema,
   extractFullFields,
   extractPreviewFields,
 } from '../../../utils/schema-validation';
-import {
-  type AssembleResult,
-  type BreakdownComponentDef,
-  calculateBreakdownTotal,
-  createEmptyBreakdown,
-  estimateTokens,
-} from '../../../utils/token-estimator';
 import type {
   McpServerGroupData,
   SkillData,
@@ -79,6 +78,7 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
         .replace('{{CORE_INSTRUCTIONS}}', '')
         .replace('{{CURRENT_TIME_SECTION}}', '')
         .replace('{{AGENT_CONTEXT_SECTION}}', '')
+        .replace('{{APP_CONTEXT_SECTION}}', '')
         .replace('{{ARTIFACTS_SECTION}}', '')
         .replace('{{TOOLS_SECTION}}', '')
         .replace('{{TRANSFER_INSTRUCTIONS}}', '')
@@ -117,8 +117,12 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
       - Always call \`load_skill\` with skill name before responding.`.trimStart()
       : '';
 
+    const appContextSection = this.generateAppContextSection(config.appPrompt);
+    breakdown.components.appPrompt = estimateTokens(appContextSection);
+
     systemPrompt = systemPrompt
       .replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection)
+      .replace('{{APP_CONTEXT_SECTION}}', appContextSection)
       .replace('{{SKILLS_SECTION}}', skillsSection)
       .replace('{{SKILLS_GUIDELINES}}', skillsGuidelines);
 
@@ -214,6 +218,17 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
   </agent_context>`;
   }
 
+  private generateAppContextSection(appPrompt?: string): string {
+    if (!appPrompt || appPrompt.trim() === '') {
+      return '';
+    }
+
+    return `
+  <app_context>
+    ${appPrompt}
+  </app_context>`;
+  }
+
   private generateCurrentTimeSection(clientCurrentTime?: string): string {
     if (!clientCurrentTime || clientCurrentTime.trim() === '') {
       return '';
@@ -246,7 +261,7 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
     <instructions>
       - Each entry has mode="always" or mode="on_demand".
       - Always‑loaded skills apply immediately.
-      - On‑demand skills are discoverable by name/description. Call load_skill with the skill name to load the full content only when needed.
+      - On‑demand skills are discoverable by name/description. Call load_skill with the skill name to load the full content and attached files only when needed.
       - Apply skills by index; later entries weigh more.
       - core_instructions override skill content on conflict.
     </instructions>
@@ -816,8 +831,13 @@ extraction step on it. An extraction applied to a plain string or number returns
   }
 
   private generateMcpToolXml(tool: ToolData): string {
-    const schema = tool.inputSchema as any;
-    const properties: Record<string, any> = schema?.properties || {};
+    const schema = tool.inputSchema as
+      | {
+          properties?: Record<string, { type?: string; description?: string }>;
+          required?: string[];
+        }
+      | undefined;
+    const properties = schema?.properties || {};
     const required: string[] = Array.isArray(schema?.required) ? schema.required : [];
     const propertyEntries = Object.entries(properties);
 
@@ -828,9 +848,7 @@ extraction step on it. An extraction applied to a plain string or number returns
     let parametersXml = '';
     if (propertyEntries.length > 0) {
       const propsXml = propertyEntries
-        .map(([name, prop]: [string, any]) =>
-          this.renderPropertyXml(name, prop, required, '      ')
-        )
+        .map(([name, prop]) => this.renderPropertyXml(name, prop, required, '      '))
         .join('\n');
       parametersXml = `\n    <parameters>\n${propsXml}\n    </parameters>`;
     }
@@ -929,8 +947,8 @@ ${this.getToolChainingGuidance()}">
     const propertiesXml = Object.entries(properties)
       .map(([key, value]) => {
         const isRequired = required.includes(key);
-        const propType = (value as any)?.type || 'string';
-        const propDescription = (value as any)?.description || 'No description';
+        const propType = value?.type || 'string';
+        const propDescription = value?.description || 'No description';
 
         return `        ${key}: {\n          "type": "${propType}",\n          "description": "${propDescription}",\n          "required": ${isRequired}\n        }`;
       })

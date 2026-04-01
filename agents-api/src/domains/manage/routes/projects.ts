@@ -2,6 +2,7 @@ import { OpenAPIHono } from '@hono/zod-openapi';
 import {
   cascadeDeleteByProject,
   commonGetErrorResponses,
+  countProjectsInRuntime,
   createApiError,
   createProject,
   createProjectMetadataAndBranch,
@@ -19,6 +20,7 @@ import {
   ProjectApiUpdateSchema,
   ProjectListResponse,
   ProjectResponse,
+  QUOTA_RESOURCE_TYPES,
   type ResolvedRef,
   removeProjectFromSpiceDb,
   syncProjectToSpiceDb,
@@ -28,11 +30,12 @@ import {
   updateProject,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedManageTenantAuth } from '@inkeep/agents-core/middleware';
-import { requirePermission } from 'src/middleware/requirePermission';
-import type { ManageAppVariables } from 'src/types/app';
 import manageDbClient from '../../../data/db/manageDbClient';
 import runDbClient from '../../../data/db/runDbClient';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
+import { requireEntitlement } from '../../../middleware/requireEntitlement';
+import { requirePermission } from '../../../middleware/requirePermission';
+import type { ManageAppVariables } from '../../../types/app';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -163,6 +166,11 @@ app.openapi(
     operationId: 'create-project',
     tags: ['Projects'],
     permission: requirePermission({ project: ['create'] }),
+    entitlement: requireEntitlement({
+      resourceType: QUOTA_RESOURCE_TYPES.PROJECT,
+      countFn: (tenantId) => countProjectsInRuntime(runDbClient)({ tenantId }),
+      label: 'Project',
+    }),
     request: {
       params: TenantParamsSchema,
       body: {

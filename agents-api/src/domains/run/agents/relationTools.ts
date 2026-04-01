@@ -17,7 +17,7 @@ import {
 } from '@inkeep/agents-core';
 import { trace } from '@opentelemetry/api';
 import { tool } from 'ai';
-import manageDbPool from 'src/data/db/manageDbPool';
+import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { A2AClient } from '../a2a/client';
@@ -29,7 +29,7 @@ import {
 } from '../constants/execution-limits';
 import { ContextResolver } from '../context';
 import { saveA2AMessageResponse } from '../data/conversations';
-import { agentSessionManager } from '../services/AgentSession';
+import { agentSessionManager } from '../session/AgentSession';
 import { getUserIdFromContext } from '../types/executionContext';
 import {
   getExternalAgentRelationsForTargetSubAgent,
@@ -38,12 +38,39 @@ import {
   type InternalRelation,
 } from '../utils/project';
 import type { AgentConfig, DelegateRelation } from './Agent';
-import { toolSessionManager } from './ToolSessionManager';
+import { toolSessionManager } from './services/ToolSessionManager';
 
 const logger = getLogger('relationships Tools');
 
 // Re-export A2A_RETRY_STATUS_CODES from agents-core for compatibility
 const A2A_RETRY_STATUS_CODES = ['429', '500', '502', '503', '504'];
+
+const delegationMetadataSchema = z.object({
+  conversationId: z.string(),
+  threadId: z.string(),
+  streamRequestId: z.string().optional(),
+  streamBaseUrl: z.string().optional(),
+  apiKey: z.string().optional(),
+});
+
+type DelegationMetadata = z.infer<typeof delegationMetadataSchema>;
+
+function getDelegationMetadata(params: {
+  isInternal: boolean;
+  callingAgentId: string;
+  delegationId: string;
+  metadata: DelegationMetadata;
+}) {
+  const { isInternal, callingAgentId, delegationId, metadata } = params;
+  const { apiKey: _apiKey, ...safeMetadata } = metadata;
+
+  return {
+    ...(isInternal ? metadata : safeMetadata),
+    isDelegation: true,
+    delegationId,
+    ...(isInternal ? { fromSubAgentId: callingAgentId } : { fromExternalAgentId: callingAgentId }),
+  };
+}
 
 const generateTransferToolDescription = (config: AgentConfig): string => {
   // Generate tools section from the agent's available tools
@@ -266,13 +293,7 @@ export function createDelegateToAgentTool({
   callingAgentId: string;
   executionContext: FullExecutionContext;
   contextId: string;
-  metadata: {
-    conversationId: string;
-    threadId: string;
-    streamRequestId?: string;
-    streamBaseUrl?: string;
-    apiKey?: string;
-  };
+  metadata: DelegationMetadata;
   sessionId?: string;
   credentialStoreRegistry?: CredentialStoreRegistry;
 }) {
@@ -360,20 +381,21 @@ export function createDelegateToAgentTool({
           projectId,
           originAgentId: agentId,
           targetAgentId: delegateConfig.config.id,
+          initiatedBy: executionContext.metadata?.initiatedBy,
         })}`;
       } else {
-        // For internal sub-agent calls, check if we're in a team delegation context.
-        // If so, the inherited metadata.apiKey has the wrong audience (targets the parent agent),
-        // so we need to generate a fresh JWT targeting this specific sub-agent.
-        let authToken = metadata.apiKey;
-        if (executionContext.metadata?.teamDelegation && authToken) {
-          authToken = await generateServiceToken({
-            tenantId,
-            projectId,
-            originAgentId: agentId,
-            targetAgentId: delegateConfig.config.id,
-          });
-        }
+        // Always generate a service token for internal A2A self-calls.
+        // The original apiKey may be any auth type (app credential, API key, etc.)
+        // but internal calls need a service token that the runApiKeyAuth middleware
+        // can verify via verifyServiceToken(). Since we use getInProcessFetch(),
+        // signing and verification happen in the same process with the same secret.
+        const authToken = await generateServiceToken({
+          tenantId,
+          projectId,
+          originAgentId: agentId,
+          targetAgentId: delegateConfig.config.id,
+          initiatedBy: executionContext.metadata?.initiatedBy,
+        });
 
         resolvedHeaders = {
           Authorization: `Bearer ${authToken}`,
@@ -406,32 +428,31 @@ export function createDelegateToAgentTool({
         messageId: generateId(),
         kind: 'message' as const,
         contextId,
-        metadata: {
-          ...metadata, // Keep all metadata including streamRequestId
-          isDelegation: true, // Flag to prevent streaming in delegated agents
-          delegationId, // Include delegation ID for tracking
-          ...(isInternal
-            ? { fromSubAgentId: callingAgentId }
-            : { fromExternalAgentId: callingAgentId }),
-        },
+        metadata: getDelegationMetadata({
+          isInternal,
+          callingAgentId,
+          delegationId,
+          metadata,
+        }),
       };
       logger.info({ messageToSend }, 'messageToSend');
 
       await createMessage(runDbClient)({
-        id: generateId(),
-        tenantId: tenantId,
-        projectId: projectId,
-        conversationId: contextId,
-        role: 'agent',
-        content: {
-          text: input.message,
+        scopes: { tenantId, projectId },
+        data: {
+          id: generateId(),
+          conversationId: contextId,
+          role: 'agent',
+          content: {
+            text: input.message,
+          },
+          visibility: isInternal ? 'internal' : 'external',
+          messageType: 'a2a-request',
+          fromSubAgentId: callingAgentId,
+          ...(isInternal
+            ? { toSubAgentId: delegateConfig.config.id }
+            : { toExternalAgentId: delegateConfig.config.id }),
         },
-        visibility: isInternal ? 'internal' : 'external',
-        messageType: 'a2a-request',
-        fromSubAgentId: callingAgentId,
-        ...(isInternal
-          ? { toSubAgentId: delegateConfig.config.id }
-          : { toExternalAgentId: delegateConfig.config.id }),
       });
 
       logger.info({ messageToSend }, 'Created message in database');

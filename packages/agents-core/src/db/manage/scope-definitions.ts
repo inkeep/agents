@@ -15,6 +15,7 @@ export const SCOPE_KEYS = {
   project: ['tenantId', 'projectId'] as const,
   agent: ['tenantId', 'projectId', 'agentId'] as const,
   subAgent: ['tenantId', 'projectId', 'agentId', 'subAgentId'] as const,
+  tool: ['tenantId', 'projectId', 'toolId'] as const,
 } as const;
 
 export type ScopeLevel = keyof typeof SCOPE_KEYS;
@@ -36,3 +37,4 @@ export type TenantScopeConfig = ScopeConfig<'tenant'>;
 export type ProjectScopeConfig = ScopeConfig<'project'>;
 export type AgentScopeConfig = ScopeConfig<'agent'>;
 export type SubAgentScopeConfig = ScopeConfig<'subAgent'>;
+export type ToolScopeConfig = ScopeConfig<'tool'>;

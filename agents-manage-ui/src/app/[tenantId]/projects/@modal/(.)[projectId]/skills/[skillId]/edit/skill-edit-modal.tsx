@@ -10,24 +10,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 
-interface SkillEditModalProps {
-  readOnly: boolean;
-}
-
-export const SkillEditModal: FC<SkillEditModalProps> = ({ readOnly }) => {
+export const SkillEditModal: FC = () => {
   const router = useRouter();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
+
+  const title = canEdit ? 'Edit skill' : 'View skill';
+  const description = canEdit ? 'Edit skill details.' : 'View skill details.';
 
   return (
     <Dialog open onOpenChange={router.back}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{readOnly ? 'View skill' : 'Edit skill'}</DialogTitle>
-          <DialogDescription className="sr-only">
-            {readOnly ? 'View skill details.' : 'Edit skill details.'}
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription className="sr-only">{description}</DialogDescription>
         </DialogHeader>
-        <SkillForm onSuccess={router.back} readOnly={readOnly} />
+        <SkillForm onSuccess={router.back} />
       </DialogContent>
     </Dialog>
   );

@@ -1,6 +1,6 @@
 import { headers } from '@inkeep/agents-core';
 import { z } from 'zod';
 
-const emptyHeaders = headers({
+const emptyheaders = headers({
   schema: z.any(),
 });

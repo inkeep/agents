@@ -41,7 +41,7 @@ export const useChatActivitiesPolling = ({
       const currentConversationId = conversationId; // Capture current ID
 
       const response = await fetch(
-        `/api/signoz/conversations/${currentConversationId}?tenantId=${tenantId}&projectId=${projectId}`,
+        `/api/traces/conversations/${currentConversationId}?tenantId=${tenantId}&projectId=${projectId}`,
         {
           signal: abortControllerRef.current.signal,
         }

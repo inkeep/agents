@@ -31,6 +31,7 @@ import { ComparisonTable } from '@/components/comparisons-table';
 import { AutoTypeTable, type TypeLinksInput } from '@/components/mdx/auto-type-table';
 import { BigVideo } from '@/components/mdx/big-video';
 import { Card } from '@/components/mdx/card';
+import { NumberedStepsTOC } from '@/components/mdx/numbered-steps-toc';
 import { OptionCard, OptionCards } from '@/components/mdx/option-cards';
 import { SkillRule } from '@/components/mdx/skill-rule';
 import { openapi } from '@/lib/openapi';
@@ -116,6 +117,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     Video,
     Snippet,
     ComparisonTable,
+    NumberedStepsTOC,
     OptionCard,
     OptionCards,
     SkillRule,

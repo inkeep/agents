@@ -4,7 +4,6 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { useController } from 'react-hook-form';
-import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -16,8 +15,10 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
+type DatasetMessageRole = 'user' | 'assistant' | 'system';
+
 interface Message {
-  role: string;
+  role: DatasetMessageRole;
   content: string;
 }
 
@@ -28,10 +29,7 @@ interface MessagesInputFormProps<T extends FieldValues> {
   description?: string;
 }
 
-// Parse the value - it might be a JSON string or an object
-const parseInputValue = (
-  value: unknown
-): { messages: Message[]; headers?: Record<string, string> } => {
+const parseInputValue = (value: unknown): { messages: Message[] } => {
   if (!value) {
     return { messages: [] };
   }
@@ -41,7 +39,6 @@ const parseInputValue = (
       const parsed = JSON.parse(value);
       return {
         messages: Array.isArray(parsed.messages) ? parsed.messages : [],
-        headers: parsed.headers || {},
       };
     } catch {
       return { messages: [] };
@@ -52,7 +49,6 @@ const parseInputValue = (
     const obj = value as any;
     return {
       messages: Array.isArray(obj.messages) ? obj.messages : [],
-      headers: obj.headers || {},
     };
   }
 
@@ -72,55 +68,35 @@ export function MessagesInputForm<T extends FieldValues>({
 
   const currentValue = parseInputValue(field.value);
   const [localMessages, setLocalMessages] = useState<Message[]>(currentValue.messages);
-  const [localHeaders, setLocalHeaders] = useState<Record<string, string>>(
-    currentValue.headers || {}
-  );
 
-  // Sync with form field value changes
   useEffect(() => {
     const parsed = parseInputValue(field.value);
     setLocalMessages(parsed.messages);
-    setLocalHeaders(parsed.headers || {});
   }, [field.value]);
 
-  const updateField = (messages: Message[], headers?: Record<string, string>) => {
-    const newValue = {
-      messages,
-      ...(headers && Object.keys(headers).length > 0 ? { headers } : {}),
-    };
+  const updateField = (messages: Message[]) => {
+    const newValue = { messages };
     field.onChange(JSON.stringify(newValue, null, 2));
   };
 
   const addMessage = () => {
-    const newMessages = [...localMessages, { role: 'user', content: '' }];
+    const newMessages: Message[] = [...localMessages, { role: 'user', content: '' }];
     setLocalMessages(newMessages);
-    updateField(newMessages, localHeaders);
+    updateField(newMessages);
   };
 
   const removeMessage = (index: number) => {
     const newMessages = localMessages.filter((_, i) => i !== index);
     setLocalMessages(newMessages);
-    updateField(newMessages, localHeaders);
+    updateField(newMessages);
   };
 
-  const updateMessage = (index: number, field: 'role' | 'content', value: string) => {
-    const newMessages = [...localMessages];
-    newMessages[index] = { ...newMessages[index], [field]: value };
+  const updateMessage = (index: number, key: 'role' | 'content', value: string) => {
+    const newMessages: Message[] = localMessages.map((msg, i) =>
+      i === index ? { ...msg, [key]: value } : msg
+    );
     setLocalMessages(newMessages);
-    updateField(newMessages, localHeaders);
-  };
-
-  const handleHeadersChange = (headersJson: string) => {
-    try {
-      const parsed = headersJson.trim() === '' ? {} : JSON.parse(headersJson);
-      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-        const headers = parsed as Record<string, string>;
-        setLocalHeaders(headers);
-        updateField(localMessages, headers);
-      }
-    } catch {
-      // Invalid JSON - don't update, but allow user to continue typing
-    }
+    updateField(newMessages);
   };
 
   return (
@@ -204,20 +180,6 @@ export function MessagesInputForm<T extends FieldValues>({
             ))}
           </div>
         )}
-      </div>
-
-      {/* Headers (Optional) */}
-      <div className="space-y-2">
-        <ExpandableJsonEditor
-          name="headers"
-          label="Headers (Optional)"
-          value={JSON.stringify(localHeaders, null, 2)}
-          onChange={handleHeadersChange}
-          placeholder={`{
-  "Authorization": "Bearer token",
-  "X-Custom-Header": "value"
-}`}
-        />
       </div>
     </div>
   );

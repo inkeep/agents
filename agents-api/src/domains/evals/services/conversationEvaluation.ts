@@ -1,6 +1,9 @@
 import {
   createEvaluationRun,
+  type EvaluationSuiteFilterCriteria,
+  type Filter,
   generateId,
+  getAgentIdsForEvaluators,
   getConversation,
   getEvaluationSuiteConfigById,
   getEvaluationSuiteConfigEvaluatorRelations,
@@ -15,6 +18,23 @@ import { getLogger } from '../../../logger';
 import { evaluateConversationWorkflow } from '../workflow';
 
 const logger = getLogger('ConversationEvaluation');
+
+function extractSuiteFilterCriteria(
+  filter: Filter<EvaluationSuiteFilterCriteria> | null | undefined
+): EvaluationSuiteFilterCriteria | null {
+  if (!filter) return null;
+  if ('and' in filter || 'or' in filter) return null;
+  return filter;
+}
+
+function conversationMatchesSuiteFilter(
+  conversationAgentId: string | null | undefined,
+  filters: Filter<EvaluationSuiteFilterCriteria> | null | undefined
+): boolean {
+  const criteria = extractSuiteFilterCriteria(filters);
+  if (!criteria?.agentIds || criteria.agentIds.length === 0) return true;
+  return !!conversationAgentId && criteria.agentIds.includes(conversationAgentId);
+}
 
 export const triggerConversationEvaluation = async (params: {
   tenantId: string;
@@ -61,9 +81,6 @@ export const triggerConversationEvaluation = async (params: {
     let evaluationsTriggered = 0;
 
     for (const runConfig of runConfigs) {
-      // Check if run config matches conversation (using filters)
-      // For now, we match all - can add filter logic later if needed
-
       for (const suiteConfigId of runConfig.suiteConfigIds) {
         const suiteConfig = await withRef(manageDbPool, resolvedRef, (db) =>
           getEvaluationSuiteConfigById(db)({
@@ -73,6 +90,19 @@ export const triggerConversationEvaluation = async (params: {
 
         if (!suiteConfig) {
           logger.warn({ suiteConfigId }, 'Suite config not found, skipping');
+          continue;
+        }
+
+        if (!conversationMatchesSuiteFilter(conversation.agentId, suiteConfig.filters)) {
+          logger.info(
+            {
+              suiteConfigId: suiteConfig.id,
+              conversationAgentId: conversation.agentId,
+              filterAgentIds: extractSuiteFilterCriteria(suiteConfig.filters)?.agentIds,
+              conversationId,
+            },
+            'Conversation filtered out by agent filter'
+          );
           continue;
         }
 
@@ -100,9 +130,32 @@ export const triggerConversationEvaluation = async (params: {
           })
         );
 
-        const evaluatorIds = evaluatorRelations.map((r) => r.evaluatorId);
+        let evaluatorIds = evaluatorRelations.map((r) => r.evaluatorId);
 
         if (evaluatorIds.length === 0) continue;
+
+        const { agentId: conversationAgentId } = conversation;
+        if (conversationAgentId) {
+          const agentIdsMap = await withRef(manageDbPool, resolvedRef, (db) =>
+            getAgentIdsForEvaluators(db)({
+              scopes: { tenantId, projectId },
+              evaluatorIds,
+            })
+          );
+          evaluatorIds = evaluatorIds.filter((evalId) => {
+            const scopedAgents = agentIdsMap.get(evalId);
+            if (!scopedAgents || scopedAgents.length === 0) return true;
+            return scopedAgents.includes(conversationAgentId);
+          });
+
+          if (evaluatorIds.length === 0) {
+            logger.info(
+              { suiteConfigId, conversationAgentId, conversationId },
+              'All evaluators filtered out by agent scoping'
+            );
+            continue;
+          }
+        }
 
         // Create evaluation run
         const evaluationRunId = generateId();
@@ -111,6 +164,7 @@ export const triggerConversationEvaluation = async (params: {
           tenantId,
           projectId,
           evaluationRunConfigId: runConfig.id,
+          ref: resolvedRef,
         });
 
         logger.info(

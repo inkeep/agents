@@ -5,9 +5,10 @@ import { DynamicComponentRenderer } from '@/components/dynamic-component-rendere
 import type { ConversationDetail } from '@/components/traces/timeline/types';
 import { INKEEP_BRAND_COLOR } from '@/constants/theme';
 import { useCopilotContext } from '@/contexts/copilot';
+import { usePostHog } from '@/contexts/posthog';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useTempApiKey } from '@/hooks/use-temp-api-key';
-import type { DataComponent } from '@/lib/api/data-components';
+import { useDataComponentsQuery } from '@/lib/query/data-components';
 import { css } from '@/lib/utils';
 import { FeedbackDialog } from './feedback-dialog';
 
@@ -21,7 +22,6 @@ interface ChatWidgetProps {
   stopPolling: () => void;
   customHeaders?: Record<string, string>;
   chatActivities: ConversationDetail | null;
-  dataComponentLookup?: Record<string, DataComponent>;
   setShowTraces: Dispatch<boolean>;
   hasHeadersError: boolean;
 }
@@ -73,7 +73,6 @@ export function ChatWidget({
   stopPolling,
   customHeaders,
   chatActivities,
-  dataComponentLookup = {},
   setShowTraces,
   hasHeadersError,
 }: ChatWidgetProps) {
@@ -81,9 +80,15 @@ export function ChatWidget({
 
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const { isCopilotConfigured } = useCopilotContext();
+  const { data: dataComponents } = useDataComponentsQuery();
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [messageId, setMessageId] = useState<string | undefined>(undefined);
-  const { apiKey: tempApiKey, isLoading: isLoadingKey } = useTempApiKey({
+  const {
+    apiKey: tempApiKey,
+    appId: playgroundAppId,
+    isLoading: isLoadingKey,
+    refresh: refreshToken,
+  } = useTempApiKey({
     tenantId,
     projectId,
     agentId: agentId || '',
@@ -92,6 +97,7 @@ export function ChatWidget({
   const stopPollingTimeoutRef = useRef<number | null>(null);
   const hasReceivedAssistantMessageRef = useRef(false);
   const POLLING_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+  const posthog = usePostHog();
 
   // Helper function to reset the stop polling timeout
   function resetStopPollingTimeout() {
@@ -146,7 +152,23 @@ export function ChatWidget({
       <div className="flex-1 min-w-0 h-full">
         <InkeepEmbeddedChat
           baseSettings={{
+            shouldBypassCaptcha: true,
+            ...(playgroundAppId && tempApiKey
+              ? {
+                  getAuthToken: async () => {
+                    const token = await refreshToken();
+                    return token ?? tempApiKey;
+                  },
+                }
+              : {}),
             async onEvent(event) {
+              posthog?.capture(event.eventName, {
+                ...event.properties,
+                source: 'playground_chat_widget',
+                tenantId,
+                projectId,
+                agentId,
+              });
               if (event.eventName === 'assistant_message_received') {
                 // Mark that we've received the assistant message
                 hasReceivedAssistantMessageRef.current = true;
@@ -217,15 +239,21 @@ export function ChatWidget({
               light: '/assets/inkeep-icons/icon-blue.svg',
               dark: '/assets/inkeep-icons/icon-sky.svg',
             },
+            isChatHistoryButtonVisible: false,
             isViewOnly: hasHeadersError,
             conversationId,
-            agentUrl: agentId ? `${PUBLIC_INKEEP_AGENTS_API_URL}/run/api/chat` : undefined,
+            baseUrl: PUBLIC_INKEEP_AGENTS_API_URL,
+            ...(playgroundAppId ? { appId: playgroundAppId } : {}),
             headers: {
-              'x-inkeep-tenant-id': tenantId,
-              'x-inkeep-project-id': projectId,
-              'x-inkeep-agent-id': agentId || '',
+              ...(playgroundAppId
+                ? {}
+                : {
+                    'x-inkeep-tenant-id': tenantId,
+                    'x-inkeep-project-id': projectId,
+                    'x-inkeep-agent-id': agentId || '',
+                    Authorization: `Bearer ${tempApiKey}`,
+                  }),
               'x-emit-operations': 'true',
-              Authorization: `Bearer ${tempApiKey}`,
               ...customHeaders,
             },
             messageActions: isCopilotConfigured
@@ -247,7 +275,7 @@ export function ChatWidget({
               {},
               {
                 get(_, componentName) {
-                  const matchingComponent = Object.values(dataComponentLookup).find(
+                  const matchingComponent = dataComponents.find(
                     (component) => component.name === componentName && !!component.render?.component
                   );
 

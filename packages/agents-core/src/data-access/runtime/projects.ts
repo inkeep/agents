@@ -3,6 +3,7 @@ import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { projectMetadata } from '../../db/runtime/runtime-schema';
 import type { ProjectMetadataInsert, ProjectMetadataSelect } from '../../types/entities';
 import type { PaginationConfig } from '../../types/utility';
+import { tenantScopedWhere } from '../manage/scope-helpers';
 
 export interface ProjectMetadataPaginatedResult {
   data: ProjectMetadataSelect[];
@@ -25,7 +26,7 @@ export const getProjectMetadata =
   }): Promise<ProjectMetadataSelect | null> => {
     const result = await db.query.projectMetadata.findFirst({
       where: and(
-        eq(projectMetadata.tenantId, params.tenantId),
+        tenantScopedWhere(projectMetadata, { tenantId: params.tenantId }),
         eq(projectMetadata.id, params.projectId)
       ),
     });
@@ -39,7 +40,7 @@ export const listProjectsMetadata =
   (db: AgentsRunDatabaseClient) =>
   async (params: { tenantId: string }): Promise<ProjectMetadataSelect[]> => {
     return await db.query.projectMetadata.findMany({
-      where: eq(projectMetadata.tenantId, params.tenantId),
+      where: tenantScopedWhere(projectMetadata, { tenantId: params.tenantId }),
       orderBy: [desc(projectMetadata.createdAt)],
     });
   };
@@ -60,7 +61,7 @@ export const listProjectsMetadataPaginated =
     const offset = (page - 1) * limit;
 
     // Build where clause with optional projectIds filter
-    const conditions = [eq(projectMetadata.tenantId, params.tenantId)];
+    const conditions = [tenantScopedWhere(projectMetadata, { tenantId: params.tenantId })];
     if (params.projectIds !== undefined) {
       if (params.projectIds.length === 0) {
         // No accessible projects - return empty result
@@ -125,7 +126,10 @@ export const deleteProjectMetadata =
     const result = await db
       .delete(projectMetadata)
       .where(
-        and(eq(projectMetadata.tenantId, params.tenantId), eq(projectMetadata.id, params.projectId))
+        and(
+          tenantScopedWhere(projectMetadata, { tenantId: params.tenantId }),
+          eq(projectMetadata.id, params.projectId)
+        )
       )
       .returning();
 
@@ -151,7 +155,7 @@ export const countProjectsInRuntime =
     const result = await db
       .select({ count: count() })
       .from(projectMetadata)
-      .where(eq(projectMetadata.tenantId, params.tenantId));
+      .where(tenantScopedWhere(projectMetadata, { tenantId: params.tenantId }));
 
     const total = result[0]?.count || 0;
     return typeof total === 'string' ? Number.parseInt(total, 10) : (total as number);

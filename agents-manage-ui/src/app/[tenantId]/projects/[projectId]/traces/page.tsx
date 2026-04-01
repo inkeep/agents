@@ -1,6 +1,13 @@
 'use client';
 
-import { AlertTriangle, ArrowRightLeft, SparklesIcon, Users, Wrench } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowRightLeft,
+  CircleAlert,
+  SparklesIcon,
+  Users,
+  Wrench,
+} from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { use, useEffect, useMemo, useState } from 'react';
 import { AreaChartCard } from '@/components/traces/charts/area-chart-card';
@@ -10,6 +17,7 @@ import { AgentFilter } from '@/components/traces/filters/agent-filter';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
 import { SpanFilters } from '@/components/traces/filters/span-filters';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
 import { DOCS_BASE_URL } from '@/constants/theme';
@@ -37,11 +45,13 @@ export default function TracesOverview({
     customStartDate,
     customEndDate,
     agentId: selectedAgent,
+    hasErrors,
     spanName,
     spanAttributes: attributes,
     setTimeRange: setSelectedTimeRange,
     setCustomDateRange,
     setAgentFilter: setSelectedAgent,
+    setHasErrorsFilter,
     setSpanFilter,
   } = useTracesQueryState();
 
@@ -120,6 +130,7 @@ export default function TracesOverview({
     searchQuery: debouncedSearchQuery,
     pagination: { pageSize: 10 },
     agentId: selectedAgent,
+    hasErrors: hasErrors || undefined,
   });
 
   const aggregateLoading = loading;
@@ -134,14 +145,7 @@ export default function TracesOverview({
         setActivityLoading(true);
         const client = getSigNozStatsClient(tenantId);
         const agentId = selectedAgent ? selectedAgent : undefined;
-        console.log('🔍 Fetching activity data:', {
-          startTime,
-          endTime,
-          agentId,
-          selectedAgent,
-        });
         const data = await client.getConversationsPerDay(startTime, endTime, agentId, projectId);
-        console.log('🔍 Activity data received:', data);
         setActivityData(data);
       } catch (e) {
         console.error('Failed to fetch conversation activity:', e);
@@ -233,6 +237,21 @@ export default function TracesOverview({
       <div className="flex items-center gap-4">
         {/* Agent Filter */}
         <AgentFilter onSelect={setSelectedAgent} selectedValue={selectedAgent} />
+        {/* Error Filter */}
+        <Button
+          variant="gray-outline"
+          size="sm"
+          onClick={() => setHasErrorsFilter(!hasErrors)}
+          aria-pressed={hasErrors}
+          className={
+            hasErrors
+              ? 'border-destructive/40 text-destructive hover:bg-destructive/5 hover:text-destructive'
+              : ''
+          }
+        >
+          <CircleAlert className="h-3.5 w-3.5" aria-hidden="true" />
+          Errors only
+        </Button>
         {/* Time Range Filter */}
         <DatePickerWithPresets
           label="Time range"

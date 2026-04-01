@@ -1,5 +1,6 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  buildConversationMetadata,
   type CredentialStoreRegistry,
   commonGetErrorResponses,
   createApiError,
@@ -9,6 +10,7 @@ import {
   getActiveAgentForConversation,
   getConversation,
   getConversationId,
+  getWorkflowExecutionByConversation,
   loggerFactory,
   type Part,
   PartSchema,
@@ -17,18 +19,29 @@ import {
 import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { createUIMessageStream, JsonToSseTransformStream } from 'ai';
+import { HTTPException } from 'hono/http-exception';
 import { stream } from 'hono/streaming';
+import { getRun, start } from 'workflow/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
-import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
-import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
-import { ImageUrlSchema } from '../types/chat';
+import {
+  FileSecurityError,
+  PdfUrlIngestionError,
+} from '../services/blob-storage/file-security-errors';
+import {
+  buildPersistedMessageContent,
+  inlineExternalPdfUrlParts,
+} from '../services/blob-storage/file-upload-helpers';
+import { pendingToolApprovalManager } from '../session/PendingToolApprovalManager';
+import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
+import { createBufferingStreamHelper, createVercelStreamHelper } from '../stream/stream-helpers';
+import { VercelMessageSchema } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromVercelContent } from '../utils/message-parts';
-import { createBufferingStreamHelper, createVercelStreamHelper } from '../utils/stream-helpers';
+import { agentExecutionWorkflow, toolApprovalHook } from '../workflow/functions/agentExecution';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
@@ -53,52 +66,7 @@ const chatDataStreamRoute = createProtectedRoute({
         'application/json': {
           schema: z.object({
             model: z.string().optional(),
-            messages: z.array(
-              z.object({
-                role: z.enum(['system', 'user', 'assistant', 'function', 'tool']),
-                content: z.any(),
-                parts: z
-                  .array(
-                    z.union([
-                      z.object({
-                        type: z.literal('text'),
-                        text: z.string(),
-                      }),
-                      z.object({
-                        type: z.literal('image'),
-                        text: ImageUrlSchema,
-                      }),
-                      z.object({
-                        type: z.union([
-                          z.enum(['audio', 'video', 'file']),
-                          z.string().regex(/^data-/, 'Type must start with "data-"'),
-                        ]),
-                        text: z.string().optional(),
-                      }),
-                      // Special-case: tool approval response part (sent by client)
-                      z.object({
-                        type: z.string().regex(/^tool-/, 'Type must start with "tool-"'),
-                        toolCallId: z.string(),
-                        state: z.any(),
-                        approval: z
-                          .object({
-                            id: z.string(),
-                            approved: z.boolean().optional(),
-                            reason: z.string().optional(),
-                          })
-                          .optional(),
-                        input: z.any().optional(),
-                        callProviderMetadata: z.any().optional(),
-                      }),
-                      // Allow step markers used by client payloads
-                      z.object({
-                        type: z.literal('step-start'),
-                      }),
-                    ])
-                  )
-                  .optional(),
-              })
-            ),
+            messages: z.array(VercelMessageSchema),
             id: z.string().optional(),
             conversationId: z.string().optional(),
             stream: z.boolean().optional().describe('Whether to stream the response').default(true),
@@ -108,6 +76,16 @@ const chatDataStreamRoute = createProtectedRoute({
               .optional()
               .describe('Headers data for template processing'),
             runConfig: z.record(z.string(), z.unknown()).optional().describe('Run configuration'),
+            executionMode: z
+              .enum(['classic', 'durable'])
+              .optional()
+              .describe(
+                'Override the agent execution mode for this request. Takes precedence over the agent config default. Falls back to classic if unset.'
+              ),
+            userProperties: z
+              .record(z.string(), z.unknown())
+              .optional()
+              .describe('User properties to associate with the conversation'),
           }),
         },
       },
@@ -139,14 +117,15 @@ app.openapi(chatDataStreamRoute, async (c) => {
 
     const body = c.req.valid('json');
 
-    const approvalPart = (body.messages || [])
+    const approvalParts = (body.messages || [])
       .flatMap((m: any) => m?.parts || [])
-      .find((p: any) => p?.state === 'approval-responded' && typeof p?.toolCallId === 'string');
+      .filter((p: any) => p?.state === 'approval-responded' && typeof p?.toolCallId === 'string');
 
-    const isApprovalResponse = !!approvalPart;
+    const isApprovalResponse = approvalParts.length > 0;
 
     // Fast-path: allow client to respond to tool approvals via the same /chat endpoint.
     // This should NOT start a new agent execution. The original stream continues separately.
+    // Supports both single and batch approval responses in one request.
     if (isApprovalResponse) {
       const conversationId = body.conversationId;
       if (!conversationId) {
@@ -159,10 +138,6 @@ app.openapi(chatDataStreamRoute, async (c) => {
         );
       }
 
-      const toolCallId = approvalPart.toolCallId as string;
-      const approved = !!approvalPart.approval?.approved;
-      const reason = approvalPart.approval?.reason as string | undefined;
-
       // Validate that the conversation exists and belongs to this tenant/project
       const conversation = await getConversation(runDbClient)({
         scopes: { tenantId, projectId },
@@ -173,25 +148,77 @@ app.openapi(chatDataStreamRoute, async (c) => {
         return c.json({ success: false, error: 'Conversation not found' }, 404);
       }
 
-      // Resolve the pending approval (in-memory). Idempotent: if already processed, return 200.
-      const ok = approved
-        ? pendingToolApprovalManager.approveToolCall(toolCallId)
-        : pendingToolApprovalManager.denyToolCall(toolCallId, reason);
+      // Check if there is a suspended durable execution for this conversation.
+      const durableExecution = await getWorkflowExecutionByConversation(runDbClient)({
+        tenantId,
+        projectId,
+        conversationId,
+      });
 
-      if (!ok) {
-        return c.json({
-          success: true,
-          toolCallId,
-          approved,
-          alreadyProcessed: true,
+      const isDurable = durableExecution?.status === 'suspended';
+
+      if (isDurable && durableExecution) {
+        await Promise.allSettled(
+          approvalParts.map(async (approvalPart: any) => {
+            const toolCallId = approvalPart.toolCallId as string;
+            const approved = !!approvalPart.approval?.approved;
+            const reason = approvalPart.approval?.reason as string | undefined;
+            const token = `tool-approval:${conversationId}:${durableExecution.id}:${toolCallId}`;
+            try {
+              await toolApprovalHook.resume(token, {
+                approved,
+                reason: approved ? undefined : reason,
+              });
+            } catch (error) {
+              const message = error instanceof Error ? error.message : String(error);
+              if (!message.includes('not found') && !message.includes('already')) {
+                throw error;
+              }
+            }
+          })
+        );
+
+        const namespace = (durableExecution.metadata as any)?.continuationStreamNamespace as
+          | string
+          | undefined;
+        const run = getRun(durableExecution.id);
+
+        c.header('Content-Type', 'text/event-stream');
+        c.header('Cache-Control', 'no-cache');
+        c.header('Connection', 'keep-alive');
+
+        return stream(c, async (s) => {
+          try {
+            const readable = run.getReadable({ namespace });
+            const reader = readable.getReader();
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              await s.write(value);
+            }
+          } catch (error) {
+            logger.error(
+              { error, executionId: durableExecution.id },
+              'Error streaming approval continuation'
+            );
+            await s.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
+          }
         });
       }
 
-      return c.json({
-        success: true,
-        toolCallId,
-        approved,
+      const results = approvalParts.map((approvalPart: any) => {
+        const toolCallId = approvalPart.toolCallId as string;
+        const approved = !!approvalPart.approval?.approved;
+        const reason = approvalPart.approval?.reason as string | undefined;
+
+        // Classic in-memory approval path.
+        const ok = approved
+          ? pendingToolApprovalManager.approveToolCall(toolCallId)
+          : pendingToolApprovalManager.denyToolCall(toolCallId, reason);
+        return { toolCallId, approved, alreadyProcessed: !ok };
       });
+
+      return c.json({ success: true, results });
     }
 
     // Extract target context headers (for copilot/chat-to-edit scenarios)
@@ -296,12 +323,15 @@ app.openapi(chatDataStreamRoute, async (c) => {
         conversationId,
       });
       if (!activeAgent) {
+        const conversationMeta = buildConversationMetadata(executionContext, body.userProperties);
         await setActiveAgentForConversation(runDbClient)({
           scopes: { tenantId, projectId },
           conversationId,
           subAgentId: defaultSubAgentId,
           ref: executionContext.resolvedRef,
           agentId: agentId,
+          userId: executionContext.metadata?.endUserId,
+          ...(conversationMeta ? { metadata: conversationMeta } : {}),
         });
       }
       const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
@@ -333,9 +363,10 @@ app.openapi(chatDataStreamRoute, async (c) => {
       const lastUserMessage = body.messages.filter((m) => m.role === 'user').slice(-1)[0];
 
       // Build Part[] for execution (text + image parts), validated against core PartSchema
-      const messageParts: Part[] = z
+      const parsedMessageParts: Part[] = z
         .array(PartSchema)
         .parse(getMessagePartsFromVercelContent(lastUserMessage?.content, lastUserMessage?.parts));
+      const messageParts = await inlineExternalPdfUrlParts(parsedMessageParts);
 
       // Extract text content from parts
       const userText = extractTextFromParts(messageParts) || '';
@@ -363,20 +394,77 @@ app.openapi(chatDataStreamRoute, async (c) => {
           messageSpan.setAttribute('user.id', executionContext.metadata.initiatedBy.id);
         }
       }
-      await createMessage(runDbClient)({
-        id: generateId(),
+      const userMessageId = generateId();
+
+      const messageContent = await buildPersistedMessageContent(userText, messageParts, {
         tenantId,
         projectId,
         conversationId,
-        role: 'user',
-        content: { text: userText },
-        visibility: 'user-facing',
-        messageType: 'chat',
+        messageId: userMessageId,
+      });
+
+      await createMessage(runDbClient)({
+        scopes: { tenantId, projectId },
+        data: {
+          id: userMessageId,
+          conversationId,
+          role: 'user',
+          content: messageContent,
+          visibility: 'user-facing',
+          messageType: 'chat',
+        },
       });
       if (messageSpan) {
         messageSpan.addEvent('user.message.stored', {
           'message.id': conversationId,
           'database.operation': 'insert',
+        });
+      }
+
+      const effectiveExecutionMode = body.executionMode ?? agent.executionMode ?? 'classic';
+
+      if (effectiveExecutionMode === 'durable') {
+        const requestId = `chatds-${Date.now()}`;
+        const run = await start(agentExecutionWorkflow, [
+          {
+            tenantId,
+            projectId,
+            agentId,
+            conversationId,
+            userMessage: userText,
+            messageParts: messageParts.length > 0 ? messageParts : undefined,
+            requestId,
+            resolvedRef: executionContext.resolvedRef,
+            forwardedHeaders:
+              Object.keys(forwardedHeaders).length > 0 ? forwardedHeaders : undefined,
+            outputFormat: 'vercel',
+          },
+        ]);
+        logger.info(
+          { runId: run.runId, conversationId, agentId },
+          'Durable execution started via /chat'
+        );
+        c.header('x-workflow-run-id', run.runId);
+        c.header('content-type', 'text/event-stream');
+        c.header('cache-control', 'no-cache');
+        c.header('connection', 'keep-alive');
+        c.header('x-vercel-ai-data-stream', 'v2');
+        c.header('x-accel-buffering', 'no');
+        return stream(c, async (s) => {
+          try {
+            const reader = run.readable.getReader();
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              await s.write(value);
+            }
+          } catch (error) {
+            logger.error(
+              { error, runId: run.runId },
+              'Error streaming durable execution via /chat'
+            );
+            await s.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
+          }
         });
       }
 
@@ -387,6 +475,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
         const emitOperations = emitOperationsHeader === 'true';
 
         const bufferingHelper = createBufferingStreamHelper();
+        const responseMessageId = generateId();
 
         const executionHandler = new ExecutionHandler();
         const result = await executionHandler.execute({
@@ -399,6 +488,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
           sseHelper: bufferingHelper,
           emitOperations,
           forwardedHeaders,
+          responseMessageId,
         });
 
         const captured = bufferingHelper.getCapturedResponse();
@@ -426,9 +516,13 @@ app.openapi(chatDataStreamRoute, async (c) => {
         });
       }
 
+      const responseMessageId = generateId();
+
       // Create UI Message Stream using AI SDK V5
       const dataStream = createUIMessageStream({
         execute: async ({ writer }) => {
+          writer.write({ type: 'start', messageId: responseMessageId });
+
           const streamHelper = createVercelStreamHelper(writer);
           let unsubscribe: (() => void) | undefined;
           try {
@@ -509,6 +603,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
               emitOperations,
               datasetRunId: datasetRunId || undefined,
               forwardedHeaders,
+              responseMessageId,
             });
 
             if (!result.success) {
@@ -545,6 +640,21 @@ app.openapi(chatDataStreamRoute, async (c) => {
       );
     });
   } catch (error) {
+    if (error instanceof FileSecurityError) {
+      throw createApiError({
+        code: 'bad_request',
+        message: error.message,
+      });
+    }
+    if (error instanceof PdfUrlIngestionError) {
+      throw createApiError({
+        code: 'bad_request',
+        message: error.message,
+      });
+    }
+    if (error instanceof HTTPException) {
+      throw error;
+    }
     logger.error(
       {
         error,
@@ -559,156 +669,6 @@ app.openapi(chatDataStreamRoute, async (c) => {
       message: 'Failed to process chat completion',
     });
   }
-});
-
-// Tool approval endpoint
-const toolApprovalRoute = createProtectedRoute({
-  method: 'post',
-  path: '/tool-approvals',
-  tags: ['Chat'],
-  summary: 'Approve or deny tool execution',
-  description: 'Handle user approval/denial of tool execution requests during conversations',
-  security: [{ bearerAuth: [] }],
-  permission: inheritedRunApiKeyAuth(),
-  request: {
-    body: {
-      content: {
-        'application/json': {
-          schema: z.object({
-            conversationId: z.string().describe('The conversation ID'),
-            toolCallId: z.string().describe('The tool call ID to respond to'),
-            approved: z.boolean().describe('Whether the tool execution is approved'),
-            reason: z.string().optional().describe('Optional reason for the decision'),
-          }),
-        },
-      },
-    },
-  },
-  responses: {
-    200: {
-      description: 'Tool approval response processed successfully',
-      content: {
-        'application/json': {
-          schema: z.object({
-            success: z.boolean(),
-            message: z.string().optional(),
-          }),
-        },
-      },
-    },
-    400: {
-      description: 'Bad request - invalid tool call ID or conversation ID',
-      content: {
-        'application/json': {
-          schema: z.object({
-            error: z.string(),
-          }),
-        },
-      },
-    },
-    404: {
-      description: 'Tool call not found or already processed',
-      content: {
-        'application/json': {
-          schema: z.object({
-            error: z.string(),
-          }),
-        },
-      },
-    },
-    500: {
-      description: 'Internal server error',
-      content: {
-        'application/json': {
-          schema: z.object({
-            error: z.string(),
-            message: z.string(),
-          }),
-        },
-      },
-    },
-  },
-});
-
-app.openapi(toolApprovalRoute, async (c) => {
-  const tracer = trace.getTracer('tool-approval-handler');
-
-  return tracer.startActiveSpan('tool_approval_request', async (span) => {
-    try {
-      const executionContext = c.get('executionContext');
-      const { tenantId, projectId } = executionContext;
-
-      const requestBody = await c.req.json();
-      const { conversationId, toolCallId, approved, reason } = requestBody;
-
-      logger.info(
-        {
-          conversationId,
-          toolCallId,
-          approved,
-          reason,
-          tenantId,
-          projectId,
-        },
-        'Processing tool approval request'
-      );
-
-      // Validate that the conversation exists and belongs to this tenant/project
-      const conversation = await getConversation(runDbClient)({
-        scopes: { tenantId, projectId },
-        conversationId,
-      });
-
-      if (!conversation) {
-        span.setStatus({ code: 1, message: 'Conversation not found' });
-        return c.json({ error: 'Conversation not found' }, 404);
-      }
-
-      // Process the approval request using PendingToolApprovalManager
-      let success = false;
-      if (approved) {
-        success = pendingToolApprovalManager.approveToolCall(toolCallId);
-      } else {
-        success = pendingToolApprovalManager.denyToolCall(toolCallId, reason);
-      }
-
-      if (!success) {
-        span.setStatus({ code: 1, message: 'Tool call not found' });
-        return c.json({ error: 'Tool call not found or already processed' }, 404);
-      }
-
-      logger.info({ conversationId, toolCallId, approved }, 'Tool approval processed successfully');
-
-      span.setStatus({ code: 1, message: 'Success' });
-
-      return c.json({
-        success: true,
-        message: approved ? 'Tool execution approved' : 'Tool execution denied',
-      });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      logger.error(
-        {
-          error: errorMessage,
-          stack: error instanceof Error ? error.stack : undefined,
-        },
-        'Failed to process tool approval'
-      );
-
-      span.setStatus({ code: 2, message: errorMessage });
-
-      return c.json(
-        {
-          error: 'Internal server error',
-          message: errorMessage,
-        },
-        500
-      );
-    } finally {
-      span.end();
-    }
-  }) as any;
 });
 
 export default app;

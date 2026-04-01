@@ -22,7 +22,12 @@ vi.mock('../../logger', () => ({
   }),
 }));
 
-import { createOAuthState, getStateSigningSecret, parseOAuthState } from '../../slack/routes/oauth';
+import {
+  createOAuthState,
+  getStateSigningSecret,
+  parseOAuthState,
+  sanitizeTenantId,
+} from '../../slack/routes/oauth';
 
 describe('OAuth State Management', () => {
   describe('getStateSigningSecret', () => {
@@ -88,6 +93,12 @@ describe('OAuth State Management', () => {
       expect(parseOAuthState('')).toBeNull();
     });
 
+    it('should accept state with empty tenantId', () => {
+      const state = createOAuthState('');
+      const parsed = parseOAuthState(state);
+      expect(parsed?.tenantId).toBe('');
+    });
+
     it('should reject expired state (>10 min)', () => {
       const secret = getStateSigningSecret();
       const oldState = {
@@ -98,6 +109,35 @@ describe('OAuth State Management', () => {
       const data = Buffer.from(JSON.stringify(oldState)).toString('base64url');
       const signature = crypto.createHmac('sha256', secret).update(data).digest('base64url');
       expect(parseOAuthState(`${data}.${signature}`)).toBeNull();
+    });
+  });
+
+  describe('sanitizeTenantId', () => {
+    it('should accept valid alphanumeric tenant IDs', () => {
+      expect(sanitizeTenantId('tenant-1')).toBe('tenant-1');
+      expect(sanitizeTenantId('org_abc123')).toBe('org_abc123');
+      expect(sanitizeTenantId('MyTenant')).toBe('MyTenant');
+    });
+
+    it('should reject empty string', () => {
+      expect(sanitizeTenantId('')).toBe('');
+    });
+
+    it('should reject tenant IDs with path traversal', () => {
+      expect(sanitizeTenantId('../admin')).toBe('');
+      expect(sanitizeTenantId('../../etc/passwd')).toBe('');
+    });
+
+    it('should reject tenant IDs with slashes', () => {
+      expect(sanitizeTenantId('tenant/evil')).toBe('');
+      expect(sanitizeTenantId('a%2Fb')).toBe('');
+    });
+
+    it('should reject tenant IDs with special characters', () => {
+      expect(sanitizeTenantId('tenant;drop')).toBe('');
+      expect(sanitizeTenantId('tenant<script>')).toBe('');
+      expect(sanitizeTenantId('tenant id')).toBe('');
+      expect(sanitizeTenantId('tenant.id')).toBe('');
     });
   });
 });

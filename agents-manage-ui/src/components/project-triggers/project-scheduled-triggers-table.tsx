@@ -1,6 +1,16 @@
 'use client';
 
-import { Clock, Copy, History, MoreHorizontal, Pencil, Play, RotateCw, Trash2 } from 'lucide-react';
+import {
+  Clock,
+  Copy,
+  GitBranch,
+  History,
+  MoreHorizontal,
+  Pencil,
+  Play,
+  RotateCw,
+  Trash2,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -33,6 +43,11 @@ import {
 } from '@/lib/actions/scheduled-triggers';
 import type { ScheduledTriggerWithAgent } from '@/lib/api/project-triggers';
 import { getCronDescription } from '@/lib/utils/cron';
+import {
+  formatDateTimeLocal,
+  getLocalTimezoneAbbreviation,
+  getTimezoneAbbreviation,
+} from '@/lib/utils/format-date';
 
 interface ProjectScheduledTriggersTableProps {
   triggers: ScheduledTriggerWithAgent[];
@@ -44,9 +59,13 @@ function getScheduleType(trigger: ScheduledTriggerWithAgent): 'cron' | 'one-time
   return trigger.cronExpression ? 'cron' : 'one-time';
 }
 
+function getTriggerTimezone(trigger: ScheduledTriggerWithAgent): string {
+  return trigger.cronTimezone || 'UTC';
+}
+
 function formatLastRun(trigger: ScheduledTriggerWithAgent): string {
   if (trigger.lastRunAt) {
-    return new Date(trigger.lastRunAt).toLocaleString();
+    return formatDateTimeLocal(trigger.lastRunAt);
   }
   return '—';
 }
@@ -56,7 +75,7 @@ function formatNextRun(trigger: ScheduledTriggerWithAgent): string {
     return '—';
   }
   if (trigger.nextRunAt) {
-    return new Date(trigger.nextRunAt).toLocaleString();
+    return formatDateTimeLocal(trigger.nextRunAt);
   }
   return '—';
 }
@@ -145,6 +164,7 @@ export function ProjectScheduledTriggersTable({
   };
 
   const runTrigger = async (triggerId: string, agentId: string, name: string) => {
+    if (loadingTriggers.has(triggerId)) return;
     setLoadingTriggers((prev) => new Set(prev).add(triggerId));
 
     try {
@@ -167,6 +187,8 @@ export function ProjectScheduledTriggersTable({
     }
   };
 
+  const localTz = getLocalTimezoneAbbreviation();
+
   return (
     <div className="rounded-lg border">
       <Table>
@@ -174,11 +196,12 @@ export function ProjectScheduledTriggersTable({
           <TableRow noHover>
             <TableHead>Name</TableHead>
             <TableHead>Agent</TableHead>
+            <TableHead>Branch</TableHead>
             <TableHead>Run As</TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Schedule</TableHead>
-            <TableHead>Last Run</TableHead>
-            <TableHead>Next Run</TableHead>
+            <TableHead>Last Run{localTz ? ` (${localTz})` : ''}</TableHead>
+            <TableHead>Next Run{localTz ? ` (${localTz})` : ''}</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="w-12" />
           </TableRow>
@@ -186,7 +209,7 @@ export function ProjectScheduledTriggersTable({
         <TableBody>
           {triggers.length === 0 ? (
             <TableRow noHover>
-              <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                 No scheduled triggers configured yet. Create a scheduled trigger to run your agents
                 on a schedule.
               </TableCell>
@@ -215,6 +238,12 @@ export function ProjectScheduledTriggersTable({
                     >
                       {trigger.agentName}
                     </Link>
+                  </TableCell>
+                  <TableCell>
+                    <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <GitBranch className="h-3.5 w-3.5" />
+                      {trigger.ref || 'main'}
+                    </span>
                   </TableCell>
                   <TableCell>
                     {trigger.runAsUserId ? (
@@ -250,17 +279,20 @@ export function ProjectScheduledTriggersTable({
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-xs w-fit">
-                              {getCronDescription(trigger.cronExpression)}
+                              {getCronDescription(trigger.cronExpression)}{' '}
+                              {getTimezoneAbbreviation(getTriggerTimezone(trigger))}
                             </code>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <code className="font-mono">{trigger.cronExpression}</code>
+                            <code className="font-mono">
+                              {trigger.cronExpression} ({getTriggerTimezone(trigger)})
+                            </code>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                     ) : (
                       <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-xs w-fit">
-                        {trigger.runAt ? new Date(trigger.runAt).toLocaleString() : '—'}
+                        {trigger.runAt ? formatDateTimeLocal(trigger.runAt) : '—'}
                       </code>
                     )}
                   </TableCell>
@@ -370,6 +402,7 @@ export function ProjectScheduledTriggersTable({
                                 maxRetries: String(trigger.maxRetries ?? 1),
                                 retryDelaySeconds: String(trigger.retryDelaySeconds ?? 60),
                                 timeoutSeconds: String(trigger.timeoutSeconds ?? 780),
+                                ...(trigger.ref ? { ref: trigger.ref } : {}),
                               }
                             ).toString()}`}
                           >

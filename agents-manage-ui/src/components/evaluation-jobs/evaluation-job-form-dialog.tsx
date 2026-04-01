@@ -19,8 +19,8 @@ import {
 import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Label } from '@/components/ui/label';
 import { createEvaluationJobConfigAction } from '@/lib/actions/evaluation-job-configs';
-import type { Evaluator } from '@/lib/api/evaluators';
 import { useEvaluatorsQuery } from '@/lib/query/evaluators';
+import { createLookup } from '@/lib/utils';
 import { type EvaluationJobConfigFormData, evaluationJobConfigSchema } from './validation';
 
 interface EvaluationJobFormDialogProps {
@@ -62,18 +62,9 @@ export function EvaluationJobFormDialog({
   }, [isOpen, form]);
 
   const { isSubmitting } = form.formState;
-  const selectedEvaluatorIds = form.watch('evaluatorIds') || [];
   const jobFilters = form.watch('jobFilters');
 
-  const evaluatorLookup = useMemo(() => {
-    return evaluators.reduce(
-      (acc, evaluator) => {
-        acc[evaluator.id] = evaluator;
-        return acc;
-      },
-      {} as Record<string, Evaluator>
-    );
-  }, [evaluators]);
+  const evaluatorLookup = useMemo(() => createLookup(evaluators), [evaluators]);
 
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -180,15 +171,13 @@ export function EvaluationJobFormDialog({
               <FormField
                 control={form.control}
                 name="evaluatorIds"
-                render={() => (
+                render={({ field }) => (
                   <FormItem>
                     <ComponentSelector
                       label="Evaluators"
                       componentLookup={evaluatorLookup}
-                      selectedComponents={selectedEvaluatorIds}
-                      onSelectionChange={(newSelection) => {
-                        form.setValue('evaluatorIds', newSelection);
-                      }}
+                      selectedComponents={field.value}
+                      onSelectionChange={field.onChange}
                       emptyStateMessage="No evaluators available."
                       emptyStateActionText="Create evaluator"
                       emptyStateActionHref={`/${tenantId}/projects/${projectId}/evaluations?tab=evaluators`}

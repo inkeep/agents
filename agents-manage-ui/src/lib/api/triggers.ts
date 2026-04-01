@@ -15,7 +15,6 @@ import type {
 import { cache } from 'react';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Re-export types from core package for convenience
 export type Trigger = TriggerApiSelect & {
@@ -29,9 +28,6 @@ export async function fetchTriggers(
   projectId: string,
   agentId: string
 ): Promise<ListResponse<Trigger>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<ListResponse<Trigger>>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers?limit=100`
   );
@@ -48,9 +44,6 @@ async function $getTrigger(
   agentId: string,
   triggerId: string
 ): Promise<Trigger> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<Trigger>>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}`
   );
@@ -69,9 +62,6 @@ export async function createTrigger(
   agentId: string,
   triggerData: Partial<Trigger>
 ): Promise<Trigger> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<Trigger>>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
     {
@@ -93,9 +83,6 @@ export async function updateTrigger(
   triggerId: string,
   triggerData: Partial<Trigger>
 ): Promise<Trigger> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<Trigger>>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}`,
     {
@@ -116,9 +103,6 @@ export async function deleteTrigger(
   agentId: string,
   triggerId: string
 ): Promise<void> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   await makeManagementApiRequest(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}`,
     {
@@ -140,9 +124,6 @@ export async function rerunTrigger(
     messageParts?: Part[];
   }
 ): Promise<{ success: boolean; invocationId: string; conversationId: string }> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}/rerun`,
     {
@@ -166,9 +147,6 @@ export async function fetchTriggerInvocations(
     page?: number;
   }
 ): Promise<ListResponse<TriggerInvocation>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const params = new URLSearchParams();
   if (options?.status) params.append('status', options.status);
   if (options?.limit) params.append('limit', options.limit.toString());

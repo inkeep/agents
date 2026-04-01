@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -116,7 +117,7 @@ export function WorkAppGitHubRepositoryConfigDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto py-4">
+        <div className="flex-1 overflow-y-auto px-1 py-4">
           {dialogState === 'loading' && <LoadingState />}
 
           {dialogState === 'no-installations' && (
@@ -245,6 +246,7 @@ function ReadyState({
   onSuccess,
 }: ReadyStateProps) {
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
+  const [name, setName] = useState('GitHub');
   const [mode, setMode] = useState<WorkAppGitHubAccessMode>('all');
   const [selectedRepoIds, setSelectedRepoIds] = useState<Set<string>>(new Set());
   const [installationsWithRepos, setInstallationsWithRepos] = useState<InstallationWithRepos[]>([]);
@@ -361,7 +363,7 @@ function ReadyState({
   const availableRepos = getAvailableRepositories();
   const totalRepos = availableRepos.length;
 
-  const isFormValid = mode === 'all' || selectedRepoIds.size > 0;
+  const isFormValid = name.trim().length > 0 && (mode === 'all' || selectedRepoIds.size > 0);
 
   const handleSubmit = async () => {
     if (!isFormValid) return;
@@ -375,7 +377,7 @@ function ReadyState({
       const toolId = generateId();
       const newTool = await createMCPTool(tenantId, projectId, {
         id: toolId,
-        name: 'GitHub',
+        name: name.trim(),
         config: {
           type: 'mcp' as const,
           mcp: {
@@ -409,6 +411,18 @@ function ReadyState({
 
   return (
     <div className="space-y-6">
+      <div className="space-y-2">
+        <Label htmlFor="github-mcp-name" className="text-sm font-medium">
+          Name
+        </Label>
+        <Input
+          id="github-mcp-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g. GitHub, GitHub (Docs), GitHub (Backend)"
+        />
+      </div>
+
       <div className="space-y-3">
         <Label className="text-sm font-medium">Access Mode</Label>
         <RadioGroup

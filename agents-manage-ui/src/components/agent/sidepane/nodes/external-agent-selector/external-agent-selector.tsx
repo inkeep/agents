@@ -1,5 +1,8 @@
 import { type Node, useReactFlow } from '@xyflow/react';
 import { useParams } from 'next/navigation';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
+import { getExternalAgentGraphKey } from '@/features/agent/domain';
+import { useSidePane } from '@/hooks/use-side-pane';
 import { useExternalAgentsQuery } from '@/lib/query/external-agents';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import { NodeType } from '../../../configuration/node-types';
@@ -10,28 +13,41 @@ import { ExternalAgentSelectorLoading } from './loading';
 export function ExternalAgentSelector({ selectedNode }: { selectedNode: Node }) {
   'use memo';
   const { updateNode } = useReactFlow();
-  const { tenantId, projectId } = useParams<{
-    tenantId: string;
-    projectId: string;
-  }>();
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { data: externalAgents, isFetching, error } = useExternalAgentsQuery();
+  const form = useFullAgentFormContext();
+  const { setQueryState } = useSidePane();
 
-  const handleSelect = (externalAgent: ExternalAgent) => {
+  function handleSelect(data: ExternalAgent) {
+    const nodeId = data.id;
+    form.setValue(
+      `externalAgents.${nodeId}`,
+      {
+        id: nodeId,
+        name: data.name,
+        description: data.description,
+        baseUrl: data.baseUrl,
+        headers: '{}',
+      },
+      { shouldDirty: true }
+    );
     updateNode(selectedNode.id, {
       type: NodeType.ExternalAgent,
       data: {
-        id: externalAgent.id,
-        name: externalAgent.name,
-        description: externalAgent.description,
-        baseUrl: externalAgent.baseUrl,
-        createdAt: externalAgent.createdAt,
-        updatedAt: externalAgent.updatedAt,
-        credentialReferenceId: externalAgent.credentialReferenceId,
+        nodeKey: getExternalAgentGraphKey(nodeId),
+        externalAgentId: nodeId,
         relationshipId: null, // Will be set after saving to database
-        tempHeaders: null,
       },
     });
-  };
+    setQueryState(
+      {
+        pane: 'node',
+        nodeId: getExternalAgentGraphKey(nodeId),
+        edgeId: null,
+      },
+      { history: 'replace' }
+    );
+  }
 
   if (isFetching) {
     return <ExternalAgentSelectorLoading title="Select external agent" />;
@@ -58,18 +74,16 @@ export function ExternalAgentSelector({ selectedNode }: { selectedNode: Node }) 
   }
 
   return (
-    <div>
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium mb-2">Select external agent</h3>
-        <div className="flex flex-col gap-2 min-w-0 min-h-0">
-          {externalAgents.map((externalAgent) => (
-            <ExternalAgentItem
-              key={externalAgent.id}
-              externalAgent={externalAgent}
-              onClick={handleSelect}
-            />
-          ))}
-        </div>
+    <div className="space-y-2">
+      <h3 className="text-sm font-medium mb-2">Select external agent</h3>
+      <div className="flex flex-col gap-2 min-w-0 min-h-0">
+        {externalAgents.map((externalAgent) => (
+          <ExternalAgentItem
+            key={externalAgent.id}
+            externalAgent={externalAgent}
+            onClick={handleSelect}
+          />
+        ))}
       </div>
     </div>
   );

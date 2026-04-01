@@ -4,6 +4,7 @@ import {
   cancelPendingInvocationsForTrigger,
   canUseProjectStrict,
   commonGetErrorResponses,
+  computeNextRunAt,
   createApiError,
   createScheduledTrigger,
   createScheduledTriggerInvocation,
@@ -14,7 +15,6 @@ import {
   getScheduledTriggerById,
   getScheduledTriggerInvocationById,
   getScheduledTriggerRunInfoBatch,
-  getUserById,
   getWaitUntil,
   interpolateTemplate,
   listScheduledTriggerInvocationsPaginated,
@@ -29,7 +29,6 @@ import {
   PaginationQueryParamsSchema,
   type Part,
   resolveRef,
-  type ScheduledTrigger,
   ScheduledTriggerApiInsertSchema,
   ScheduledTriggerApiUpdateSchema,
   ScheduledTriggerInvocationListResponse,
@@ -49,62 +48,14 @@ import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
-import {
-  onTriggerCreated,
-  onTriggerDeleted,
-  onTriggerUpdated,
-} from '../../run/services/ScheduledTriggerService';
-import { executeAgentAsync } from '../../run/services/TriggerService';
+import { onTriggerUpdated } from '../../run/services/ScheduledTriggerService';
+import { buildTimezoneHeaders, executeAgentAsync } from '../../run/services/TriggerService';
+
+export { assertCanMutateTrigger, validateRunAsUserId } from './triggerHelpers';
+
+import { assertCanMutateTrigger, validateRunAsUserId } from './triggerHelpers';
 
 const logger = getLogger('scheduled-triggers');
-
-export async function validateRunAsUserId(params: {
-  runAsUserId: string;
-  callerId: string;
-  tenantId: string;
-  projectId: string;
-  tenantRole: OrgRole;
-}): Promise<void> {
-  const { runAsUserId, callerId, tenantId, projectId, tenantRole } = params;
-
-  if (runAsUserId === 'system' || runAsUserId.startsWith('apikey:')) {
-    throw createApiError({
-      code: 'bad_request',
-      message: 'runAsUserId must be a real user ID, not a system identifier',
-    });
-  }
-
-  const targetUser = await getUserById(runDbClient)(runAsUserId);
-  if (!targetUser) {
-    throw createApiError({
-      code: 'bad_request',
-      message: `User ${runAsUserId} does not exist`,
-    });
-  }
-
-  const isAdmin = tenantRole === OrgRoles.OWNER || tenantRole === OrgRoles.ADMIN;
-
-  if (runAsUserId !== callerId && !isAdmin) {
-    throw createApiError({
-      code: 'forbidden',
-      message:
-        'Only org admins or owners can set runAsUserId to a different user. Regular users can only set runAsUserId to themselves.',
-    });
-  }
-
-  const targetCanUse = await canUseProjectStrict({
-    userId: runAsUserId,
-    tenantId,
-    projectId,
-  });
-
-  if (!targetCanUse) {
-    throw createApiError({
-      code: 'bad_request',
-      message: `User ${runAsUserId} does not have 'use' permission on this project`,
-    });
-  }
-}
 
 function validateRunNowDelegation(params: {
   runAsUserId: string | null;
@@ -121,55 +72,6 @@ function validateRunNowDelegation(params: {
       message: 'Only org admins or owners can run triggers configured to run as a different user.',
     });
   }
-}
-
-/**
- * Check if a non-admin user is allowed to mutate a trigger.
- * Admins can mutate any trigger. Non-admins can only mutate triggers they created or that run as them.
- */
-export function assertCanMutateTrigger(params: {
-  trigger: { createdBy: string | null; runAsUserId: string | null };
-  callerId: string;
-  tenantRole: OrgRole;
-}): void {
-  const { trigger, callerId, tenantRole } = params;
-  const isAdmin = tenantRole === OrgRoles.OWNER || tenantRole === OrgRoles.ADMIN;
-  if (isAdmin) return;
-  if (trigger.createdBy === callerId || trigger.runAsUserId === callerId) return;
-  throw createApiError({
-    code: 'forbidden',
-    message: 'You can only modify triggers that you created or that are configured to run as you.',
-  });
-}
-
-const TRIGGER_IGNORED_FIELDS = new Set([
-  'tenantId',
-  'id',
-  'projectId',
-  'agentId',
-  'createdBy',
-  'createdAt',
-  'updatedAt',
-]);
-
-export function isScheduledTriggerChanged(
-  incoming: Record<string, unknown>,
-  existing: ScheduledTrigger
-): boolean {
-  for (const key of Object.keys(existing) as (keyof ScheduledTrigger)[]) {
-    if (TRIGGER_IGNORED_FIELDS.has(key)) continue;
-    if (!(key in incoming)) continue;
-
-    const incomingVal = incoming[key] ?? null;
-    const existingVal = existing[key] ?? null;
-
-    if (typeof incomingVal === 'object' || typeof existingVal === 'object') {
-      if (JSON.stringify(incomingVal) !== JSON.stringify(existingVal)) return true;
-    } else if (incomingVal !== existingVal) {
-      return true;
-    }
-  }
-  return false;
 }
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -207,11 +109,10 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
-    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const { page, limit } = c.req.valid('query');
 
-    const { data, pagination } = await listScheduledTriggersPaginated(db)({
+    const { data, pagination } = await listScheduledTriggersPaginated(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       pagination: { page, limit },
     });
@@ -247,7 +148,7 @@ app.openapi(
         } else if (trigger.cronExpression) {
           // Cron trigger - calculate next execution time
           try {
-            const baseDate = runInfo.lastRunAt ? new Date(runInfo.lastRunAt) : new Date();
+            const baseDate = new Date();
             const interval = CronExpressionParser.parse(trigger.cronExpression, {
               currentDate: baseDate,
               tz: trigger.cronTimezone || 'UTC',
@@ -373,10 +274,9 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
 
-    const trigger = await getScheduledTriggerById(db)({
+    const trigger = await getScheduledTriggerById(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId: id,
     });
@@ -430,11 +330,17 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
     const callerId = c.get('userId') ?? '';
-    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
+    const tenantRole = c.get('tenantRole') as OrgRole;
+
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
 
     const id = body.id || generateId();
 
@@ -461,35 +367,32 @@ app.openapi(
       'Creating scheduled trigger'
     );
 
-    const trigger = await createScheduledTrigger(db)({
+    const enabled = body.enabled ?? true;
+    const nextRunAt = enabled
+      ? computeNextRunAt({
+          cronExpression: body.cronExpression,
+          cronTimezone: body.cronTimezone,
+          runAt: body.runAt,
+        })
+      : null;
+
+    const trigger = await createScheduledTrigger(runDbClient)({
+      ...body,
       id,
       tenantId,
       projectId,
       agentId,
-      name: body.name,
       description: body.description ?? null,
-      enabled: body.enabled ?? true,
+      enabled,
       cronExpression: body.cronExpression ?? null,
       cronTimezone: body.cronTimezone ?? 'UTC',
       runAt: body.runAt ?? null,
       payload: body.payload ?? null,
       messageTemplate: body.messageTemplate ?? null,
-      maxRetries: body.maxRetries,
-      retryDelaySeconds: body.retryDelaySeconds,
-      timeoutSeconds: body.timeoutSeconds,
       runAsUserId,
       createdBy: callerId || null,
+      nextRunAt,
     });
-
-    // Start workflow for enabled triggers
-    try {
-      await onTriggerCreated(trigger);
-    } catch (err) {
-      logger.error(
-        { err, tenantId, projectId, agentId, scheduledTriggerId: id },
-        'Failed to start workflow for new scheduled trigger'
-      );
-    }
 
     const { tenantId: _tid, projectId: _pid, agentId: _aid, ...triggerWithoutScopes } = trigger;
 
@@ -536,11 +439,16 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const body = c.req.valid('json');
     const callerId = c.get('userId') ?? '';
-    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
 
     // Check if any update fields were actually provided
     const hasUpdateFields =
@@ -550,6 +458,7 @@ app.openapi(
       body.cronExpression !== undefined ||
       body.cronTimezone !== undefined ||
       body.runAt !== undefined ||
+      body.ref !== undefined ||
       body.payload !== undefined ||
       body.messageTemplate !== undefined ||
       body.maxRetries !== undefined ||
@@ -587,8 +496,7 @@ app.openapi(
       'Updating scheduled trigger'
     );
 
-    // Get existing trigger to check if it exists
-    const existing = await getScheduledTriggerById(db)({
+    const existing = await getScheduledTriggerById(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId: id,
     });
@@ -650,18 +558,30 @@ app.openapi(
       return defaultValue;
     };
 
-    const updatedTrigger = await updateScheduledTrigger(db)({
+    const mergedEnabled = body.enabled !== undefined ? body.enabled : existing.enabled;
+    const enabledChanged = body.enabled !== undefined && body.enabled !== existing.enabled;
+
+    let nextRunAt: string | null | undefined;
+    if (!mergedEnabled) {
+      nextRunAt = null;
+    } else if (scheduleChanged || enabledChanged) {
+      const mergedCron =
+        body.cronExpression !== undefined ? body.cronExpression : existing.cronExpression;
+      const mergedTimezone =
+        body.cronTimezone !== undefined ? body.cronTimezone : existing.cronTimezone;
+      const mergedRunAt = body.runAt !== undefined ? body.runAt : existing.runAt;
+      nextRunAt = computeNextRunAt({
+        cronExpression: mergedCron,
+        cronTimezone: mergedTimezone,
+        runAt: mergedRunAt,
+      });
+    }
+
+    const updatedTrigger = await updateScheduledTrigger(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId: id,
       data: {
-        name: body.name,
-        description: body.description,
-        enabled: body.enabled,
-        cronExpression: body.cronExpression,
-        cronTimezone: body.cronTimezone,
-        runAt: body.runAt,
-        payload: body.payload,
-        messageTemplate: body.messageTemplate,
+        ...body,
         maxRetries: resolveRetryValue(body.maxRetries, existing.maxRetries, 3),
         retryDelaySeconds: resolveRetryValue(
           body.retryDelaySeconds,
@@ -670,6 +590,7 @@ app.openapi(
         ),
         timeoutSeconds: resolveRetryValue(body.timeoutSeconds, existing.timeoutSeconds, 300),
         runAsUserId,
+        ...(nextRunAt !== undefined ? { nextRunAt } : {}),
       },
     });
 
@@ -723,18 +644,22 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const callerId = c.get('userId') ?? '';
-    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
 
     logger.debug(
       { tenantId, projectId, agentId, scheduledTriggerId: id },
       'Deleting scheduled trigger'
     );
 
-    // First check if the trigger exists
-    const existing = await getScheduledTriggerById(db)({
+    const existing = await getScheduledTriggerById(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId: id,
     });
@@ -761,18 +686,7 @@ app.openapi(
       );
     }
 
-    // Cancel active workflow
-    try {
-      await onTriggerDeleted(existing);
-    } catch (err) {
-      logger.error(
-        { err, tenantId, projectId, agentId, scheduledTriggerId: id },
-        'Failed to cancel workflow for deleted scheduled trigger'
-      );
-      // Continue with deletion - workflow will stop on its own eventually
-    }
-
-    await deleteScheduledTrigger(db)({
+    await deleteScheduledTrigger(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId: id,
     });
@@ -1050,7 +964,6 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
     const {
       tenantId,
       projectId,
@@ -1059,7 +972,13 @@ app.openapi(
       invocationId,
     } = c.req.valid('param');
     const callerId = c.get('userId') ?? '';
-    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
 
     logger.debug(
       { tenantId, projectId, agentId, scheduledTriggerId, invocationId },
@@ -1088,8 +1007,7 @@ app.openapi(
       });
     }
 
-    // Get the trigger configuration for execution parameters
-    const trigger = await getScheduledTriggerById(db)({
+    const trigger = await getScheduledTriggerById(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId,
     });
@@ -1109,7 +1027,23 @@ app.openapi(
 
     const { maxRetries, retryDelaySeconds, timeoutSeconds } = trigger;
 
-    // Create a new invocation for the rerun
+    if (!trigger.ref) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Scheduled trigger has no ref configured',
+      });
+    }
+
+    const rerunProjectScopedRef = getProjectScopedRef(tenantId, projectId, trigger.ref);
+    const resolvedRef = await resolveRef(manageDbClient)(rerunProjectScopedRef);
+
+    if (!resolvedRef) {
+      throw createApiError({
+        code: 'bad_request',
+        message: `Failed to resolve ref '${trigger.ref}' for project ${projectId}. The branch may have been deleted.`,
+      });
+    }
+
     const newInvocationId = generateId();
 
     await createScheduledTriggerInvocation(runDbClient)({
@@ -1118,6 +1052,7 @@ app.openapi(
       projectId,
       agentId,
       scheduledTriggerId,
+      ref: resolvedRef,
       status: 'pending',
       scheduledFor: new Date().toISOString(),
       idempotencyKey: `manual-rerun-${invocationId}-${Date.now()}`,
@@ -1150,13 +1085,6 @@ app.openapi(
           scheduledTriggerId,
           invocationId: newInvocationId,
         });
-
-        // Resolve project ref
-        const ref = getProjectScopedRef(tenantId, projectId, 'main');
-        const resolvedRef = await resolveRef(manageDbClient)(ref);
-        if (!resolvedRef) {
-          throw new Error(`Failed to resolve ref for project ${projectId}`);
-        }
 
         // Build message from template
         const effectivePayload = trigger.payload ?? {};
@@ -1215,6 +1143,7 @@ app.openapi(
               messageParts,
               resolvedRef,
               runAsUserId: trigger.runAsUserId ?? undefined,
+              forwardedHeaders: buildTimezoneHeaders(trigger.cronTimezone),
             }),
             timeoutPromise,
           ]);
@@ -1388,18 +1317,22 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
     const { tenantId, projectId, agentId, id: scheduledTriggerId } = c.req.valid('param');
     const callerId = c.get('userId') ?? '';
-    const tenantRole = (c.get('tenantRole') || OrgRoles.MEMBER) as OrgRole;
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
 
     logger.debug(
       { tenantId, projectId, agentId, scheduledTriggerId },
       'Running scheduled trigger now'
     );
 
-    // Get the trigger configuration
-    const trigger = await getScheduledTriggerById(db)({
+    const trigger = await getScheduledTriggerById(runDbClient)({
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId,
     });
@@ -1422,7 +1355,23 @@ app.openapi(
     const retryDelaySeconds = trigger.retryDelaySeconds ?? 60;
     const timeoutSeconds = trigger.timeoutSeconds ?? 780;
 
-    // Create a new invocation
+    if (!trigger.ref) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Scheduled trigger has no ref configured',
+      });
+    }
+
+    const projectScopedRef = getProjectScopedRef(tenantId, projectId, trigger.ref);
+    const resolvedRef = await resolveRef(manageDbClient)(projectScopedRef);
+
+    if (!resolvedRef) {
+      throw createApiError({
+        code: 'bad_request',
+        message: `Failed to resolve ref '${trigger.ref}' for project ${projectId}. The branch may have been deleted.`,
+      });
+    }
+
     const invocationId = generateId();
 
     await createScheduledTriggerInvocation(runDbClient)({
@@ -1431,6 +1380,7 @@ app.openapi(
       projectId,
       agentId,
       scheduledTriggerId,
+      ref: resolvedRef,
       status: 'pending',
       scheduledFor: new Date().toISOString(),
       idempotencyKey: `manual-run-${scheduledTriggerId}-${Date.now()}`,
@@ -1462,13 +1412,6 @@ app.openapi(
           scheduledTriggerId,
           invocationId,
         });
-
-        // Resolve project ref
-        const ref = getProjectScopedRef(tenantId, projectId, 'main');
-        const resolvedRef = await resolveRef(manageDbClient)(ref);
-        if (!resolvedRef) {
-          throw new Error(`Failed to resolve ref for project ${projectId}`);
-        }
 
         // Build message from template
         const effectivePayload = trigger.payload ?? {};
@@ -1527,6 +1470,7 @@ app.openapi(
               messageParts,
               resolvedRef,
               runAsUserId: trigger.runAsUserId ?? undefined,
+              forwardedHeaders: buildTimezoneHeaders(trigger.cronTimezone),
             }),
             timeoutPromise,
           ]);

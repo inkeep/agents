@@ -1,0 +1,2 @@
+ALTER TABLE "work_app_github_mcp_tool_access_mode" DROP CONSTRAINT "work_app_github_mcp_tool_access_mode_tool_id_pk";--> statement-breakpoint
+ALTER TABLE "work_app_github_mcp_tool_access_mode" ADD CONSTRAINT "work_app_github_mcp_tool_access_mode_tenant_id_project_id_tool_id_pk" PRIMARY KEY("tenant_id","project_id","tool_id");

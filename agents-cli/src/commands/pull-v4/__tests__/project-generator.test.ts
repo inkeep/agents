@@ -1,4 +1,3 @@
-// biome-ignore-all lint/security/noGlobalEval: allow in test
 /**
  * Unit tests for project generator
  */
@@ -28,9 +27,9 @@ describe('Project Generator', () => {
     description:
       'Comprehensive enterprise AI platform with multiple specialized agents and shared resources',
     models: {
-      base: { model: 'gpt-4o', temperature: 0.7 },
-      structuredOutput: { model: 'gpt-4o', temperature: 0.3 },
-      summarizer: { model: 'gpt-4o-mini', temperature: 0.5 },
+      base: { model: 'gpt-4o', providerOptions: { temperature: 0.7 } },
+      structuredOutput: { model: 'gpt-4o', providerOptions: { temperature: 0.3 } },
+      summarizer: { model: 'gpt-4o-mini', providerOptions: { temperature: 0.5 } },
     },
     stopWhen: {
       transferCountIs: 15,
@@ -62,7 +61,7 @@ describe('Project Generator', () => {
       expect(definition).toContain('models: {');
       expect(definition).toContain("model: 'gpt-4o-mini'");
       expect(definition).toContain("model: 'gpt-4o'");
-      expect(definition).toContain('agents: () => [supportAgent, escalationAgent],');
+      expect(definition).toContain('agents: () => [supportagent, escalationagent],');
       expect(definition).toContain('});');
       await expectSnapshots(definition);
     });
@@ -84,11 +83,11 @@ describe('Project Generator', () => {
       expect(definition).toContain('dataComponents: () => [');
       expect(definition).toContain('artifactComponents: () => [');
       expect(definition).toContain('credentialReferences: () => [');
-      expect(definition).toContain('primaryAgent,');
-      expect(definition).toContain('analyticsAgent,');
-      expect(definition).toContain('reportingAgent');
-      expect(definition).toContain('dataAnalysisTool,');
-      expect(definition).toContain('reportGeneratorTool');
+      expect(definition).toContain('primaryagent,');
+      expect(definition).toContain('analyticsagent,');
+      expect(definition).toContain('reportingagent');
+      expect(definition).toContain('dataanalysistool,');
+      expect(definition).toContain('reportgeneratortool');
       await expectSnapshots(definition);
     });
 
@@ -106,7 +105,7 @@ describe('Project Generator', () => {
         ...singleItemData,
       });
 
-      expect(definition).toContain('agents: () => [onlyAgent]');
+      expect(definition).toContain('agents: () => [onlyagent]');
       expect(definition).not.toContain('agents: () => [\n'); // Single line format
       await expectSnapshots(definition);
     });
@@ -118,7 +117,7 @@ describe('Project Generator', () => {
         ...complexProjectData,
       });
 
-      expect(definition).toContain('agents: () => [primaryAgent, analyticsAgent, reportingAgent],');
+      expect(definition).toContain('agents: () => [primaryagent, analyticsagent, reportingagent],');
       await expectSnapshots(definition);
     });
 
@@ -246,8 +245,8 @@ describe('Project Generator', () => {
       const complexModelsData = {
         name: 'Complex Models Project',
         models: {
-          base: { model: 'gpt-4o', temperature: 0.7, maxTokens: 4096 },
-          structuredOutput: { model: 'gpt-4o', temperature: 0.3 },
+          base: { model: 'gpt-4o', providerOptions: { temperature: 0.7, maxTokens: 4096 } },
+          structuredOutput: { model: 'gpt-4o', providerOptions: { temperature: 0.3 } },
           summarizer: { model: 'gpt-4o-mini' },
         },
       };
@@ -284,8 +283,6 @@ describe('Project Generator', () => {
     it('should throw error for empty string name', () => {
       const projectId = 'empty-strings-project';
       const emptyStringData = {
-        name: '',
-        description: '',
         models: {
           base: { model: 'gpt-4o-mini' },
         },
@@ -295,7 +292,7 @@ describe('Project Generator', () => {
         generateProjectDefinition({ projectId, ...emptyStringData });
       }).toThrow(
         new Error(`Validation failed for project:
-✖ Too small: expected string to have >=1 characters
+✖ Invalid input: expected string, received undefined
   → at name`)
       );
     });
@@ -314,8 +311,6 @@ describe('Project Generator', () => {
         generateProjectDefinition({ projectId, ...nullData });
       }).toThrow(
         new Error(`Validation failed for project:
-✖ Invalid input: expected string, received null
-  → at description
 ✖ Invalid input: expected object, received undefined
   → at models
 ✖ Invalid input: expected array, received null
@@ -339,8 +334,8 @@ describe('Project Generator', () => {
         ...mixedData,
       });
 
-      expect(definition).toContain('agents: () => [stringAgent]');
-      expect(definition).toContain('tools: () => [stringTool]');
+      expect(definition).toContain('agents: () => [stringagent]');
+      expect(definition).toContain('tools: () => [stringtool]');
       await expectSnapshots(definition);
     });
 

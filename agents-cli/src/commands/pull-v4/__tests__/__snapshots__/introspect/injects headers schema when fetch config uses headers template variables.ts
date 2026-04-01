@@ -1,7 +1,7 @@
 import { headers, fetchDefinition, contextConfig } from '@inkeep/agents-core';
 import { z } from 'zod';
 
-const supportContextHeaders = headers({
+export const supportContextHeaders = headers({
   schema: z.object({ "tz": z.string() }).strict(),
 });
 const timeInfo = fetchDefinition({

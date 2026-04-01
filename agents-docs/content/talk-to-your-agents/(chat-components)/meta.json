@@ -1,5 +1,14 @@
 {
   "title": "Chat Components",
   "icon": "LuBlocks",
-  "pages": ["index", "react", "nextjs", "javascript", "customization", "..."]
+  "pages": [
+    "index",
+    "react",
+    "nextjs",
+    "javascript",
+    "app-credentials",
+    "customization",
+    "changelog",
+    "..."
+  ]
 }

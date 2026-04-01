@@ -8,6 +8,7 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 - **Build**: `pnpm build` (root) or `turbo build`
 - **Dev**: `pnpm dev` (root) or navigate to package and run `pnpm dev`
 - **Setup (core)**: `pnpm setup-dev` — core DBs (Doltgres, Postgres, SpiceDB), env config, migrations, admin user
+- **Setup (isolated)**: `pnpm setup-dev --isolated <name>` — same as above but in a parallel environment (see [Isolated Environments](#isolated-parallel-environments))
 - **Setup (optional services)**: `pnpm setup-dev:optional` — Nango + SigNoz + OTEL + Jaeger (run `setup-dev` first)
 - **Optional services lifecycle**: `pnpm optional:stop` | `pnpm optional:status` | `pnpm optional:reset`
 
@@ -16,7 +17,7 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 **Pre-push** (run both, in order):
 ```bash
 pnpm format     # auto-fix formatting
-pnpm check      # lint + typecheck + test + format:check + env-descriptions + knip
+pnpm check      # lint + typecheck + test + format:check + env-descriptions + route-handler-patterns + dal-boundary + knip
 ```
 
 **Single-command iteration:** `pnpm typecheck`, `pnpm lint` (`lint:fix`), `pnpm test`, `cd <pkg> && pnpm test --run <file>`
@@ -105,6 +106,7 @@ pnpm build           # Build documentation for production
 - **Types**: Explicit types preferred, avoid `any` where possible (warning), use Zod for validation
 - **Naming**: camelCase for variables/functions, PascalCase for types/components, kebab-case for files
 - **Error Handling**: Use try-catch, validate with Zod schemas, handle errors explicitly
+- **Function Arguments**: When a function has more than 3 parameters, prefer a single object argument so that parameters are well-labeled, ordering doesn't matter, and callers can benefit from spread operators
 - **No Comments**: Do not add comments unless explicitly requested
 
 ## Testing (Vitest)
@@ -139,6 +141,26 @@ docker compose -f docker-compose.visual.yml down
 ## Package Manager
 - Always use `pnpm` (not npm, yarn, or bun)
 
+### pnpm-lock.yaml Resolution Strategy
+
+⚠️ **NEVER delete `pnpm-lock.yaml` and regenerate it from scratch.** Deleting the lockfile and running `pnpm install` allows the resolver to pick different (often lower) versions of transitive dependencies, causing silent downgrades that break tests or change runtime behavior.
+
+**Correct approach when the lockfile has merge conflicts or needs updating:**
+
+1. **Start from the base branch's lockfile** — check out the `pnpm-lock.yaml` from the target base (usually `main`):
+   ```bash
+   git checkout main -- pnpm-lock.yaml
+   ```
+2. **Re-install to layer your branch's dependency changes on top:**
+   ```bash
+   pnpm install
+   ```
+   This preserves all existing resolutions from `main` and only adds/updates what your branch's `package.json` changes require.
+
+3. **Commit the updated lockfile** with your other changes.
+
+**Why this matters:** The lockfile pins exact transitive dependency versions. Regenerating from scratch lets the resolver freely re-resolve the entire tree, which can silently pick different versions even when `package.json` ranges haven't changed. Starting from the base lockfile ensures only your intentional changes affect resolution.
+
 ## Architecture Overview
 
 This is the **Inkeep Agent Framework** - a multi-agent AI system with A2A (Agent-to-Agent) communication capabilities. The system provides OpenAI Chat Completions compatible API while supporting sophisticated agent orchestration.
@@ -158,6 +180,44 @@ The `agents-api` package contains all API domains under a single service:
 - [runtime-schema.ts](./packages/agents-core/src/db/runtime/runtime-schema.ts) - Runtime tables (Postgres)
 
 ## Key Implementation Details
+
+### CRUD HTTP Method Conventions (RFC 9110, RFC 5789)
+
+| Operation | Method | Path Pattern | Example |
+|-----------|--------|-------------|---------|
+| Create | POST | `/resources` | `POST /agents` |
+| Read (list) | GET | `/resources` | `GET /agents` |
+| Read (single) | GET | `/resources/{id}` | `GET /agents/{id}` |
+| Update (partial) | PATCH | `/resources/{id}` | `PATCH /agents/{id}` |
+| Delete | DELETE | `/resources/{id}` | `DELETE /agents/{id}` |
+
+- **PATCH** for partial updates (RFC 5789) — canonical method for standard CRUD update operations
+- **PUT** for full-resource replacement, upsert, and set/replace operations (RFC 9110 §9.3.4)
+- **POST** for creates and non-idempotent actions (sync, reconnect, cancel, etc.)
+- **GET** for reads — never mutates state
+- **DELETE** for resource removal
+
+#### Exceptions: PUT-canonical routes
+
+The following routes use **PUT as the canonical method** because they perform full-resource replacement or upsert semantics, not partial updates:
+
+| Route | Reason | OperationId |
+|-------|--------|-------------|
+| `PUT /project-full/{projectId}` | Upsert — creates or fully replaces a project | `update-full-project` |
+| `PUT /agents-full/{agentId}` | Upsert — creates or fully replaces an agent | `update-full-agent` |
+| `PUT /tools/{toolId}/github-access` | Set/replace — replaces entire GitHub access config | `set-mcp-tool-github-access` |
+| `PUT /tools/{toolId}/slack-access` | Set/replace — replaces entire Slack access config | `set-mcp-tool-slack-access` |
+| `PUT /projects/{projectId}/github-access` | Set/replace — replaces entire project GitHub access | `set-project-github-access` |
+
+These routes still register a PATCH method for backward compatibility (with `x-speakeasy-ignore: true`).
+
+#### Dual-registration helper
+
+All update routes register both PUT and PATCH methods using `openapiRegisterPutPatchRoutesForLegacy()` from `agents-api/src/utils/openapiDualRoute.ts`. The legacy method gets `x-speakeasy-ignore: true` and a suffixed operationId (e.g., `update-agent-put`). To find all legacy routes, search for usages of this helper. When legacy methods are no longer needed, remove the helper calls and replace with single `app.openapi()` registrations.
+
+#### Backward compatibility
+
+All existing PUT update routes remain functional — they share the same handler as PATCH. New update routes must use PATCH as canonical (or PUT for upsert/set-replace semantics). Do not remove existing PUT routes without a deprecation period.
 
 ### Database Migration Workflow
 
@@ -211,6 +271,54 @@ ANTHROPIC_API_KEY=required
 OPENAI_API_KEY=optional
 LOG_LEVEL=debug|info|warn|error
 ```
+
+### Isolated Parallel Environments
+
+Run multiple full dev stacks simultaneously with zero port conflicts. Each isolated environment gets its own Docker containers, volumes, and network with dynamically assigned ports.
+
+**When to use:** Running multiple features in parallel, AI coding agents executing concurrently, or testing against an isolated database without affecting the default environment.
+
+#### Quick Start
+
+```bash
+# Create an isolated environment (Docker + migrations + auth)
+pnpm setup-dev --isolated my-feature
+
+# Point your shell at it
+source <(./scripts/isolated-env.sh env my-feature)
+
+# Run the app (uses isolated databases + dynamic app ports)
+pnpm dev
+
+# Tear down when done
+./scripts/isolated-env.sh down my-feature
+```
+
+#### Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `./scripts/isolated-env.sh setup <name>` | Full setup: Docker + health checks + migrations + auth init |
+| `./scripts/isolated-env.sh up <name>` | Start containers only (no migrations) |
+| `./scripts/isolated-env.sh down <name>` | Stop and remove containers + volumes |
+| `./scripts/isolated-env.sh status` | List all running isolated environments with ports |
+| `./scripts/isolated-env.sh env <name>` | Print source-able env var exports |
+
+#### How It Works
+
+- Uses `docker-compose.isolated.yml` with `COMPOSE_PROJECT_NAME` for namespace isolation
+- Docker assigns random available host ports (no hardcoded bindings)
+- Ports are discovered post-startup via `docker compose port` and saved to `.isolated-envs/<name>.json`
+- The `env` command outputs `export` statements that override database URLs (`INKEEP_AGENTS_MANAGE_DATABASE_URL`, `INKEEP_AGENTS_RUN_DATABASE_URL`, `SPICEDB_ENDPOINT`) and app ports (`AGENTS_API_PORT`, `MANAGE_UI_PORT`, `INKEEP_AGENTS_API_URL`)
+- Default environment (`docker-compose.dbs.yml` on fixed ports) continues to work unchanged
+
+#### Key Files
+
+| File | Purpose |
+|------|---------|
+| `docker-compose.isolated.yml` | Compose file with dynamic port allocation |
+| `scripts/isolated-env.sh` | CLI for managing isolated environments |
+| `.isolated-envs/<name>.json` | Port state files (gitignored) |
 
 ## High Product-level Thinking
 

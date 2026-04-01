@@ -1,7 +1,7 @@
 import { type Part, parseEmbeddedJson, TaskState } from '@inkeep/agents-core';
-import { extractTextFromParts } from 'src/domains/run/utils/message-parts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { A2ATask } from '../../../domains/run/a2a/types';
+import { Agent } from '../../../domains/run/agents/Agent';
 import {
   createTaskHandler,
   createTaskHandlerConfig,
@@ -9,6 +9,7 @@ import {
   serializeTaskHandlerConfig,
   type TaskHandlerConfig,
 } from '../../../domains/run/agents/generateTaskHandler';
+import { extractTextFromParts } from '../../../domains/run/utils/message-parts';
 
 vi.hoisted(() => {
   const getMcpToolMock = vi.fn().mockResolvedValue({
@@ -134,6 +135,18 @@ vi.mock('../../../domains/run/agents/Agent.js', () => ({
       // Mock implementation
     }
 
+    setDurableWorkflowRunId(_runId: string | undefined) {
+      // Mock implementation
+    }
+
+    setApprovedToolCalls(_approvedToolCalls: Record<string, any> | undefined) {
+      // Mock implementation
+    }
+
+    getPendingDurableApproval() {
+      return undefined;
+    }
+
     async generate(userParts: Part[], _options: unknown) {
       const message = extractTextFromParts(userParts);
       // Mock different response types based on message content
@@ -199,6 +212,10 @@ vi.mock('../../../domains/run/agents/Agent.js', () => ({
       };
     }
 
+    getTaskDenialRedirects() {
+      return [];
+    }
+
     cleanupCompression() {
       // Mock implementation for compression cleanup
     }
@@ -209,7 +226,7 @@ vi.mock('../../../domains/run/agents/Agent.js', () => ({
   },
 }));
 
-vi.mock('../../../domains/run/utils/stream-registry.js', () => ({
+vi.mock('../../../domains/run/stream/stream-registry.js', () => ({
   getStreamHelper: vi.fn().mockReturnValue(undefined),
 }));
 
@@ -573,6 +590,36 @@ describe('generateTaskHandler', () => {
           text: 'Response to: Hello, how can you help?',
         },
       ]);
+    });
+
+    it('prepends denial redirect note when task had denied tool calls', async () => {
+      vi.mocked(Agent).prototype.getTaskDenialRedirects = vi.fn().mockReturnValue([
+        {
+          toolName: 'get_coordinates',
+          toolCallId: 'call-abc',
+          reason: 'I want the coordinates for tokyo instead',
+        },
+      ]);
+
+      const taskHandler = createTaskHandler(mockConfig);
+      const task: A2ATask = {
+        id: 'task-123',
+        input: { parts: [{ kind: 'text', text: 'Get coordinates for San Francisco' }] },
+        context: { conversationId: 'conv-123' },
+      };
+
+      const result = await taskHandler(task);
+
+      expect(result.status.state).toBe(TaskState.Completed);
+      expect(result.artifacts?.[0].parts).toHaveLength(2);
+      const notePart = result.artifacts?.[0].parts[0];
+      expect(notePart?.kind).toBe('text');
+      expect((notePart as any)?.text).toContain('[NOTE: Some tool calls were denied');
+      expect((notePart as any)?.text).toContain(
+        'get_coordinates (call-abc): I want the coordinates for tokyo instead'
+      );
+
+      vi.mocked(Agent).prototype.getTaskDenialRedirects = vi.fn().mockReturnValue([]);
     });
 
     it('should pass models to Agent constructor', async () => {

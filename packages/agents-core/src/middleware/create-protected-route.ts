@@ -3,6 +3,7 @@ import type { createRoute } from '@hono/zod-openapi';
 import type { MiddlewareHandler } from 'hono';
 import type { ZodType } from 'zod';
 import { getAuthzMeta, type ProjectScopedMiddleware } from './authz-meta';
+import { getEntitlementMeta } from './entitlement-meta';
 
 type CreateRouteParams = Parameters<typeof createRoute>[0];
 
@@ -13,29 +14,41 @@ function toArray<T>(value: T | T[] | undefined): T[] {
 
 export function createProtectedRoute<T extends CreateRouteParams>(
   config: T & {
-    permission: ProjectScopedMiddleware;
+    permission: ProjectScopedMiddleware<any>;
+    entitlement?: MiddlewareHandler;
     request: { params: ZodType<{ projectId: string }> };
   }
 ): T;
 export function createProtectedRoute<T extends CreateRouteParams>(
   config: T & {
-    permission: ProjectScopedMiddleware;
+    permission: ProjectScopedMiddleware<any>;
+    entitlement?: MiddlewareHandler;
     request: { params: ZodType<{ id: string }> };
   }
 ): T;
 export function createProtectedRoute<T extends CreateRouteParams>(
-  config: T & { permission: MiddlewareHandler & { __projectScoped?: never } }
+  config: T & {
+    permission: MiddlewareHandler & { __projectScoped?: never };
+    entitlement?: MiddlewareHandler;
+  }
 ): T;
 export function createProtectedRoute<T extends CreateRouteParams>(
-  config: T & { permission: MiddlewareHandler }
+  config: T & { permission: MiddlewareHandler; entitlement?: MiddlewareHandler }
 ): T {
-  const { permission, ...routeConfig } = config;
+  const { permission, entitlement, ...routeConfig } = config;
   const meta = getAuthzMeta(permission);
+  const entitlementMetaValue = entitlement ? getEntitlementMeta(entitlement) : undefined;
+
+  const middlewares = [permission, ...toArray(routeConfig.middleware)];
+  if (entitlement) {
+    middlewares.push(entitlement);
+  }
 
   return {
     ...routeConfig,
-    middleware: [permission, ...toArray(routeConfig.middleware)],
+    middleware: middlewares,
     ...(meta && { 'x-authz': meta }),
+    ...(entitlementMetaValue && { 'x-entitlement': entitlementMetaValue }),
     ...(!meta && !('security' in config) && { security: [] }),
   } as unknown as T;
 }

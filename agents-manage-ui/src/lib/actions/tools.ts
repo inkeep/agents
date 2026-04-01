@@ -6,47 +6,13 @@
 
 import { detectAuthenticationRequired } from '@inkeep/agents-core/client-exports';
 import { revalidatePath } from 'next/cache';
-import { createMCPTool, deleteMCPTool, fetchMCPTools, updateMCPTool } from '../api/tools';
+import { createMCPTool, deleteMCPTool, updateMCPTool } from '../api/tools';
 import { ApiError } from '../types/errors';
 import type { MCPTool } from '../types/tools';
 import type { ActionResult } from './types';
 
 type CreateMCPToolData = Parameters<typeof createMCPTool>[2];
 type UpdateMCPToolData = Parameters<typeof updateMCPTool>[3];
-
-/**
- * Fetch all tools for a project
- * @param skipDiscovery - If true, returns skeleton data without MCP discovery (instant response)
- */
-export async function fetchToolsAction(
-  tenantId: string,
-  projectId: string,
-  options?: { skipDiscovery?: boolean }
-): Promise<ActionResult<MCPTool[]>> {
-  try {
-    const tools = await fetchMCPTools(tenantId, projectId, {
-      skipDiscovery: options?.skipDiscovery,
-    });
-    return {
-      success: true,
-      data: tools,
-    };
-  } catch (error) {
-    if (error instanceof ApiError) {
-      return {
-        success: false,
-        error: error.message,
-        code: error.error.code,
-      };
-    }
-
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-      code: 'unknown_error',
-    };
-  }
-}
 
 /**
  * Delete a tool (mcp server)

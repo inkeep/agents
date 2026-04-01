@@ -69,10 +69,12 @@ const getAvailableRepositoryString = (repositoryAccess: WorkAppGitHubRepositoryS
 /**
  * Creates and configures an MCP server for the given context
  */
-const getServer = async (toolId: string) => {
+type ToolScope = { tenantId: string; projectId: string; toolId: string };
+
+const getServer = async (scope: ToolScope) => {
   // Initialize GitHub App authentication
 
-  const repositoryAccess = await getMcpToolRepositoryAccessWithDetails(runDbClient)(toolId);
+  const repositoryAccess = await getMcpToolRepositoryAccessWithDetails(runDbClient)(scope);
   const installationIdMap = new Map<string, string>();
   for (const repo of repositoryAccess) {
     installationIdMap.set(repo.repositoryFullName, repo.installationId);
@@ -670,7 +672,7 @@ const getServer = async (toolId: string) => {
   // Register GitHub commit files tool
   server.tool(
     'commit-file-changes',
-    `Commit changes to a files in a repository. ${getAvailableRepositoryString(repositoryAccess)}`,
+    `Commit changes to a file in a repository. ${getAvailableRepositoryString(repositoryAccess)}`,
     {
       owner: z.string().describe('Repository owner name'),
       repo: z.string().describe('Repository name'),
@@ -678,8 +680,15 @@ const getServer = async (toolId: string) => {
       file_path: z.string().describe('Path to the file to commit'),
       update_operations: updateOperationsSchema,
       commit_message: z.string().describe('Commit message'),
+      format: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe(
+          'When true, format the file content with oxfmt before committing. Falls back to unformatted content if formatting fails. Leave as false unless prompted otherwise.'
+        ),
     },
-    async ({ owner, repo, branch_name, file_path, update_operations, commit_message }) => {
+    async ({ owner, repo, branch_name, file_path, update_operations, commit_message, format }) => {
       try {
         let githubClient: Octokit;
         try {
@@ -737,6 +746,7 @@ const getServer = async (toolId: string) => {
           branchName: branch_name,
           operations: updateOperations,
           commitMessage: commit_message,
+          format,
         });
 
         return {
@@ -798,8 +808,15 @@ const getServer = async (toolId: string) => {
       file_path: z.string().describe('Path for the new file (relative to repository root)'),
       content: z.string().describe('Content for the new file'),
       commit_message: z.string().describe('Commit message'),
+      format: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe(
+          'When true, format the file content with oxfmt before committing. Falls back to unformatted content if formatting fails. Leave as false unless prompted otherwise.'
+        ),
     },
-    async ({ owner, repo, branch_name, file_path, content, commit_message }) => {
+    async ({ owner, repo, branch_name, file_path, content, commit_message, format }) => {
       try {
         let githubClient: Octokit;
         try {
@@ -824,6 +841,7 @@ const getServer = async (toolId: string) => {
           branchName: branch_name,
           content,
           commitMessage: commit_message,
+          format,
         });
 
         return {
@@ -1621,6 +1639,8 @@ const getServer = async (toolId: string) => {
 const app = new Hono<{
   Variables: {
     toolId: string;
+    tenantId: string;
+    projectId: string;
   };
 }>();
 
@@ -1630,9 +1650,11 @@ app.post('/', async (c) => {
     return c.json({ error: 'GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY must be set' }, 500);
   }
   const toolId = c.get('toolId');
+  const tenantId = c.get('tenantId');
+  const projectId = c.get('projectId');
   const body = await c.req.json();
 
-  const server = await getServer(toolId);
+  const server = await getServer({ tenantId, projectId, toolId });
 
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,

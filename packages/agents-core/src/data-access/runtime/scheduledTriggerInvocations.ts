@@ -1,13 +1,14 @@
 import { and, asc, count, desc, eq, gte, inArray, lte, ne, sql } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { scheduledTriggerInvocations } from '../../db/runtime/runtime-schema';
-import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
 import type {
   ScheduledTriggerInvocation,
   ScheduledTriggerInvocationInsert,
-  ScheduledTriggerInvocationStatus,
   ScheduledTriggerInvocationUpdate,
-} from '../../validation/schemas';
+} from '../../types/entities';
+import type { AgentScopeConfig, PaginationConfig, ProjectScopeConfig } from '../../types/utility';
+import type { ScheduledTriggerInvocationStatus } from '../../validation/schemas';
+import { agentScopedWhere, projectScopedWhere } from '../manage/scope-helpers';
 
 /**
  * Get a scheduled trigger invocation by ID (agent-scoped)
@@ -21,9 +22,7 @@ export const getScheduledTriggerInvocationById =
   }): Promise<ScheduledTriggerInvocation | undefined> => {
     const result = await db.query.scheduledTriggerInvocations.findFirst({
       where: and(
-        eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
-        eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
-        eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
+        agentScopedWhere(scheduledTriggerInvocations, params.scopes),
         eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
         eq(scheduledTriggerInvocations.id, params.invocationId)
       ),
@@ -64,9 +63,7 @@ export const listScheduledTriggerInvocationsPaginated =
     const offset = (page - 1) * limit;
 
     const conditions = [
-      eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
-      eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
-      eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
+      agentScopedWhere(scheduledTriggerInvocations, params.scopes),
       eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
     ];
 
@@ -121,9 +118,7 @@ export const listPendingScheduledTriggerInvocations =
       .from(scheduledTriggerInvocations)
       .where(
         and(
-          eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
-          eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
-          eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
+          agentScopedWhere(scheduledTriggerInvocations, params.scopes),
           eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
           eq(scheduledTriggerInvocations.status, 'pending')
         )
@@ -145,9 +140,7 @@ export const deletePendingInvocationsForTrigger =
       .delete(scheduledTriggerInvocations)
       .where(
         and(
-          eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
-          eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
-          eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
+          agentScopedWhere(scheduledTriggerInvocations, params.scopes),
           eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
           eq(scheduledTriggerInvocations.status, 'pending')
         )
@@ -186,9 +179,7 @@ export const updateScheduledTriggerInvocationStatus =
       .set(params.data as any)
       .where(
         and(
-          eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
-          eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
-          eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
+          agentScopedWhere(scheduledTriggerInvocations, params.scopes),
           eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
           eq(scheduledTriggerInvocations.id, params.invocationId)
         )
@@ -217,9 +208,7 @@ export const markScheduledTriggerInvocationRunning =
       })
       .where(
         and(
-          eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
-          eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
-          eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
+          agentScopedWhere(scheduledTriggerInvocations, params.scopes),
           eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
           eq(scheduledTriggerInvocations.id, params.invocationId)
         )
@@ -248,9 +237,7 @@ export const markScheduledTriggerInvocationCompleted =
       })
       .where(
         and(
-          eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
-          eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
-          eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
+          agentScopedWhere(scheduledTriggerInvocations, params.scopes),
           eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
           eq(scheduledTriggerInvocations.id, params.invocationId),
           ne(scheduledTriggerInvocations.status, 'cancelled')
@@ -280,13 +267,42 @@ export const markScheduledTriggerInvocationFailed =
       })
       .where(
         and(
-          eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
-          eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
-          eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
+          agentScopedWhere(scheduledTriggerInvocations, params.scopes),
           eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
           eq(scheduledTriggerInvocations.id, params.invocationId),
-          // Don't overwrite if already cancelled
           ne(scheduledTriggerInvocations.status, 'cancelled')
+        )
+      )
+      .returning();
+
+    return result[0] as ScheduledTriggerInvocation | undefined;
+  };
+
+/**
+ * Reset a cancelled invocation back to pending.
+ * Only updates if the current status is 'cancelled' to prevent race conditions.
+ */
+export const resetCancelledInvocationToPending =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: AgentScopeConfig;
+    scheduledTriggerId: string;
+    invocationId: string;
+  }): Promise<ScheduledTriggerInvocation | undefined> => {
+    const result = await db
+      .update(scheduledTriggerInvocations)
+      .set({
+        status: 'pending',
+        attemptNumber: 1,
+        startedAt: null,
+        completedAt: null,
+      })
+      .where(
+        and(
+          agentScopedWhere(scheduledTriggerInvocations, params.scopes),
+          eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
+          eq(scheduledTriggerInvocations.id, params.invocationId),
+          eq(scheduledTriggerInvocations.status, 'cancelled')
         )
       )
       .returning();
@@ -313,9 +329,7 @@ export const addConversationIdToInvocation =
       })
       .where(
         and(
-          eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
-          eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
-          eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
+          agentScopedWhere(scheduledTriggerInvocations, params.scopes),
           eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
           eq(scheduledTriggerInvocations.id, params.invocationId)
         )
@@ -343,9 +357,7 @@ export const markScheduledTriggerInvocationCancelled =
       })
       .where(
         and(
-          eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
-          eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
-          eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
+          agentScopedWhere(scheduledTriggerInvocations, params.scopes),
           eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
           eq(scheduledTriggerInvocations.id, params.invocationId)
         )
@@ -370,9 +382,7 @@ export const cancelPendingInvocationsForTrigger =
       })
       .where(
         and(
-          eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
-          eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
-          eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
+          agentScopedWhere(scheduledTriggerInvocations, params.scopes),
           eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
           inArray(scheduledTriggerInvocations.status, ['pending', 'running'])
         )
@@ -398,12 +408,10 @@ export const cancelPastPendingInvocationsForTrigger =
       })
       .where(
         and(
-          eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
-          eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
-          eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
+          agentScopedWhere(scheduledTriggerInvocations, params.scopes),
           eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
           inArray(scheduledTriggerInvocations.status, ['pending', 'running']),
-          lte(scheduledTriggerInvocations.scheduledFor, now) // Only cancel past invocations
+          lte(scheduledTriggerInvocations.scheduledFor, now)
         )
       )
       .returning();
@@ -435,7 +443,6 @@ export const getScheduledTriggerRunInfoBatch =
       return new Map();
     }
 
-    const { tenantId, projectId } = params.scopes;
     const allInvocations = await db
       .select({
         scheduledTriggerId: scheduledTriggerInvocations.scheduledTriggerId,
@@ -447,8 +454,7 @@ export const getScheduledTriggerRunInfoBatch =
       .from(scheduledTriggerInvocations)
       .where(
         and(
-          eq(scheduledTriggerInvocations.tenantId, tenantId),
-          eq(scheduledTriggerInvocations.projectId, projectId),
+          projectScopedWhere(scheduledTriggerInvocations, params.scopes),
           inArray(
             scheduledTriggerInvocations.scheduledTriggerId,
             params.triggerIds.map((t) => t.triggerId)
@@ -513,9 +519,7 @@ export const listUpcomingInvocationsForAgentPaginated =
       : eq(scheduledTriggerInvocations.status, 'pending');
 
     const conditions = [
-      eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
-      eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
-      eq(scheduledTriggerInvocations.agentId, params.scopes.agentId),
+      agentScopedWhere(scheduledTriggerInvocations, params.scopes),
       statusCondition,
     ];
 
@@ -558,10 +562,7 @@ export const listProjectScheduledTriggerInvocationsPaginated =
     const limit = Math.min(params.pagination?.limit || 20, 100);
     const offset = (page - 1) * limit;
 
-    const conditions = [
-      eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
-      eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
-    ];
+    const conditions = [projectScopedWhere(scheduledTriggerInvocations, params.scopes)];
 
     if (params.filters?.status) {
       conditions.push(eq(scheduledTriggerInvocations.status, params.filters.status));
@@ -587,4 +588,75 @@ export const listProjectScheduledTriggerInvocationsPaginated =
       data,
       pagination: { page, limit, total, pages },
     };
+  };
+
+/**
+ * Get status summary for all invocations with a given scheduledTriggerId.
+ * Used for dataset run status aggregation where scheduledTriggerId = datasetRunId.
+ */
+export const getScheduledTriggerInvocationStatusSummary =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    scheduledTriggerId: string;
+  }): Promise<{
+    pending: number;
+    running: number;
+    completed: number;
+    failed: number;
+    cancelled: number;
+  }> => {
+    const rows = await db
+      .select({ status: scheduledTriggerInvocations.status, cnt: count() })
+      .from(scheduledTriggerInvocations)
+      .where(
+        and(
+          eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
+          eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
+          eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId)
+        )
+      )
+      .groupBy(scheduledTriggerInvocations.status);
+
+    return rows.reduce(
+      (acc, { status, cnt }) => {
+        const key = status as keyof typeof acc;
+        if (key in acc) acc[key] += Number(cnt);
+        return acc;
+      },
+      { pending: 0, running: 0, completed: 0, failed: 0, cancelled: 0 }
+    );
+  };
+
+/**
+ * List invocations by scheduledTriggerId without agentId filter (project-scoped).
+ * Used for dataset run items listing where scheduledTriggerId = datasetRunId.
+ */
+export const listScheduledTriggerInvocationsByTriggerId =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    scheduledTriggerId: string;
+    filters?: { status?: string };
+  }) => {
+    const conditions = [
+      eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
+      eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
+      eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
+    ];
+
+    if (params.filters?.status) {
+      conditions.push(
+        eq(
+          scheduledTriggerInvocations.status,
+          params.filters.status as ScheduledTriggerInvocationStatus
+        )
+      );
+    }
+
+    return await db
+      .select()
+      .from(scheduledTriggerInvocations)
+      .where(and(...conditions))
+      .orderBy(asc(scheduledTriggerInvocations.createdAt));
   };

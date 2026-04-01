@@ -1,140 +1,136 @@
+import { join } from 'node:path';
+import { FullProjectDefinitionSchema } from '@inkeep/agents-core';
 import { type SourceFile, SyntaxKind } from 'ts-morph';
 import { z } from 'zod';
-import {
-  addValueToObject,
-  convertNullToUndefined,
-  createFactoryDefinition,
-  toCamelCase,
-} from '../utils';
+import { asRecord } from '../collector-common';
+import { buildSequentialNameFileNames } from '../generation-resolver';
+import type { GenerationTask } from '../generation-types';
+import { addNamedImports, applyImportPlan, createImportPlan } from '../import-plan';
+import { generateFactorySourceFile } from '../simple-factory-generator';
+import { addValueToObject, codeReference, toCamelCase, toTriggerReferenceName } from '../utils';
 
-type TriggerDefinitionData = {
-  triggerId: string;
-  name: string;
-  description?: string | null;
-  enabled?: boolean;
-  messageTemplate?: string | null;
-  inputSchema?: unknown;
-  outputTransform?: {
-    jmespath?: string;
-    objectTransformation?: unknown;
-  } | null;
-  authentication?: {
-    headers?: Array<{
-      name?: string;
-      valueHash?: string;
-      valuePrefix?: string;
-      value?: string;
-    }>;
-  } | null;
-  signatureVerification?: {
-    algorithm?: string;
-    encoding?: string;
-    signature?: {
-      source?: string;
-      key?: string;
-      prefix?: string;
-      regex?: string;
-    };
-    signedComponents?: Array<{
-      source?: string;
-      key?: string;
-      value?: string;
-      regex?: string;
-      required?: boolean;
-    }>;
-    componentJoin?: {
-      strategy?: string;
-      separator?: string;
-    };
-    validation?: {
-      headerCaseSensitive?: boolean;
-      allowEmptyBody?: boolean;
-      normalizeUnicode?: boolean;
-    };
-  } | null;
-  signingSecretCredentialReferenceId?: string | null;
-  signingSecretCredentialReference?: string | { id?: string } | null;
-};
-
-const TriggerSchema = z.looseObject({
-  triggerId: z.string().nonempty(),
-  name: z.string().nonempty(),
-  description: z.string().nullable().optional().transform(convertNullToUndefined),
-  enabled: z.boolean().optional(),
-  messageTemplate: z.string().nullable().optional().transform(convertNullToUndefined),
-  inputSchema: z.unknown().optional(),
-  outputTransform: z
-    .looseObject({
-      jmespath: z.string().optional(),
-      objectTransformation: z.unknown().optional(),
-    })
-    .nullable()
-    .optional()
-    .transform(convertNullToUndefined),
-  authentication: z
-    .looseObject({
-      headers: z.array(z.looseObject({})).optional(),
-    })
-    .nullable()
-    .optional()
-    .transform(convertNullToUndefined),
-  signatureVerification: z
-    .looseObject({
-      algorithm: z.string().optional(),
-      encoding: z.string().optional(),
-      signature: z.looseObject({}).optional(),
-      signedComponents: z.array(z.looseObject({})).optional(),
-      componentJoin: z.looseObject({}).optional(),
-      validation: z.looseObject({}).optional(),
-    })
-    .nullable()
-    .optional()
-    .transform(convertNullToUndefined),
-  signingSecretCredentialReferenceId: z
-    .string()
-    .nullable()
-    .optional()
-    .transform(convertNullToUndefined),
-  signingSecretCredentialReference: z
-    .union([z.string(), z.looseObject({ id: z.string().optional() })])
-    .nullable()
-    .optional()
-    .transform(convertNullToUndefined),
-});
-
-export function generateTriggerDefinition(data: TriggerDefinitionData): SourceFile {
-  const result = TriggerSchema.safeParse(data);
-  if (!result.success) {
-    throw new Error(`Validation failed for trigger:\n${z.prettifyError(result.error)}`);
-  }
-
-  const parsed = result.data;
-  const { sourceFile, configObject } = createFactoryDefinition({
-    importName: 'Trigger',
-    variableName: toCamelCase(parsed.triggerId),
-    syntaxKind: SyntaxKind.NewExpression,
+const MySchema = FullProjectDefinitionSchema.shape.agents.valueType.shape.triggers
+  .unwrap()
+  .valueType.omit({
+    id: true,
   });
 
-  const { triggerId, signingSecretCredentialReferenceId, ...rest } = parsed;
+const TriggerSchema = z.strictObject({
+  triggerId: z.string().nonempty(),
+  ...MySchema.shape,
+  description: z.preprocess((v) => v || undefined, MySchema.shape.description),
+  inputSchema: z.preprocess((v) => v || undefined, MySchema.shape.inputSchema),
+  outputTransform: z.preprocess((v) => v || undefined, MySchema.shape.outputTransform),
+  messageTemplate: z.preprocess((v) => v || undefined, MySchema.shape.messageTemplate),
+  authentication: z.preprocess(
+    (v) => v || undefined,
+    // ✖ Invalid input: expected string, received undefined
+    // → at authentication.headers[0].value
+    z.unknown()
+  ),
+  signatureVerification: z.preprocess((v) => v || undefined, MySchema.shape.signatureVerification),
+  signingSecretCredentialReferenceName: z.string().nonempty().optional(),
+  signingSecretCredentialReferencePath: z.string().nonempty().optional(),
+});
 
-  for (const [key, value] of Object.entries({
-    id: triggerId,
-    ...rest,
-  })) {
-    addValueToObject(configObject, key, value);
-  }
+type TriggerInput = z.input<typeof TriggerSchema>;
 
-  if (signingSecretCredentialReferenceId) {
-    const varName = toCamelCase(signingSecretCredentialReferenceId as string);
-    sourceFile.addImportDeclaration({
-      namedImports: [varName],
-      moduleSpecifier: `../../credentials/${signingSecretCredentialReferenceId}`,
-    });
-    configObject.addPropertyAssignment({
-      name: 'signingSecretCredentialReference',
-      initializer: varName,
-    });
-  }
+export function generateTriggerDefinition({
+  id,
+  runAsUserId,
+  createdBy,
+  ...data
+}: TriggerInput & Record<string, unknown>): SourceFile {
+  return generateFactorySourceFile(data, {
+    schema: TriggerSchema,
+    factory: {
+      importName: 'Trigger',
+      variableName: (parsed) => toTriggerReferenceName(parsed.name),
+      syntaxKind: SyntaxKind.NewExpression,
+    },
+    render({ parsed, sourceFile, configObject }) {
+      const {
+        triggerId,
+        signingSecretCredentialReferenceId,
+        signingSecretCredentialReferenceName,
+        signingSecretCredentialReferencePath,
+        ...rest
+      } = parsed;
 
-  return sourceFile;
+      for (const [key, value] of Object.entries({
+        id: triggerId,
+        ...rest,
+      })) {
+        addValueToObject(configObject, key, value);
+      }
+
+      const importPlan = createImportPlan();
+      if (signingSecretCredentialReferenceId) {
+        const varName =
+          signingSecretCredentialReferenceName ??
+          toCamelCase(signingSecretCredentialReferenceId as string);
+        const modulePath =
+          signingSecretCredentialReferencePath ?? (signingSecretCredentialReferenceId as string);
+        addNamedImports(importPlan, `../../credentials/${modulePath}`, varName);
+        addValueToObject(configObject, 'signingSecretCredentialReference', codeReference(varName));
+      }
+      applyImportPlan(sourceFile, importPlan);
+    },
+  });
 }
+
+export const task = {
+  type: 'trigger',
+  collect(context) {
+    if (!context.project.agents) {
+      return [];
+    }
+
+    const records = [];
+    for (const agentId of context.completeAgentIds) {
+      const agentData = context.project.agents[agentId];
+      if (!agentData?.triggers) {
+        continue;
+      }
+
+      const triggerEntries = Object.entries(agentData.triggers);
+      const fileNamesByTriggerId = buildSequentialNameFileNames(triggerEntries);
+
+      for (const [triggerId, triggerData] of triggerEntries) {
+        const triggerRecord = asRecord(triggerData);
+        const signingSecretCredentialReferenceId =
+          typeof triggerRecord?.signingSecretCredentialReferenceId === 'string'
+            ? triggerRecord.signingSecretCredentialReferenceId
+            : undefined;
+        const signingSecretCredentialReferenceName = signingSecretCredentialReferenceId
+          ? context.resolver.getCredentialReferenceName(signingSecretCredentialReferenceId)
+          : undefined;
+        const signingSecretCredentialReferencePath = signingSecretCredentialReferenceId
+          ? context.resolver.getCredentialReferencePath(signingSecretCredentialReferenceId)
+          : undefined;
+
+        records.push({
+          id: triggerId,
+          filePath: context.resolver.resolveOutputFilePath(
+            'triggers',
+            triggerId,
+            join(context.paths.agentsDir, 'triggers', fileNamesByTriggerId[triggerId])
+          ),
+          payload: {
+            triggerId,
+            ...triggerData,
+            ...(signingSecretCredentialReferenceName && {
+              signingSecretCredentialReferenceName,
+            }),
+            ...(signingSecretCredentialReferencePath && {
+              signingSecretCredentialReferencePath,
+            }),
+          } as Parameters<typeof generateTriggerDefinition>[0],
+        });
+      }
+    }
+
+    return records;
+  },
+  generate: generateTriggerDefinition,
+} satisfies GenerationTask<Parameters<typeof generateTriggerDefinition>[0]>;

@@ -24,17 +24,22 @@ import { A2AClient } from '../a2a/client.js';
 import { executeTransfer } from '../a2a/transfer.js';
 import { extractTransferData, isTransferTask } from '../a2a/types.js';
 import { AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS } from '../constants/execution-limits';
-import { agentSessionManager } from '../services/AgentSession.js';
+import { agentSessionManager } from '../session/AgentSession.js';
+import type { StreamHelper } from '../stream/stream-helpers.js';
+import { BufferingStreamHelper } from '../stream/stream-helpers.js';
+import { registerStreamHelper, unregisterStreamHelper } from '../stream/stream-registry.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
+import { mergeHeadersWithoutOverrides } from '../utils/merge-headers.js';
 import { resolveModelConfig } from '../utils/model-resolver.js';
-import type { StreamHelper } from '../utils/stream-helpers.js';
-import { BufferingStreamHelper } from '../utils/stream-helpers.js';
-import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry.js';
 import { tracer } from '../utils/tracer.js';
 
 const logger = getLogger('ExecutionHandler');
 
-interface ExecutionHandlerParams {
+function getResponsePartKind(part: { kind?: string; type?: string }): string | undefined {
+  return part.kind ?? part.type;
+}
+
+export interface ExecutionHandlerParams {
   executionContext: FullExecutionContext;
   conversationId: string;
   userMessage: string;
@@ -47,6 +52,14 @@ interface ExecutionHandlerParams {
   datasetRunId?: string; // Optional: ID of the dataset run this conversation belongs to
   /** Headers to forward to MCP servers (e.g., x-forwarded-cookie for auth) */
   forwardedHeaders?: Record<string, string>;
+  responseMessageId?: string;
+  /** Durable workflow run ID — present when running inside a WDK workflow */
+  durableWorkflowRunId?: string;
+  /** Pre-approved tool decisions keyed by toolName — accumulated across approval loops */
+  approvedToolCalls?: Record<
+    string,
+    Array<{ approved: boolean; reason?: string; originalToolCallId?: string }>
+  >;
 }
 
 interface ExecutionResult {
@@ -54,6 +67,7 @@ interface ExecutionResult {
   error?: string;
   iterations: number;
   response?: string; // Optional response for MCP contexts
+  pendingApproval?: { toolCallId: string; toolName: string; args: unknown };
 }
 
 export class ExecutionHandler {
@@ -86,8 +100,7 @@ export class ExecutionHandler {
       forwardedHeaders,
     } = params;
 
-    const { tenantId, projectId, project, agentId, apiKey, baseUrl, resolvedRef } =
-      executionContext;
+    const { tenantId, projectId, project, agentId, baseUrl, resolvedRef } = executionContext;
 
     registerStreamHelper(requestId, sseHelper);
 
@@ -206,7 +219,10 @@ export class ExecutionHandler {
             'Task already exists, fetching existing task'
           );
 
-          const existingTask = await getTask(runDbClient)({ id: taskId });
+          const existingTask = await getTask(runDbClient)({
+            id: taskId,
+            scopes: { tenantId, projectId },
+          });
           if (existingTask) {
             task = existingTask;
             logger.info(
@@ -264,22 +280,22 @@ export class ExecutionHandler {
 
         const agentBaseUrl = `${baseUrl}/run/agents`;
 
-        // For team delegation contexts, generate a fresh JWT for the target sub-agent.
-        // The inherited apiKey has aud=<parent agent>, but we need aud=<current sub-agent>.
-        // This ensures proper auth chain for each hop in agent-to-agent communication.
-        let authToken = apiKey;
-        if (executionContext.metadata?.teamDelegation) {
-          authToken = await generateServiceToken({
-            tenantId,
-            projectId,
-            originAgentId: agentId,
-            targetAgentId: currentAgentId,
-          });
-        }
-
+        // Always generate a service token for internal A2A self-calls.
+        // The original apiKey may be any auth type (app credential, API key, etc.)
+        // but internal calls need a service token that the runApiKeyAuth middleware
+        // can verify via verifyServiceToken(). Since we use getInProcessFetch(),
+        // signing and verification happen in the same process with the same secret.
         const initiatedBy = executionContext.metadata?.initiatedBy as
-          | { type: string; id: string }
+          | { type: 'user' | 'api_key'; id: string }
           | undefined;
+
+        const authToken = await generateServiceToken({
+          tenantId,
+          projectId,
+          originAgentId: agentId,
+          targetAgentId: currentAgentId,
+          initiatedBy,
+        });
 
         const runAsUserId =
           initiatedBy?.type === 'user' &&
@@ -289,16 +305,20 @@ export class ExecutionHandler {
             ? initiatedBy.id
             : undefined;
 
+        const appPrompt = executionContext.metadata?.appPrompt;
+
+        const trustedHeaders: Record<string, string> = {
+          Authorization: `Bearer ${authToken}`,
+          'x-inkeep-tenant-id': tenantId,
+          'x-inkeep-project-id': projectId,
+          'x-inkeep-agent-id': agentId,
+          'x-inkeep-sub-agent-id': currentAgentId,
+          ...(runAsUserId ? { 'x-inkeep-run-as-user-id': runAsUserId } : {}),
+          ...(appPrompt ? { 'x-inkeep-app-prompt': appPrompt } : {}),
+        };
+
         const a2aClient = new A2AClient(agentBaseUrl, {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-            'x-inkeep-tenant-id': tenantId,
-            'x-inkeep-project-id': projectId,
-            'x-inkeep-agent-id': agentId,
-            'x-inkeep-sub-agent-id': currentAgentId,
-            ...(runAsUserId ? { 'x-inkeep-run-as-user-id': runAsUserId } : {}),
-            ...(forwardedHeaders || {}),
-          },
+          headers: mergeHeadersWithoutOverrides(trustedHeaders, forwardedHeaders || {}),
           fetchFn: getInProcessFetch(),
         });
 
@@ -311,6 +331,10 @@ export class ExecutionHandler {
         };
         if (fromSubAgentId) {
           messageMetadata.fromSubAgentId = fromSubAgentId;
+        }
+        if (params.durableWorkflowRunId) {
+          messageMetadata.durable_workflow_run_id = params.durableWorkflowRunId;
+          messageMetadata.approved_tool_calls = JSON.stringify(params.approvedToolCalls ?? {});
         }
 
         // On the first iteration, use the original message parts if provided (includes data parts from triggers)
@@ -369,6 +393,7 @@ export class ExecutionHandler {
                 if (task) {
                   await updateTask(runDbClient)({
                     taskId: task.id,
+                    scopes: { tenantId, projectId },
                     data: {
                       status: 'failed',
                       metadata: {
@@ -394,6 +419,20 @@ export class ExecutionHandler {
           continue;
         }
 
+        const firstArtifactData = (messageResponse.result as any)?.artifacts?.[0]?.parts?.[0]
+          ?.data as { type?: string; toolCallId?: string; toolName?: string; args?: unknown };
+        if (firstArtifactData?.type === 'durable-approval-required') {
+          return {
+            success: true,
+            iterations,
+            pendingApproval: {
+              toolCallId: firstArtifactData.toolCallId ?? '',
+              toolName: firstArtifactData.toolName ?? '',
+              args: firstArtifactData.args,
+            },
+          };
+        }
+
         if (isTransferTask(messageResponse.result)) {
           const transferData = extractTransferData(messageResponse.result);
 
@@ -417,24 +456,25 @@ export class ExecutionHandler {
 
           // Store the transfer response as an assistant message in conversation history
           await createMessage(runDbClient)({
-            id: generateId(),
-            tenantId,
-            projectId,
-            conversationId,
-            role: 'agent',
-            content: {
-              text: transferReason,
-              parts: [
-                {
-                  kind: 'text',
-                  text: transferReason,
-                },
-              ],
+            scopes: { tenantId, projectId },
+            data: {
+              id: generateId(),
+              conversationId,
+              role: 'agent',
+              content: {
+                text: transferReason,
+                parts: [
+                  {
+                    kind: 'text',
+                    text: transferReason,
+                  },
+                ],
+              },
+              visibility: 'user-facing',
+              messageType: 'chat',
+              fromSubAgentId: currentAgentId,
+              taskId: task.id,
             },
-            visibility: 'user-facing',
-            messageType: 'chat',
-            fromSubAgentId: currentAgentId,
-            taskId: task.id,
           });
           // Keep the original user message and add a continuation prompt
           currentMessage =
@@ -495,7 +535,7 @@ export class ExecutionHandler {
 
           let textContent = '';
           for (const part of responseParts) {
-            const isTextPart = (part.kind === 'text' || part.type === 'text') && part.text;
+            const isTextPart = getResponsePartKind(part) === 'text' && part.text;
 
             if (isTextPart) {
               textContent += part.text;
@@ -513,30 +553,39 @@ export class ExecutionHandler {
               });
 
               // Store the agent response in the database with both text and parts
+              const messageId = params.responseMessageId || generateId();
               await createMessage(runDbClient)({
-                id: generateId(),
-                tenantId,
-                projectId,
-                conversationId,
-                role: 'agent',
-                content: {
-                  text: textContent || undefined,
-                  parts: responseParts.map((part: any) => ({
-                    type: part.kind === 'text' ? 'text' : 'data',
-                    text: part.kind === 'text' ? part.text : undefined,
-                    data: part.kind === 'data' ? JSON.stringify(part.data) : undefined,
-                  })),
+                scopes: { tenantId, projectId },
+                data: {
+                  id: messageId,
+                  conversationId,
+                  role: 'agent',
+                  content: {
+                    text: textContent || undefined,
+                    parts: responseParts.map((part: any) => {
+                      const k = getResponsePartKind(part);
+                      if (k === 'text') {
+                        return { kind: 'text', text: part.text };
+                      }
+                      return {
+                        kind: 'data',
+                        text: undefined,
+                        data: k === 'data' ? JSON.stringify(part.data) : undefined,
+                      };
+                    }),
+                  },
+                  visibility: 'user-facing',
+                  messageType: 'chat',
+                  fromSubAgentId: currentAgentId,
+                  taskId: task.id,
                 },
-                visibility: 'user-facing',
-                messageType: 'chat',
-                fromSubAgentId: currentAgentId,
-                taskId: task.id,
               });
 
               // Mark task as completed
               const updateTaskStart = Date.now();
               await updateTask(runDbClient)({
                 taskId: task.id,
+                scopes: { tenantId, projectId },
                 data: {
                   status: 'completed',
                   metadata: {
@@ -546,7 +595,7 @@ export class ExecutionHandler {
                       text: textContent,
                       parts: responseParts,
                       hasText: !!textContent,
-                      hasData: responseParts.some((p: any) => p.kind === 'data'),
+                      hasData: responseParts.some((p: any) => getResponsePartKind(p) === 'data'),
                     },
                   },
                 },
@@ -637,6 +686,7 @@ export class ExecutionHandler {
               if (task) {
                 await updateTask(runDbClient)({
                   taskId: task.id,
+                  scopes: { tenantId, projectId },
                   data: {
                     status: 'failed',
                     metadata: {
@@ -700,6 +750,7 @@ export class ExecutionHandler {
           if (task) {
             await updateTask(runDbClient)({
               taskId: task.id,
+              scopes: { tenantId, projectId },
               data: {
                 status: 'failed',
                 metadata: {
@@ -748,6 +799,7 @@ export class ExecutionHandler {
           if (task) {
             await updateTask(runDbClient)({
               taskId: task.id,
+              scopes: { tenantId, projectId },
               data: {
                 status: 'failed',
                 metadata: {

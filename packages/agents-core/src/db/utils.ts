@@ -34,6 +34,11 @@ export const confirmMigration = async (connectionString: string | undefined) => 
     process.exit(1);
   }
 
+  if (process.env.CI === 'true') {
+    console.log('CI environment detected — skipping interactive confirmation.');
+    return true;
+  }
+
   if (!isLocalhostUrl(connectionString)) {
     console.warn(
       '⚠️  Warning: Database URL is not pointing to localhost. This operation may modify a production database.'

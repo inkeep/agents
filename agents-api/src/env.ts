@@ -85,6 +85,50 @@ const envSchema = z
       .optional()
       .describe('Eval API bypass secret for local development and testing (skips auth)'),
 
+    // Anonymous Session JWT
+    INKEEP_ANON_JWT_SECRET: z
+      .string()
+      .min(32, 'INKEEP_ANON_JWT_SECRET must be at least 32 characters')
+      .optional()
+      .describe(
+        'Secret key for signing anonymous session JWTs (HS256). Required in production. Min 32 characters.'
+      ),
+    INKEEP_ANON_SESSION_LIFETIME_SECONDS: z.coerce
+      .number()
+      .int()
+      .min(60)
+      .max(2592000)
+      .optional()
+      .default(2592000)
+      .describe(
+        'Lifetime in seconds for anonymous session JWTs. Min 60s, max 2592000s (30 days). Default 2592000s (30 days).'
+      ),
+
+    // Proof-of-Work (ALTCHA)
+    INKEEP_POW_HMAC_SECRET: z
+      .string()
+      .min(32, 'INKEEP_POW_HMAC_SECRET must be at least 32 characters')
+      .optional()
+      .describe(
+        'HMAC secret for signing PoW challenges. Presence enables PoW globally for web_client apps. Min 32 characters.'
+      ),
+    INKEEP_POW_DIFFICULTY: z.coerce
+      .number()
+      .int()
+      .optional()
+      .default(50000)
+      .describe('maxnumber parameter for PoW challenge difficulty. Default 50000.'),
+    INKEEP_POW_CHALLENGE_TTL_SECONDS: z.coerce
+      .number()
+      .int()
+      .min(60)
+      .max(3600)
+      .optional()
+      .default(3600)
+      .describe(
+        'PoW challenge expiry in seconds. Min 60s, max 3600s (1 hour). Default 3600s (1 hour).'
+      ),
+
     // JWT Keys (for Playground)
     INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY: z
       .string()
@@ -98,6 +142,11 @@ const envSchema = z
       .describe(
         'Temporary JWT private key for Playground (generate with scripts/generate-jwt-keys.sh)'
       ),
+    INKEEP_PLAYGROUND_APP_ID: z
+      .string()
+      .optional()
+      .default('app_playground')
+      .describe('App ID for the global playground app record (created by db:auth:init)'),
 
     // Nango (OAuth integrations)
     NANGO_SERVER_URL: z
@@ -118,6 +167,12 @@ const envSchema = z
       .optional()
       .default(64)
       .describe('OpenTelemetry batch span processor max export batch size'),
+
+    // Sentry (Error Monitoring)
+    SENTRY_DSN: z
+      .string()
+      .optional()
+      .describe('Sentry DSN for error monitoring (optional, no-ops when not set)'),
 
     // Tenant Configuration
     TENANT_ID: z
@@ -166,6 +221,7 @@ const envSchema = z
       .describe('Secret for signing GitHub OAuth state (minimum 32 characters)'),
     GITHUB_APP_NAME: z.string().optional().describe('Name of the GitHub App'),
     GITHUB_MCP_API_KEY: z.string().optional().describe('API key for the GitHub MCP'),
+    SLACK_MCP_API_KEY: z.string().optional().describe('API key for the Slack MCP'),
 
     // Slack Socket Mode (local development)
     SLACK_APP_TOKEN: z
@@ -187,6 +243,17 @@ const envSchema = z
       .string()
       .optional()
       .describe('Number of concurrent workflow workers'),
+
+    // Copilot (chat-to-edit) — bypass tenant/project access checks for this agent
+    INKEEP_COPILOT_TENANT_ID: z
+      .string()
+      .optional()
+      .describe('Tenant ID that hosts the copilot agent'),
+    INKEEP_COPILOT_PROJECT_ID: z
+      .string()
+      .optional()
+      .describe('Project ID that hosts the copilot agent'),
+    INKEEP_COPILOT_AGENT_ID: z.string().optional().describe('Agent ID of the copilot agent'),
 
     // Blob Storage (local filesystem fallback, or inferred S3/Vercel)
     BLOB_STORAGE_LOCAL_PATH: z
@@ -261,13 +328,40 @@ const envSchema = z
         message: 'BLOB_STORAGE_LOCAL_PATH must be set and non-empty. Default is .blob-storage.',
       });
     }
+
+    // Copilot env vars must be all-or-none to prevent partial bypass misconfiguration.
+    const copilotVars = [
+      { key: 'INKEEP_COPILOT_TENANT_ID', val: data.INKEEP_COPILOT_TENANT_ID },
+      { key: 'INKEEP_COPILOT_PROJECT_ID', val: data.INKEEP_COPILOT_PROJECT_ID },
+      { key: 'INKEEP_COPILOT_AGENT_ID', val: data.INKEEP_COPILOT_AGENT_ID },
+    ] as const;
+    const setCopilot = copilotVars.filter(({ val }) => val !== undefined && val.trim() !== '');
+    if (setCopilot.length > 0 && setCopilot.length < copilotVars.length) {
+      for (const { key, val } of copilotVars) {
+        if (val === undefined || val.trim() === '') {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [key],
+            message: `All copilot env vars must be set together. ${key} is missing.`,
+          });
+        }
+      }
+    }
   });
+
+const logEnvIssues = (scope: string, error: z.ZodError) => {
+  for (const issue of error.issues) {
+    const key = issue.path.length > 0 ? issue.path.join('.') : '<root>';
+    console.error(`[${scope}] ${key}: ${issue.message}`);
+  }
+};
 
 const parseEnv = () => {
   try {
     return envSchema.parse(process.env);
   } catch (error) {
     if (error instanceof z.ZodError) {
+      logEnvIssues('agents-api env', error);
       const missingVars = error.issues.map((issue) => issue.path.join('.'));
       throw new Error(
         `❌ Invalid environment variables: ${missingVars.join(', ')}\n${error.message}`

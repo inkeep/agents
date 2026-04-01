@@ -17,7 +17,7 @@ import {
   createVercelStreamHelper,
   type VercelDataStreamHelper,
   type VercelUIWriter,
-} from '../../../domains/run/utils/stream-helpers';
+} from '../../../domains/run/stream/stream-helpers';
 
 describe('VercelDataStreamHelper Memory Management', () => {
   let mockWriter: VercelUIWriter & {

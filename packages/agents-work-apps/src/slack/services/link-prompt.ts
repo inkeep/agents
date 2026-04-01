@@ -49,13 +49,8 @@ export async function resolveUnlinkedUserAction(
       intent,
     });
 
-    const authMethod = autoInvite.authMethod;
-
     const linkReturnUrl = `/link?token=${encodeURIComponent(linkToken)}`;
-    const acceptUrl =
-      authMethod === 'email-password'
-        ? `${manageUiUrl}/accept-invitation/${autoInvite.invitationId}?email=${encodeURIComponent(autoInvite.email)}&returnUrl=${encodeURIComponent(linkReturnUrl)}`
-        : `${manageUiUrl}/login?invitation=${encodeURIComponent(autoInvite.invitationId)}&returnUrl=${encodeURIComponent(linkReturnUrl)}&email=${encodeURIComponent(autoInvite.email)}&authMethod=${encodeURIComponent(authMethod)}`;
+    const acceptUrl = `${manageUiUrl}/accept-invitation/${autoInvite.invitationId}?email=${encodeURIComponent(autoInvite.email)}&returnUrl=${encodeURIComponent(linkReturnUrl)}`;
 
     logger.info(
       { invitationId: autoInvite.invitationId, email: autoInvite.email, hasIntent: !!intent },

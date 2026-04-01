@@ -9,7 +9,8 @@
  * 4. Streams NDJSON response back to client
  */
 
-import { ModelFactory } from '@inkeep/agents-core';
+import { GENERATION_TYPES, ModelFactory, normalizeDataComponentSchema } from '@inkeep/agents-core';
+import { context as otelContext, propagation } from '@opentelemetry/api';
 import { Output, streamText } from 'ai';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
@@ -28,14 +29,6 @@ export async function POST(
     if (!tenantId || !projectId) {
       return new Response('Missing tenantId or projectId', { status: 400 });
     }
-
-    console.log('Generating component render', {
-      tenantId,
-      projectId,
-      dataComponentId,
-      hasInstructions: !!instructions,
-      hasExistingCode: !!existingCode,
-    });
 
     // Fetch data component from agents-api
     const dataComponent = await fetchDataComponent(tenantId, projectId, dataComponentId);
@@ -63,24 +56,37 @@ export async function POST(
     // Prepare model configuration
     const modelConfig = ModelFactory.prepareGenerationConfig(project.models?.base as any);
 
-    // Define schema for generated output
-    // Dynamically create mockData schema from component's props JSON Schema.
-    // This ensures Anthropic gets proper types instead of z.any() which it rejects.
-    const mockDataSchema = z.fromJSONSchema(dataComponent.props);
+    const normalizedProps = normalizeDataComponentSchema(
+      dataComponent.props as Record<string, unknown>
+    );
+    const mockDataSchema = z.fromJSONSchema(normalizedProps);
     const renderSchema = z.object({
       component: z.string().describe('The React component code'),
       mockData: mockDataSchema.describe('Sample data matching the props schema'),
     });
 
-    // Generate using AI SDK structured output streamText
-    const result = streamText({
-      ...modelConfig,
-      prompt,
-      output: Output.object({
-        schema: renderSchema,
-      }),
-      temperature: 0.7,
-    });
+    const bag = Object.entries({ 'tenant.id': tenantId, 'project.id': projectId }).reduce(
+      (b, [key, value]) => b.setEntry(key, { value }),
+      propagation.getBaggage(otelContext.active()) ?? propagation.createBaggage()
+    );
+    const result = otelContext.with(propagation.setBaggage(otelContext.active(), bag), () =>
+      streamText({
+        ...modelConfig,
+        prompt,
+        output: Output.object({
+          schema: renderSchema,
+        }),
+        temperature: 0.7,
+        experimental_telemetry: {
+          isEnabled: true,
+          metadata: {
+            tenantId,
+            projectId,
+            generationType: GENERATION_TYPES.COMPONENT_RENDER,
+          },
+        },
+      })
+    );
 
     // Get existing data if we're modifying (to preserve sample data)
     const existingData =

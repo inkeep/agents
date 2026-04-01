@@ -264,7 +264,7 @@ export function EvaluationRunConfigResults({
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                       {result.conversationCreatedAt
-                        ? formatDateTimeTable(result.conversationCreatedAt)
+                        ? formatDateTimeTable(result.conversationCreatedAt, { local: true })
                         : '-'}
                     </TableCell>
                     <TableCell>
@@ -335,6 +335,8 @@ export function EvaluationRunConfigResults({
 
       {selectedEvaluator && (
         <EvaluatorViewDialog
+          tenantId={tenantId}
+          projectId={projectId}
           evaluator={selectedEvaluator}
           isOpen={selectedEvaluator !== undefined}
           onOpenChange={(open) => !open && setSelectedEvaluatorId(null)}

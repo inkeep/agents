@@ -4,12 +4,24 @@ import {
   generateId,
 } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import manageDbClient from '../../../../data/db/manageDbClient';
 import runDbClient from '../../../../data/db/runDbClient';
 import { makeRequest } from '../../../utils/testRequest';
 import { createTestSubAgentData } from '../../../utils/testSubAgent';
 import { createTestTenantWithOrg } from '../../../utils/testTenant';
+
+vi.mock('@inkeep/agents-core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
+  return {
+    ...actual,
+    resolveRef: vi.fn(() =>
+      vi.fn((refString: string) =>
+        Promise.resolve({ type: 'branch', name: refString, hash: 'test-hash' })
+      )
+    ),
+  };
+});
 
 describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
   const createFullAgentData = (agentId: string) => {
@@ -521,7 +533,7 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
       expect(body.data.timeoutSeconds).toBe(600);
     });
 
-    it('should accept empty update body (schema applies defaults for retry fields)', async () => {
+    it('should reject empty update body with no fields to update', async () => {
       const tenantId = await createTestTenantWithOrg('sched-update-empty');
       const { agentId, projectId } = await createTestAgent(tenantId);
       const { trigger } = await createTestScheduledTrigger({ tenantId, projectId, agentId });
@@ -531,8 +543,7 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
         body: JSON.stringify({}),
       });
 
-      // Schema applies defaults for retry fields, so this is treated as valid
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(400);
     });
 
     it('should return 404 for non-existent scheduled trigger', async () => {

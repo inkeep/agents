@@ -1,44 +1,93 @@
-import { mkdir, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { stringify } from 'yaml';
+import { dirname, join } from 'node:path';
+import {
+  SKILL_ENTRY_FILE_PATH,
+  type SkillFileApiInsert,
+  SkillWithFilesApiSelectSchema,
+  serializeSkillToMarkdown,
+} from '@inkeep/agents-core';
+import { z } from 'zod';
+import type { GenerationTask } from '../generation-types';
+import { validateGeneratorInput } from '../simple-factory-generator';
 
-type SkillMap = Record<
-  string,
-  {
-    name: string;
-    description?: string | null;
-    content: string;
-    metadata?: Record<string, unknown> | null;
-  }
->;
+const MySchema = SkillWithFilesApiSelectSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
-function formatMetadata(metadata: Record<string, unknown>): string {
-  const yaml = stringify(metadata);
-  const indented = yaml
-    .split('\n')
-    .filter((line) => line.trim() !== '')
-    .map((line) => `  ${line}`)
-    .join('\n');
-  return `metadata:\n${indented}`;
+const SkillSchema = z.strictObject({
+  ...MySchema.shape,
+  metadata: MySchema.shape.metadata
+    .transform((v) => (Object.keys(v ?? {}).length ? v : undefined))
+    .optional(),
+  files: z.array(
+    MySchema.shape.files.element.omit({
+      createdAt: true,
+      updatedAt: true,
+      skillId: true,
+      id: true,
+    })
+  ),
+});
+
+type SkillInput = z.input<typeof SkillSchema>;
+
+function parseSkillInput({
+  id,
+  createdAt,
+  updatedAt,
+  ...data
+}: SkillInput & Record<string, unknown>) {
+  return validateGeneratorInput(data, { schema: SkillSchema, errorLabel: 'skill' });
 }
 
-export async function generateSkills(skills: SkillMap, skillsDir: string): Promise<void> {
-  await mkdir(skillsDir, { recursive: true });
+export function generateSkillDefinition({
+  id,
+  createdAt,
+  updatedAt,
+  ...data
+}: SkillInput & Record<string, unknown>): string {
+  const { files: _files, ...result } = parseSkillInput({ id, createdAt, updatedAt, ...data });
 
-  for (const [skillId, skill] of Object.entries(skills)) {
-    const parts: string[] = ['---', `name: ${JSON.stringify(skill.name)}`];
-    parts.push(`description: ${JSON.stringify(skill.description ?? '')}`);
-
-    if (skill.metadata && Object.keys(skill.metadata).length > 0) {
-      parts.push(formatMetadata(skill.metadata));
-    }
-
-    parts.push('---', '', skill.content || '');
-
-    const skillDir = join(skillsDir, skillId);
-    await mkdir(skillDir, { recursive: true });
-
-    const filePath = join(skillDir, 'SKILL.md');
-    await writeFile(filePath, parts.join('\n'), 'utf8');
-  }
+  return serializeSkillToMarkdown(result);
 }
+
+export function generateSkillFiles(
+  data: SkillInput & Record<string, unknown>
+): SkillFileApiInsert[] {
+  const parsed = parseSkillInput(data);
+
+  if (!parsed.files.length) {
+    return [
+      {
+        filePath: SKILL_ENTRY_FILE_PATH,
+        content: serializeSkillToMarkdown(parsed),
+      },
+    ];
+  }
+
+  return parsed.files.map((file) => ({
+    filePath: file.filePath,
+    content: file.content,
+  }));
+}
+
+export const task: GenerationTask<SkillFileApiInsert> = {
+  type: 'skill',
+  collect(ctx) {
+    return Object.entries(ctx.project.skills ?? {}).flatMap(([skillId, payload]) => {
+      const entryPath = join(ctx.paths.skillsDir, skillId, SKILL_ENTRY_FILE_PATH);
+      const skillEntryFilePath = ctx.resolver.resolveOutputFilePath('skills', skillId, entryPath);
+      const skillDir = dirname(skillEntryFilePath);
+
+      return generateSkillFiles(payload).map((file) => ({
+        id: `${skillId}/${file.filePath}`,
+        filePath: join(skillDir, file.filePath),
+        payload: file,
+      }));
+    });
+  },
+  generate(payload) {
+    return payload.content;
+  },
+};

@@ -1,4 +1,3 @@
-// biome-ignore-all lint/security/noGlobalEval: allow in test
 /**
  * Unit tests for status component generator
  */
@@ -86,55 +85,6 @@ describe('Status Component Generator', () => {
       expect(definition).toContain("type: 'minimal_status'");
       expect(definition).not.toContain('description:');
       expect(definition).not.toContain('detailsSchema:');
-      await expectSnapshots(definition);
-    });
-
-    it('should handle schema field (alternative to detailsSchema)', async () => {
-      const statusComponentId = 'test';
-      const dataWithSchema = {
-        type: 'test_status',
-        description: 'Test status',
-        schema: {
-          type: 'object',
-          properties: {
-            value: { type: 'string', description: 'Status value' },
-          },
-        },
-      };
-
-      const definition = generateStatusComponentDefinition({
-        statusComponentId,
-        ...dataWithSchema,
-      });
-
-      expect(definition).toContain('detailsSchema: z.object({');
-      expect(definition).toContain('value');
-      await expectSnapshots(definition);
-    });
-
-    it('should prefer detailsSchema over schema when both exist', async () => {
-      const statusComponentId = 'test';
-      const dataWithBoth = {
-        type: 'test_status',
-        description: 'Test status',
-        detailsSchema: {
-          type: 'object',
-          properties: {
-            details: { type: 'string', description: 'Details field' },
-          },
-        },
-        schema: {
-          type: 'object',
-          properties: {
-            schema: { type: 'string', description: 'Schema field' },
-          },
-        },
-      };
-
-      const definition = generateStatusComponentDefinition({ statusComponentId, ...dataWithBoth });
-
-      expect(definition).toContain('details');
-      expect(definition).not.toContain('schema:');
       await expectSnapshots(definition);
     });
 

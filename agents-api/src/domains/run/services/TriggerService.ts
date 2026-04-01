@@ -13,6 +13,7 @@ import type {
   SignatureVerificationConfig,
 } from '@inkeep/agents-core';
 import {
+  canUseProjectStrict,
   createKeyChainStore,
   createMessage,
   createNangoCredentialStore,
@@ -25,6 +26,7 @@ import {
   getCredentialStoreLookupKeyFromRetrievalParams,
   getFullProjectWithRelationIds,
   getTriggerById,
+  getUserProfile,
   getWaitUntil,
   interpolateTemplate,
   JsonTransformer,
@@ -43,11 +45,18 @@ import { env } from '../../../env';
 import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { ExecutionHandler } from '../handlers/executionHandler';
-import { createSSEStreamHelper } from '../utils/stream-helpers';
+import { createSSEStreamHelper } from '../stream/stream-helpers';
 import { tracer } from '../utils/tracer';
 
 const logger = getLogger('TriggerService');
 const ajv = new Ajv({ allErrors: true });
+
+export function buildTimezoneHeaders(timezone?: string | null): Record<string, string> {
+  return {
+    'x-inkeep-client-timezone': timezone || 'UTC',
+    'x-inkeep-client-timestamp': new Date().toISOString(),
+  };
+}
 
 // Credential cache with 5-minute TTL
 const credentialCache = new Map<string, { secret: string; expiresAt: number }>();
@@ -142,6 +151,7 @@ export async function processWebhook(params: TriggerWebhookParams): Promise<Trig
     transformedPayload,
     messageParts,
     userMessageText,
+    runAsUserId: trigger.runAsUserId ?? undefined,
   });
 
   return { success: true, invocationId, conversationId };
@@ -494,6 +504,8 @@ export async function dispatchExecution(params: {
   transformedPayload: unknown;
   messageParts: Part[];
   userMessageText: string;
+  runAsUserId?: string;
+  forwardedHeaders?: Record<string, string>;
 }): Promise<{ invocationId: string; conversationId: string }> {
   const {
     tenantId,
@@ -505,6 +517,7 @@ export async function dispatchExecution(params: {
     transformedPayload,
     messageParts,
     userMessageText,
+    runAsUserId,
   } = params;
 
   const conversationId = getConversationId();
@@ -519,6 +532,7 @@ export async function dispatchExecution(params: {
     projectId,
     agentId,
     conversationId,
+    ref: resolvedRef,
     status: 'pending',
     requestPayload: payload,
     transformedPayload: transformedPayload as Record<string, unknown> | undefined,
@@ -543,6 +557,8 @@ export async function dispatchExecution(params: {
     messageParts,
     resolvedRef,
     dispatchedAt,
+    runAsUserId,
+    forwardedHeaders: params.forwardedHeaders,
   });
 
   // Attach error handling so failures are always logged and invocation status is updated to failed
@@ -599,19 +615,29 @@ export async function dispatchExecution(params: {
  * Execute the agent asynchronously.
  * This runs after the webhook response is sent.
  */
-export async function executeAgentAsync(params: {
-  tenantId: string;
-  projectId: string;
-  agentId: string;
-  triggerId: string;
-  invocationId: string;
-  conversationId: string;
-  userMessage: string;
-  messageParts: Part[];
-  resolvedRef: ResolvedRef;
-  dispatchedAt?: number;
-  runAsUserId?: string;
-}): Promise<void> {
+export async function executeAgentAsync(
+  params: {
+    tenantId: string;
+    projectId: string;
+    agentId: string;
+    triggerId: string;
+    invocationId: string;
+    conversationId: string;
+    resolvedRef: ResolvedRef;
+    dispatchedAt?: number;
+    runAsUserId?: string;
+    forwardedHeaders?: Record<string, string>;
+    invocationType?: 'trigger' | 'scheduled_trigger';
+    datasetRunId?: string;
+  } & (
+    | { userMessage: string; messageParts: Part[]; messages?: undefined }
+    | {
+        messages: Array<{ role: 'user' | 'assistant' | 'system'; content: unknown }>;
+        userMessage?: undefined;
+        messageParts?: undefined;
+      }
+  )
+): Promise<void> {
   const {
     tenantId,
     projectId,
@@ -619,12 +645,30 @@ export async function executeAgentAsync(params: {
     triggerId,
     invocationId,
     conversationId,
-    userMessage,
-    messageParts,
     resolvedRef,
     dispatchedAt,
     runAsUserId,
+    messages,
+    datasetRunId,
+    forwardedHeaders,
+    invocationType = 'trigger',
   } = params;
+
+  let userMessage: string;
+  let messageParts: Part[];
+
+  if (messages && messages.length > 0) {
+    const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+    userMessage = lastUser
+      ? typeof lastUser.content === 'string'
+        ? lastUser.content
+        : JSON.stringify(lastUser.content)
+      : '';
+    messageParts = [{ kind: 'text', text: userMessage }];
+  } else {
+    userMessage = params.userMessage ?? '';
+    messageParts = params.messageParts ?? [];
+  }
 
   const execStartedAt = Date.now();
   const dispatchDelayMs = dispatchedAt ? execStartedAt - dispatchedAt : undefined;
@@ -690,6 +734,92 @@ export async function executeAgentAsync(params: {
 
   const agentName = agent.name;
 
+  // Permission check for user-scoped webhook triggers
+  if (runAsUserId) {
+    try {
+      const canUse = await canUseProjectStrict({ userId: runAsUserId, tenantId, projectId });
+      if (!canUse) {
+        logger.warn(
+          { tenantId, projectId, agentId, triggerId, invocationId, runAsUserId },
+          'User no longer has access to project, failing invocation'
+        );
+        try {
+          await updateTriggerInvocationStatus(runDbClient)({
+            scopes: { tenantId, projectId, agentId },
+            triggerId,
+            invocationId,
+            data: {
+              status: 'failed',
+              errorMessage: `User ${runAsUserId} no longer has 'use' permission on project ${projectId}`,
+            },
+          });
+        } catch (updateError) {
+          logger.error(
+            {
+              err: updateError instanceof Error ? updateError.message : String(updateError),
+              invocationId,
+            },
+            'Failed to update invocation status after permission denial'
+          );
+        }
+        return;
+      }
+    } catch (err) {
+      logger.error(
+        { tenantId, projectId, agentId, triggerId, invocationId, runAsUserId, error: err },
+        'Failed to check user project access'
+      );
+      try {
+        await updateTriggerInvocationStatus(runDbClient)({
+          scopes: { tenantId, projectId, agentId },
+          triggerId,
+          invocationId,
+          data: {
+            status: 'failed',
+            errorMessage: `Permission check failed for user ${runAsUserId}: ${err instanceof Error ? err.message : String(err)}`,
+          },
+        });
+      } catch (updateError) {
+        logger.error(
+          {
+            err: updateError instanceof Error ? updateError.message : String(updateError),
+            invocationId,
+          },
+          'Failed to update invocation status after permission check error'
+        );
+      }
+      return;
+    }
+  }
+
+  let resolvedForwardedHeaders = forwardedHeaders;
+  if (runAsUserId) {
+    await tracer.startActiveSpan('trigger.resolve_user_timezone', async (span) => {
+      try {
+        span.setAttribute('user.id', runAsUserId);
+        const profile = await getUserProfile(runDbClient)(runAsUserId);
+        if (profile?.timezone) {
+          resolvedForwardedHeaders = {
+            ...forwardedHeaders,
+            ...buildTimezoneHeaders(profile.timezone),
+          };
+          span.setAttribute('user.timezone', profile.timezone);
+        }
+      } catch (err) {
+        logger.warn(
+          { runAsUserId, error: err instanceof Error ? err.message : String(err) },
+          'Failed to fetch user profile for timezone, proceeding with fallback'
+        );
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: err instanceof Error ? err.message : String(err),
+        });
+      } finally {
+        span.end();
+      }
+    });
+  }
+
   // Create baggage with conversation/tenant/project/agent info for child spans
   const baggage = propagation
     .createBaggage()
@@ -718,7 +848,7 @@ export async function executeAgentAsync(params: {
         'trigger.id': triggerId,
         'trigger.invocation.id': invocationId,
         'conversation.id': conversationId,
-        'invocation.type': 'trigger',
+        'invocation.type': invocationType,
         ...(runAsUserId && { 'user.id': runAsUserId, 'trigger.run_as_user_id': runAsUserId }),
       },
     },
@@ -737,7 +867,7 @@ export async function executeAgentAsync(params: {
             'trigger.id': triggerId,
             'trigger.invocation.id': invocationId,
             'conversation.id': conversationId,
-            'invocation.type': 'trigger',
+            'invocation.type': invocationType,
             'message.content': userMessage,
             'message.timestamp': new Date().toISOString(),
             'message.parts': JSON.stringify(messageParts),
@@ -771,23 +901,43 @@ export async function executeAgentAsync(params: {
           ref: resolvedRef,
         });
 
-        await createMessage(runDbClient)({
-          id: generateId(),
-          tenantId,
-          projectId,
-          conversationId,
-          role: 'user',
-          content: {
-            text: userMessage,
-            parts: messageParts,
-          },
-          metadata: {
-            a2a_metadata: {
-              triggerId,
-              invocationId,
+        if (messages && messages.length > 0) {
+          for (const msg of messages) {
+            const text =
+              typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+            await createMessage(runDbClient)({
+              scopes: { tenantId, projectId },
+              data: {
+                id: generateId(),
+                conversationId,
+                role: msg.role,
+                content: {
+                  text,
+                  parts: [{ kind: 'text' as const, text }],
+                },
+                metadata: {
+                  a2a_metadata: { triggerId, invocationId },
+                },
+              },
+            });
+          }
+        } else {
+          await createMessage(runDbClient)({
+            scopes: { tenantId, projectId },
+            data: {
+              id: generateId(),
+              conversationId,
+              role: 'user',
+              content: {
+                text: userMessage,
+                parts: messageParts,
+              },
+              metadata: {
+                a2a_metadata: { triggerId, invocationId },
+              },
             },
-          },
-        });
+          });
+        }
 
         // Build execution context
         const executionContext: FullExecutionContext = {
@@ -830,6 +980,8 @@ export async function executeAgentAsync(params: {
           requestId,
           sseHelper: noOpStreamHelper,
           emitOperations: false,
+          ...(datasetRunId && { datasetRunId }),
+          forwardedHeaders: resolvedForwardedHeaders,
         });
 
         if (!result.success) {

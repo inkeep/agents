@@ -8,7 +8,7 @@ export const windsurfTemplate = `
     "{{AGENT_NAME}}": {
       "serverUrl": "{{MCP_SERVER_URL}}",
       "headers": {
-        "Authorization": "Bearer INKEEP_AGENT_API_KEY"
+        "Authorization": "Bearer INKEEP_APP_SECRET"
       }
     }
   }

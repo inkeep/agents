@@ -4,13 +4,21 @@ import {
   apiKeys,
   contextCache,
   conversations,
+  datasetRun,
+  evaluationRun,
+  scheduledTriggerInvocations,
+  scheduledTriggers,
   tasks,
+  triggerInvocations,
   workAppGitHubMcpToolAccessMode,
   workAppGitHubMcpToolRepositoryAccess,
   workAppGitHubProjectAccessMode,
   workAppGitHubProjectRepositoryAccess,
 } from '../../db/runtime/runtime-schema';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/index';
+import { projectScopedWhere } from '../manage/scope-helpers';
+import { clearAppDefaultsByAgent, clearAppDefaultsByProject, deleteAppsByProject } from './apps';
+import { deleteSlackMcpToolAccessConfig } from './slack-work-app-mcp';
 import {
   clearDevConfigWorkspaceDefaultsByAgent,
   clearDevConfigWorkspaceDefaultsByProject,
@@ -27,9 +35,16 @@ export type CascadeDeleteResult = {
   conversationsDeleted: number;
   tasksDeleted: number;
   contextCacheDeleted: number;
+  triggerInvocationsDeleted: number;
+  scheduledTriggerInvocationsDeleted: number;
+  datasetRunsDeleted: number;
+  evaluationRunsDeleted: number;
   apiKeysDeleted: number;
   slackChannelConfigsDeleted: number;
   slackWorkspaceDefaultsCleared: number;
+  appsDeleted: number;
+  appDefaultsCleared: number;
+  scheduledTriggersDeleted: number;
 };
 
 /**
@@ -44,8 +59,9 @@ export const cascadeDeleteByBranch =
   async (params: {
     scopes: ProjectScopeConfig;
     fullBranchName: string;
+    ref: string;
   }): Promise<CascadeDeleteResult> => {
-    const { scopes, fullBranchName } = params;
+    const { scopes, fullBranchName, ref } = params;
 
     // Delete contextCache entries for this branch
     // (also cascades when conversations are deleted, but some may be orphaned)
@@ -53,8 +69,7 @@ export const cascadeDeleteByBranch =
       .delete(contextCache)
       .where(
         and(
-          eq(contextCache.tenantId, scopes.tenantId),
-          eq(contextCache.projectId, scopes.projectId),
+          projectScopedWhere(contextCache, scopes),
           sql`${contextCache.ref}->>'name' = ${fullBranchName}`
         )
       )
@@ -65,8 +80,7 @@ export const cascadeDeleteByBranch =
       .delete(conversations)
       .where(
         and(
-          eq(conversations.tenantId, scopes.tenantId),
-          eq(conversations.projectId, scopes.projectId),
+          projectScopedWhere(conversations, scopes),
           sql`${conversations.ref}->>'name' = ${fullBranchName}`
         )
       )
@@ -75,11 +89,65 @@ export const cascadeDeleteByBranch =
     // Delete tasks for this branch (cascades to ledgerArtifacts, taskRelations)
     const tasksResult = await db
       .delete(tasks)
+      .where(and(projectScopedWhere(tasks, scopes), sql`${tasks.ref}->>'name' = ${fullBranchName}`))
+      .returning();
+
+    // Delete trigger invocations for this branch
+    const triggerInvocationsResult = await db
+      .delete(triggerInvocations)
       .where(
         and(
-          eq(tasks.tenantId, scopes.tenantId),
-          eq(tasks.projectId, scopes.projectId),
-          sql`${tasks.ref}->>'name' = ${fullBranchName}`
+          eq(triggerInvocations.tenantId, scopes.tenantId),
+          eq(triggerInvocations.projectId, scopes.projectId),
+          sql`${triggerInvocations.ref}->>'name' = ${fullBranchName}`
+        )
+      )
+      .returning();
+
+    // Delete scheduled trigger invocations for this branch
+    const scheduledTriggerInvocationsResult = await db
+      .delete(scheduledTriggerInvocations)
+      .where(
+        and(
+          eq(scheduledTriggerInvocations.tenantId, scopes.tenantId),
+          eq(scheduledTriggerInvocations.projectId, scopes.projectId),
+          sql`${scheduledTriggerInvocations.ref}->>'name' = ${fullBranchName}`
+        )
+      )
+      .returning();
+
+    // Delete dataset runs for this branch (cascades to datasetRunConversationRelations)
+    const datasetRunsResult = await db
+      .delete(datasetRun)
+      .where(
+        and(
+          eq(datasetRun.tenantId, scopes.tenantId),
+          eq(datasetRun.projectId, scopes.projectId),
+          sql`${datasetRun.ref}->>'name' = ${fullBranchName}`
+        )
+      )
+      .returning();
+
+    // Delete evaluation runs for this branch (cascades to evaluationResult)
+    const evaluationRunsResult = await db
+      .delete(evaluationRun)
+      .where(
+        and(
+          eq(evaluationRun.tenantId, scopes.tenantId),
+          eq(evaluationRun.projectId, scopes.projectId),
+          sql`${evaluationRun.ref}->>'name' = ${fullBranchName}`
+        )
+      )
+      .returning();
+
+    // Delete scheduled triggers for this branch
+    const scheduledTriggersResult = await db
+      .delete(scheduledTriggers)
+      .where(
+        and(
+          eq(scheduledTriggers.tenantId, scopes.tenantId),
+          eq(scheduledTriggers.projectId, scopes.projectId),
+          eq(scheduledTriggers.ref, ref)
         )
       )
       .returning();
@@ -88,9 +156,16 @@ export const cascadeDeleteByBranch =
       conversationsDeleted: conversationsResult.length,
       tasksDeleted: tasksResult.length,
       contextCacheDeleted: contextCacheResult.length,
-      apiKeysDeleted: 0, // API keys are branch-agnostic
-      slackChannelConfigsDeleted: 0, // Slack configs are branch-agnostic
+      triggerInvocationsDeleted: triggerInvocationsResult.length,
+      scheduledTriggerInvocationsDeleted: scheduledTriggerInvocationsResult.length,
+      datasetRunsDeleted: datasetRunsResult.length,
+      evaluationRunsDeleted: evaluationRunsResult.length,
+      apiKeysDeleted: 0,
+      slackChannelConfigsDeleted: 0,
       slackWorkspaceDefaultsCleared: 0,
+      appsDeleted: 0,
+      appDefaultsCleared: 0,
+      scheduledTriggersDeleted: scheduledTriggersResult.length,
     };
   };
 
@@ -115,8 +190,7 @@ export const cascadeDeleteByProject =
       .delete(contextCache)
       .where(
         and(
-          eq(contextCache.tenantId, scopes.tenantId),
-          eq(contextCache.projectId, scopes.projectId),
+          projectScopedWhere(contextCache, scopes),
           sql`${contextCache.ref}->>'name' = ${fullBranchName}`
         )
       )
@@ -127,8 +201,7 @@ export const cascadeDeleteByProject =
       .delete(conversations)
       .where(
         and(
-          eq(conversations.tenantId, scopes.tenantId),
-          eq(conversations.projectId, scopes.projectId),
+          projectScopedWhere(conversations, scopes),
           sql`${conversations.ref}->>'name' = ${fullBranchName}`
         )
       )
@@ -137,11 +210,53 @@ export const cascadeDeleteByProject =
     // Delete tasks for this project on this branch (cascades to ledgerArtifacts, taskRelations)
     const tasksResult = await db
       .delete(tasks)
+      .where(and(projectScopedWhere(tasks, scopes), sql`${tasks.ref}->>'name' = ${fullBranchName}`))
+      .returning();
+
+    // Delete trigger invocations for this project on this branch
+    const triggerInvocationsResult = await db
+      .delete(triggerInvocations)
       .where(
         and(
-          eq(tasks.tenantId, scopes.tenantId),
-          eq(tasks.projectId, scopes.projectId),
-          sql`${tasks.ref}->>'name' = ${fullBranchName}`
+          eq(triggerInvocations.tenantId, scopes.tenantId),
+          eq(triggerInvocations.projectId, scopes.projectId),
+          sql`${triggerInvocations.ref}->>'name' = ${fullBranchName}`
+        )
+      )
+      .returning();
+
+    // Delete scheduled trigger invocations for this project on this branch
+    const scheduledTriggerInvocationsResult = await db
+      .delete(scheduledTriggerInvocations)
+      .where(
+        and(
+          eq(scheduledTriggerInvocations.tenantId, scopes.tenantId),
+          eq(scheduledTriggerInvocations.projectId, scopes.projectId),
+          sql`${scheduledTriggerInvocations.ref}->>'name' = ${fullBranchName}`
+        )
+      )
+      .returning();
+
+    // Delete dataset runs for this project on this branch (cascades to datasetRunConversationRelations)
+    const datasetRunsResult = await db
+      .delete(datasetRun)
+      .where(
+        and(
+          eq(datasetRun.tenantId, scopes.tenantId),
+          eq(datasetRun.projectId, scopes.projectId),
+          sql`${datasetRun.ref}->>'name' = ${fullBranchName}`
+        )
+      )
+      .returning();
+
+    // Delete evaluation runs for this project on this branch (cascades to evaluationResult)
+    const evaluationRunsResult = await db
+      .delete(evaluationRun)
+      .where(
+        and(
+          eq(evaluationRun.tenantId, scopes.tenantId),
+          eq(evaluationRun.projectId, scopes.projectId),
+          sql`${evaluationRun.ref}->>'name' = ${fullBranchName}`
         )
       )
       .returning();
@@ -149,7 +264,7 @@ export const cascadeDeleteByProject =
     // Delete all API keys for this project (API keys are branch-agnostic)
     const apiKeysResult = await db
       .delete(apiKeys)
-      .where(and(eq(apiKeys.tenantId, scopes.tenantId), eq(apiKeys.projectId, scopes.projectId)))
+      .where(projectScopedWhere(apiKeys, scopes))
       .returning();
 
     // Delete all MCP tool access mode entries for tools in this project
@@ -157,6 +272,12 @@ export const cascadeDeleteByProject =
       tenantId: scopes.tenantId,
       projectId: scopes.projectId,
     });
+
+    const appsDeleted = await deleteAppsByProject(db)(scopes.tenantId, scopes.projectId);
+    const appDefaultsCleared = await clearAppDefaultsByProject(db)(
+      scopes.tenantId,
+      scopes.projectId
+    );
 
     const slackChannelConfigsDeleted = await deleteWorkAppSlackChannelAgentConfigsByProject(db)(
       scopes.tenantId,
@@ -170,13 +291,31 @@ export const cascadeDeleteByProject =
 
     clearDevConfigWorkspaceDefaultsByProject(scopes.projectId);
 
+    // Delete scheduled triggers for this project
+    const scheduledTriggersResult = await db
+      .delete(scheduledTriggers)
+      .where(
+        and(
+          eq(scheduledTriggers.tenantId, scopes.tenantId),
+          eq(scheduledTriggers.projectId, scopes.projectId)
+        )
+      )
+      .returning();
+
     return {
       conversationsDeleted: conversationsResult.length,
       tasksDeleted: tasksResult.length,
       contextCacheDeleted: contextCacheResult.length,
+      triggerInvocationsDeleted: triggerInvocationsResult.length,
+      scheduledTriggerInvocationsDeleted: scheduledTriggerInvocationsResult.length,
+      datasetRunsDeleted: datasetRunsResult.length,
+      evaluationRunsDeleted: evaluationRunsResult.length,
       apiKeysDeleted: apiKeysResult.length,
       slackChannelConfigsDeleted,
       slackWorkspaceDefaultsCleared,
+      appsDeleted,
+      appDefaultsCleared,
+      scheduledTriggersDeleted: scheduledTriggersResult.length,
     };
   };
 
@@ -209,8 +348,7 @@ export const cascadeDeleteByAgent =
         .from(conversations)
         .where(
           and(
-            eq(conversations.tenantId, scopes.tenantId),
-            eq(conversations.projectId, scopes.projectId),
+            projectScopedWhere(conversations, scopes),
             inArray(conversations.activeSubAgentId, subAgentIds),
             sql`${conversations.ref}->>'name' = ${fullBranchName}`
           )
@@ -224,8 +362,7 @@ export const cascadeDeleteByAgent =
           .delete(contextCache)
           .where(
             and(
-              eq(contextCache.tenantId, scopes.tenantId),
-              eq(contextCache.projectId, scopes.projectId),
+              projectScopedWhere(contextCache, scopes),
               inArray(contextCache.conversationId, conversationIds)
             )
           )
@@ -237,8 +374,7 @@ export const cascadeDeleteByAgent =
           .delete(conversations)
           .where(
             and(
-              eq(conversations.tenantId, scopes.tenantId),
-              eq(conversations.projectId, scopes.projectId),
+              projectScopedWhere(conversations, scopes),
               inArray(conversations.id, conversationIds)
             )
           )
@@ -252,8 +388,7 @@ export const cascadeDeleteByAgent =
       .delete(tasks)
       .where(
         and(
-          eq(tasks.tenantId, scopes.tenantId),
-          eq(tasks.projectId, scopes.projectId),
+          projectScopedWhere(tasks, scopes),
           eq(tasks.agentId, scopes.agentId),
           sql`${tasks.ref}->>'name' = ${fullBranchName}`
         )
@@ -261,18 +396,40 @@ export const cascadeDeleteByAgent =
       .returning();
     tasksDeleted = tasksResult.length;
 
-    // Delete API keys for this agent
-    const apiKeysResult = await db
-      .delete(apiKeys)
+    // Delete trigger invocations for this agent on this branch
+    const triggerInvocationsResult = await db
+      .delete(triggerInvocations)
       .where(
         and(
-          eq(apiKeys.tenantId, scopes.tenantId),
-          eq(apiKeys.projectId, scopes.projectId),
-          eq(apiKeys.agentId, scopes.agentId)
+          eq(triggerInvocations.tenantId, scopes.tenantId),
+          eq(triggerInvocations.projectId, scopes.projectId),
+          eq(triggerInvocations.agentId, scopes.agentId),
+          sql`${triggerInvocations.ref}->>'name' = ${fullBranchName}`
         )
       )
       .returning();
+
+    // Delete scheduled trigger invocations for this agent on this branch
+    const scheduledTriggerInvocationsResult = await db
+      .delete(scheduledTriggerInvocations)
+      .where(
+        and(
+          eq(scheduledTriggerInvocations.tenantId, scopes.tenantId),
+          eq(scheduledTriggerInvocations.projectId, scopes.projectId),
+          eq(scheduledTriggerInvocations.agentId, scopes.agentId),
+          sql`${scheduledTriggerInvocations.ref}->>'name' = ${fullBranchName}`
+        )
+      )
+      .returning();
+
+    // Delete API keys for this agent
+    const apiKeysResult = await db
+      .delete(apiKeys)
+      .where(and(projectScopedWhere(apiKeys, scopes), eq(apiKeys.agentId, scopes.agentId)))
+      .returning();
     apiKeysDeleted = apiKeysResult.length;
+
+    const appDefaultsCleared = await clearAppDefaultsByAgent(db)(scopes.tenantId, scopes.agentId);
 
     const slackChannelConfigsDeleted = await deleteWorkAppSlackChannelAgentConfigsByAgent(db)(
       scopes.tenantId,
@@ -288,13 +445,32 @@ export const cascadeDeleteByAgent =
 
     clearDevConfigWorkspaceDefaultsByAgent(scopes.projectId, scopes.agentId);
 
+    // Delete scheduled triggers for this agent
+    const scheduledTriggersResult = await db
+      .delete(scheduledTriggers)
+      .where(
+        and(
+          eq(scheduledTriggers.tenantId, scopes.tenantId),
+          eq(scheduledTriggers.projectId, scopes.projectId),
+          eq(scheduledTriggers.agentId, scopes.agentId)
+        )
+      )
+      .returning();
+
     return {
       conversationsDeleted,
       tasksDeleted,
       contextCacheDeleted,
+      triggerInvocationsDeleted: triggerInvocationsResult.length,
+      scheduledTriggerInvocationsDeleted: scheduledTriggerInvocationsResult.length,
+      datasetRunsDeleted: 0,
+      evaluationRunsDeleted: 0,
       apiKeysDeleted,
       slackChannelConfigsDeleted,
       slackWorkspaceDefaultsCleared,
+      appsDeleted: 0,
+      appDefaultsCleared,
+      scheduledTriggersDeleted: scheduledTriggersResult.length,
     };
   };
 
@@ -319,8 +495,7 @@ export const cascadeDeleteBySubAgent =
       .from(conversations)
       .where(
         and(
-          eq(conversations.tenantId, scopes.tenantId),
-          eq(conversations.projectId, scopes.projectId),
+          projectScopedWhere(conversations, scopes),
           eq(conversations.activeSubAgentId, subAgentId),
           sql`${conversations.ref}->>'name' = ${fullBranchName}`
         )
@@ -337,8 +512,7 @@ export const cascadeDeleteBySubAgent =
         .delete(contextCache)
         .where(
           and(
-            eq(contextCache.tenantId, scopes.tenantId),
-            eq(contextCache.projectId, scopes.projectId),
+            projectScopedWhere(contextCache, scopes),
             inArray(contextCache.conversationId, conversationIds)
           )
         )
@@ -349,11 +523,7 @@ export const cascadeDeleteBySubAgent =
       const conversationsResult = await db
         .delete(conversations)
         .where(
-          and(
-            eq(conversations.tenantId, scopes.tenantId),
-            eq(conversations.projectId, scopes.projectId),
-            inArray(conversations.id, conversationIds)
-          )
+          and(projectScopedWhere(conversations, scopes), inArray(conversations.id, conversationIds))
         )
         .returning();
       conversationsDeleted = conversationsResult.length;
@@ -364,8 +534,7 @@ export const cascadeDeleteBySubAgent =
       .delete(tasks)
       .where(
         and(
-          eq(tasks.tenantId, scopes.tenantId),
-          eq(tasks.projectId, scopes.projectId),
+          projectScopedWhere(tasks, scopes),
           eq(tasks.subAgentId, subAgentId),
           sql`${tasks.ref}->>'name' = ${fullBranchName}`
         )
@@ -376,9 +545,16 @@ export const cascadeDeleteBySubAgent =
       conversationsDeleted,
       tasksDeleted: tasksResult.length,
       contextCacheDeleted,
-      apiKeysDeleted: 0, // API keys are agent-level, not subAgent-level
-      slackChannelConfigsDeleted: 0, // Slack configs are agent-level, not subAgent-level
+      triggerInvocationsDeleted: 0,
+      scheduledTriggerInvocationsDeleted: 0,
+      datasetRunsDeleted: 0,
+      evaluationRunsDeleted: 0,
+      apiKeysDeleted: 0,
+      slackChannelConfigsDeleted: 0,
       slackWorkspaceDefaultsCleared: 0,
+      appsDeleted: 0,
+      appDefaultsCleared: 0,
+      scheduledTriggersDeleted: 0,
     };
   };
 
@@ -402,8 +578,7 @@ export const cascadeDeleteByContextConfig =
       .delete(contextCache)
       .where(
         and(
-          eq(contextCache.tenantId, scopes.tenantId),
-          eq(contextCache.projectId, scopes.projectId),
+          projectScopedWhere(contextCache, scopes),
           eq(contextCache.contextConfigId, contextConfigId),
           sql`${contextCache.ref}->>'name' = ${fullBranchName}`
         )
@@ -428,6 +603,7 @@ export const cascadeDeleteByContextConfig =
 export type ToolCascadeDeleteResult = {
   mcpToolRepositoryAccessDeleted: number;
   mcpToolAccessModeDeleted: boolean;
+  slackMcpToolAccessConfigDeleted: boolean;
 };
 
 /**
@@ -443,24 +619,48 @@ export type ToolCascadeDeleteResult = {
  */
 export const cascadeDeleteByTool =
   (db: AgentsRunDatabaseClient) =>
-  async (params: { toolId: string }): Promise<ToolCascadeDeleteResult> => {
-    const { toolId } = params;
+  async (params: {
+    toolId: string;
+    tenantId: string;
+    projectId: string;
+  }): Promise<ToolCascadeDeleteResult> => {
+    const { toolId, tenantId, projectId } = params;
+
+    const scopes = { tenantId, projectId };
 
     // Delete MCP tool repository access entries
     const repositoryAccessResult = await db
       .delete(workAppGitHubMcpToolRepositoryAccess)
-      .where(eq(workAppGitHubMcpToolRepositoryAccess.toolId, toolId))
+      .where(
+        and(
+          projectScopedWhere(workAppGitHubMcpToolRepositoryAccess, scopes),
+          eq(workAppGitHubMcpToolRepositoryAccess.toolId, toolId)
+        )
+      )
       .returning();
 
     // Delete MCP tool access mode entry
     const accessModeResult = await db
       .delete(workAppGitHubMcpToolAccessMode)
-      .where(eq(workAppGitHubMcpToolAccessMode.toolId, toolId))
+      .where(
+        and(
+          projectScopedWhere(workAppGitHubMcpToolAccessMode, scopes),
+          eq(workAppGitHubMcpToolAccessMode.toolId, toolId)
+        )
+      )
       .returning();
+
+    // Delete Slack MCP tool access config entry
+    const slackMcpDeleted = await deleteSlackMcpToolAccessConfig(db)({
+      tenantId,
+      projectId,
+      toolId,
+    });
 
     return {
       mcpToolRepositoryAccessDeleted: repositoryAccessResult.length,
       mcpToolAccessModeDeleted: accessModeResult.length > 0,
+      slackMcpToolAccessConfigDeleted: slackMcpDeleted,
     };
   };
 
@@ -493,50 +693,30 @@ export const cascadeDeleteGitHubAccessByProject =
     tenantId: string;
     projectId: string;
   }): Promise<ProjectGitHubAccessCascadeDeleteResult> => {
-    const { tenantId, projectId } = params;
+    const scopes = params;
 
     // Delete project repository access entries
     const projectRepoAccessResult = await db
       .delete(workAppGitHubProjectRepositoryAccess)
-      .where(
-        and(
-          eq(workAppGitHubProjectRepositoryAccess.tenantId, tenantId),
-          eq(workAppGitHubProjectRepositoryAccess.projectId, projectId)
-        )
-      )
+      .where(projectScopedWhere(workAppGitHubProjectRepositoryAccess, scopes))
       .returning();
 
     // Delete project access mode entry
     const projectAccessModeResult = await db
       .delete(workAppGitHubProjectAccessMode)
-      .where(
-        and(
-          eq(workAppGitHubProjectAccessMode.tenantId, tenantId),
-          eq(workAppGitHubProjectAccessMode.projectId, projectId)
-        )
-      )
+      .where(projectScopedWhere(workAppGitHubProjectAccessMode, scopes))
       .returning();
 
     // Delete MCP tool repository access entries for tools in this project
     const mcpToolRepoAccessResult = await db
       .delete(workAppGitHubMcpToolRepositoryAccess)
-      .where(
-        and(
-          eq(workAppGitHubMcpToolRepositoryAccess.tenantId, tenantId),
-          eq(workAppGitHubMcpToolRepositoryAccess.projectId, projectId)
-        )
-      )
+      .where(projectScopedWhere(workAppGitHubMcpToolRepositoryAccess, scopes))
       .returning();
 
     // Delete MCP tool access mode entries for tools in this project
     const mcpToolAccessModeResult = await db
       .delete(workAppGitHubMcpToolAccessMode)
-      .where(
-        and(
-          eq(workAppGitHubMcpToolAccessMode.tenantId, tenantId),
-          eq(workAppGitHubMcpToolAccessMode.projectId, projectId)
-        )
-      )
+      .where(projectScopedWhere(workAppGitHubMcpToolAccessMode, scopes))
       .returning();
 
     return {

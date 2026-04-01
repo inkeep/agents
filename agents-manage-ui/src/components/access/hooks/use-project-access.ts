@@ -1,6 +1,10 @@
 'use client';
 
-import { OrgRoles, type ProjectRole } from '@inkeep/agents-core/client-exports';
+import {
+  DEFAULT_MEMBERSHIP_LIMIT,
+  OrgRoles,
+  type ProjectRole,
+} from '@inkeep/agents-core/client-exports';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useAuthClient } from '@/contexts/auth-client';
@@ -112,7 +116,7 @@ export function useProjectAccess({
   const fetchOrgMembers = useCallback(async () => {
     try {
       const { data } = await authClient.organization.getFullOrganization({
-        query: { organizationId: tenantId, membersLimit: 100 },
+        query: { organizationId: tenantId, membersLimit: DEFAULT_MEMBERSHIP_LIMIT },
       });
 
       if (data?.members) {

@@ -3,6 +3,7 @@ import type { LoaderConfig, LoaderOutput } from 'fumadocs-core/source';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
 import { DocsBody, DocsPage, DocsTitle } from 'fumadocs-ui/page';
 import { notFound } from 'next/navigation';
+import { TocFooter } from '@/components/toc-footer';
 import { createMetadata } from '@/lib/metadata';
 import { source } from '@/lib/source';
 import { getMDXComponents } from '@/mdx-components';
@@ -26,6 +27,7 @@ export default async function Page(props: PageProps<'/[[...slug]]'>) {
       tableOfContent={{
         style: 'clerk',
         enabled: tocEnabled,
+        footer: <TocFooter />,
       }}
     >
       <div className="flex items-center justify-between">
