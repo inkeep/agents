@@ -59,8 +59,7 @@ export function getCachedValidator(schema: Record<string, unknown>): ValidateFun
     }
   }
 
-  const normalizedSchema = normalizeSchemaKeysToLowercase(schema);
-  const permissiveSchema = makeSchemaPermissive(normalizedSchema);
+  const permissiveSchema = makeSchemaPermissive(schema);
 
   const validator = ajv.compile(permissiveSchema);
   schemaCache.set(key, validator);
@@ -236,7 +235,8 @@ export async function validateHttpRequestHeaders(
   try {
     if (headersSchema && httpRequest.headers !== undefined) {
       try {
-        const validate = validationHelper(headersSchema);
+        const normalizedHeadersSchema = normalizeSchemaKeysToLowercase(headersSchema);
+        const validate = validationHelper(normalizedHeadersSchema);
         const isValid = validate(httpRequest.headers);
 
         if (isValid) {
