@@ -123,11 +123,12 @@ describe('Form', () => {
   test('should properly highlight nested error state', async () => {
     agentStore.setState({ jsonSchemaMode: true });
     const { container } = render(<NestedTestForm />);
+    container.setAttribute('data-testid', 'nested-form-container');
 
     await waitFor(
       () => {
-        // Wait for form validation error message to render
         expect(container.querySelector('[data-slot="form-message"]')).toBeInTheDocument();
+        expect(container.querySelector('.monaco-editor')).toBeInTheDocument();
       },
       { timeout: 45_000 }
     );
