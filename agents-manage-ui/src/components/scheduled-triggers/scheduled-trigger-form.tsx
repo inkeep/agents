@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { GitBranch, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -49,6 +49,8 @@ import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
 import { useOrgMembers } from '@/hooks/use-org-members';
 import {
   createScheduledTriggerAction,
+  getScheduledTriggerUsersAction,
+  setScheduledTriggerUsersAction,
   updateScheduledTriggerAction,
 } from '@/lib/actions/scheduled-triggers';
 import type { ScheduledTrigger } from '@/lib/api/scheduled-triggers';
@@ -77,6 +79,7 @@ const scheduledTriggerFormSchema = z
     retryDelaySeconds: z.coerce.number().int().min(10).max(3600).default(60),
     timeoutSeconds: z.coerce.number().int().min(30).max(780).default(780),
     runAsUserId: z.string().optional(),
+    dispatchDelayMs: z.coerce.number().int().min(0).max(5000).optional(),
     ref: z.string().default('main'),
   })
   .refine(
@@ -126,6 +129,24 @@ export function ScheduledTriggerForm({
 
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [multiUserOpen, setMultiUserOpen] = useState(false);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+
+  const loadTriggerUsers = useCallback(async () => {
+    if (mode !== 'edit' || !trigger || !isAdmin) return;
+    setIsLoadingUsers(true);
+    try {
+      const result = await getScheduledTriggerUsersAction(tenantId, projectId, agentId, trigger.id);
+      if (result.success && result.data) {
+        setSelectedUserIds(result.data);
+      }
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  }, [mode, trigger, isAdmin, tenantId, projectId, agentId]);
+
+  useEffect(() => {
+    loadTriggerUsers();
+  }, [loadTriggerUsers]);
 
   const getDefaultValues = (): ScheduledTriggerFormData => {
     // Get browser's timezone for new triggers
@@ -147,6 +168,7 @@ export function ScheduledTriggerForm({
         retryDelaySeconds: p?.retryDelaySeconds ? Number(p.retryDelaySeconds) : 60,
         timeoutSeconds: p?.timeoutSeconds ? Number(p.timeoutSeconds) : 780,
         runAsUserId: undefined,
+        dispatchDelayMs: p?.dispatchDelayMs ? Number(p.dispatchDelayMs) : undefined,
         ref: p?.ref || '',
       };
     }
@@ -166,6 +188,7 @@ export function ScheduledTriggerForm({
       retryDelaySeconds: trigger.retryDelaySeconds ?? 60,
       timeoutSeconds: trigger.timeoutSeconds ?? 780,
       runAsUserId: trigger.runAsUserId ?? undefined,
+      dispatchDelayMs: trigger.dispatchDelayMs ?? undefined,
       ref: trigger.ref ?? '',
     };
   };
@@ -219,6 +242,7 @@ export function ScheduledTriggerForm({
         maxRetries: data.maxRetries,
         retryDelaySeconds: data.retryDelaySeconds,
         timeoutSeconds: data.timeoutSeconds,
+        dispatchDelayMs: data.dispatchDelayMs || undefined,
         ref: data.ref || 'main',
       };
 
@@ -230,7 +254,7 @@ export function ScheduledTriggerForm({
         const apiPayload = {
           ...basePayload,
           name: data.name,
-          runAsUserId: resolveRunAsUserId(data.runAsUserId),
+          runAsUserId: isAdmin ? undefined : resolveRunAsUserId(data.runAsUserId),
         };
         const result = await updateScheduledTriggerAction(
           tenantId,
@@ -239,59 +263,47 @@ export function ScheduledTriggerForm({
           trigger.id,
           apiPayload
         );
-        if (result.success) {
-          toast.success('Scheduled trigger updated successfully');
-          router.push(redirectPath);
-        } else {
+        if (!result.success) {
           toast.error(result.error || 'Failed to update scheduled trigger');
+          return;
         }
-        return;
-      }
-
-      // Create mode — handle multi-user bulk creation
-      const usersToCreate =
-        selectedUserIds.length > 0 ? selectedUserIds : [data.runAsUserId || NONE_VALUE];
-
-      if (usersToCreate.length === 1) {
-        const apiPayload = {
-          ...basePayload,
-          name: data.name,
-          runAsUserId: resolveRunAsUserId(usersToCreate[0]),
-        };
-        const result = await createScheduledTriggerAction(tenantId, projectId, agentId, apiPayload);
-        if (result.success) {
-          toast.success('Scheduled trigger created successfully');
-          router.push(redirectPath);
-        } else {
-          toast.error(result.error || 'Failed to create scheduled trigger');
+        if (isAdmin) {
+          const usersResult = await setScheduledTriggerUsersAction(
+            tenantId,
+            projectId,
+            agentId,
+            trigger.id,
+            selectedUserIds
+          );
+          if (!usersResult.success) {
+            toast.error(usersResult.error || 'Failed to update trigger users');
+            return;
+          }
         }
-        return;
-      }
-
-      // Bulk create — one trigger per selected user
-      const results = await Promise.allSettled(
-        usersToCreate.map((userId) => {
-          const displayName = getMemberDisplayName(userId);
-          const apiPayload = {
-            ...basePayload,
-            name: `${data.name} (${displayName})`,
-            runAsUserId: resolveRunAsUserId(userId),
-          };
-          return createScheduledTriggerAction(tenantId, projectId, agentId, apiPayload);
-        })
-      );
-
-      const succeeded = results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
-      const failed = results.length - succeeded;
-
-      if (failed === 0) {
-        toast.success(`Created ${succeeded} triggers successfully`);
+        toast.success('Scheduled trigger updated successfully');
         router.push(redirectPath);
-      } else if (succeeded > 0) {
-        toast.warning(`Created ${succeeded}/${results.length} triggers. ${failed} failed.`);
+        return;
+      }
+
+      // Create mode — single API call with runAsUserIds
+      const resolvedUserIds =
+        selectedUserIds.length > 0
+          ? selectedUserIds
+          : data.runAsUserId && data.runAsUserId !== NONE_VALUE
+            ? [data.runAsUserId]
+            : [];
+
+      const apiPayload = {
+        ...basePayload,
+        name: data.name,
+        ...(resolvedUserIds.length > 0 ? { runAsUserIds: resolvedUserIds } : { runAsUserId: null }),
+      };
+      const result = await createScheduledTriggerAction(tenantId, projectId, agentId, apiPayload);
+      if (result.success) {
+        toast.success('Scheduled trigger created successfully');
         router.push(redirectPath);
       } else {
-        toast.error('Failed to create triggers');
+        toast.error(result.error || 'Failed to create scheduled trigger');
       }
     } catch (error) {
       console.error(`Failed to ${mode} scheduled trigger:`, error);
@@ -390,12 +402,12 @@ export function ScheduledTriggerForm({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {isAdminLoading || isMembersLoading ? (
+            {isAdminLoading || isMembersLoading || isLoadingUsers ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Loading users...
               </div>
-            ) : mode === 'create' && isAdmin ? (
+            ) : isAdmin ? (
               <div className="grid gap-2">
                 <span className="text-sm font-medium leading-none">Run as Users</span>
                 <Popover open={multiUserOpen} onOpenChange={setMultiUserOpen}>
@@ -450,7 +462,7 @@ export function ScheduledTriggerForm({
                     </Command>
                   </PopoverContent>
                 </Popover>
-                {selectedUserIds.length > 1 && (
+                {selectedUserIds.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
                     {selectedUserIds.map((id) => (
                       <Badge
@@ -467,11 +479,12 @@ export function ScheduledTriggerForm({
                   </div>
                 )}
                 <p className="text-sm text-muted-foreground">
-                  Select multiple users to create one trigger per user.
+                  {mode === 'create'
+                    ? 'Select users whose identity this trigger will run as. One execution per user at each scheduled tick.'
+                    : 'Manage the users associated with this trigger. Changes are saved when you update the trigger.'}
                 </p>
               </div>
             ) : (
-              // Single select for non-admins or edit mode
               <FormField
                 control={form.control}
                 name="runAsUserId"
@@ -689,6 +702,37 @@ export function ScheduledTriggerForm({
                 )}
               />
             </div>
+            <FormField
+              control={form.control}
+              name="dispatchDelayMs"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Dispatch Delay (ms)</FormLabel>
+                  <FormControl>
+                    <Input
+                      ref={field.ref}
+                      name={field.name}
+                      onBlur={field.onBlur}
+                      disabled={field.disabled}
+                      value={field.value != null ? String(field.value) : ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        field.onChange(val === '' ? undefined : Number(val));
+                      }}
+                      type="number"
+                      min={0}
+                      max={5000}
+                      placeholder="0"
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Delay in milliseconds between dispatching each user&apos;s execution (0-5000).
+                    Useful for managing MCP tool rate limits with multi-user triggers.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </CardContent>
         </Card>
 

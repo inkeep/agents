@@ -3,14 +3,18 @@
 import { revalidatePath } from 'next/cache';
 import {
   type CreateScheduledTriggerInput,
+  addScheduledTriggerUser,
   cancelScheduledTriggerInvocation,
   createScheduledTrigger,
   deleteScheduledTrigger,
   fetchScheduledTriggerInvocations,
+  getScheduledTriggerUsers,
+  removeScheduledTriggerUser,
   rerunScheduledTriggerInvocation,
   runScheduledTriggerNow,
   type ScheduledTrigger,
   type ScheduledTriggerInvocation,
+  setScheduledTriggerUsers,
   type UpdateScheduledTriggerInput,
   updateScheduledTrigger,
 } from '../api/scheduled-triggers';
@@ -278,6 +282,113 @@ export async function runScheduledTriggerNowAction(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to run trigger',
+      code: 'unknown_error',
+    };
+  }
+}
+
+export async function getScheduledTriggerUsersAction(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  scheduledTriggerId: string
+): Promise<ActionResult<string[]>> {
+  try {
+    const userIds = await getScheduledTriggerUsers(
+      tenantId,
+      projectId,
+      agentId,
+      scheduledTriggerId
+    );
+    return { success: true, data: userIds };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return { success: false, error: error.message, code: error.error.code };
+    }
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch trigger users',
+      code: 'unknown_error',
+    };
+  }
+}
+
+export async function setScheduledTriggerUsersAction(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  scheduledTriggerId: string,
+  userIds: string[]
+): Promise<ActionResult<string[]>> {
+  try {
+    const result = await setScheduledTriggerUsers(
+      tenantId,
+      projectId,
+      agentId,
+      scheduledTriggerId,
+      userIds
+    );
+    revalidatePath(`/${tenantId}/projects/${projectId}/triggers`);
+    return { success: true, data: result };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return { success: false, error: error.message, code: error.error.code };
+    }
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to set trigger users',
+      code: 'unknown_error',
+    };
+  }
+}
+
+export async function addScheduledTriggerUserAction(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  scheduledTriggerId: string,
+  userId: string
+): Promise<ActionResult<string[]>> {
+  try {
+    const result = await addScheduledTriggerUser(
+      tenantId,
+      projectId,
+      agentId,
+      scheduledTriggerId,
+      userId
+    );
+    revalidatePath(`/${tenantId}/projects/${projectId}/triggers`);
+    return { success: true, data: result };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return { success: false, error: error.message, code: error.error.code };
+    }
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to add user to trigger',
+      code: 'unknown_error',
+    };
+  }
+}
+
+export async function removeScheduledTriggerUserAction(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  scheduledTriggerId: string,
+  userId: string
+): Promise<ActionResult<void>> {
+  try {
+    await removeScheduledTriggerUser(tenantId, projectId, agentId, scheduledTriggerId, userId);
+    revalidatePath(`/${tenantId}/projects/${projectId}/triggers`);
+    return { success: true };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return { success: false, error: error.message, code: error.error.code };
+    }
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to remove user from trigger',
       code: 'unknown_error',
     };
   }
