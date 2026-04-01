@@ -6,6 +6,7 @@ import {
   doltStatus,
   generateId,
 } from '@inkeep/agents-core';
+import { manageRelations } from '@inkeep/agents-core/db/manage-relations';
 import * as schema from '@inkeep/agents-core/db/manage-schema';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Context, Next } from 'hono';
@@ -75,7 +76,11 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
 
   try {
     // Create a Drizzle client wrapping this specific connection
-    const requestDb = drizzle(connection, { schema }) as unknown as AgentsManageDatabaseClient;
+    const requestDb = drizzle({
+      client: connection,
+      schema,
+      relations: manageRelations,
+    }) as unknown as AgentsManageDatabaseClient;
 
     if (resolvedRef.type === 'branch') {
       logger.debug({ branch: resolvedRef.name }, 'Checking out branch');
