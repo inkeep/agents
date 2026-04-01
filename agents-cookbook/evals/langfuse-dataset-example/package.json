@@ -4,6 +4,7 @@
   "description": "Langfuse dataset evaluation script",
   "type": "module",
   "scripts": {
+    "knip": "knip --directory ../../.. --workspace agents-cookbook/evals/langfuse-dataset-example --dependencies",
     "langfuse-init-example": "tsx langfuse-example.ts",
     "langfuse-run-dataset": "tsx langfuse-dataset.ts"
   },
