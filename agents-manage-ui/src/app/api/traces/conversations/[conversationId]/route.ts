@@ -14,6 +14,7 @@ import {
   AI_OPERATIONS,
   FIELD_CONTEXTS,
   FIELD_DATA_TYPES,
+  GENERATION_TYPES,
   ORDER_DIRECTIONS,
   QUERY_DEFAULTS,
   QUERY_EXPRESSIONS,
@@ -975,6 +976,10 @@ export async function GET(
 
     // ai generations
     for (const span of aiGenerationSpans) {
+      const genType = getString(span, SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, '');
+      if (genType === GENERATION_TYPES.EVAL_SCORING || genType === GENERATION_TYPES.EVAL_SIMULATION)
+        continue;
+
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
 
@@ -983,7 +988,6 @@ export async function GET(
       const aiPromptMessages = getString(span, SPAN_KEYS.AI_PROMPT_MESSAGES, '');
 
       const aiGeneration = getString(span, SPAN_KEYS.SPAN_ID, '');
-      const genType = getString(span, SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, '');
       const genResponseText = getString(span, SPAN_KEYS.AI_RESPONSE_TEXT, '');
       const formatted = genType
         ? formatGenerationType(genType, genResponseText)

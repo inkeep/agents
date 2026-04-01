@@ -26,6 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
+import { GENERATION_TYPES } from '@/constants/signoz';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { rerunScheduledTriggerInvocationAction } from '@/lib/actions/scheduled-triggers';
 import { rerunTriggerAction } from '@/lib/actions/triggers';
@@ -236,7 +237,15 @@ export default function ConversationDetail({
         const data = await traceResponse.value.json();
         setConversation(data);
 
-        setUsageEvents(eventsResult.status === 'fulfilled' ? eventsResult.value : []);
+        setUsageEvents(
+          eventsResult.status === 'fulfilled'
+            ? eventsResult.value.filter(
+                (e: { generationType: string }) =>
+                  e.generationType !== GENERATION_TYPES.EVAL_SCORING &&
+                  e.generationType !== GENERATION_TYPES.EVAL_SIMULATION
+              )
+            : []
+        );
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
