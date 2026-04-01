@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -86,12 +86,18 @@ export function ProjectScheduledTriggersTable({
   projectId,
 }: ProjectScheduledTriggersTableProps) {
   const router = useRouter();
-  const [loadingTriggers, setLoadingTriggers] = useState(new Set<string>());
+  const [isMounted, setIsMounted] = useState(false);
+  const [loadingTriggers, setLoadingTriggers] = useState<Set<string>>(new Set());
   const { members: orgMembers } = useOrgMembers(tenantId);
   const { user } = useAuthSession();
   const { isAdmin } = useIsOrgAdmin();
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const canManageTrigger = (trigger: ScheduledTriggerWithAgent): boolean => {
+    if (!isMounted) return false;
     if (isAdmin) return true;
     if (!user) return false;
     if (trigger.createdBy === user.id || trigger.runAsUserId === user.id) return true;
