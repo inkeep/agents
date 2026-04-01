@@ -1,16 +1,11 @@
 #!/usr/bin/env bash
 #
-# ONE-TIME CLEANUP SCRIPT
+# Stale Vercel preview env cleanup.
 #
-# Created to resolve the Vercel envs_size_too_large error that blocked all
-# preview deployments (March 2026). Branch-scoped preview env vars were never
-# cleaned up on PR close, accumulating ~1,500+ stale vars across two Vercel
-# projects until hitting Vercel's 64KB storage limit.
-#
-# Going forward, the teardown-vercel-preview-env.sh script (triggered by the
-# teardown-vercel job in preview-environments.yml on PR close) prevents
-# re-accumulation. This script only needs to be run once to clear the backlog,
-# or again if stale vars accumulate due to teardown failures.
+# This script is safe to run manually or from a scheduled janitor workflow.
+# It removes branch-scoped preview-only env vars for branches that no longer
+# have an open PR, which repairs missed close events and prevents preview env
+# storage from filling up again.
 #
 # Usage:
 #   # Dry run (preview what would be deleted)
@@ -60,7 +55,11 @@ fi
 branch_has_open_pr() {
   local branch="$1"
   local count=""
-  count="$(gh pr list --head "${branch}" --state open --json number --jq 'length' 2>/dev/null || echo "0")"
+  if [ -n "${GITHUB_REPOSITORY:-}" ]; then
+    count="$(gh pr list --repo "${GITHUB_REPOSITORY}" --head "${branch}" --state open --json number --jq 'length' 2>/dev/null || echo "0")"
+  else
+    count="$(gh pr list --head "${branch}" --state open --json number --jq 'length' 2>/dev/null || echo "0")"
+  fi
   [ "${count}" -gt 0 ]
 }
 
