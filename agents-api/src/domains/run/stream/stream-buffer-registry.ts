@@ -11,6 +11,7 @@ const logger = getLogger('stream-buffer-registry');
 
 const FLUSH_INTERVAL_MS = 100;
 const POLL_INTERVAL_MS = 200;
+const MAX_POLL_DURATION_MS = 5 * 60 * 1000;
 
 interface StreamScope {
   tenantId: string;
@@ -28,17 +29,24 @@ interface WriteBuffer {
 
 class PgStreamBufferRegistry {
   private writeBuffers = new Map<string, WriteBuffer>();
-  private encoder = new TextDecoder();
+  private decoder = new TextDecoder();
+
+  private static bufferKey(scope: StreamScope): string {
+    return `${scope.tenantId}:${scope.projectId}:${scope.conversationId}`;
+  }
 
   register(scope: StreamScope): void {
-    const key = scope.conversationId;
+    const key = PgStreamBufferRegistry.bufferKey(scope);
     const existing = this.writeBuffers.get(key);
     if (existing?.flushTimer) {
       clearInterval(existing.flushTimer);
     }
 
     deleteStreamChunks(runDbClient)(scope).catch((err) => {
-      logger.warn({ err, conversationId: key }, 'Failed to clear old stream chunks');
+      logger.warn(
+        { err, conversationId: scope.conversationId },
+        'Failed to clear old stream chunks'
+      );
     });
 
     const buffer: WriteBuffer = {
@@ -51,26 +59,31 @@ class PgStreamBufferRegistry {
 
     buffer.flushTimer = setInterval(() => {
       this.flush(key).catch((err) => {
-        logger.error({ err, conversationId: key }, 'Failed to flush stream chunks');
+        logger.error(
+          { err, conversationId: scope.conversationId },
+          'Failed to flush stream chunks'
+        );
       });
     }, FLUSH_INTERVAL_MS);
 
     this.writeBuffers.set(key, buffer);
-    logger.debug({ conversationId: key }, 'Pg stream buffer registered');
+    logger.debug({ conversationId: scope.conversationId }, 'Pg stream buffer registered');
   }
 
-  push(conversationId: string, chunk: Uint8Array): void {
-    const buffer = this.writeBuffers.get(conversationId);
+  push(scope: StreamScope, chunk: Uint8Array): void {
+    const key = PgStreamBufferRegistry.bufferKey(scope);
+    const buffer = this.writeBuffers.get(key);
     if (!buffer || buffer.done) return;
 
     buffer.pendingChunks.push({
       idx: buffer.nextIdx++,
-      data: this.encoder.decode(chunk),
+      data: this.decoder.decode(chunk),
     });
   }
 
-  async complete(conversationId: string): Promise<void> {
-    const buffer = this.writeBuffers.get(conversationId);
+  async complete(scope: StreamScope): Promise<void> {
+    const key = PgStreamBufferRegistry.bufferKey(scope);
+    const buffer = this.writeBuffers.get(key);
     if (!buffer) return;
 
     buffer.done = true;
@@ -79,15 +92,22 @@ class PgStreamBufferRegistry {
       buffer.flushTimer = null;
     }
 
-    await this.flush(conversationId);
+    await this.flush(key);
 
-    await markStreamComplete(runDbClient)({
-      ...buffer.scope,
-      finalIdx: buffer.nextIdx,
-    });
+    try {
+      await markStreamComplete(runDbClient)({
+        ...buffer.scope,
+        finalIdx: buffer.nextIdx,
+      });
+    } catch (err) {
+      logger.error(
+        { err, conversationId: scope.conversationId },
+        'Failed to mark stream complete — resume clients may hang'
+      );
+    }
 
-    this.writeBuffers.delete(conversationId);
-    logger.debug({ conversationId }, 'Pg stream buffer completed');
+    this.writeBuffers.delete(key);
+    logger.debug({ conversationId: scope.conversationId }, 'Pg stream buffer completed');
   }
 
   createReadable(scope: StreamScope, afterIdx = -1): ReadableStream<Uint8Array> {
@@ -95,15 +115,19 @@ class PgStreamBufferRegistry {
     let lastIdx = afterIdx;
     let cancelled = false;
     let buffer: { idx: number; data: string; isFinal: boolean }[] = [];
+    const pollDeadline = Date.now() + MAX_POLL_DURATION_MS;
 
     return new ReadableStream<Uint8Array>({
       async pull(controller) {
         if (cancelled) return;
 
         try {
-          // Refill buffer from Postgres when empty
           while (buffer.length === 0) {
             if (cancelled) return;
+            if (Date.now() > pollDeadline) {
+              controller.close();
+              return;
+            }
             const rows = await getStreamChunks(runDbClient)({
               ...scope,
               afterIdx: lastIdx,
@@ -115,7 +139,6 @@ class PgStreamBufferRegistry {
             }
           }
 
-          // Yield one chunk per pull() for back-pressure
           const row = buffer.shift();
           if (!row) return;
           if (row.isFinal) {
@@ -148,16 +171,17 @@ class PgStreamBufferRegistry {
     const buffer = this.writeBuffers.get(conversationId);
     if (!buffer || buffer.pendingChunks.length === 0) return;
 
-    const toFlush = buffer.pendingChunks.splice(0);
+    const toFlush = [...buffer.pendingChunks];
     try {
       await insertStreamChunks(runDbClient)({
         ...buffer.scope,
         chunks: toFlush,
       });
+      buffer.pendingChunks.splice(0, toFlush.length);
     } catch (err) {
       logger.error(
         { err, conversationId, count: toFlush.length },
-        'Failed to insert stream chunks'
+        'Failed to insert stream chunks — will retry on next flush'
       );
     }
   }

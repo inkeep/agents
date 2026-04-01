@@ -442,11 +442,11 @@ app.openapi(resumeConversationStreamRoute, async (c) => {
   });
 
   if (!conversation) {
-    return new Response(null, { status: 204 });
+    throw createApiError({ code: 'not_found', message: 'Conversation not found' });
   }
 
-  if (conversation.userId && conversation.userId !== endUserId) {
-    return new Response(null, { status: 204 });
+  if (conversation.userId && endUserId && conversation.userId !== endUserId) {
+    throw createApiError({ code: 'not_found', message: 'Conversation not found' });
   }
 
   const durableExecution = await getWorkflowExecutionByConversation(runDbClient)({
@@ -478,6 +478,7 @@ app.openapi(resumeConversationStreamRoute, async (c) => {
         }
       } catch (error) {
         logger.error({ error, conversationId }, 'Error resuming durable stream');
+        await s.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
       }
     });
   }
@@ -498,6 +499,7 @@ app.openapi(resumeConversationStreamRoute, async (c) => {
         }
       } catch (error) {
         logger.error({ error, conversationId }, 'Error resuming classic stream');
+        await s.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
       } finally {
         reader.releaseLock();
       }

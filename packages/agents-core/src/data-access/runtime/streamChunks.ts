@@ -36,8 +36,11 @@ export const markStreamComplete =
     });
   };
 
+const DEFAULT_CHUNK_BATCH_LIMIT = 500;
+
 export const getStreamChunks =
-  (db: AgentsRunDatabaseClient) => async (params: StreamScope & { afterIdx?: number }) => {
+  (db: AgentsRunDatabaseClient) =>
+  async (params: StreamScope & { afterIdx?: number; limit?: number }) => {
     const conditions = [
       eq(streamChunks.tenantId, params.tenantId),
       eq(streamChunks.projectId, params.projectId),
@@ -50,7 +53,8 @@ export const getStreamChunks =
       .select({ idx: streamChunks.idx, data: streamChunks.data, isFinal: streamChunks.isFinal })
       .from(streamChunks)
       .where(and(...conditions))
-      .orderBy(streamChunks.idx);
+      .orderBy(streamChunks.idx)
+      .limit(params.limit ?? DEFAULT_CHUNK_BATCH_LIMIT);
   };
 
 export const deleteStreamChunks = (db: AgentsRunDatabaseClient) => async (params: StreamScope) => {
@@ -68,6 +72,6 @@ export const deleteStreamChunks = (db: AgentsRunDatabaseClient) => async (params
 export const cleanupExpiredStreamChunks =
   (db: AgentsRunDatabaseClient) =>
   async (olderThanMinutes = 5) => {
-    const cutoff = sql`now() - interval '${sql.raw(String(olderThanMinutes))} minutes'`;
+    const cutoff = sql`now() - make_interval(mins => ${olderThanMinutes})`;
     await db.delete(streamChunks).where(sql`${streamChunks.createdAt} < ${cutoff}`);
   };

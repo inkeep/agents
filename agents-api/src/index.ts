@@ -138,13 +138,14 @@ if (workflowWorld === '@workflow/world-postgres' || workflowWorld === 'local') {
 import { cleanupExpiredStreamChunks } from '@inkeep/agents-core';
 import runDbClient from './data/db/runDbClient';
 
-setInterval(async () => {
+const streamChunkCleanupTimer = setInterval(async () => {
   try {
     await cleanupExpiredStreamChunks(runDbClient)();
   } catch (err) {
     logger.error({ error: err }, 'Failed to cleanup expired stream chunks');
   }
 }, 60_000);
+streamChunkCleanupTimer.unref();
 
 // Start Slack Socket Mode client for local development (when configured)
 if (env.ENVIRONMENT === 'development' && env.SLACK_APP_TOKEN) {

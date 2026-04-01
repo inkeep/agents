@@ -460,7 +460,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
               const { done, value } = await reader.read();
               if (done) break;
               const encoded = typeof value === 'string' ? encoder.encode(value) : value;
-              streamBufferRegistry.push(conversationId, encoded);
+              streamBufferRegistry.push({ tenantId, projectId, conversationId }, encoded);
               await s.write(value);
             }
           } catch (error) {
@@ -470,7 +470,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
             );
             await s.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
           } finally {
-            await streamBufferRegistry.complete(conversationId);
+            await streamBufferRegistry.complete({ tenantId, projectId, conversationId });
           }
         });
       }
@@ -651,12 +651,12 @@ app.openapi(chatDataStreamRoute, async (c) => {
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            streamBufferRegistry.push(conversationId, value);
+            streamBufferRegistry.push({ tenantId, projectId, conversationId }, value);
           }
         } catch (error) {
           logger.error({ error, conversationId }, 'Error buffering stream for resumption');
         } finally {
-          await streamBufferRegistry.complete(conversationId);
+          await streamBufferRegistry.complete({ tenantId, projectId, conversationId });
         }
       })();
 
