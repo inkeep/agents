@@ -1745,14 +1745,6 @@ export const PublicKeyConfigSchema = z
   })
   .openapi('PublicKeyConfig');
 
-export const WebClientAuthConfigSchema = z
-  .object({
-    publicKeys: z.array(PublicKeyConfigSchema).default([]),
-    audience: z.string().optional(),
-    allowAnonymous: z.boolean().optional(),
-  })
-  .openapi('WebClientAuthConfig');
-
 export const WebClientConfigSchema = z
   .object({
     type: z.literal('web_client'),
@@ -1760,7 +1752,6 @@ export const WebClientConfigSchema = z
       allowedDomains: z.array(AllowedDomainSchema).min(1),
       publicKeys: z.array(PublicKeyConfigSchema).default([]),
       audience: z.string().optional(),
-      validateScopeClaims: z.boolean().optional(),
       allowAnonymous: z.boolean().optional(),
     }),
   })
@@ -1804,7 +1795,6 @@ export const WebClientConfigResponseSchema = z
       allowedDomains: z.array(AllowedDomainSchema).min(1),
       publicKeys: z.array(PublicKeyConfigSchema).default([]),
       audience: z.string().optional(),
-      validateScopeClaims: z.boolean().optional(),
       allowAnonymous: z.boolean().optional(),
     }),
   })

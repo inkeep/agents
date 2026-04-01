@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  PublicKeyAlgorithmSchema,
-  PublicKeyConfigSchema,
-  WebClientAuthConfigSchema,
-  WebClientConfigSchema,
-} from '../schemas';
+import { PublicKeyAlgorithmSchema, PublicKeyConfigSchema, WebClientConfigSchema } from '../schemas';
 
 describe('PublicKeyAlgorithmSchema', () => {
   it('accepts valid algorithms', () => {
@@ -50,36 +45,7 @@ describe('PublicKeyConfigSchema', () => {
   });
 });
 
-describe('WebClientAuthConfigSchema', () => {
-  it('accepts empty publicKeys array', () => {
-    const result = WebClientAuthConfigSchema.parse({ publicKeys: [] });
-    expect(result.publicKeys).toEqual([]);
-    expect(result.audience).toBeUndefined();
-  });
-
-  it('defaults publicKeys to empty array', () => {
-    const result = WebClientAuthConfigSchema.parse({});
-    expect(result.publicKeys).toEqual([]);
-  });
-
-  it('accepts audience string', () => {
-    const result = WebClientAuthConfigSchema.parse({ publicKeys: [], audience: 'my-app' });
-    expect(result.audience).toBe('my-app');
-  });
-
-  it('accepts many keys (no limit)', () => {
-    const keys = Array.from({ length: 10 }, (_, i) => ({
-      kid: `key-${i}`,
-      publicKey: 'pem-data',
-      algorithm: 'RS256',
-      addedAt: '2026-03-24T00:00:00Z',
-    }));
-    const result = WebClientAuthConfigSchema.parse({ publicKeys: keys });
-    expect(result.publicKeys).toHaveLength(10);
-  });
-});
-
-describe('WebClientConfigSchema with auth fields', () => {
+describe('WebClientConfigSchema', () => {
   const baseConfig = {
     type: 'web_client' as const,
     webClient: {
@@ -106,9 +72,22 @@ describe('WebClientConfigSchema with auth fields', () => {
           },
         ],
         audience: 'https://api.example.com',
+        allowAnonymous: false,
       },
     });
     expect(result.webClient.publicKeys).toHaveLength(1);
     expect(result.webClient.audience).toBe('https://api.example.com');
+    expect(result.webClient.allowAnonymous).toBe(false);
+  });
+
+  it('does not accept validateScopeClaims', () => {
+    const result = WebClientConfigSchema.parse({
+      ...baseConfig,
+      webClient: {
+        ...baseConfig.webClient,
+        validateScopeClaims: true,
+      },
+    });
+    expect((result.webClient as Record<string, unknown>).validateScopeClaims).toBeUndefined();
   });
 });
