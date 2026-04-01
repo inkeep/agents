@@ -40,7 +40,6 @@ const ALGORITHM_OPTIONS = [
 interface AuthKeysSectionProps {
   keys: PublicKeyDisplay[];
   requireAuth: boolean;
-  onKeysChange: (keys: PublicKeyDisplay[]) => void;
   onRequireAuthChange: (requireAuth: boolean) => void;
   pendingKeysToAdd: PendingKey[];
   onPendingKeysToAddChange: (keys: PendingKey[]) => void;
@@ -51,7 +50,6 @@ interface AuthKeysSectionProps {
 export function AuthKeysSection({
   keys,
   requireAuth,
-  onKeysChange,
   onRequireAuthChange,
   pendingKeysToAdd,
   onPendingKeysToAddChange,
@@ -95,7 +93,6 @@ export function AuthKeysSection({
     } else {
       onKidsToDeleteChange([...kidsToDelete, kidToDelete]);
     }
-    onKeysChange(keys);
   };
 
   return (

@@ -52,8 +52,9 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
 
   const onSubmit = form.handleSubmit(async (data) => {
     try {
+      const allowAnonymous = !requireAuth;
       const authConfig: Record<string, unknown> = {
-        allowAnonymous: !requireAuth,
+        allowAnonymous,
       };
       if (data.audience?.trim()) {
         authConfig.audience = data.audience.trim();
@@ -162,7 +163,6 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
             <AuthKeysSection
               keys={emptyServerKeys}
               requireAuth={requireAuth}
-              onKeysChange={() => {}}
               onRequireAuthChange={setRequireAuth}
               pendingKeysToAdd={pendingKeysToAdd}
               onPendingKeysToAddChange={setPendingKeysToAdd}

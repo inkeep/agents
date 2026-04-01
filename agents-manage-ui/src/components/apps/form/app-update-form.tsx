@@ -111,7 +111,8 @@ export function AppUpdateForm({
         };
 
         webClientConfig.audience = data.audience?.trim() || undefined;
-        webClientConfig.allowAnonymous = !requireAuth;
+        const allowAnonymous = !requireAuth;
+        webClientConfig.allowAnonymous = allowAnonymous;
 
         payload.config = {
           type: 'web_client',
@@ -221,7 +222,6 @@ export function AppUpdateForm({
             <AuthKeysSection
               keys={serverKeys}
               requireAuth={requireAuth}
-              onKeysChange={setServerKeys}
               onRequireAuthChange={setRequireAuth}
               pendingKeysToAdd={pendingKeysToAdd}
               onPendingKeysToAddChange={setPendingKeysToAdd}
