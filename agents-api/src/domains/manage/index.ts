@@ -4,6 +4,7 @@ import type { ManageAppVariables } from '../../types/app';
 import authLookupRoutes from './routes/authLookup';
 import availableAgentsRoutes from './routes/availableAgents';
 import cliAuthRoutes from './routes/cliAuth';
+import copilotTokenRoutes from './routes/copilotToken';
 import entitlementsRoutes from './routes/entitlements';
 import githubRoutes from './routes/github';
 import crudRoutes from './routes/index';
@@ -45,6 +46,9 @@ export function createManageRoutes() {
 
   // Mount playground token routes under tenant (uses requireTenantAccess middleware)
   app.route('/tenants/:tenantId/playground/token', playgroundTokenRoutes);
+
+  // Mount copilot token routes under tenant (uses requireTenantAccess middleware)
+  app.route('/tenants/:tenantId/copilot/token', copilotTokenRoutes);
 
   // Mount SigNoz proxy routes under tenant (uses requireTenantAccess middleware for authorization)
   app.route('/tenants/:tenantId/signoz', signozRoutes);

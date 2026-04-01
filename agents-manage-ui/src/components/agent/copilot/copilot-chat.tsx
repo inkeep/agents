@@ -169,6 +169,7 @@ export function CopilotChat() {
 
   const {
     apiKey: copilotToken,
+    appId: copilotAppId,
     cookieHeader,
     isLoading: isLoadingToken,
     error: tokenError,
@@ -322,6 +323,7 @@ export function CopilotChat() {
             headers: {
               'x-emit-operations': 'true',
               Authorization: `Bearer ${copilotToken}`,
+              ...(copilotAppId && { 'x-inkeep-app-id': copilotAppId }),
               'x-inkeep-tenant-id': PUBLIC_INKEEP_COPILOT_TENANT_ID || '',
               'x-inkeep-project-id': PUBLIC_INKEEP_COPILOT_PROJECT_ID || '',
               'x-inkeep-agent-id': PUBLIC_INKEEP_COPILOT_AGENT_ID || '',

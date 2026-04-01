@@ -254,6 +254,10 @@ const envSchema = z
       .optional()
       .describe('Project ID that hosts the copilot agent'),
     INKEEP_COPILOT_AGENT_ID: z.string().optional().describe('Agent ID of the copilot agent'),
+    INKEEP_COPILOT_APP_ID: z
+      .string()
+      .optional()
+      .describe('App ID for the copilot (chat-to-edit) web client app'),
 
     // Blob Storage (local filesystem fallback, or inferred S3/Vercel)
     BLOB_STORAGE_LOCAL_PATH: z

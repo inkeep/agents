@@ -11694,6 +11694,78 @@
         ]
       }
     },
+    "/manage/tenants/{tenantId}/copilot/token": {
+      "post": {
+        "description": "Generates a short-lived JWT (1 hour) for authenticated users to access the copilot agent. The token is a minimal identity assertion; scope comes from the copilot app record.",
+        "operationId": "create-copilot-token",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "apiKey": {
+                      "description": "Temporary JWT for copilot use",
+                      "type": "string"
+                    },
+                    "appId": {
+                      "description": "App ID to include as x-inkeep-app-id header",
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "description": "ISO 8601 timestamp when the key expires",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "apiKey",
+                    "expiresAt",
+                    "appId"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Copilot JWT generated successfully"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized - session required"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Generate temporary JWT for copilot (chat-to-edit)",
+        "tags": [
+          "API Keys"
+        ],
+        "x-authz": {
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
+          "permission": "member",
+          "resource": "organization"
+        }
+      }
+    },
     "/manage/tenants/{tenantId}/entitlements": {
       "get": {
         "description": "List all entitlements for the current organization.",

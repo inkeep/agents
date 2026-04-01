@@ -18,22 +18,21 @@ type ActionResult<T = void> =
 interface CopilotTokenResponse {
   apiKey: string;
   expiresAt: string;
+  appId?: string;
   cookieHeader?: string;
 }
 
 export async function getCopilotTokenAction(): Promise<ActionResult<CopilotTokenResponse>> {
   const copilotTenantId = process.env.PUBLIC_INKEEP_COPILOT_TENANT_ID;
-  const copilotProjectId = process.env.PUBLIC_INKEEP_COPILOT_PROJECT_ID;
-  const copilotAgentId = process.env.PUBLIC_INKEEP_COPILOT_AGENT_ID;
   const agentsApiUrl =
     process.env.INKEEP_AGENTS_API_URL ||
     process.env.PUBLIC_INKEEP_AGENTS_API_URL ||
     DEFAULT_INKEEP_AGENTS_API_URL;
 
-  if (!copilotTenantId || !copilotProjectId || !copilotAgentId) {
+  if (!copilotTenantId) {
     return {
       success: false,
-      error: 'Copilot tenant, project, or agent ID is not configured',
+      error: 'Copilot tenant ID is not configured',
       code: 'configuration_error',
     };
   }
@@ -52,17 +51,12 @@ export async function getCopilotTokenAction(): Promise<ActionResult<CopilotToken
     }
 
     const response = await fetch(
-      `${agentsApiUrl}/manage/tenants/${copilotTenantId}/playground/token`,
+      `${agentsApiUrl}/manage/tenants/${copilotTenantId}/copilot/token`,
       {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'x-forwarded-cookie': cookieHeader,
         },
-        body: JSON.stringify({
-          projectId: copilotProjectId,
-          agentId: copilotAgentId,
-        }),
       }
     );
 
@@ -88,6 +82,7 @@ export async function getCopilotTokenAction(): Promise<ActionResult<CopilotToken
       data: {
         apiKey: data.apiKey,
         expiresAt: data.expiresAt,
+        appId: data.appId,
         cookieHeader: cookieHeader || undefined,
       },
     };
