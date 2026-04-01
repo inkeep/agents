@@ -160,11 +160,16 @@ class PgStreamBufferRegistry {
   }
 
   async hasChunks(scope: StreamScope): Promise<boolean> {
-    const rows = await getStreamChunks(runDbClient)({
-      ...scope,
-      afterIdx: -1,
-    });
-    return rows.length > 0;
+    try {
+      const rows = await getStreamChunks(runDbClient)({
+        ...scope,
+        afterIdx: -1,
+      });
+      return rows.length > 0;
+    } catch (err) {
+      logger.error({ err, ...scope }, 'Failed to check stream chunks, returning false');
+      return false;
+    }
   }
 
   private async flush(conversationId: string): Promise<void> {
