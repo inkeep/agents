@@ -14,4 +14,5 @@ export interface BlobStorageProvider {
   upload(params: BlobStorageUploadParams): Promise<void>;
   download(key: string): Promise<BlobStorageDownloadResult>;
   delete(key: string): Promise<void>;
+  getPresignedUrl?(key: string, expiresInSeconds?: number): Promise<string>;
 }
