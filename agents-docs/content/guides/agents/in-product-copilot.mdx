@@ -46,16 +46,16 @@ When a user asks "What are my open tickets?", the copilot will:
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
-    "auth_token": {
+    "auth-token": {
       "type": "string",
       "description": "The signed-in user's API token, forwarded to MCP servers."
     },
-    "user_id": {
+    "user-id": {
       "type": "string",
       "description": "The signed-in user's ID."
     }
   },
-  "required": ["auth_token", "user_id"],
+  "required": ["auth-token", "user-id"],
   "additionalProperties": {}
 }
 ```
@@ -63,7 +63,7 @@ When a user asks "What are my open tickets?", the copilot will:
     Click **Save** to apply the schema.
 
     <Warning>
-      Header keys are normalized to **lowercase** before validation. Always define schema properties in lowercase (e.g., `auth_token`, not `authToken`).
+      Header keys are normalized to **lowercase** before validation. Always define schema properties in lowercase (e.g., `auth-token`, not `authToken`).
     </Warning>
   </Step>
   <Step>
@@ -76,7 +76,7 @@ When a user asks "What are my open tickets?", the copilot will:
 
     **Prompt:**
 ```text
-You are an in-product support assistant for user {{headers.user_id}}.
+You are an in-product support assistant for user {{headers.user-id}}.
 
 <rules>
 - Always use the available tools to look up real data — never fabricate ticket IDs, statuses, or account details
@@ -87,7 +87,7 @@ You are an in-product support assistant for user {{headers.user_id}}.
 ```
 
     <Tip>
-      The `{{headers.user_id}}` template is resolved at runtime from the validated request headers. You can reference any key defined in the headers schema.
+      The `{{headers.user-id}}` template is resolved at runtime from the validated request headers. You can reference any key defined in the headers schema.
     </Tip>
   </Step>
 </Steps>
@@ -122,8 +122,8 @@ You are an in-product support assistant for user {{headers.user_id}}.
 
 ```json
 {
-  "Authorization": "Bearer {{headers.auth_token}}",
-  "X-User-Id": "{{headers.user_id}}"
+  "Authorization": "Bearer {{headers.auth-token}}",
+  "X-User-Id": "{{headers.user-id}}"
 }
 ```
 
@@ -148,8 +148,8 @@ function Copilot({ authToken, userId }: { authToken: string; userId: string }) {
   const aiChatSettings: InkeepAIChatSettings = {
     appId: 'YOUR_APP_ID',
     headers: {
-      auth_token: authToken,
-      user_id: userId,
+      auth-token: authToken,
+      user-id: userId,
     },
   };
 
@@ -165,8 +165,8 @@ const chat = Inkeep.EmbeddedChat({
   aiChatSettings: {
     appId: 'YOUR_APP_ID',
     headers: {
-      auth_token: currentUser.authToken,
-      user_id: currentUser.id,
+      auth-token: currentUser.authToken,
+      user-id: currentUser.id,
     },
   },
 });
@@ -191,8 +191,8 @@ const chat = Inkeep.EmbeddedChat({
 
 ```json
 {
-  "auth_token": "test-token-abc123",
-  "user_id": "user-42"
+  "auth-token": "test-token-abc123",
+  "user-id": "user-42"
 }
 ```
 
