@@ -8,6 +8,7 @@ import {
   createApiError,
   createScheduledTrigger,
   createScheduledTriggerInvocation,
+  createScheduledTriggerUser,
   DateTimeFilterQueryParamsSchema,
   deleteScheduledTrigger,
   generateId,
@@ -37,6 +38,7 @@ import {
   ScheduledTriggerInvocationStatusEnum,
   ScheduledTriggerResponse,
   ScheduledTriggerWithRunInfoListResponse,
+  setScheduledTriggerUsers,
   TenantProjectAgentParamsSchema,
   updateScheduledTrigger,
   updateScheduledTriggerInvocationStatus,
@@ -52,9 +54,13 @@ import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 import { onTriggerUpdated } from '../../run/services/ScheduledTriggerService';
 import { buildTimezoneHeaders, executeAgentAsync } from '../../run/services/TriggerService';
 
-export { assertCanMutateTrigger, validateRunAsUserId } from './triggerHelpers';
+export { assertCanMutateTrigger, validateRunAsUserId, validateRunAsUserIds } from './triggerHelpers';
 
-import { assertCanMutateTrigger, validateRunAsUserId } from './triggerHelpers';
+import {
+  assertCanMutateTrigger,
+  validateRunAsUserId,
+  validateRunAsUserIds,
+} from './triggerHelpers';
 
 const logger = getLogger('scheduled-triggers');
 
@@ -362,15 +368,25 @@ app.openapi(
 
     const id = body.id || generateId();
 
+    const runAsUserIds = body.runAsUserIds;
     const runAsUserId = body.runAsUserId || null;
 
-    if (runAsUserId) {
-      if (!callerId) {
-        throw createApiError({
-          code: 'bad_request',
-          message: 'Authenticated user ID is required when setting runAsUserId',
-        });
-      }
+    if (!callerId && (runAsUserId || (runAsUserIds && runAsUserIds.length > 0))) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Authenticated user ID is required when setting runAsUserId or runAsUserIds',
+      });
+    }
+
+    if (runAsUserIds && runAsUserIds.length > 0) {
+      await validateRunAsUserIds({
+        runAsUserIds,
+        callerId,
+        tenantId,
+        projectId,
+        tenantRole,
+      });
+    } else if (runAsUserId) {
       await validateRunAsUserId({
         runAsUserId,
         callerId,
@@ -381,7 +397,7 @@ app.openapi(
     }
 
     logger.debug(
-      { tenantId, projectId, agentId, scheduledTriggerId: id, runAsUserId },
+      { tenantId, projectId, agentId, scheduledTriggerId: id, runAsUserId, runAsUserIds },
       'Creating scheduled trigger'
     );
 
@@ -411,6 +427,20 @@ app.openapi(
       createdBy: callerId || null,
       nextRunAt,
     });
+
+    if (runAsUserIds && runAsUserIds.length > 0) {
+      await setScheduledTriggerUsers(runDbClient)({
+        tenantId,
+        scheduledTriggerId: trigger.id,
+        userIds: runAsUserIds,
+      });
+    } else if (runAsUserId) {
+      await createScheduledTriggerUser(runDbClient)({
+        tenantId,
+        scheduledTriggerId: trigger.id,
+        userId: runAsUserId,
+      });
+    }
 
     const { tenantId: _tid, projectId: _pid, agentId: _aid, ...triggerWithoutScopes } = trigger;
 
@@ -468,6 +498,8 @@ app.openapi(
       });
     }
 
+    const runAsUserIds = body.runAsUserIds;
+
     // Check if any update fields were actually provided
     const hasUpdateFields =
       body.name !== undefined ||
@@ -482,7 +514,9 @@ app.openapi(
       body.maxRetries !== undefined ||
       body.retryDelaySeconds !== undefined ||
       body.timeoutSeconds !== undefined ||
-      body.runAsUserId !== undefined;
+      body.runAsUserId !== undefined ||
+      runAsUserIds !== undefined ||
+      body.dispatchDelayMs !== undefined;
 
     if (!hasUpdateFields) {
       throw createApiError({
@@ -493,13 +527,22 @@ app.openapi(
 
     const runAsUserId = body.runAsUserId !== undefined ? body.runAsUserId || null : undefined;
 
-    if (runAsUserId) {
-      if (!callerId) {
-        throw createApiError({
-          code: 'bad_request',
-          message: 'Authenticated user ID is required when setting runAsUserId',
-        });
-      }
+    if (!callerId && (runAsUserId || (runAsUserIds && runAsUserIds.length > 0))) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Authenticated user ID is required when setting runAsUserId or runAsUserIds',
+      });
+    }
+
+    if (runAsUserIds && runAsUserIds.length > 0) {
+      await validateRunAsUserIds({
+        runAsUserIds,
+        callerId,
+        tenantId,
+        projectId,
+        tenantRole,
+      });
+    } else if (runAsUserId) {
       await validateRunAsUserId({
         runAsUserId,
         callerId,
@@ -510,7 +553,7 @@ app.openapi(
     }
 
     logger.debug(
-      { tenantId, projectId, agentId, scheduledTriggerId: id, runAsUserId },
+      { tenantId, projectId, agentId, scheduledTriggerId: id, runAsUserId, runAsUserIds },
       'Updating scheduled trigger'
     );
 
@@ -612,6 +655,14 @@ app.openapi(
       },
     });
 
+    if (runAsUserIds) {
+      await setScheduledTriggerUsers(runDbClient)({
+        tenantId,
+        scheduledTriggerId: id,
+        userIds: runAsUserIds,
+      });
+    }
+
     // Handle workflow lifecycle changes
     try {
       await onTriggerUpdated({
@@ -624,7 +675,6 @@ app.openapi(
         { err, tenantId, projectId, agentId, scheduledTriggerId: id },
         'Failed to update workflow for scheduled trigger'
       );
-      // Don't fail the request - trigger is updated, workflow state can be fixed
     }
 
     const {
