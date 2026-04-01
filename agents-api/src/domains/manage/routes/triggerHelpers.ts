@@ -36,20 +36,31 @@ export async function validateRunAsUserIds(params: {
           'Only org admins or owners can set runAsUserIds to include other users. Regular users can only include themselves.',
       });
     }
+  }
 
-    const targetMember = await getOrganizationMemberByUserId(runDbClient)(tenantId, userId);
+  const uniqueUserIds = [...new Set(runAsUserIds)];
+  const validationResults = await Promise.all(
+    uniqueUserIds.map(async (userId) => {
+      const [targetMember, targetCanUse] = await Promise.all([
+        getOrganizationMemberByUserId(runDbClient)(tenantId, userId),
+        canUseProjectStrict({
+          userId,
+          tenantId,
+          projectId,
+        }),
+      ]);
+
+      return { userId, targetMember, targetCanUse };
+    })
+  );
+
+  for (const { userId, targetMember, targetCanUse } of validationResults) {
     if (!targetMember) {
       throw createApiError({
         code: 'bad_request',
         message: `Invalid runAsUserIds: user ${userId} not found or is not an organization member`,
       });
     }
-
-    const targetCanUse = await canUseProjectStrict({
-      userId,
-      tenantId,
-      projectId,
-    });
 
     if (!targetCanUse) {
       throw createApiError({
