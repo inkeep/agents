@@ -1,5 +1,6 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  AddScheduledTriggerUserRequestSchema,
   addConversationIdToInvocation,
   cancelPendingInvocationsForTrigger,
   canUseProjectStrict,
@@ -11,11 +12,14 @@ import {
   createScheduledTriggerUser,
   DateTimeFilterQueryParamsSchema,
   deleteScheduledTrigger,
+  deleteScheduledTriggerUser,
   generateId,
   getProjectScopedRef,
   getScheduledTriggerById,
   getScheduledTriggerInvocationById,
   getScheduledTriggerRunInfoBatch,
+  getScheduledTriggerUserCount,
+  getScheduledTriggerUsers,
   getScheduledTriggerUsersBatch,
   getWaitUntil,
   interpolateTemplate,
@@ -37,7 +41,9 @@ import {
   ScheduledTriggerInvocationResponse,
   ScheduledTriggerInvocationStatusEnum,
   ScheduledTriggerResponse,
+  ScheduledTriggerUsersResponseSchema,
   ScheduledTriggerWithRunInfoListResponse,
+  SetScheduledTriggerUsersRequestSchema,
   setScheduledTriggerUsers,
   TenantProjectAgentParamsSchema,
   updateScheduledTrigger,
@@ -54,7 +60,11 @@ import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 import { onTriggerUpdated } from '../../run/services/ScheduledTriggerService';
 import { buildTimezoneHeaders, executeAgentAsync } from '../../run/services/TriggerService';
 
-export { assertCanMutateTrigger, validateRunAsUserId, validateRunAsUserIds } from './triggerHelpers';
+export {
+  assertCanMutateTrigger,
+  validateRunAsUserId,
+  validateRunAsUserIds,
+} from './triggerHelpers';
 
 import {
   assertCanMutateTrigger,
@@ -148,6 +158,7 @@ app.openapi(
         lastRunStatus: null,
         lastRunConversationIds: [],
         nextRunAt: null,
+        lastRunSummary: null,
       };
       const triggerUserIds = usersBatchMap.get(trigger.id) ?? [];
       const userCount = triggerUserIds.length;
@@ -184,13 +195,6 @@ app.openapi(
         ...runInfo,
         runAsUserIds: triggerUserIds,
         userCount,
-        lastRunSummary: null as {
-          total: number;
-          completed: number;
-          failed: number;
-          running: number;
-          pending: number;
-        } | null,
       };
     });
 
@@ -758,6 +762,280 @@ app.openapi(
       scopes: { tenantId, projectId, agentId },
       scheduledTriggerId: id,
     });
+
+    return c.body(null, 204);
+  }
+);
+
+const ScheduledTriggerUserIdParamsSchema = ScheduledTriggerIdParamsSchema.extend({
+  userId: z.string().describe('User ID'),
+});
+
+/**
+ * List Scheduled Trigger Users
+ */
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/{id}/users',
+    summary: 'List Scheduled Trigger Users',
+    operationId: 'list-scheduled-trigger-users',
+    tags: ['Scheduled Triggers'],
+    permission: requireProjectPermission('view'),
+    request: {
+      params: ScheduledTriggerIdParamsSchema,
+    },
+    responses: {
+      200: {
+        description: 'List of users associated with this trigger',
+        content: {
+          'application/json': {
+            schema: ScheduledTriggerUsersResponseSchema,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
+
+    const existing = await getScheduledTriggerById(runDbClient)({
+      scopes: { tenantId, projectId, agentId },
+      scheduledTriggerId: id,
+    });
+
+    if (!existing) {
+      throw createApiError({ code: 'not_found', message: 'Scheduled trigger not found' });
+    }
+
+    const rows = await getScheduledTriggerUsers(runDbClient)({
+      tenantId,
+      scheduledTriggerId: id,
+    });
+    return c.json({ data: rows.map((r) => r.userId) });
+  }
+);
+
+/**
+ * Set/Replace Scheduled Trigger Users (PUT)
+ */
+app.openapi(
+  createProtectedRoute({
+    method: 'put',
+    path: '/{id}/users',
+    summary: 'Set Scheduled Trigger Users',
+    operationId: 'set-scheduled-trigger-users',
+    tags: ['Scheduled Triggers'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: ScheduledTriggerIdParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: SetScheduledTriggerUsersRequestSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Trigger users replaced successfully',
+        content: {
+          'application/json': {
+            schema: ScheduledTriggerUsersResponseSchema,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
+    const { userIds } = c.req.valid('json');
+    const callerId = c.get('userId') ?? '';
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({ code: 'unauthorized', message: 'Missing tenant role' });
+    }
+
+    const existing = await getScheduledTriggerById(runDbClient)({
+      scopes: { tenantId, projectId, agentId },
+      scheduledTriggerId: id,
+    });
+
+    if (!existing) {
+      throw createApiError({ code: 'not_found', message: 'Scheduled trigger not found' });
+    }
+
+    assertCanMutateTrigger({ trigger: existing, callerId, tenantRole });
+
+    if (userIds.length > 0) {
+      await validateRunAsUserIds({
+        runAsUserIds: userIds,
+        callerId,
+        tenantId,
+        projectId,
+        tenantRole,
+      });
+    }
+
+    await setScheduledTriggerUsers(runDbClient)({
+      tenantId,
+      scheduledTriggerId: id,
+      userIds,
+    });
+
+    if (userIds.length === 0) {
+      await updateScheduledTrigger(runDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        scheduledTriggerId: id,
+        data: { enabled: false },
+      });
+    }
+
+    return c.json({ data: userIds });
+  }
+);
+
+/**
+ * Add Single User to Scheduled Trigger
+ */
+app.openapi(
+  createProtectedRoute({
+    method: 'post',
+    path: '/{id}/users',
+    summary: 'Add User to Scheduled Trigger',
+    operationId: 'add-scheduled-trigger-user',
+    tags: ['Scheduled Triggers'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: ScheduledTriggerIdParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: AddScheduledTriggerUserRequestSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      201: {
+        description: 'User added to trigger successfully',
+        content: {
+          'application/json': {
+            schema: ScheduledTriggerUsersResponseSchema,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
+    const { userId } = c.req.valid('json');
+    const callerId = c.get('userId') ?? '';
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({ code: 'unauthorized', message: 'Missing tenant role' });
+    }
+
+    const existing = await getScheduledTriggerById(runDbClient)({
+      scopes: { tenantId, projectId, agentId },
+      scheduledTriggerId: id,
+    });
+
+    if (!existing) {
+      throw createApiError({ code: 'not_found', message: 'Scheduled trigger not found' });
+    }
+
+    assertCanMutateTrigger({ trigger: existing, callerId, tenantRole });
+    await validateRunAsUserIds({
+      runAsUserIds: [userId],
+      callerId,
+      tenantId,
+      projectId,
+      tenantRole,
+    });
+
+    await createScheduledTriggerUser(runDbClient)({
+      tenantId,
+      scheduledTriggerId: id,
+      userId,
+    });
+
+    const rows = await getScheduledTriggerUsers(runDbClient)({
+      tenantId,
+      scheduledTriggerId: id,
+    });
+    return c.json({ data: rows.map((r) => r.userId) }, 201);
+  }
+);
+
+/**
+ * Remove User from Scheduled Trigger
+ */
+app.openapi(
+  createProtectedRoute({
+    method: 'delete',
+    path: '/{id}/users/{userId}',
+    summary: 'Remove User from Scheduled Trigger',
+    operationId: 'remove-scheduled-trigger-user',
+    tags: ['Scheduled Triggers'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: ScheduledTriggerUserIdParamsSchema,
+    },
+    responses: {
+      204: {
+        description: 'User removed from trigger successfully',
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, agentId, id, userId } = c.req.valid('param');
+    const callerId = c.get('userId') ?? '';
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({ code: 'unauthorized', message: 'Missing tenant role' });
+    }
+
+    const existing = await getScheduledTriggerById(runDbClient)({
+      scopes: { tenantId, projectId, agentId },
+      scheduledTriggerId: id,
+    });
+
+    if (!existing) {
+      throw createApiError({ code: 'not_found', message: 'Scheduled trigger not found' });
+    }
+
+    const isAdmin = tenantRole === OrgRoles.OWNER || tenantRole === OrgRoles.ADMIN;
+    if (userId !== callerId && !isAdmin) {
+      throw createApiError({
+        code: 'forbidden',
+        message: 'Only admins can remove other users from a trigger. You can only remove yourself.',
+      });
+    }
+
+    await deleteScheduledTriggerUser(runDbClient)({
+      tenantId,
+      scheduledTriggerId: id,
+      userId,
+    });
+
+    const remainingCount = await getScheduledTriggerUserCount(runDbClient)({
+      tenantId,
+      scheduledTriggerId: id,
+    });
+
+    if (remainingCount === 0) {
+      await updateScheduledTrigger(runDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        scheduledTriggerId: id,
+        data: { enabled: false },
+      });
+    }
 
     return c.body(null, 204);
   }
@@ -1669,6 +1947,326 @@ app.openapi(
     return c.json({
       success: true,
       invocationId,
+    });
+  }
+);
+
+const ScheduledTriggerUserParamsSchema = ScheduledTriggerIdParamsSchema.extend({
+  userId: z.string().describe('User ID'),
+});
+
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/{id}/users',
+    summary: 'List Scheduled Trigger Users',
+    operationId: 'list-scheduled-trigger-users',
+    tags: ['Scheduled Triggers'],
+    permission: requireProjectPermission('view'),
+    request: {
+      params: ScheduledTriggerIdParamsSchema,
+    },
+    responses: {
+      200: {
+        description: 'List of user IDs associated with the trigger',
+        content: {
+          'application/json': {
+            schema: z.object({ data: z.array(z.string()) }),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
+
+    const trigger = await getScheduledTriggerById(runDbClient)({
+      scopes: { tenantId, projectId, agentId },
+      scheduledTriggerId: id,
+    });
+
+    if (!trigger) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Scheduled trigger not found',
+      });
+    }
+
+    const rows = await getScheduledTriggerUsers(runDbClient)({
+      tenantId,
+      scheduledTriggerId: id,
+    });
+
+    return c.json({
+      data: rows.map((r) => r.userId),
+    });
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'put',
+    path: '/{id}/users',
+    summary: 'Replace Scheduled Trigger Users',
+    operationId: 'set-scheduled-trigger-users',
+    tags: ['Scheduled Triggers'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: ScheduledTriggerIdParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: z.object({ userIds: z.array(z.string()) }),
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Trigger users replaced successfully',
+        content: {
+          'application/json': {
+            schema: z.object({ data: z.array(z.string()) }),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
+    const { userIds } = c.req.valid('json');
+    const callerId = c.get('userId') ?? '';
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
+
+    const isAdmin = tenantRole === OrgRoles.OWNER || tenantRole === OrgRoles.ADMIN;
+    if (!isAdmin) {
+      throw createApiError({
+        code: 'forbidden',
+        message: 'Only org admins or owners can manage trigger users.',
+      });
+    }
+
+    const trigger = await getScheduledTriggerById(runDbClient)({
+      scopes: { tenantId, projectId, agentId },
+      scheduledTriggerId: id,
+    });
+
+    if (!trigger) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Scheduled trigger not found',
+      });
+    }
+
+    if (userIds.length > 0) {
+      await validateRunAsUserIds({
+        runAsUserIds: userIds,
+        callerId,
+        tenantId,
+        projectId,
+        tenantRole,
+      });
+    }
+
+    await setScheduledTriggerUsers(runDbClient)({
+      tenantId,
+      scheduledTriggerId: id,
+      userIds,
+    });
+
+    if (userIds.length === 0 && trigger.enabled) {
+      await updateScheduledTrigger(runDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        scheduledTriggerId: id,
+        data: { enabled: false },
+      });
+    }
+
+    return c.json({
+      data: userIds,
+    });
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'post',
+    path: '/{id}/users',
+    summary: 'Add User to Scheduled Trigger',
+    operationId: 'add-scheduled-trigger-user',
+    tags: ['Scheduled Triggers'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: ScheduledTriggerIdParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: z.object({ userId: z.string() }),
+          },
+        },
+      },
+    },
+    responses: {
+      201: {
+        description: 'User added to trigger successfully',
+        content: {
+          'application/json': {
+            schema: z.object({ data: z.array(z.string()) }),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
+    const { userId } = c.req.valid('json');
+    const callerId = c.get('userId') ?? '';
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
+
+    const isAdmin = tenantRole === OrgRoles.OWNER || tenantRole === OrgRoles.ADMIN;
+    if (!isAdmin) {
+      throw createApiError({
+        code: 'forbidden',
+        message: 'Only org admins or owners can add users to triggers.',
+      });
+    }
+
+    const trigger = await getScheduledTriggerById(runDbClient)({
+      scopes: { tenantId, projectId, agentId },
+      scheduledTriggerId: id,
+    });
+
+    if (!trigger) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Scheduled trigger not found',
+      });
+    }
+
+    await validateRunAsUserId({
+      runAsUserId: userId,
+      callerId,
+      tenantId,
+      projectId,
+      tenantRole,
+    });
+
+    await createScheduledTriggerUser(runDbClient)({
+      tenantId,
+      scheduledTriggerId: id,
+      userId,
+    });
+
+    const rows = await getScheduledTriggerUsers(runDbClient)({
+      tenantId,
+      scheduledTriggerId: id,
+    });
+
+    return c.json(
+      {
+        data: rows.map((r) => r.userId),
+      },
+      201
+    );
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'delete',
+    path: '/{id}/users/{userId}',
+    summary: 'Remove User from Scheduled Trigger',
+    operationId: 'remove-scheduled-trigger-user',
+    tags: ['Scheduled Triggers'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: ScheduledTriggerUserParamsSchema,
+    },
+    responses: {
+      200: {
+        description: 'User removed from trigger successfully',
+        content: {
+          'application/json': {
+            schema: z.object({ data: z.array(z.string()) }),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, agentId, id, userId } = c.req.valid('param');
+    const callerId = c.get('userId') ?? '';
+    const tenantRole = c.get('tenantRole') as OrgRole;
+    if (!tenantRole) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Missing tenant role',
+      });
+    }
+
+    const isSelf = userId === callerId;
+    const isAdmin = tenantRole === OrgRoles.OWNER || tenantRole === OrgRoles.ADMIN;
+    if (!isSelf && !isAdmin) {
+      throw createApiError({
+        code: 'forbidden',
+        message: 'Only org admins or owners can remove other users from triggers.',
+      });
+    }
+
+    const trigger = await getScheduledTriggerById(runDbClient)({
+      scopes: { tenantId, projectId, agentId },
+      scheduledTriggerId: id,
+    });
+
+    if (!trigger) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Scheduled trigger not found',
+      });
+    }
+
+    await deleteScheduledTriggerUser(runDbClient)({
+      tenantId,
+      scheduledTriggerId: id,
+      userId,
+    });
+
+    const remainingCount = await getScheduledTriggerUserCount(runDbClient)({
+      tenantId,
+      scheduledTriggerId: id,
+    });
+
+    if (remainingCount === 0 && trigger.enabled) {
+      await updateScheduledTrigger(runDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        scheduledTriggerId: id,
+        data: { enabled: false },
+      });
+    }
+
+    const rows = await getScheduledTriggerUsers(runDbClient)({
+      tenantId,
+      scheduledTriggerId: id,
+    });
+
+    return c.json({
+      data: rows.map((r) => r.userId),
     });
   }
 );
