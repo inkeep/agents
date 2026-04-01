@@ -20,14 +20,18 @@ export const getScheduledTriggerInvocationById =
     scheduledTriggerId: string;
     invocationId: string;
   }): Promise<ScheduledTriggerInvocation | undefined> => {
-    const result = await db.query.scheduledTriggerInvocations.findFirst({
-      where: and(
-        agentScopedWhere(scheduledTriggerInvocations, params.scopes),
-        eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
-        eq(scheduledTriggerInvocations.id, params.invocationId)
-      ),
-    });
-    return result as ScheduledTriggerInvocation | undefined;
+    const result = await db
+      .select()
+      .from(scheduledTriggerInvocations)
+      .where(
+        and(
+          agentScopedWhere(scheduledTriggerInvocations, params.scopes),
+          eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
+          eq(scheduledTriggerInvocations.id, params.invocationId)
+        )
+      )
+      .limit(1);
+    return result[0] as ScheduledTriggerInvocation | undefined;
   };
 
 /**
@@ -37,10 +41,12 @@ export const getScheduledTriggerInvocationById =
 export const getScheduledTriggerInvocationByIdempotencyKey =
   (db: AgentsRunDatabaseClient) =>
   async (params: { idempotencyKey: string }): Promise<ScheduledTriggerInvocation | undefined> => {
-    const result = await db.query.scheduledTriggerInvocations.findFirst({
-      where: eq(scheduledTriggerInvocations.idempotencyKey, params.idempotencyKey),
-    });
-    return result as ScheduledTriggerInvocation | undefined;
+    const result = await db
+      .select()
+      .from(scheduledTriggerInvocations)
+      .where(eq(scheduledTriggerInvocations.idempotencyKey, params.idempotencyKey))
+      .limit(1);
+    return result[0] as ScheduledTriggerInvocation | undefined;
   };
 
 /**

@@ -24,13 +24,17 @@ export const getProjectMetadata =
     tenantId: string;
     projectId: string;
   }): Promise<ProjectMetadataSelect | null> => {
-    const result = await db.query.projectMetadata.findFirst({
-      where: and(
-        tenantScopedWhere(projectMetadata, { tenantId: params.tenantId }),
-        eq(projectMetadata.id, params.projectId)
-      ),
-    });
-    return result ?? null;
+    const result = await db
+      .select()
+      .from(projectMetadata)
+      .where(
+        and(
+          tenantScopedWhere(projectMetadata, { tenantId: params.tenantId }),
+          eq(projectMetadata.id, params.projectId)
+        )
+      )
+      .limit(1);
+    return result[0] ?? null;
   };
 
 /**
@@ -39,10 +43,11 @@ export const getProjectMetadata =
 export const listProjectsMetadata =
   (db: AgentsRunDatabaseClient) =>
   async (params: { tenantId: string }): Promise<ProjectMetadataSelect[]> => {
-    return await db.query.projectMetadata.findMany({
-      where: tenantScopedWhere(projectMetadata, { tenantId: params.tenantId }),
-      orderBy: [desc(projectMetadata.createdAt)],
-    });
+    return await db
+      .select()
+      .from(projectMetadata)
+      .where(tenantScopedWhere(projectMetadata, { tenantId: params.tenantId }))
+      .orderBy(desc(projectMetadata.createdAt));
   };
 
 /**

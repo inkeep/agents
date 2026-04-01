@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   createAgent,
@@ -372,15 +373,19 @@ describe('Agent Agent Data Access - Integration Tests', () => {
       expect(afterDelete).toBeNull();
 
       // Verify agents still exist (should not cascade delete)
-      const routerStillExists = await db.query.subAgents.findFirst({
-        where: (agents, { eq }) => eq(agents.id, routerAgent.id),
-      });
-      const qaStillExists = await db.query.subAgents.findFirst({
-        where: (agents, { eq }) => eq(agents.id, qaAgent.id),
-      });
+      const routerResult = await db
+        .select()
+        .from(schema.subAgents)
+        .where(eq(schema.subAgents.id, routerAgent.id))
+        .limit(1);
+      const qaResult = await db
+        .select()
+        .from(schema.subAgents)
+        .where(eq(schema.subAgents.id, qaAgent.id))
+        .limit(1);
 
-      expect(routerStillExists).not.toBeNull();
-      expect(qaStillExists).not.toBeNull();
+      expect(routerResult[0]).not.toBeNull();
+      expect(qaResult[0]).not.toBeNull();
     });
 
     it('should maintain tenant isolation during deletion', async () => {

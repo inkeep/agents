@@ -71,7 +71,8 @@ describe('runSqlFileOnAllBranches helpers', () => {
   it('resolves repo-root relative paths when running from the package directory', () => {
     const packageDirectory = process.cwd();
     const repoDirectory = path.resolve(packageDirectory, '..', '..');
-    const repoRelativePath = 'packages/agents-core/drizzle/manage/0015_backfill_skill_files.sql';
+    const repoRelativePath =
+      'packages/agents-core/drizzle/manage/20260330145022_backfill_skill_files/migration.sql';
 
     expect(resolveSqlFilePath(repoRelativePath, packageDirectory)).toBe(
       path.resolve(repoDirectory, repoRelativePath)

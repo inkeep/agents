@@ -19,6 +19,19 @@ import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import type { DataComponentInsert } from '../../types/index';
 import { testManageDbClient } from '../setup';
 
+function createMockSelectChain(result: any) {
+  const chain: any = {};
+  chain.from = vi.fn().mockReturnValue(chain);
+  chain.where = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
+  chain.offset = vi.fn().mockReturnValue(chain);
+  chain.orderBy = vi.fn().mockReturnValue(chain);
+  // biome-ignore lint/suspicious/noThenProperty: mock thenable for drizzle select chain
+  chain.then = (resolve: Function, reject?: Function) =>
+    Promise.resolve(result).then(resolve as any, reject as any);
+  return chain;
+}
+
 describe('Data Components Data Access', () => {
   let db: AgentsManageDatabaseClient;
   const testTenantId = 'tenant-123';
@@ -51,15 +64,11 @@ describe('Data Components Data Access', () => {
         updatedAt: '2024-01-01T00:00:00Z',
       };
 
-      const mockQuery = {
-        dataComponents: {
-          findFirst: vi.fn().mockResolvedValue(expectedComponent),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([expectedComponent]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getDataComponent(mockDb)({
@@ -67,20 +76,16 @@ describe('Data Components Data Access', () => {
         dataComponentId: testDataComponentId,
       });
 
-      expect(mockQuery.dataComponents.findFirst).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedComponent);
     });
 
     it('should return null if data component not found', async () => {
-      const mockQuery = {
-        dataComponents: {
-          findFirst: vi.fn().mockResolvedValue(undefined),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getDataComponent(mockDb)({
@@ -421,16 +426,12 @@ describe('Data Components Data Access', () => {
         }),
       });
 
-      const mockQuery = {
-        dataComponents: {
-          findFirst: vi.fn().mockResolvedValue(expectedComponent),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([expectedComponent]));
 
       const mockDb = {
         ...db,
         update: mockUpdate,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await updateDataComponent(mockDb)({
@@ -440,7 +441,7 @@ describe('Data Components Data Access', () => {
       });
 
       expect(mockUpdate).toHaveBeenCalled();
-      expect(mockQuery.dataComponents.findFirst).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedComponent);
     });
 
@@ -455,16 +456,12 @@ describe('Data Components Data Access', () => {
         }),
       });
 
-      const mockQuery = {
-        dataComponents: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
 
       const mockDb = {
         ...db,
         update: mockUpdate,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await updateDataComponent(mockDb)({

@@ -67,6 +67,7 @@ import {
 } from '../db/runtime/runtime-schema';
 import {
   CredentialStoreType,
+  type DatasetItemExpectedOutput,
   MCPServerType,
   MCPTransportType,
   TOOL_STATUS_VALUES,
@@ -251,13 +252,25 @@ export type FunctionToolConfig = Omit<z.infer<typeof FunctionToolConfigSchema>, 
   execute: ((params: any) => Promise<any>) | string;
 };
 
-export const SubAgentSelectSchema = createSelectSchema(subAgents);
+// Explicit JSONB overrides needed because drizzle-zod v1 infers z.ZodType<T, $strip> for $type<>() columns,
+// which breaks type inference across package boundaries.
+import type { ConversationHistoryConfig } from '../types/utility';
+
+const ConversationHistoryConfigJsonbSchema = z
+  .custom<ConversationHistoryConfig>()
+  .nullable()
+  .optional();
+
+export const SubAgentSelectSchema = createSelectSchema(subAgents).extend({
+  conversationHistoryConfig: ConversationHistoryConfigJsonbSchema,
+});
 
 export const SubAgentInsertSchema = createInsertSchema(subAgents).extend({
   id: ResourceIdSchema,
   name: NameSchema,
   description: DescriptionSchema,
   models: ModelSchema.optional(),
+  conversationHistoryConfig: ConversationHistoryConfigJsonbSchema,
 });
 
 export const SubAgentUpdateSchema = SubAgentInsertSchema.partial();
@@ -965,11 +978,14 @@ export const ScheduledTriggerInvocationStatusEnum = z.enum([
 ]);
 
 export const ScheduledTriggerInvocationSelectSchema = createSelectSchema(
-  scheduledTriggerInvocations
+  scheduledTriggerInvocations,
+  {
+    ref: () => ResolvedRefSchema,
+    resolvedPayload: () => z.record(z.string(), z.unknown()),
+    status: () => ScheduledTriggerInvocationStatusEnum,
+  }
 ).extend({
-  ref: ResolvedRefSchema.nullable().optional(),
-  resolvedPayload: z.record(z.string(), z.unknown()).nullable().optional(),
-  status: ScheduledTriggerInvocationStatusEnum,
+  conversationIds: z.array(z.string()).nullable(),
 });
 
 export const ScheduledTriggerInvocationInsertSchema = createInsertSchema(
@@ -999,7 +1015,9 @@ export const ScheduledTriggerInvocationUpdateSchema =
 
 export const ScheduledTriggerInvocationApiSelectSchema = createAgentScopedApiSchema(
   ScheduledTriggerInvocationSelectSchema
-).openapi('ScheduledTriggerInvocation');
+)
+  .extend({ conversationIds: z.array(z.string()).nullable() })
+  .openapi('ScheduledTriggerInvocation');
 
 export const ScheduledTriggerInvocationApiInsertSchema = createAgentScopedApiInsertSchema(
   ScheduledTriggerInvocationInsertSchema
@@ -1436,9 +1454,12 @@ export const DatasetApiUpdateSchema = createApiUpdateSchema(DatasetUpdateSchema)
   .omit({ id: true })
   .openapi('DatasetUpdate');
 
-export const DatasetItemSelectSchema = createSelectSchema(datasetItem);
+export const DatasetItemSelectSchema = createSelectSchema(datasetItem).extend({
+  expectedOutput: z.custom<DatasetItemExpectedOutput>().nullable(),
+});
 export const DatasetItemInsertSchema = createInsertSchema(datasetItem).extend({
   id: ResourceIdSchema,
+  expectedOutput: z.custom<DatasetItemExpectedOutput>().optional(),
 });
 export const DatasetItemUpdateSchema = DatasetItemInsertSchema.partial();
 
@@ -1558,10 +1579,18 @@ export const DatasetRunConfigAgentRelationInsertSchema = createInsertSchema(
 export const DatasetRunConfigAgentRelationUpdateSchema =
   DatasetRunConfigAgentRelationInsertSchema.partial();
 
-export const DataComponentSelectSchema = createSelectSchema(dataComponents);
+const RenderJsonbSchema = z
+  .custom<{ component: string; mockData: Record<string, unknown> }>()
+  .nullable()
+  .optional();
+
+export const DataComponentSelectSchema = createSelectSchema(dataComponents).extend({
+  render: RenderJsonbSchema,
+});
 export const DataComponentInsertSchema = createInsertSchema(dataComponents)
   .extend({
     id: ResourceIdSchema,
+    render: RenderJsonbSchema,
   })
   .omit({
     createdAt: true,
@@ -1596,9 +1625,12 @@ export const SubAgentDataComponentApiUpdateSchema = createAgentScopedApiUpdateSc
   SubAgentDataComponentUpdateSchema
 );
 
-export const ArtifactComponentSelectSchema = createSelectSchema(artifactComponents);
+export const ArtifactComponentSelectSchema = createSelectSchema(artifactComponents).extend({
+  render: RenderJsonbSchema,
+});
 export const ArtifactComponentInsertSchema = createInsertSchema(artifactComponents).extend({
   id: ResourceIdSchema,
+  render: RenderJsonbSchema,
 });
 export const ArtifactComponentUpdateSchema = ArtifactComponentInsertSchema.partial();
 

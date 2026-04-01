@@ -147,12 +147,17 @@ export const updateConversationActiveSubAgent =
 export const getConversation =
   (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; conversationId: string }) => {
-    return await db.query.conversations.findFirst({
-      where: and(
-        projectScopedWhere(conversations, params.scopes),
-        eq(conversations.id, params.conversationId)
-      ),
-    });
+    const result = await db
+      .select()
+      .from(conversations)
+      .where(
+        and(
+          projectScopedWhere(conversations, params.scopes),
+          eq(conversations.id, params.conversationId)
+        )
+      )
+      .limit(1);
+    return result[0] ?? null;
   };
 
 export const createOrGetConversation =
@@ -160,9 +165,12 @@ export const createOrGetConversation =
     const conversationId = input.id || getConversationId();
 
     if (input.id) {
-      const existing = await db.query.conversations.findFirst({
-        where: and(eq(conversations.tenantId, input.tenantId), eq(conversations.id, input.id)),
-      });
+      const existingResult = await db
+        .select()
+        .from(conversations)
+        .where(and(eq(conversations.tenantId, input.tenantId), eq(conversations.id, input.id)))
+        .limit(1);
+      const existing = existingResult[0] ?? null;
 
       if (existing) {
         if (existing.activeSubAgentId !== input.activeSubAgentId) {
@@ -335,12 +343,17 @@ export const getConversationHistory =
 export const getActiveAgentForConversation =
   (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; conversationId: string }) => {
-    return await db.query.conversations.findFirst({
-      where: and(
-        projectScopedWhere(conversations, params.scopes),
-        eq(conversations.id, params.conversationId)
-      ),
-    });
+    const result = await db
+      .select()
+      .from(conversations)
+      .where(
+        and(
+          projectScopedWhere(conversations, params.scopes),
+          eq(conversations.id, params.conversationId)
+        )
+      )
+      .limit(1);
+    return result[0] ?? null;
   };
 
 /**

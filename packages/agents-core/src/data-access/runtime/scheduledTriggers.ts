@@ -11,16 +11,20 @@ export const getScheduledTriggerById =
     scopes: AgentScopeConfig;
     scheduledTriggerId: string;
   }): Promise<ScheduledTrigger | undefined> => {
-    const result = await db.query.scheduledTriggers.findFirst({
-      where: and(
-        eq(scheduledTriggers.tenantId, params.scopes.tenantId),
-        eq(scheduledTriggers.projectId, params.scopes.projectId),
-        eq(scheduledTriggers.agentId, params.scopes.agentId),
-        eq(scheduledTriggers.id, params.scheduledTriggerId)
-      ),
-    });
+    const result = await db
+      .select()
+      .from(scheduledTriggers)
+      .where(
+        and(
+          eq(scheduledTriggers.tenantId, params.scopes.tenantId),
+          eq(scheduledTriggers.projectId, params.scopes.projectId),
+          eq(scheduledTriggers.agentId, params.scopes.agentId),
+          eq(scheduledTriggers.id, params.scheduledTriggerId)
+        )
+      )
+      .limit(1);
 
-    return result;
+    return result[0];
   };
 
 export const listScheduledTriggersPaginated =

@@ -14,6 +14,19 @@ import {
 } from '../../data-access/manage/projects';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 
+function createMockSelectChain(result: any) {
+  const chain: any = {};
+  chain.from = vi.fn().mockReturnValue(chain);
+  chain.where = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
+  chain.offset = vi.fn().mockReturnValue(chain);
+  chain.orderBy = vi.fn().mockReturnValue(chain);
+  // biome-ignore lint/suspicious/noThenProperty: mock thenable for drizzle select chain
+  chain.then = (resolve: Function, reject?: Function) =>
+    Promise.resolve(result).then(resolve as any, reject as any);
+  return chain;
+}
+
 describe('Projects Data Access', () => {
   let db: AgentsManageDatabaseClient;
   const testTenantId = 'tenant-123';
@@ -565,35 +578,27 @@ describe('Projects Data Access', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      const mockQuery = {
-        projects: {
-          findFirst: vi.fn().mockResolvedValue(expectedProject),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([expectedProject]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getProject(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId1 },
       });
 
-      expect(mockQuery.projects.findFirst).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedProject);
     });
 
     it('should return null if project not found', async () => {
-      const mockQuery = {
-        projects: {
-          findFirst: vi.fn().mockResolvedValue(undefined),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getProject(mockDb)({
@@ -658,6 +663,8 @@ describe('Projects Data Access', () => {
         updatedAt: expect.any(Date),
       };
 
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([expectedProject]));
+
       const mockUpdate = vi.fn().mockReturnValue({
         set: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
@@ -668,6 +675,7 @@ describe('Projects Data Access', () => {
 
       const mockDb = {
         ...db,
+        select: mockSelect,
         update: mockUpdate,
       } as any;
 
@@ -681,6 +689,8 @@ describe('Projects Data Access', () => {
     });
 
     it('should return null when no project is updated', async () => {
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
+
       const mockUpdate = vi.fn().mockReturnValue({
         set: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
@@ -691,6 +701,7 @@ describe('Projects Data Access', () => {
 
       const mockDb = {
         ...db,
+        select: mockSelect,
         update: mockUpdate,
       } as any;
 

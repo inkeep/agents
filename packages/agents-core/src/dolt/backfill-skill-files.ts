@@ -5,6 +5,7 @@ import type { PoolClient } from 'pg';
 import { stringify } from 'yaml';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import { createAgentsManageDatabasePool } from '../db/manage/manage-client';
+import { manageRelations } from '../db/manage/manage-relations';
 import * as manageSchema from '../db/manage/manage-schema';
 import { skillFiles, skills } from '../db/manage/manage-schema';
 import { confirmMigration } from '../db/utils';
@@ -186,7 +187,11 @@ export async function backfillSkillFilesAcrossAllBranches(
   });
 
   try {
-    const db = drizzle(pool, { schema: manageSchema }) as unknown as AgentsManageDatabaseClient;
+    const db = drizzle({
+      client: pool,
+      schema: manageSchema,
+      relations: manageRelations,
+    }) as unknown as AgentsManageDatabaseClient;
     const allBranches = await doltListBranches(db)();
     const targetBranches = allBranches.filter((branch) => {
       if (!options.includeMain && branch.name === 'main') {
@@ -217,8 +222,10 @@ export async function backfillSkillFilesAcrossAllBranches(
 
     for (const branch of targetBranches) {
       const connection = await pool.connect();
-      const branchDb = drizzle(connection, {
+      const branchDb = drizzle({
+        client: connection,
         schema: manageSchema,
+        relations: manageRelations,
       }) as unknown as AgentsManageDatabaseClient;
 
       try {

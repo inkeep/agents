@@ -19,14 +19,19 @@ export const getCacheEntry =
     scopes: ProjectScopeConfig;
   }): Promise<ContextCacheSelect | null> => {
     try {
-      const cacheEntry = await db.query.contextCache.findFirst({
-        where: and(
-          projectScopedWhere(contextCache, params.scopes),
-          eq(contextCache.conversationId, params.conversationId),
-          eq(contextCache.contextConfigId, params.contextConfigId),
-          eq(contextCache.contextVariableKey, params.contextVariableKey)
-        ),
-      });
+      const result = await db
+        .select()
+        .from(contextCache)
+        .where(
+          and(
+            projectScopedWhere(contextCache, params.scopes),
+            eq(contextCache.conversationId, params.conversationId),
+            eq(contextCache.contextConfigId, params.contextConfigId),
+            eq(contextCache.contextVariableKey, params.contextVariableKey)
+          )
+        )
+        .limit(1);
+      const cacheEntry = result[0] ?? null;
 
       if (!cacheEntry) {
         return null;
@@ -202,12 +207,15 @@ export const getConversationCacheEntries =
     scopes: ProjectScopeConfig;
     conversationId: string;
   }): Promise<ContextCacheSelect[]> => {
-    const result = await db.query.contextCache.findMany({
-      where: and(
-        projectScopedWhere(contextCache, params.scopes),
-        eq(contextCache.conversationId, params.conversationId)
-      ),
-    });
+    const result = await db
+      .select()
+      .from(contextCache)
+      .where(
+        and(
+          projectScopedWhere(contextCache, params.scopes),
+          eq(contextCache.conversationId, params.conversationId)
+        )
+      );
 
     return result.map((entry) => ({
       ...entry,
@@ -224,12 +232,15 @@ export const getContextConfigCacheEntries =
     scopes: ProjectScopeConfig;
     contextConfigId: string;
   }): Promise<ContextCacheSelect[]> => {
-    const result = await db.query.contextCache.findMany({
-      where: and(
-        projectScopedWhere(contextCache, params.scopes),
-        eq(contextCache.contextConfigId, params.contextConfigId)
-      ),
-    });
+    const result = await db
+      .select()
+      .from(contextCache)
+      .where(
+        and(
+          projectScopedWhere(contextCache, params.scopes),
+          eq(contextCache.contextConfigId, params.contextConfigId)
+        )
+      );
 
     return result.map((entry) => ({
       ...entry,

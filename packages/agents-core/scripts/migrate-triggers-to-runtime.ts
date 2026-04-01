@@ -87,8 +87,8 @@ async function main() {
   const managePool = new Pool({ connectionString: MANAGE_DB_URL, max: 2 });
   const runtimePool = new Pool({ connectionString: RUNTIME_DB_URL, max: 2 });
 
-  const manageDb = drizzle(managePool, { schema: manageSchema });
-  const runtimeDb = drizzle(runtimePool, { schema: runtimeSchema });
+  const manageDb = drizzle({ client: managePool, schema: manageSchema });
+  const runtimeDb = drizzle({ client: runtimePool, schema: runtimeSchema });
 
   try {
     const branches = await manageDb.execute<{ name: string; hash: string }>(

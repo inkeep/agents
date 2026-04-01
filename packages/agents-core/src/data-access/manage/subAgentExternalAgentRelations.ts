@@ -13,12 +13,17 @@ import { agentScopedWhere, subAgentScopedWhere } from './scope-helpers';
 export const getSubAgentExternalAgentRelationById =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: SubAgentScopeConfig; relationId: string }) => {
-    return db.query.subAgentExternalAgentRelations.findFirst({
-      where: and(
-        subAgentScopedWhere(subAgentExternalAgentRelations, params.scopes),
-        eq(subAgentExternalAgentRelations.id, params.relationId)
-      ),
-    });
+    const result = await db
+      .select()
+      .from(subAgentExternalAgentRelations)
+      .where(
+        and(
+          subAgentScopedWhere(subAgentExternalAgentRelations, params.scopes),
+          eq(subAgentExternalAgentRelations.id, params.relationId)
+        )
+      )
+      .limit(1);
+    return result[0];
   };
 
 export const listSubAgentExternalAgentRelations =
@@ -49,16 +54,18 @@ export const listSubAgentExternalAgentRelations =
 
 export const getSubAgentExternalAgentRelations =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
-    return await db.query.subAgentExternalAgentRelations.findMany({
-      where: subAgentScopedWhere(subAgentExternalAgentRelations, params.scopes),
-    });
+    return await db
+      .select()
+      .from(subAgentExternalAgentRelations)
+      .where(subAgentScopedWhere(subAgentExternalAgentRelations, params.scopes));
   };
 
 export const getSubAgentExternalAgentRelationsByAgent =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
-    return await db.query.subAgentExternalAgentRelations.findMany({
-      where: agentScopedWhere(subAgentExternalAgentRelations, params.scopes),
-    });
+    return await db
+      .select()
+      .from(subAgentExternalAgentRelations)
+      .where(agentScopedWhere(subAgentExternalAgentRelations, params.scopes));
   };
 
 export const getSubAgentExternalAgentRelationsByExternalAgent =
@@ -272,12 +279,17 @@ export const createSubAgentExternalAgentRelation =
 export const getSubAgentExternalAgentRelationByParams =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: SubAgentScopeConfig; externalAgentId: string }) => {
-    return db.query.subAgentExternalAgentRelations.findFirst({
-      where: and(
-        subAgentScopedWhere(subAgentExternalAgentRelations, params.scopes),
-        eq(subAgentExternalAgentRelations.externalAgentId, params.externalAgentId)
-      ),
-    });
+    const result = await db
+      .select()
+      .from(subAgentExternalAgentRelations)
+      .where(
+        and(
+          subAgentScopedWhere(subAgentExternalAgentRelations, params.scopes),
+          eq(subAgentExternalAgentRelations.externalAgentId, params.externalAgentId)
+        )
+      )
+      .limit(1);
+    return result[0];
   };
 
 /**

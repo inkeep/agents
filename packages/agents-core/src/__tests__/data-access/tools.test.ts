@@ -25,6 +25,19 @@ vi.mock('../../dolt/schema-sync', () => ({
   getActiveBranch: vi.fn(() => vi.fn().mockResolvedValue('some_other_branch')),
 }));
 
+function createMockSelectChain(result: any) {
+  const chain: any = {};
+  chain.from = vi.fn().mockReturnValue(chain);
+  chain.where = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
+  chain.offset = vi.fn().mockReturnValue(chain);
+  chain.orderBy = vi.fn().mockReturnValue(chain);
+  // biome-ignore lint/suspicious/noThenProperty: mock thenable for drizzle select chain
+  chain.then = (resolve: Function, reject?: Function) =>
+    Promise.resolve(result).then(resolve as any, reject as any);
+  return chain;
+}
+
 describe('Tools Data Access', () => {
   let db: AgentsManageDatabaseClient;
   const testTenantId = 'test-tenant';
@@ -51,15 +64,11 @@ describe('Tools Data Access', () => {
         updatedAt: '2024-01-01T00:00:00Z',
       };
 
-      const mockQuery = {
-        tools: {
-          findFirst: vi.fn().mockResolvedValue(expectedTool),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([expectedTool]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getToolById(mockDb)({
@@ -67,20 +76,16 @@ describe('Tools Data Access', () => {
         toolId: testToolId,
       });
 
-      expect(mockQuery.tools.findFirst).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedTool);
     });
 
     it('should return null when tool not found', async () => {
-      const mockQuery = {
-        tools: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getToolById(mockDb)({

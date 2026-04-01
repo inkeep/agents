@@ -13,9 +13,12 @@ import { projectScopedWhere } from '../manage/scope-helpers';
 export const getMessageById =
   (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; messageId: string }) => {
-    return db.query.messages.findFirst({
-      where: and(projectScopedWhere(messages, params.scopes), eq(messages.id, params.messageId)),
-    });
+    const result = await db
+      .select()
+      .from(messages)
+      .where(and(projectScopedWhere(messages, params.scopes), eq(messages.id, params.messageId)))
+      .limit(1);
+    return result[0] ?? null;
   };
 
 export const listMessages =

@@ -51,11 +51,13 @@ export const createInstallation =
 export const getInstallationByGitHubId =
   (db: AgentsRunDatabaseClient) =>
   async (gitHubInstallationId: string): Promise<WorkAppGitHubInstallationSelect | null> => {
-    const result = await db.query.workAppGitHubInstallations.findFirst({
-      where: eq(workAppGitHubInstallations.installationId, gitHubInstallationId),
-    });
+    const resultRows = await db
+      .select()
+      .from(workAppGitHubInstallations)
+      .where(eq(workAppGitHubInstallations.installationId, gitHubInstallationId))
+      .limit(1);
 
-    return result ?? null;
+    return resultRows[0] ?? null;
   };
 
 /**
@@ -67,14 +69,18 @@ export const getInstallationById =
     tenantId: string;
     id: string;
   }): Promise<WorkAppGitHubInstallationSelect | null> => {
-    const result = await db.query.workAppGitHubInstallations.findFirst({
-      where: and(
-        tenantScopedWhere(workAppGitHubInstallations, { tenantId: params.tenantId }),
-        eq(workAppGitHubInstallations.id, params.id)
-      ),
-    });
+    const resultRows = await db
+      .select()
+      .from(workAppGitHubInstallations)
+      .where(
+        and(
+          tenantScopedWhere(workAppGitHubInstallations, { tenantId: params.tenantId }),
+          eq(workAppGitHubInstallations.id, params.id)
+        )
+      )
+      .limit(1);
 
-    return result ?? null;
+    return resultRows[0] ?? null;
   };
 
 /**
@@ -436,11 +442,13 @@ export const getRepositoryByFullName =
 export const getRepositoryById =
   (db: AgentsRunDatabaseClient) =>
   async (id: string): Promise<WorkAppGitHubRepositorySelect | null> => {
-    const result = await db.query.workAppGitHubRepositories.findFirst({
-      where: eq(workAppGitHubRepositories.id, id),
-    });
+    const resultRows = await db
+      .select()
+      .from(workAppGitHubRepositories)
+      .where(eq(workAppGitHubRepositories.id, id))
+      .limit(1);
 
-    return result ?? null;
+    return resultRows[0] ?? null;
   };
 
 /**

@@ -18,17 +18,19 @@ import { projectScopedWhere } from '../manage/scope-helpers';
 
 export const getApiKeyById =
   (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopeConfig; id: string }) => {
-    return await db.query.apiKeys.findFirst({
-      where: and(projectScopedWhere(apiKeys, params.scopes), eq(apiKeys.id, params.id)),
-    });
+    const result = await db
+      .select()
+      .from(apiKeys)
+      .where(and(projectScopedWhere(apiKeys, params.scopes), eq(apiKeys.id, params.id)))
+      .limit(1);
+    return result[0] ?? null;
   };
 
 // Intentionally unscoped: auth discovery function that looks up API keys by publicId
 // to determine tenantId/projectId. Scoping would create a circular dependency.
 export const getApiKeyByPublicId = (db: AgentsRunDatabaseClient) => async (publicId: string) => {
-  return await db.query.apiKeys.findFirst({
-    where: eq(apiKeys.publicId, publicId),
-  });
+  const result = await db.select().from(apiKeys).where(eq(apiKeys.publicId, publicId)).limit(1);
+  return result[0] ?? null;
 };
 
 export const listApiKeys =
@@ -40,10 +42,11 @@ export const listApiKeys =
       conditions.push(eq(apiKeys.agentId, params.agentId));
     }
 
-    return await db.query.apiKeys.findMany({
-      where: and(...conditions),
-      orderBy: [desc(apiKeys.createdAt)],
-    });
+    return await db
+      .select()
+      .from(apiKeys)
+      .where(and(...conditions))
+      .orderBy(desc(apiKeys.createdAt));
   };
 
 export const listApiKeysPaginated =
@@ -158,7 +161,7 @@ export const hasApiKey =
   (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; id: string }): Promise<boolean> => {
     const apiKey = await getApiKeyById(db)(params);
-    return apiKey !== null;
+    return !!apiKey;
   };
 
 export const updateApiKeyLastUsed =

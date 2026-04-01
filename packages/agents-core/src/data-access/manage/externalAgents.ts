@@ -31,14 +31,18 @@ export const getExternalAgent =
     scopes: ProjectScopeConfig;
     externalAgentId: string;
   }): Promise<ExternalAgentSelect | null> => {
-    const result = await db.query.externalAgents.findFirst({
-      where: and(
-        projectScopedWhere(externalAgents, params.scopes),
-        eq(externalAgents.id, params.externalAgentId)
-      ),
-    });
+    const result = await db
+      .select()
+      .from(externalAgents)
+      .where(
+        and(
+          projectScopedWhere(externalAgents, params.scopes),
+          eq(externalAgents.id, params.externalAgentId)
+        )
+      )
+      .limit(1);
 
-    return result || null;
+    return result[0] ?? null;
   };
 
 /**
@@ -50,14 +54,18 @@ export const getExternalAgentByUrl =
     scopes: ProjectScopeConfig;
     baseUrl: string;
   }): Promise<ExternalAgentSelect | null> => {
-    const result = await db.query.externalAgents.findFirst({
-      where: and(
-        projectScopedWhere(externalAgents, params.scopes),
-        eq(externalAgents.baseUrl, params.baseUrl)
-      ),
-    });
+    const result = await db
+      .select()
+      .from(externalAgents)
+      .where(
+        and(
+          projectScopedWhere(externalAgents, params.scopes),
+          eq(externalAgents.baseUrl, params.baseUrl)
+        )
+      )
+      .limit(1);
 
-    return result || null;
+    return result[0] ?? null;
   };
 
 /**
@@ -66,10 +74,11 @@ export const getExternalAgentByUrl =
 export const listExternalAgents =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<ExternalAgentSelect[]> => {
-    return await db.query.externalAgents.findMany({
-      where: projectScopedWhere(externalAgents, params.scopes),
-      orderBy: [asc(externalAgents.name)],
-    });
+    return await db
+      .select()
+      .from(externalAgents)
+      .where(projectScopedWhere(externalAgents, params.scopes))
+      .orderBy(asc(externalAgents.name));
   };
 
 /**

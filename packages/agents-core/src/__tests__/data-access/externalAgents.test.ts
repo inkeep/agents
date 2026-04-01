@@ -14,6 +14,19 @@ import {
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { testManageDbClient } from '../setup';
 
+function createMockSelectChain(result: any) {
+  const chain: any = {};
+  chain.from = vi.fn().mockReturnValue(chain);
+  chain.where = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
+  chain.offset = vi.fn().mockReturnValue(chain);
+  chain.orderBy = vi.fn().mockReturnValue(chain);
+  // biome-ignore lint/suspicious/noThenProperty: mock thenable for drizzle select chain
+  chain.then = (resolve: Function, reject?: Function) =>
+    Promise.resolve(result).then(resolve as any, reject as any);
+  return chain;
+}
+
 describe('External Agents Data Access', () => {
   let db: AgentsManageDatabaseClient;
   const testTenantId = 'tenant-123';
@@ -108,15 +121,11 @@ describe('External Agents Data Access', () => {
         updatedAt: '2024-01-01T00:00:00Z',
       };
 
-      const mockQuery = {
-        externalAgents: {
-          findFirst: vi.fn().mockResolvedValue(expectedAgent),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([expectedAgent]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getExternalAgent(mockDb)({
@@ -124,20 +133,16 @@ describe('External Agents Data Access', () => {
         externalAgentId: testExternalAgentId,
       });
 
-      expect(mockQuery.externalAgents.findFirst).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedAgent);
     });
 
     it('should return null if external agent not found', async () => {
-      const mockQuery = {
-        externalAgents: {
-          findFirst: vi.fn().mockResolvedValue(undefined),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getExternalAgent(mockDb)({
@@ -163,15 +168,11 @@ describe('External Agents Data Access', () => {
         updatedAt: '2024-01-01T00:00:00Z',
       };
 
-      const mockQuery = {
-        externalAgents: {
-          findFirst: vi.fn().mockResolvedValue(expectedAgent),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([expectedAgent]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getExternalAgentByUrl(mockDb)({
@@ -179,20 +180,16 @@ describe('External Agents Data Access', () => {
         baseUrl: 'https://unique.api.com',
       });
 
-      expect(mockQuery.externalAgents.findFirst).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedAgent);
     });
 
     it('should return null if agent with URL not found', async () => {
-      const mockQuery = {
-        externalAgents: {
-          findFirst: vi.fn().mockResolvedValue(undefined),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getExternalAgentByUrl(mockDb)({
@@ -231,35 +228,27 @@ describe('External Agents Data Access', () => {
         },
       ];
 
-      const mockQuery = {
-        externalAgents: {
-          findMany: vi.fn().mockResolvedValue(expectedAgents),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain(expectedAgents));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await listExternalAgents(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
       });
 
-      expect(mockQuery.externalAgents.findMany).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedAgents);
     });
 
     it('should return empty array when no agents found', async () => {
-      const mockQuery = {
-        externalAgents: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await listExternalAgents(mockDb)({
@@ -628,15 +617,11 @@ describe('External Agents Data Access', () => {
         updatedAt: '2024-01-01T00:00:00Z',
       };
 
-      const mockQuery = {
-        externalAgents: {
-          findFirst: vi.fn().mockResolvedValue(existingAgent),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([existingAgent]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await externalAgentExists(mockDb)({
@@ -648,15 +633,11 @@ describe('External Agents Data Access', () => {
     });
 
     it('should return false when external agent does not exist', async () => {
-      const mockQuery = {
-        externalAgents: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await externalAgentExists(mockDb)({
@@ -682,15 +663,11 @@ describe('External Agents Data Access', () => {
         updatedAt: '2024-01-01T00:00:00Z',
       };
 
-      const mockQuery = {
-        externalAgents: {
-          findFirst: vi.fn().mockResolvedValue(existingAgent),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([existingAgent]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await externalAgentUrlExists(mockDb)({
@@ -702,15 +679,11 @@ describe('External Agents Data Access', () => {
     });
 
     it('should return false when external agent with URL does not exist', async () => {
-      const mockQuery = {
-        externalAgents: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await externalAgentUrlExists(mockDb)({

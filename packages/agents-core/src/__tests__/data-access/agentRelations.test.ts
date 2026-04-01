@@ -18,6 +18,20 @@ import {
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { testManageDbClient } from '../setup';
 
+function createMockSelectChain(result: any) {
+  const chain: any = {};
+  chain.from = vi.fn().mockReturnValue(chain);
+  chain.where = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
+  chain.offset = vi.fn().mockReturnValue(chain);
+  chain.orderBy = vi.fn().mockReturnValue(chain);
+  chain.innerJoin = vi.fn().mockReturnValue(chain);
+  // biome-ignore lint/suspicious/noThenProperty: mock thenable for drizzle select chain
+  chain.then = (resolve: Function, reject?: Function) =>
+    Promise.resolve(result).then(resolve as any, reject as any);
+  return chain;
+}
+
 describe('Agent Relations Data Access', () => {
   let db: AgentsManageDatabaseClient;
   const testTenantId = 'test-tenant';
@@ -42,15 +56,9 @@ describe('Agent Relations Data Access', () => {
         relationType: 'transfer',
       };
 
-      const mockQuery = {
-        subAgentRelations: {
-          findFirst: vi.fn().mockResolvedValue(expectedRelation),
-        },
-      };
-
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: vi.fn().mockReturnValue(createMockSelectChain([expectedRelation])),
       } as any;
 
       const result = await getAgentRelationById(mockDb)({
@@ -62,20 +70,14 @@ describe('Agent Relations Data Access', () => {
         relationId,
       });
 
-      expect(mockQuery.subAgentRelations.findFirst).toHaveBeenCalled();
+      expect(mockDb.select).toHaveBeenCalled();
       expect(result).toEqual(expectedRelation);
     });
 
-    it('should return null if relation not found', async () => {
-      const mockQuery = {
-        subAgentRelations: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      };
-
+    it('should return undefined if relation not found', async () => {
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: vi.fn().mockReturnValue(createMockSelectChain([])),
       } as any;
 
       const result = await getAgentRelationById(mockDb)({
@@ -87,7 +89,7 @@ describe('Agent Relations Data Access', () => {
         relationId: 'non-existent',
       });
 
-      expect(result).toBeNull();
+      expect(result).toBeUndefined();
     });
   });
 
@@ -98,37 +100,18 @@ describe('Agent Relations Data Access', () => {
         { id: 'relation-2', sourceSubAgentId: 'agent-2', targetSubAgentId: 'agent-3' },
       ];
 
-      const mockSelect = vi.fn().mockImplementation((fields) => {
-        if (fields?.count) {
-          // This is the count query
-          return {
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue([{ count: 2 }]),
-            }),
-          };
-        }
-        // This is the main data query
-        return {
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockReturnValue({
-                offset: vi.fn().mockReturnValue({
-                  orderBy: vi.fn().mockResolvedValue(expectedRelations),
-                }),
-              }),
-            }),
-          }),
-        };
-      });
+      const dataChain = createMockSelectChain(expectedRelations);
+      const countChain = createMockSelectChain([{ count: 2 }]);
 
+      let selectCallCount = 0;
       const mockDb = {
         ...db,
-        select: mockSelect,
+        select: vi.fn().mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) return dataChain;
+          return countChain;
+        }),
       } as any;
-
-      // Mock Promise.all to return both data and count results
-      const originalPromiseAll = Promise.all;
-      vi.spyOn(Promise, 'all').mockResolvedValue([expectedRelations, [{ count: 2 }]]);
 
       const result = await listAgentRelations(mockDb)({
         scopes: {
@@ -142,14 +125,11 @@ describe('Agent Relations Data Access', () => {
         },
       });
 
-      expect(mockSelect).toHaveBeenCalled();
+      expect(mockDb.select).toHaveBeenCalled();
       expect(result).toEqual({
         data: expectedRelations,
         pagination: { page: 1, limit: 10, total: 2, pages: 1 },
       });
-
-      // Restore Promise.all
-      vi.spyOn(Promise, 'all').mockImplementation(originalPromiseAll);
     });
   });
 
@@ -159,15 +139,9 @@ describe('Agent Relations Data Access', () => {
         { id: 'relation-1', sourceSubAgentId: 'agent-1', targetSubAgentId: 'agent-2' },
       ];
 
-      const mockQuery = {
-        subAgentRelations: {
-          findMany: vi.fn().mockResolvedValue(expectedRelations),
-        },
-      };
-
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: vi.fn().mockReturnValue(createMockSelectChain(expectedRelations)),
       } as any;
 
       const result = await getAgentRelations(mockDb)({
@@ -179,7 +153,7 @@ describe('Agent Relations Data Access', () => {
         },
       });
 
-      expect(mockQuery.subAgentRelations.findMany).toHaveBeenCalled();
+      expect(mockDb.select).toHaveBeenCalled();
       expect(result).toEqual(expectedRelations);
     });
   });
@@ -190,37 +164,18 @@ describe('Agent Relations Data Access', () => {
         { id: 'relation-1', sourceSubAgentId: 'agent-1', targetSubAgentId: 'agent-2' },
       ];
 
-      const mockSelect = vi.fn().mockImplementation((fields) => {
-        if (fields?.count) {
-          // This is the count query
-          return {
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue([{ count: 1 }]),
-            }),
-          };
-        }
-        // This is the main data query
-        return {
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockReturnValue({
-                offset: vi.fn().mockReturnValue({
-                  orderBy: vi.fn().mockResolvedValue(expectedRelations),
-                }),
-              }),
-            }),
-          }),
-        };
-      });
+      const dataChain = createMockSelectChain(expectedRelations);
+      const countChain = createMockSelectChain([{ count: 1 }]);
 
+      let selectCallCount = 0;
       const mockDb = {
         ...db,
-        select: mockSelect,
+        select: vi.fn().mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) return dataChain;
+          return countChain;
+        }),
       } as any;
-
-      // Mock Promise.all to return both data and count results
-      const originalPromiseAll = Promise.all;
-      vi.spyOn(Promise, 'all').mockResolvedValue([expectedRelations, [{ count: 1 }]]);
 
       const result = await getAgentRelationsBySource(mockDb)({
         scopes: {
@@ -231,14 +186,11 @@ describe('Agent Relations Data Access', () => {
         sourceSubAgentId: 'agent-1',
       });
 
-      expect(mockSelect).toHaveBeenCalled();
+      expect(mockDb.select).toHaveBeenCalled();
       expect(result).toEqual({
         data: expectedRelations,
         pagination: { page: 1, limit: 10, total: 1, pages: 1 },
       });
-
-      // Restore Promise.all
-      vi.spyOn(Promise, 'all').mockImplementation(originalPromiseAll);
     });
   });
 
@@ -248,37 +200,18 @@ describe('Agent Relations Data Access', () => {
         { id: 'relation-1', sourceSubAgentId: 'agent-1', targetSubAgentId: 'agent-2' },
       ];
 
-      const mockSelect = vi.fn().mockImplementation((fields) => {
-        if (fields?.count) {
-          // This is the count query
-          return {
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue([{ count: 1 }]),
-            }),
-          };
-        }
-        // This is the main data query
-        return {
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockReturnValue({
-                offset: vi.fn().mockReturnValue({
-                  orderBy: vi.fn().mockResolvedValue(expectedRelations),
-                }),
-              }),
-            }),
-          }),
-        };
-      });
+      const dataChain = createMockSelectChain(expectedRelations);
+      const countChain = createMockSelectChain([{ count: 1 }]);
 
+      let selectCallCount = 0;
       const mockDb = {
         ...db,
-        select: mockSelect,
+        select: vi.fn().mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) return dataChain;
+          return countChain;
+        }),
       } as any;
-
-      // Mock Promise.all to return both data and count results
-      const originalPromiseAll = Promise.all;
-      vi.spyOn(Promise, 'all').mockResolvedValue([expectedRelations, [{ count: 1 }]]);
 
       const result = await getSubAgentRelationsByTarget(mockDb)({
         scopes: {
@@ -289,14 +222,11 @@ describe('Agent Relations Data Access', () => {
         targetSubAgentId: 'agent-2',
       });
 
-      expect(mockSelect).toHaveBeenCalled();
+      expect(mockDb.select).toHaveBeenCalled();
       expect(result).toEqual({
         data: expectedRelations,
         pagination: { page: 1, limit: 10, total: 1, pages: 1 },
       });
-
-      // Restore Promise.all
-      vi.spyOn(Promise, 'all').mockImplementation(originalPromiseAll);
     });
   });
 
@@ -338,39 +268,18 @@ describe('Agent Relations Data Access', () => {
     it('should get tools for an agent', async () => {
       const expectedTools = [{ id: 'tool-1', name: 'Test Tool', config: {} }];
 
-      const mockSelect = vi.fn().mockImplementation((fields) => {
-        if (fields?.count) {
-          // This is the count query
-          return {
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue([{ count: 1 }]),
-            }),
-          };
-        }
-        // This is the main data query with specific fields
-        return {
-          from: vi.fn().mockReturnValue({
-            innerJoin: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockReturnValue({
-                  offset: vi.fn().mockReturnValue({
-                    orderBy: vi.fn().mockResolvedValue(expectedTools),
-                  }),
-                }),
-              }),
-            }),
-          }),
-        };
-      });
+      const dataChain = createMockSelectChain(expectedTools);
+      const countChain = createMockSelectChain([{ count: 1 }]);
 
+      let selectCallCount = 0;
       const mockDb = {
         ...db,
-        select: mockSelect,
+        select: vi.fn().mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) return dataChain;
+          return countChain;
+        }),
       } as any;
-
-      // Mock Promise.all to return both data and count results
-      const originalPromiseAll = Promise.all;
-      vi.spyOn(Promise, 'all').mockResolvedValue([expectedTools, [{ count: 1 }]]);
 
       const result = await getToolsForAgent(mockDb)({
         scopes: {
@@ -381,14 +290,11 @@ describe('Agent Relations Data Access', () => {
         },
       });
 
-      expect(mockSelect).toHaveBeenCalled();
+      expect(mockDb.select).toHaveBeenCalled();
       expect(result).toEqual({
         data: expectedTools,
         pagination: { page: 1, limit: 10, total: 1, pages: 1 },
       });
-
-      // Restore Promise.all
-      vi.spyOn(Promise, 'all').mockImplementation(originalPromiseAll);
     });
   });
 

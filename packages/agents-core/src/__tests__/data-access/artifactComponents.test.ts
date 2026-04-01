@@ -20,6 +20,19 @@ import {
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { testManageDbClient } from '../setup';
 
+function createMockSelectChain(result: any) {
+  const chain: any = {};
+  chain.from = vi.fn().mockReturnValue(chain);
+  chain.where = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
+  chain.offset = vi.fn().mockReturnValue(chain);
+  chain.orderBy = vi.fn().mockReturnValue(chain);
+  // biome-ignore lint/suspicious/noThenProperty: mock thenable for drizzle select chain
+  chain.then = (resolve: Function, reject?: Function) =>
+    Promise.resolve(result).then(resolve as any, reject as any);
+  return chain;
+}
+
 describe('Artifact Components Data Access', () => {
   let db: AgentsManageDatabaseClient;
   const testTenantId = 'test-tenant';
@@ -50,15 +63,13 @@ describe('Artifact Components Data Access', () => {
         },
       };
 
-      const mockQuery = {
-        artifactComponents: {
-          findFirst: vi.fn().mockResolvedValue(expectedArtifactComponent),
-        },
-      };
+      const mockSelect = vi
+        .fn()
+        .mockReturnValue(createMockSelectChain([expectedArtifactComponent]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getArtifactComponentById(mockDb)({
@@ -69,20 +80,16 @@ describe('Artifact Components Data Access', () => {
         id: artifactComponentId,
       });
 
-      expect(mockQuery.artifactComponents.findFirst).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedArtifactComponent);
     });
 
     it('should return null if artifact component not found', async () => {
-      const mockQuery = {
-        artifactComponents: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getArtifactComponentById(mockDb)({

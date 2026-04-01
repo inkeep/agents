@@ -23,6 +23,19 @@ import {
 } from '../../utils/apiKeys';
 import { testRunDbClient } from '../setup';
 
+function createMockSelectChain(result: any) {
+  const chain: any = {};
+  chain.from = vi.fn().mockReturnValue(chain);
+  chain.where = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
+  chain.offset = vi.fn().mockReturnValue(chain);
+  chain.orderBy = vi.fn().mockReturnValue(chain);
+  // biome-ignore lint/suspicious/noThenProperty: mock thenable for drizzle select chain
+  chain.then = (resolve: Function, reject?: Function) =>
+    Promise.resolve(result).then(resolve as any, reject as any);
+  return chain;
+}
+
 describe('API Keys Data Access', () => {
   let db: AgentsRunDatabaseClient;
   const testTenantId = 'test-tenant';
@@ -48,15 +61,11 @@ describe('API Keys Data Access', () => {
         name: 'test',
       } satisfies ApiKeyInsert;
 
-      const mockQuery = {
-        apiKeys: {
-          findFirst: vi.fn().mockResolvedValue(expectedApiKey),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([expectedApiKey]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getApiKeyById(mockDb)({
@@ -67,20 +76,16 @@ describe('API Keys Data Access', () => {
         id: apiKeyId,
       });
 
-      expect(mockQuery.apiKeys.findFirst).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedApiKey);
     });
 
     it('should return null if API key not found', async () => {
-      const mockQuery = {
-        apiKeys: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getApiKeyById(mockDb)({
@@ -105,33 +110,25 @@ describe('API Keys Data Access', () => {
         projectId: testProjectId,
       };
 
-      const mockQuery = {
-        apiKeys: {
-          findFirst: vi.fn().mockResolvedValue(expectedApiKey),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([expectedApiKey]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getApiKeyByPublicId(mockDb)(publicId);
 
-      expect(mockQuery.apiKeys.findFirst).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedApiKey);
     });
 
     it('should return null if API key not found by public id', async () => {
-      const mockQuery = {
-        apiKeys: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getApiKeyByPublicId(mockDb)('non-existent');
@@ -147,15 +144,11 @@ describe('API Keys Data Access', () => {
         { id: 'key-2', agentId: testAgentId, keyPrefix: 'ik_test_2' },
       ];
 
-      const mockQuery = {
-        apiKeys: {
-          findMany: vi.fn().mockResolvedValue(expectedApiKeys),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain(expectedApiKeys));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await listApiKeys(mockDb)({
@@ -166,7 +159,7 @@ describe('API Keys Data Access', () => {
         agentId: testAgentId,
       });
 
-      expect(mockQuery.apiKeys.findMany).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedApiKeys);
     });
 
@@ -176,15 +169,11 @@ describe('API Keys Data Access', () => {
         { id: 'key-2', agentId: 'agent-2', keyPrefix: 'ik_test_2' },
       ];
 
-      const mockQuery = {
-        apiKeys: {
-          findMany: vi.fn().mockResolvedValue(expectedApiKeys),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain(expectedApiKeys));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await listApiKeys(mockDb)({
@@ -488,21 +477,21 @@ describe('API Keys Data Access', () => {
         where: vi.fn().mockResolvedValue(undefined),
       });
 
-      const mockQuery = {
-        apiKeys: {
-          findFirst: vi.fn().mockResolvedValue({
+      const mockSelect = vi.fn().mockReturnValue(
+        createMockSelectChain([
+          {
             id: apiKeyId,
             tenantId: testTenantId,
             projectId: testProjectId,
             name: 'Test API Key',
-          }),
-        },
-      };
+          },
+        ])
+      );
 
       const mockDb = {
         ...db,
         delete: mockDelete,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await deleteApiKey(mockDb)({
@@ -517,6 +506,32 @@ describe('API Keys Data Access', () => {
       expect(result).toBe(true);
     });
 
+    it('should return false when API key not found', async () => {
+      const apiKeyId = 'key-1';
+
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
+
+      const mockDb = {
+        ...db,
+        select: mockSelect,
+      } as any;
+
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const result = await deleteApiKey(mockDb)({
+        scopes: {
+          tenantId: testTenantId,
+          projectId: testProjectId,
+        },
+        id: apiKeyId,
+      });
+
+      expect(result).toBe(false);
+      expect(consoleSpy).toHaveBeenCalled();
+
+      consoleSpy.mockRestore();
+    });
+
     it('should return false when deletion fails', async () => {
       const apiKeyId = 'key-1';
 
@@ -524,12 +539,23 @@ describe('API Keys Data Access', () => {
         where: vi.fn().mockRejectedValue(new Error('Database error')),
       });
 
+      const mockSelect = vi.fn().mockReturnValue(
+        createMockSelectChain([
+          {
+            id: apiKeyId,
+            tenantId: testTenantId,
+            projectId: testProjectId,
+            name: 'Test API Key',
+          },
+        ])
+      );
+
       const mockDb = {
         ...db,
         delete: mockDelete,
+        select: mockSelect,
       } as any;
 
-      // Mock console.error to avoid test output
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       const result = await deleteApiKey(mockDb)({
@@ -554,15 +580,11 @@ describe('API Keys Data Access', () => {
         id: apiKeyId,
       };
 
-      const mockQuery = {
-        apiKeys: {
-          findFirst: vi.fn().mockResolvedValue(existingApiKey),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([existingApiKey]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await hasApiKey(mockDb)({
@@ -577,15 +599,11 @@ describe('API Keys Data Access', () => {
     });
 
     it('should return false when API key does not exist', async () => {
-      const mockQuery = {
-        apiKeys: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await hasApiKey(mockDb)({

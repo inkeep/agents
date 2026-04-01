@@ -157,7 +157,7 @@ export const getDatasetItemById =
         )
       )
       .limit(1);
-    return results[0] ?? null;
+    return (results[0] ?? null) as DatasetItemSelect | null;
   };
 
 export const listDatasetItems =
@@ -165,7 +165,7 @@ export const listDatasetItems =
   async (params: {
     scopes: ProjectScopeConfig & { datasetId: string };
   }): Promise<DatasetItemSelect[]> => {
-    return await db
+    return (await db
       .select()
       .from(datasetItem)
       .where(
@@ -173,7 +173,7 @@ export const listDatasetItems =
           projectScopedWhere(datasetItem, params.scopes),
           eq(datasetItem.datasetId, params.scopes.datasetId)
         )
-      );
+      )) as DatasetItemSelect[];
   };
 
 export const createDatasetItem =
@@ -190,7 +190,7 @@ export const createDatasetItem =
       })
       .returning();
 
-    return created;
+    return created as DatasetItemSelect;
   };
 
 export const createDatasetItems =

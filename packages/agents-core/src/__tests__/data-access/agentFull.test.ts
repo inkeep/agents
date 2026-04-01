@@ -3,35 +3,25 @@ import { getFullAgentDefinition } from '../../data-access/manage/agents';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { testManageDbClient } from '../setup';
 
+function createMockSelectChain(result: any) {
+  const chain: any = {};
+  chain.from = vi.fn().mockReturnValue(chain);
+  chain.innerJoin = vi.fn().mockReturnValue(chain);
+  chain.where = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
+  chain.offset = vi.fn().mockReturnValue(chain);
+  chain.orderBy = vi.fn().mockReturnValue(chain);
+  // biome-ignore lint/suspicious/noThenProperty: mock thenable for drizzle select chain
+  chain.then = (resolve: Function, reject?: Function) =>
+    Promise.resolve(result).then(resolve as any, reject as any);
+  return chain;
+}
+
 describe('AgentFull Data Access - getFullAgentDefinition', () => {
   let db: AgentsManageDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
   const testAgentId = 'test-agent-1';
-
-  const createWhereResult = <T>(result: T) => ({
-    limit: vi.fn().mockReturnValue({
-      offset: vi.fn().mockReturnValue({
-        orderBy: vi.fn().mockResolvedValue(result),
-      }),
-    }),
-    offset: vi.fn().mockReturnValue({
-      orderBy: vi.fn().mockResolvedValue(result),
-    }),
-    orderBy: vi.fn().mockResolvedValue(result),
-    // biome-ignore lint/suspicious/noThenProperty: ignore in test
-    then: (onFulfilled: (value: T) => unknown, onRejected?: (reason: unknown) => unknown) =>
-      Promise.resolve(result).then(onFulfilled, onRejected),
-  });
-
-  const createSelectMock = <T>(result: T) => ({
-    from: vi.fn().mockReturnValue({
-      innerJoin: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue(createWhereResult(result)),
-      }),
-      where: vi.fn().mockReturnValue(createWhereResult([])),
-    }),
-  });
 
   beforeEach(async () => {
     db = testManageDbClient;
@@ -40,19 +30,15 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
 
   describe('getFullAgentDefinition', () => {
     it('should return null when agent is not found', async () => {
-      // Mock the database query to return null for agent lookup
-      const mockQuery = {
-        agents: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-        projects: {
-          findFirst: vi.fn().mockResolvedValue(null), // No project with stopWhen configuration
-        },
-      };
-
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: vi.fn().mockReturnValue(createMockSelectChain([])),
+        selectDistinct: vi.fn().mockReturnValue(createMockSelectChain([])),
+        query: {
+          projects: {
+            findFirst: vi.fn().mockResolvedValue(null),
+          },
+        },
       } as any;
 
       const result = await getFullAgentDefinition(mockDb)({
@@ -60,7 +46,7 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
       });
 
       expect(result).toBeNull();
-      expect(mockQuery.agents.findFirst).toHaveBeenCalled();
+      expect(mockDb.select).toHaveBeenCalled();
     });
 
     it('should return basic agent definition with default agent only', async () => {
@@ -77,63 +63,66 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         contextConfigId: null,
       };
 
-      // Mock database queries
-      const mockQuery = {
-        agents: {
-          findFirst: vi.fn().mockResolvedValue(mockAgent),
-        },
-        subAgentRelations: {
-          findMany: vi.fn().mockResolvedValue([]), // No relations
-        },
-        subAgentExternalAgentRelations: {
-          findMany: vi.fn().mockResolvedValue([]), // No external agent relations
-        },
-        subAgentTeamAgentRelations: {
-          findMany: vi.fn().mockResolvedValue([]), // No team agent relations
-        },
-        subAgents: {
-          findFirst: vi.fn().mockResolvedValue({
-            id: 'default-agent-1',
-            name: 'Default Agent',
-            description: 'Default agent description',
-            prompt: 'Default prompt',
-            models: null,
-            tenantId: testTenantId,
-            projectId: testProjectId,
-            createdAt: '2024-01-01T00:00:00.000Z',
-            updatedAt: '2024-01-01T00:00:00.000Z',
-          }),
-          findMany: vi.fn().mockResolvedValue([
-            {
-              id: 'default-agent-1',
-              name: 'Default Agent',
-              description: 'Default agent description',
-              prompt: 'Default prompt',
-              models: null,
-              tenantId: testTenantId,
-              projectId: testProjectId,
-              agentId: testAgentId,
-              createdAt: '2024-01-01T00:00:00.000Z',
-              updatedAt: '2024-01-01T00:00:00.000Z',
-            },
-          ]),
-        },
-        subAgentDataComponents: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-        subAgentArtifactComponents: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-        projects: {
-          findFirst: vi.fn().mockResolvedValue(null), // No project with stopWhen configuration
-        },
+      const mockSubAgent = {
+        id: 'default-agent-1',
+        name: 'Default Agent',
+        description: 'Default agent description',
+        prompt: 'Default prompt',
+        models: null,
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        agentId: testAgentId,
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
       };
 
+      let selectCallCount = 0;
       const mockDb = {
         ...db,
-        query: mockQuery,
-        selectDistinct: vi.fn().mockReturnValue(createSelectMock([])),
-        select: vi.fn().mockReturnValue(createSelectMock([])),
+        query: {
+          projects: {
+            findFirst: vi.fn().mockResolvedValue(null),
+          },
+        },
+        selectDistinct: vi.fn().mockReturnValue(createMockSelectChain([])),
+        select: vi.fn().mockImplementation(() => {
+          selectCallCount++;
+          const callIndex = selectCallCount;
+          switch (callIndex) {
+            case 1:
+              return createMockSelectChain([mockAgent]); // getAgentById
+            case 2:
+              return createMockSelectChain([]); // getAgentRelationsByAgent
+            case 3:
+              return createMockSelectChain([mockSubAgent]); // db.select().from(subAgents) - list sub-agents
+            case 4:
+              return createMockSelectChain([]); // getSubAgentExternalAgentRelationsByAgent
+            case 5:
+              return createMockSelectChain([]); // getSubAgentTeamAgentRelationsByAgent
+            // getSkillsForSubAgents won't call select since subAgentIds is empty? No, we have 1 sub-agent
+            case 6:
+              return createMockSelectChain([]); // getSkillsForSubAgents
+            // Per sub-agent processing (1 sub-agent):
+            case 7:
+              return createMockSelectChain([]); // subAgentToolRelations (MCP tools)
+            case 8:
+              return createMockSelectChain([]); // subAgentFunctionToolRelations (function tools)
+            case 9:
+              return createMockSelectChain([]); // subAgentDataComponents
+            case 10:
+              return createMockSelectChain([]); // subAgentArtifactComponents
+            // fetchComponentRelationships calls (data + artifact)
+            case 11:
+              return createMockSelectChain([]); // fetchComponentRelationships (data)
+            case 12:
+              return createMockSelectChain([]); // fetchComponentRelationships (artifact)
+            // project lookup for stopWhen
+            case 13:
+              return createMockSelectChain([]); // project lookup
+            default:
+              return createMockSelectChain([]);
+          }
+        }),
       } as any;
 
       const result = await getFullAgentDefinition(mockDb)({
@@ -190,7 +179,7 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         },
       ];
 
-      const mockAgents = [
+      const mockSubAgents = [
         {
           id: 'agent-1',
           name: 'Agent 1',
@@ -199,6 +188,7 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
           models: null,
           tenantId: testTenantId,
           projectId: testProjectId,
+          agentId: testAgentId,
           createdAt: '2024-01-01T00:00:00.000Z',
           updatedAt: '2024-01-01T00:00:00.000Z',
         },
@@ -210,53 +200,66 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
           models: null,
           tenantId: testTenantId,
           projectId: testProjectId,
+          agentId: testAgentId,
           createdAt: '2024-01-01T00:00:00.000Z',
           updatedAt: '2024-01-01T00:00:00.000Z',
         },
       ];
 
-      // Mock database queries
-      const mockQuery = {
-        agents: {
-          findFirst: vi.fn().mockResolvedValue(mockAgent),
-        },
-        subAgentRelations: {
-          findMany: vi.fn().mockResolvedValue(mockRelations),
-        },
-        subAgentExternalAgentRelations: {
-          findMany: vi.fn().mockResolvedValue([]), // No external agent relations
-        },
-        subAgentTeamAgentRelations: {
-          findMany: vi.fn().mockResolvedValue([]), // No team agent relations
-        },
-        subAgents: {
-          findFirst: vi
-            .fn()
-            .mockResolvedValueOnce(mockAgents[0]) // First call for agent-1
-            .mockResolvedValueOnce(mockAgents[1]), // Second call for agent-2
-          findMany: vi.fn().mockResolvedValue(
-            mockAgents.map((agent) => ({
-              ...agent,
-              agentId: testAgentId,
-            }))
-          ),
-        },
-        subAgentDataComponents: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-        subAgentArtifactComponents: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-        projects: {
-          findFirst: vi.fn().mockResolvedValue(null), // No project with stopWhen configuration
-        },
-      };
-
+      let selectCallCount = 0;
       const mockDb = {
         ...db,
-        query: mockQuery,
-        selectDistinct: vi.fn().mockReturnValue(createSelectMock([])),
-        select: vi.fn().mockReturnValue(createSelectMock([])),
+        query: {
+          projects: {
+            findFirst: vi.fn().mockResolvedValue(null),
+          },
+        },
+        selectDistinct: vi.fn().mockReturnValue(createMockSelectChain([])),
+        select: vi.fn().mockImplementation(() => {
+          selectCallCount++;
+          const callIndex = selectCallCount;
+          switch (callIndex) {
+            case 1:
+              return createMockSelectChain([mockAgent]); // getAgentById
+            case 2:
+              return createMockSelectChain(mockRelations); // getAgentRelationsByAgent
+            case 3:
+              return createMockSelectChain(mockSubAgents); // db.select().from(subAgents)
+            case 4:
+              return createMockSelectChain([]); // getSubAgentExternalAgentRelationsByAgent
+            case 5:
+              return createMockSelectChain([]); // getSubAgentTeamAgentRelationsByAgent
+            case 6:
+              return createMockSelectChain([]); // getSkillsForSubAgents
+            // Per sub-agent processing (2 sub-agents, interleaved):
+            case 7:
+              return createMockSelectChain([]); // agent-1 MCP tools
+            case 8:
+              return createMockSelectChain([]); // agent-1 function tools
+            case 9:
+              return createMockSelectChain([]); // agent-1 dataComponents
+            case 10:
+              return createMockSelectChain([]); // agent-1 artifactComponents
+            case 11:
+              return createMockSelectChain([]); // agent-2 MCP tools
+            case 12:
+              return createMockSelectChain([]); // agent-2 function tools
+            case 13:
+              return createMockSelectChain([]); // agent-2 dataComponents
+            case 14:
+              return createMockSelectChain([]); // agent-2 artifactComponents
+            // fetchComponentRelationships
+            case 15:
+              return createMockSelectChain([]); // data components
+            case 16:
+              return createMockSelectChain([]); // artifact components
+            // project lookup
+            case 17:
+              return createMockSelectChain([]); // project
+            default:
+              return createMockSelectChain([]);
+          }
+        }),
       } as any;
 
       const result = await getFullAgentDefinition(mockDb)({
@@ -296,59 +299,81 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         },
       ];
 
-      const mockAgents = [
-        {
-          id: 'agent-1',
-          name: 'Agent 1',
-          description: 'First agent',
-          prompt: 'Instructions 1',
-          models: null,
-          tenantId: testTenantId,
-          projectId: testProjectId,
-          createdAt: '2024-01-01T00:00:00.000Z',
-          updatedAt: '2024-01-01T00:00:00.000Z',
-        },
-      ];
-
-      // Mock database queries
-      const mockQuery = {
-        agents: {
-          findFirst: vi.fn().mockResolvedValue(mockAgent),
-        },
-        subAgentRelations: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-        subAgentExternalAgentRelations: {
-          findMany: vi.fn().mockResolvedValue([]), // No external agent relations
-        },
-        subAgentTeamAgentRelations: {
-          findMany: vi.fn().mockResolvedValue(mockTeamAgentRelations),
-        },
-        subAgents: {
-          findFirst: vi.fn().mockResolvedValue(mockAgents[0]),
-          findMany: vi.fn().mockResolvedValue(
-            mockAgents.map((agent) => ({
-              ...agent,
-              agentId: testAgentId,
-            }))
-          ),
-        },
-        subAgentDataComponents: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-        subAgentArtifactComponents: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-        projects: {
-          findFirst: vi.fn().mockResolvedValue(null), // No project with stopWhen configuration
-        },
+      const mockSubAgent = {
+        id: 'agent-1',
+        name: 'Agent 1',
+        description: 'First agent',
+        prompt: 'Instructions 1',
+        models: null,
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        agentId: testAgentId,
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
       };
 
+      const mockTeamAgent = {
+        id: 'team-agent-1',
+        name: 'Team Agent 1',
+        description: 'Team agent',
+        defaultSubAgentId: null,
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+        models: null,
+        contextConfigId: null,
+      };
+
+      let selectCallCount = 0;
       const mockDb = {
         ...db,
-        query: mockQuery,
-        selectDistinct: vi.fn().mockReturnValue(createSelectMock([])),
-        select: vi.fn().mockReturnValue(createSelectMock([])),
+        query: {
+          projects: {
+            findFirst: vi.fn().mockResolvedValue(null),
+          },
+        },
+        selectDistinct: vi.fn().mockReturnValue(createMockSelectChain([])),
+        select: vi.fn().mockImplementation(() => {
+          selectCallCount++;
+          const callIndex = selectCallCount;
+          switch (callIndex) {
+            case 1:
+              return createMockSelectChain([mockAgent]); // getAgentById
+            case 2:
+              return createMockSelectChain([]); // getAgentRelationsByAgent
+            case 3:
+              return createMockSelectChain([mockSubAgent]); // db.select().from(subAgents)
+            case 4:
+              return createMockSelectChain([]); // getSubAgentExternalAgentRelationsByAgent
+            case 5:
+              return createMockSelectChain(mockTeamAgentRelations); // getSubAgentTeamAgentRelationsByAgent
+            case 6:
+              return createMockSelectChain([]); // getSkillsForSubAgents
+            // Per sub-agent processing (1 sub-agent):
+            case 7:
+              return createMockSelectChain([]); // MCP tools
+            case 8:
+              return createMockSelectChain([]); // function tools
+            case 9:
+              return createMockSelectChain([]); // dataComponents
+            case 10:
+              return createMockSelectChain([]); // artifactComponents
+            // team agent lookup (getAgentById for team-agent-1)
+            case 11:
+              return createMockSelectChain([mockTeamAgent]);
+            // fetchComponentRelationships
+            case 12:
+              return createMockSelectChain([]); // data components
+            case 13:
+              return createMockSelectChain([]); // artifact components
+            // project lookup
+            case 14:
+              return createMockSelectChain([]); // project
+            default:
+              return createMockSelectChain([]);
+          }
+        }),
       } as any;
 
       const result = await getFullAgentDefinition(mockDb)({
@@ -358,12 +383,11 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
       expect(result).toBeDefined();
       expect(result?.subAgents).toHaveProperty('agent-1');
 
-      // Check that team agent delegation is included in canDelegateTo
       const agent1 = result?.subAgents['agent-1'];
       expect(agent1?.canDelegateTo).toContainEqual({
         agentId: 'team-agent-1',
-        headers: { 'X-Custom-Header': 'value' },
         subAgentTeamAgentRelationId: 'team-relation-1',
+        headers: { 'X-Custom-Header': 'value' },
       });
     });
 
@@ -389,11 +413,12 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         models: null,
         tenantId: testTenantId,
         projectId: testProjectId,
+        agentId: testAgentId,
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
       };
 
-      const mockTools = [
+      const mockMcpTools = [
         {
           id: 'tool-1',
           name: 'Test Tool',
@@ -405,55 +430,58 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
           lastError: null,
           availableTools: ['tool1', 'tool2'],
           lastToolsSync: '2024-01-01T00:00:00.000Z',
+          selectedTools: null,
+          headers: null,
+          toolPolicies: null,
+          agentToolRelationId: undefined,
         },
       ];
 
-      // Mock database queries
-      const mockQuery = {
-        agents: {
-          findFirst: vi.fn().mockResolvedValue(mockAgent),
-        },
-        subAgentRelations: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-        subAgentExternalAgentRelations: {
-          findMany: vi.fn().mockResolvedValue([]), // No external agent relations
-        },
-        subAgentTeamAgentRelations: {
-          findMany: vi.fn().mockResolvedValue([]), // No team agent relations
-        },
-        subAgents: {
-          findFirst: vi.fn().mockResolvedValue(mockSubAgent),
-          findMany: vi.fn().mockResolvedValue([
-            {
-              ...mockSubAgent,
-              agentId: testAgentId,
-            },
-          ]),
-        },
-        subAgentDataComponents: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-        subAgentArtifactComponents: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-        projects: {
-          findFirst: vi.fn().mockResolvedValue(null), // No project with stopWhen configuration
-        },
-      };
-
-      // Create separate mocks for MCP tools and function tools queries
-      let queryCallCount = 0;
+      let selectCallCount = 0;
       const mockDb = {
         ...db,
-        query: mockQuery,
-        selectDistinct: vi.fn().mockReturnValue(createSelectMock([])),
+        query: {
+          projects: {
+            findFirst: vi.fn().mockResolvedValue(null),
+          },
+        },
+        selectDistinct: vi.fn().mockReturnValue(createMockSelectChain([])),
         select: vi.fn().mockImplementation(() => {
-          const selectResults = [[], mockTools, [], [], []];
-          const result = selectResults[Math.min(queryCallCount, selectResults.length - 1)];
-          // First call returns MCP tools, second call returns empty function tools
-          queryCallCount += 1;
-          return createSelectMock(result);
+          selectCallCount++;
+          const callIndex = selectCallCount;
+          switch (callIndex) {
+            case 1:
+              return createMockSelectChain([mockAgent]); // getAgentById
+            case 2:
+              return createMockSelectChain([]); // getAgentRelationsByAgent
+            case 3:
+              return createMockSelectChain([mockSubAgent]); // db.select().from(subAgents)
+            case 4:
+              return createMockSelectChain([]); // getSubAgentExternalAgentRelationsByAgent
+            case 5:
+              return createMockSelectChain([]); // getSubAgentTeamAgentRelationsByAgent
+            case 6:
+              return createMockSelectChain([]); // getSkillsForSubAgents
+            // Per sub-agent processing (1 sub-agent):
+            case 7:
+              return createMockSelectChain(mockMcpTools); // MCP tools (subAgentToolRelations join)
+            case 8:
+              return createMockSelectChain([]); // function tools
+            case 9:
+              return createMockSelectChain([]); // dataComponents
+            case 10:
+              return createMockSelectChain([]); // artifactComponents
+            // fetchComponentRelationships
+            case 11:
+              return createMockSelectChain([]); // data components
+            case 12:
+              return createMockSelectChain([]); // artifact components
+            // project lookup
+            case 13:
+              return createMockSelectChain([]); // project
+            default:
+              return createMockSelectChain([]);
+          }
         }),
       } as any;
 
@@ -500,49 +528,57 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         models: null,
         tenantId: testTenantId,
         projectId: testProjectId,
+        agentId: testAgentId,
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
       };
 
-      // Mock database queries
-      const mockQuery = {
-        agents: {
-          findFirst: vi.fn().mockResolvedValue(mockAgent),
-        },
-        subAgentRelations: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-        subAgentExternalAgentRelations: {
-          findMany: vi.fn().mockResolvedValue([]), // No external agent relations
-        },
-        subAgentTeamAgentRelations: {
-          findMany: vi.fn().mockResolvedValue([]), // No team agent relations
-        },
-        subAgents: {
-          findFirst: vi.fn().mockResolvedValue(mockSubAgent),
-          findMany: vi.fn().mockResolvedValue([
-            {
-              ...mockSubAgent,
-              agentId: testAgentId,
-            },
-          ]),
-        },
-        subAgentDataComponents: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-        subAgentArtifactComponents: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-        projects: {
-          findFirst: vi.fn().mockResolvedValue(null), // No project with stopWhen configuration
-        },
-      };
-
+      let selectCallCount = 0;
       const mockDb = {
         ...db,
-        query: mockQuery,
-        selectDistinct: vi.fn().mockReturnValue(createSelectMock([])),
-        select: vi.fn().mockReturnValue(createSelectMock([])),
+        query: {
+          projects: {
+            findFirst: vi.fn().mockResolvedValue(null),
+          },
+        },
+        selectDistinct: vi.fn().mockReturnValue(createMockSelectChain([])),
+        select: vi.fn().mockImplementation(() => {
+          selectCallCount++;
+          const callIndex = selectCallCount;
+          switch (callIndex) {
+            case 1:
+              return createMockSelectChain([mockAgent]); // getAgentById
+            case 2:
+              return createMockSelectChain([]); // getAgentRelationsByAgent
+            case 3:
+              return createMockSelectChain([mockSubAgent]); // db.select().from(subAgents)
+            case 4:
+              return createMockSelectChain([]); // getSubAgentExternalAgentRelationsByAgent
+            case 5:
+              return createMockSelectChain([]); // getSubAgentTeamAgentRelationsByAgent
+            case 6:
+              return createMockSelectChain([]); // getSkillsForSubAgents
+            // Per sub-agent processing (1 sub-agent):
+            case 7:
+              return createMockSelectChain([]); // MCP tools
+            case 8:
+              return createMockSelectChain([]); // function tools
+            case 9:
+              return createMockSelectChain([]); // dataComponents
+            case 10:
+              return createMockSelectChain([]); // artifactComponents
+            // fetchComponentRelationships
+            case 11:
+              return createMockSelectChain([]); // data components
+            case 12:
+              return createMockSelectChain([]); // artifact components
+            // project lookup
+            case 13:
+              return createMockSelectChain([]); // project
+            default:
+              return createMockSelectChain([]);
+          }
+        }),
       } as any;
 
       const result = await getFullAgentDefinition(mockDb)({
@@ -581,73 +617,71 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         },
       ];
 
-      // Mock database queries
-      const mockQuery = {
-        agents: {
-          findFirst: vi.fn().mockResolvedValue(mockAgent),
-        },
-        subAgentRelations: {
-          findMany: vi.fn().mockResolvedValue(mockRelations),
-        },
-        subAgentExternalAgentRelations: {
-          findMany: vi.fn().mockResolvedValue([]), // No external agent relations
-        },
-        subAgentTeamAgentRelations: {
-          findMany: vi.fn().mockResolvedValue([]), // No team agent relations
-        },
-        subAgents: {
-          findFirst: vi
-            .fn()
-            .mockResolvedValueOnce({
-              id: 'agent-1',
-              name: 'Agent 1',
-              description: 'First agent',
-              prompt: 'Instructions 1',
-              models: null,
-              tenantId: testTenantId,
-              projectId: testProjectId,
-              createdAt: '2024-01-01T00:00:00.000Z',
-              updatedAt: '2024-01-01T00:00:00.000Z',
-            })
-            .mockResolvedValueOnce(undefined), // Non-existent agent returns undefined
-          findMany: vi.fn().mockResolvedValue([
-            {
-              id: 'agent-1',
-              name: 'Agent 1',
-              description: 'First agent',
-              prompt: 'Instructions 1',
-              models: null,
-              tenantId: testTenantId,
-              projectId: testProjectId,
-              agentId: testAgentId,
-              createdAt: '2024-01-01T00:00:00.000Z',
-              updatedAt: '2024-01-01T00:00:00.000Z',
-            },
-          ]),
-        },
-        subAgentDataComponents: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-        subAgentArtifactComponents: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-        projects: {
-          findFirst: vi.fn().mockResolvedValue(null), // No project with stopWhen configuration
-        },
+      const mockSubAgent = {
+        id: 'agent-1',
+        name: 'Agent 1',
+        description: 'First agent',
+        prompt: 'Instructions 1',
+        models: null,
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        agentId: testAgentId,
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
       };
 
+      let selectCallCount = 0;
       const mockDb = {
         ...db,
-        query: mockQuery,
-        selectDistinct: vi.fn().mockReturnValue(createSelectMock([])),
-        select: vi.fn().mockReturnValue(createSelectMock([])),
+        query: {
+          projects: {
+            findFirst: vi.fn().mockResolvedValue(null),
+          },
+        },
+        selectDistinct: vi.fn().mockReturnValue(createMockSelectChain([])),
+        select: vi.fn().mockImplementation(() => {
+          selectCallCount++;
+          const callIndex = selectCallCount;
+          switch (callIndex) {
+            case 1:
+              return createMockSelectChain([mockAgent]); // getAgentById
+            case 2:
+              return createMockSelectChain(mockRelations); // getAgentRelationsByAgent
+            case 3:
+              return createMockSelectChain([mockSubAgent]); // db.select().from(subAgents) - only agent-1 exists
+            case 4:
+              return createMockSelectChain([]); // getSubAgentExternalAgentRelationsByAgent
+            case 5:
+              return createMockSelectChain([]); // getSubAgentTeamAgentRelationsByAgent
+            case 6:
+              return createMockSelectChain([]); // getSkillsForSubAgents
+            // Per sub-agent processing (1 sub-agent - agent-1 only, non-existent is not in the list):
+            case 7:
+              return createMockSelectChain([]); // MCP tools
+            case 8:
+              return createMockSelectChain([]); // function tools
+            case 9:
+              return createMockSelectChain([]); // dataComponents
+            case 10:
+              return createMockSelectChain([]); // artifactComponents
+            // fetchComponentRelationships
+            case 11:
+              return createMockSelectChain([]); // data components
+            case 12:
+              return createMockSelectChain([]); // artifact components
+            // project lookup
+            case 13:
+              return createMockSelectChain([]); // project
+            default:
+              return createMockSelectChain([]);
+          }
+        }),
       } as any;
 
       const result = await getFullAgentDefinition(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
       });
 
-      // Should only include the valid agent
       expect(result?.subAgents).toHaveProperty('agent-1');
       expect(result?.subAgents).not.toHaveProperty('non-existent-agent');
       expect(Object.keys(result?.subAgents || {})).toHaveLength(1);

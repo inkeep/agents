@@ -13,9 +13,8 @@ import { projectScopedWhere, tenantScopedWhere } from '../manage/scope-helpers';
 // ── Unscoped (for runtime auth lookups — no tenant/project gating) ───────────
 
 export const getAppById = (db: AgentsRunDatabaseClient) => async (id: string) => {
-  return await db.query.apps.findFirst({
-    where: eq(apps.id, id),
-  });
+  const result = await db.select().from(apps).where(eq(apps.id, id)).limit(1);
+  return result[0];
 };
 
 export const updateAppLastUsed =
@@ -29,17 +28,23 @@ export const updateAppLastUsed =
 export const getAppByIdForTenant =
   (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: TenantScopeConfig; id: string }): Promise<AppSelect | undefined> => {
-    return db.query.apps.findFirst({
-      where: and(eq(apps.id, params.id), tenantScopedWhere(apps, params.scopes)),
-    });
+    const result = await db
+      .select()
+      .from(apps)
+      .where(and(eq(apps.id, params.id), tenantScopedWhere(apps, params.scopes)))
+      .limit(1);
+    return result[0];
   };
 
 export const getAppByIdForProject =
   (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; id: string }): Promise<AppSelect | undefined> => {
-    return db.query.apps.findFirst({
-      where: and(eq(apps.id, params.id), projectScopedWhere(apps, params.scopes)),
-    });
+    const result = await db
+      .select()
+      .from(apps)
+      .where(and(eq(apps.id, params.id), projectScopedWhere(apps, params.scopes)))
+      .limit(1);
+    return result[0];
   };
 
 export const listAppsPaginated =

@@ -3,13 +3,16 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import type { PgliteDatabase } from 'drizzle-orm/pglite';
 import { Pool } from 'pg';
 import { env, loadEnvironmentFiles } from '../../env';
+import { runtimeRelations } from './runtime-relations';
 import * as schema from './runtime-schema';
 import { createTestRuntimeDatabaseClientNoMigrations } from './test-runtime-client';
 
 loadEnvironmentFiles();
 
 // Union type that accepts both production (node-postgres) and test (PGlite) clients
-export type AgentsRunDatabaseClient = NodePgDatabase<typeof schema> | PgliteDatabase<typeof schema>;
+export type AgentsRunDatabaseClient =
+  | NodePgDatabase<typeof schema, typeof runtimeRelations>
+  | PgliteDatabase<typeof schema, typeof runtimeRelations>;
 
 export interface AgentsRunDatabaseConfig {
   connectionString?: string;
@@ -52,8 +55,10 @@ export function createAgentsRunDatabaseClient(
     console.error('Unexpected PostgreSQL pool error:', err);
   });
 
-  return drizzle(pool, {
+  return drizzle({
+    client: pool,
     schema,
+    relations: runtimeRelations,
     logger: config?.logger,
   });
 }

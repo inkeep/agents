@@ -8,17 +8,17 @@ import { agentScopedWhere, projectScopedWhere } from './scope-helpers';
 export const getSubAgentById =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig; subAgentId: string }) => {
-    const result = await db.query.subAgents.findFirst({
-      where: and(agentScopedWhere(subAgents, params.scopes), eq(subAgents.id, params.subAgentId)),
-    });
-    return result;
+    const result = await db
+      .select()
+      .from(subAgents)
+      .where(and(agentScopedWhere(subAgents, params.scopes), eq(subAgents.id, params.subAgentId)))
+      .limit(1);
+    return result[0];
   };
 
 export const listSubAgents =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
-    return await db.query.subAgents.findMany({
-      where: agentScopedWhere(subAgents, params.scopes),
-    });
+    return await db.select().from(subAgents).where(agentScopedWhere(subAgents, params.scopes));
   };
 
 export const listSubAgentsPaginated =

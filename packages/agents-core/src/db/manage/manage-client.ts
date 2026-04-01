@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import type { PgliteDatabase } from 'drizzle-orm/pglite';
 import { Pool } from 'pg';
 import { env, loadEnvironmentFiles } from '../../env';
+import { manageRelations } from './manage-relations';
 import * as schema from './manage-schema';
 import { createTestManageDatabaseClientNoMigrations } from './test-manage-client';
 
@@ -10,8 +11,8 @@ loadEnvironmentFiles();
 
 // Union type that accepts both production (node-postgres) and test (PGlite) clients
 export type AgentsManageDatabaseClient =
-  | NodePgDatabase<typeof schema>
-  | PgliteDatabase<typeof schema>;
+  | NodePgDatabase<typeof schema, typeof manageRelations>
+  | PgliteDatabase<typeof schema, typeof manageRelations>;
 
 export interface AgentsManageDatabaseConfig {
   connectionString?: string;
@@ -80,8 +81,10 @@ export function createAgentsManageDatabaseClient(
     console.error('Unexpected PostgreSQL pool error:', err);
   });
 
-  return drizzle(pool, {
+  return drizzle({
+    client: pool,
     schema,
+    relations: manageRelations,
     logger: config.logger,
   });
 }
@@ -115,7 +118,12 @@ export function createAgentManageDatabaseConnection(config: AgentsManageDatabase
   });
 
   return pool.connect().then((connection) => {
-    const db = drizzle(connection, { schema, logger: config.logger });
+    const db = drizzle({
+      client: connection,
+      schema,
+      relations: manageRelations,
+      logger: config.logger,
+    });
 
     const release = async () => {
       connection.release();

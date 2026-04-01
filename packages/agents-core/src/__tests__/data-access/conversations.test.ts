@@ -16,6 +16,19 @@ import type { ConversationUpdate } from '../../types/index';
 import type { ResolvedRef } from '../../validation/dolt-schemas';
 import { testRunDbClient } from '../setup';
 
+function createMockSelectChain(result: any) {
+  const chain: any = {};
+  chain.from = vi.fn().mockReturnValue(chain);
+  chain.where = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
+  chain.offset = vi.fn().mockReturnValue(chain);
+  chain.orderBy = vi.fn().mockReturnValue(chain);
+  // biome-ignore lint/suspicious/noThenProperty: mock thenable for drizzle select chain
+  chain.then = (resolve: Function, reject?: Function) =>
+    Promise.resolve(result).then(resolve as any, reject as any);
+  return chain;
+}
+
 describe('Conversations Data Access', () => {
   let db: AgentsRunDatabaseClient;
   const testTenantId = 'test-tenant';
@@ -42,15 +55,11 @@ describe('Conversations Data Access', () => {
         title: 'Test Conversation',
       };
 
-      const mockQuery = {
-        conversations: {
-          findFirst: vi.fn().mockResolvedValue(expectedConversation),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([expectedConversation]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getConversation(mockDb)({
@@ -58,20 +67,16 @@ describe('Conversations Data Access', () => {
         conversationId,
       });
 
-      expect(mockQuery.conversations.findFirst).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedConversation);
     });
 
     it('should return null if conversation not found', async () => {
-      const mockQuery = {
-        conversations: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getConversation(mockDb)({
@@ -95,15 +100,11 @@ describe('Conversations Data Access', () => {
         ref: testRef,
       };
 
-      const mockQuery = {
-        conversations: {
-          findFirst: vi.fn().mockResolvedValue(expectedConversation),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([expectedConversation]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getConversation(mockDb)({
@@ -111,7 +112,7 @@ describe('Conversations Data Access', () => {
         conversationId,
       });
 
-      expect(mockQuery.conversations.findFirst).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedConversation);
     });
   });
@@ -415,11 +416,7 @@ describe('Conversations Data Access', () => {
         metadata: { userContext: { test: 'data' } },
       };
 
-      const mockQuery = {
-        conversations: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
 
       const mockInsert = vi.fn().mockReturnValue({
         values: vi.fn().mockResolvedValue(undefined),
@@ -427,7 +424,7 @@ describe('Conversations Data Access', () => {
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
         insert: mockInsert,
       } as any;
 
@@ -456,20 +453,16 @@ describe('Conversations Data Access', () => {
         conversationId: 'conv-1',
       };
 
-      const mockQuery = {
-        conversations: {
-          findFirst: vi.fn().mockResolvedValue(existingConversation),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([existingConversation]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await createOrGetConversation(mockDb)(input);
 
-      expect(mockQuery.conversations.findFirst).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(existingConversation);
     });
 
@@ -491,11 +484,7 @@ describe('Conversations Data Access', () => {
         conversationId: 'conv-1',
       };
 
-      const mockQuery = {
-        conversations: {
-          findFirst: vi.fn().mockResolvedValue(existingConversation),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([existingConversation]));
 
       const mockUpdate = vi.fn().mockReturnValue({
         set: vi.fn().mockReturnValue({
@@ -505,13 +494,13 @@ describe('Conversations Data Access', () => {
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
         update: mockUpdate,
       } as any;
 
       const result = await createOrGetConversation(mockDb)(input);
 
-      expect(mockQuery.conversations.findFirst).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(mockUpdate).toHaveBeenCalled();
       expect(result.activeSubAgentId).toBe('agent-2');
     });
@@ -531,15 +520,11 @@ describe('Conversations Data Access', () => {
         updatedAt: '2024-01-01T00:00:00Z',
       };
 
-      const mockQuery = {
-        conversations: {
-          findFirst: vi.fn().mockResolvedValue(expectedConversation),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([expectedConversation]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getActiveAgentForConversation(mockDb)({
@@ -547,20 +532,16 @@ describe('Conversations Data Access', () => {
         conversationId: testConversationId,
       });
 
-      expect(mockQuery.conversations.findFirst).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedConversation);
     });
 
     it('should return null when conversation not found', async () => {
-      const mockQuery = {
-        conversations: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getActiveAgentForConversation(mockDb)({

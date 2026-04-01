@@ -57,14 +57,14 @@ describe('workAppSlack data access', () => {
 
   beforeAll(async () => {
     pglite = new PGlite();
-    db = drizzle(pglite, { schema: runtimeSchema }) as unknown as AgentsRunDatabaseClient;
+    db = drizzle({ client: pglite, schema: runtimeSchema }) as unknown as AgentsRunDatabaseClient;
 
     const isInPackageDir = process.cwd().includes('agents-core');
     const migrationsPath = isInPackageDir
       ? './drizzle/runtime'
       : './packages/agents-core/drizzle/runtime';
 
-    await migrate(drizzle(pglite), {
+    await migrate(drizzle({ client: pglite }), {
       migrationsFolder: migrationsPath,
     });
 

@@ -359,21 +359,26 @@ export const getEvaluationResultById =
   async (params: {
     scopes: ProjectScopeConfig & { evaluationResultId: string };
   }): Promise<EvaluationResultSelect | null> => {
-    const result = await db.query.evaluationResult.findFirst({
-      where: and(
-        projectScopedWhere(evaluationResult, params.scopes),
-        eq(evaluationResult.id, params.scopes.evaluationResultId)
-      ),
-    });
-    return result ?? null;
+    const result = await db
+      .select()
+      .from(evaluationResult)
+      .where(
+        and(
+          projectScopedWhere(evaluationResult, params.scopes),
+          eq(evaluationResult.id, params.scopes.evaluationResultId)
+        )
+      )
+      .limit(1);
+    return result[0] ?? null;
   };
 
 export const listEvaluationResults =
   (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<EvaluationResultSelect[]> => {
-    return await db.query.evaluationResult.findMany({
-      where: projectScopedWhere(evaluationResult, params.scopes),
-    });
+    return await db
+      .select()
+      .from(evaluationResult)
+      .where(projectScopedWhere(evaluationResult, params.scopes));
   };
 
 export const listEvaluationResultsByRun =
@@ -381,12 +386,15 @@ export const listEvaluationResultsByRun =
   async (params: {
     scopes: ProjectScopeConfig & { evaluationRunId: string };
   }): Promise<EvaluationResultSelect[]> => {
-    return await db.query.evaluationResult.findMany({
-      where: and(
-        projectScopedWhere(evaluationResult, params.scopes),
-        eq(evaluationResult.evaluationRunId, params.scopes.evaluationRunId)
-      ),
-    });
+    return await db
+      .select()
+      .from(evaluationResult)
+      .where(
+        and(
+          projectScopedWhere(evaluationResult, params.scopes),
+          eq(evaluationResult.evaluationRunId, params.scopes.evaluationRunId)
+        )
+      );
   };
 
 export const listEvaluationResultsByConversation =
@@ -394,12 +402,15 @@ export const listEvaluationResultsByConversation =
   async (params: {
     scopes: ProjectScopeConfig & { conversationId: string };
   }): Promise<EvaluationResultSelect[]> => {
-    return await db.query.evaluationResult.findMany({
-      where: and(
-        projectScopedWhere(evaluationResult, params.scopes),
-        eq(evaluationResult.conversationId, params.scopes.conversationId)
-      ),
-    });
+    return await db
+      .select()
+      .from(evaluationResult)
+      .where(
+        and(
+          projectScopedWhere(evaluationResult, params.scopes),
+          eq(evaluationResult.conversationId, params.scopes.conversationId)
+        )
+      );
   };
 
 export const createEvaluationResult =

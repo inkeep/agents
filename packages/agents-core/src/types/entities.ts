@@ -454,7 +454,12 @@ export type ScheduledTriggerApiSelect = z.infer<typeof ScheduledTriggerApiSelect
 export type ScheduledTriggerApiInsert = z.infer<typeof ScheduledTriggerApiInsertSchema>;
 export type ScheduledTriggerApiUpdate = z.infer<typeof ScheduledTriggerApiUpdateSchema>;
 
-export type ScheduledTriggerInvocation = z.infer<typeof ScheduledTriggerInvocationSelectSchema>;
+export type ScheduledTriggerInvocation = Omit<
+  z.infer<typeof ScheduledTriggerInvocationSelectSchema>,
+  'conversationIds'
+> & {
+  conversationIds: string[] | null;
+};
 export type ScheduledTriggerInvocationInsert = z.infer<
   typeof ScheduledTriggerInvocationInsertSchema
 >;

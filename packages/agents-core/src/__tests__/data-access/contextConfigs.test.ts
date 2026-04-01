@@ -13,6 +13,19 @@ import {
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { testManageDbClient } from '../setup';
 
+function createMockSelectChain(result: any) {
+  const chain: any = {};
+  chain.from = vi.fn().mockReturnValue(chain);
+  chain.where = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
+  chain.offset = vi.fn().mockReturnValue(chain);
+  chain.orderBy = vi.fn().mockReturnValue(chain);
+  // biome-ignore lint/suspicious/noThenProperty: mock thenable for drizzle select chain
+  chain.then = (resolve: Function, reject?: Function) =>
+    Promise.resolve(result).then(resolve as any, reject as any);
+  return chain;
+}
+
 describe('Context Configs Data Access', () => {
   let db: AgentsManageDatabaseClient;
   const testTenantId = 'test-tenant';
@@ -43,15 +56,11 @@ describe('Context Configs Data Access', () => {
         updatedAt: '2024-01-01T00:00:00.00Z',
       };
 
-      const mockQuery = {
-        contextConfigs: {
-          findFirst: vi.fn().mockResolvedValue(expectedContextConfig),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([expectedContextConfig]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getContextConfigById(mockDb)({
@@ -63,20 +72,16 @@ describe('Context Configs Data Access', () => {
         id: contextConfigId,
       });
 
-      expect(mockQuery.contextConfigs.findFirst).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedContextConfig);
     });
 
     it('should return null if context config not found', async () => {
-      const mockQuery = {
-        contextConfigs: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getContextConfigById(mockDb)({
@@ -102,15 +107,11 @@ describe('Context Configs Data Access', () => {
         updatedAt: '2024-01-01T00:00:00Z',
       };
 
-      const mockQuery = {
-        contextConfigs: {
-          findFirst: vi.fn().mockResolvedValue(contextConfig),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([contextConfig]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getContextConfigById(mockDb)({
@@ -143,15 +144,11 @@ describe('Context Configs Data Access', () => {
         },
       ];
 
-      const mockQuery = {
-        contextConfigs: {
-          findMany: vi.fn().mockResolvedValue(expectedConfigs),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain(expectedConfigs));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await listContextConfigs(mockDb)({
@@ -162,7 +159,7 @@ describe('Context Configs Data Access', () => {
         },
       });
 
-      expect(mockQuery.contextConfigs.findMany).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toHaveLength(2);
       expect(result[1].contextVariables).toEqual({ testVar: { id: 'test' } });
     });
@@ -686,15 +683,11 @@ describe('Context Configs Data Access', () => {
         updatedAt: '2024-01-01T00:00:00Z',
       };
 
-      const mockQuery = {
-        contextConfigs: {
-          findFirst: vi.fn().mockResolvedValue(existingConfig),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([existingConfig]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await hasContextConfig(mockDb)({
@@ -710,15 +703,11 @@ describe('Context Configs Data Access', () => {
     });
 
     it('should return false when context config does not exist', async () => {
-      const mockQuery = {
-        contextConfigs: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await hasContextConfig(mockDb)({

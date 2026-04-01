@@ -11,6 +11,19 @@ import {
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { testManageDbClient } from '../setup';
 
+function createMockSelectChain(result: any) {
+  const chain: any = {};
+  chain.from = vi.fn().mockReturnValue(chain);
+  chain.where = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
+  chain.offset = vi.fn().mockReturnValue(chain);
+  chain.orderBy = vi.fn().mockReturnValue(chain);
+  // biome-ignore lint/suspicious/noThenProperty: mock thenable for drizzle select chain
+  chain.then = (resolve: Function, reject?: Function) =>
+    Promise.resolve(result).then(resolve as any, reject as any);
+  return chain;
+}
+
 describe('Agent Data Access', () => {
   let db: AgentsManageDatabaseClient;
   const testTenantId = 'test-tenant';
@@ -31,35 +44,27 @@ describe('Agent Data Access', () => {
         description: 'Test description',
       };
 
-      const mockQuery = {
-        agents: {
-          findFirst: vi.fn().mockResolvedValue(expectedAgent),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([expectedAgent]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getAgentById(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentId },
       });
 
-      expect(mockQuery.agents.findFirst).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedAgent);
     });
 
     it('should return null if agent not found', async () => {
-      const mockQuery = {
-        agents: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getAgentById(mockDb)({
@@ -81,22 +86,18 @@ describe('Agent Data Access', () => {
         description: 'Test description',
       };
 
-      const mockQuery = {
-        agents: {
-          findFirst: vi.fn().mockResolvedValue(expectedAgent),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([expectedAgent]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getAgentById(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentId },
       });
 
-      expect(mockQuery.agents.findFirst).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedAgent);
     });
   });
@@ -104,31 +105,31 @@ describe('Agent Data Access', () => {
   describe('getAgentAgentWithDefaultSubAgent', () => {
     it('should retrieve an agent with default agent relation', async () => {
       const agentId = 'agent-1';
-      const expectedAgent = {
+      const agentRow = {
         id: agentId,
         tenantId: testTenantId,
         projectId: testProjectId,
         name: 'Test Agent',
-        defaultSubAgent: { id: 'agent-1', name: 'Default Agent' },
+        defaultSubAgentId: 'sub-agent-1',
       };
+      const subAgentRow = { id: 'sub-agent-1', name: 'Default Agent' };
 
-      const mockQuery = {
-        agents: {
-          findFirst: vi.fn().mockResolvedValue(expectedAgent),
-        },
-      };
+      const mockSelect = vi
+        .fn()
+        .mockReturnValueOnce(createMockSelectChain([agentRow]))
+        .mockReturnValueOnce(createMockSelectChain([subAgentRow]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getAgentWithDefaultSubAgent(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentId },
       });
 
-      expect(mockQuery.agents.findFirst).toHaveBeenCalled();
-      expect(result).toEqual(expectedAgent);
+      expect(mockSelect).toHaveBeenCalledTimes(2);
+      expect(result).toEqual({ ...agentRow, defaultSubAgent: subAgentRow });
     });
   });
 
@@ -139,21 +140,17 @@ describe('Agent Data Access', () => {
         { id: 'agent-2', name: 'Agent 2' },
       ];
 
-      const mockQuery = {
-        agents: {
-          findMany: vi.fn().mockResolvedValue(expectedAgents),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain(expectedAgents));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await listAgents(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
       });
-      expect(mockQuery.agents.findMany).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedAgents);
     });
   });

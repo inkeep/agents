@@ -19,14 +19,18 @@ export const getTriggerInvocationById =
     triggerId: string;
     invocationId: string;
   }): Promise<TriggerInvocationSelect | undefined> => {
-    const result = await db.query.triggerInvocations.findFirst({
-      where: and(
-        agentScopedWhere(triggerInvocations, params.scopes),
-        eq(triggerInvocations.triggerId, params.triggerId),
-        eq(triggerInvocations.id, params.invocationId)
-      ),
-    });
-    return result as TriggerInvocationSelect | undefined;
+    const result = await db
+      .select()
+      .from(triggerInvocations)
+      .where(
+        and(
+          agentScopedWhere(triggerInvocations, params.scopes),
+          eq(triggerInvocations.triggerId, params.triggerId),
+          eq(triggerInvocations.id, params.invocationId)
+        )
+      )
+      .limit(1);
+    return result[0] as TriggerInvocationSelect | undefined;
   };
 
 /**

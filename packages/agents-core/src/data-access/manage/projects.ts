@@ -245,13 +245,14 @@ export const countProjects =
 export const getProject =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<ProjectSelect | null> => {
-    const result = await db.query.projects.findFirst({
-      where: and(
-        tenantScopedWhere(projects, params.scopes),
-        eq(projects.id, params.scopes.projectId)
-      ),
-    });
-    return result || null;
+    const result = await db
+      .select()
+      .from(projects)
+      .where(
+        and(tenantScopedWhere(projects, params.scopes), eq(projects.id, params.scopes.projectId))
+      )
+      .limit(1);
+    return result[0] ?? null;
   };
 
 /**
@@ -290,9 +291,8 @@ export const updateProject =
       eq(projects.id, params.scopes.projectId)
     );
 
-    const currentProject = await db.query.projects.findFirst({
-      where: projectWhere,
-    });
+    const currentProjectResult = await db.select().from(projects).where(projectWhere).limit(1);
+    const currentProject = currentProjectResult[0] ?? null;
 
     const [updated] = await db
       .update(projects)
@@ -375,9 +375,7 @@ async function cascadeStopWhenUpdates(
   newStopWhen: any
 ): Promise<void> {
   if (oldStopWhen?.transferCountIs !== newStopWhen?.transferCountIs) {
-    const agentsToUpdate = await db.query.agents.findMany({
-      where: projectScopedWhere(agents, scopes),
-    });
+    const agentsToUpdate = await db.select().from(agents).where(projectScopedWhere(agents, scopes));
 
     for (const agent of agentsToUpdate) {
       const agentStopWhen = agent.stopWhen as any;
@@ -402,9 +400,10 @@ async function cascadeStopWhenUpdates(
   }
 
   if (oldStopWhen?.stepCountIs !== newStopWhen?.stepCountIs) {
-    const agentsToUpdate = await db.query.subAgents.findMany({
-      where: projectScopedWhere(subAgents, scopes),
-    });
+    const agentsToUpdate = await db
+      .select()
+      .from(subAgents)
+      .where(projectScopedWhere(subAgents, scopes));
 
     for (const agent of agentsToUpdate) {
       const agentStopWhen = agent.stopWhen as any;

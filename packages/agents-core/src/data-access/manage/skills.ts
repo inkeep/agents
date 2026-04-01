@@ -144,10 +144,12 @@ export const getSkillFilesBySkillIds =
 export const getSkillById =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; skillId: string }) => {
-    const result = await db.query.skills.findFirst({
-      where: and(projectScopedWhere(skills, params.scopes), eq(skills.id, params.skillId)),
-    });
-    return result ?? null;
+    const result = await db
+      .select()
+      .from(skills)
+      .where(and(projectScopedWhere(skills, params.scopes), eq(skills.id, params.skillId)))
+      .limit(1);
+    return result[0] ?? null;
   };
 
 export const getSkillByIdWithFiles =
@@ -179,15 +181,19 @@ export const getSkillFileById =
     skillId: string;
     fileId: string;
   }): Promise<SkillFileSelect | null> => {
-    const file = await db.query.skillFiles.findFirst({
-      where: and(
-        projectScopedWhere(skillFiles, params.scopes),
-        eq(skillFiles.skillId, params.skillId),
-        eq(skillFiles.id, params.fileId)
-      ),
-    });
+    const result = await db
+      .select()
+      .from(skillFiles)
+      .where(
+        and(
+          projectScopedWhere(skillFiles, params.scopes),
+          eq(skillFiles.skillId, params.skillId),
+          eq(skillFiles.id, params.fileId)
+        )
+      )
+      .limit(1);
 
-    return file ?? null;
+    return result[0] ?? null;
   };
 
 export const createSkillFileById =
@@ -458,9 +464,12 @@ export const upsertSkill =
       };
 
       const scopes = { tenantId: baseData.tenantId, projectId: baseData.projectId };
-      const existing = await tx.query.skills.findFirst({
-        where: and(projectScopedWhere(skills, scopes), eq(skills.id, baseData.id)),
-      });
+      const existingResult = await tx
+        .select()
+        .from(skills)
+        .where(and(projectScopedWhere(skills, scopes), eq(skills.id, baseData.id)))
+        .limit(1);
+      const existing = existingResult[0] ?? null;
 
       const files = data.files;
 
@@ -509,13 +518,18 @@ export const updateSkill =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; skillId: string; data: SkillApiUpdate }) => {
     return await db.transaction(async (tx) => {
-      const existing = await tx.query.skills.findFirst({
-        where: and(
-          eq(skills.tenantId, params.scopes.tenantId),
-          eq(skills.projectId, params.scopes.projectId),
-          eq(skills.id, params.skillId)
-        ),
-      });
+      const existingResult = await tx
+        .select()
+        .from(skills)
+        .where(
+          and(
+            eq(skills.tenantId, params.scopes.tenantId),
+            eq(skills.projectId, params.scopes.projectId),
+            eq(skills.id, params.skillId)
+          )
+        )
+        .limit(1);
+      const existing = existingResult[0] ?? null;
 
       if (!existing) {
         return null;
@@ -616,12 +630,17 @@ export const upsertSubAgentSkill =
     alwaysLoaded?: boolean;
   }) => {
     const now = new Date().toISOString();
-    const existing = await db.query.subAgentSkills.findFirst({
-      where: and(
-        subAgentScopedWhere(subAgentSkills, params.scopes),
-        eq(subAgentSkills.skillId, params.skillId)
-      ),
-    });
+    const existingResult = await db
+      .select()
+      .from(subAgentSkills)
+      .where(
+        and(
+          subAgentScopedWhere(subAgentSkills, params.scopes),
+          eq(subAgentSkills.skillId, params.skillId)
+        )
+      )
+      .limit(1);
+    const existing = existingResult[0] ?? null;
 
     if (existing) {
       const [result] = await db

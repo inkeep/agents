@@ -53,7 +53,7 @@ async function main() {
   }
 
   const pool = new Pool({ connectionString: MANAGE_DB_URL, max: 2 });
-  const db = drizzle(pool, { schema: manageSchema });
+  const db = drizzle({ client: pool, schema: manageSchema });
 
   try {
     const branches = await db.execute<{ name: string; hash: string }>(

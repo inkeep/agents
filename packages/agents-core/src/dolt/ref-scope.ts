@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool, PoolClient } from 'pg';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
+import { manageRelations } from '../db/manage/manage-relations';
 import * as schema from '../db/manage/manage-schema';
 import { generateId } from '../utils/conversations';
 import { getLogger } from '../utils/logger';
@@ -133,7 +134,11 @@ export async function withRef<T>(
   if (process.env.ENVIRONMENT === 'test') {
     const connection = await pool.connect();
     try {
-      const db = drizzle(connection, { schema }) as unknown as AgentsManageDatabaseClient;
+      const db = drizzle({
+        client: connection,
+        schema,
+        relations: manageRelations,
+      }) as unknown as AgentsManageDatabaseClient;
       return await refScopeStorage.run({ db, ref: resolvedRef.name, connectionId }, () =>
         dataAccessFn(db)
       );
@@ -151,7 +156,11 @@ export async function withRef<T>(
   let tempBranch: string | null = null;
 
   try {
-    const db = drizzle(connection, { schema }) as unknown as AgentsManageDatabaseClient;
+    const db = drizzle({
+      client: connection,
+      schema,
+      relations: manageRelations,
+    }) as unknown as AgentsManageDatabaseClient;
 
     if (resolvedRef.type === 'branch') {
       logger.debug({ branch: resolvedRef.name, connectionId }, 'Checking out branch');
@@ -212,7 +221,11 @@ export async function withRef<T>(
     // Reset uncommitted changes on failure (if commit mode was enabled)
     if (commit && resolvedRef.type === 'branch') {
       try {
-        const db = drizzle(connection, { schema }) as unknown as AgentsManageDatabaseClient;
+        const db = drizzle({
+          client: connection,
+          schema,
+          relations: manageRelations,
+        }) as unknown as AgentsManageDatabaseClient;
         const statusResult = await doltStatus(db)();
 
         if (statusResult.length > 0) {

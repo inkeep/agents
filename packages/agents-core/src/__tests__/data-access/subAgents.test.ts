@@ -11,6 +11,19 @@ import {
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { testManageDbClient } from '../setup';
 
+function createMockSelectChain(result: any) {
+  const chain: any = {};
+  chain.from = vi.fn().mockReturnValue(chain);
+  chain.where = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
+  chain.offset = vi.fn().mockReturnValue(chain);
+  chain.orderBy = vi.fn().mockReturnValue(chain);
+  // biome-ignore lint/suspicious/noThenProperty: mock thenable for drizzle select chain
+  chain.then = (resolve: Function, reject?: Function) =>
+    Promise.resolve(result).then(resolve as any, reject as any);
+  return chain;
+}
+
 describe('Agent Data Access', () => {
   let db: AgentsManageDatabaseClient;
   const testTenantId = 'test-tenant';
@@ -102,15 +115,11 @@ describe('Agent Data Access', () => {
         prompt: 'Test prompt',
       };
 
-      const mockQuery = {
-        subAgents: {
-          findFirst: vi.fn().mockResolvedValue(expectedAgent),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([expectedAgent]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getSubAgentById(mockDb)({
@@ -122,20 +131,16 @@ describe('Agent Data Access', () => {
         subAgentId: subAgentId,
       });
 
-      expect(mockQuery.subAgents.findFirst).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedAgent);
     });
 
-    it('should return null if agent not found', async () => {
-      const mockQuery = {
-        subAgents: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      };
+    it('should return undefined if agent not found', async () => {
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getSubAgentById(mockDb)({
@@ -147,7 +152,7 @@ describe('Agent Data Access', () => {
         subAgentId: 'non-existent',
       });
 
-      expect(result).toBeNull();
+      expect(result).toBeUndefined();
     });
   });
 
@@ -158,15 +163,11 @@ describe('Agent Data Access', () => {
         { id: 'agent-2', name: 'Agent 2' },
       ];
 
-      const mockQuery = {
-        subAgents: {
-          findMany: vi.fn().mockResolvedValue(expectedAgents),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain(expectedAgents));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await listSubAgents(mockDb)({
@@ -177,7 +178,7 @@ describe('Agent Data Access', () => {
         },
       });
 
-      expect(mockQuery.subAgents.findMany).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedAgents);
     });
   });

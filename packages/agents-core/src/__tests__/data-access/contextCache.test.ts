@@ -15,6 +15,32 @@ import type { ContextCacheInsert } from '../../types/entities';
 import type { ResolvedRef } from '../../validation/dolt-schemas';
 import { testRunDbClient } from '../setup';
 
+function createMockSelectChain(result: any) {
+  const chain: any = {};
+  chain.from = vi.fn().mockReturnValue(chain);
+  chain.where = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
+  chain.offset = vi.fn().mockReturnValue(chain);
+  chain.orderBy = vi.fn().mockReturnValue(chain);
+  // biome-ignore lint/suspicious/noThenProperty: mock thenable for drizzle select chain
+  chain.then = (resolve: Function, reject?: Function) =>
+    Promise.resolve(result).then(resolve as any, reject as any);
+  return chain;
+}
+
+function createMockSelectChainRejecting(error: Error) {
+  const chain: any = {};
+  chain.from = vi.fn().mockReturnValue(chain);
+  chain.where = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
+  chain.offset = vi.fn().mockReturnValue(chain);
+  chain.orderBy = vi.fn().mockReturnValue(chain);
+  // biome-ignore lint/suspicious/noThenProperty: mock thenable for drizzle select chain
+  chain.then = (resolve: Function, reject?: Function) =>
+    Promise.reject(error).then(resolve as any, reject as any);
+  return chain;
+}
+
 describe('Context Cache Data Access', () => {
   let db: AgentsRunDatabaseClient;
   const testTenantId = 'test-tenant';
@@ -48,15 +74,11 @@ describe('Context Cache Data Access', () => {
         updatedAt: '2024-01-01T00:00:00Z',
       };
 
-      const mockQuery = {
-        contextCache: {
-          findFirst: vi.fn().mockResolvedValue(expectedEntry),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([expectedEntry]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getCacheEntry(mockDb)({
@@ -66,20 +88,16 @@ describe('Context Cache Data Access', () => {
         scopes: { tenantId: testTenantId, projectId: testProjectId },
       });
 
-      expect(mockQuery.contextCache.findFirst).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedEntry);
     });
 
     it('should return null if cache entry not found', async () => {
-      const mockQuery = {
-        contextCache: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getCacheEntry(mockDb)({
@@ -110,15 +128,11 @@ describe('Context Cache Data Access', () => {
         updatedAt: '2024-01-01T00:00:00Z',
       };
 
-      const mockQuery = {
-        contextCache: {
-          findFirst: vi.fn().mockResolvedValue(cacheEntry),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([cacheEntry]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getCacheEntry(mockDb)({
@@ -150,15 +164,11 @@ describe('Context Cache Data Access', () => {
         updatedAt: '2024-01-01T00:00:00Z',
       };
 
-      const mockQuery = {
-        contextCache: {
-          findFirst: vi.fn().mockResolvedValue(cacheEntry),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([cacheEntry]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getCacheEntry(mockDb)({
@@ -174,15 +184,13 @@ describe('Context Cache Data Access', () => {
     });
 
     it('should return null on database error', async () => {
-      const mockQuery = {
-        contextCache: {
-          findFirst: vi.fn().mockRejectedValue(new Error('Database error')),
-        },
-      };
+      const mockSelect = vi
+        .fn()
+        .mockReturnValue(createMockSelectChainRejecting(new Error('Database error')));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getCacheEntry(mockDb)({
@@ -213,15 +221,11 @@ describe('Context Cache Data Access', () => {
         updatedAt: '2024-01-01T00:00:00Z',
       };
 
-      const mockQuery = {
-        contextCache: {
-          findFirst: vi.fn().mockResolvedValue(cacheEntry),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([cacheEntry]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getCacheEntry(mockDb)({
@@ -748,15 +752,11 @@ describe('Context Cache Data Access', () => {
         },
       ];
 
-      const mockQuery = {
-        contextCache: {
-          findMany: vi.fn().mockResolvedValue(expectedEntries),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain(expectedEntries));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getConversationCacheEntries(mockDb)({
@@ -767,20 +767,16 @@ describe('Context Cache Data Access', () => {
         conversationId: testConversationId,
       });
 
-      expect(mockQuery.contextCache.findMany).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedEntries);
     });
 
     it('should return empty array when no entries found', async () => {
-      const mockQuery = {
-        contextCache: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getConversationCacheEntries(mockDb)({
@@ -818,15 +814,11 @@ describe('Context Cache Data Access', () => {
         },
       ];
 
-      const mockQuery = {
-        contextCache: {
-          findMany: vi.fn().mockResolvedValue(expectedEntries),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain(expectedEntries));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getContextConfigCacheEntries(mockDb)({
@@ -837,20 +829,16 @@ describe('Context Cache Data Access', () => {
         contextConfigId: testContextConfigId,
       });
 
-      expect(mockQuery.contextCache.findMany).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedEntries);
     });
 
     it('should return empty array when no entries found', async () => {
-      const mockQuery = {
-        contextCache: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue(createMockSelectChain([]));
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getContextConfigCacheEntries(mockDb)({

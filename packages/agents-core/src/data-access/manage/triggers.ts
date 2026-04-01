@@ -16,11 +16,13 @@ export const getTriggerById =
   }): Promise<TriggerSelect | undefined> => {
     const { scopes, triggerId } = params;
 
-    const result = await db.query.triggers.findFirst({
-      where: and(agentScopedWhere(triggers, scopes), eq(triggers.id, triggerId)),
-    });
+    const result = await db
+      .select()
+      .from(triggers)
+      .where(and(agentScopedWhere(triggers, scopes), eq(triggers.id, triggerId)))
+      .limit(1);
 
-    return result as TriggerSelect | undefined;
+    return (result[0] as TriggerSelect) ?? undefined;
   };
 
 /**
@@ -29,9 +31,10 @@ export const getTriggerById =
 export const listTriggers =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig }): Promise<TriggerSelect[]> => {
-    const result = await db.query.triggers.findMany({
-      where: agentScopedWhere(triggers, params.scopes),
-    });
+    const result = await db
+      .select()
+      .from(triggers)
+      .where(agentScopedWhere(triggers, params.scopes));
     return result as TriggerSelect[];
   };
 
@@ -141,9 +144,12 @@ export const upsertTrigger =
     const { scopes, data } = params;
 
     // Check if trigger exists
-    const existing = await db.query.triggers.findFirst({
-      where: and(agentScopedWhere(triggers, scopes), eq(triggers.id, data.id)),
-    });
+    const existingResult = await db
+      .select()
+      .from(triggers)
+      .where(and(agentScopedWhere(triggers, scopes), eq(triggers.id, data.id)))
+      .limit(1);
+    const existing = existingResult[0];
 
     if (existing) {
       // Update existing trigger

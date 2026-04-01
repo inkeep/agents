@@ -566,10 +566,12 @@ export const dbResultToMcpTool = async (
 export const getToolById =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; toolId: string }) => {
-    const result = await db.query.tools.findFirst({
-      where: and(projectScopedWhere(tools, params.scopes), eq(tools.id, params.toolId)),
-    });
-    return result ?? null;
+    const result = await db
+      .select()
+      .from(tools)
+      .where(and(projectScopedWhere(tools, params.scopes), eq(tools.id, params.toolId)))
+      .limit(1);
+    return result[0] ?? null;
   };
 
 export const getMcpToolById =

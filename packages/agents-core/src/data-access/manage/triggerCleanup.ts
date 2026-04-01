@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
+import { manageRelations } from '../../db/manage/manage-relations';
 import * as schema from '../../db/manage/manage-schema';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { resolveProjectMainRefs } from '../../dolt/ref-helpers';
@@ -44,7 +45,11 @@ export async function cleanupUserTriggers(params: {
   const connection = await manageDbPool.connect();
   let resolvedRefs: Array<{ projectId: string; ref: ResolvedRef }>;
   try {
-    const db = drizzle(connection, { schema }) as unknown as AgentsManageDatabaseClient;
+    const db = drizzle({
+      client: connection,
+      schema,
+      relations: manageRelations,
+    }) as unknown as AgentsManageDatabaseClient;
     resolvedRefs = await resolveProjectMainRefs(db)(
       tenantId,
       projects.map((p) => p.id)

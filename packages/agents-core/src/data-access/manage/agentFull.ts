@@ -113,9 +113,12 @@ async function applyExecutionLimitsInheritance(
   agentData: FullAgentDefinition
 ): Promise<void> {
   try {
-    const project = await db.query.projects.findFirst({
-      where: and(tenantScopedWhere(projects, scopes), eq(projects.id, scopes.projectId)),
-    });
+    const projectResult = await db
+      .select()
+      .from(projects)
+      .where(and(tenantScopedWhere(projects, scopes), eq(projects.id, scopes.projectId)))
+      .limit(1);
+    const project = projectResult[0] ?? null;
 
     if (!project?.stopWhen) {
       logger.info({ projectId: scopes.projectId }, 'No project stopWhen configuration found');
@@ -1203,15 +1206,17 @@ export const updateFullAgentServerSide =
 
           let existingSubAgent = null;
           try {
-            existingSubAgent = await db.query.subAgents.findFirst({
-              where: and(
-                agentScopedWhere(subAgents, { tenantId, projectId, agentId: finalAgentId }),
-                eq(subAgents.id, subAgentId)
-              ),
-              columns: {
-                models: true,
-              },
-            });
+            const existingSubAgentResult = await db
+              .select({ models: subAgents.models })
+              .from(subAgents)
+              .where(
+                and(
+                  agentScopedWhere(subAgents, { tenantId, projectId, agentId: finalAgentId }),
+                  eq(subAgents.id, subAgentId)
+                )
+              )
+              .limit(1);
+            existingSubAgent = existingSubAgentResult[0] ?? null;
           } catch (_error) {}
 
           let finalModelSettings = subAgent.models === undefined ? undefined : subAgent.models;

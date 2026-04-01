@@ -27,12 +27,18 @@ export const getCredentialReference =
     scopes: ProjectScopeConfig;
     id: string;
   }): Promise<CredentialReferenceSelect | undefined> => {
-    return await db.query.credentialReferences.findFirst({
-      where: and(
-        projectScopedWhere(credentialReferences, params.scopes),
-        eq(credentialReferences.id, params.id)
-      ),
-    });
+    const result = await db
+      .select()
+      .from(credentialReferences)
+      .where(
+        and(
+          projectScopedWhere(credentialReferences, params.scopes),
+          eq(credentialReferences.id, params.id)
+        )
+      )
+      .limit(1);
+
+    return result[0] as CredentialReferenceSelect | undefined;
   };
 
 /**
@@ -45,13 +51,19 @@ export const getUserScopedCredentialReference =
     toolId: string;
     userId: string;
   }): Promise<CredentialReferenceSelect | undefined> => {
-    return await db.query.credentialReferences.findFirst({
-      where: and(
-        projectScopedWhere(credentialReferences, params.scopes),
-        eq(credentialReferences.toolId, params.toolId),
-        eq(credentialReferences.userId, params.userId)
-      ),
-    });
+    const result = await db
+      .select()
+      .from(credentialReferences)
+      .where(
+        and(
+          projectScopedWhere(credentialReferences, params.scopes),
+          eq(credentialReferences.toolId, params.toolId),
+          eq(credentialReferences.userId, params.userId)
+        )
+      )
+      .limit(1);
+
+    return result[0] as CredentialReferenceSelect | undefined;
   };
 
 /**
@@ -63,13 +75,17 @@ export const getCredentialReferenceWithResources =
     scopes: ProjectScopeConfig;
     id: string;
   }): Promise<CredentialReferenceWithResources | undefined> => {
-    const [credential, relatedTools, relatedExternalAgents] = await Promise.all([
-      db.query.credentialReferences.findFirst({
-        where: and(
-          projectScopedWhere(credentialReferences, params.scopes),
-          eq(credentialReferences.id, params.id)
-        ),
-      }),
+    const [credentialResult, relatedTools, relatedExternalAgents] = await Promise.all([
+      db
+        .select()
+        .from(credentialReferences)
+        .where(
+          and(
+            projectScopedWhere(credentialReferences, params.scopes),
+            eq(credentialReferences.id, params.id)
+          )
+        )
+        .limit(1),
       db
         .select()
         .from(tools)
@@ -87,6 +103,7 @@ export const getCredentialReferenceWithResources =
         ),
     ]);
 
+    const credential = credentialResult[0];
     if (!credential) {
       return undefined;
     }
@@ -104,10 +121,11 @@ export const getCredentialReferenceWithResources =
 export const listCredentialReferences =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<CredentialReferenceSelect[]> => {
-    return await db.query.credentialReferences.findMany({
-      where: projectScopedWhere(credentialReferences, params.scopes),
-      orderBy: [desc(credentialReferences.createdAt)],
-    });
+    return await db
+      .select()
+      .from(credentialReferences)
+      .where(projectScopedWhere(credentialReferences, params.scopes))
+      .orderBy(desc(credentialReferences.createdAt));
   };
 
 /**
@@ -240,7 +258,7 @@ export const hasCredentialReference =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; id: string }): Promise<boolean> => {
     const credential = await getCredentialReference(db)(params);
-    return credential !== null;
+    return !!credential;
   };
 
 /**
@@ -252,14 +270,18 @@ export const getCredentialReferenceById =
     scopes: ProjectScopeConfig;
     id: string;
   }): Promise<CredentialReferenceSelect | null> => {
-    const result = await db.query.credentialReferences.findFirst({
-      where: and(
-        projectScopedWhere(credentialReferences, params.scopes),
-        eq(credentialReferences.id, params.id)
-      ),
-    });
+    const result = await db
+      .select()
+      .from(credentialReferences)
+      .where(
+        and(
+          projectScopedWhere(credentialReferences, params.scopes),
+          eq(credentialReferences.id, params.id)
+        )
+      )
+      .limit(1);
 
-    return result || null;
+    return result[0] ?? null;
   };
 
 /**

@@ -169,44 +169,64 @@ describe('AgentFull Data Access - rename sub-agent id', () => {
 
     await updateFullAgentServerSide(db)({ tenantId, projectId }, agentData);
 
-    const updatedToolRelation = await db.query.subAgentToolRelations.findFirst({
-      where: and(
-        eq(schema.subAgentToolRelations.tenantId, tenantId),
-        eq(schema.subAgentToolRelations.projectId, projectId),
-        eq(schema.subAgentToolRelations.agentId, agentId),
-        eq(schema.subAgentToolRelations.id, toolRelationId)
-      ),
-    });
+    const updatedToolRelationResult = await db
+      .select()
+      .from(schema.subAgentToolRelations)
+      .where(
+        and(
+          eq(schema.subAgentToolRelations.tenantId, tenantId),
+          eq(schema.subAgentToolRelations.projectId, projectId),
+          eq(schema.subAgentToolRelations.agentId, agentId),
+          eq(schema.subAgentToolRelations.id, toolRelationId)
+        )
+      )
+      .limit(1);
+    const updatedToolRelation = updatedToolRelationResult[0];
 
-    const updatedFunctionRelation = await db.query.subAgentFunctionToolRelations.findFirst({
-      where: and(
-        eq(schema.subAgentFunctionToolRelations.tenantId, tenantId),
-        eq(schema.subAgentFunctionToolRelations.projectId, projectId),
-        eq(schema.subAgentFunctionToolRelations.agentId, agentId),
-        eq(schema.subAgentFunctionToolRelations.id, functionRelationId)
-      ),
-    });
+    const updatedFunctionRelationResult = await db
+      .select()
+      .from(schema.subAgentFunctionToolRelations)
+      .where(
+        and(
+          eq(schema.subAgentFunctionToolRelations.tenantId, tenantId),
+          eq(schema.subAgentFunctionToolRelations.projectId, projectId),
+          eq(schema.subAgentFunctionToolRelations.agentId, agentId),
+          eq(schema.subAgentFunctionToolRelations.id, functionRelationId)
+        )
+      )
+      .limit(1);
+    const updatedFunctionRelation = updatedFunctionRelationResult[0];
 
     expect(updatedToolRelation?.subAgentId).toBe(newSubAgentId);
     expect(updatedFunctionRelation?.subAgentId).toBe(newSubAgentId);
 
-    const oldSubAgent = await db.query.subAgents.findFirst({
-      where: and(
-        eq(schema.subAgents.tenantId, tenantId),
-        eq(schema.subAgents.projectId, projectId),
-        eq(schema.subAgents.agentId, agentId),
-        eq(schema.subAgents.id, oldSubAgentId)
-      ),
-    });
+    const oldSubAgentResult = await db
+      .select()
+      .from(schema.subAgents)
+      .where(
+        and(
+          eq(schema.subAgents.tenantId, tenantId),
+          eq(schema.subAgents.projectId, projectId),
+          eq(schema.subAgents.agentId, agentId),
+          eq(schema.subAgents.id, oldSubAgentId)
+        )
+      )
+      .limit(1);
+    const oldSubAgent = oldSubAgentResult[0];
 
-    const newSubAgent = await db.query.subAgents.findFirst({
-      where: and(
-        eq(schema.subAgents.tenantId, tenantId),
-        eq(schema.subAgents.projectId, projectId),
-        eq(schema.subAgents.agentId, agentId),
-        eq(schema.subAgents.id, newSubAgentId)
-      ),
-    });
+    const newSubAgentResult = await db
+      .select()
+      .from(schema.subAgents)
+      .where(
+        and(
+          eq(schema.subAgents.tenantId, tenantId),
+          eq(schema.subAgents.projectId, projectId),
+          eq(schema.subAgents.agentId, agentId),
+          eq(schema.subAgents.id, newSubAgentId)
+        )
+      )
+      .limit(1);
+    const newSubAgent = newSubAgentResult[0];
 
     expect(oldSubAgent).toBeUndefined();
     expect(newSubAgent).not.toBeNull();

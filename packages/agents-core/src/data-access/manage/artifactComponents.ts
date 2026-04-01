@@ -25,12 +25,17 @@ import { agentScopedWhere, projectScopedWhere, subAgentScopedWhere } from './sco
 export const getArtifactComponentById =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; id: string }) => {
-    return await db.query.artifactComponents.findFirst({
-      where: and(
-        projectScopedWhere(artifactComponents, params.scopes),
-        eq(artifactComponents.id, params.id)
-      ),
-    });
+    const result = await db
+      .select()
+      .from(artifactComponents)
+      .where(
+        and(
+          projectScopedWhere(artifactComponents, params.scopes),
+          eq(artifactComponents.id, params.id)
+        )
+      )
+      .limit(1);
+    return result[0] ?? null;
   };
 
 export const listArtifactComponents =

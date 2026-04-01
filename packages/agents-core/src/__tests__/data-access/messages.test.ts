@@ -37,15 +37,17 @@ describe('Messages Data Access', () => {
         content: { text: 'Hello world' },
       };
 
-      const mockQuery = {
-        messages: {
-          findFirst: vi.fn().mockResolvedValue(expectedMessage),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([expectedMessage]),
+          }),
+        }),
+      });
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getMessageById(mockDb)({
@@ -53,20 +55,22 @@ describe('Messages Data Access', () => {
         messageId,
       });
 
-      expect(mockQuery.messages.findFirst).toHaveBeenCalled();
+      expect(mockSelect).toHaveBeenCalled();
       expect(result).toEqual(expectedMessage);
     });
 
     it('should return null if message not found', async () => {
-      const mockQuery = {
-        messages: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      };
+      const mockSelect = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      });
 
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: mockSelect,
       } as any;
 
       const result = await getMessageById(mockDb)({

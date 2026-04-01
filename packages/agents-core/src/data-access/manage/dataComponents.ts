@@ -24,14 +24,18 @@ export const getDataComponent =
     scopes: ProjectScopeConfig;
     dataComponentId: string;
   }): Promise<DataComponentSelect | null> => {
-    const result = await db.query.dataComponents.findFirst({
-      where: and(
-        projectScopedWhere(dataComponents, params.scopes),
-        eq(dataComponents.id, params.dataComponentId)
-      ),
-    });
+    const result = await db
+      .select()
+      .from(dataComponents)
+      .where(
+        and(
+          projectScopedWhere(dataComponents, params.scopes),
+          eq(dataComponents.id, params.dataComponentId)
+        )
+      )
+      .limit(1);
 
-    return result || null;
+    return result[0] ?? null;
   };
 
 /**

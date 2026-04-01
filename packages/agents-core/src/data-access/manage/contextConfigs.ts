@@ -8,17 +8,21 @@ import { agentScopedWhere } from './scope-helpers';
 
 export const getContextConfigById =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig; id: string }) => {
-    return await db.query.contextConfigs.findFirst({
-      where: and(agentScopedWhere(contextConfigs, params.scopes), eq(contextConfigs.id, params.id)),
-    });
+    const result = await db
+      .select()
+      .from(contextConfigs)
+      .where(and(agentScopedWhere(contextConfigs, params.scopes), eq(contextConfigs.id, params.id)))
+      .limit(1);
+    return result[0] ?? null;
   };
 
 export const listContextConfigs =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
-    return await db.query.contextConfigs.findMany({
-      where: agentScopedWhere(contextConfigs, params.scopes),
-      orderBy: [desc(contextConfigs.createdAt)],
-    });
+    return await db
+      .select()
+      .from(contextConfigs)
+      .where(agentScopedWhere(contextConfigs, params.scopes))
+      .orderBy(desc(contextConfigs.createdAt));
   };
 
 export const listContextConfigsPaginated =

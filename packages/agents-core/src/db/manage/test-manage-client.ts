@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import type { AgentsManageDatabaseClient } from './manage-client';
+import { manageRelations } from './manage-relations';
 import * as schema from './manage-schema';
 
 /**
@@ -14,7 +15,7 @@ export async function createTestManageDatabaseClient(
   drizzleDir: string
 ): Promise<AgentsManageDatabaseClient> {
   const client = new PGlite();
-  const db = drizzle(client, { schema });
+  const db = drizzle({ client, schema, relations: manageRelations });
 
   // Initialize schema by running ALL migration SQL files
   try {
@@ -29,7 +30,7 @@ export async function createTestManageDatabaseClient(
 
 export function createTestManageDatabaseClientNoMigrations(): AgentsManageDatabaseClient {
   const client = new PGlite();
-  const db = drizzle(client, { schema });
+  const db = drizzle({ client, schema, relations: manageRelations });
 
   return db;
 }

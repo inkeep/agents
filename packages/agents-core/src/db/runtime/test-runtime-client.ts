@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import type { AgentsRunDatabaseClient } from './runtime-client';
+import { runtimeRelations } from './runtime-relations';
 import * as schema from './runtime-schema';
 
 /**
@@ -14,7 +15,7 @@ export async function createTestRuntimeDatabaseClient(
   drizzleDir: string
 ): Promise<AgentsRunDatabaseClient> {
   const client = new PGlite();
-  const db = drizzle(client, { schema });
+  const db = drizzle({ client, schema, relations: runtimeRelations });
 
   // Initialize schema by running ALL migration SQL files
   try {
@@ -29,7 +30,7 @@ export async function createTestRuntimeDatabaseClient(
 
 export function createTestRuntimeDatabaseClientNoMigrations(): AgentsRunDatabaseClient {
   const client = new PGlite();
-  const db = drizzle(client, { schema });
+  const db = drizzle({ client, schema, relations: runtimeRelations });
 
   return db;
 }

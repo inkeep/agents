@@ -7,10 +7,12 @@ const SINGLETON_ID = 'singleton';
 
 export const getSchedulerState =
   (db: AgentsRunDatabaseClient) => async (): Promise<SchedulerState | undefined> => {
-    const row = await db.query.schedulerState.findFirst({
-      where: eq(schedulerState.id, SINGLETON_ID),
-    });
-    return row;
+    const result = await db
+      .select()
+      .from(schedulerState)
+      .where(eq(schedulerState.id, SINGLETON_ID))
+      .limit(1);
+    return result[0];
   };
 
 export const upsertSchedulerState =

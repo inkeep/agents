@@ -16,6 +16,20 @@ import { CredentialStoreType } from '../../types';
 import type { CredentialReferenceInsert, CredentialReferenceUpdate } from '../../types/entities';
 import { testManageDbClient } from '../setup';
 
+function createMockSelectChain(result: any) {
+  const chain: any = {};
+  chain.from = vi.fn().mockReturnValue(chain);
+  chain.where = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
+  chain.offset = vi.fn().mockReturnValue(chain);
+  chain.orderBy = vi.fn().mockReturnValue(chain);
+  chain.innerJoin = vi.fn().mockReturnValue(chain);
+  // biome-ignore lint/suspicious/noThenProperty: mock thenable for drizzle select chain
+  chain.then = (resolve: Function, reject?: Function) =>
+    Promise.resolve(result).then(resolve as any, reject as any);
+  return chain;
+}
+
 describe('Credential References Data Access', () => {
   let db: AgentsManageDatabaseClient;
   const testTenantId = 'test-tenant';
@@ -57,63 +71,51 @@ describe('Credential References Data Access', () => {
         },
       ];
 
-      const mockQuery = {
-        credentialReferences: {
-          findFirst: vi.fn().mockResolvedValue(expectedCredential),
-        },
-      };
+      const expectedExternalAgents: any[] = [];
 
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(expectedTools),
-        }),
-      });
+      const credentialChain = createMockSelectChain([expectedCredential]);
+      const toolsChain = createMockSelectChain(expectedTools);
+      const externalAgentsChain = createMockSelectChain(expectedExternalAgents);
 
+      let selectCallCount = 0;
       const mockDb = {
         ...db,
-        query: mockQuery,
-        select: mockSelect,
+        select: vi.fn().mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) return credentialChain;
+          if (selectCallCount === 2) return toolsChain;
+          return externalAgentsChain;
+        }),
       } as any;
-
-      // Mock Promise.all
-      vi.spyOn(Promise, 'all').mockResolvedValue([expectedCredential, expectedTools]);
 
       const result = await getCredentialReferenceWithResources(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
         id: testCredentialId,
       });
 
-      expect(mockQuery.credentialReferences.findFirst).toHaveBeenCalled();
-      expect(mockSelect).toHaveBeenCalled();
+      expect(mockDb.select).toHaveBeenCalled();
       expect(result).toEqual({
         ...expectedCredential,
         tools: expectedTools,
+        externalAgents: expectedExternalAgents,
       });
-
-      vi.restoreAllMocks();
     });
 
     it('should return null if credential reference not found', async () => {
-      const mockQuery = {
-        credentialReferences: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      };
+      const credentialChain = createMockSelectChain([]);
+      const toolsChain = createMockSelectChain([]);
+      const externalAgentsChain = createMockSelectChain([]);
 
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([]),
-        }),
-      });
-
+      let selectCallCount = 0;
       const mockDb = {
         ...db,
-        query: mockQuery,
-        select: mockSelect,
+        select: vi.fn().mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) return credentialChain;
+          if (selectCallCount === 2) return toolsChain;
+          return externalAgentsChain;
+        }),
       } as any;
-
-      // Mock Promise.all
-      vi.spyOn(Promise, 'all').mockResolvedValue([null, []]);
 
       const result = await getCredentialReferenceWithResources(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
@@ -121,8 +123,6 @@ describe('Credential References Data Access', () => {
       });
 
       expect(result).toBeUndefined();
-
-      vi.restoreAllMocks();
     });
 
     it('should handle credential with null retrievalParams', async () => {
@@ -137,26 +137,20 @@ describe('Credential References Data Access', () => {
         updatedAt: '2024-01-01T00:00:00Z',
       };
 
-      const mockQuery = {
-        credentialReferences: {
-          findFirst: vi.fn().mockResolvedValue(expectedCredential),
-        },
-      };
+      const credentialChain = createMockSelectChain([expectedCredential]);
+      const toolsChain = createMockSelectChain([]);
+      const externalAgentsChain = createMockSelectChain([]);
 
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([]),
-        }),
-      });
-
+      let selectCallCount = 0;
       const mockDb = {
         ...db,
-        query: mockQuery,
-        select: mockSelect,
+        select: vi.fn().mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) return credentialChain;
+          if (selectCallCount === 2) return toolsChain;
+          return externalAgentsChain;
+        }),
       } as any;
-
-      // Mock Promise.all
-      vi.spyOn(Promise, 'all').mockResolvedValue([expectedCredential, []]);
 
       const result = await getCredentialReferenceWithResources(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
@@ -165,8 +159,6 @@ describe('Credential References Data Access', () => {
 
       expect(result?.retrievalParams).toBeNull();
       expect(result?.tools).toEqual([]);
-
-      vi.restoreAllMocks();
     });
   });
 
@@ -183,15 +175,9 @@ describe('Credential References Data Access', () => {
         updatedAt: '2024-01-01T00:00:00Z',
       };
 
-      const mockQuery = {
-        credentialReferences: {
-          findFirst: vi.fn().mockResolvedValue(expectedCredential),
-        },
-      };
-
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: vi.fn().mockReturnValue(createMockSelectChain([expectedCredential])),
       } as any;
 
       const result = await getCredentialReference(mockDb)({
@@ -199,21 +185,15 @@ describe('Credential References Data Access', () => {
         id: testCredentialId,
       });
 
-      expect(mockQuery.credentialReferences.findFirst).toHaveBeenCalled();
+      expect(mockDb.select).toHaveBeenCalled();
       expect(result).toEqual(expectedCredential);
       expect(result).not.toHaveProperty('tools');
     });
 
-    it('should return null if credential reference not found', async () => {
-      const mockQuery = {
-        credentialReferences: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      };
-
+    it('should return undefined if credential reference not found', async () => {
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: vi.fn().mockReturnValue(createMockSelectChain([])),
       } as any;
 
       const result = await getCredentialReference(mockDb)({
@@ -221,7 +201,7 @@ describe('Credential References Data Access', () => {
         id: 'non-existent',
       });
 
-      expect(result).toBeNull();
+      expect(result).toBeUndefined();
     });
   });
 
@@ -250,35 +230,23 @@ describe('Credential References Data Access', () => {
         },
       ];
 
-      const mockQuery = {
-        credentialReferences: {
-          findMany: vi.fn().mockResolvedValue(expectedCredentials),
-        },
-      };
-
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: vi.fn().mockReturnValue(createMockSelectChain(expectedCredentials)),
       } as any;
 
       const result = await listCredentialReferences(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
       });
 
-      expect(mockQuery.credentialReferences.findMany).toHaveBeenCalled();
+      expect(mockDb.select).toHaveBeenCalled();
       expect(result).toEqual(expectedCredentials);
     });
 
     it('should return empty array when no credentials found', async () => {
-      const mockQuery = {
-        credentialReferences: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-      };
-
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: vi.fn().mockReturnValue(createMockSelectChain([])),
       } as any;
 
       const result = await listCredentialReferences(mockDb)({
@@ -304,31 +272,18 @@ describe('Credential References Data Access', () => {
         },
       ];
 
-      const mockSelect = vi.fn().mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockReturnValue({
-              offset: vi.fn().mockReturnValue({
-                orderBy: vi.fn().mockResolvedValue(expectedCredentials),
-              }),
-            }),
-          }),
-        }),
-      });
+      const dataChain = createMockSelectChain(expectedCredentials);
+      const countChain = createMockSelectChain([{ count: '2' }]);
 
-      const mockCountSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ count: '2' }]),
-        }),
-      });
-
+      let selectCallCount = 0;
       const mockDb = {
         ...db,
-        select: vi.fn().mockReturnValueOnce(mockSelect()).mockReturnValueOnce(mockCountSelect()),
+        select: vi.fn().mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) return dataChain;
+          return countChain;
+        }),
       } as any;
-
-      // Mock Promise.all
-      vi.spyOn(Promise, 'all').mockResolvedValue([expectedCredentials, [{ count: '2' }]]);
 
       const result = await listCredentialReferencesPaginated(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
@@ -339,30 +294,22 @@ describe('Credential References Data Access', () => {
         data: expectedCredentials,
         pagination: { page: 1, limit: 10, total: 2, pages: 1 },
       });
-
-      vi.restoreAllMocks();
     });
 
     it('should handle default pagination options', async () => {
       const expectedCredentials = [{ id: 'cred-1' }];
 
-      vi.spyOn(Promise, 'all').mockResolvedValue([expectedCredentials, [{ count: '1' }]]);
+      const dataChain = createMockSelectChain(expectedCredentials);
+      const countChain = createMockSelectChain([{ count: '1' }]);
 
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockReturnValue({
-              offset: vi.fn().mockReturnValue({
-                orderBy: vi.fn().mockResolvedValue(expectedCredentials),
-              }),
-            }),
-          }),
-        }),
-      });
-
+      let selectCallCount = 0;
       const mockDb = {
         ...db,
-        select: mockSelect,
+        select: vi.fn().mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) return dataChain;
+          return countChain;
+        }),
       } as any;
 
       const result = await listCredentialReferencesPaginated(mockDb)({
@@ -371,30 +318,22 @@ describe('Credential References Data Access', () => {
 
       expect(result.pagination.page).toBe(1);
       expect(result.pagination.limit).toBe(10);
-
-      vi.restoreAllMocks();
     });
 
     it('should enforce maximum limit', async () => {
       const expectedCredentials = [{ id: 'cred-1' }];
 
-      vi.spyOn(Promise, 'all').mockResolvedValue([expectedCredentials, [{ count: '1' }]]);
+      const dataChain = createMockSelectChain(expectedCredentials);
+      const countChain = createMockSelectChain([{ count: '1' }]);
 
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockReturnValue({
-              offset: vi.fn().mockReturnValue({
-                orderBy: vi.fn().mockResolvedValue(expectedCredentials),
-              }),
-            }),
-          }),
-        }),
-      });
-
+      let selectCallCount = 0;
       const mockDb = {
         ...db,
-        select: mockSelect,
+        select: vi.fn().mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) return dataChain;
+          return countChain;
+        }),
       } as any;
 
       const result = await listCredentialReferencesPaginated(mockDb)({
@@ -402,9 +341,7 @@ describe('Credential References Data Access', () => {
         pagination: { limit: 200 },
       });
 
-      expect(result.pagination.limit).toBe(100); // Should be capped
-
-      vi.restoreAllMocks();
+      expect(result.pagination.limit).toBe(100);
     });
   });
 
@@ -499,34 +436,27 @@ describe('Credential References Data Access', () => {
         }),
       });
 
-      const mockQuery = {
-        credentialReferences: {
-          findFirst: vi.fn().mockResolvedValue({
-            id: testCredentialId,
-            type: 'updated-vault',
-            retrievalParams: { updatedKey: 'updatedValue' },
-          }),
-        },
+      const updatedCredential = {
+        id: testCredentialId,
+        type: 'updated-vault',
+        retrievalParams: { updatedKey: 'updatedValue' },
       };
 
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([]),
-        }),
-      });
+      const credentialChain = createMockSelectChain([updatedCredential]);
+      const toolsChain = createMockSelectChain([]);
+      const externalAgentsChain = createMockSelectChain([]);
 
+      let selectCallCount = 0;
       const mockDb = {
         ...db,
         update: mockUpdate,
-        query: mockQuery,
-        select: mockSelect,
+        select: vi.fn().mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) return credentialChain;
+          if (selectCallCount === 2) return toolsChain;
+          return externalAgentsChain;
+        }),
       } as any;
-
-      // Mock Promise.all for getCredentialReference
-      vi.spyOn(Promise, 'all').mockResolvedValue([
-        { id: testCredentialId, type: 'updated-vault' },
-        [],
-      ]);
 
       await updateCredentialReference(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
@@ -535,8 +465,6 @@ describe('Credential References Data Access', () => {
       });
 
       expect(mockUpdate).toHaveBeenCalled();
-
-      vi.restoreAllMocks();
     });
 
     it('should return undefined if credential reference not found after update', async () => {
@@ -550,27 +478,21 @@ describe('Credential References Data Access', () => {
         }),
       });
 
-      const mockQuery = {
-        credentialReferences: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      };
+      const credentialChain = createMockSelectChain([]);
+      const toolsChain = createMockSelectChain([]);
+      const externalAgentsChain = createMockSelectChain([]);
 
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([]),
-        }),
-      });
-
+      let selectCallCount = 0;
       const mockDb = {
         ...db,
         update: mockUpdate,
-        query: mockQuery,
-        select: mockSelect,
+        select: vi.fn().mockImplementation(() => {
+          selectCallCount++;
+          if (selectCallCount === 1) return credentialChain;
+          if (selectCallCount === 2) return toolsChain;
+          return externalAgentsChain;
+        }),
       } as any;
-
-      // Mock Promise.all for getCredentialReference
-      vi.spyOn(Promise, 'all').mockResolvedValue([null, []]);
 
       const result = await updateCredentialReference(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
@@ -578,10 +500,7 @@ describe('Credential References Data Access', () => {
         data: updateData as CredentialReferenceUpdate,
       });
 
-      // This will actually call getCredentialReference which will return null
       expect(result).toBeUndefined();
-
-      vi.restoreAllMocks();
     });
   });
 
@@ -591,26 +510,15 @@ describe('Credential References Data Access', () => {
         where: vi.fn().mockResolvedValue(undefined),
       });
 
-      const mockQuery = {
-        credentialReferences: {
-          findFirst: vi
-            .fn()
-            .mockResolvedValueOnce({ id: testCredentialId, type: 'vault' }) // First call returns credential
-            .mockResolvedValueOnce(undefined), // Second call after deletion returns undefined
-        },
-      };
-
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([]),
-        }),
-      });
+      const existingCredential = { id: testCredentialId, type: 'vault' };
 
       const mockDb = {
         ...db,
         delete: mockDelete,
-        query: mockQuery,
-        select: mockSelect,
+        select: vi
+          .fn()
+          .mockReturnValueOnce(createMockSelectChain([existingCredential]))
+          .mockReturnValueOnce(createMockSelectChain([])),
       } as any;
 
       const result = await deleteCredentialReference(mockDb)({
@@ -620,8 +528,6 @@ describe('Credential References Data Access', () => {
 
       expect(mockDelete).toHaveBeenCalled();
       expect(result).toBe(true);
-
-      vi.restoreAllMocks();
     });
   });
 
@@ -636,29 +542,12 @@ describe('Credential References Data Access', () => {
         retrievalParams: null,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
-        tools: [],
       };
-
-      const mockQuery = {
-        credentialReferences: {
-          findFirst: vi.fn().mockResolvedValue(existingCredential),
-        },
-      };
-
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([]),
-        }),
-      });
 
       const mockDb = {
         ...db,
-        query: mockQuery,
-        select: mockSelect,
+        select: vi.fn().mockReturnValue(createMockSelectChain([existingCredential])),
       } as any;
-
-      // Mock Promise.all for getCredentialReference
-      vi.spyOn(Promise, 'all').mockResolvedValue([existingCredential, []]);
 
       const result = await hasCredentialReference(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
@@ -666,31 +555,13 @@ describe('Credential References Data Access', () => {
       });
 
       expect(result).toBe(true);
-
-      vi.restoreAllMocks();
     });
 
     it('should return false when credential reference does not exist', async () => {
-      const mockQuery = {
-        credentialReferences: {
-          findFirst: vi.fn().mockResolvedValue(null),
-        },
-      };
-
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([]),
-        }),
-      });
-
       const mockDb = {
         ...db,
-        query: mockQuery,
-        select: mockSelect,
+        select: vi.fn().mockReturnValue(createMockSelectChain([])),
       } as any;
-
-      // Mock Promise.all for getCredentialReference
-      vi.spyOn(Promise, 'all').mockResolvedValue([null, []]);
 
       const result = await hasCredentialReference(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
@@ -698,8 +569,6 @@ describe('Credential References Data Access', () => {
       });
 
       expect(result).toBe(false);
-
-      vi.restoreAllMocks();
     });
   });
 
@@ -716,15 +585,9 @@ describe('Credential References Data Access', () => {
         updatedAt: '2024-01-01T00:00:00Z',
       };
 
-      const mockQuery = {
-        credentialReferences: {
-          findFirst: vi.fn().mockResolvedValue(expectedCredential),
-        },
-      };
-
       const mockDb = {
         ...db,
-        query: mockQuery,
+        select: vi.fn().mockReturnValue(createMockSelectChain([expectedCredential])),
       } as any;
 
       const result = await getCredentialReferenceById(mockDb)({
@@ -732,7 +595,7 @@ describe('Credential References Data Access', () => {
         id: testCredentialId,
       });
 
-      expect(mockQuery.credentialReferences.findFirst).toHaveBeenCalled();
+      expect(mockDb.select).toHaveBeenCalled();
       expect(result).toEqual(expectedCredential);
     });
   });
