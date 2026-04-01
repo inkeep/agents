@@ -19,8 +19,6 @@ When S3 is not configured, the framework falls back to Vercel Blob (if `BLOB_REA
 
 ## Step 1: Create an S3 Bucket
 
-> **Prerequisite:** [AWS CLI](https://aws.amazon.com/cli/) configured with credentials that have `s3:CreateBucket` permission.
-
 Create a private S3 bucket in your preferred AWS region. No public access or special bucket policies are required — all access uses presigned URLs generated server-side.
 
 ```bash
