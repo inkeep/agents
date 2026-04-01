@@ -14,6 +14,15 @@ async function fetchWithRetry(url: string, options: FetchWithRetryOptions = {}):
       const controller = new AbortController();
       const timeoutId = timeout ? setTimeout(() => controller.abort(), timeout) : undefined;
 
+      const callerSignal = fetchOptions.signal;
+      if (callerSignal) {
+        if (callerSignal.aborted) controller.abort(callerSignal.reason);
+        else
+          callerSignal.addEventListener('abort', () => controller.abort(callerSignal.reason), {
+            signal: controller.signal,
+          });
+      }
+
       try {
         const response = await fetch(url, {
           ...fetchOptions,

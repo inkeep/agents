@@ -1,17 +1,24 @@
+function isRetryableHttpError(error: unknown): boolean {
+  if (error instanceof TypeError) return true;
+  if (error != null && typeof error === 'object') {
+    if ('name' in error && (error as { name: string }).name === 'AbortError') return true;
+    const status = (error as { status?: number }).status;
+    if (typeof status === 'number' && (status === 429 || status >= 500)) return true;
+  }
+  return false;
+}
+
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   opts: { maxAttempts?: number; maxDelayMs?: number; label?: string } = {}
 ): Promise<T> {
-  const { maxAttempts = 3, maxDelayMs = 4000, label = 'operation' } = opts;
+  const { maxAttempts = 3, maxDelayMs = 30000, label = 'operation' } = opts;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       return await fn();
     } catch (error) {
-      const isTimeout = (error as Error).name === 'AbortError';
+      if (!isRetryableHttpError(error) || attempt === maxAttempts) throw error;
       const status = (error as { status?: number }).status;
-      const isRateLimit = status === 429;
-      const isServerError = typeof status === 'number' && status >= 500;
-      if ((!isTimeout && !isServerError && !isRateLimit) || attempt === maxAttempts) throw error;
       const retryAfter = (
         error as { headers?: { get?: (name: string) => string | null } }
       ).headers?.get?.('Retry-After');
