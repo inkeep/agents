@@ -2,7 +2,6 @@
 
 import { revalidatePath } from 'next/cache';
 import {
-  addScheduledTriggerUser,
   type CreateScheduledTriggerInput,
   cancelScheduledTriggerInvocation,
   createScheduledTrigger,
@@ -337,35 +336,6 @@ export async function setScheduledTriggerUsersAction(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to set trigger users',
-      code: 'unknown_error',
-    };
-  }
-}
-
-export async function addScheduledTriggerUserAction(
-  tenantId: string,
-  projectId: string,
-  agentId: string,
-  scheduledTriggerId: string,
-  userId: string
-): Promise<ActionResult<string[]>> {
-  try {
-    const result = await addScheduledTriggerUser(
-      tenantId,
-      projectId,
-      agentId,
-      scheduledTriggerId,
-      userId
-    );
-    revalidatePath(`/${tenantId}/projects/${projectId}/triggers`);
-    return { success: true, data: result };
-  } catch (error) {
-    if (error instanceof ApiError) {
-      return { success: false, error: error.message, code: error.error.code };
-    }
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to add user to trigger',
       code: 'unknown_error',
     };
   }
