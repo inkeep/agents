@@ -88,17 +88,32 @@ export INKEEP_AGENTS_API_URL="${API_URL}"
 export INKEEP_AGENTS_RUN_DATABASE_URL="${RUN_DB_URL}"
 export SPICEDB_ENDPOINT
 export TENANT_ID="${TENANT_ID:-default}"
+export SPICEDB_READY_MAX_ATTEMPTS="${SPICEDB_READY_MAX_ATTEMPTS:-30}"
+export SPICEDB_READY_INTERVAL_MS="${SPICEDB_READY_INTERVAL_MS:-2000}"
 
 echo "::group::Run preview runtime migrations"
 preview_log "Running preview runtime migrations."
 pnpm db:run:migrate
 echo "::endgroup::"
 
+if [ -n "${RAILWAY_API_TOKEN:-}" ] &&
+  [ -n "${RAILWAY_PROJECT_ID:-}" ] &&
+  [ -n "${RAILWAY_SPICEDB_SERVICE:-}" ] &&
+  [ -n "${PR_NUMBER:-}" ]; then
+  echo "::group::Wait for Railway SpiceDB deployment"
+  preview_log "Waiting for Railway deployment state for ${RAILWAY_SPICEDB_SERVICE} in $(pr_env_name "${PR_NUMBER}") before probing gRPC readiness."
+  railway_wait_for_service_deployment_ready \
+    "${RAILWAY_PROJECT_ID}" \
+    "$(pr_env_name "${PR_NUMBER}")" \
+    "${RAILWAY_SPICEDB_SERVICE}" \
+    30 \
+    4
+  echo "::endgroup::"
+fi
+
 echo "::group::Wait for SpiceDB readiness"
-run_with_transient_spicedb_retry \
-  "Wait for SpiceDB readiness" \
-  2 \
-  pnpm --filter @inkeep/agents-core exec tsx src/auth/wait-for-spicedb.ts
+preview_log "Running SpiceDB schema readiness probe with max attempts ${SPICEDB_READY_MAX_ATTEMPTS} and interval ${SPICEDB_READY_INTERVAL_MS}ms."
+pnpm --filter @inkeep/agents-core exec tsx src/auth/wait-for-spicedb.ts
 echo "::endgroup::"
 
 echo "::group::Initialize preview auth"
@@ -111,6 +126,7 @@ if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
     echo "- Tenant: \`${TENANT_ID}\`"
     echo "- Admin email: \`${INKEEP_AGENTS_MANAGE_UI_USERNAME}\`"
     echo "- Runtime migrations: \`pnpm db:run:migrate\`"
+    echo "- Railway deployment gate: \`${RAILWAY_SPICEDB_SERVICE:-spicedb}\` latest deployment ready"
     echo "- SpiceDB readiness probe: \`tsx src/auth/wait-for-spicedb.ts\`"
     echo "- Auth seed: \`pnpm db:auth:init\`"
   } >> "${GITHUB_STEP_SUMMARY}"

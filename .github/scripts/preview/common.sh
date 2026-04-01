@@ -400,6 +400,105 @@ railway_wait_for_environment_absent() {
   return 1
 }
 
+railway_service_instance_json() {
+  local project_id="$1"
+  local env_name="$2"
+  local service_name="$3"
+  local env_id=""
+  local service_id=""
+  local response=""
+  local variables_json=""
+
+  env_id="$(railway_wait_for_environment_id "${project_id}" "${env_name}")" || return 1
+  service_id="$(railway_project_service_id "${project_id}" "${service_name}")"
+  if [ -z "${service_id}" ]; then
+    echo "Unable to resolve Railway service ID for ${service_name} in project ${project_id}." >&2
+    return 1
+  fi
+
+  variables_json="$(jq -nc \
+    --arg environment_id "${env_id}" \
+    --arg service_id "${service_id}" \
+    '{environmentId: $environment_id, serviceId: $service_id}')"
+
+  response="$(
+    railway_graphql 'query($environmentId: String!, $serviceId: String!) {
+  serviceInstance(environmentId: $environmentId, serviceId: $serviceId) {
+    latestDeployment {
+      id
+      status
+      createdAt
+      updatedAt
+    }
+    activeDeployments {
+      id
+      status
+      createdAt
+      updatedAt
+    }
+  }
+}' "${variables_json}"
+  )"
+  railway_require_graphql_success "${response}" "GraphQL error querying Railway service instance" || return 1
+
+  jq -c '.data.serviceInstance // {}' <<< "${response}"
+}
+
+railway_wait_for_service_deployment_ready() {
+  local project_id="$1"
+  local env_name="$2"
+  local service_name="$3"
+  local max_attempts="${4:-30}"
+  local sleep_seconds="${5:-4}"
+  local attempt=""
+  local service_instance_json=""
+  local deployment_json=""
+  local deployment_id=""
+  local deployment_status=""
+
+  for attempt in $(seq 1 "${max_attempts}"); do
+    service_instance_json="$(railway_service_instance_json "${project_id}" "${env_name}" "${service_name}")" || return 1
+    deployment_json="$(
+      jq -c '
+        if ((.activeDeployments // []) | length) > 0 then
+          ((.activeDeployments // []) | sort_by(.createdAt // "") | last)
+        elif .latestDeployment then
+          .latestDeployment
+        else
+          {}
+        end
+      ' <<< "${service_instance_json}"
+    )"
+    deployment_id="$(jq -r '.id // empty' <<< "${deployment_json}")"
+    deployment_status="$(jq -r '.status // empty' <<< "${deployment_json}")"
+
+    case "${deployment_status}" in
+      SUCCESS|SLEEPING)
+        preview_log "Railway deployment for ${service_name} in ${env_name} is ${deployment_status}${deployment_id:+ (${deployment_id})}."
+        return 0
+        ;;
+      FAILED|CRASHED|REMOVED)
+        echo "Railway deployment for ${service_name} in ${env_name} entered terminal status ${deployment_status}${deployment_id:+ (${deployment_id})}." >&2
+        return 1
+        ;;
+      SKIPPED)
+        echo "Railway deployment for ${service_name} in ${env_name} was skipped${deployment_id:+ (${deployment_id})}; service may require manual attention." >&2
+        return 1
+        ;;
+    esac
+
+    if [ "${attempt}" -lt "${max_attempts}" ]; then
+      if preview_should_log_wait_attempt "${attempt}" "${max_attempts}"; then
+        preview_log "Waiting for Railway deployment for ${service_name} in ${env_name} to become ready (attempt ${attempt}/${max_attempts}). Current status: ${deployment_status:-none}"
+      fi
+      sleep_with_jitter "${sleep_seconds}"
+    fi
+  done
+
+  echo "Railway deployment for ${service_name} in ${env_name} was not ready after ${max_attempts} attempts. Last observed status: ${deployment_status:-none}${deployment_id:+ (${deployment_id})}." >&2
+  return 1
+}
+
 railway_ensure_tcp_proxy() {
   local project_id="$1"
   local env_name="$2"
