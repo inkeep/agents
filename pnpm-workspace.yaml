@@ -29,6 +29,8 @@ publicHoistPattern:
 
 ignorePatchFailures: false
 minimumReleaseAge: 1440
+minimumReleaseAgeExclude:
+  - '@inkeep/*'
 
 patchedDependencies:
   "@changesets/assemble-release-plan@6.0.9": patches/@changesets__assemble-release-plan.patch
