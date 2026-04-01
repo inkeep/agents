@@ -56,8 +56,11 @@ export function ProjectAccessDialog({
   readOnly = false,
   onComplete,
 }: ProjectAccessDialogProps) {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: projects, isFetching: isProjectsFetching } = useProjectsQuery({
+    tenantId,
+    enabled: open,
+  });
+  const [loadingMemberships, setLoadingMemberships] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [assignments, setAssignments] = useState(new Map<string, ProjectAssignment>());
   const [originalAssignments, setOriginalAssignments] = useState(new Map<string, ProjectRole>());
@@ -229,6 +232,7 @@ export function ProjectAccessDialog({
     : mode === 'assign'
       ? `${userName} has been changed to Member. Select which projects they should have access to.`
       : `Manage ${userName}'s project access.`;
+  const loading = loadingMemberships || isProjectsFetching;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
