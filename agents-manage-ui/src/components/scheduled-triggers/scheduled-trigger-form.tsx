@@ -135,12 +135,7 @@ export function ScheduledTriggerForm({
     if (mode !== 'edit' || !trigger || !isAdmin) return;
     setIsLoadingUsers(true);
     try {
-      const result = await getScheduledTriggerUsersAction(
-        tenantId,
-        projectId,
-        agentId,
-        trigger.id
-      );
+      const result = await getScheduledTriggerUsersAction(tenantId, projectId, agentId, trigger.id);
       if (result.success && result.data) {
         setSelectedUserIds(result.data);
       }
@@ -296,9 +291,7 @@ export function ScheduledTriggerForm({
       const apiPayload = {
         ...basePayload,
         name: data.name,
-        ...(resolvedUserIds.length > 0
-          ? { runAsUserIds: resolvedUserIds }
-          : { runAsUserId: null }),
+        ...(resolvedUserIds.length > 0 ? { runAsUserIds: resolvedUserIds } : { runAsUserId: null }),
       };
       const result = await createScheduledTriggerAction(tenantId, projectId, agentId, apiPayload);
       if (result.success) {

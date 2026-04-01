@@ -131,16 +131,23 @@ async function dispatchSingleTrigger(trigger: ScheduledTrigger): Promise<number>
     );
   }
 
-  try {
-    await advanceScheduledTriggerNextRunAt(runDbClient)({
-      scopes: { tenantId, projectId, agentId },
-      scheduledTriggerId,
-      nextRunAt,
-    });
-  } catch (err) {
-    logger.error(
-      { scheduledTriggerId, err },
-      'Failed to advance next_run_at after workflow start; next tick will retry (idempotent)'
+  if (workflowsStarted > 0) {
+    try {
+      await advanceScheduledTriggerNextRunAt(runDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        scheduledTriggerId,
+        nextRunAt,
+      });
+    } catch (err) {
+      logger.error(
+        { scheduledTriggerId, err },
+        'Failed to advance next_run_at after workflow start; next tick will retry (idempotent)'
+      );
+    }
+  } else {
+    logger.warn(
+      { scheduledTriggerId, scheduledFor },
+      'No workflows started for trigger tick; not advancing nextRunAt so next tick retries'
     );
   }
 

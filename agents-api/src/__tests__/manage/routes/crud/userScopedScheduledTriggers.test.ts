@@ -371,7 +371,8 @@ describe('User-Scoped Scheduled Triggers', () => {
 
       const body = await runRes.json();
       expect(body.success).toBe(true);
-      expect(body.invocationId).toBeDefined();
+      expect(body.invocationIds).toBeDefined();
+      expect(body.invocationIds.length).toBeGreaterThan(0);
     });
 
     it('should allow Run Now for admin-delegated trigger (caller is admin)', async () => {

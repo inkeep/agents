@@ -19,7 +19,11 @@ vi.mock('../../../../utils/entityDiff', () => ({
   isEntityChanged: vi.fn(() => true),
 }));
 
-import { canUseProjectStrict, getOrganizationMemberByUserId, type OrgRole } from '@inkeep/agents-core';
+import {
+  canUseProjectStrict,
+  getOrganizationMemberByUserId,
+  type OrgRole,
+} from '@inkeep/agents-core';
 import {
   assertCanMutateTrigger,
   validateRunAsUserId,

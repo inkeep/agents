@@ -2,8 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import {
-  type CreateScheduledTriggerInput,
   addScheduledTriggerUser,
+  type CreateScheduledTriggerInput,
   cancelScheduledTriggerInvocation,
   createScheduledTrigger,
   deleteScheduledTrigger,
@@ -259,7 +259,7 @@ export async function runScheduledTriggerNowAction(
   projectId: string,
   agentId: string,
   scheduledTriggerId: string
-): Promise<ActionResult<{ invocationId: string }>> {
+): Promise<ActionResult<{ invocationIds: string[] }>> {
   try {
     const result = await runScheduledTriggerNow(tenantId, projectId, agentId, scheduledTriggerId);
     revalidatePath(`/${tenantId}/projects/${projectId}/triggers`);
@@ -268,7 +268,7 @@ export async function runScheduledTriggerNowAction(
     );
     return {
       success: result.success,
-      data: { invocationId: result.invocationId },
+      data: { invocationIds: result.invocationIds },
     };
   } catch (error) {
     if (error instanceof ApiError) {

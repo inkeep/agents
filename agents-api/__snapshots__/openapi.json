@@ -7065,10 +7065,11 @@
             "type": "string"
           },
           "runAsUserIds": {
-            "description": "Array of user IDs to run this trigger as (multi-user)",
+            "description": "Array of user IDs to run this trigger as (multi-user, max 100)",
             "items": {
               "type": "string"
             },
+            "maxItems": 100,
             "type": "array"
           },
           "runAt": {
@@ -7317,10 +7318,11 @@
             "type": "string"
           },
           "runAsUserIds": {
-            "description": "Array of user IDs to run this trigger as (multi-user)",
+            "description": "Array of user IDs to run this trigger as (multi-user, max 100)",
             "items": {
               "type": "string"
             },
+            "maxItems": 100,
             "type": "array"
           },
           "runAt": {
@@ -7435,10 +7437,11 @@
       "SetScheduledTriggerUsersRequest": {
         "properties": {
           "userIds": {
-            "description": "User IDs to set on this trigger",
+            "description": "User IDs to set on this trigger (max 100)",
             "items": {
               "type": "string"
             },
+            "maxItems": 100,
             "type": "array"
           }
         },
@@ -17920,6 +17923,16 @@
               "description": "Scheduled Trigger ID",
               "type": "string"
             }
+          },
+          {
+            "description": "Target a specific user for the manual run",
+            "in": "query",
+            "name": "userId",
+            "required": false,
+            "schema": {
+              "description": "Target a specific user for the manual run",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -17928,8 +17941,11 @@
               "application/json": {
                 "schema": {
                   "properties": {
-                    "invocationId": {
-                      "type": "string"
+                    "invocationIds": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
                     },
                     "success": {
                       "type": "boolean"
@@ -17937,7 +17953,7 @@
                   },
                   "required": [
                     "success",
-                    "invocationId"
+                    "invocationIds"
                   ],
                   "type": "object"
                 }
@@ -18064,22 +18080,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "data": {
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "data"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/ScheduledTriggerUsersResponse"
                 }
               }
             },
-            "description": "List of user IDs associated with the trigger"
+            "description": "List of users associated with this trigger"
           },
           "400": {
             "content": {
@@ -18197,15 +18202,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "userId": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "userId"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/AddScheduledTriggerUserRequest"
               }
             }
           }
@@ -18215,18 +18212,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "data": {
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "data"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/ScheduledTriggerUsersResponse"
                 }
               }
             },
@@ -18348,18 +18334,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "userIds": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "userIds"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/SetScheduledTriggerUsersRequest"
               }
             }
           }
@@ -18369,18 +18344,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "data": {
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "data"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/ScheduledTriggerUsersResponse"
                 }
               }
             },
@@ -18447,7 +18411,7 @@
             "description": "Internal Server Error"
           }
         },
-        "summary": "Replace Scheduled Trigger Users",
+        "summary": "Set Scheduled Trigger Users",
         "tags": [
           "Scheduled Triggers"
         ],
@@ -18511,25 +18475,7 @@
           }
         ],
         "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "data": {
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "data"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
+          "204": {
             "description": "User removed from trigger successfully"
           },
           "400": {

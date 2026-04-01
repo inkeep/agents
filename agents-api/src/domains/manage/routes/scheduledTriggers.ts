@@ -1815,9 +1815,7 @@ app.openapi(
               projectId,
             });
             if (!canUse) {
-              throw new Error(
-                `User ${runAsUserId} no longer has access to project ${projectId}`
-              );
+              throw new Error(`User ${runAsUserId} no longer has access to project ${projectId}`);
             }
           }
 
@@ -1885,10 +1883,7 @@ app.openapi(
                 scheduledTriggerId,
                 invocationId,
               });
-              logger.info(
-                { invocationId, conversationId, attemptNumber },
-                'Manual run completed'
-              );
+              logger.info({ invocationId, conversationId, attemptNumber }, 'Manual run completed');
               lastError = null;
               break;
             }
@@ -1979,6 +1974,5 @@ app.openapi(
     });
   }
 );
-
 
 export default app;
