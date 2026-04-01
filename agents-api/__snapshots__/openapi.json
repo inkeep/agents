@@ -7009,8 +7009,8 @@
             "type": "string"
           },
           "dispatchDelayMs": {
-            "description": "Delay in ms between dispatching each user workflow (0-5000)",
-            "maximum": 5000,
+            "description": "Delay in ms between dispatching each user workflow max 10 minutes",
+            "maximum": 600000,
             "minimum": 0,
             "type": "integer"
           },
@@ -7065,11 +7065,10 @@
             "type": "string"
           },
           "runAsUserIds": {
-            "description": "Array of user IDs to run this trigger as (multi-user, max 100)",
+            "description": "Array of user IDs to run this trigger as (multi-user)",
             "items": {
               "type": "string"
             },
-            "maxItems": 100,
             "type": "array"
           },
           "runAt": {
@@ -7318,11 +7317,10 @@
             "type": "string"
           },
           "runAsUserIds": {
-            "description": "Array of user IDs to run this trigger as (multi-user, max 100)",
+            "description": "Array of user IDs to run this trigger as (multi-user)",
             "items": {
               "type": "string"
             },
-            "maxItems": 100,
             "type": "array"
           },
           "runAt": {
@@ -7437,11 +7435,10 @@
       "SetScheduledTriggerUsersRequest": {
         "properties": {
           "userIds": {
-            "description": "User IDs to set on this trigger (max 100)",
+            "description": "User IDs to set on this trigger",
             "items": {
               "type": "string"
             },
-            "maxItems": 100,
             "type": "array"
           }
         },
