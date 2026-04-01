@@ -15,6 +15,7 @@ require_env_vars \
 
 COMMENT_MARKER="<!-- preview-environments:stable-urls -->"
 COMMENTS_ENDPOINT="${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments"
+COMMENT_UPDATE_ENDPOINT="${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/issues/comments"
 API_HEALTH_URL="${API_URL%/}/health"
 COMMENT_BODY_FILE="$(mktemp)"
 trap 'rm -f "${COMMENT_BODY_FILE}"' EXIT
@@ -85,7 +86,7 @@ if [ -n "${EXISTING_COMMENT_ID}" ]; then
     -H "Authorization: Bearer ${GITHUB_TOKEN}" \
     -H "Accept: application/vnd.github+json" \
     -H "Content-Type: application/json" \
-    "${COMMENTS_ENDPOINT}/${EXISTING_COMMENT_ID}" \
+    "${COMMENT_UPDATE_ENDPOINT}/${EXISTING_COMMENT_ID}" \
     --data "${COMMENT_PAYLOAD}" >/dev/null
 else
   curl --connect-timeout 10 --max-time 30 -fsS \
