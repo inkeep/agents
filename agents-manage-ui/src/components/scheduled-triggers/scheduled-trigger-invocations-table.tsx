@@ -323,12 +323,10 @@ export function ScheduledTriggerInvocationsTable({
               {tickGroups.map((group) => {
                 const isExpanded = expandedTicks.has(group.scheduledFor);
                 const latestCompletedAt = group.invocations
-                  .filter((i) => i.completedAt)
-                  .map((i) => new Date(i.completedAt!).getTime())
+                  .flatMap((i) => (i.completedAt ? [new Date(i.completedAt).getTime()] : []))
                   .sort((a, b) => b - a)[0];
                 const earliestStartedAt = group.invocations
-                  .filter((i) => i.startedAt)
-                  .map((i) => new Date(i.startedAt!).getTime())
+                  .flatMap((i) => (i.startedAt ? [new Date(i.startedAt).getTime()] : []))
                   .sort((a, b) => a - b)[0];
 
                 return (
@@ -338,7 +336,7 @@ export function ScheduledTriggerInvocationsTable({
                     isExpanded={isExpanded}
                     onToggle={() => toggleTick(group.scheduledFor)}
                     tickDuration={
-                      earliestStartedAt && latestCompletedAt
+                      earliestStartedAt !== undefined && latestCompletedAt !== undefined
                         ? formatInvocationDuration(
                             new Date(earliestStartedAt).toISOString(),
                             new Date(latestCompletedAt).toISOString()
