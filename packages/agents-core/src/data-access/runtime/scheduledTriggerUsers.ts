@@ -1,13 +1,10 @@
 import { and, asc, count, eq, inArray } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
-import { scheduledTriggerUsers, scheduledTriggers } from '../../db/runtime/runtime-schema';
+import { scheduledTriggers, scheduledTriggerUsers } from '../../db/runtime/runtime-schema';
 
 export const getScheduledTriggerUsers =
   (db: AgentsRunDatabaseClient) =>
-  async (params: {
-    tenantId: string;
-    scheduledTriggerId: string;
-  }) => {
+  async (params: { tenantId: string; scheduledTriggerId: string }) => {
     const rows = await db
       .select()
       .from(scheduledTriggerUsers)
@@ -55,24 +52,26 @@ export const deleteScheduledTriggerUser =
 export const setScheduledTriggerUsers =
   (db: AgentsRunDatabaseClient) =>
   async (params: { tenantId: string; scheduledTriggerId: string; userIds: string[] }) => {
-    await db
-      .delete(scheduledTriggerUsers)
-      .where(
-        and(
-          eq(scheduledTriggerUsers.tenantId, params.tenantId),
-          eq(scheduledTriggerUsers.scheduledTriggerId, params.scheduledTriggerId)
-        )
-      );
+    await db.transaction(async (tx) => {
+      await tx
+        .delete(scheduledTriggerUsers)
+        .where(
+          and(
+            eq(scheduledTriggerUsers.tenantId, params.tenantId),
+            eq(scheduledTriggerUsers.scheduledTriggerId, params.scheduledTriggerId)
+          )
+        );
 
-    if (params.userIds.length > 0) {
-      await db.insert(scheduledTriggerUsers).values(
-        params.userIds.map((userId) => ({
-          tenantId: params.tenantId,
-          scheduledTriggerId: params.scheduledTriggerId,
-          userId,
-        }))
-      );
-    }
+      if (params.userIds.length > 0) {
+        await tx.insert(scheduledTriggerUsers).values(
+          params.userIds.map((userId) => ({
+            tenantId: params.tenantId,
+            scheduledTriggerId: params.scheduledTriggerId,
+            userId,
+          }))
+        );
+      }
+    });
   };
 
 export const getScheduledTriggerUserCount =
@@ -94,64 +93,66 @@ export const getScheduledTriggerUserCount =
 export const removeUserFromProjectScheduledTriggers =
   (db: AgentsRunDatabaseClient) =>
   async (params: { tenantId: string; projectId: string; userId: string }) => {
-    const triggerIdsWithUser = await db
-      .select({ id: scheduledTriggers.id })
-      .from(scheduledTriggers)
-      .innerJoin(
-        scheduledTriggerUsers,
-        and(
-          eq(scheduledTriggerUsers.tenantId, scheduledTriggers.tenantId),
-          eq(scheduledTriggerUsers.scheduledTriggerId, scheduledTriggers.id)
+    await db.transaction(async (tx) => {
+      const triggerIdsWithUser = await tx
+        .select({ id: scheduledTriggers.id })
+        .from(scheduledTriggers)
+        .innerJoin(
+          scheduledTriggerUsers,
+          and(
+            eq(scheduledTriggerUsers.tenantId, scheduledTriggers.tenantId),
+            eq(scheduledTriggerUsers.scheduledTriggerId, scheduledTriggers.id)
+          )
         )
-      )
-      .where(
-        and(
-          eq(scheduledTriggers.tenantId, params.tenantId),
-          eq(scheduledTriggers.projectId, params.projectId),
-          eq(scheduledTriggerUsers.userId, params.userId)
-        )
-      );
-
-    if (triggerIdsWithUser.length === 0) return;
-
-    const triggerIds = triggerIdsWithUser.map((t) => t.id);
-
-    await db
-      .delete(scheduledTriggerUsers)
-      .where(
-        and(
-          eq(scheduledTriggerUsers.tenantId, params.tenantId),
-          inArray(scheduledTriggerUsers.scheduledTriggerId, triggerIds),
-          eq(scheduledTriggerUsers.userId, params.userId)
-        )
-      );
-
-    const triggersToDisable = await db
-      .select({ triggerId: scheduledTriggerUsers.scheduledTriggerId })
-      .from(scheduledTriggerUsers)
-      .where(
-        and(
-          eq(scheduledTriggerUsers.tenantId, params.tenantId),
-          inArray(scheduledTriggerUsers.scheduledTriggerId, triggerIds)
-        )
-      )
-      .groupBy(scheduledTriggerUsers.scheduledTriggerId);
-
-    const triggerIdsWithRemainingUsers = new Set(triggersToDisable.map((r) => r.triggerId));
-    const emptyTriggerIds = triggerIds.filter((id) => !triggerIdsWithRemainingUsers.has(id));
-
-    if (emptyTriggerIds.length > 0) {
-      await db
-        .update(scheduledTriggers)
-        .set({ enabled: false, updatedAt: new Date().toISOString() })
         .where(
           and(
             eq(scheduledTriggers.tenantId, params.tenantId),
-            inArray(scheduledTriggers.id, emptyTriggerIds),
-            eq(scheduledTriggers.enabled, true)
+            eq(scheduledTriggers.projectId, params.projectId),
+            eq(scheduledTriggerUsers.userId, params.userId)
           )
         );
-    }
+
+      if (triggerIdsWithUser.length === 0) return;
+
+      const triggerIds = triggerIdsWithUser.map((t) => t.id);
+
+      await tx
+        .delete(scheduledTriggerUsers)
+        .where(
+          and(
+            eq(scheduledTriggerUsers.tenantId, params.tenantId),
+            inArray(scheduledTriggerUsers.scheduledTriggerId, triggerIds),
+            eq(scheduledTriggerUsers.userId, params.userId)
+          )
+        );
+
+      const triggersToDisable = await tx
+        .select({ triggerId: scheduledTriggerUsers.scheduledTriggerId })
+        .from(scheduledTriggerUsers)
+        .where(
+          and(
+            eq(scheduledTriggerUsers.tenantId, params.tenantId),
+            inArray(scheduledTriggerUsers.scheduledTriggerId, triggerIds)
+          )
+        )
+        .groupBy(scheduledTriggerUsers.scheduledTriggerId);
+
+      const triggerIdsWithRemainingUsers = new Set(triggersToDisable.map((r) => r.triggerId));
+      const emptyTriggerIds = triggerIds.filter((id) => !triggerIdsWithRemainingUsers.has(id));
+
+      if (emptyTriggerIds.length > 0) {
+        await tx
+          .update(scheduledTriggers)
+          .set({ enabled: false, updatedAt: new Date().toISOString() })
+          .where(
+            and(
+              eq(scheduledTriggers.tenantId, params.tenantId),
+              inArray(scheduledTriggers.id, emptyTriggerIds),
+              eq(scheduledTriggers.enabled, true)
+            )
+          );
+      }
+    });
   };
 
 export const getScheduledTriggerUsersBatch =

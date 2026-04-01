@@ -64,9 +64,7 @@ async function main() {
       .from(runtimeSchema.scheduledTriggers)
       .where(isNotNull(runtimeSchema.scheduledTriggers.runAsUserId));
 
-    console.log(
-      `Found ${triggersWithUser.length} trigger(s) with runAsUserId set\n`
-    );
+    console.log(`Found ${triggersWithUser.length} trigger(s) with runAsUserId set\n`);
 
     let backfilled = 0;
     let skipped = 0;

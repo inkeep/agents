@@ -185,10 +185,10 @@ export async function runScheduledTriggerNow(
   projectId: string,
   agentId: string,
   scheduledTriggerId: string
-): Promise<{ success: boolean; invocationId: string }> {
+): Promise<{ success: boolean; invocationIds: string[] }> {
   const response = await makeManagementApiRequest<{
     success: boolean;
-    invocationId: string;
+    invocationIds: string[];
   }>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers/${scheduledTriggerId}/run`,
     {
