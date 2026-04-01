@@ -62,14 +62,14 @@ jobs:
       - name: Generate GitHub App Token
         id: app-token
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
-        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
         with:
           app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
           private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
 
       - name: Setup Node.js
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
           node-version: 22.x
 
@@ -93,7 +93,7 @@ jobs:
 
       - name: Setup pnpm cache
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: ${{ env.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
