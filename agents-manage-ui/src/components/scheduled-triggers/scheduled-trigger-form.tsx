@@ -50,7 +50,6 @@ import { useOrgMembers } from '@/hooks/use-org-members';
 import {
   createScheduledTriggerAction,
   getScheduledTriggerUsersAction,
-  setScheduledTriggerUsersAction,
   updateScheduledTriggerAction,
 } from '@/lib/actions/scheduled-triggers';
 import type { ScheduledTrigger } from '@/lib/api/scheduled-triggers';
@@ -78,7 +77,7 @@ const scheduledTriggerFormSchema = z
     maxRetries: z.coerce.number().int().min(0).max(10).default(1),
     retryDelaySeconds: z.coerce.number().int().min(10).max(3600).default(60),
     timeoutSeconds: z.coerce.number().int().min(30).max(780).default(780),
-    runAsUserId: z.string().optional(),
+    runAsUserIds: z.array(z.string()).default([]),
     dispatchDelayMs: z.coerce.number().int().min(0).max(600_000).optional(),
     ref: z.string().default('main'),
   })
@@ -127,26 +126,8 @@ export function ScheduledTriggerForm({
   // Non-admins can only assign triggers to themselves
   const selectableMembers = isAdmin ? orgMembers : orgMembers.filter((m) => m.id === user?.id);
 
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [multiUserOpen, setMultiUserOpen] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-
-  const loadTriggerUsers = useCallback(async () => {
-    if (mode !== 'edit' || !trigger || !isAdmin) return;
-    setIsLoadingUsers(true);
-    try {
-      const result = await getScheduledTriggerUsersAction(tenantId, projectId, agentId, trigger.id);
-      if (result.success && result.data) {
-        setSelectedUserIds(result.data);
-      }
-    } finally {
-      setIsLoadingUsers(false);
-    }
-  }, [mode, trigger, isAdmin, tenantId, projectId, agentId]);
-
-  useEffect(() => {
-    loadTriggerUsers();
-  }, [loadTriggerUsers]);
 
   const getDefaultValues = (): ScheduledTriggerFormData => {
     // Get browser's timezone for new triggers
@@ -167,7 +148,7 @@ export function ScheduledTriggerForm({
         maxRetries: p?.maxRetries ? Number(p.maxRetries) : 1,
         retryDelaySeconds: p?.retryDelaySeconds ? Number(p.retryDelaySeconds) : 60,
         timeoutSeconds: p?.timeoutSeconds ? Number(p.timeoutSeconds) : 780,
-        runAsUserId: undefined,
+        runAsUserIds: [],
         dispatchDelayMs: p?.dispatchDelayMs ? Number(p.dispatchDelayMs) : undefined,
         ref: p?.ref || '',
       };
@@ -187,7 +168,7 @@ export function ScheduledTriggerForm({
       maxRetries: trigger.maxRetries ?? 1,
       retryDelaySeconds: trigger.retryDelaySeconds ?? 60,
       timeoutSeconds: trigger.timeoutSeconds ?? 780,
-      runAsUserId: trigger.runAsUserId ?? undefined,
+      runAsUserIds: trigger.runAsUserId ? [trigger.runAsUserId] : [],
       dispatchDelayMs: trigger.dispatchDelayMs ?? undefined,
       ref: trigger.ref ?? '',
     };
@@ -203,10 +184,22 @@ export function ScheduledTriggerForm({
   const { isSubmitting } = form.formState;
   const scheduleType = form.watch('scheduleType');
 
-  const resolveRunAsUserId = (value: string | undefined): string | null => {
-    if (!value || value === NONE_VALUE) return null;
-    return value;
-  };
+  const loadTriggerUsers = useCallback(async () => {
+    if (mode !== 'edit' || !trigger || !isAdmin) return;
+    setIsLoadingUsers(true);
+    try {
+      const result = await getScheduledTriggerUsersAction(tenantId, projectId, agentId, trigger.id);
+      if (result.success && result.data) {
+        form.setValue('runAsUserIds', result.data, { shouldDirty: false });
+      }
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  }, [mode, trigger, isAdmin, tenantId, projectId, agentId, form]);
+
+  useEffect(() => {
+    loadTriggerUsers();
+  }, [loadTriggerUsers]);
 
   const getMemberDisplayName = (userId: string): string => {
     const member = orgMembers.find((m) => m.id === userId);
@@ -240,6 +233,7 @@ export function ScheduledTriggerForm({
         dispatchDelayMs: data.dispatchDelayMs || undefined,
         ref: data.ref || 'main',
       };
+      const runAsUserIds = data.runAsUserIds.filter((id) => id !== NONE_VALUE);
 
       if (mode === 'edit') {
         if (!trigger) {
@@ -249,7 +243,8 @@ export function ScheduledTriggerForm({
         const apiPayload = {
           ...basePayload,
           name: data.name,
-          runAsUserId: isAdmin ? undefined : resolveRunAsUserId(data.runAsUserId),
+          runAsUserIds,
+          runAsUserId: null,
         };
         const result = await updateScheduledTriggerAction(
           tenantId,
@@ -262,36 +257,16 @@ export function ScheduledTriggerForm({
           toast.error(result.error || 'Failed to update scheduled trigger');
           return;
         }
-        if (isAdmin) {
-          const usersResult = await setScheduledTriggerUsersAction(
-            tenantId,
-            projectId,
-            agentId,
-            trigger.id,
-            selectedUserIds
-          );
-          if (!usersResult.success) {
-            toast.error(usersResult.error || 'Failed to update trigger users');
-            return;
-          }
-        }
         toast.success('Scheduled trigger updated successfully');
         router.push(redirectPath);
         return;
       }
 
-      // Create mode — single API call with runAsUserIds
-      const resolvedUserIds =
-        selectedUserIds.length > 0
-          ? selectedUserIds
-          : data.runAsUserId && data.runAsUserId !== NONE_VALUE
-            ? [data.runAsUserId]
-            : [];
-
       const apiPayload = {
         ...basePayload,
         name: data.name,
-        ...(resolvedUserIds.length > 0 ? { runAsUserIds: resolvedUserIds } : { runAsUserId: null }),
+        runAsUserIds,
+        runAsUserId: null,
       };
       const result = await createScheduledTriggerAction(tenantId, projectId, agentId, apiPayload);
       if (result.success) {
@@ -402,111 +377,124 @@ export function ScheduledTriggerForm({
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Loading users...
               </div>
-            ) : isAdmin ? (
-              <div className="grid gap-2">
-                <span className="text-sm font-medium leading-none">Run as Users</span>
-                <Popover open={multiUserOpen} onOpenChange={setMultiUserOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-between"
-                      role="combobox"
-                      aria-expanded={multiUserOpen}
-                    >
-                      <span className="truncate">
-                        {selectedUserIds.length === 0
-                          ? 'None'
-                          : selectedUserIds.length === 1
-                            ? getMemberDisplayName(selectedUserIds[0])
-                            : `${selectedUserIds.length} users selected`}
-                      </span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Search users..." />
-                      <CommandList>
-                        <CommandEmpty>No users found.</CommandEmpty>
-                        <CommandGroup>
-                          {selectableMembers.map((member) => (
-                            <CommandItem
-                              key={member.id}
-                              value={`${member.name} ${member.email}`}
-                              onSelect={() => {
-                                setSelectedUserIds((prev) =>
-                                  prev.includes(member.id)
-                                    ? prev.filter((id) => id !== member.id)
-                                    : [...prev, member.id]
-                                );
-                              }}
-                            >
-                              <Checkbox
-                                checked={selectedUserIds.includes(member.id)}
-                                className="mr-2"
-                              />
-                              <div className="flex flex-col">
-                                <span>{member.name || member.email}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {member.email}
-                                </span>
-                              </div>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                {selectedUserIds.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {selectedUserIds.map((id) => (
-                      <Badge
-                        key={id}
-                        variant="secondary"
-                        className="cursor-pointer"
-                        onClick={() =>
-                          setSelectedUserIds((prev) => prev.filter((uid) => uid !== id))
-                        }
-                      >
-                        {getMemberDisplayName(id)} &times;
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-                <p className="text-sm text-muted-foreground">
-                  {mode === 'create'
-                    ? 'Select users whose identity this trigger will run as. One execution per user at each scheduled tick.'
-                    : 'Manage the users associated with this trigger. Changes are saved when you update the trigger.'}
-                </p>
-              </div>
             ) : (
               <FormField
                 control={form.control}
-                name="runAsUserId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Run as User</FormLabel>
-                    <Select value={field.value || NONE_VALUE} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select user" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={NONE_VALUE}>None</SelectItem>
-                        {selectableMembers.map((member) => (
-                          <SelectItem key={member.id} value={member.id}>
-                            {member.name || member.email}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Choose whose identity and credentials this trigger uses when running.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                name="runAsUserIds"
+                render={({ field }) => {
+                  const runAsUserIds = field.value ?? [];
+
+                  return isAdmin ? (
+                    <FormItem className="grid gap-2">
+                      <FormLabel>Run as Users</FormLabel>
+                      <Popover open={multiUserOpen} onOpenChange={setMultiUserOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-between"
+                            role="combobox"
+                            aria-expanded={multiUserOpen}
+                          >
+                            <span className="truncate">
+                              {runAsUserIds.length === 0
+                                ? 'None'
+                                : runAsUserIds.length === 1
+                                  ? getMemberDisplayName(runAsUserIds[0])
+                                  : `${runAsUserIds.length} users selected`}
+                            </span>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          className="w-[--radix-popover-trigger-width] p-0"
+                          align="start"
+                        >
+                          <Command>
+                            <CommandInput placeholder="Search users..." />
+                            <CommandList>
+                              <CommandEmpty>No users found.</CommandEmpty>
+                              <CommandGroup>
+                                {selectableMembers.map((member) => (
+                                  <CommandItem
+                                    key={member.id}
+                                    value={`${member.name} ${member.email}`}
+                                    onSelect={() => {
+                                      field.onChange(
+                                        runAsUserIds.includes(member.id)
+                                          ? runAsUserIds.filter((id) => id !== member.id)
+                                          : [...runAsUserIds, member.id]
+                                      );
+                                    }}
+                                  >
+                                    <Checkbox
+                                      checked={runAsUserIds.includes(member.id)}
+                                      className="mr-2"
+                                    />
+                                    <div className="flex flex-col">
+                                      <span>{member.name || member.email}</span>
+                                      <span className="text-xs text-muted-foreground">
+                                        {member.email}
+                                      </span>
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      {runAsUserIds.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {runAsUserIds.map((id) => (
+                            <Badge
+                              key={id}
+                              variant="secondary"
+                              className="cursor-pointer"
+                              onClick={() =>
+                                field.onChange(runAsUserIds.filter((uid) => uid !== id))
+                              }
+                            >
+                              {getMemberDisplayName(id)} &times;
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                      <FormDescription>
+                        {mode === 'create'
+                          ? 'Select users whose identity this trigger will run as. One execution per user at each scheduled tick.'
+                          : 'Manage the users associated with this trigger. Changes are saved when you update the trigger.'}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  ) : (
+                    <FormItem>
+                      <FormLabel>Run as User</FormLabel>
+                      <Select
+                        value={runAsUserIds[0] || NONE_VALUE}
+                        onValueChange={(value) =>
+                          field.onChange(value === NONE_VALUE ? [] : [value])
+                        }
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select user" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={NONE_VALUE}>None</SelectItem>
+                          {selectableMembers.map((member) => (
+                            <SelectItem key={member.id} value={member.id}>
+                              {member.name || member.email}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Choose whose identity and credentials this trigger uses when running.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             )}
           </CardContent>

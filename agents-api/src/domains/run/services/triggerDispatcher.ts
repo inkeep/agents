@@ -8,7 +8,6 @@ import {
 import { start } from 'workflow/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
-import { sentry } from '../../../sentry';
 import {
   scheduledTriggerRunnerWorkflow,
   type TriggerPayload,
