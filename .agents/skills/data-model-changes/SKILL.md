@@ -28,7 +28,7 @@ The framework uses **two separate PostgreSQL databases**:
 
 *Last confirmed on Doltgres v0.55.5 (pinned in `docker-compose.yml`; note that `docker-compose.dbs.yml` and `docker-compose.isolated.yml` use `:latest`) + drizzle-kit 0.31.8 (resolved from `^0.31.6` in `packages/agents-core/package.json`). Re-verify if either version changes.*
 
-Doltgres does not support the full PostgreSQL DDL surface. drizzle-kit generates standard PostgreSQL SQL, which means certain Drizzle schema patterns produce migrations that fail on Doltgres. These constraints apply to schemas targeting Doltgres (in this codebase: `manage-schema.ts` and its migrations in `drizzle/manage/`). Schemas targeting standard PostgreSQL (`runtime-schema.ts`) are unconstrained.
+drizzle-kit generates standard PostgreSQL SQL that may be incompatible with Doltgres. These constraints apply to Doltgres-targeted schemas (in this codebase: `manage-schema.ts` and `drizzle/manage/`). Standard PostgreSQL schemas (`runtime-schema.ts`) are unconstrained.
 
 | Don't use in Doltgres-targeted schemas | Why (Doltgres error) | Use instead |
 |---|---|---|
