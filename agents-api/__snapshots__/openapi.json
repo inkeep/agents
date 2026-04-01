@@ -10585,6 +10585,7 @@
           "webClient": {
             "properties": {
               "allowAnonymous": {
+                "default": false,
                 "type": "boolean"
               },
               "allowedDomains": {
@@ -10630,6 +10631,7 @@
           "webClient": {
             "properties": {
               "allowAnonymous": {
+                "default": false,
                 "type": "boolean"
               },
               "allowedDomains": {

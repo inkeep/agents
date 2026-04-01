@@ -1752,7 +1752,7 @@ export const WebClientConfigSchema = z
       allowedDomains: z.array(AllowedDomainSchema).min(1),
       publicKeys: z.array(PublicKeyConfigSchema).default([]),
       audience: z.string().optional(),
-      allowAnonymous: z.boolean().optional(),
+      allowAnonymous: z.boolean().default(false),
     }),
   })
   .openapi('WebClientConfig');
@@ -1795,7 +1795,7 @@ export const WebClientConfigResponseSchema = z
       allowedDomains: z.array(AllowedDomainSchema).min(1),
       publicKeys: z.array(PublicKeyConfigSchema).default([]),
       audience: z.string().optional(),
-      allowAnonymous: z.boolean().optional(),
+      allowAnonymous: z.boolean().default(false),
     }),
   })
   .openapi('WebClientConfigResponse');
