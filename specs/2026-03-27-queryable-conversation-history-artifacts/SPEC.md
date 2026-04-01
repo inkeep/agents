@@ -14,14 +14,14 @@
 
 | # | Decision | Status | Type |
 |---|----------|--------|------|
-| D1 | Use existing `contextId` on `ledgerArtifacts` (already FKs to conversations) — no new columns needed. Add `agentId` column only. | LOCKED | Technical |
+| D1 | Use existing `contextId` on `ledgerArtifacts` (already FKs to conversations) — no new columns needed on `ledgerArtifacts`. `agentId` lives only on search index tables, populated from execution context at insert time. | LOCKED | Technical |
 | D2 | Update conversation search index every user+AI turn | LOCKED | Technical |
 | D3 | Search implemented as a platform tool module (`platform-tools/search/`), scoped per execution context, auto-loaded for all agents via `loadPlatformTools()` in tool-loading pipeline. Adapted to MCP protocol for external clients. | LOCKED | Product/Technical |
 | D4 | Postgres full-text search (tsvector) — no embeddings in Phase 1 | LOCKED | Technical |
 | D5 | Two search indexes: conversation-level + artifact-level | LOCKED | Technical |
 | D6 | Scope: `tenantId + projectId` always required. `agentId` and `userId` are optional filters (consistent with existing `listConversations` pattern). Run API/platform tools always pass `userId` from JWT. Manage API allows cross-user/cross-agent search. NULL userId rows in search index are excluded from results. | LOCKED | Product |
 | D7 | tsvector keyword search + recency weighting (RRF) | LOCKED | Technical |
-| D8 | Synchronous UPSERT with concatenated text. No LLM calls in the API server — summaries are passed in by callers (agent execution, compression pipeline, or API clients). | LOCKED | Technical |
+| D8 | Fire-and-forget UPSERT with concatenated text. No LLM calls in the API server. Failures are logged and self-healing (next turn retries). Search index may be stale for up to one turn after a transient DB error; no user-visible impact. | LOCKED | Technical |
 | D9 | Conversation summarization uses agent's configured summarization model (for long convos) | LOCKED | Technical |
 | D10 | `get_conversation_messages` returns user-facing + user messages + tool results | LOCKED | Product |
 | D11 | Tables designed with nullable `embedding` column for future pgvector upgrade | LOCKED | Technical |
@@ -29,6 +29,8 @@
 | D13 | `get_reference_artifact` extended with direct DB fallback for cross-conversation artifacts | LOCKED | Technical |
 | D14 | `search_conversation_history` excludes the current conversation from results | LOCKED | Technical |
 | D15 | Compression summaries enrich search index (additive, not separately queryable) | LOCKED | Technical |
+| D16 | Search text is additive: concatenated user messages + latest compression summary coexist. Compression does not overwrite concatenated text — they are complementary search signals (exact keywords vs semantic coverage). Latest compression summary replaces prior compression summary only (cumulative by design). | LOCKED | Technical |
+| D17 | No "provided" summary source in Phase 1. Only two automatic sources: concatenated (every turn) and compression_summary (when compressor fires). Caller-supplied summaries can be added later if a concrete use case emerges. | LOCKED | Product |
 
 ---
 
@@ -53,7 +55,7 @@ export const conversationSearchIndex = pgTable(
     // Searchable text content (updated every turn)
     searchText: text('search_text').notNull(),
     summarySource: varchar('summary_source', { length: 50 }).notNull()
-      .default('concatenated'),   // 'concatenated' | 'llm_summary' | 'compression_summary'
+      .default('concatenated'),   // 'concatenated' | 'concatenated+compression'
     messageCount: integer('message_count').notNull().default(0),
 
     // Application-managed tsvector (set via to_tsvector('english', search_text) in UPSERT)
@@ -177,17 +179,9 @@ export const artifactSearchIndex = pgTable(
 );
 ```
 
-### 3.3 Schema Migration: Add `agentId` to `ledgerArtifacts`
+### 3.3 No schema changes to `ledgerArtifacts`
 
-`contextId` already serves as `conversationId` (confirmed: FK to conversations exists at line 496-498 of runtime-schema.ts). No need to add a redundant `conversation_id` column. Only `agent_id` is new.
-
-```sql
-ALTER TABLE ledger_artifacts
-  ADD COLUMN agent_id varchar(256);
-
-CREATE INDEX ledger_artifacts_agent_idx
-  ON ledger_artifacts (tenant_id, project_id, agent_id);
-```
+`contextId` already serves as `conversationId` (confirmed: FK to conversations exists at line 496-498 of runtime-schema.ts). `agentId` is NOT added to `ledgerArtifacts` — it lives only on `artifact_search_index`, populated from execution context at insert time. No join needed; the execution context already carries `agentId`.
 
 ### 3.4 No pgvector extension needed in Phase 1
 
@@ -209,68 +203,75 @@ CREATE INDEX ... USING hnsw (embedding vector_cosine_ops);
 
 | Event | What gets updated | Mechanism |
 |-------|-------------------|-----------|
-| User+AI turn completes | Conversation search index (UPSERT) | Synchronous with concatenated text (no LLM) |
-| ConversationCompressor fires | Conversation search index (UPSERT with richer summary) | Synchronous — LLM already ran as part of compression |
-| Caller provides summary via API | Conversation search index (UPSERT) | Synchronous — caller did the LLM work |
-| Artifact created | Artifact search index (INSERT) | Synchronous during artifact save |
-| Conversation title updated | Conversation search index (UPDATE) | Synchronous on title change |
+| User+AI turn completes | Conversation search index (UPSERT) | Fire-and-forget with concatenated text (no LLM) |
+| ConversationCompressor fires | Conversation search index (UPSERT with richer summary) | Fire-and-forget — LLM already ran as part of compression |
+| Artifact created | Artifact search index (INSERT) | Fire-and-forget during artifact save |
+| Conversation title updated | Conversation search index (UPDATE) | Fire-and-forget on title change |
 
 **Note:** MidGenerationCompressor does NOT update the search index. It is a tactical, sub-agent-scoped context eviction — not a holistic conversation summary. Its output would downgrade the search index if it overwrote a richer per-turn or ConversationCompressor summary.
 
 ### 4.2 Conversation index update flow
 
-**No LLM calls in the API server (D8).** The search index stores whatever text it's given. Three sources provide searchText:
+**No LLM calls in the API server (D8). Additive search text model (D16). Two sources only (D17).**
+
+The `search_text` field is the concatenation of all available sections — concatenated user messages and compression summary are complementary search signals, not competing. Concatenated text provides exact keyword matches; compression summary provides structured semantic coverage.
+
+**Search text structure:**
+
+```
+search_text = [
+  title,                        // stable, short
+  last N user messages,         // sliding window, bounded (~500 words)
+  latest compression summary,   // cumulative, replaces prior compression summary only (~200-500 words)
+].filter(Boolean).join('\n---\n')
+```
+
+Total `search_text` is bounded at ~1500 words regardless of conversation length.
 
 **Source 1: Concatenated (automatic, every turn)**
 
 ```
 User sends message → Agent responds → Response streamed to user
-                                         ↓ (synchronous, fast)
+                                         ↓ (fire-and-forget, fast)
                                     1. Fetch conversation metadata (title, agentId, userId)
-                                    2. Build searchText = (title || '') + '\n' + last N user messages
-                                    3. UPSERT into conversation_search_index:
-                                       SET search_text = $searchText,
-                                           search_vector = to_tsvector('english', $searchText),
-                                           summary_source = 'concatenated',
-                                           ...metadata fields
-                                    (Single SQL statement — fast, no LLM call, pure DB)
+                                    2. Build searchText = [title, last N user messages].join('\n---\n')
+                                    3. void upsertConversationSearchIndex({
+                                         searchText, summarySource: 'concatenated', ...metadata
+                                       }).catch(err => logger.error({ err, conversationId }, 
+                                         'Failed to update conversation search index'));
+                                    (Single SQL statement — fast, no LLM call, pure DB.
+                                     Failure does not block user response. Self-healing on next turn.)
 ```
 
 **Source 2: Compression summary (automatic, when ConversationCompressor fires)**
 
-When `ConversationCompressor` fires (between turns), it already runs an LLM to produce a `ConversationSummarySchema`. The search index captures this output — no additional LLM call needed.
+When `ConversationCompressor` fires (between turns), it already runs an LLM to produce a `ConversationSummarySchema`. The search index captures this output — no additional LLM call needed. The compression summary is **appended** to the concatenated text, not a replacement.
 
 MidGenerationCompressor does NOT trigger a search index update — it is a tactical mid-generation context eviction scoped to a single sub-agent, not a holistic conversation summary.
 
 ```
 Compression fires → Structured summary already produced (LLM ran as part of compression)
-                         ↓ (synchronous, within compression flow)
-                    1. Build searchText from summary fields:
-                       searchText = [
-                         title,
+                         ↓ (fire-and-forget, within compression flow)
+                    1. Build compressionText from summary fields:
+                       compressionText = [
                          summary.conversation_overview,
                          summary.user_goals?.primary,
                          ...(summary.key_outcomes?.completed || []),
                          ...(summary.key_outcomes?.discoveries || []),
                          ...(summary.context_for_continuation?.important_context || []),
                        ].filter(Boolean).join('\n')
-                    2. UPSERT with summary_source = 'compression_summary'
-                       (overwrites previous concatenated version)
+                    2. Build searchText = [title, last N user messages, compressionText].join('\n---\n')
+                    3. UPSERT with summary_source = 'concatenated+compression'
+                       (latest compression summary replaces prior compression summary;
+                        concatenated user messages are always preserved)
 ```
 
-**Source 3: Caller-provided (via API)**
-
-API clients, SDK users, or the agent execution pipeline can pass a custom summary when updating the search index. This enables callers with LLM access to provide richer summaries without the API server running inference.
-
-```
-PUT /conversations/{conversationId}/search-index  (or inline in existing endpoints)
-  Body: { searchText: "custom summary", summarySource: "provided" }
-```
-
-**Priority order for searchText source (higher overwrites lower):**
-1. `compression_summary` — richest, structured, produced by compression pipeline (LLM already ran)
-2. `provided` — caller-supplied summary (e.g., agent execution passes a summary)
-3. `concatenated` — title + raw user messages (default, automatic, no LLM)
+**Failure handling (D8):**
+- All search index UPSERTs are fire-and-forget: `void upsert(...).catch(log)`
+- Failures do not block or affect the user response
+- Failures are self-healing — next turn attempts another UPSERT with fresh data
+- Search index may be stale for up to one turn after a transient DB error; no user-visible impact
+- No retry queue in Phase 1. If error rates are observed in logs, add retry mechanism later
 
 ### 4.3 UPSERT with application-managed tsvector (D12)
 
@@ -302,14 +303,16 @@ Same pattern for `artifact_search_index` INSERTs.
 ### 4.4 Artifact index update flow
 
 ```
-Tool executes → Artifact saved to ledger_artifacts (with contextId = conversationId, agentId)
-                     ↓ (same transaction or immediately after)
-                INSERT into artifact_search_index:
-                  searchText = [name, description, summary, 'tool: ' + toolName]
-                    .filter(Boolean).join(' | ')
-                  searchVector = to_tsvector('english', searchText)
-                  conversationId = artifact.contextId  // contextId IS conversationId
-                  toolCallId = artifact.toolCallId
+Tool executes → Artifact saved to ledger_artifacts (with contextId = conversationId)
+                     ↓ (fire-and-forget, immediately after)
+                void insertArtifactSearchIndex({
+                  searchText: [name, description, summary, 'tool: ' + toolName]
+                    .filter(Boolean).join(' | '),
+                  conversationId: artifact.contextId,  // contextId IS conversationId
+                  agentId: executionContext.agentId,    // from execution context, NOT ledger_artifacts
+                  userId: executionContext.userId,
+                  toolCallId: artifact.toolCallId,
+                }).catch(err => logger.error({ err, artifactId }, 'Failed to index artifact'));
 ```
 
 ---
@@ -940,12 +943,12 @@ No prompt template changes in Phase 1.
 packages/agents-core/
   src/
     db/runtime/
-      runtime-schema.ts              # MODIFIED: add conversationSearchIndex, artifactSearchIndex tables; add agentId to ledgerArtifacts
+      runtime-schema.ts              # MODIFIED: add conversationSearchIndex, artifactSearchIndex tables
       custom-types.ts                # NEW: shared Drizzle custom types (tsvectorColumn, future vectorColumn)
     data-access/runtime/
       conversations.ts               # EXISTING: list, get, create conversations (unchanged)
       messages.ts                    # EXISTING: message CRUD (unchanged)
-      ledgerArtifacts.ts             # MODIFIED: pass agentId on insert; coordinated deletes for search index
+      ledgerArtifacts.ts             # MODIFIED: coordinated deletes for search index (no schema changes)
       conversationSearchIndex.ts     # NEW: UPSERT/delete for conversation_search_index table
       artifactSearchIndex.ts         # NEW: INSERT/delete for artifact_search_index table
       conversationSearch.ts          # NEW: searchConversations() — keyword + recency RRF query
@@ -1020,12 +1023,12 @@ packages/agents-sdk/
 **Modified files:**
 | File | Change |
 |------|--------|
-| `packages/agents-core/src/db/runtime/runtime-schema.ts` | Add `conversationSearchIndex`, `artifactSearchIndex` tables; add `agentId` to `ledgerArtifacts` |
-| `packages/agents-core/src/data-access/runtime/ledgerArtifacts.ts` | Pass `agentId` on insert; insert into `artifactSearchIndex` on creation; coordinated deletes |
+| `packages/agents-core/src/db/runtime/runtime-schema.ts` | Add `conversationSearchIndex`, `artifactSearchIndex` tables (no changes to `ledgerArtifacts`) |
+| `packages/agents-core/src/data-access/runtime/ledgerArtifacts.ts` | Coordinated deletes for search index (no schema changes) |
 | `agents-api/src/domains/run/routes/conversations.ts` | Add `GET /conversations/search` endpoint |
 | `agents-api/src/domains/manage/routes/conversations.ts` | Add `GET /projects/{projectId}/conversations/search` and `GET /projects/{projectId}/conversations/{id}/messages/search` |
-| `agents-api/src/domains/run/handlers/executionHandler.ts` | UPSERT conversation search index after turn (sync, concatenated text, no LLM) |
-| `agents-api/src/domains/run/compression/ConversationCompressor.ts` | UPSERT conversation search index with compression summary |
+| `agents-api/src/domains/run/handlers/executionHandler.ts` | Fire-and-forget UPSERT conversation search index after turn (concatenated text, no LLM) |
+| `agents-api/src/domains/run/compression/ConversationCompressor.ts` | Fire-and-forget UPSERT search index with additive compression summary |
 | `packages/agents-sdk/src/conversations.ts` | Add `search()` and `searchMessages()` methods |
 | `packages/agents-sdk/src/artifacts.ts` | Add `search()` method |
 
@@ -1054,7 +1057,6 @@ packages/agents-sdk/
 |-----------|---------|
 | `0028_conversation_search_index.sql` | Create `conversation_search_index` table with GIN + scope indexes |
 | `0029_artifact_search_index.sql` | Create `artifact_search_index` table with GIN + scope + tool indexes |
-| `0030_ledger_artifacts_agent_id.sql` | Add `agent_id` column to `ledger_artifacts` |
 
 ---
 
@@ -1066,8 +1068,8 @@ The foundation. Testable independently, follows existing patterns, gives manage 
 **Step 1.1: Schema + migrations**
 - Add `tsvectorColumn` custom type to `custom-types.ts`
 - Add `conversationSearchIndex` and `artifactSearchIndex` tables to `runtime-schema.ts`
-- Add `agentId` column to `ledgerArtifacts`
-- Generate and apply migrations (0028, 0029, 0030)
+- No changes to `ledgerArtifacts` schema — `agentId` lives only on search index tables
+- Generate and apply migrations (0028, 0029)
 
 **Step 1.2: Shared schemas**
 - Add `ConversationSearchResultSchema`, `ArtifactSearchResultSchema`, `MessageWindowSchema` to `validation/search-schemas.ts`
@@ -1079,12 +1081,12 @@ The foundation. Testable independently, follows existing patterns, gives manage 
 - `conversationSearch.ts` — `searchConversations()` with keyword + recency RRF
 - `artifactSearch.ts` — `searchArtifacts()` with keyword + recency RRF
 - `messageSearch.ts` — `searchMessagesWindowed()` for within-conversation windowed search
-- Modify `ledgerArtifacts.ts` — pass `agentId` on insert, insert into `artifactSearchIndex`, coordinated deletes
+- Modify `ledgerArtifacts.ts` — coordinated deletes for search index (no schema changes)
 
 **Step 1.4: Write pipeline (indexing)**
-- Modify `executionHandler.ts` — UPSERT conversation search index after every turn (sync, concatenated text, no LLM)
-- Modify `ConversationCompressor.ts` — UPSERT search index with compression summary when compression fires
-- Modify `ledgerArtifacts.ts` — insert into artifact search index on artifact creation
+- Modify `executionHandler.ts` — fire-and-forget UPSERT conversation search index after every turn (concatenated text, no LLM)
+- Modify `ConversationCompressor.ts` — fire-and-forget UPSERT search index with additive compression summary when compression fires
+- Insert into artifact search index on artifact creation (fire-and-forget, `agentId` from execution context)
 
 **Step 1.5: API endpoints (conversations)**
 - Add `GET /conversations/search` to `run/routes/conversations.ts` (same auth as existing list/get)
@@ -1302,15 +1304,17 @@ Shift internal agent code to use the search/retrieval API as the canonical path 
    - tsvector columns populated via application-managed `to_tsvector('english', search_text)` in UPSERT
 
 2. **Conversation search index stays current:**
-   - After every user+AI turn, a fast synchronous UPSERT writes concatenated title + user messages
-   - Compression events overwrite with richer structured summary (LLM already ran as part of compression)
-   - Callers can provide custom summaries via API (no LLM in the API server)
+   - After every user+AI turn, a fire-and-forget UPSERT writes concatenated title + user messages
+   - Compression events append richer structured summary to search text (additive, not overwrite — D16)
+   - Two sources only: concatenated and compression_summary (no caller-provided in Phase 1 — D17)
    - Index scoped by tenantId + projectId (always required); agentId + userId conditionally applied by caller
+   - Failures logged and self-healing on next turn; no user-visible impact
 
 3. **Artifact search index is populated:**
    - Every new artifact gets a row in `artifact_search_index` at creation time
    - `searchText` includes name, description, summary, tool name
    - `toolCallId` stored for retrieval workflow
+   - `agentId` populated from execution context (NOT from `ledgerArtifacts` — no schema changes to that table)
    - Scoped with conversationId (from contextId) + agentId + userId
 
 4. **Search tools work end-to-end:**
@@ -1324,7 +1328,8 @@ Shift internal agent code to use the search/retrieval API as the canonical path 
    - Existing `get_reference_artifact` session-cache path unchanged (DB fallback is additive)
    - Existing conversation history + compression unchanged
    - Existing artifact creation/retrieval unchanged
-   - Synchronous index UPSERT adds minimal latency (<10ms for single SQL statement)
+   - `ledgerArtifacts` schema unchanged — no new columns
+   - Fire-and-forget index UPSERT does not block user responses
    - Zero LLM calls in the API server — no hot-path latency for any conversation length
 
 ---
@@ -1348,9 +1353,8 @@ Shift internal agent code to use the search/retrieval API as the canonical path 
 |------|-----------|
 | Keyword search misses semantically relevant results | Acceptable for Phase 1; pgvector Phase 2 designed in |
 | LLM doesn't use search tools effectively | Good tool descriptions; monitor tool usage patterns |
-| Synchronous index UPSERT adds latency | Single SQL statement; measure; move fully async if >50ms |
+| Fire-and-forget UPSERT silently fails | Logged with context (conversationId, tenantId). Self-healing on next turn. Monitor error rates; add retry queue if needed |
 | Cross-tenant data leakage via search | Strict userId equality (D6); DB-level WHERE clause in all queries |
-| Long conversations have lower search quality with concatenated text only | Compression summary overwrites with richer text when it fires; callers can provide summaries via API |
+| Long conversations have lower search quality with concatenated text only | Additive model (D16): compression summary appends to concatenated text, preserving both exact keywords and semantic coverage |
 | Orphaned artifact_search_index rows | Coordinated deletes in `deleteLedgerArtifactsByTask` and `deleteLedgerArtifactsByContext`; conversation cascade deletes handle `conversation_search_index` via FK |
-| Nullable `agentId` on existing ledgerArtifacts rows | New rows get agentId; pre-migration artifacts excluded from search (agentId is NULL). Backfill derivable: `contextId` → `conversations.agentId`. Deferred to OQ3. |
 | pglite test compatibility with tsvector/GIN | pglite supports `to_tsvector` and `plainto_tsquery` but GIN index behavior may differ. Add integration test against real Postgres for search functionality; unit tests can mock the search DAL. |
