@@ -94,7 +94,9 @@ export function ProjectScheduledTriggersTable({
   const canManageTrigger = (trigger: ScheduledTriggerWithAgent): boolean => {
     if (isAdmin) return true;
     if (!user) return false;
-    return trigger.createdBy === user.id || trigger.runAsUserId === user.id;
+    if (trigger.createdBy === user.id || trigger.runAsUserId === user.id) return true;
+    const userIds = trigger.runAsUserIds ?? [];
+    return userIds.length === 1 && userIds[0] === user.id;
   };
 
   const getUserDisplayName = (userId: string): string => {
