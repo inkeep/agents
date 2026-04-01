@@ -13,6 +13,7 @@
     }
   },
   "scripts": {
+    "knip": "knip --directory ../.. --workspace packages/agents-email --dependencies",
     "build": "tsdown",
     "dev": "pnpm build --watch",
     "test": "vitest --run",
