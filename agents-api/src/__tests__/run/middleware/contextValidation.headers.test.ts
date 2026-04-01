@@ -80,6 +80,106 @@ describe('validateHttpRequestHeaders', () => {
     );
   });
 
+  it('should validate camelCase schema properties against lowercased headers', async () => {
+    const headersSchema = {
+      type: 'object',
+      properties: {
+        mcpToken: { type: 'string' },
+      },
+    };
+
+    const httpRequest: ParsedHttpRequest = {
+      headers: {
+        mcptoken: 'my-secret-token',
+      },
+    };
+
+    const result = await validateHttpRequestHeaders(headersSchema, httpRequest);
+
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.validatedContext).toEqual({
+      mcptoken: 'my-secret-token',
+    });
+  });
+
+  it('should enforce camelCase required entries against lowercased headers', async () => {
+    const headersSchema = {
+      type: 'object',
+      properties: {
+        mcpToken: { type: 'string' },
+      },
+      required: ['mcpToken'],
+    };
+
+    const httpRequestPresent: ParsedHttpRequest = {
+      headers: {
+        mcptoken: 'my-secret-token',
+      },
+    };
+
+    const resultPresent = await validateHttpRequestHeaders(headersSchema, httpRequestPresent);
+    expect(resultPresent.valid).toBe(true);
+    expect(resultPresent.validatedContext).toEqual({ mcptoken: 'my-secret-token' });
+
+    const httpRequestMissing: ParsedHttpRequest = {
+      headers: {},
+    };
+
+    const resultMissing = await validateHttpRequestHeaders(headersSchema, httpRequestMissing);
+    expect(resultMissing.valid).toBe(false);
+    expect(resultMissing.errors.length).toBeGreaterThan(0);
+  });
+
+  it('should handle mixed case properties', async () => {
+    const headersSchema = {
+      type: 'object',
+      properties: {
+        McpToken: { type: 'string' },
+        'x-api-key': { type: 'string' },
+      },
+    };
+
+    const httpRequest: ParsedHttpRequest = {
+      headers: {
+        mcptoken: 'token-value',
+        'x-api-key': 'key-value',
+      },
+    };
+
+    const result = await validateHttpRequestHeaders(headersSchema, httpRequest);
+
+    expect(result.valid).toBe(true);
+    expect(result.validatedContext).toEqual({
+      mcptoken: 'token-value',
+      'x-api-key': 'key-value',
+    });
+  });
+
+  it('should filter camelCase schema properties to only declared keys', async () => {
+    const headersSchema = {
+      type: 'object',
+      properties: {
+        authToken: { type: 'string' },
+      },
+    };
+
+    const httpRequest: ParsedHttpRequest = {
+      headers: {
+        authtoken: 'bearer-xyz',
+        'extra-header': 'should-be-filtered',
+      },
+    };
+
+    const result = await validateHttpRequestHeaders(headersSchema, httpRequest);
+
+    expect(result.valid).toBe(true);
+    expect(result.validatedContext).toEqual({
+      authtoken: 'bearer-xyz',
+    });
+    expect((result.validatedContext as any)?.['extra-header']).toBeUndefined();
+  });
+
   it('should handle empty headers schema gracefully', async () => {
     const headersSchema = null;
 

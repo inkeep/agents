@@ -59,12 +59,53 @@ export function getCachedValidator(schema: Record<string, unknown>): ValidateFun
     }
   }
 
-  const permissiveSchema = makeSchemaPermissive(schema);
+  const normalizedSchema = normalizeSchemaKeysToLowercase(schema);
+  const permissiveSchema = makeSchemaPermissive(normalizedSchema);
 
   const validator = ajv.compile(permissiveSchema);
   schemaCache.set(key, validator);
 
   return validator;
+}
+
+function normalizeSchemaKeysToLowercase(schema: any): any {
+  if (!schema || typeof schema !== 'object') {
+    return schema;
+  }
+
+  const normalized = { ...schema };
+
+  if (normalized.type === 'object') {
+    if (normalized.properties && typeof normalized.properties === 'object') {
+      const newProperties: any = {};
+      for (const [key, value] of Object.entries(normalized.properties)) {
+        newProperties[key.toLowerCase()] = normalizeSchemaKeysToLowercase(value);
+      }
+      normalized.properties = newProperties;
+    }
+
+    if (Array.isArray(normalized.required)) {
+      normalized.required = normalized.required.map((r: unknown) =>
+        typeof r === 'string' ? r.toLowerCase() : r
+      );
+    }
+  }
+
+  if (normalized.type === 'array' && normalized.items) {
+    normalized.items = normalizeSchemaKeysToLowercase(normalized.items);
+  }
+
+  if (normalized.oneOf) {
+    normalized.oneOf = normalized.oneOf.map(normalizeSchemaKeysToLowercase);
+  }
+  if (normalized.anyOf) {
+    normalized.anyOf = normalized.anyOf.map(normalizeSchemaKeysToLowercase);
+  }
+  if (normalized.allOf) {
+    normalized.allOf = normalized.allOf.map(normalizeSchemaKeysToLowercase);
+  }
+
+  return normalized;
 }
 
 function makeSchemaPermissive(schema: any): any {
@@ -158,7 +199,8 @@ function filterContextToSchemaKeys(
     return validatedContext;
   }
 
-  const filteredHeaders = filterByJsonSchema(validatedContext, headersSchema);
+  const normalizedSchema = normalizeSchemaKeysToLowercase(headersSchema);
+  const filteredHeaders = filterByJsonSchema(validatedContext, normalizedSchema);
 
   if (filteredHeaders !== null && filteredHeaders !== undefined) {
     if (typeof filteredHeaders === 'object' && Object.keys(filteredHeaders).length > 0) {
