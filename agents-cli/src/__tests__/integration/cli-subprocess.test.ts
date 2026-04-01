@@ -69,12 +69,7 @@ describe('Inkeep CLI', () => {
 
   afterEach(async () => {
     vi.restoreAllMocks();
-    // Small delay to allow processes to fully terminate
     await new Promise((resolve) => setTimeout(resolve, 100));
-    // Force garbage collection to clean up any hanging references
-    if (global.gc) {
-      global.gc();
-    }
   });
 
   describe('--version command', () => {

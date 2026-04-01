@@ -22,5 +22,6 @@ export default defineProject({
       },
     },
     maxConcurrency: 1,
+    retry: 2,
   },
 });
