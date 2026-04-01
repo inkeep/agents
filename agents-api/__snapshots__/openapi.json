@@ -322,6 +322,66 @@
         ],
         "type": "object"
       },
+      "AgentDatasetRelation": {
+        "properties": {
+          "agentId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "datasetId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "agentId",
+          "datasetId",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "AgentEvaluatorRelation": {
+        "properties": {
+          "agentId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "evaluatorId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "agentId",
+          "evaluatorId",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
       "AgentIdPathParam": {
         "description": "Agent identifier",
         "example": "agent_789",
@@ -2934,37 +2994,6 @@
               }
             ]
           },
-          "simulationAgent": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
-          },
           "updatedAt": {
             "type": "string"
           }
@@ -2974,7 +3003,6 @@
           "datasetId",
           "input",
           "expectedOutput",
-          "simulationAgent",
           "createdAt",
           "updatedAt"
         ],
@@ -3017,37 +3045,6 @@
             ]
           },
           "input": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
-          },
-          "simulationAgent": {
             "anyOf": [
               {
                 "type": "string"
@@ -3154,31 +3151,36 @@
               }
             ]
           },
-          "simulationAgent": {
-            "anyOf": [
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DatasetRun": {
+        "properties": {
+          "createdAt": {
+            "type": "string"
+          },
+          "datasetId": {
+            "type": "string"
+          },
+          "datasetRunConfigId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "evaluationJobConfigId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "ref": {
+            "allOf": [
               {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
+                "$ref": "#/components/schemas/ResolvedRef"
               },
               {
                 "nullable": true
@@ -3189,114 +3191,99 @@
             "type": "string"
           }
         },
+        "required": [
+          "id",
+          "datasetId",
+          "datasetRunConfigId",
+          "evaluationJobConfigId",
+          "createdAt",
+          "updatedAt"
+        ],
         "type": "object"
       },
-      "DatasetRunItem": {
+      "DatasetRunConfig": {
         "properties": {
-          "agentId": {
+          "createdAt": {
             "type": "string"
           },
-          "expectedOutput": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
+          "datasetId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
           },
           "id": {
             "maxLength": 256,
             "type": "string"
           },
-          "input": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
+          "name": {
+            "maxLength": 256,
+            "type": "string"
           },
-          "simulationAgent": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
+          "updatedAt": {
+            "type": "string"
           }
         },
         "required": [
-          "agentId"
+          "id",
+          "name",
+          "description",
+          "datasetId",
+          "createdAt",
+          "updatedAt"
         ],
+        "type": "object"
+      },
+      "DatasetRunConfigCreate": {
+        "properties": {
+          "createdAt": {
+            "type": "string"
+          },
+          "datasetId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "datasetId"
+        ],
+        "type": "object"
+      },
+      "DatasetRunConfigUpdate": {
+        "properties": {
+          "createdAt": {
+            "type": "string"
+          },
+          "datasetId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "DatasetUpdate": {
@@ -10037,33 +10024,6 @@
         ],
         "type": "object"
       },
-      "TriggerDatasetRun": {
-        "properties": {
-          "datasetRunId": {
-            "type": "string"
-          },
-          "evaluationRunId": {
-            "type": "string"
-          },
-          "evaluatorIds": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/DatasetRunItem"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "datasetRunId",
-          "items"
-        ],
-        "type": "object"
-      },
       "TriggerEvaluationJob": {
         "properties": {
           "evaluationJobConfigId": {
@@ -10614,27 +10574,6 @@
         "example": "user_123",
         "type": "string"
       },
-      "WebClientAuthConfig": {
-        "properties": {
-          "allowAnonymous": {
-            "type": "boolean"
-          },
-          "audience": {
-            "type": "string"
-          },
-          "publicKeys": {
-            "default": [],
-            "items": {
-              "$ref": "#/components/schemas/PublicKeyConfig"
-            },
-            "type": "array"
-          },
-          "validateScopeClaims": {
-            "type": "boolean"
-          }
-        },
-        "type": "object"
-      },
       "WebClientConfig": {
         "properties": {
           "type": {
@@ -10645,6 +10584,10 @@
           },
           "webClient": {
             "properties": {
+              "allowAnonymous": {
+                "default": false,
+                "type": "boolean"
+              },
               "allowedDomains": {
                 "items": {
                   "minLength": 1,
@@ -10654,8 +10597,15 @@
                 "minItems": 1,
                 "type": "array"
               },
-              "auth": {
-                "$ref": "#/components/schemas/WebClientAuthConfig"
+              "audience": {
+                "type": "string"
+              },
+              "publicKeys": {
+                "default": [],
+                "items": {
+                  "$ref": "#/components/schemas/PublicKeyConfig"
+                },
+                "type": "array"
               }
             },
             "required": [
@@ -10680,6 +10630,10 @@
           },
           "webClient": {
             "properties": {
+              "allowAnonymous": {
+                "default": false,
+                "type": "boolean"
+              },
               "allowedDomains": {
                 "items": {
                   "minLength": 1,
@@ -10689,8 +10643,15 @@
                 "minItems": 1,
                 "type": "array"
               },
-              "auth": {
-                "$ref": "#/components/schemas/WebClientAuthConfig"
+              "audience": {
+                "type": "string"
+              },
+              "publicKeys": {
+                "default": [],
+                "items": {
+                  "$ref": "#/components/schemas/PublicKeyConfig"
+                },
+                "type": "array"
               }
             },
             "required": [
@@ -11117,82 +11078,6 @@
           }
         },
         "summary": "Trigger evaluations on conversations by evaluation job config",
-        "tags": [
-          "Workflows"
-        ],
-        "x-authz": {
-          "description": "Requires eval API key (bypass secret or internal service token)"
-        }
-      }
-    },
-    "/evals/tenants/{tenantId}/projects/{projectId}/run-dataset-items": {
-      "post": {
-        "description": "Runs dataset items for processing through the chat API",
-        "operationId": "run-dataset-items",
-        "parameters": [
-          {
-            "description": "Tenant identifier",
-            "in": "path",
-            "name": "tenantId",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/TenantIdPathParam"
-            }
-          },
-          {
-            "description": "Project identifier",
-            "in": "path",
-            "name": "projectId",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ProjectIdPathParam"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TriggerDatasetRun"
-              }
-            }
-          }
-        },
-        "responses": {
-          "202": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "datasetRunId": {
-                      "type": "string"
-                    },
-                    "failed": {
-                      "type": "number"
-                    },
-                    "queued": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "queued",
-                    "failed",
-                    "datasetRunId"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Workflows queued successfully"
-          },
-          "400": {
-            "description": "Invalid request"
-          },
-          "500": {
-            "description": "Internal server error"
-          }
-        },
-        "summary": "Run dataset items",
         "tags": [
           "Workflows"
         ],
@@ -30692,6 +30577,1340 @@
         }
       }
     },
+    "/manage/tenants/{tenantId}/projects/{projectId}/evals/dataset-run-configs": {
+      "post": {
+        "operationId": "create-dataset-run-config",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/DatasetRunConfigCreate"
+                  },
+                  {
+                    "properties": {
+                      "agentIds": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "evaluatorIds": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/DatasetRunConfig"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Dataset run config created"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Create Dataset Run Config",
+        "tags": [
+          "Evaluations"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/evals/dataset-run-configs/by-dataset/{datasetId}": {
+      "get": {
+        "operationId": "list-dataset-run-configs",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "datasetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "$ref": "#/components/schemas/DatasetRunConfig"
+                      },
+                      "type": "array"
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "pagination"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "List of dataset run configs"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Dataset Run Configs by Dataset ID",
+        "tags": [
+          "Evaluations"
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/evals/dataset-run-configs/{runConfigId}": {
+      "delete": {
+        "operationId": "delete-dataset-run-config",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "runConfigId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Dataset run config deleted"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Delete Dataset Run Config",
+        "tags": [
+          "Evaluations"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      },
+      "get": {
+        "operationId": "get-dataset-run-config",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "runConfigId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/DatasetRunConfig"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Dataset run config details"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get Dataset Run Config by ID",
+        "tags": [
+          "Evaluations"
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
+      },
+      "patch": {
+        "operationId": "update-dataset-run-config",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "runConfigId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/DatasetRunConfigUpdate"
+                  },
+                  {
+                    "properties": {
+                      "agentIds": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "evaluatorIds": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/DatasetRunConfig"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Dataset run config updated"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Dataset Run Config",
+        "tags": [
+          "Evaluations"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/evals/dataset-run-configs/{runConfigId}/run": {
+      "post": {
+        "operationId": "trigger-dataset-run",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "runConfigId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "branchName": {
+                    "type": "string"
+                  },
+                  "evaluatorIds": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "datasetRunId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "pending"
+                      ],
+                      "type": "string"
+                    },
+                    "totalItems": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "datasetRunId",
+                    "status",
+                    "totalItems"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Dataset run triggered"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Trigger Dataset Run",
+        "tags": [
+          "Evaluations"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/evals/dataset-runs/by-dataset/{datasetId}": {
+      "get": {
+        "operationId": "list-dataset-runs",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "datasetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "$ref": "#/components/schemas/DatasetRun"
+                      },
+                      "type": "array"
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "pagination"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "List of dataset runs"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Dataset Runs by Dataset ID",
+        "tags": [
+          "Evaluations"
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/evals/dataset-runs/{runId}": {
+      "get": {
+        "operationId": "get-dataset-run",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/DatasetRun"
+                        },
+                        {
+                          "properties": {
+                            "items": {
+                              "items": {
+                                "properties": {
+                                  "conversations": {
+                                    "items": {
+                                      "properties": {
+                                        "agentId": {
+                                          "nullable": true,
+                                          "type": "string"
+                                        },
+                                        "conversationId": {
+                                          "type": "string"
+                                        },
+                                        "createdAt": {
+                                          "type": "string"
+                                        },
+                                        "datasetRunId": {
+                                          "type": "string"
+                                        },
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "output": {
+                                          "nullable": true,
+                                          "type": "string"
+                                        },
+                                        "updatedAt": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "id",
+                                        "conversationId",
+                                        "datasetRunId",
+                                        "createdAt",
+                                        "updatedAt"
+                                      ],
+                                      "type": "object"
+                                    },
+                                    "type": "array"
+                                  },
+                                  "createdAt": {
+                                    "type": "string"
+                                  },
+                                  "datasetId": {
+                                    "type": "string"
+                                  },
+                                  "expectedOutput": {
+                                    "nullable": true
+                                  },
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "input": {
+                                    "nullable": true
+                                  },
+                                  "projectId": {
+                                    "type": "string"
+                                  },
+                                  "tenantId": {
+                                    "type": "string"
+                                  },
+                                  "updatedAt": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "tenantId",
+                                  "projectId",
+                                  "datasetId",
+                                  "createdAt",
+                                  "updatedAt",
+                                  "conversations"
+                                ],
+                                "type": "object"
+                              },
+                              "type": "array"
+                            }
+                          },
+                          "required": [
+                            "items"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Dataset run with conversations"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get Dataset Run by ID",
+        "tags": [
+          "Evaluations"
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/evals/dataset-runs/{runId}/items": {
+      "get": {
+        "operationId": "get-dataset-run-items",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "agentId": {
+                            "type": "string"
+                          },
+                          "attemptNumber": {
+                            "type": "number"
+                          },
+                          "completedAt": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "conversationId": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "datasetItemId": {
+                            "type": "string"
+                          },
+                          "datasetRunId": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "projectId": {
+                            "type": "string"
+                          },
+                          "startedAt": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "tenantId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "tenantId",
+                          "projectId",
+                          "agentId",
+                          "datasetRunId",
+                          "datasetItemId",
+                          "status",
+                          "attemptNumber",
+                          "createdAt"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "pagination"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "List of dataset run invocations"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get Dataset Run Items",
+        "tags": [
+          "Evaluations"
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
+      }
+    },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/datasets": {
       "get": {
         "operationId": "list-datasets",
@@ -30712,6 +31931,14 @@
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "agentId",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -31280,6 +32507,378 @@
           }
         },
         "summary": "Update Dataset by ID",
+        "tags": [
+          "Evaluations"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/evals/datasets/{datasetId}/agents": {
+      "get": {
+        "operationId": "list-dataset-agents",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "datasetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "$ref": "#/components/schemas/AgentDatasetRelation"
+                      },
+                      "type": "array"
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "pagination"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "List of agent relations for this dataset"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Agents for Dataset",
+        "tags": [
+          "Evaluations"
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/evals/datasets/{datasetId}/agents/{agentId}": {
+      "delete": {
+        "operationId": "remove-agent-from-dataset",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "datasetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Agent relation deleted"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Remove Agent from Dataset",
+        "tags": [
+          "Evaluations"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      },
+      "post": {
+        "operationId": "add-agent-to-dataset",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "datasetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AgentDatasetRelation"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Agent relation created"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Add Agent to Dataset",
         "tags": [
           "Evaluations"
         ],
@@ -34417,6 +36016,14 @@
             "schema": {
               "$ref": "#/components/schemas/ProjectIdPathParam"
             }
+          },
+          {
+            "in": "query",
+            "name": "agentId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -34770,8 +36377,150 @@
           "Evaluations"
         ],
         "x-authz": {
-          "description": "Requires project edit permission (project_admin, or org admin/owner)",
-          "permission": "edit",
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluators/batch-agent-scopes": {
+      "post": {
+        "operationId": "batch-get-evaluator-agent-scopes",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "evaluatorIds": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 200,
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "evaluatorIds"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "additionalProperties": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Map of evaluator ID to array of scoped agent IDs"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Batch get agent scopes for evaluators",
+        "tags": [
+          "Evaluations"
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
           "resource": "project"
         }
       }
@@ -35122,6 +36871,378 @@
           }
         },
         "summary": "Update Evaluator",
+        "tags": [
+          "Evaluations"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluators/{evaluatorId}/agents": {
+      "get": {
+        "operationId": "list-evaluator-agents",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "evaluatorId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "$ref": "#/components/schemas/AgentEvaluatorRelation"
+                      },
+                      "type": "array"
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "pagination"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "List of agent relations for this evaluator"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Agents for Evaluator",
+        "tags": [
+          "Evaluations"
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/evals/evaluators/{evaluatorId}/agents/{agentId}": {
+      "delete": {
+        "operationId": "remove-agent-from-evaluator",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "evaluatorId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Agent relation deleted"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Remove Agent from Evaluator",
+        "tags": [
+          "Evaluations"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      },
+      "post": {
+        "operationId": "add-agent-to-evaluator",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "evaluatorId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AgentEvaluatorRelation"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Agent relation created"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Add Agent to Evaluator",
         "tags": [
           "Evaluations"
         ],

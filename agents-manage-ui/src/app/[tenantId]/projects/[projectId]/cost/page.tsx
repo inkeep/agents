@@ -5,7 +5,7 @@ import { use, useMemo } from 'react';
 import { CostDashboard } from '@/components/cost/cost-dashboard';
 import { PageHeader } from '@/components/layout/page-header';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
-import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
+import { useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { useCapabilitiesQuery } from '@/lib/query/capabilities';
 
 const TIME_RANGES = {
@@ -17,9 +17,7 @@ const TIME_RANGES = {
 
 export default function ProjectUsagePage({
   params,
-}: {
-  params: Promise<{ tenantId: string; projectId: string }>;
-}) {
+}: PageProps<'/[tenantId]/projects/[projectId]/cost'>) {
   const { tenantId, projectId } = use(params);
   const { data: capabilities, isLoading: capabilitiesLoading } = useCapabilitiesQuery();
 
@@ -49,7 +47,7 @@ export default function ProjectUsagePage({
   }, [selectedTimeRange, customStartDate, customEndDate]);
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Cost & Token Usage"
         description="Estimated costs and token usage for this project"
@@ -64,8 +62,8 @@ export default function ProjectUsagePage({
               ? { from: customStartDate, to: customEndDate }
               : selectedTimeRange
           }
-          onAdd={(value: TimeRange) => setSelectedTimeRange(value)}
-          setCustomDateRange={(start: string, end: string) => setCustomDateRange(start, end)}
+          onAdd={setSelectedTimeRange}
+          setCustomDateRange={setCustomDateRange}
           options={Object.entries(TIME_RANGES).map(([value, config]) => ({
             value,
             label: config.label,

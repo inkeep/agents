@@ -13,7 +13,6 @@ import type {
   PublicKeyConfigSchema,
   StatusComponentSchema,
   StatusUpdateSchema,
-  WebClientAuthConfigSchema,
   WebClientConfigSchema,
   WorkAppGitHubAccountTypeSchema,
   WorkAppGitHubInstallationStatusSchema,
@@ -408,12 +407,16 @@ export type EvaluationSuiteFilterCriteria = {
   [key: string]: unknown;
 };
 
+export type DatasetMessageRole = 'user' | 'assistant' | 'system';
+
 export type DatasetItemInput = {
-  messages: Array<{ role: string; content: MessageContent }>;
-  headers?: Record<string, string>;
+  messages: Array<{ role: DatasetMessageRole; content: MessageContent }>;
 };
 
-export type DatasetItemExpectedOutput = Array<{ role: string; content: MessageContent }>;
+export type DatasetItemExpectedOutput = Array<{
+  role: DatasetMessageRole;
+  content: MessageContent;
+}>;
 
 /**
  * GitHub App installation status.
@@ -443,7 +446,6 @@ export type AppType = 'web_client' | 'api';
 
 export type PublicKeyAlgorithm = z.infer<typeof PublicKeyAlgorithmSchema>;
 export type PublicKeyConfig = z.infer<typeof PublicKeyConfigSchema>;
-export type WebClientAuthConfig = z.infer<typeof WebClientAuthConfigSchema>;
 export type WebClientConfig = z.infer<typeof WebClientConfigSchema>;
 
 export type ApiConfig = z.infer<typeof ApiConfigSchema>;

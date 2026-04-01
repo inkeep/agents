@@ -3,6 +3,8 @@ import { z } from '@hono/zod-openapi';
 import { schemaValidationDefaults } from '../constants/schema-validation/defaults';
 // Config DB imports (Doltgres - versioned)
 import {
+  agentDatasetRelations,
+  agentEvaluatorRelations,
   agents,
   artifactComponents,
   contextConfigs,
@@ -220,16 +222,6 @@ export const ModelSettingsSchema = z
   .openapi('ModelSettings');
 
 export type ModelSettings = z.infer<typeof ModelSettingsSchema>;
-
-export const SimulationAgentSchema = z
-  .object({
-    stopWhen: StopWhenSchema.optional(),
-    prompt: z.string(),
-    model: ModelSettingsSchema,
-  })
-  .openapi('SimulationAgent');
-
-export type SimulationAgent = z.infer<typeof SimulationAgentSchema>;
 
 export const ModelSchema = z
   .object({
@@ -1463,20 +1455,10 @@ export const DatasetRunItemSchema = DatasetItemApiSelectSchema.pick({
   id: true,
   input: true,
   expectedOutput: true,
-  simulationAgent: true,
 })
   .partial()
   .extend({ agentId: z.string() })
   .openapi('DatasetRunItem');
-
-export const TriggerDatasetRunSchema = z
-  .object({
-    datasetRunId: z.string(),
-    items: z.array(DatasetRunItemSchema),
-    evaluatorIds: z.array(z.string()).optional(),
-    evaluationRunId: z.string().optional(),
-  })
-  .openapi('TriggerDatasetRun');
 
 export const TriggerConversationEvaluationSchema = z
   .object({
@@ -1532,6 +1514,38 @@ export const DatasetRunConfigApiInsertSchema = createApiInsertSchema(DatasetRunC
 export const DatasetRunConfigApiUpdateSchema = createApiUpdateSchema(DatasetRunConfigUpdateSchema)
   .omit({ id: true })
   .openapi('DatasetRunConfigUpdate');
+
+export const AgentDatasetRelationSelectSchema = createSelectSchema(agentDatasetRelations);
+export const AgentDatasetRelationInsertSchema = createInsertSchema(agentDatasetRelations).extend({
+  id: ResourceIdSchema,
+});
+export const AgentDatasetRelationUpdateSchema = AgentDatasetRelationInsertSchema.partial();
+
+export const AgentDatasetRelationApiSelectSchema = createApiSchema(
+  AgentDatasetRelationSelectSchema
+).openapi('AgentDatasetRelation');
+export const AgentDatasetRelationApiInsertSchema = createApiInsertSchema(
+  AgentDatasetRelationInsertSchema
+)
+  .omit({ id: true })
+  .openapi('AgentDatasetRelationCreate');
+
+export const AgentEvaluatorRelationSelectSchema = createSelectSchema(agentEvaluatorRelations);
+export const AgentEvaluatorRelationInsertSchema = createInsertSchema(
+  agentEvaluatorRelations
+).extend({
+  id: ResourceIdSchema,
+});
+export const AgentEvaluatorRelationUpdateSchema = AgentEvaluatorRelationInsertSchema.partial();
+
+export const AgentEvaluatorRelationApiSelectSchema = createApiSchema(
+  AgentEvaluatorRelationSelectSchema
+).openapi('AgentEvaluatorRelation');
+export const AgentEvaluatorRelationApiInsertSchema = createApiInsertSchema(
+  AgentEvaluatorRelationInsertSchema
+)
+  .omit({ id: true })
+  .openapi('AgentEvaluatorRelationCreate');
 
 export const DatasetRunConfigAgentRelationSelectSchema = createSelectSchema(
   datasetRunConfigAgentRelations
@@ -1731,21 +1745,14 @@ export const PublicKeyConfigSchema = z
   })
   .openapi('PublicKeyConfig');
 
-export const WebClientAuthConfigSchema = z
-  .object({
-    publicKeys: z.array(PublicKeyConfigSchema).default([]),
-    audience: z.string().optional(),
-    validateScopeClaims: z.boolean().optional(),
-    allowAnonymous: z.boolean().optional(),
-  })
-  .openapi('WebClientAuthConfig');
-
 export const WebClientConfigSchema = z
   .object({
     type: z.literal('web_client'),
     webClient: z.object({
       allowedDomains: z.array(AllowedDomainSchema).min(1),
-      auth: WebClientAuthConfigSchema.optional(),
+      publicKeys: z.array(PublicKeyConfigSchema).default([]),
+      audience: z.string().optional(),
+      allowAnonymous: z.boolean().default(false),
     }),
   })
   .openapi('WebClientConfig');
@@ -1786,7 +1793,9 @@ export const WebClientConfigResponseSchema = z
     type: z.literal('web_client'),
     webClient: z.object({
       allowedDomains: z.array(AllowedDomainSchema).min(1),
-      auth: WebClientAuthConfigSchema.optional(),
+      publicKeys: z.array(PublicKeyConfigSchema).default([]),
+      audience: z.string().optional(),
+      allowAnonymous: z.boolean().default(false),
     }),
   })
   .openapi('WebClientConfigResponse');

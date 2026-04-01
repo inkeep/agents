@@ -30,8 +30,12 @@ export const SkillsSidebar: FC<SkillsSidebarProps> = ({ treeNodes, fileRouteAlia
     folderSlug?.join('/') ??
     (skillId ? [skillId, parentPath?.join('/')].filter(Boolean).join('/') : '');
   const selectedNode =
-    (requestedRoutePath ? findNodeByRoutePath(treeNodes, requestedRoutePath) : null) ??
-    (requestedFolderPath ? findNodeByPath(treeNodes, requestedFolderPath) : null) ??
+    (requestedRoutePath
+      ? findNodeByRoutePath(treeNodes, decodeURIComponent(requestedRoutePath))
+      : null) ??
+    (requestedFolderPath
+      ? findNodeByPath(treeNodes, decodeURIComponent(requestedFolderPath))
+      : null) ??
     findFirstFile(treeNodes) ??
     null;
   const selectedNodePath = selectedNode?.path ?? '';
