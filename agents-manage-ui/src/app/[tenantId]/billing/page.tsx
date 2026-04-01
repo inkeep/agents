@@ -12,7 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { useAuthClient } from '@/contexts/auth-client';
 import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
 import { fetchEntitlements, type OrgEntitlement } from '@/lib/api/entitlements';
-import { fetchProjects } from '@/lib/api/projects';
+import { useProjectsQuery } from '@/lib/query/projects';
 import BillingLoadingSkeleton from './loading';
 
 interface UsageItem {
@@ -44,7 +44,7 @@ export default function BillingPage({ params }: PageProps<'/[tenantId]/billing'>
     admin: 0,
     member: 0,
   });
-  const [projectCount, setProjectCount] = useState(0);
+  const { data: projects, isFetching: isProjectsFetching } = useProjectsQuery({ tenantId });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,12 +52,11 @@ export default function BillingPage({ params }: PageProps<'/[tenantId]/billing'>
     if (!tenantId) return;
 
     try {
-      const [entitlementsResult, orgResult, projectsResult] = await Promise.all([
+      const [entitlementsResult, orgResult] = await Promise.all([
         fetchEntitlements(tenantId).catch(() => [] as OrgEntitlement[]),
         authClient.organization.getFullOrganization({
           query: { organizationId: tenantId, membersLimit: DEFAULT_MEMBERSHIP_LIMIT },
         }),
-        fetchProjects(tenantId).catch(() => ({ data: [] })),
       ]);
 
       setEntitlements(entitlementsResult);
@@ -69,8 +68,6 @@ export default function BillingPage({ params }: PageProps<'/[tenantId]/billing'>
         const memberCount = members.filter((m) => m.role === 'member').length;
         setSeatCounts({ admin: adminCount, member: memberCount });
       }
-
-      setProjectCount(projectsResult.data?.length ?? 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load usage data');
     } finally {
@@ -82,7 +79,7 @@ export default function BillingPage({ params }: PageProps<'/[tenantId]/billing'>
     fetchData();
   }, [fetchData]);
 
-  if (isAdminLoading || loading) {
+  if (isAdminLoading || loading || isProjectsFetching) {
     return <BillingLoadingSkeleton />;
   }
 
@@ -147,7 +144,7 @@ export default function BillingPage({ params }: PageProps<'/[tenantId]/billing'>
             <CardDescription>Organization resource limits</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <UsageRow label="Projects" used={projectCount} max={projectEntitlement.maxValue} />
+            <UsageRow label="Projects" used={projects.length} max={projectEntitlement.maxValue} />
           </CardContent>
         </Card>
       )}
