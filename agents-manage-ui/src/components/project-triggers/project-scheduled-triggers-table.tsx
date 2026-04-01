@@ -94,7 +94,11 @@ export function ProjectScheduledTriggersTable({
   const canManageTrigger = (trigger: ScheduledTriggerWithAgent): boolean => {
     if (isAdmin) return true;
     if (!user) return false;
-    return trigger.createdBy === user.id || trigger.runAsUserId === user.id;
+    return (
+      trigger.createdBy === user.id ||
+      trigger.runAsUserId === user.id ||
+      (trigger.runAsUserIds?.includes(user.id) ?? false)
+    );
   };
 
   const getUserDisplayName = (userId: string): string => {
@@ -246,7 +250,39 @@ export function ProjectScheduledTriggersTable({
                     </span>
                   </TableCell>
                   <TableCell>
-                    {trigger.runAsUserId ? (
+                    {trigger.userCount && trigger.userCount > 1 ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="secondary" className="cursor-default">
+                              {trigger.userCount} users
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="flex flex-col gap-1">
+                              {trigger.runAsUserIds?.map((uid) => (
+                                <span key={uid} className="text-xs">
+                                  {getUserDisplayName(uid)}
+                                </span>
+                              ))}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : trigger.runAsUserIds && trigger.runAsUserIds.length === 1 ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-sm text-muted-foreground truncate max-w-[150px] inline-block cursor-default">
+                              {getUserDisplayName(trigger.runAsUserIds[0])}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <code className="font-mono text-xs">{trigger.runAsUserIds[0]}</code>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : trigger.runAsUserId ? (
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
