@@ -142,5 +142,5 @@
       "express-rate-limit": ">=8.2.2"
     }
   },
-  "packageManager": "pnpm@10.10.0"
+  "packageManager": "pnpm@10.16.0"
 }
