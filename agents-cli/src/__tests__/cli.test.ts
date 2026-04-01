@@ -98,7 +98,7 @@ describe('Inkeep CLI', () => {
       const pushCmd = program.commands.find((c) => c.name() === 'push');
 
       expect(pushCmd).toBeDefined();
-      expect(pushCmd!.description()).toContain('Push a project configuration');
+      expect(pushCmd?.description()).toContain('Push a project configuration');
     });
   });
 
@@ -108,7 +108,7 @@ describe('Inkeep CLI', () => {
       const pushCmd = program.commands.find((c) => c.name() === 'push');
 
       expect(pushCmd).toBeDefined();
-      const optionNames = pushCmd!.options.map((o) => o.long);
+      const optionNames = pushCmd?.options.map((o) => o.long);
       expect(optionNames).toContain('--agents-api-url');
       expect(optionNames).toContain('--project');
       expect(optionNames).toContain('--config');
@@ -122,8 +122,8 @@ describe('Inkeep CLI', () => {
       const listAgentCmd = program.commands.find((c) => c.name() === 'list-agent');
 
       expect(listAgentCmd).toBeDefined();
-      expect(listAgentCmd!.description()).toBe('List all available agents for a specific project');
-      const optionNames = listAgentCmd!.options.map((o) => o.long);
+      expect(listAgentCmd?.description()).toBe('List all available agents for a specific project');
+      const optionNames = listAgentCmd?.options.map((o) => o.long);
       expect(optionNames).toContain('--project');
       expect(optionNames).toContain('--agents-api-url');
     });
