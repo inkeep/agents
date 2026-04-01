@@ -861,6 +861,8 @@ export const CronExpressionSchema = z
   .describe('Cron expression in standard 5-field format (minute hour day month weekday)')
   .openapi('CronExpression');
 
+export const maxDispatchDelayMs = 600_000;
+
 export const ScheduledTriggerSelectSchema = createSelectSchema(scheduledTriggers).extend({
   payload: z.record(z.string(), z.unknown()).nullable().optional(),
   runAsUserId: UserIdSchema.nullable().describe(
@@ -948,7 +950,7 @@ export const ScheduledTriggerApiInsertBaseSchema = createAgentScopedApiInsertSch
       .number()
       .int()
       .min(0)
-      .max(600_000)
+      .max(maxDispatchDelayMs)
       .optional()
       .describe('Delay in ms between dispatching each user workflow max 10 minutes'),
   })
@@ -980,10 +982,10 @@ export const ScheduledTriggerApiUpdateSchema = createAgentScopedApiUpdateSchema(
       .number()
       .int()
       .min(0)
-      .max(5000)
+      .max(maxDispatchDelayMs)
       .nullable()
       .optional()
-      .describe('Delay in ms between dispatching each user workflow (0-5000)'),
+      .describe(`Delay in ms between dispatching each user workflow (0-${maxDispatchDelayMs})`),
   })
   .openapi('ScheduledTriggerUpdate');
 
