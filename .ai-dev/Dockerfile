@@ -18,7 +18,7 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     && rm -rf /var/lib/apt/lists/*
 
 # Install pnpm (matches repo's packageManager field)
-RUN npm install -g pnpm@10.10.0
+RUN npm install -g pnpm@10.33.0
 
 # Create non-root user with limited sudo for CA cert updates
 RUN useradd -m -s /bin/bash agent && \

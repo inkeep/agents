@@ -65,7 +65,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@c5ba7f7862a0f64c1b1a05fbac13e0b8e86ba08c # v4
         with:
-          version: 10.10.0
+          version: 10.33.0
           run_install: false
 
       - name: Get pnpm store directory
@@ -316,7 +316,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@c5ba7f7862a0f64c1b1a05fbac13e0b8e86ba08c # v4
         with:
-          version: 10.10.0
+          version: 10.33.0
           run_install: false
 
       - name: Get pnpm store directory
