@@ -210,7 +210,8 @@ async function init() {
       type: 'web_client',
       webClient: {
         allowedDomains,
-        ...(publicKeys.length > 0 ? { publicKeys, allowAnonymous: false } : {}),
+        publicKeys,
+        allowAnonymous: false,
       },
     };
 
