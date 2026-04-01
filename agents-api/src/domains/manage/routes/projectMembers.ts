@@ -6,10 +6,12 @@ import {
   grantProjectAccess,
   listProjectMembers,
   ProjectRoles,
+  removeUserFromProjectScheduledTriggers,
   revokeProjectAccess,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
+import runDbClient from '../../../data/db/runDbClient';
 import type { ManageAppVariables } from '../../../types/app';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -249,6 +251,12 @@ app.openapi(
       projectId,
       userId,
       role,
+    });
+
+    await removeUserFromProjectScheduledTriggers(runDbClient)({
+      tenantId,
+      projectId,
+      userId,
     });
 
     return c.body(null, 204);
