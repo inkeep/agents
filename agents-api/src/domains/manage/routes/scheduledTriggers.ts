@@ -1746,9 +1746,12 @@ app.openapi(
     const scopes = { tenantId, projectId, agentId };
     const timestamp = Date.now();
     const scheduledFor = new Date().toISOString();
+    const dispatchDelayMs = trigger.dispatchDelayMs ?? 0;
     const invocationIds: string[] = [];
 
-    for (const runAsUserId of runAsUserIds) {
+    for (let userIndex = 0; userIndex < runAsUserIds.length; userIndex++) {
+      const runAsUserId = runAsUserIds[userIndex];
+      const delayBeforeExecutionMs = userIndex * dispatchDelayMs;
       const invocationId = generateId();
       invocationIds.push(invocationId);
 
@@ -1782,6 +1785,10 @@ app.openapi(
 
       const executionPromise = (async () => {
         try {
+          if (delayBeforeExecutionMs > 0) {
+            await new Promise((resolve) => setTimeout(resolve, delayBeforeExecutionMs));
+          }
+
           await markScheduledTriggerInvocationRunning(runDbClient)({
             scopes,
             scheduledTriggerId,
