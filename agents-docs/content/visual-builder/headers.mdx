@@ -40,7 +40,7 @@ Here is an example of a valid headers schema:
 ```
 
 <Warning>
-  All HTTP header keys are converted to **lowercase** before validation — for example, `Auth-Token` becomes `auth-token`. No other transformation is applied. Define your schema properties to match the lowercased key exactly. A mismatch will cause a `Context validation failed` error.
+  Header keys are converted to **lowercase** before validation — for example, `Auth-Token` becomes `auth-token`. No other transformation is applied. A mismatch will cause a `Context validation failed` error.
 </Warning>
 
 You can generate custom schemas using this [JSON Schema generator](https://transform.tools/json-to-json-schema).
