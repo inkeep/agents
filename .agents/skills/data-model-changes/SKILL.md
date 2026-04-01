@@ -26,7 +26,7 @@ The framework uses **two separate PostgreSQL databases**:
 
 ## Doltgres DDL Constraints
 
-*Last confirmed on Doltgres v0.55.5 (pinned in `docker-compose.yml`) + drizzle-kit 0.31.8 (resolved from `^0.31.6` in `packages/agents-core/package.json`). Re-verify if either version changes.*
+*Last confirmed on Doltgres v0.55.5 (pinned in `docker-compose.yml`; note that `docker-compose.dbs.yml` and `docker-compose.isolated.yml` use `:latest`) + drizzle-kit 0.31.8 (resolved from `^0.31.6` in `packages/agents-core/package.json`). Re-verify if either version changes.*
 
 Doltgres does not support the full PostgreSQL DDL surface. drizzle-kit generates standard PostgreSQL SQL, which means certain Drizzle schema patterns produce migrations that fail on Doltgres. These constraints apply to schemas targeting Doltgres (in this codebase: `manage-schema.ts` and its migrations in `drizzle/manage/`). Schemas targeting standard PostgreSQL (`runtime-schema.ts`) are unconstrained.
 
@@ -35,22 +35,22 @@ Doltgres does not support the full PostgreSQL DDL surface. drizzle-kit generates
 | `pgEnum()` | `ALTER TYPE is not yet supported` — values can never be changed once created. All ALTER TYPE operations fail (ADD VALUE, DROP VALUE, RENAME, SET SCHEMA). | `varchar` + Zod validation (see example below) |
 | `pgSchema()` | `ALTER TABLE SET SCHEMA is not yet supported` — objects can never be moved between schemas. `DROP SCHEMA CASCADE` also fails. | Stay in `public` schema. Use table name prefixes for grouping (e.g., `eval_`, `config_`). |
 | `serial()` / `pgSequence()` | Column creation works, but the implicit sequence can never be tuned — `INCREMENT BY is not yet supported` (and RESTART, MINVALUE, MAXVALUE, CACHE, CYCLE). Only OWNED BY works. | Application-generated varchar IDs (nanoid) |
-| `index().where(sql`...`)` | `WHERE is not yet supported` | Full btree index; filter at query time |
+| ``index().where(sql`...`)`` | `WHERE is not yet supported` | Full btree index; filter at query time |
 | `index().concurrently()` | `concurrent index creation is not yet supported` | Plain `CREATE INDEX` — config data has low write volume, the brief lock is fine |
 | `index().using('gin'/'gist'/'hash')` | `index method X is not yet supported` — only btree indexes work | btree on scalar columns; filter JSONB in application code |
-| `index().on(sql`lower(...)`)` | `expression index attribute is not yet supported` | Normalize the value at write time in the data access function; index the stored column directly |
+| ``index().on(sql`lower(...)`)`` | `expression index attribute is not yet supported` | Normalize the value at write time in the data access function; index the stored column directly |
 | `col.desc()` on index | drizzle-kit silently couples `.desc()` with NULLS LAST in its output → `NULLS LAST for indexes is not yet supported`. The error mentions NULLS LAST even though you only wrote `.desc()`. | Omit `.desc()`; handle ordering in `ORDER BY` clauses |
 
 ### Instead of pgEnum: varchar + Zod validation
 
-The manage schema already follows this pattern throughout:
+The manage schema already follows this pattern — for example:
 
 ```typescript
 // In manage-schema.ts:
-status: varchar('status', { length: 50 }).notNull().default('pending'),
+credentialScope: varchar('credential_scope', { length: 50 }).notNull().default('project'), // 'project' | 'user'
 
-// In validation/schemas.ts:
-const StatusEnum = z.enum(['pending', 'running', 'completed', 'failed', 'cancelled']);
+// Validated at the application layer via Zod:
+const CredentialScopeEnum = z.enum(['project', 'user']);
 ```
 
 Adding a new allowed value is a code change (update the Zod enum), not a migration — no DDL needed.
@@ -388,7 +388,7 @@ pnpm db:generate
 | `DROP TABLE ... CASCADE` | `CASCADE is not yet supported` | Remove `CASCADE`. Drop dependent objects (child tables, FKs) explicitly in FK-dependency order before the parent table. |
 | `ALTER COLUMN ... SET DATA TYPE ... USING` | `ALTER TABLE with USING is not supported yet` | Replace with multi-step: (1) add new column with target type, (2) `UPDATE` to backfill with cast, (3) drop old column, (4) rename new column. |
 
-drizzle-kit 0.31.x hardcodes `CASCADE` on every `DROP TABLE` — there is no configuration to disable it. You must edit the generated SQL manually (precedent: PR #2929).
+drizzle-kit 0.31.x hardcodes `CASCADE` on every `DROP TABLE` — there is no configuration to disable it. You must edit the generated SQL manually (precedent: [PR #2929](https://github.com/inkeep/agents/pull/2929)).
 
 Note: `DROP INDEX` is broken on Doltgres 0.55.5 (returns `table not found` regardless). If a migration drops a table and its indexes, remove the `DROP INDEX` statements — `DROP TABLE` implicitly removes associated indexes.
 
@@ -407,7 +407,7 @@ grep -n 'CREATE.*INDEX.*WHERE' "$NEW_MIGRATION"
 
 Tier 1 matches must be fixed. Tier 2: `SET DATA TYPE` is safe for simple widening (e.g., `varchar(64)` → `varchar(256)`) but dangerous with USING; `ON CONFLICT DO NOTHING` works but `DO UPDATE` may not.
 
-drizzle-kit v1 beta (1.0.0-beta.19) reportedly removes CASCADE hardcoding. This repo uses stable 0.31.8.
+drizzle-kit v1 beta reportedly removes CASCADE hardcoding (PR #4439). This repo uses stable 0.31.8.
 
 **For all migrations** (manage and runtime): review the generated SQL in `drizzle/manage/` or `drizzle/runtime/`. Make minor edits if needed (ONLY to newly generated files, NEVER to previously applied migrations).
 
