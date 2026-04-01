@@ -18,7 +18,7 @@
 | D2 | "Search" = list endpoint returning id, name/title, summary with optional filters (agentId, userId, conversationId). Agent can grep/navigate results itself. | LOCKED | Product |
 | D3 | Add `summary` column to `conversations` table. No changes to `ledgerArtifacts` (already has name, description, summary). | LOCKED | Technical |
 | D4 | Unified metadata generation module following compressor pattern: `BaseMetadataGenerator` → `ArtifactMetadataGenerator` / `ConversationMetadataGenerator`. | LOCKED | Technical |
-| D5 | Conversation metadata generation triggered every assistant message. LLM decides whether to update via `shouldUpdate` boolean. Fire-and-forget. | LOCKED | Technical |
+| D5 | Conversation metadata generation triggered every assistant message (fire-and-forget). Conversations with < 3 user messages use cheap fallback (first message as title). 3+ messages: LLM generates title + summary (nullable — null means "current value is fine", saves output tokens). | LOCKED | Technical |
 | D6 | Artifact list filtered by userId/agentId via inner join to conversations table (artifacts link to conversations via `contextId`). | LOCKED | Technical |
 | D7 | Authorization: Run API = end-user sees own only (JWT sub). Manage API = admin sees all in project, optional userId/agentId filters. | LOCKED | Product |
 
@@ -41,6 +41,17 @@ export const conversations = pgTable(
   },
   // ... indexes unchanged
 );
+```
+
+Also add a composite index for `agentId` filtering (no existing index covers this):
+
+```typescript
+// Add to conversations table indexes
+index('conversations_agent_id_idx').on(
+  table.tenantId,
+  table.projectId,
+  table.agentId,
+),
 ```
 
 One Drizzle migration via `pnpm db:generate`.
@@ -74,7 +85,7 @@ agents-api/src/domains/run/metadata/
 
 ### 4.3 BaseMetadataGenerator (abstract)
 
-Extracts shared concerns from `AgentSession.processArtifact()`:
+Extracts shared concerns from `AgentSession.processArtifact()`. The base class owns infrastructure (model resolution, retry, telemetry, context formatting). Prompts stay fully owned by each subclass — they're too different in structure to template usefully.
 
 ```typescript
 // agents-api/src/domains/run/metadata/BaseMetadataGenerator.ts
@@ -91,26 +102,59 @@ export interface MetadataGeneratorConfig {
   executionContext: ExecutionContext;
 }
 
-export abstract class BaseMetadataGenerator<TResult> {
+export abstract class BaseMetadataGenerator<TResult, TContext> {
   protected config: MetadataGeneratorConfig;
 
   constructor(config: MetadataGeneratorConfig) {
     this.config = config;
   }
 
-  // Shared: model resolution chain (summarizerModel → baseModel → sub-agent model → undefined)
+  // --- Shared infrastructure ---
+
+  // Model resolution chain (summarizerModel → baseModel → sub-agent model → undefined)
   // Extracted from AgentSession.processArtifact() lines 1528-1576
   protected resolveModel(): ModelSettings | undefined { ... }
 
-  // Shared: generateText with retry (3 attempts, exponential backoff)
+  // generateText with retry (3 attempts, exponential backoff)
   // Extracted from AgentSession.processArtifact() lines 1684-1769
   protected async generateWithRetry(prompt: string, schema: ZodSchema): Promise<TResult> { ... }
 
-  // Shared: telemetry span creation and tracking
+  // Telemetry span creation and tracking
   protected createSpan(name: string, attributes: Record<string, unknown>): Span { ... }
 
-  // Template method: orchestrates the full generation flow
+  // --- Shared prompt helpers (used by subclasses, not a shared template) ---
+
+  // Format recent conversation messages for inclusion in any prompt
+  protected formatConversationHistory(messages: FormattedMessage[], maxMessages = 10): string {
+    return messages
+      .slice(-maxMessages)
+      .map(m => `${m.role}: ${extractText(m.content)}`)
+      .join('\n');
+  }
+
+  // Truncate text to fit within a fraction of the model's context window
+  // Used by ArtifactMetadataGenerator for data preview, available to all subclasses
+  protected truncateForModel(text: string, fraction = 0.2): string {
+    const model = this.resolveModel();
+    if (!model) return text.slice(0, 2000);
+    const modelContextInfo = getModelContextInfo(model);
+    if (!modelContextInfo.hasValidContextWindow) return text.slice(0, 2000);
+    const maxTokens = Math.floor(modelContextInfo.contextWindow * fraction);
+    const maxChars = maxTokens * 4;
+    if (text.length <= maxChars) return text;
+    return text.slice(0, maxChars) +
+      `\n...\n[Truncated: showing first ~${Math.floor(maxTokens / 1000)}K tokens]`;
+  }
+
+  // --- Template method ---
+
   async generate(context: TContext): Promise<void> {
+    if (!this.shouldGenerate(context)) {
+      // Still run fallback so early conversations get a title immediately
+      await this.saveFallback(context);
+      return;
+    }
+
     const model = this.resolveModel();
     if (!model) {
       await this.saveFallback(context);
@@ -122,18 +166,24 @@ export abstract class BaseMetadataGenerator<TResult> {
     await this.processAndSave(result, context);
   }
 
-  // Abstract methods — subclasses implement
+  // --- Abstract methods — subclasses own their prompts and persistence ---
+
   abstract buildPrompt(context: TContext): string;
   abstract getSchema(): ZodSchema<TResult>;
   abstract getGenerationType(): string;
   abstract processAndSave(result: TResult, context: TContext): Promise<void>;
   abstract saveFallback(context: TContext): Promise<void>;
+
+  // Optional: subclass can skip generation entirely (default: always generate)
+  protected shouldGenerate(_context: TContext): boolean { return true; }
 }
 ```
 
+**Design note:** The prompts for artifacts and conversations are structurally different — artifact prompts care about tool name, args, data truncation, and name uniqueness examples; conversation prompts care about drift detection and update semantics. Forcing them into a shared template would be artificial. The base class provides shared *helpers* (`formatConversationHistory`, `truncateForModel`) that subclasses compose into their own prompts.
+
 ### 4.4 ArtifactMetadataGenerator
 
-Extracted from `AgentSession.processArtifact()` lines 1368-1898. Zero behavior change — same prompt, same schema, same save logic, same uniqueness check, same fallback.
+Extracted from `AgentSession.processArtifact()` lines 1368-1898. Zero behavior change — same prompt, same schema, same save logic, same uniqueness check, same fallback. Uses base class helpers for conversation history formatting and data truncation.
 
 ```typescript
 // agents-api/src/domains/run/metadata/ArtifactMetadataGenerator.ts
@@ -142,15 +192,15 @@ interface ArtifactMetadataContext {
   artifactData: ArtifactSavedData;
   existingNames: string[];
   lastUserMessage: string | null;
-  conversationHistory: string;
+  recentMessages: FormattedMessage[];
   toolContext?: { toolName: string; args: unknown };
   artifactService: ArtifactService;
 }
 
-export class ArtifactMetadataGenerator extends BaseMetadataGenerator<{
-  name: string;
-  description: string;
-}> {
+export class ArtifactMetadataGenerator extends BaseMetadataGenerator<
+  { name: string; description: string },
+  ArtifactMetadataContext
+> {
   getGenerationType(): string {
     return GENERATION_TYPES.ARTIFACT_METADATA;
   }
@@ -163,17 +213,53 @@ export class ArtifactMetadataGenerator extends BaseMetadataGenerator<{
   }
 
   buildPrompt(ctx: ArtifactMetadataContext): string {
-    // Existing prompt from lines 1623-1655 — unchanged
+    const toolName = ctx.toolContext?.toolName ?? ctx.artifactData.metadata?.toolName ?? 'unknown';
+    const conversationHistory = this.formatConversationHistory(ctx.recentMessages);
+    const truncatedData = this.truncateForModel(
+      JSON.stringify(ctx.artifactData.data || ctx.artifactData.summaryData, null, 2),
+      0.2,  // 20% of context window for data preview
+    );
+
+    // Existing prompt structure from lines 1623-1655 — unchanged
+    return `Create a unique name and description for this tool result artifact.
+
+CRITICAL: Your name must be different from these existing artifacts: ${ctx.existingNames.length > 0 ? ctx.existingNames.join(', ') : 'None yet'}
+
+User's question: ${ctx.lastUserMessage ?? 'Unknown'}
+Tool called: ${toolName}
+Tool args: ${ctx.toolContext ? JSON.stringify(ctx.toolContext.args, null, 2) : 'No args'}
+Recent conversation:
+${conversationHistory}
+Type: ${ctx.artifactData.artifactType || 'data'}
+Data: ${truncatedData}
+
+Requirements:
+- Name: Max 50 chars, be extremely specific to THIS EXACT tool execution
+- Description: Max 150 chars, describe what THIS SPECIFIC tool call returned
+- Focus on the unique aspects of this particular tool execution result
+- Be descriptive about the actual content returned, not just the tool type
+
+BAD Examples (too generic):
+- "Search Results"
+- "Tool Results"
+- "${toolName} Results"
+
+GOOD Examples:
+- "GitHub API Rate Limits & Auth Methods"
+- "React Component Props Documentation"
+- "Database Schema for User Tables"
+- "Pricing Tiers with Enterprise Features"`;
   }
 
   async processAndSave(result, ctx: ArtifactMetadataContext): Promise<void> {
-    // Name uniqueness check (lines 1773-1792)
-    // Save via artifactService.saveArtifact() (line 1799)
-    // Fallback save on failure (lines 1835-1889)
+    // Name uniqueness check with toolCallId suffix (lines 1773-1792)
+    // Save via ctx.artifactService.saveArtifact() (line 1799)
+    // Fallback save on failure with generic name (lines 1835-1889)
   }
 
   async saveFallback(ctx: ArtifactMetadataContext): Promise<void> {
     // Generic name from artifact type + toolCallId suffix (lines 1580-1586)
+    // Save via ctx.artifactService.saveArtifact()
   }
 }
 ```
@@ -186,77 +272,86 @@ export class ArtifactMetadataGenerator extends BaseMetadataGenerator<{
 interface ConversationMetadataContext {
   existingTitle: string | null;
   existingSummary: string | null;
-  recentMessages: FormattedMessage[];  // last 10 messages
-  db: AgentsRunDatabaseClient;
-  scopes: ProjectScopeConfig;
-  conversationId: string;
+  recentMessages: FormattedMessage[];
+  userMessageCount: number;            // total user messages in conversation
+  persistMetadata: (data: { title?: string; summary?: string }) => Promise<void>;
 }
 
-export class ConversationMetadataGenerator extends BaseMetadataGenerator<{
-  title: string;
-  summary: string;
-  shouldUpdate: boolean;
-}> {
+export class ConversationMetadataGenerator extends BaseMetadataGenerator<
+  { title: string; summary: string; shouldUpdate: boolean },
+  ConversationMetadataContext
+> {
   getGenerationType(): string {
-    return GENERATION_TYPES.CONVERSATION_METADATA;  // new constant
+    return GENERATION_TYPES.CONVERSATION_METADATA;
+  }
+
+  // Skip LLM call when conversation is too short to benefit.
+  // First 2 user messages: use fallback (first message as title, no summary).
+  // 3+ user messages: start calling LLM to generate richer title + summary.
+  protected shouldGenerate(ctx: ConversationMetadataContext): boolean {
+    return ctx.userMessageCount >= 3;
   }
 
   getSchema() {
     return z.object({
-      title: z.string().describe('Concise conversation title, max 80 chars'),
-      summary: z.string().describe('Brief conversation summary, max 200 chars'),
-      shouldUpdate: z.boolean().describe(
-        'true if title/summary should be updated because the conversation topic has meaningfully shifted. ' +
-        'false if the existing title and summary still accurately capture the conversation.'
+      title: z.string().nullable().describe(
+        'Concise conversation title, max 80 chars. ' +
+        'null if current title still accurately captures the conversation.'
+      ),
+      summary: z.string().nullable().describe(
+        'Brief conversation summary, max 200 chars. ' +
+        'null if current summary still accurately captures the conversation.'
       ),
     });
   }
 
   buildPrompt(ctx: ConversationMetadataContext): string {
-    const formattedMessages = ctx.recentMessages
-      .map(m => `${m.role}: ${extractText(m.content)}`)
-      .join('\n');
+    const conversationHistory = this.formatConversationHistory(ctx.recentMessages);
+    const hasExisting = ctx.existingTitle || ctx.existingSummary;
 
-    return `You are generating metadata for a conversation.
+    return `Generate a title and summary for this conversation.
 
-Current title: ${ctx.existingTitle || 'None'}
-Current summary: ${ctx.existingSummary || 'None'}
+${hasExisting ? `Current title: ${ctx.existingTitle}\nCurrent summary: ${ctx.existingSummary}` : 'This conversation has no title or summary yet. Always generate both.'}
 
 Recent conversation:
-${formattedMessages}
+${conversationHistory}
 
-Generate a title (max 80 chars) and summary (max 200 chars) for this conversation.
-If the current title and summary still accurately capture the conversation's topic and spirit, set shouldUpdate to false and return them unchanged.
-Only update when the conversation has meaningfully shifted direction or covered substantial new ground.`;
+Requirements:
+- Title: Max 80 chars. Capture the specific topic, not a generic label.
+- Summary: Max 200 chars. Describe what was discussed, decided, or accomplished.
+${hasExisting ? '- Return null for title and/or summary if the current value still accurately captures the conversation. Only generate new values when the topic has meaningfully shifted or substantial new ground was covered.' : ''}
+
+BAD title examples (too generic):
+- "Chat with Assistant"
+- "Help Request"
+- "Technical Discussion"
+- "Question and Answer"
+
+GOOD title examples:
+- "Migrating Auth from JWT to OAuth2 PKCE"
+- "Debugging Memory Leak in Worker Pool"
+- "Q3 Pricing Model for Enterprise Tier"
+- "Setting Up CI/CD Pipeline for Monorepo"`;
   }
 
   async processAndSave(result, ctx: ConversationMetadataContext): Promise<void> {
-    if (!result.shouldUpdate) return;  // LLM decided no update needed
-
-    await updateConversation(ctx.db)({
-      scopes: ctx.scopes,
-      conversationId: ctx.conversationId,
-      data: {
-        title: result.title,
-        summary: result.summary,
-      },
-    });
+    // null fields = no update needed (LLM skipped generating them)
+    const updates: Record<string, string> = {};
+    if (result.title !== null) updates.title = result.title;
+    if (result.summary !== null) updates.summary = result.summary;
+    if (Object.keys(updates).length === 0) return;
+    await ctx.persistMetadata(updates);
   }
 
   async saveFallback(ctx: ConversationMetadataContext): Promise<void> {
-    // If no model available AND no title exists, use first user message fallback
-    // (existing behavior from run routes, now persisted)
+    // No model available — use first user message as title (existing behavior, now persisted)
     if (!ctx.existingTitle && ctx.recentMessages.length > 0) {
       const firstUserMsg = ctx.recentMessages.find(m => m.role === 'user');
       if (firstUserMsg) {
         const text = extractText(firstUserMsg.content);
         if (text) {
           const title = text.length > 100 ? `${text.slice(0, 100)}...` : text;
-          await updateConversation(ctx.db)({
-            scopes: ctx.scopes,
-            conversationId: ctx.conversationId,
-            data: { title },
-          });
+          await ctx.persistMetadata({ title });
         }
       }
     }
@@ -264,11 +359,27 @@ Only update when the conversation has meaningfully shifted direction or covered 
 }
 ```
 
+**Design notes:**
+
+1. **`shouldGenerate` gate:** Conversations with < 3 user messages skip the LLM call entirely and use the cheap fallback (first message as title). This avoids paying for an LLM call on every single-question conversation, which is the majority of traffic.
+
+2. **`persistMetadata` callback:** Persistence is injected via context rather than passing a DB client directly. The caller constructs it:
+   ```typescript
+   persistMetadata: (data) => updateConversation(runDbClient)({
+     scopes: { tenantId, projectId },
+     conversationId,
+     data,
+   })
+   ```
+   This matches the artifact pattern where `artifactService` is injected, and keeps the generator decoupled from the DAL.
+
+3. **Prompt quality:** Includes good/bad examples (same pattern as artifact prompt) to guide the LLM toward specific, useful titles rather than generic labels.
+
 ### 4.6 Trigger Integration
 
 **Artifacts:** `AgentSession.processArtifact()` delegates to `ArtifactMetadataGenerator.generate()`. Same fire-and-forget pattern. Zero behavior change.
 
-**Conversations:** triggered every assistant message completion in execution handler:
+**Conversations:** triggered every assistant message completion in execution handler. The generator's `shouldGenerate()` gate skips the LLM call for conversations with < 3 user messages — those get the cheap fallback instead.
 
 ```typescript
 // agents-api/src/domains/run/handlers/executionHandler.ts
@@ -277,10 +388,13 @@ Only update when the conversation has meaningfully shifted direction or covered 
 void conversationMetadataGenerator.generate({
   existingTitle: conversation.title,
   existingSummary: conversation.summary,
-  recentMessages,  // last 10 visible messages
-  db: runDbClient,
-  scopes: { tenantId, projectId },
-  conversationId,
+  recentMessages,          // last 10 visible messages
+  userMessageCount,        // total user messages in conversation
+  persistMetadata: (data) => updateConversation(runDbClient)({
+    scopes: { tenantId, projectId },
+    conversationId,
+    data,
+  }),
 }).catch((error) => {
   logger.error(
     { error, conversationId },
@@ -288,6 +402,11 @@ void conversationMetadataGenerator.generate({
   );
 });
 ```
+
+**Cost profile:**
+- Conversations with 1-2 user messages: no LLM call, just fallback (first message as title)
+- Conversations with 3+ user messages: LLM call every turn, but most return `shouldUpdate: false` (no DB write)
+- Uses summarizer model (cheapest available), small prompt (~500 tokens)
 
 ### 4.7 Migration path
 
@@ -317,13 +436,14 @@ GET /v1/conversations
 
 ```
 GET /v1/artifacts
-  Query params: page, limit, conversationId?, agentId?
+  Query params: page, limit, conversationId?, agentId?, toolName?
   Auth: API key + JWT (same as conversation list)
   Scoping: userId always from JWT sub. Artifacts scoped via join:
     ledgerArtifacts.contextId → conversations.id
     WHERE conversations.userId = endUserId
     AND (conversations.agentId = agentId if provided)
     AND (ledgerArtifacts.contextId = conversationId if provided)
+    AND (ledgerArtifacts.metadata->>'toolName' = toolName if provided)
   Response: {
     data: ArtifactListItem[],
     pagination: { page, limit, total, pages }
@@ -332,10 +452,10 @@ GET /v1/artifacts
 ArtifactListItem = {
   id: string,
   name: string | null,
-  summary: string | null,
+  description: string | null,  // full description (often < 200 chars; more useful than truncated summary)
   type: string,
-  conversationId: string,   // = contextId
-  toolName: string | null,   // from metadata
+  conversationId: string,      // = contextId
+  toolName: string | null,     // extracted from metadata JSONB: metadata->>'toolName'
   createdAt: string,
 }
 ```
@@ -344,7 +464,9 @@ ArtifactListItem = {
 
 ```
 GET /v1/artifacts/{artifactId}
-  Auth: API key + JWT. Verify artifact's conversation belongs to end-user.
+  Auth: API key + JWT. Ownership verified in single query via
+    getLedgerArtifactById({ ..., userId: endUserId }) which joins
+    to conversations table (no second query needed).
   Response: {
     data: {
       id, name, description, summary, type,
@@ -375,7 +497,7 @@ GET /projects/:projectId/conversations
 
 ```
 GET /projects/:projectId/artifacts
-  Query params: page, limit, userId?, agentId?, conversationId?
+  Query params: page, limit, userId?, agentId?, conversationId?, toolName?
   Auth: requireProjectPermission('view')
   Scoping: project-wide. Optional userId/agentId via join to conversations.
   Response: same shape as run domain artifact list
@@ -402,6 +524,14 @@ Register in: `agents-api/src/domains/manage/routes/index.ts`
 Follows existing patterns exactly:
 - Run: `agents-api/src/domains/run/routes/conversations.ts` (API key + JWT)
 - Manage: `agents-api/src/domains/manage/routes/conversations.ts` (`requireProjectPermission('view')`)
+
+### 5.4 Consistency Model
+
+Conversation `title` and `summary` fields are generated asynchronously (fire-and-forget) after each turn. Callers should expect:
+- `title` may be `null` for brand-new conversations (before the first fallback runs)
+- `summary` may be `null` for conversations with < 3 user messages
+- Both fields may be briefly stale immediately after a turn completes (generation is in-flight)
+- The existing read-time title fallback in run conversation routes covers the `null` title case for display purposes
 
 ---
 
@@ -435,6 +565,12 @@ export const listConversations =
 
 ### 6.2 New: `listLedgerArtifacts` — paginated list with filters
 
+**Security note:** Run API route handlers MUST always pass `userId: endUserId` from JWT. The DAL accepts `userId` as optional to support the Manage API (admin queries without user scoping), but omitting it on the Run domain would leak cross-user data. Route handlers enforce this, not the DAL — consistent with `listConversations` which follows the same pattern.
+
+**Drizzle implementation note:** Conditional joins change the query return type in Drizzle (`LedgerArtifactSelect[]` vs `{ ledger_artifacts: ..., conversations: ... }[]`). The implementation should either: (a) always join and use `db.select(getTableColumns(ledgerArtifacts))` to normalize the output shape, or (b) use two separate query builders sharing a WHERE conditions array. Option (a) is simpler.
+
+**Vocabulary note:** The API exposes `conversationId` in request/response schemas. Internally this maps to `ledgerArtifacts.contextId` in the database. The DAL uses `contextId` (matching the column name); the route layer maps it.
+
 ```typescript
 // packages/agents-core/src/data-access/runtime/ledgerArtifacts.ts
 
@@ -442,50 +578,53 @@ export const listLedgerArtifacts =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
-    contextId?: string;        // = conversationId
-    userId?: string;           // requires join to conversations
-    agentId?: string;          // requires join to conversations
+    contextId?: string;        // = conversationId (API) → contextId (DB)
+    userId?: string;           // Run API: ALWAYS pass from JWT. Manage API: optional.
+    agentId?: string;          // optional filter
+    toolName?: string;         // filter by tool name (JSONB access)
     pagination?: PaginationConfig;
   }): Promise<{ artifacts: LedgerArtifactSelect[]; total: number }> => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 20, 200);
     const offset = (page - 1) * limit;
 
-    const needsJoin = !!params.userId || !!params.agentId;
-
     const whereConditions = [projectScopedWhere(ledgerArtifacts, params.scopes)];
 
     if (params.contextId) {
       whereConditions.push(eq(ledgerArtifacts.contextId, params.contextId));
     }
+    if (params.toolName) {
+      // toolName is stored in JSONB metadata column, not a top-level column
+      whereConditions.push(
+        sql`${ledgerArtifacts.metadata}->>'toolName' = ${params.toolName}`
+      );
+    }
+    if (params.userId) {
+      whereConditions.push(eq(conversations.userId, params.userId));
+    }
+    if (params.agentId) {
+      whereConditions.push(eq(conversations.agentId, params.agentId));
+    }
 
-    // Build base query — conditionally join conversations for userId/agentId filtering
-    let baseQuery = db.select().from(ledgerArtifacts);
-
-    if (needsJoin) {
-      baseQuery = baseQuery.innerJoin(
+    // Always join to conversations — normalizes Drizzle return type and
+    // ensures userId/agentId filters work. The join is cheap (FK indexed).
+    const artifactList = await db
+      .select(getTableColumns(ledgerArtifacts))  // only return artifact columns
+      .from(ledgerArtifacts)
+      .innerJoin(
         conversations,
         and(
           eq(ledgerArtifacts.contextId, conversations.id),
           eq(ledgerArtifacts.tenantId, conversations.tenantId),
           eq(ledgerArtifacts.projectId, conversations.projectId),
         ),
-      );
-      if (params.userId) {
-        whereConditions.push(eq(conversations.userId, params.userId));
-      }
-      if (params.agentId) {
-        whereConditions.push(eq(conversations.agentId, params.agentId));
-      }
-    }
-
-    const artifactList = await baseQuery
+      )
       .where(and(...whereConditions))
       .orderBy(desc(ledgerArtifacts.createdAt))
       .limit(limit)
       .offset(offset);
 
-    // Count query (same joins + conditions)
+    // Count query (same join + conditions)
     // ... follows existing pattern from listConversations
 
     return { artifacts: artifactList, total };
@@ -494,22 +633,38 @@ export const listLedgerArtifacts =
 
 ### 6.3 New: `getLedgerArtifactById`
 
+Handles the composite PK issue: `ledgerArtifacts` PK is `(tenantId, projectId, id, taskId)` — the same `id` can appear with different `taskId`s. Returns the most recent one. Supports optional `userId` param for auth-in-one-query on the Run domain (avoids a second query to verify conversation ownership).
+
 ```typescript
 export const getLedgerArtifactById =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     artifactId: string;
+    userId?: string;    // optional: when set, joins conversations to verify ownership
   }): Promise<LedgerArtifactSelect | undefined> => {
-    const result = await db
-      .select()
-      .from(ledgerArtifacts)
-      .where(
+    const whereConditions = [
+      projectScopedWhere(ledgerArtifacts, params.scopes),
+      eq(ledgerArtifacts.id, params.artifactId),
+    ];
+
+    let query = db.select().from(ledgerArtifacts);
+
+    if (params.userId) {
+      query = query.innerJoin(
+        conversations,
         and(
-          projectScopedWhere(ledgerArtifacts, params.scopes),
-          eq(ledgerArtifacts.id, params.artifactId),
+          eq(ledgerArtifacts.contextId, conversations.id),
+          eq(ledgerArtifacts.tenantId, conversations.tenantId),
+          eq(ledgerArtifacts.projectId, conversations.projectId),
         ),
-      )
+      );
+      whereConditions.push(eq(conversations.userId, params.userId));
+    }
+
+    const result = await query
+      .where(and(...whereConditions))
+      .orderBy(desc(ledgerArtifacts.createdAt))  // most recent taskId variant
       .limit(1);
 
     return result[0];
@@ -520,19 +675,63 @@ export const getLedgerArtifactById =
 
 ## 7. SDK Methods
 
+The SDK uses flat methods on client classes (no sub-client namespaces). See `EvaluationClient` for the established pattern: single class, `buildUrl()` + `buildHeaders()` helpers, `apiFetch()` from `@inkeep/agents-core` for HTTP calls.
+
+### New file: `packages/agents-sdk/src/runtimeClient.ts`
+
 ```typescript
-// packages/agents-sdk/src/
+import { apiFetch } from '@inkeep/agents-core';
 
-// Conversations
-client.conversations.list({ userId?, agentId?, page?, limit? })
-client.conversations.get(conversationId)
+interface RuntimeClientConfig {
+  tenantId: string;
+  projectId: string;
+  apiUrl: string;       // manage API base URL
+  apiKey?: string;
+}
 
-// Artifacts
-client.artifacts.list({ conversationId?, userId?, agentId?, page?, limit? })
-client.artifacts.get(artifactId)
+export class RuntimeClient {
+  private config: RuntimeClientConfig;
+
+  constructor(config: RuntimeClientConfig) {
+    this.config = config;
+  }
+
+  private buildUrl(...segments: string[]): string { ... }
+  private buildHeaders(): Record<string, string> { ... }
+
+  // --- Conversations ---
+
+  async listConversations(params?: {
+    userId?: string;
+    agentId?: string;
+    page?: number;
+    limit?: number;
+  }) { ... }
+
+  async getConversation(conversationId: string) { ... }
+
+  // --- Artifacts ---
+
+  async listArtifacts(params?: {
+    conversationId?: string;
+    userId?: string;
+    agentId?: string;
+    toolName?: string;
+    page?: number;
+    limit?: number;
+  }) { ... }
+
+  async getArtifact(artifactId: string) { ... }
+}
 ```
 
-Thin HTTP wrappers over the manage API endpoints.
+Calls the manage API endpoints (`GET /projects/:projectId/conversations`, `GET /projects/:projectId/artifacts`, etc.). Follows the same `apiFetch` + error handling pattern as `EvaluationClient`.
+
+Export from `packages/agents-sdk/src/index.ts`:
+```typescript
+export { RuntimeClient } from './runtimeClient';
+export type { RuntimeClientConfig } from './runtimeClient';
+```
 
 ---
 
@@ -549,6 +748,7 @@ Thin HTTP wrappers over the manage API endpoints.
 | `agents-api/src/domains/run/metadata/index.ts` | Exports |
 | `agents-api/src/domains/run/routes/artifacts.ts` | Run domain: artifact list + get endpoints |
 | `agents-api/src/domains/manage/routes/artifacts.ts` | Manage domain: artifact list + get endpoints |
+| `packages/agents-sdk/src/runtimeClient.ts` | SDK client: conversation + artifact list/get methods |
 
 ### Modified files
 
@@ -563,12 +763,13 @@ Thin HTTP wrappers over the manage API endpoints.
 | `agents-api/src/domains/manage/routes/conversations.ts` | Add `agentId` query param + `summary` to response |
 | `agents-api/src/domains/run/index.ts` | Register artifact routes |
 | `agents-api/src/domains/manage/routes/index.ts` | Register artifact routes |
+| `packages/agents-sdk/src/index.ts` | Export `RuntimeClient` |
 
 ### Migration files
 
 | Migration | Content |
 |-----------|---------|
-| `XXXX_add_conversation_summary.sql` | `ALTER TABLE conversations ADD COLUMN summary text;` |
+| `XXXX_add_conversation_summary_and_agent_idx.sql` | `ALTER TABLE conversations ADD COLUMN summary text;` + `CREATE INDEX conversations_agent_id_idx ON conversations (tenant_id, project_id, agent_id);` |
 
 ---
 
@@ -604,12 +805,21 @@ Thin HTTP wrappers over the manage API endpoints.
 
 ---
 
-## 10. Acceptance Criteria
+## 10. Open Questions
+
+| # | Question | Leaning | Priority |
+|---|----------|---------|----------|
+| OQ1 | `ledgerArtifacts` has a 4-part composite PK `(tenantId, projectId, id, taskId)`. Same `id` can appear with different `taskId`s. `getLedgerArtifactById` currently returns the most recent by `createdAt`. Should it return all rows? Require `taskId`? Or is most-recent sufficient? | Most-recent (Option A) is sufficient for V0. The list endpoint doesn't expose `taskId`, so requiring it would break the get-by-id flow. Revisit if users need version-specific retrieval. | P2 |
+
+---
+
+## 11. Acceptance Criteria
 
 1. **Artifact endpoints exist and work:**
-   - `GET /v1/artifacts` returns paginated list with name, summary, type, conversationId
+   - `GET /v1/artifacts` returns paginated list with name, description, type, conversationId
    - `GET /v1/artifacts/{id}` returns full artifact data
-   - Manage equivalents work with admin auth and optional userId/agentId filters
+   - `toolName` filter works on both run and manage artifact list endpoints
+   - Manage equivalents work with admin auth and optional userId/agentId/toolName filters
    - End-user can only see artifacts from their own conversations
 
 2. **Conversation list updated:**
@@ -634,7 +844,7 @@ Thin HTTP wrappers over the manage API endpoints.
 
 ---
 
-## 11. What's NOT in This Spec (Deferred)
+## 12. What's NOT in This Spec (Deferred)
 
 | Deferred capability | Why |
 |---|---|
@@ -649,12 +859,12 @@ Thin HTTP wrappers over the manage API endpoints.
 
 ---
 
-## 12. Risks
+## 13. Risks
 
 | Risk | Mitigation |
 |------|-----------|
-| LLM call every turn adds cost | Small prompt, summarizer model, most calls return `shouldUpdate: false`. Track via telemetry. |
+| LLM call every turn adds cost | Gated: no LLM call for conversations < 3 user messages (majority of traffic). 3+ messages: small prompt, summarizer model, most calls return `shouldUpdate: false`. Track via telemetry. |
 | Conversation metadata generation fails | Fire-and-forget with error logging. Read-time title fallback preserved. |
 | Artifact list with join is slow at scale | Project-scoped queries limit cardinality. Add indexes if needed. |
 | Large artifact refactor introduces bugs | Zero behavior change on artifact path — same prompt, schema, save logic. Test thoroughly. |
-| `ledgerArtifacts` PK is 4-part composite (tenantId, projectId, id, taskId) | `getLedgerArtifactById` returns first match by `id` + project scope. Multiple artifacts can share an `id` across `taskId`s — may need disambiguation in V1. |
+| `ledgerArtifacts` PK is 4-part composite (tenantId, projectId, id, taskId) | `getLedgerArtifactById` returns most recent by `createdAt` when multiple rows share an `id`. See OQ1. |
