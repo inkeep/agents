@@ -1009,13 +1009,7 @@ app.openapi(
       throw createApiError({ code: 'not_found', message: 'Scheduled trigger not found' });
     }
 
-    const isAdmin = tenantRole === OrgRoles.OWNER || tenantRole === OrgRoles.ADMIN;
-    if (userId !== callerId && !isAdmin) {
-      throw createApiError({
-        code: 'forbidden',
-        message: 'Only admins can remove other users from a trigger. You can only remove yourself.',
-      });
-    }
+    assertCanMutateTrigger({ trigger: existing, callerId, tenantRole });
 
     await deleteScheduledTriggerUser(runDbClient)({
       tenantId,
