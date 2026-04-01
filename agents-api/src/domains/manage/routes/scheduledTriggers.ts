@@ -1751,6 +1751,7 @@ app.openapi(
 
     const scopes = { tenantId, projectId, agentId };
     const timestamp = Date.now();
+    const scheduledFor = new Date().toISOString();
     const invocationIds: string[] = [];
 
     for (const runAsUserId of runAsUserIds) {
@@ -1765,7 +1766,7 @@ app.openapi(
         scheduledTriggerId,
         ref: resolvedRef,
         status: 'pending',
-        scheduledFor: new Date().toISOString(),
+        scheduledFor,
         idempotencyKey: `manual-run-${scheduledTriggerId}-${runAsUserId ?? 'none'}-${timestamp}`,
         attemptNumber: 1,
         runAsUserId,
