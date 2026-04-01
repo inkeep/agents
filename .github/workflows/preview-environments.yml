@@ -165,7 +165,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   preview-disabled:
-    name: Preview Flow Disabled
+    name: Preview Disabled Notice (runs only when previews are off)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [compute-context]
@@ -367,7 +367,7 @@ jobs:
           exit 1
 
   teardown-tier1:
-    name: Teardown Tier 1 (Railway)
+    name: Teardown Tier 1 (Railway, PR close only)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
@@ -391,7 +391,7 @@ jobs:
         run: bash .github/scripts/preview/teardown-railway.sh
 
   teardown-vercel:
-    name: Teardown Vercel Preview Env Vars
+    name: Teardown Vercel Preview Env Vars (PR close only)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [compute-context]
