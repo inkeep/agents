@@ -1,23 +1,20 @@
--- Flatten auth config: move fields from webClient.auth.* to webClient.*
--- and backfill allowAnonymous for all existing web_client apps.
+-- Flatten auth config: move fields from webClient.auth.* to webClient.*,
+-- backfill allowAnonymous, and remove validateScopeClaims (now always-on for global apps).
 
 -- Step 1: For apps that have a nested auth object, hoist its fields up to webClient.
--- This moves publicKeys, audience, validateScopeClaims, and allowAnonymous
--- from webClient.auth to webClient directly, then removes the auth key.
+-- This moves publicKeys, audience, and allowAnonymous from webClient.auth to webClient
+-- directly, then removes the auth key. validateScopeClaims is intentionally not hoisted
+-- as it is being removed (scope validation is now always-on for global apps).
 UPDATE apps
 SET config = jsonb_set(
   jsonb_set(
     jsonb_set(
-      jsonb_set(
-        config #- '{webClient,auth}',
-        '{webClient,publicKeys}',
-        COALESCE(config->'webClient'->'auth'->'publicKeys', '[]'::jsonb)
-      ),
-      '{webClient,audience}',
-      COALESCE(config->'webClient'->'auth'->'audience', 'null'::jsonb)
+      config #- '{webClient,auth}',
+      '{webClient,publicKeys}',
+      COALESCE(config->'webClient'->'auth'->'publicKeys', '[]'::jsonb)
     ),
-    '{webClient,validateScopeClaims}',
-    COALESCE(config->'webClient'->'auth'->'validateScopeClaims', 'null'::jsonb)
+    '{webClient,audience}',
+    COALESCE(config->'webClient'->'auth'->'audience', 'null'::jsonb)
   ),
   '{webClient,allowAnonymous}',
   COALESCE(config->'webClient'->'auth'->'allowAnonymous', 'null'::jsonb)
@@ -30,14 +27,15 @@ SET config = config #- '{webClient,audience}'
 WHERE type = 'web_client'
   AND config->'webClient'->'audience' = 'null'::jsonb;--> statement-breakpoint
 UPDATE apps
-SET config = config #- '{webClient,validateScopeClaims}'
-WHERE type = 'web_client'
-  AND config->'webClient'->'validateScopeClaims' = 'null'::jsonb;--> statement-breakpoint
-UPDATE apps
 SET config = config #- '{webClient,allowAnonymous}'
 WHERE type = 'web_client'
   AND config->'webClient'->'allowAnonymous' = 'null'::jsonb;--> statement-breakpoint
--- Step 3: Backfill allowAnonymous=true for apps that still don't have it set
+-- Step 3: Remove validateScopeClaims from all apps (now always-on for global apps).
+UPDATE apps
+SET config = config #- '{webClient,validateScopeClaims}'
+WHERE type = 'web_client'
+  AND config->'webClient'->'validateScopeClaims' IS NOT NULL;--> statement-breakpoint
+-- Step 4: Backfill allowAnonymous=true for apps that still don't have it set
 -- (preserves existing "allow anonymous" behavior for old apps).
 UPDATE apps
 SET config = jsonb_set(
@@ -48,7 +46,7 @@ SET config = jsonb_set(
 )
 WHERE type = 'web_client'
   AND (config->'webClient'->'allowAnonymous') IS NULL;--> statement-breakpoint
--- Step 4: Set playground app to require authentication.
+-- Step 5: Set playground app to require authentication.
 UPDATE apps
 SET config = jsonb_set(
   config,

@@ -709,8 +709,8 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
             });
           }
 
-          // Opt-in SpiceDB validation for global apps
-          if (config.webClient.validateScopeClaims) {
+          // SpiceDB validation for global apps — always verify scope claims
+          {
             try {
               const canUse = await canUseProjectStrict({
                 userId: asymResult.endUserId,
