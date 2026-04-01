@@ -20,6 +20,17 @@ require_pr_number() {
   fi
 }
 
+preview_log() {
+  printf '[preview][%s] %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >&2
+}
+
+preview_should_log_wait_attempt() {
+  local attempt="$1"
+  local max_attempts="$2"
+
+  [ "${attempt}" = "1" ] || [ "${attempt}" = "${max_attempts}" ] || [ $((attempt % 5)) -eq 0 ]
+}
+
 sleep_with_jitter() {
   local sleep_seconds="$1"
   local jittered_sleep=""
@@ -113,10 +124,12 @@ railway_graphql() {
   local max_attempts="${RAILWAY_GRAPHQL_MAX_ATTEMPTS:-6}"
   local sleep_seconds="${RAILWAY_GRAPHQL_SLEEP_SECONDS:-3}"
   local max_sleep_seconds="${RAILWAY_GRAPHQL_MAX_SLEEP_SECONDS:-30}"
+  local connect_timeout_seconds="${RAILWAY_GRAPHQL_CONNECT_TIMEOUT_SECONDS:-10}"
+  local curl_max_time_seconds="${RAILWAY_GRAPHQL_CURL_MAX_TIME_SECONDS:-30}"
   local attempt=""
   local body_file=""
   local header_file=""
-  local status=""
+  local http_status=""
   local retry_after=""
   local exit_code="0"
 
@@ -133,8 +146,8 @@ railway_graphql() {
     exit_code="0"
     : > "${body_file}"
     : > "${header_file}"
-    status="$(
-      curl --connect-timeout 10 --max-time 30 -sS \
+    http_status="$(
+      curl --connect-timeout "${connect_timeout_seconds}" --max-time "${curl_max_time_seconds}" -sS \
         -D "${header_file}" \
         -o "${body_file}" \
         -w '%{http_code}' \
@@ -145,7 +158,7 @@ railway_graphql() {
         https://backboard.railway.com/graphql/v2
     )" || exit_code="$?"
 
-    if [ "${exit_code}" = "0" ] && [ "${status}" = "200" ]; then
+    if [ "${exit_code}" = "0" ] && [ "${http_status}" = "200" ]; then
       cat "${body_file}"
       rm -f "${body_file}" "${header_file}"
       return 0
@@ -159,8 +172,10 @@ railway_graphql() {
 
     if [ "${attempt}" -lt "${max_attempts}" ]; then
       if [ -n "${retry_after}" ] && [[ "${retry_after}" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+        preview_log "Railway GraphQL attempt ${attempt}/${max_attempts} got HTTP ${http_status}; retrying after ${retry_after}s."
         sleep_with_jitter "${retry_after}"
-      elif [ "${exit_code}" != "0" ] || [[ "${status}" =~ ^(429|5[0-9]{2}|000)$ ]]; then
+      elif [ "${exit_code}" != "0" ] || [[ "${http_status}" =~ ^(429|5[0-9]{2}|000)$ ]]; then
+        preview_log "Railway GraphQL attempt ${attempt}/${max_attempts} failed with HTTP ${http_status} and exit code ${exit_code}; retrying with backoff."
         sleep_with_backoff_and_jitter "${sleep_seconds}" "${attempt}" "${max_sleep_seconds}"
       else
         cat "${body_file}" >&2
@@ -180,6 +195,7 @@ railway_environment_create_from_source() {
   local env_name="$2"
   local source_environment_id="$3"
   local variables_json=""
+  local response=""
 
   variables_json="$(jq -nc \
     --arg project_id "${project_id}" \
@@ -187,16 +203,27 @@ railway_environment_create_from_source() {
     --arg source_environment_id "${source_environment_id}" \
     '{input: {projectId: $project_id, name: $env_name, sourceEnvironmentId: $source_environment_id}}')"
 
-  railway_graphql 'mutation($input: EnvironmentCreateInput!) { environmentCreate(input: $input) { id name } }' "${variables_json}"
+  response="$(
+    railway_graphql 'mutation($input: EnvironmentCreateInput!) { environmentCreate(input: $input) { id name } }' "${variables_json}"
+  )"
+  railway_require_graphql_success "${response}" "GraphQL error creating Railway environment" || return 1
+
+  printf '%s' "${response}"
 }
 
 railway_environment_delete_by_id() {
   local environment_id="$1"
   local variables_json=""
+  local response=""
 
   variables_json="$(jq -nc --arg environment_id "${environment_id}" '{id: $environment_id}')"
 
-  railway_graphql 'mutation($id: String!) { environmentDelete(id: $id) }' "${variables_json}"
+  response="$(
+    railway_graphql 'mutation($id: String!) { environmentDelete(id: $id) }' "${variables_json}"
+  )"
+  railway_require_graphql_success "${response}" "GraphQL error deleting Railway environment" || return 1
+
+  printf '%s' "${response}"
 }
 
 railway_project_service_id() {
@@ -218,7 +245,7 @@ railway_project_service_id() {
   railway_require_graphql_success "${response}" "GraphQL error querying Railway services" || return 1
 
   jq -r --arg service_ref "${service_ref}" '
-    .data.project.services.edges[]
+    (.data.project.services.edges // [])[]
     | .node
     | select(.id == $service_ref or .name == $service_ref or .name == ("@inkeep/" + $service_ref))
     | .id
@@ -255,6 +282,7 @@ railway_variable_collection_upsert() {
   local skip_deploys="${4:-true}"
   local variables_payload="$5"
   local variables_json=""
+  local response=""
 
   variables_json="$(jq -nc \
     --arg project_id "${project_id}" \
@@ -264,7 +292,12 @@ railway_variable_collection_upsert() {
     --argjson variables "${variables_payload}" \
     '{input: {projectId: $project_id, environmentId: $environment_id, serviceId: $service_id, skipDeploys: $skip_deploys, variables: $variables}}')"
 
-  railway_graphql 'mutation($input: VariableCollectionUpsertInput!) { variableCollectionUpsert(input: $input) }' "${variables_json}"
+  response="$(
+    railway_graphql 'mutation($input: VariableCollectionUpsertInput!) { variableCollectionUpsert(input: $input) }' "${variables_json}"
+  )"
+  railway_require_graphql_success "${response}" "GraphQL error upserting Railway variables" || return 1
+
+  printf '%s' "${response}"
 }
 
 railway_environment_id() {
@@ -289,7 +322,31 @@ railway_environment_id() {
   )"
   railway_require_graphql_success "${response}" "GraphQL error querying Railway environments" || return 1
 
-  jq -r --arg env_name "${env_name}" '.data.environments.edges[] | select(.node.name == $env_name) | .node.id' <<< "${response}"
+  jq -r --arg env_name "${env_name}" '(.data.environments.edges // [])[] | select(.node.name == $env_name) | .node.id' <<< "${response}"
+}
+
+railway_project_environments_json() {
+  local project_id="$1"
+  local response=""
+  local variables_json=""
+
+  variables_json="$(jq -nc --arg project_id "${project_id}" '{projectId: $project_id}')"
+
+  response="$(
+    railway_graphql 'query($projectId: String!) {
+  environments(projectId: $projectId) {
+    edges {
+      node {
+        id
+        name
+      }
+    }
+  }
+}' "${variables_json}"
+  )"
+  railway_require_graphql_success "${response}" "GraphQL error querying Railway environments" || return 1
+
+  jq -c '[((.data.environments.edges // [])[]) | .node]' <<< "${response}"
 }
 
 railway_wait_for_environment_id() {
@@ -308,11 +365,140 @@ railway_wait_for_environment_id() {
     fi
 
     if [ "${attempt}" -lt "${max_attempts}" ]; then
+      if preview_should_log_wait_attempt "${attempt}" "${max_attempts}"; then
+        preview_log "Waiting for Railway environment ${env_name} to appear (attempt ${attempt}/${max_attempts})."
+      fi
       sleep_with_jitter "${sleep_seconds}"
     fi
   done
 
   echo "Unable to resolve Railway environment ID for ${env_name}." >&2
+  return 1
+}
+
+railway_wait_for_environment_absent() {
+  local project_id="$1"
+  local env_name="$2"
+  local max_attempts="${3:-10}"
+  local sleep_seconds="${4:-3}"
+  local attempt=""
+  local env_exists=""
+
+  for attempt in $(seq 1 "${max_attempts}"); do
+    env_exists="$(railway_env_exists_count "${project_id}" "${env_name}")"
+    if [ "${env_exists}" = "0" ]; then
+      return 0
+    fi
+
+    if [ "${attempt}" -lt "${max_attempts}" ]; then
+      if preview_should_log_wait_attempt "${attempt}" "${max_attempts}"; then
+        preview_log "Waiting for Railway environment ${env_name} to be deleted (attempt ${attempt}/${max_attempts})."
+      fi
+      sleep_with_jitter "${sleep_seconds}"
+    fi
+  done
+
+  echo "Railway environment ${env_name} still exists after waiting for deletion." >&2
+  return 1
+}
+
+railway_service_instance_json_by_id() {
+  local env_id="$1"
+  local service_id="$2"
+  local response=""
+  local variables_json=""
+
+  variables_json="$(jq -nc \
+    --arg environment_id "${env_id}" \
+    --arg service_id "${service_id}" \
+    '{environmentId: $environment_id, serviceId: $service_id}')"
+
+  response="$(
+    RAILWAY_GRAPHQL_MAX_ATTEMPTS="${RAILWAY_GRAPHQL_POLL_MAX_ATTEMPTS:-1}" \
+      RAILWAY_GRAPHQL_CURL_MAX_TIME_SECONDS="${RAILWAY_GRAPHQL_POLL_CURL_MAX_TIME_SECONDS:-8}" \
+      railway_graphql 'query($environmentId: String!, $serviceId: String!) {
+  serviceInstance(environmentId: $environmentId, serviceId: $serviceId) {
+    latestDeployment {
+      id
+      status
+      createdAt
+      updatedAt
+    }
+    activeDeployments {
+      id
+      status
+      createdAt
+      updatedAt
+    }
+  }
+}' "${variables_json}"
+  )"
+  railway_require_graphql_success "${response}" "GraphQL error querying Railway service instance" || return 1
+
+  jq -c '.data.serviceInstance // {}' <<< "${response}"
+}
+
+railway_wait_for_service_deployment_ready() {
+  local project_id="$1"
+  local env_name="$2"
+  local service_name="$3"
+  local max_attempts="${4:-15}"
+  local sleep_seconds="${5:-4}"
+  local attempt=""
+  local env_id=""
+  local service_id=""
+  local service_instance_json=""
+  local deployment_json=""
+  local deployment_id=""
+  local deployment_status=""
+
+  env_id="$(railway_wait_for_environment_id "${project_id}" "${env_name}" 10 2)" || return 1
+  service_id="$(railway_project_service_id "${project_id}" "${service_name}")"
+  if [ -z "${service_id}" ]; then
+    echo "Unable to resolve Railway service ID for ${service_name} in project ${project_id}." >&2
+    return 1
+  fi
+
+  for attempt in $(seq 1 "${max_attempts}"); do
+    service_instance_json="$(railway_service_instance_json_by_id "${env_id}" "${service_id}")" || return 1
+    deployment_json="$(
+      jq -c '
+        if ((.activeDeployments // []) | length) > 0 then
+          ((.activeDeployments // []) | sort_by(.createdAt // "") | last)
+        elif .latestDeployment then
+          .latestDeployment
+        else
+          {}
+        end
+      ' <<< "${service_instance_json}"
+    )"
+    deployment_id="$(jq -r '.id // empty' <<< "${deployment_json}")"
+    deployment_status="$(jq -r '.status // empty' <<< "${deployment_json}")"
+
+    case "${deployment_status}" in
+      SUCCESS|SLEEPING)
+        preview_log "Railway deployment for ${service_name} in ${env_name} is ${deployment_status}${deployment_id:+ (${deployment_id})}."
+        return 0
+        ;;
+      FAILED|CRASHED|REMOVED)
+        echo "Railway deployment for ${service_name} in ${env_name} entered terminal status ${deployment_status}${deployment_id:+ (${deployment_id})}." >&2
+        return 1
+        ;;
+      SKIPPED)
+        echo "Railway deployment for ${service_name} in ${env_name} was skipped${deployment_id:+ (${deployment_id})}; service may require manual attention." >&2
+        return 1
+        ;;
+    esac
+
+    if [ "${attempt}" -lt "${max_attempts}" ]; then
+      if preview_should_log_wait_attempt "${attempt}" "${max_attempts}"; then
+        preview_log "Waiting for Railway deployment for ${service_name} in ${env_name} to become ready (attempt ${attempt}/${max_attempts}). Current status: ${deployment_status:-none}"
+      fi
+      sleep_with_jitter "${sleep_seconds}"
+    fi
+  done
+
+  echo "Railway deployment for ${service_name} in ${env_name} was not ready after ${max_attempts} attempts. Last observed status: ${deployment_status:-none}${deployment_id:+ (${deployment_id})}." >&2
   return 1
 }
 
@@ -364,6 +550,7 @@ railway_ensure_tcp_proxy() {
     fi
 
     if [ "${count}" = "0" ]; then
+      preview_log "Creating Railway TCP proxy for ${service_name}:${application_port} in ${env_name}."
       response="$(
         railway_graphql 'mutation($environmentId: String!, $serviceId: String!, $applicationPort: Int!) {
   tcpProxyCreate(input: {
@@ -384,6 +571,9 @@ railway_ensure_tcp_proxy() {
     fi
 
     if [ "${attempt}" -lt "${max_attempts}" ]; then
+      if preview_should_log_wait_attempt "${attempt}" "${max_attempts}"; then
+        preview_log "Waiting for Railway TCP proxy ${service_name}:${application_port} in ${env_name} to become ACTIVE (attempt ${attempt}/${max_attempts})."
+      fi
       sleep_with_jitter "${sleep_seconds}"
     fi
   done
