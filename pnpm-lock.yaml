@@ -899,9 +899,6 @@ importers:
       '@nangohq/types':
         specifier: ^0.69.41
         version: 0.69.41
-      '@napi-rs/keyring':
-        specifier: ^1.2.0
-        version: 1.2.0
       '@openrouter/ai-sdk-provider':
         specifier: ^2.1.0
         version: 2.2.3(ai@6.0.14(zod@4.3.6))(zod@4.3.6)
@@ -1018,6 +1015,9 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@20.19.27)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
     optionalDependencies:
+      '@napi-rs/keyring':
+        specifier: ^1.2.0
+        version: 1.2.0
       '@opentelemetry/auto-instrumentations-node':
         specifier: ^0.62.0
         version: 0.62.2(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))
@@ -19194,6 +19194,7 @@ snapshots:
       '@napi-rs/keyring-win32-arm64-msvc': 1.2.0
       '@napi-rs/keyring-win32-ia32-msvc': 1.2.0
       '@napi-rs/keyring-win32-x64-msvc': 1.2.0
+    optional: true
 
   '@napi-rs/nice-android-arm-eabi@1.1.1':
     optional: true
