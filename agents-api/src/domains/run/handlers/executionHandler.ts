@@ -305,7 +305,7 @@ export class ExecutionHandler {
             ? initiatedBy.id
             : undefined;
 
-        const appPrompt = executionContext.metadata?.appPrompt;
+        const appId = executionContext.metadata?.appId;
 
         const trustedHeaders: Record<string, string> = {
           Authorization: `Bearer ${authToken}`,
@@ -314,7 +314,7 @@ export class ExecutionHandler {
           'x-inkeep-agent-id': agentId,
           'x-inkeep-sub-agent-id': currentAgentId,
           ...(runAsUserId ? { 'x-inkeep-run-as-user-id': runAsUserId } : {}),
-          ...(appPrompt ? { 'x-inkeep-app-prompt': appPrompt } : {}),
+          ...(appId ? { 'x-inkeep-app-id': appId } : {}),
         };
 
         const a2aClient = new A2AClient(agentBaseUrl, {
