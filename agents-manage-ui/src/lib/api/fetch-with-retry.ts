@@ -37,4 +37,3 @@ async function fetchWithRetry(url: string, options: FetchWithRetryOptions = {}):
 }
 
 export { fetchWithRetry };
-export type { FetchWithRetryOptions };
