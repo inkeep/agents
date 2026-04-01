@@ -97,6 +97,8 @@ describe('apps data access', () => {
         type: 'web_client',
         webClient: {
           allowedDomains: ['help.customer.com'],
+          publicKeys: [],
+          allowAnonymous: true,
         },
       });
     });

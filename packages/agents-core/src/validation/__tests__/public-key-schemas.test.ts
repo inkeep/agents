@@ -53,9 +53,10 @@ describe('WebClientConfigSchema', () => {
     },
   };
 
-  it('accepts config without auth fields (backward compatible)', () => {
+  it('applies defaults when auth fields are omitted', () => {
     const result = WebClientConfigSchema.parse(baseConfig);
-    expect(result.webClient.publicKeys).toBeUndefined();
+    expect(result.webClient.publicKeys).toEqual([]);
+    expect(result.webClient.allowAnonymous).toBe(false);
   });
 
   it('accepts config with auth fields directly on webClient', () => {
