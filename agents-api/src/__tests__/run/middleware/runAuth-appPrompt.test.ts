@@ -199,6 +199,7 @@ describe('app prompt resolution via appId', () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.metadata.appId).toBe('app-id-1');
+      expect(body.metadata?.appPrompt).toBeUndefined();
     });
 
     it('should not set metadata.appId when headers are absent', async () => {
