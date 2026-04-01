@@ -942,16 +942,15 @@ export const ScheduledTriggerApiInsertBaseSchema = createAgentScopedApiInsertSch
     id: ResourceIdSchema.optional(),
     runAsUserIds: z
       .array(z.string())
-      .max(100)
       .optional()
-      .describe('Array of user IDs to run this trigger as (multi-user, max 100)'),
+      .describe('Array of user IDs to run this trigger as (multi-user)'),
     dispatchDelayMs: z
       .number()
       .int()
       .min(0)
-      .max(5000)
+      .max(600_000)
       .optional()
-      .describe('Delay in ms between dispatching each user workflow (0-5000)'),
+      .describe('Delay in ms between dispatching each user workflow max 10 minutes'),
   })
   .openapi('ScheduledTriggerInsertBase');
 
@@ -975,9 +974,8 @@ export const ScheduledTriggerApiUpdateSchema = createAgentScopedApiUpdateSchema(
   .extend({
     runAsUserIds: z
       .array(z.string())
-      .max(100)
       .optional()
-      .describe('Array of user IDs to run this trigger as (multi-user, max 100)'),
+      .describe('Array of user IDs to run this trigger as (multi-user)'),
     dispatchDelayMs: z
       .number()
       .int()
@@ -991,7 +989,7 @@ export const ScheduledTriggerApiUpdateSchema = createAgentScopedApiUpdateSchema(
 
 export const SetScheduledTriggerUsersRequestSchema = z
   .object({
-    userIds: z.array(z.string()).max(100).describe('User IDs to set on this trigger (max 100)'),
+    userIds: z.array(z.string()).describe('User IDs to set on this trigger'),
   })
   .openapi('SetScheduledTriggerUsersRequest');
 
