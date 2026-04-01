@@ -35,6 +35,18 @@
         ],
         "type": "object"
       },
+      "AddScheduledTriggerUserRequest": {
+        "properties": {
+          "userId": {
+            "description": "User ID to add to this trigger",
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId"
+        ],
+        "type": "object"
+      },
       "Agent": {
         "properties": {
           "contextConfigId": {
@@ -5595,6 +5607,40 @@
           }
         ]
       },
+      "LastRunSummary": {
+        "description": "Per-status counts for the most recent scheduled tick",
+        "nullable": true,
+        "properties": {
+          "completed": {
+            "description": "Completed invocations",
+            "type": "integer"
+          },
+          "failed": {
+            "description": "Failed invocations",
+            "type": "integer"
+          },
+          "pending": {
+            "description": "Pending invocations",
+            "type": "integer"
+          },
+          "running": {
+            "description": "Running invocations",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Total invocations for this tick",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "completed",
+          "failed",
+          "running",
+          "pending"
+        ],
+        "type": "object"
+      },
       "MCPCatalogListResponse": {
         "properties": {
           "data": {
@@ -6847,6 +6893,12 @@
             "nullable": true,
             "type": "string"
           },
+          "dispatchDelayMs": {
+            "maximum": 2147483647,
+            "minimum": -2147483648,
+            "nullable": true,
+            "type": "integer"
+          },
           "enabled": {
             "type": "boolean"
           },
@@ -6927,6 +6979,7 @@
           "createdBy",
           "nextRunAt",
           "ref",
+          "dispatchDelayMs",
           "createdAt",
           "updatedAt"
         ],
@@ -6954,6 +7007,12 @@
             "description": "Scheduled trigger description",
             "nullable": true,
             "type": "string"
+          },
+          "dispatchDelayMs": {
+            "description": "Delay in ms between dispatching each user workflow (0-5000)",
+            "maximum": 5000,
+            "minimum": 0,
+            "type": "integer"
           },
           "enabled": {
             "default": true,
@@ -7004,6 +7063,13 @@
             "maxLength": 256,
             "nullable": true,
             "type": "string"
+          },
+          "runAsUserIds": {
+            "description": "Array of user IDs to run this trigger as (multi-user)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "runAt": {
             "description": "One-time execution timestamp",
@@ -7093,6 +7159,11 @@
             "nullable": true,
             "type": "object"
           },
+          "runAsUserId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
           "scheduledFor": {
             "type": "string"
           },
@@ -7125,6 +7196,7 @@
           "conversationIds",
           "attemptNumber",
           "idempotencyKey",
+          "runAsUserId",
           "createdAt"
         ],
         "type": "object"
@@ -7191,6 +7263,13 @@
             "nullable": true,
             "type": "string"
           },
+          "dispatchDelayMs": {
+            "description": "Delay in ms between dispatching each user workflow (0-5000)",
+            "maximum": 5000,
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
           "enabled": {
             "description": "Whether the trigger is enabled",
             "type": "boolean"
@@ -7237,6 +7316,13 @@
             "nullable": true,
             "type": "string"
           },
+          "runAsUserIds": {
+            "description": "Array of user IDs to run this trigger as (multi-user)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "runAt": {
             "description": "One-time execution timestamp",
             "format": "date-time",
@@ -7249,6 +7335,21 @@
             "type": "integer"
           }
         },
+        "type": "object"
+      },
+      "ScheduledTriggerUsersResponse": {
+        "properties": {
+          "data": {
+            "description": "User IDs associated with this trigger",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "ScheduledTriggerWithRunInfo": {
@@ -7280,17 +7381,34 @@
                 "nullable": true,
                 "type": "string"
               },
+              "lastRunSummary": {
+                "$ref": "#/components/schemas/LastRunSummary"
+              },
               "nextRunAt": {
                 "description": "Timestamp of the next pending run",
                 "format": "date-time",
                 "nullable": true,
                 "type": "string"
+              },
+              "runAsUserIds": {
+                "description": "User IDs associated with this trigger",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "userCount": {
+                "description": "Number of associated users",
+                "type": "integer"
               }
             },
             "required": [
               "lastRunAt",
               "lastRunStatus",
-              "lastRunConversationIds"
+              "lastRunConversationIds",
+              "runAsUserIds",
+              "userCount",
+              "lastRunSummary"
             ],
             "type": "object"
           }
@@ -7311,6 +7429,21 @@
         "required": [
           "data",
           "pagination"
+        ],
+        "type": "object"
+      },
+      "SetScheduledTriggerUsersRequest": {
+        "properties": {
+          "userIds": {
+            "description": "User IDs to set on this trigger",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "userIds"
         ],
         "type": "object"
       },
@@ -17897,6 +18030,593 @@
           }
         },
         "summary": "Run Scheduled Trigger Now",
+        "tags": [
+          "Scheduled Triggers"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{id}/users": {
+      "get": {
+        "operationId": "list-scheduled-trigger-users",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Scheduled Trigger ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "List of user IDs associated with the trigger"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Scheduled Trigger Users",
+        "tags": [
+          "Scheduled Triggers"
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
+      },
+      "post": {
+        "operationId": "add-scheduled-trigger-user",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Scheduled Trigger ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger ID",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "userId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "userId"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "User added to trigger successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Add User to Scheduled Trigger",
+        "tags": [
+          "Scheduled Triggers"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      },
+      "put": {
+        "operationId": "set-scheduled-trigger-users",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Scheduled Trigger ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger ID",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "userIds": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "userIds"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Trigger users replaced successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Replace Scheduled Trigger Users",
+        "tags": [
+          "Scheduled Triggers"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/scheduled-triggers/{id}/users/{userId}": {
+      "delete": {
+        "operationId": "remove-scheduled-trigger-user",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Scheduled Trigger ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Scheduled Trigger ID",
+              "type": "string"
+            }
+          },
+          {
+            "description": "User ID",
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "description": "User ID",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "User removed from trigger successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Remove User from Scheduled Trigger",
         "tags": [
           "Scheduled Triggers"
         ],
