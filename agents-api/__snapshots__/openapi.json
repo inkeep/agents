@@ -7264,8 +7264,8 @@
             "type": "string"
           },
           "dispatchDelayMs": {
-            "description": "Delay in ms between dispatching each user workflow (0-5000)",
-            "maximum": 5000,
+            "description": "Delay in ms between dispatching each user workflow (0-600000)",
+            "maximum": 600000,
             "minimum": 0,
             "nullable": true,
             "type": "integer"
