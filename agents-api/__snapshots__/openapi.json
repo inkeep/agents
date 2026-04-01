@@ -10605,9 +10605,6 @@
                   "$ref": "#/components/schemas/PublicKeyConfig"
                 },
                 "type": "array"
-              },
-              "validateScopeClaims": {
-                "type": "boolean"
               }
             },
             "required": [
@@ -10653,9 +10650,6 @@
                   "$ref": "#/components/schemas/PublicKeyConfig"
                 },
                 "type": "array"
-              },
-              "validateScopeClaims": {
-                "type": "boolean"
               }
             },
             "required": [
