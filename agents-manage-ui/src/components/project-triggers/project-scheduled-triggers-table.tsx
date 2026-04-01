@@ -219,6 +219,7 @@ export function ProjectScheduledTriggersTable({
               const isLoading = loadingTriggers.has(trigger.id);
               const scheduleType = getScheduleType(trigger);
               const canManage = canManageTrigger(trigger);
+
               return (
                 <TableRow key={trigger.id} noHover>
                   <TableCell>
