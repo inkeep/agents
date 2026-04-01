@@ -1044,17 +1044,11 @@ export async function GET(
 
     // ai streaming text
     for (const span of aiStreamingSpans) {
-      const streamGenType = getString(span, SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, '');
-      if (
-        streamGenType === GENERATION_TYPES.EVAL_SCORING ||
-        streamGenType === GENERATION_TYPES.EVAL_SIMULATION
-      )
-        continue;
-
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const aiStreamingText = getString(span, SPAN_KEYS.SPAN_ID, '');
       const statusMessage = hasError ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') : '';
+      const streamGenType = getString(span, SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, '');
       const streamResponseText = getString(span, SPAN_KEYS.AI_RESPONSE_TEXT, '');
       const streamFormatted = streamGenType
         ? formatGenerationType(streamGenType, streamResponseText)
