@@ -13,6 +13,7 @@ export default defineConfig({
   target: 'node20',
   dts: true,
   external: ['@inkeep/agents-core', '@napi-rs/keyring'],
+  outDir: 'dist',
   shims: true,
   unbundle: true,
   sourcemap: true,
