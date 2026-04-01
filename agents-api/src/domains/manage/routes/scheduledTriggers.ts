@@ -1493,6 +1493,7 @@ app.openapi(
               resolvedRef,
               runAsUserId: rerunRunAsUserId ?? undefined,
               forwardedHeaders: buildTimezoneHeaders(trigger.cronTimezone),
+              invocationType: 'scheduled_trigger',
             }),
             timeoutPromise,
           ]);
@@ -1846,6 +1847,7 @@ app.openapi(
                 resolvedRef,
                 runAsUserId: runAsUserId ?? undefined,
                 forwardedHeaders: buildTimezoneHeaders(trigger.cronTimezone),
+                invocationType: 'scheduled_trigger',
               }),
               timeoutPromise,
             ]);
