@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -29,15 +29,15 @@ import {
 } from '@/lib/actions/evaluation-run-configs';
 import { createEvaluationSuiteConfigAction } from '@/lib/actions/evaluation-suite-configs';
 import type { ActionResult } from '@/lib/actions/types';
+import { fetchEvaluatorAgentScopesBatch } from '@/lib/api/agent-relations';
 import type { EvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
-import type { Evaluator } from '@/lib/api/evaluators';
 import { useAgentsQuery } from '@/lib/query/agents';
 import {
   useEvaluationSuiteConfigEvaluatorsQuery,
   useEvaluationSuiteConfigQuery,
 } from '@/lib/query/evaluation-suite-configs';
 import { useEvaluatorsQuery } from '@/lib/query/evaluators';
-import type { Agent } from '@/lib/types/agent-full';
+import { createLookup } from '@/lib/utils';
 
 const evaluationRunConfigSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -157,17 +157,56 @@ export function EvaluationRunConfigFormDialog({
     });
   }, [isOpen, initialData, form, suiteConfigForm]);
 
-  const evaluatorLookup = evaluators.reduce<Record<string, Evaluator>>((acc, evaluator) => {
-    acc[evaluator.id] = evaluator;
-    return acc;
-  }, {});
+  const agentLookup = useMemo(() => createLookup(agents), [agents]);
 
-  const agentLookup = agents.reduce<Record<string, Agent>>((acc, agent) => {
-    acc[agent.id] = agent;
-    return acc;
-  }, {});
   const suiteAgentIds = useWatch({ control: suiteConfigForm.control, name: 'agentIds' });
-  const suiteEvaluatorIds = useWatch({ control: suiteConfigForm.control, name: 'evaluatorIds' });
+  const selectedEvaluatorIds = useWatch({
+    control: suiteConfigForm.control,
+    name: 'evaluatorIds',
+  });
+
+  const [evaluatorAgentMap, setEvaluatorAgentMap] = useState<Map<string, string[]>>(new Map());
+
+  useEffect(() => {
+    if (evaluators.length === 0 || !isOpen) return;
+    const abortController = new AbortController();
+    fetchEvaluatorAgentScopesBatch(
+      tenantId,
+      projectId,
+      evaluators.map((ev) => ev.id)
+    )
+      .then((map) => {
+        if (!abortController.signal.aborted) {
+          setEvaluatorAgentMap(map);
+        }
+      })
+      .catch(() => toast.error('Failed to load evaluator agent scopes'));
+    return () => abortController.abort();
+  }, [evaluators, tenantId, projectId, isOpen]);
+
+  const displayEvaluators = useMemo(() => {
+    if (suiteAgentIds.length === 0) return evaluators;
+    return evaluators.filter((ev) => {
+      const scopedAgents = evaluatorAgentMap.get(ev.id);
+      if (!scopedAgents || scopedAgents.length === 0) return true;
+      return scopedAgents.some((agentId) => suiteAgentIds.includes(agentId));
+    });
+  }, [evaluators, suiteAgentIds, evaluatorAgentMap]);
+
+  const displayEvaluatorLookup = useMemo(
+    () => createLookup(displayEvaluators),
+    [displayEvaluators]
+  );
+
+  useEffect(() => {
+    if (!displayEvaluators.length) return;
+    const validIds = new Set(displayEvaluators.map((e) => e.id));
+    const filtered = selectedEvaluatorIds.filter((id) => validIds.has(id));
+    if (filtered.length !== selectedEvaluatorIds.length) {
+      suiteConfigForm.setValue('evaluatorIds', filtered);
+    }
+  }, [displayEvaluators, selectedEvaluatorIds, suiteConfigForm]);
+
   const { isSubmitting } = form.formState;
 
   const onSubmit = form.handleSubmit(async (data) => {
@@ -178,11 +217,27 @@ export function EvaluationRunConfigFormDialog({
       return;
     }
 
-    // Workaround for a React Compiler limitation.
-    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
     async function doRequest() {
-      // First, create the evaluation suite config
       const suiteConfigData = suiteConfigForm.getValues();
+      const selectedAgents = suiteConfigData.agentIds || [];
+      const selectedEvals = suiteConfigData.evaluatorIds || [];
+
+      if (selectedAgents.length > 0 && selectedEvals.length > 0) {
+        const unscopedEvaluators = selectedEvals.filter((evId) => {
+          const scopedAgents = evaluatorAgentMap.get(evId);
+          if (!scopedAgents || scopedAgents.length === 0) return false;
+          return !scopedAgents.some((aId) => selectedAgents.includes(aId));
+        });
+
+        if (unscopedEvaluators.length > 0) {
+          const names = unscopedEvaluators
+            .map((id) => evaluators.find((e) => e.id === id)?.name ?? id)
+            .join(', ');
+          toast.error(`The following evaluators are not scoped to the selected agents: ${names}`);
+          return;
+        }
+      }
+
       const filters: Record<string, unknown> | null =
         suiteConfigData.agentIds && suiteConfigData.agentIds.length > 0
           ? { agentIds: suiteConfigData.agentIds }
@@ -215,7 +270,6 @@ export function EvaluationRunConfigFormDialog({
       }
 
       if (result.success) {
-        console.log('Run config created/updated successfully');
         toast.success(`Continuous test ${runConfigId ? 'updated' : 'created'}`);
         form.reset();
         suiteConfigForm.reset();
@@ -227,10 +281,7 @@ export function EvaluationRunConfigFormDialog({
         }
         // Call success callback to refresh data
         if (onSuccess) {
-          console.log('Calling onSuccess callback');
           onSuccess();
-        } else {
-          console.log('No onSuccess callback provided');
         }
         // Also refresh router for server components
         router.refresh();
@@ -333,12 +384,12 @@ export function EvaluationRunConfigFormDialog({
               <FormField
                 control={suiteConfigForm.control}
                 name="evaluatorIds"
-                render={() => (
+                render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <FormLabel isRequired>Evaluators</FormLabel>
-                        <Badge variant="count">{suiteEvaluatorIds.length}</Badge>
+                        <Badge variant="count">{field.value.length}</Badge>
                       </div>
                       <Link
                         href={`/${tenantId}/projects/${projectId}/evaluations?tab=evaluators`}
@@ -351,17 +402,19 @@ export function EvaluationRunConfigFormDialog({
                       </Link>
                     </div>
                     <ComponentSelector
-                      label=""
-                      componentLookup={evaluatorLookup}
-                      selectedComponents={suiteEvaluatorIds}
-                      onSelectionChange={(newSelection) => {
-                        suiteConfigForm.setValue('evaluatorIds', newSelection);
-                      }}
-                      emptyStateMessage="No evaluators available."
+                      componentLookup={displayEvaluatorLookup}
+                      selectedComponents={field.value}
+                      onSelectionChange={field.onChange}
+                      emptyStateMessage="No evaluators available for the selected agent."
                       emptyStateActionText="Create evaluator"
                       emptyStateActionHref={`/${tenantId}/projects/${projectId}/evaluations?tab=evaluators`}
                       placeholder="Select evaluators..."
                     />
+                    {suiteAgentIds.length > 0 && (
+                      <div className="text-xs text-muted-foreground">
+                        Showing evaluators scoped to the selected agent(s).
+                      </div>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}

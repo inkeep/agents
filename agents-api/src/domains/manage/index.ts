@@ -1,32 +1,43 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { capabilitiesHandler } from '../../routes/capabilities';
 import type { ManageAppVariables } from '../../types/app';
+import authLookupRoutes from './routes/authLookup';
 import availableAgentsRoutes from './routes/availableAgents';
 import cliAuthRoutes from './routes/cliAuth';
+import entitlementsRoutes from './routes/entitlements';
 import githubRoutes from './routes/github';
 import crudRoutes from './routes/index';
 import invitationsRoutes from './routes/invitations';
 import mcpToolGitHubAccessRoutes from './routes/mcpToolGithubAccess';
+import mcpToolSlackAccessRoutes from './routes/mcpToolSlackAccess';
 import oauthRoutes from './routes/oauth';
 import passwordResetLinksRoutes from './routes/passwordResetLinks';
 import playgroundTokenRoutes from './routes/playgroundToken';
 import projectFullRoutes from './routes/projectFull';
 import projectGitHubAccessRoutes from './routes/projectGithubAccess';
 import signozRoutes from './routes/signoz';
+import userProfileRoutes from './routes/userProfile';
 import userProjectMembershipsRoutes from './routes/userProjectMemberships';
 import usersRoutes from './routes/users';
 
 export function createManageRoutes() {
   const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-  // Mount users routes - organizations and providers endpoints
+  // Mount users routes - organizations, providers, and profile endpoints
   app.route('/api/users', usersRoutes);
+  app.route('/api/users', userProfileRoutes);
+
+  // Mount auth lookup (email-first login flow)
+  app.route('/api/auth-lookup', authLookupRoutes);
 
   // Mount CLI auth routes - for CLI login flow
   app.route('/api/cli', cliAuthRoutes);
 
   // Mount invitations routes - includes /verify (unauthenticated) and /pending (authenticated)
   app.route('/api/invitations', invitationsRoutes);
+
+  // Mount entitlements routes under tenant
+  app.route('/tenants/:tenantId/entitlements', entitlementsRoutes);
 
   // Mount routes for all entities
   app.route('/tenants/:tenantId', crudRoutes);
@@ -51,6 +62,12 @@ export function createManageRoutes() {
   app.route(
     '/tenants/:tenantId/projects/:projectId/tools/:toolId/github-access',
     mcpToolGitHubAccessRoutes
+  );
+
+  // Mount MCP tool Slack access routes under tenant/project/tool
+  app.route(
+    '/tenants/:tenantId/projects/:projectId/tools/:toolId/slack-access',
+    mcpToolSlackAccessRoutes
   );
 
   // Mount full project routes directly under tenant

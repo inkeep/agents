@@ -1,0 +1,8 @@
+import { Trigger } from '@inkeep/agents-sdk';
+
+export const githubWebhookTrigger = new Trigger({
+  id: 'github-webhook',
+  name: 'GitHub Webhook',
+  enabled: true,
+  messageTemplate: 'New webhook event',
+});

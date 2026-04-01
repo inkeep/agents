@@ -16,7 +16,6 @@ describe('Dataset Items CRUD Routes - Integration Tests', () => {
     expectedOutput: {
       text: `Expected answer${suffix}`,
     },
-    simulationAgent: null,
   });
 
   const createTestDataset = async ({ tenantId }: { tenantId: string }) => {

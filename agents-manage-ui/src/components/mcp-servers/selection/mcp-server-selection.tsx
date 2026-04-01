@@ -14,13 +14,14 @@ import { Input } from '@/components/ui/input';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { useScopeSelection } from '@/hooks/use-scope-selection';
 import type { Credential } from '@/lib/api/credentials';
-import { getThirdPartyOAuthRedirectUrl } from '@/lib/api/mcp-catalog';
 import { createMCPTool } from '@/lib/api/tools';
 import type { PrebuiltMCPServer } from '@/lib/data/prebuilt-mcp-servers';
 import { generateId } from '@/lib/utils/id-utils';
 import { PrebuiltServersGrid } from './prebuilt-servers-grid';
 import { WorkAppGitHubCard } from './work-app-github-card';
 import { WorkAppGitHubRepositoryConfigDialog } from './work-app-github-repository-config-dialog';
+import { WorkAppSlackCard } from './work-app-slack-card';
+import { WorkAppSlackChannelConfigDialog } from './work-app-slack-channel-config-dialog';
 
 /**
  * Remove user_id from Composio URLs before storing in DB.
@@ -51,6 +52,7 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
   const [selectedMode, setSelectedMode] = useState<SelectionMode>('popular');
   const [searchQuery, setSearchQuery] = useState('');
   const [gitHubDialogOpen, setGitHubDialogOpen] = useState(false);
+  const [slackDialogOpen, setSlackDialogOpen] = useState(false);
   const router = useRouter();
 
   const { handleOAuthLogin } = useOAuthLogin({
@@ -92,32 +94,9 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
 
       const newTool = await createMCPTool(tenantId, projectId, mcpToolData);
 
-      // proceed with OAuth flow
-      const isThirdPartyServer = serverUrl.includes('composio.dev');
-
       if (server.isOpen) {
         toast.success(`${server.name} MCP server created successfully`);
         router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
-      } else if (isThirdPartyServer) {
-        const credentialScopedRedirectUrl = await getThirdPartyOAuthRedirectUrl(
-          tenantId,
-          projectId,
-          serverUrl,
-          scope
-        );
-        if (credentialScopedRedirectUrl) {
-          handleOAuthLogin({
-            toolId: newTool.id,
-            mcpServerUrl: serverUrl,
-            toolName: mcpServerName,
-            thirdPartyConnectAccountUrl: credentialScopedRedirectUrl,
-            credentialScope: scope,
-          });
-        } else {
-          // Fallback: redirect to detail page if we couldn't get the OAuth URL
-          toast.error(`Failed to get OAuth URL. Please try connecting from the detail page.`);
-          router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
-        }
       } else {
         handleOAuthLogin({
           toolId: newTool.id,
@@ -227,6 +206,7 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
       {selectedMode === 'workapps' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <WorkAppGitHubCard onClick={() => setGitHubDialogOpen(true)} />
+          <WorkAppSlackCard onClick={() => setSlackDialogOpen(true)} />
         </div>
       )}
 
@@ -245,6 +225,17 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
         projectId={projectId}
         open={gitHubDialogOpen}
         onOpenChange={setGitHubDialogOpen}
+        onSuccess={(toolId: string) => {
+          router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${toolId}`);
+        }}
+      />
+
+      {/* Slack configuration dialog for Work Apps */}
+      <WorkAppSlackChannelConfigDialog
+        tenantId={tenantId}
+        projectId={projectId}
+        open={slackDialogOpen}
+        onOpenChange={setSlackDialogOpen}
         onSuccess={(toolId: string) => {
           router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${toolId}`);
         }}

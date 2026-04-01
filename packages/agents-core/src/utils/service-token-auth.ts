@@ -19,6 +19,8 @@ export interface ServiceTokenPayload {
   tenantId: string;
   /** Project ID - must match for both origin and target agents */
   projectId: string;
+  /** Original initiator of the request (propagated through delegation chain) */
+  initiatedBy?: { type: 'user' | 'api_key'; id: string };
   /** Issued at timestamp */
   iat: number;
   /** Expiration timestamp (5 minutes from issue) */
@@ -33,6 +35,7 @@ export interface GenerateServiceTokenParams {
   projectId: string;
   originAgentId: string;
   targetAgentId: string;
+  initiatedBy?: { type: 'user' | 'api_key'; id: string };
 }
 
 /**
@@ -54,6 +57,7 @@ export async function generateServiceToken(params: GenerateServiceTokenParams): 
       claims: {
         tenantId: params.tenantId,
         projectId: params.projectId,
+        ...(params.initiatedBy ? { initiatedBy: params.initiatedBy } : {}),
       },
     });
 
@@ -103,12 +107,15 @@ export async function verifyServiceToken(token: string): Promise<VerifyServiceTo
     };
   }
 
+  const initiatedBy = payload.initiatedBy as { type: 'user' | 'api_key'; id: string } | undefined;
+
   const validPayload: ServiceTokenPayload = {
     iss: payload.iss as string,
     aud: payload.aud as string,
     sub: payload.sub,
     tenantId: payload.tenantId as string,
     projectId: payload.projectId as string,
+    ...(initiatedBy ? { initiatedBy } : {}),
     iat: payload.iat as number,
     exp: payload.exp as number,
   };

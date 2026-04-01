@@ -127,6 +127,8 @@ Agents can access artifact data in a few ways:
 - **Passing to a tool** — the agent can supply an artifact as an argument to a tool; the tool receives the complete artifact data, including all non-preview fields
 - **On-demand retrieval** — the agent can explicitly fetch the full artifact when it needs to read non-preview fields itself
 
+Not every intermediate tool result needs to become an artifact. When an agent chains tool calls — passing one tool's output directly into the next — no artifact is created and nothing surfaces to the user.
+
 ## Passing Artifacts to Tools
 
 When a tool receives an artifact as an argument, it has access to all fields — not just the preview ones. For example, a document processing tool can read the full `content` array even though `content` is a non-preview field:

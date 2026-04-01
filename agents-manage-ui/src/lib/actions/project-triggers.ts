@@ -12,7 +12,8 @@ export async function getProjectScheduledTriggersAction(
   projectId: string
 ): Promise<ScheduledTriggerWithAgent[]> {
   try {
-    return await fetchProjectScheduledTriggers(tenantId, projectId);
+    const { triggers } = await fetchProjectScheduledTriggers(tenantId, projectId);
+    return triggers;
   } catch (error) {
     console.error('Failed to fetch project scheduled triggers:', error);
     return [];

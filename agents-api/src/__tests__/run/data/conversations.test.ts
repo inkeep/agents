@@ -1,5 +1,9 @@
+import type { MessageSelect } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
-import { reconstructMessageText } from '../../../domains/run/data/conversations';
+import {
+  formatMessagesAsConversationHistory,
+  reconstructMessageText,
+} from '../../../domains/run/data/conversations';
 
 describe('reconstructMessageText', () => {
   it('falls back to content.text when content has no parts array', () => {
@@ -17,12 +21,19 @@ describe('reconstructMessageText', () => {
     expect(reconstructMessageText(msg)).toBe('');
   });
 
+  it('uses part.type when kind is omitted (legacy shape)', () => {
+    const msg = {
+      content: { parts: [{ type: 'text', text: 'legacy' } as any] },
+    } as Pick<MessageSelect, 'content'>;
+    expect(reconstructMessageText(msg)).toBe('legacy');
+  });
+
   it('concatenates text parts in order', () => {
     const msg = {
       content: {
         parts: [
-          { type: 'text', text: 'Hello ' },
-          { type: 'text', text: 'world' },
+          { kind: 'text', text: 'Hello ' },
+          { kind: 'text', text: 'world' },
         ],
       },
     };
@@ -32,7 +43,7 @@ describe('reconstructMessageText', () => {
   it('converts data parts with artifactId + toolCallId to artifact:ref tags', () => {
     const msg = {
       content: {
-        parts: [{ type: 'data', data: { artifactId: 'art-1', toolCallId: 'tool-1' } }],
+        parts: [{ kind: 'data', data: { artifactId: 'art-1', toolCallId: 'tool-1' } }],
       },
     };
     expect(reconstructMessageText(msg)).toBe('<artifact:ref id="art-1" tool="tool-1" />');
@@ -42,9 +53,9 @@ describe('reconstructMessageText', () => {
     const msg = {
       content: {
         parts: [
-          { type: 'text', text: 'Here is the result. ' },
-          { type: 'data', data: { artifactId: 'art-abc', toolCallId: 'toolu_xyz' } },
-          { type: 'text', text: ' And more text.' },
+          { kind: 'text', text: 'Here is the result. ' },
+          { kind: 'data', data: { artifactId: 'art-abc', toolCallId: 'toolu_xyz' } },
+          { kind: 'text', text: ' And more text.' },
         ],
       },
     };
@@ -58,7 +69,7 @@ describe('reconstructMessageText', () => {
       content: {
         parts: [
           {
-            type: 'data',
+            kind: 'data',
             data: JSON.stringify({ artifactId: 'art-json', toolCallId: 'tool-json' }),
           },
         ],
@@ -70,7 +81,7 @@ describe('reconstructMessageText', () => {
   it('ignores data parts without artifactId', () => {
     const msg = {
       content: {
-        parts: [{ type: 'data', data: { toolCallId: 'tool-1' } }],
+        parts: [{ kind: 'data', data: { toolCallId: 'tool-1' } }],
       },
     };
     expect(reconstructMessageText(msg)).toBe('');
@@ -79,7 +90,7 @@ describe('reconstructMessageText', () => {
   it('ignores data parts without toolCallId', () => {
     const msg = {
       content: {
-        parts: [{ type: 'data', data: { artifactId: 'art-1' } }],
+        parts: [{ kind: 'data', data: { artifactId: 'art-1' } }],
       },
     };
     expect(reconstructMessageText(msg)).toBe('');
@@ -88,7 +99,7 @@ describe('reconstructMessageText', () => {
   it('ignores data parts with unparseable JSON string', () => {
     const msg = {
       content: {
-        parts: [{ type: 'data', data: 'not-valid-json' }],
+        parts: [{ kind: 'data', data: 'not-valid-json' }],
       },
     };
     expect(reconstructMessageText(msg)).toBe('');
@@ -97,7 +108,7 @@ describe('reconstructMessageText', () => {
   it('returns empty string for unknown part types', () => {
     const msg = {
       content: {
-        parts: [{ type: 'image', url: 'http://example.com/img.png' }],
+        parts: [{ kind: 'image' }],
       },
     };
     expect(reconstructMessageText(msg)).toBe('');
@@ -107,10 +118,10 @@ describe('reconstructMessageText', () => {
     const msg = {
       content: {
         parts: [
-          { type: 'text', text: 'First: ' },
-          { type: 'data', data: { artifactId: 'art-1', toolCallId: 'tool-1' } },
-          { type: 'text', text: ' Second: ' },
-          { type: 'data', data: { artifactId: 'art-2', toolCallId: 'tool-2' } },
+          { kind: 'text', text: 'First: ' },
+          { kind: 'data', data: { artifactId: 'art-1', toolCallId: 'tool-1' } },
+          { kind: 'text', text: ' Second: ' },
+          { kind: 'data', data: { artifactId: 'art-2', toolCallId: 'tool-2' } },
         ],
       },
     };
@@ -122,9 +133,39 @@ describe('reconstructMessageText', () => {
   it('handles missing text property in text part gracefully', () => {
     const msg = {
       content: {
-        parts: [{ type: 'text' }],
+        parts: [{ kind: 'text' }],
       },
     };
     expect(reconstructMessageText(msg)).toBe('');
+  });
+});
+
+describe('formatMessagesAsConversationHistory', () => {
+  it('returns empty string when there are no messages', async () => {
+    await expect(formatMessagesAsConversationHistory([])).resolves.toBe('');
+  });
+
+  it('returns empty string when every message has empty reconstructed text', async () => {
+    const messages = [
+      {
+        role: 'user',
+        messageType: 'chat',
+        content: { parts: [{ kind: 'image' }] },
+      },
+    ] as MessageSelect[];
+    await expect(formatMessagesAsConversationHistory(messages)).resolves.toBe('');
+  });
+
+  it('wraps non-empty history in conversation_history tags', async () => {
+    const messages = [
+      {
+        role: 'user',
+        messageType: 'chat',
+        content: { text: 'hi' },
+      },
+    ] as MessageSelect[];
+    await expect(formatMessagesAsConversationHistory(messages)).resolves.toBe(
+      '<conversation_history>\nuser: """hi"""\n</conversation_history>\n'
+    );
   });
 });

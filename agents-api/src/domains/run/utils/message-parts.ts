@@ -1,4 +1,3 @@
-import { z } from '@hono/zod-openapi';
 import {
   type FilePart,
   FilePartSchema,
@@ -7,7 +6,13 @@ import {
   TextPartSchema,
 } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
-import { type ContentItem, type ImageContentItem, ImageUrlSchema } from '../types/chat';
+import {
+  type ContentItem,
+  type FileContentItem,
+  type ImageContentItem,
+  ImageUrlSchema,
+  VercelContentPartSchema,
+} from '../types/chat';
 
 const logger = getLogger('message-parts');
 
@@ -26,15 +31,9 @@ const isImageContentItem = (item: ContentItem): item is ImageContentItem => {
   );
 };
 
-const textContentPartSchema = z.object({
-  type: z.literal('text'),
-  text: z.string(),
-});
-const imageContentPartSchema = z.object({
-  type: z.literal('image'),
-  text: ImageUrlSchema,
-});
-const vercelMessageContentPartSchema = z.union([textContentPartSchema, imageContentPartSchema]);
+const isFileContentItem = (item: ContentItem): item is FileContentItem => {
+  return item.type === 'file';
+};
 
 const buildTextPart = (text: string): TextPart => {
   return TextPartSchema.parse({ kind: 'text', text });
@@ -49,30 +48,48 @@ const parseDataUri = (dataUri: string): { mimeType: string; base64Data: string }
   };
 };
 
-const buildFilePart = (uri: string, options?: { detail?: 'auto' | 'low' | 'high' }): FilePart => {
+const buildFilePart = (
+  uri: string,
+  options?: { detail?: 'auto' | 'low' | 'high'; mimeType?: string; filename?: string }
+): FilePart => {
   const parsed = parseDataUri(uri);
 
   if (parsed) {
+    const metadata: Record<string, unknown> = {};
+    if (options?.detail) {
+      metadata.detail = options.detail;
+    }
+    if (options?.filename) {
+      metadata.filename = options.filename;
+    }
     return FilePartSchema.parse({
       kind: 'file',
       file: {
         bytes: parsed.base64Data,
         mimeType: parsed.mimeType,
       },
-      ...(options?.detail && { metadata: { detail: options.detail } }),
+      ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
     });
   }
 
   try {
     new URL(uri);
   } catch {
-    throw new Error(`Invalid image URI: expected valid data URI or HTTP URL`);
+    throw new Error(`Invalid file URI: expected valid data URI or HTTP URL`);
+  }
+
+  const metadata: Record<string, unknown> = {};
+  if (options?.detail) {
+    metadata.detail = options.detail;
+  }
+  if (options?.filename) {
+    metadata.filename = options.filename;
   }
 
   return FilePartSchema.parse({
     kind: 'file',
-    file: { uri, mimeType: 'image/*' },
-    ...(options?.detail && { metadata: { detail: options.detail } }),
+    file: { uri, mimeType: options?.mimeType || 'application/octet-stream' },
+    ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
   });
 };
 
@@ -89,14 +106,21 @@ export const getMessagePartsFromOpenAIContent = (content: string | ContentItem[]
   }
 
   const textChunks: string[] = [];
-  const imageParts: FilePart[] = [];
+  const fileParts: FilePart[] = [];
   let skipped = 0;
 
   for (const item of content) {
     if (isTextContentItem(item)) {
       textChunks.push(item.text);
     } else if (isImageContentItem(item)) {
-      imageParts.push(buildFilePart(item.image_url.url, { detail: item.image_url.detail }));
+      fileParts.push(buildFilePart(item.image_url.url, { detail: item.image_url.detail }));
+    } else if (isFileContentItem(item)) {
+      fileParts.push(
+        buildFilePart(item.file.file_data, {
+          filename: item.file.filename,
+          mimeType: 'application/pdf',
+        })
+      );
     } else {
       skipped += 1;
     }
@@ -109,18 +133,13 @@ export const getMessagePartsFromOpenAIContent = (content: string | ContentItem[]
     );
   }
 
-  return [...(textChunks.length > 0 ? [buildTextPart(textChunks.join(' '))] : []), ...imageParts];
+  return [...(textChunks.length > 0 ? [buildTextPart(textChunks.join(' '))] : []), ...fileParts];
 };
 
 export const getMessagePartsFromVercelContent = (content?: unknown, parts?: unknown[]): Part[] => {
-  // Backwards compatibility: if content is a string, return single text part
-  if (typeof content === 'string') {
-    return [buildTextPart(content)];
-  }
-
   const rawParts = parts ?? [];
   const parsedParts = rawParts
-    .map((part) => vercelMessageContentPartSchema.safeParse(part))
+    .map((part) => VercelContentPartSchema.safeParse(part))
     .filter((result) => result.success)
     .map((result) => result.data);
 
@@ -135,7 +154,7 @@ export const getMessagePartsFromVercelContent = (content?: unknown, parts?: unkn
     throw new Error(`Unexpected part type: ${JSON.stringify(x)}`);
   };
 
-  return parsedParts.map((part) => {
+  const partsFromPayload = parsedParts.map((part) => {
     if (part.type === 'text') {
       return buildTextPart(part.text);
     }
@@ -144,6 +163,42 @@ export const getMessagePartsFromVercelContent = (content?: unknown, parts?: unkn
       return buildFilePart(part.text);
     }
 
+    if (part.type === 'file') {
+      return buildFilePart(part.url, {
+        mimeType: part.mediaType,
+        filename: part.filename,
+      });
+    }
+
     return assertNever(part);
   });
+
+  if (typeof content !== 'string' || content === '') {
+    return partsFromPayload;
+  }
+
+  const contentTextPart = buildTextPart(content);
+  const firstPartsText = partsFromPayload.find(
+    (part): part is TextPart => part.kind === 'text'
+  )?.text;
+  const hasMatchingTextPart = partsFromPayload.some(
+    (part): part is TextPart => part.kind === 'text' && part.text === content
+  );
+
+  if (firstPartsText != null && firstPartsText !== content) {
+    logger.warn(
+      {
+        contentText: content,
+        firstPartsText,
+        partsCount: partsFromPayload.length,
+      },
+      'Both content and parts text were provided and differ; prepending content text'
+    );
+  }
+
+  if (hasMatchingTextPart) {
+    return partsFromPayload;
+  }
+
+  return [contentTextPart, ...partsFromPayload];
 };

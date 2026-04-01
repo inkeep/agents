@@ -23,6 +23,7 @@ import type {
   ProjectResourceCounts,
   ProjectScopeConfig,
 } from '../../types/utility';
+import { projectScopedWhere, tenantScopedWhere } from './scope-helpers';
 
 /**
  * List all unique project IDs within a tenant by scanning all resource tables
@@ -36,9 +37,10 @@ export const listProjects =
       return [];
     }
 
+    const tenantScope = { tenantId: params.tenantId };
     const whereClause = params.projectIds
-      ? and(eq(projects.tenantId, params.tenantId), inArray(projects.id, params.projectIds))
-      : eq(projects.tenantId, params.tenantId);
+      ? and(tenantScopedWhere(projects, tenantScope), inArray(projects.id, params.projectIds))
+      : tenantScopedWhere(projects, tenantScope);
 
     const projectsFromTable = await db
       .select({ projectId: projects.id }) // id IS the project ID
@@ -54,51 +56,51 @@ export const listProjects =
       db
         .selectDistinct({ projectId: subAgents.projectId })
         .from(subAgents)
-        .where(eq(subAgents.tenantId, params.tenantId)),
+        .where(tenantScopedWhere(subAgents, tenantScope)),
       db
         .selectDistinct({ projectId: agents.projectId })
         .from(agents)
-        .where(eq(agents.tenantId, params.tenantId)),
+        .where(tenantScopedWhere(agents, tenantScope)),
       db
         .selectDistinct({ projectId: tools.projectId })
         .from(tools)
-        .where(eq(tools.tenantId, params.tenantId)),
+        .where(tenantScopedWhere(tools, tenantScope)),
       db
         .selectDistinct({ projectId: contextConfigs.projectId })
         .from(contextConfigs)
-        .where(eq(contextConfigs.tenantId, params.tenantId)),
+        .where(tenantScopedWhere(contextConfigs, tenantScope)),
       db
         .selectDistinct({ projectId: externalAgents.projectId })
         .from(externalAgents)
-        .where(eq(externalAgents.tenantId, params.tenantId)),
+        .where(tenantScopedWhere(externalAgents, tenantScope)),
       db
         .selectDistinct({ projectId: subAgentRelations.projectId })
         .from(subAgentRelations)
-        .where(eq(subAgentRelations.tenantId, params.tenantId)),
+        .where(tenantScopedWhere(subAgentRelations, tenantScope)),
       db
         .selectDistinct({ projectId: subAgentToolRelations.projectId })
         .from(subAgentToolRelations)
-        .where(eq(subAgentToolRelations.tenantId, params.tenantId)),
+        .where(tenantScopedWhere(subAgentToolRelations, tenantScope)),
       db
         .selectDistinct({ projectId: subAgentDataComponents.projectId })
         .from(subAgentDataComponents)
-        .where(eq(subAgentDataComponents.tenantId, params.tenantId)),
+        .where(tenantScopedWhere(subAgentDataComponents, tenantScope)),
       db
         .selectDistinct({ projectId: subAgentArtifactComponents.projectId })
         .from(subAgentArtifactComponents)
-        .where(eq(subAgentArtifactComponents.tenantId, params.tenantId)),
+        .where(tenantScopedWhere(subAgentArtifactComponents, tenantScope)),
       db
         .selectDistinct({ projectId: dataComponents.projectId })
         .from(dataComponents)
-        .where(eq(dataComponents.tenantId, params.tenantId)),
+        .where(tenantScopedWhere(dataComponents, tenantScope)),
       db
         .selectDistinct({ projectId: artifactComponents.projectId })
         .from(artifactComponents)
-        .where(eq(artifactComponents.tenantId, params.tenantId)),
+        .where(tenantScopedWhere(artifactComponents, tenantScope)),
       db
         .selectDistinct({ projectId: credentialReferences.projectId })
         .from(credentialReferences)
-        .where(eq(credentialReferences.tenantId, params.tenantId)),
+        .where(tenantScopedWhere(credentialReferences, tenantScope)),
     ]);
 
     const allProjectIds = new Set<string>();
@@ -139,9 +141,10 @@ export const listProjectsPaginated =
     const offset = (page - 1) * limit;
 
     // Build WHERE clause: always filter by tenantId, optionally by projectIds
+    const tenantScope = { tenantId: params.tenantId };
     const whereClause = params.projectIds
-      ? and(eq(projects.tenantId, params.tenantId), inArray(projects.id, params.projectIds))
-      : eq(projects.tenantId, params.tenantId);
+      ? and(tenantScopedWhere(projects, tenantScope), inArray(projects.id, params.projectIds))
+      : tenantScopedWhere(projects, tenantScope);
 
     const [data, totalResult] = await Promise.all([
       db
@@ -169,22 +172,22 @@ export const listProjectsPaginated =
 export const getProjectResourceCounts =
   (db: AgentsManageDatabaseClient) =>
   async (params: ProjectScopeConfig): Promise<ProjectResourceCounts> => {
-    const whereClause = (table: any) =>
-      and(eq(table.tenantId, params.tenantId), eq(table.projectId, params.projectId));
-
     const [subAgentResults, agentResults, toolResults, contextConfigResults, externalAgentResults] =
       await Promise.all([
-        db.select({ count: subAgents.id }).from(subAgents).where(whereClause(subAgents)),
-        db.select({ count: agents.id }).from(agents).where(whereClause(agents)),
-        db.select({ count: tools.id }).from(tools).where(whereClause(tools)),
+        db
+          .select({ count: subAgents.id })
+          .from(subAgents)
+          .where(projectScopedWhere(subAgents, params)),
+        db.select({ count: agents.id }).from(agents).where(projectScopedWhere(agents, params)),
+        db.select({ count: tools.id }).from(tools).where(projectScopedWhere(tools, params)),
         db
           .select({ count: contextConfigs.id })
           .from(contextConfigs)
-          .where(whereClause(contextConfigs)),
+          .where(projectScopedWhere(contextConfigs, params)),
         db
           .select({ count: externalAgents.id })
           .from(externalAgents)
-          .where(whereClause(externalAgents)),
+          .where(projectScopedWhere(externalAgents, params)),
       ]);
 
     return {
@@ -202,22 +205,23 @@ export const getProjectResourceCounts =
 export const projectExists =
   (db: AgentsManageDatabaseClient) =>
   async (params: ProjectScopeConfig): Promise<boolean> => {
-    const whereClause = (table: any) =>
-      and(eq(table.tenantId, params.tenantId), eq(table.projectId, params.projectId));
-
     const checks = [
-      db.select({ id: subAgents.id }).from(subAgents).where(whereClause(subAgents)).limit(1),
-      db.select({ id: agents.id }).from(agents).where(whereClause(agents)).limit(1),
-      db.select({ id: tools.id }).from(tools).where(whereClause(tools)).limit(1),
+      db
+        .select({ id: subAgents.id })
+        .from(subAgents)
+        .where(projectScopedWhere(subAgents, params))
+        .limit(1),
+      db.select({ id: agents.id }).from(agents).where(projectScopedWhere(agents, params)).limit(1),
+      db.select({ id: tools.id }).from(tools).where(projectScopedWhere(tools, params)).limit(1),
       db
         .select({ id: contextConfigs.id })
         .from(contextConfigs)
-        .where(whereClause(contextConfigs))
+        .where(projectScopedWhere(contextConfigs, params))
         .limit(1),
       db
         .select({ id: externalAgents.id })
         .from(externalAgents)
-        .where(whereClause(externalAgents))
+        .where(projectScopedWhere(externalAgents, params))
         .limit(1),
     ];
 
@@ -243,7 +247,7 @@ export const getProject =
   async (params: { scopes: ProjectScopeConfig }): Promise<ProjectSelect | null> => {
     const result = await db.query.projects.findFirst({
       where: and(
-        eq(projects.tenantId, params.scopes.tenantId),
+        tenantScopedWhere(projects, params.scopes),
         eq(projects.id, params.scopes.projectId)
       ),
     });
@@ -281,11 +285,13 @@ export const updateProject =
   }): Promise<ProjectSelect | null> => {
     const now = new Date().toISOString();
 
+    const projectWhere = and(
+      tenantScopedWhere(projects, params.scopes),
+      eq(projects.id, params.scopes.projectId)
+    );
+
     const currentProject = await db.query.projects.findFirst({
-      where: and(
-        eq(projects.tenantId, params.scopes.tenantId),
-        eq(projects.id, params.scopes.projectId)
-      ),
+      where: projectWhere,
     });
 
     const [updated] = await db
@@ -294,9 +300,7 @@ export const updateProject =
         ...params.data,
         updatedAt: now,
       })
-      .where(
-        and(eq(projects.tenantId, params.scopes.tenantId), eq(projects.id, params.scopes.projectId))
-      )
+      .where(projectWhere)
       .returning();
 
     if (updated && params.data.stopWhen !== undefined) {
@@ -325,7 +329,7 @@ export const projectExistsInTable =
       .select({ id: projects.id })
       .from(projects)
       .where(
-        and(eq(projects.tenantId, params.scopes.tenantId), eq(projects.id, params.scopes.projectId))
+        and(tenantScopedWhere(projects, params.scopes), eq(projects.id, params.scopes.projectId))
       )
       .limit(1);
 
@@ -355,7 +359,7 @@ export const deleteProject =
     await db
       .delete(projects)
       .where(
-        and(eq(projects.tenantId, params.scopes.tenantId), eq(projects.id, params.scopes.projectId))
+        and(tenantScopedWhere(projects, params.scopes), eq(projects.id, params.scopes.projectId))
       );
 
     return true;
@@ -370,11 +374,9 @@ async function cascadeStopWhenUpdates(
   oldStopWhen: any,
   newStopWhen: any
 ): Promise<void> {
-  const { tenantId, projectId } = scopes;
-
   if (oldStopWhen?.transferCountIs !== newStopWhen?.transferCountIs) {
     const agentsToUpdate = await db.query.agents.findMany({
-      where: and(eq(agents.tenantId, tenantId), eq(agents.projectId, projectId)),
+      where: projectScopedWhere(agents, scopes),
     });
 
     for (const agent of agentsToUpdate) {
@@ -394,20 +396,14 @@ async function cascadeStopWhenUpdates(
             stopWhen: updatedStopWhen,
             updatedAt: new Date().toISOString(),
           })
-          .where(
-            and(
-              eq(agents.tenantId, tenantId),
-              eq(agents.projectId, projectId),
-              eq(agents.id, agent.id)
-            )
-          );
+          .where(and(projectScopedWhere(agents, scopes), eq(agents.id, agent.id)));
       }
     }
   }
 
   if (oldStopWhen?.stepCountIs !== newStopWhen?.stepCountIs) {
     const agentsToUpdate = await db.query.subAgents.findMany({
-      where: and(eq(subAgents.tenantId, tenantId), eq(subAgents.projectId, projectId)),
+      where: projectScopedWhere(subAgents, scopes),
     });
 
     for (const agent of agentsToUpdate) {
@@ -424,13 +420,7 @@ async function cascadeStopWhenUpdates(
             stopWhen: updatedStopWhen,
             updatedAt: new Date().toISOString(),
           })
-          .where(
-            and(
-              eq(subAgents.tenantId, tenantId),
-              eq(subAgents.projectId, projectId),
-              eq(subAgents.id, agent.id)
-            )
-          );
+          .where(and(projectScopedWhere(subAgents, scopes), eq(subAgents.id, agent.id)));
       }
     }
   }

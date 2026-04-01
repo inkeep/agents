@@ -1,6 +1,7 @@
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
   foreignKey,
   index,
   integer,
@@ -16,6 +17,10 @@ import {
 import { organization, user } from '../../auth/auth-schema';
 import type { Part } from '../../types/a2a';
 import type {
+  AppConfig,
+  AppType,
+  ChannelAccessMode,
+  ChannelIds,
   ConversationMetadata,
   MessageContent,
   MessageMetadata,
@@ -131,6 +136,27 @@ export const tasks = pgTable(
   (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
 );
 
+export const workflowExecutions = pgTable(
+  'workflow_executions',
+  {
+    ...projectScoped,
+    agentId: varchar('agent_id', { length: 256 }).notNull(),
+    conversationId: varchar('conversation_id', { length: 256 }).notNull(),
+    requestId: varchar('request_id', { length: 256 }),
+    status: varchar('status', { length: 50 }).notNull().default('running'),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    index('workflow_executions_conversation_idx').on(
+      table.tenantId,
+      table.projectId,
+      table.conversationId
+    ),
+  ]
+);
+
 export const apiKeys = pgTable(
   'api_keys',
   {
@@ -156,6 +182,26 @@ export const apiKeys = pgTable(
   ]
 );
 
+export const apps = pgTable(
+  'apps',
+  {
+    id: varchar('id', { length: 256 }).primaryKey(),
+    tenantId: varchar('tenant_id', { length: 256 }),
+    projectId: varchar('project_id', { length: 256 }),
+    name: varchar('name', { length: 256 }).notNull(),
+    description: text('description'),
+    type: varchar('type', { length: 64 }).$type<AppType>().notNull(),
+    defaultProjectId: varchar('default_project_id', { length: 256 }),
+    defaultAgentId: varchar('default_agent_id', { length: 256 }),
+    prompt: text('prompt'),
+    enabled: boolean('enabled').notNull().default(true),
+    config: jsonb('config').$type<AppConfig>().notNull(),
+    lastUsedAt: timestamp('last_used_at', { mode: 'string' }),
+    ...timestamps,
+  },
+  (t) => [index('apps_tenant_project_idx').on(t.tenantId, t.projectId)]
+);
+
 /**
  * Trigger invocations - records each time a webhook trigger is invoked.
  * This is runtime data (transactional) so it lives in PostgreSQL, not DoltGres.
@@ -169,6 +215,7 @@ export const triggerInvocations = pgTable(
     ...agentScoped,
     triggerId: varchar('trigger_id', { length: 256 }).notNull(),
     conversationId: varchar('conversation_id', { length: 256 }),
+    ref: jsonb('ref').$type<ResolvedRef>(),
     status: varchar('status', { length: 20 }).notNull().default('pending'),
     requestPayload: jsonb('request_payload').notNull(),
     transformedPayload: jsonb('transformed_payload'),
@@ -211,6 +258,9 @@ export const workAppSlackWorkspaces = pgTable(
     shouldAllowJoinFromWorkspace: boolean('should_allow_join_from_workspace')
       .notNull()
       .default(false),
+    defaultAgentId: varchar('default_agent_id', { length: 256 }),
+    defaultProjectId: varchar('default_project_id', { length: 256 }),
+    defaultGrantAccessToMembers: boolean('default_grant_access_to_members').default(true),
     ...timestamps,
   },
   (table) => [
@@ -218,6 +268,11 @@ export const workAppSlackWorkspaces = pgTable(
     unique('work_app_slack_workspaces_nango_connection_unique').on(table.nangoConnectionId),
     index('work_app_slack_workspaces_tenant_idx').on(table.tenantId),
     index('work_app_slack_workspaces_team_idx').on(table.slackTeamId),
+    index('work_app_slack_workspaces_defaults_idx').on(
+      table.tenantId,
+      table.defaultProjectId,
+      table.defaultAgentId
+    ),
   ]
 );
 
@@ -257,6 +312,12 @@ export const workAppSlackUserMappings = pgTable(
     index('work_app_slack_user_mappings_user_idx').on(table.inkeepUserId),
     index('work_app_slack_user_mappings_team_idx').on(table.slackTeamId),
     index('work_app_slack_user_mappings_slack_user_idx').on(table.slackUserId),
+    index('work_app_slack_user_mappings_tenant_team_idx').on(table.tenantId, table.slackTeamId),
+    index('work_app_slack_user_mappings_lookup_idx').on(
+      table.clientId,
+      table.slackTeamId,
+      table.slackUserId
+    ),
   ]
 );
 
@@ -278,7 +339,6 @@ export const workAppSlackChannelAgentConfigs = pgTable(
     slackChannelType: varchar('slack_channel_type', { length: 50 }),
     projectId: varchar('project_id', { length: 256 }).notNull(),
     agentId: varchar('agent_id', { length: 256 }).notNull(),
-    agentName: varchar('agent_name', { length: 256 }),
     configuredByUserId: text('configured_by_user_id').references(() => user.id, {
       onDelete: 'set null',
     }),
@@ -295,18 +355,56 @@ export const workAppSlackChannelAgentConfigs = pgTable(
     index('work_app_slack_channel_agent_configs_tenant_idx').on(table.tenantId),
     index('work_app_slack_channel_agent_configs_team_idx').on(table.slackTeamId),
     index('work_app_slack_channel_agent_configs_channel_idx').on(table.slackChannelId),
+    index('work_app_slack_channel_agent_configs_tenant_team_idx').on(
+      table.tenantId,
+      table.slackTeamId
+    ),
+    index('work_app_slack_channel_agent_configs_agent_idx').on(
+      table.tenantId,
+      table.projectId,
+      table.agentId
+    ),
+    index('work_app_slack_channel_agent_configs_project_idx').on(table.tenantId, table.projectId),
   ]
 );
 
-/**
- * Scheduled trigger invocations - records each execution of a scheduled trigger.
- * NOTE: No FK to scheduled_triggers table since it's in a different database (DoltGres).
- */
+export const scheduledTriggers = pgTable(
+  'scheduled_triggers',
+  {
+    ...agentScoped,
+    name: varchar('name', { length: 256 }).notNull(),
+    description: text('description'),
+    enabled: boolean('enabled').notNull().default(true),
+    cronExpression: varchar('cron_expression', { length: 256 }),
+    cronTimezone: varchar('cron_timezone', { length: 64 }).default('UTC'),
+    runAt: timestamp('run_at', { withTimezone: true, mode: 'string' }),
+    payload: jsonb('payload').$type<Record<string, unknown> | null>(),
+    messageTemplate: text('message_template'),
+    maxRetries: integer('max_retries').notNull().default(1),
+    retryDelaySeconds: integer('retry_delay_seconds').notNull().default(60),
+    timeoutSeconds: integer('timeout_seconds').notNull().default(780),
+    runAsUserId: varchar('run_as_user_id', { length: 256 }).references(() => user.id, {
+      onDelete: 'cascade',
+    }),
+    createdBy: varchar('created_by', { length: 256 }),
+    nextRunAt: timestamp('next_run_at', { withTimezone: true, mode: 'string' }),
+    ref: varchar('ref', { length: 256 }).notNull().default('main'),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.id] }),
+    index('scheduled_triggers_agent_idx').on(table.tenantId, table.projectId, table.agentId),
+    index('scheduled_triggers_ref_idx').on(table.ref),
+    index('scheduled_triggers_next_run_at_idx').on(table.enabled, table.nextRunAt),
+  ]
+);
+
 export const scheduledTriggerInvocations = pgTable(
   'scheduled_trigger_invocations',
   {
     ...agentScoped,
     scheduledTriggerId: varchar('scheduled_trigger_id', { length: 256 }).notNull(),
+    ref: jsonb('ref').$type<ResolvedRef>(),
     status: varchar('status', { length: 50 })
       .notNull()
       .$type<'pending' | 'running' | 'completed' | 'failed' | 'cancelled'>(),
@@ -326,6 +424,12 @@ export const scheduledTriggerInvocations = pgTable(
     uniqueIndex('sched_invocations_idempotency_idx').on(table.idempotencyKey),
   ]
 );
+
+export const schedulerState = pgTable('scheduler_state', {
+  id: varchar('id', { length: 256 }).primaryKey(),
+  currentRunId: varchar('current_run_id', { length: 256 }),
+  ...timestamps,
+});
 
 // --- Tables with FK dependencies ---
 
@@ -480,6 +584,7 @@ export const datasetRun = pgTable(
     datasetId: text('dataset_id').notNull(),
     datasetRunConfigId: text('dataset_run_config_id'),
     evaluationJobConfigId: text('evaluation_job_config_id'),
+    ref: jsonb('ref').$type<ResolvedRef>(),
     ...timestamps,
   },
   (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
@@ -541,6 +646,7 @@ export const evaluationRun = pgTable(
     ...projectScoped,
     evaluationJobConfigId: text('evaluation_job_config_id'), // Optional: if created from a job
     evaluationRunConfigId: text('evaluation_run_config_id'), // Optional: if created from a run config
+    ref: jsonb('ref').$type<ResolvedRef>(),
     ...timestamps,
   },
   (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
@@ -579,6 +685,33 @@ export const evaluationResult = pgTable(
     }).onDelete('cascade'),
   ]
 );
+
+export const userProfile = pgTable('user_profile', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .unique()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  timezone: text('timezone'),
+  attributes: jsonb('attributes').$type<Record<string, unknown>>().default({}),
+  ...timestamps,
+});
+
+export const userProfileRelations = relations(userProfile, ({ one }) => ({
+  user: one(user, {
+    fields: [userProfile.userId],
+    references: [user.id],
+  }),
+}));
+
+// ============================================================================
+// USAGE GENERATION TYPES (table removed — usage now tracked via OTel/SigNoz)
+// ============================================================================
+
+import { USAGE_GENERATION_TYPES } from '../../constants/otel-attributes';
+
+export { USAGE_GENERATION_TYPES };
+export type GenerationType = (typeof USAGE_GENERATION_TYPES)[number];
 
 // ============================================================================
 // RUNTIME RELATIONS
@@ -819,7 +952,7 @@ export const workAppGitHubMcpToolAccessMode = pgTable(
     ...timestamps,
   },
   (table) => [
-    primaryKey({ columns: [table.toolId] }),
+    primaryKey({ columns: [table.tenantId, table.projectId, table.toolId] }),
     index('work_app_github_mcp_tool_access_mode_tenant_idx').on(table.tenantId),
     index('work_app_github_mcp_tool_access_mode_project_idx').on(table.projectId),
     foreignKey({
@@ -871,4 +1004,58 @@ export const workAppGitHubMcpToolRepositoryAccessRelations = relations(
       references: [workAppGitHubRepositories.id],
     }),
   })
+);
+
+// ============================================================================
+// SLACK WORK APP MCP ACCESS CONFIG
+// ============================================================================
+
+export const workAppSlackMcpToolAccessConfig = pgTable(
+  'work_app_slack_mcp_tool_access_config',
+  {
+    toolId: varchar('tool_id', { length: 256 }).notNull(),
+    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
+    projectId: varchar('project_id', { length: 256 }).notNull(),
+    channelAccessMode: varchar('channel_access_mode', { length: 20 })
+      .$type<ChannelAccessMode>()
+      .notNull(),
+    dmEnabled: boolean('dm_enabled').notNull().default(false),
+    channelIds: jsonb('channel_ids').$type<ChannelIds>().notNull().default([]),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.toolId] }),
+    index('work_app_slack_mcp_tool_access_config_tenant_idx').on(table.tenantId),
+    index('work_app_slack_mcp_tool_access_config_project_idx').on(table.projectId),
+    foreignKey({
+      columns: [table.tenantId],
+      foreignColumns: [organization.id],
+      name: 'work_app_slack_mcp_tool_access_config_tenant_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+// ============================================================================
+// ORG ENTITLEMENTS
+// ============================================================================
+
+export const orgEntitlement = pgTable(
+  'org_entitlement',
+  {
+    id: varchar('id', { length: 256 }).primaryKey(),
+    organizationId: varchar('organization_id', { length: 256 }).notNull(),
+    resourceType: text('resource_type').notNull(),
+    maxValue: integer('max_value').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    unique('org_entitlement_org_resource_unique').on(table.organizationId, table.resourceType),
+    index('org_entitlement_org_idx').on(table.organizationId),
+    foreignKey({
+      columns: [table.organizationId],
+      foreignColumns: [organization.id],
+      name: 'org_entitlement_organization_fk',
+    }).onDelete('cascade'),
+    check('org_entitlement_resource_type_format', sql`resource_type ~ '^[a-z]+:[a-z][a-z0-9_]*$'`),
+  ]
 );

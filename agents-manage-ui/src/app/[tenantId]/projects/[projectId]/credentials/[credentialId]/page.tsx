@@ -5,7 +5,11 @@ import {
 } from '@/components/credentials/views/edit-credential-form';
 import FullPageError from '@/components/errors/full-page-error';
 import { type Credential, fetchCredential } from '@/lib/api/credentials';
-import { getNangoConnectionMetadata } from '@/lib/mcp-tools/nango';
+import {
+  fetchNangoIntegration,
+  getNangoConnectionMetadata,
+  type NangoIntegrationWithMaskedCredentials,
+} from '@/lib/mcp-tools/nango';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 async function credentialToFormData(credential: Credential): Promise<EditCredentialFormData> {
@@ -24,6 +28,19 @@ async function credentialToFormData(credential: Credential): Promise<EditCredent
   };
 }
 
+async function fetchLinkedIntegration(
+  credential: Credential
+): Promise<NangoIntegrationWithMaskedCredentials | null> {
+  const providerConfigKey = credential.retrievalParams?.providerConfigKey;
+  if (!providerConfigKey || typeof providerConfigKey !== 'string') return null;
+
+  try {
+    return await fetchNangoIntegration(providerConfigKey);
+  } catch {
+    return null;
+  }
+}
+
 async function EditCredentialsPage({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/credentials/[credentialId]'>) {
@@ -31,7 +48,11 @@ async function EditCredentialsPage({
 
   try {
     const credential = await fetchCredential(tenantId, projectId, credentialId);
-    const initialFormData = await credentialToFormData(credential);
+    const [initialFormData, nangoIntegration] = await Promise.all([
+      credentialToFormData(credential),
+      fetchLinkedIntegration(credential),
+    ]);
+
     return (
       <EditCredentialForm
         className="max-w-2xl mx-auto"
@@ -39,6 +60,7 @@ async function EditCredentialsPage({
         projectId={projectId}
         credential={credential}
         initialFormData={initialFormData}
+        nangoIntegration={nangoIntegration}
       />
     );
   } catch (error) {

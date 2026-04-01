@@ -86,6 +86,7 @@ Delegation relationships are used to **pass a task** from one Sub Agent to anoth
 - The target Sub Agent executes a specific task
 - Results are returned to the source Sub Agent
 - The source Sub Agent continues processing
+- If a user redirects the task mid-delegation (e.g. by denying a tool call with a reason like "I want Tokyo instead"), the delegation response includes a note about the redirect so the parent Sub Agent has full context about how the task evolved
 
 ```typescript
 // Sub Agents for specific tasks

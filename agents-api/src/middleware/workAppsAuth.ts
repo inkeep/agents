@@ -1,21 +1,21 @@
 /**
  * Work Apps Authentication Middleware
  *
- * Shared session/API key auth for protected work app routes (Slack, GitHub, etc.).
+ * Shared session/bearer token auth for protected work app routes (Slack, GitHub, etc.).
  * Most work app routes are unauthenticated (events, commands, webhooks),
  * but workspace management and user endpoints require session auth.
  *
  * Auth flow:
  * 1. Test environment → bypass
  * 2. Dev localhost → bypass with dev-user context
- * 3. Bearer token → manageApiKeyAuth
+ * 3. Bearer token → manageBearerAuth (bypass secret, session, Slack JWT, internal service)
  * 4. Session cookie → sessionAuth
  */
 
 import { createApiError } from '@inkeep/agents-core';
 import type { Context, Next } from 'hono';
 import { env } from '../env';
-import { manageApiKeyAuth } from './manageAuth';
+import { manageBearerAuth } from './manageAuth';
 import { sessionAuth } from './sessionAuth';
 
 const isTestEnvironment = () => env.ENVIRONMENT === 'test';
@@ -63,7 +63,7 @@ export const workAppsAuth = async (c: Context, next: Next) => {
   // Bearer token → API key auth, otherwise → session auth (dashboard cookies)
   const authHeader = c.req.header('Authorization');
   if (authHeader?.startsWith('Bearer ')) {
-    return manageApiKeyAuth()(c as any, next);
+    return manageBearerAuth()(c as any, next);
   }
 
   // Session auth for dashboard users

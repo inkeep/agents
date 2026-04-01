@@ -2,22 +2,22 @@ import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { z } from 'zod';
 import {
-  AGGREGATE_OPERATORS,
   AI_OPERATIONS,
   AI_TOOL_TYPES,
-  DATA_SOURCES,
-  DATA_TYPES,
+  buildFilterExpression,
+  FIELD_CONTEXTS,
+  FIELD_DATA_TYPES,
   OPERATORS,
   ORDER_DIRECTIONS,
-  PANEL_TYPES,
   QUERY_DEFAULTS,
   QUERY_EXPRESSIONS,
-  QUERY_FIELD_CONFIGS,
   QUERY_TYPES,
-  REDUCE_OPERATIONS,
+  REQUEST_TYPES,
+  SIGNALS,
   SPAN_KEYS,
   SPAN_NAMES,
   UNKNOWN_VALUE,
+  USAGE_GENERATION_TYPES,
 } from '@/constants/signoz';
 
 // ---------- String Constants for Type Safety
@@ -81,9 +81,90 @@ export interface SpanFilterOptions {
   }[];
 }
 
+export interface TokenUsageResult {
+  byModel: Array<{
+    modelId: string;
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+  }>;
+  byAgent: Array<{
+    agentId: string;
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+  }>;
+  byProject: Array<{
+    projectId: string;
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+  }>;
+  totals: { inputTokens: number; outputTokens: number; totalTokens: number };
+}
+
+type ProjectStatsResult = Array<{
+  projectId: string;
+  totalConversations: number;
+  totalAICalls: number;
+  totalMCPCalls: number;
+}>;
+
+const EMPTY_TOKEN_USAGE: TokenUsageResult = {
+  byModel: [],
+  byAgent: [],
+  byProject: [],
+  totals: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+};
+
+// ---------- Reusable scope filters
+
+type FilterItem = { key: string; op: string; value: unknown };
+
+const AI_OPERATION_FILTER: FilterItem = {
+  key: SPAN_KEYS.AI_OPERATION_ID,
+  op: OPERATORS.IN,
+  value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+};
+
+const CONVERSATION_SCOPE_FILTER: FilterItem = {
+  key: SPAN_KEYS.CONVERSATION_ID,
+  op: OPERATORS.EXISTS,
+  value: '',
+};
+
+const GENERATION_TYPE_SCOPE_FILTER: FilterItem = {
+  key: SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE,
+  op: OPERATORS.IN,
+  value: [...USAGE_GENERATION_TYPES],
+};
+
+const buildScopedFilterItems = (
+  scope: 'conversation' | 'all-usage',
+  projectId?: string
+): FilterItem[] => [
+  AI_OPERATION_FILTER,
+  scope === 'conversation' ? CONVERSATION_SCOPE_FILTER : GENERATION_TYPE_SCOPE_FILTER,
+  ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
+];
+
 // ---------- Small utilities
 
 const nsToMs = (ns: number) => Math.floor(ns / 1_000_000);
+
+const timestampMsFromSeries = (s: { values?: Array<{ value?: string }> }): number => {
+  const raw = s.values?.[0]?.value;
+  if (!raw || raw === '0') return 0;
+
+  const truncated = raw.replace(/(\.\d{3})\d+/, '$1');
+  const d = new Date(truncated);
+  if (!Number.isNaN(d.getTime()) && d.getTime() > 0) return d.getTime();
+
+  const num = Number(raw);
+  if (!Number.isNaN(num) && num > 1e15) return nsToMs(num);
+  if (!Number.isNaN(num) && num > 0) return num;
+  return 0;
+};
 
 const asNumberIfNumeric = (v: string) => (/^-?\d+(\.\d+)?$/.test(v) ? Number(v) : v);
 
@@ -92,7 +173,7 @@ const FilterValueSchema = z.union([z.string(), z.number(), z.boolean()]);
 
 type FilterValue = z.infer<typeof FilterValueSchema>;
 
-type DataType = (typeof DATA_TYPES)[keyof typeof DATA_TYPES];
+type DataType = (typeof FIELD_DATA_TYPES)[keyof typeof FIELD_DATA_TYPES];
 
 const asTypedFilterValue = (v: string): FilterValue => {
   try {
@@ -149,6 +230,21 @@ axiosRetry(axios, {
   retryDelay: axiosRetry.exponentialDelay,
 });
 
+const CRITICAL_ERROR_SPAN_NAMES = [
+  'execution_handler.execute',
+  'agent.load_tools',
+  'context.handle_context_resolution',
+  'context.resolve',
+  'agent.generate',
+  'context-resolver.resolve_single_fetch_definition',
+  'agent_session.generate_structured_update',
+  'agent_session.process_artifact',
+  'agent_session.generate_artifact_metadata',
+  'response.format_object_response',
+  'response.format_response',
+  'ai.toolCall',
+];
+
 class SigNozStatsAPI {
   private tenantId: string | null = null;
 
@@ -166,7 +262,7 @@ class SigNozStatsAPI {
       ...(projectId && { projectId }),
     };
 
-    const response = await axios.post<T>(`/api/signoz?tenantId=${this.tenantId}`, requestPayload, {
+    const response = await axios.post<T>(`/api/traces?tenantId=${this.tenantId}`, requestPayload, {
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
@@ -192,7 +288,7 @@ class SigNozStatsAPI {
     }
 
     const response = await axios.post(
-      `/api/signoz?tenantId=${this.tenantId}&mode=batch`,
+      `/api/traces?tenantId=${this.tenantId}&mode=batch`,
       { paginationPayload, detailPayloadTemplate },
       {
         timeout: 60000,
@@ -212,7 +308,36 @@ class SigNozStatsAPI {
 
   // --- Helpers to read SigNoz response
   private extractSeries(resp: any, name: string): Series[] {
-    return resp?.data?.result?.find((r: any) => r?.queryName === name)?.series ?? [];
+    const results = resp?.data?.data?.results ?? resp?.data?.results;
+    if (!results) {
+      return [];
+    }
+    const result = results.find((r: any) => r?.queryName === name);
+    if (!result) return [];
+    if (result.aggregations) {
+      return result.aggregations.flatMap((agg: any) =>
+        (agg.series ?? []).map((s: any) => ({
+          labels: Array.isArray(s.labels)
+            ? Object.fromEntries(
+                (s.labels as any[]).map((l: any) => [l.key?.name ?? '', String(l.value ?? '')])
+              )
+            : (s.labels ?? {}),
+          values: (s.values ?? []).map((v: any) => ({ value: String(v.value ?? '0') })),
+        }))
+      );
+    }
+    const columns: Array<{ name: string; columnType: string }> = result.columns ?? [];
+    const rows: unknown[][] = result.data ?? [];
+    return rows.map((row) => {
+      const labels: Record<string, string> = {};
+      const values: Array<{ value: string }> = [];
+      columns.forEach((col, i) => {
+        if (col.columnType === 'group') labels[col.name] = row[i] == null ? '' : String(row[i]);
+        else if (col.columnType === 'aggregation')
+          values.push({ value: row[i] == null ? '0' : String(row[i]) });
+      });
+      return { labels, values };
+    });
   }
 
   private extractToolCallAggregates(resp: any): {
@@ -243,7 +368,8 @@ class SigNozStatsAPI {
     projectId: string | undefined,
     pagination: { page: number; limit: number },
     searchQuery: string | undefined,
-    agentId: string | undefined
+    agentId: string | undefined,
+    hasErrors?: boolean
   ): Promise<PaginatedConversationStats> {
     try {
       return await this.getConversationStatsPaginated(
@@ -253,7 +379,8 @@ class SigNozStatsAPI {
         projectId,
         pagination,
         searchQuery,
-        agentId
+        agentId,
+        hasErrors
       );
     } catch (e) {
       console.error('getConversationStats error:', e);
@@ -298,7 +425,7 @@ class SigNozStatsAPI {
     for (const s of lastActivitySeries) {
       const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
       if (!id) continue;
-      firstSeen.set(id, numberFromSeries(s));
+      firstSeen.set(id, timestampMsFromSeries(s));
     }
 
     // first user message per conversation
@@ -307,7 +434,7 @@ class SigNozStatsAPI {
     for (const s of userMessagesSeries) {
       const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
       const content = s.labels?.[SPAN_KEYS.MESSAGE_CONTENT];
-      const t = numberFromSeries(s);
+      const t = timestampMsFromSeries(s);
       if (!id || !content) continue;
       (msgsByConv.get(id) ?? msgsByConv.set(id, []).get(id))?.push({ t, c: content });
     }
@@ -316,7 +443,7 @@ class SigNozStatsAPI {
       const first = arr[0];
       if (first) {
         const content = first.c.length > 100 ? `${first.c.slice(0, 100)}...` : first.c;
-        firstMsgByConv.set(id, { content, timestamp: nsToMs(first.t) });
+        firstMsgByConv.set(id, { content, timestamp: first.t });
       }
     }
 
@@ -348,7 +475,8 @@ class SigNozStatsAPI {
     projectId: string | undefined,
     pagination: { page: number; limit: number },
     searchQuery: string | undefined,
-    agentId: string | undefined
+    agentId: string | undefined,
+    hasErrors?: boolean
   ): Promise<PaginatedConversationStats> {
     const hasSearchQuery = !!searchQuery?.trim();
     const hasSpanFilters = !!(filters?.spanName || filters?.attributes?.length);
@@ -372,7 +500,8 @@ class SigNozStatsAPI {
         projectId,
         agentId,
         false,
-        pagination
+        pagination,
+        hasErrors
       );
 
       const sanitizedAgentId = agentId && agentId !== 'all' ? agentId : undefined;
@@ -404,7 +533,7 @@ class SigNozStatsAPI {
         paginationResponse,
         QUERY_EXPRESSIONS.PAGE_CONVERSATIONS
       );
-      const conversationIds = pageSeries
+      const allConversationIds = pageSeries
         .map((s) => s.labels?.[SPAN_KEYS.CONVERSATION_ID])
         .filter(Boolean) as string[];
 
@@ -414,6 +543,9 @@ class SigNozStatsAPI {
       );
       const total = countFromSeries(totalSeries[0] || zeroSeries);
       aggregateStats.totalConversations = total;
+
+      const pageStart = (pagination.page - 1) * pagination.limit;
+      const conversationIds = allConversationIds.slice(pageStart, pageStart + pagination.limit);
 
       if (conversationIds.length === 0 || !detailResponse) {
         return {
@@ -440,7 +572,8 @@ class SigNozStatsAPI {
       projectId,
       pagination,
       searchQuery,
-      agentId
+      agentId,
+      hasErrors
     );
 
     if (conversationIds.length === 0) {
@@ -476,7 +609,8 @@ class SigNozStatsAPI {
     projectId: string | undefined,
     pagination: { page: number; limit: number },
     searchQuery: string | undefined,
-    agentId: string | undefined
+    agentId: string | undefined,
+    hasErrors?: boolean
   ): Promise<{ conversationIds: string[]; total: number; aggregateStats: AggregateStats }> {
     const hasSearchQuery = !!searchQuery?.trim();
     const hasSpanFilters = !!(filters?.spanName || filters?.attributes?.length);
@@ -488,7 +622,8 @@ class SigNozStatsAPI {
       projectId,
       agentId,
       hasSearchQuery,
-      undefined
+      undefined,
+      hasErrors
     );
 
     const consolidatedResp = await this.makeRequest(consolidatedPayload);
@@ -511,7 +646,7 @@ class SigNozStatsAPI {
     for (const s of activitySeries) {
       const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
       if (!id) continue;
-      activityMap.set(id, numberFromSeries(s));
+      activityMap.set(id, timestampMsFromSeries(s));
     }
 
     let conversationIds = Array.from(activityMap.keys());
@@ -642,160 +777,158 @@ class SigNozStatsAPI {
   ) {
     try {
       const resp = await this.makeRequest(
-        this.buildModelBreakdownPayload(startTime, endTime, projectId)
+        this.buildModelBreakdownPayload(
+          startTime,
+          endTime,
+          buildScopedFilterItems('conversation', projectId),
+          projectId
+        )
       );
-      const series = this.extractSeries(resp, 'modelCalls');
-      const totals = new Map<string, number>();
-
-      for (const s of series) {
-        const mId = s.labels?.[SPAN_KEYS.AI_MODEL_ID] || UNKNOWN_VALUE;
-        const gId = s.labels?.[SPAN_KEYS.AGENT_ID] || UNKNOWN_VALUE;
-        const count = countFromSeries(s);
-        if (!count) continue;
-        if (agentId && agentId !== 'all' && gId !== agentId) continue;
-        totals.set(mId, (totals.get(mId) || 0) + count);
-      }
-
-      return [...totals]
-        .map(([modelId, totalCalls]) => ({ modelId, totalCalls }))
-        .sort((a, b) => b.totalCalls - a.totalCalls);
+      return this.parseModelCallsResponse(resp, agentId);
     } catch (e) {
       console.error('getAICallsByModel error:', e);
       return [];
     }
   }
 
+  async getUsageCallsByModel(startTime: number, endTime: number, projectId?: string) {
+    try {
+      const resp = await this.makeRequest(
+        this.buildModelBreakdownPayload(
+          startTime,
+          endTime,
+          buildScopedFilterItems('all-usage', projectId),
+          projectId
+        )
+      );
+      return this.parseModelCallsResponse(resp);
+    } catch (e) {
+      console.error('getUsageCallsByModel error:', e);
+      return [];
+    }
+  }
+
+  private parseModelCallsResponse(
+    resp: any,
+    agentId?: string
+  ): Array<{ modelId: string; totalCalls: number }> {
+    const series = this.extractSeries(resp, 'modelCalls');
+    const totals = new Map<string, number>();
+
+    for (const s of series) {
+      const mId = s.labels?.[SPAN_KEYS.AI_MODEL_ID] || UNKNOWN_VALUE;
+      const count = countFromSeries(s);
+      if (!count) continue;
+      if (agentId && agentId !== 'all') {
+        const gId = s.labels?.[SPAN_KEYS.AGENT_ID] || UNKNOWN_VALUE;
+        if (gId !== agentId) continue;
+      }
+      totals.set(mId, (totals.get(mId) || 0) + count);
+    }
+
+    return [...totals]
+      .map(([modelId, totalCalls]) => ({ modelId, totalCalls }))
+      .sort((a, b) => b.totalCalls - a.totalCalls);
+  }
+
+  private parseTokenUsageResponse(resp: any): TokenUsageResult {
+    const inputByModelSeries = this.extractSeries(resp, 'inputTokensByModel');
+    const outputByModelSeries = this.extractSeries(resp, 'outputTokensByModel');
+    const inputByAgentSeries = this.extractSeries(resp, 'inputTokensByAgent');
+    const outputByAgentSeries = this.extractSeries(resp, 'outputTokensByAgent');
+    const inputByProjectSeries = this.extractSeries(resp, 'inputTokensByProject');
+    const outputByProjectSeries = this.extractSeries(resp, 'outputTokensByProject');
+
+    const aggregate = (
+      inputSeries: Series[],
+      outputSeries: Series[],
+      labelKey: string
+    ): Map<string, { inputTokens: number; outputTokens: number }> => {
+      const stats = new Map<string, { inputTokens: number; outputTokens: number }>();
+      for (const s of inputSeries) {
+        const key = s.labels?.[labelKey] || UNKNOWN_VALUE;
+        const existing = stats.get(key) || { inputTokens: 0, outputTokens: 0 };
+        existing.inputTokens += numberFromSeries(s);
+        stats.set(key, existing);
+      }
+      for (const s of outputSeries) {
+        const key = s.labels?.[labelKey] || UNKNOWN_VALUE;
+        const existing = stats.get(key) || { inputTokens: 0, outputTokens: 0 };
+        existing.outputTokens += numberFromSeries(s);
+        stats.set(key, existing);
+      }
+      return stats;
+    };
+
+    const toSorted = <T extends { totalTokens: number }>(
+      stats: Map<string, { inputTokens: number; outputTokens: number }>,
+      mapEntry: (key: string, v: { inputTokens: number; outputTokens: number }) => T
+    ): T[] =>
+      [...stats.entries()]
+        .map(([key, v]) => mapEntry(key, v))
+        .sort((a, b) => b.totalTokens - a.totalTokens);
+
+    const byModel = toSorted(
+      aggregate(inputByModelSeries, outputByModelSeries, SPAN_KEYS.AI_MODEL_ID),
+      (modelId, s) => ({ modelId, ...s, totalTokens: s.inputTokens + s.outputTokens })
+    );
+    const byAgent = toSorted(
+      aggregate(inputByAgentSeries, outputByAgentSeries, SPAN_KEYS.AGENT_ID),
+      (agentId, s) => ({ agentId, ...s, totalTokens: s.inputTokens + s.outputTokens })
+    );
+    const byProject = toSorted(
+      aggregate(inputByProjectSeries, outputByProjectSeries, SPAN_KEYS.PROJECT_ID),
+      (projectId, s) => ({ projectId, ...s, totalTokens: s.inputTokens + s.outputTokens })
+    );
+
+    const totals = {
+      inputTokens: byModel.reduce((sum, m) => sum + m.inputTokens, 0),
+      outputTokens: byModel.reduce((sum, m) => sum + m.outputTokens, 0),
+      totalTokens: byModel.reduce((sum, m) => sum + m.totalTokens, 0),
+    };
+
+    return { byModel, byAgent, byProject, totals };
+  }
+
   async getTokenUsageStats(
     startTime: number,
     endTime: number,
     projectId?: string
-  ): Promise<{
-    byModel: Array<{
-      modelId: string;
-      inputTokens: number;
-      outputTokens: number;
-      totalTokens: number;
-    }>;
-    byAgent: Array<{
-      agentId: string;
-      inputTokens: number;
-      outputTokens: number;
-      totalTokens: number;
-    }>;
-    byProject: Array<{
-      projectId: string;
-      inputTokens: number;
-      outputTokens: number;
-      totalTokens: number;
-    }>;
-    totals: { inputTokens: number; outputTokens: number; totalTokens: number };
-  }> {
+  ): Promise<TokenUsageResult> {
     try {
       const resp = await this.makeRequest(
-        this.buildTokenUsagePayload(startTime, endTime, projectId)
+        this.buildTokenUsagePayload(
+          startTime,
+          endTime,
+          buildScopedFilterItems('conversation', projectId),
+          projectId
+        )
       );
-
-      const inputByModelSeries = this.extractSeries(resp, 'inputTokensByModel');
-      const outputByModelSeries = this.extractSeries(resp, 'outputTokensByModel');
-      const inputByAgentSeries = this.extractSeries(resp, 'inputTokensByAgent');
-      const outputByAgentSeries = this.extractSeries(resp, 'outputTokensByAgent');
-      const inputByProjectSeries = this.extractSeries(resp, 'inputTokensByProject');
-      const outputByProjectSeries = this.extractSeries(resp, 'outputTokensByProject');
-
-      // Aggregate by model
-      const modelStats = new Map<string, { inputTokens: number; outputTokens: number }>();
-      for (const s of inputByModelSeries) {
-        const modelId = s.labels?.[SPAN_KEYS.AI_MODEL_ID] || UNKNOWN_VALUE;
-        const tokens = numberFromSeries(s);
-        const existing = modelStats.get(modelId) || { inputTokens: 0, outputTokens: 0 };
-        existing.inputTokens += tokens;
-        modelStats.set(modelId, existing);
-      }
-      for (const s of outputByModelSeries) {
-        const modelId = s.labels?.[SPAN_KEYS.AI_MODEL_ID] || UNKNOWN_VALUE;
-        const tokens = numberFromSeries(s);
-        const existing = modelStats.get(modelId) || { inputTokens: 0, outputTokens: 0 };
-        existing.outputTokens += tokens;
-        modelStats.set(modelId, existing);
-      }
-
-      // Aggregate by agent
-      const agentStats = new Map<string, { inputTokens: number; outputTokens: number }>();
-      for (const s of inputByAgentSeries) {
-        const agentId = s.labels?.[SPAN_KEYS.AGENT_ID] || UNKNOWN_VALUE;
-        const tokens = numberFromSeries(s);
-        const existing = agentStats.get(agentId) || { inputTokens: 0, outputTokens: 0 };
-        existing.inputTokens += tokens;
-        agentStats.set(agentId, existing);
-      }
-      for (const s of outputByAgentSeries) {
-        const agentId = s.labels?.[SPAN_KEYS.AGENT_ID] || UNKNOWN_VALUE;
-        const tokens = numberFromSeries(s);
-        const existing = agentStats.get(agentId) || { inputTokens: 0, outputTokens: 0 };
-        existing.outputTokens += tokens;
-        agentStats.set(agentId, existing);
-      }
-
-      // Aggregate by project
-      const projectStats = new Map<string, { inputTokens: number; outputTokens: number }>();
-      for (const s of inputByProjectSeries) {
-        const pId = s.labels?.[SPAN_KEYS.PROJECT_ID] || UNKNOWN_VALUE;
-        const tokens = numberFromSeries(s);
-        const existing = projectStats.get(pId) || { inputTokens: 0, outputTokens: 0 };
-        existing.inputTokens += tokens;
-        projectStats.set(pId, existing);
-      }
-      for (const s of outputByProjectSeries) {
-        const pId = s.labels?.[SPAN_KEYS.PROJECT_ID] || UNKNOWN_VALUE;
-        const tokens = numberFromSeries(s);
-        const existing = projectStats.get(pId) || { inputTokens: 0, outputTokens: 0 };
-        existing.outputTokens += tokens;
-        projectStats.set(pId, existing);
-      }
-
-      // Convert to arrays and calculate totals
-      const byModel = [...modelStats.entries()]
-        .map(([modelId, stats]) => ({
-          modelId,
-          inputTokens: stats.inputTokens,
-          outputTokens: stats.outputTokens,
-          totalTokens: stats.inputTokens + stats.outputTokens,
-        }))
-        .sort((a, b) => b.totalTokens - a.totalTokens);
-
-      const byAgent = [...agentStats.entries()]
-        .map(([agentId, stats]) => ({
-          agentId,
-          inputTokens: stats.inputTokens,
-          outputTokens: stats.outputTokens,
-          totalTokens: stats.inputTokens + stats.outputTokens,
-        }))
-        .sort((a, b) => b.totalTokens - a.totalTokens);
-
-      const byProject = [...projectStats.entries()]
-        .map(([pId, stats]) => ({
-          projectId: pId,
-          inputTokens: stats.inputTokens,
-          outputTokens: stats.outputTokens,
-          totalTokens: stats.inputTokens + stats.outputTokens,
-        }))
-        .sort((a, b) => b.totalTokens - a.totalTokens);
-
-      const totals = {
-        inputTokens: byModel.reduce((sum, m) => sum + m.inputTokens, 0),
-        outputTokens: byModel.reduce((sum, m) => sum + m.outputTokens, 0),
-        totalTokens: byModel.reduce((sum, m) => sum + m.totalTokens, 0),
-      };
-
-      return { byModel, byAgent, byProject, totals };
+      return this.parseTokenUsageResponse(resp);
     } catch (e) {
       console.error('getTokenUsageStats error:', e);
-      return {
-        byModel: [],
-        byAgent: [],
-        byProject: [],
-        totals: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
-      };
+      return EMPTY_TOKEN_USAGE;
+    }
+  }
+
+  async getUsageTokenBreakdown(
+    startTime: number,
+    endTime: number,
+    projectId?: string
+  ): Promise<TokenUsageResult> {
+    try {
+      const resp = await this.makeRequest(
+        this.buildTokenUsagePayload(
+          startTime,
+          endTime,
+          buildScopedFilterItems('all-usage', projectId),
+          projectId
+        )
+      );
+      return this.parseTokenUsageResponse(resp);
+    } catch (e) {
+      console.error('getUsageTokenBreakdown error:', e);
+      return EMPTY_TOKEN_USAGE;
     }
   }
 
@@ -949,7 +1082,7 @@ class SigNozStatsAPI {
 
       const buckets = new Map<string, number>();
       for (const s of activitySeries) {
-        const tsMs = nsToMs(numberFromSeries(s));
+        const tsMs = timestampMsFromSeries(s);
         if (!tsMs) continue;
         const d = new Date(tsMs);
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -973,80 +1106,51 @@ class SigNozStatsAPI {
     projectId?: string
   ) {
     try {
-      const filterItems: any[] = [
-        {
-          key: {
-            key: SPAN_KEYS.NAME,
-            ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-          },
-          op: OPERATORS.EXISTS,
-          value: '',
-        },
+      const spanNameFilterItems: Array<{ key: string; op: string; value: unknown }> = [
+        { key: SPAN_KEYS.NAME, op: OPERATORS.EXISTS, value: '' },
+        ...(agentId && agentId !== 'all'
+          ? [{ key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EQUALS, value: agentId }]
+          : []),
+        ...(projectId
+          ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }]
+          : []),
       ];
-      if (agentId && agentId !== 'all') {
-        filterItems.push({
-          key: { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-          op: OPERATORS.EQUALS,
-          value: agentId,
-        });
-      }
-      if (projectId) {
-        filterItems.push({
-          key: { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-          op: OPERATORS.EQUALS,
-          value: projectId,
-        });
-      }
 
       const payload = {
         start: startTime,
         end: endTime,
-        step: QUERY_DEFAULTS.STEP,
-        variables: {},
+        requestType: REQUEST_TYPES.SCALAR,
         compositeQuery: {
-          queryType: QUERY_TYPES.BUILDER,
-          panelType: PANEL_TYPES.LIST,
-          builderQueries: {
-            spanNames: {
-              dataSource: DATA_SOURCES.TRACES,
-              queryName: QUERY_EXPRESSIONS.SPAN_NAMES,
-              aggregateOperator: AGGREGATE_OPERATORS.NOOP,
-              aggregateAttribute: {},
-              filters: { op: OPERATORS.AND, items: filterItems },
-              selectColumns: [
-                {
-                  key: SPAN_KEYS.NAME,
-                  ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-                },
-              ],
-              expression: QUERY_EXPRESSIONS.SPAN_NAMES,
-              disabled: QUERY_DEFAULTS.DISABLED,
-              having: QUERY_DEFAULTS.HAVING,
-              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-              orderBy: [
-                {
-                  columnName: SPAN_KEYS.TIMESTAMP,
-                  order: ORDER_DIRECTIONS.DESC,
-                },
-              ],
-              groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
-              offset: QUERY_DEFAULTS.OFFSET,
+          queries: [
+            {
+              type: QUERY_TYPES.BUILDER_QUERY,
+              spec: {
+                name: QUERY_EXPRESSIONS.SPAN_NAMES,
+                signal: SIGNALS.TRACES,
+                filter: { expression: buildFilterExpression(spanNameFilterItems) },
+                aggregations: [{ expression: 'count()' }],
+                groupBy: [
+                  {
+                    name: SPAN_KEYS.NAME,
+                    fieldDataType: FIELD_DATA_TYPES.STRING,
+                    fieldContext: FIELD_CONTEXTS.SPAN,
+                  },
+                ],
+                order: [{ key: { name: SPAN_KEYS.NAME }, direction: ORDER_DIRECTIONS.ASC }],
+                stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+                limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+                disabled: QUERY_DEFAULTS.DISABLED,
+              },
             },
-          },
+          ],
         },
-        dataSource: DATA_SOURCES.TRACES,
+        variables: {},
         projectId,
       };
 
       const resp = await this.makeRequest(payload);
-      const list = resp?.data?.result?.find((r: any) => r?.queryName === 'spanNames')?.list ?? [];
-      const names = new Set<string>();
-      for (const row of list) {
-        const n = row?.data?.name ?? row?.name;
-        if (n) names.add(n);
-      }
-      return [...names].sort();
+      const series = this.extractSeries(resp, QUERY_EXPRESSIONS.SPAN_NAMES);
+      return series.map((s) => s.labels?.[SPAN_KEYS.NAME]).filter((n): n is string => !!n);
     } catch (e) {
       console.error('getAvailableSpanNames error:', e);
       return [];
@@ -1100,21 +1204,6 @@ class SigNozStatsAPI {
       acc.toolsUsed.set(name, t);
     }
 
-    const CRITICAL_ERROR_SPAN_NAMES = [
-      'execution_handler.execute',
-      'agent.load_tools',
-      'context.handle_context_resolution',
-      'context.resolve',
-      'agent.generate',
-      'context-resolver.resolve_single_fetch_definition',
-      'agent_session.generate_structured_update',
-      'agent_session.process_artifact',
-      'agent_session.generate_artifact_metadata',
-      'response.format_object_response',
-      'response.format_response',
-      'ai.toolCall',
-    ];
-
     for (const s of spansWithErrorsSeries) {
       const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
       if (!id) continue;
@@ -1155,163 +1244,108 @@ class SigNozStatsAPI {
   // ---------- Payload builders (unchanged behavior, less repetition)
 
   private buildAgentModelBreakdownPayload(start: number, end: number, projectId?: string) {
+    const filterItems: Array<{ key: string; op: string; value: unknown }> = [
+      {
+        key: SPAN_KEYS.AI_OPERATION_ID,
+        op: OPERATORS.IN,
+        value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+      },
+      { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' },
+      ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
+    ];
     return {
       start,
       end,
-      step: QUERY_DEFAULTS.STEP,
-      variables: {},
+      requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
-        queryType: QUERY_TYPES.BUILDER,
-        panelType: PANEL_TYPES.TABLE,
-        builderQueries: {
-          agentModelCalls: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: QUERY_EXPRESSIONS.AGENT_MODEL_CALLS,
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            filters: {
-              op: OPERATORS.AND,
-              items: [
+        queries: [
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: QUERY_EXPRESSIONS.AGENT_MODEL_CALLS,
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: 'count()' }],
+              filter: { expression: buildFilterExpression(filterItems) },
+              groupBy: [
                 {
-                  key: {
-                    key: SPAN_KEYS.AI_OPERATION_ID,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG,
-                  },
-                  op: OPERATORS.IN,
-                  value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+                  name: SPAN_KEYS.CONVERSATION_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
                 },
                 {
-                  key: {
-                    key: SPAN_KEYS.CONVERSATION_ID,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG,
-                  },
-                  op: OPERATORS.EXISTS,
-                  value: '',
+                  name: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
                 },
-                ...(projectId
-                  ? [
-                      {
-                        key: {
-                          key: SPAN_KEYS.PROJECT_ID,
-                          ...QUERY_FIELD_CONFIGS.STRING_TAG,
-                        },
-                        op: OPERATORS.EQUALS,
-                        value: projectId,
-                      },
-                    ]
-                  : []),
+                {
+                  name: SPAN_KEYS.AGENT_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+                {
+                  name: SPAN_KEYS.AI_MODEL_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
               ],
+              order: [],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
             },
-            groupBy: [
-              {
-                key: SPAN_KEYS.CONVERSATION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              {
-                key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-              {
-                key: SPAN_KEYS.AI_MODEL_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-            ],
-            expression: QUERY_EXPRESSIONS.AGENT_MODEL_CALLS,
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
-        },
+        ],
       },
-      dataSource: DATA_SOURCES.TRACES,
+      variables: {},
       projectId,
     };
   }
 
-  private buildModelBreakdownPayload(start: number, end: number, projectId?: string) {
+  private buildModelBreakdownPayload(
+    start: number,
+    end: number,
+    filterItems: Array<{ key: string; op: string; value: unknown }>,
+    projectId?: string
+  ) {
     return {
       start,
       end,
-      step: QUERY_DEFAULTS.STEP,
-      variables: {},
+      requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
-        queryType: QUERY_TYPES.BUILDER,
-        panelType: PANEL_TYPES.TABLE,
-        builderQueries: {
-          modelCalls: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: QUERY_EXPRESSIONS.MODEL_CALLS,
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            filters: {
-              op: OPERATORS.AND,
-              items: [
+        queries: [
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: QUERY_EXPRESSIONS.MODEL_CALLS,
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: 'count()' }],
+              filter: { expression: buildFilterExpression(filterItems) },
+              groupBy: [
                 {
-                  key: {
-                    key: SPAN_KEYS.AI_OPERATION_ID,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG,
-                  },
-                  op: OPERATORS.IN,
-                  value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+                  name: SPAN_KEYS.CONVERSATION_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
                 },
                 {
-                  key: {
-                    key: SPAN_KEYS.CONVERSATION_ID,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG,
-                  },
-                  op: OPERATORS.EXISTS,
-                  value: '',
+                  name: SPAN_KEYS.AI_MODEL_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
                 },
-                ...(projectId
-                  ? [
-                      {
-                        key: {
-                          key: SPAN_KEYS.PROJECT_ID,
-                          ...QUERY_FIELD_CONFIGS.STRING_TAG,
-                        },
-                        op: OPERATORS.EQUALS,
-                        value: projectId,
-                      },
-                    ]
-                  : []),
+                {
+                  name: SPAN_KEYS.AGENT_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
               ],
+              order: [],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
             },
-            groupBy: [
-              {
-                key: SPAN_KEYS.CONVERSATION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              {
-                key: SPAN_KEYS.AI_MODEL_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            ],
-            expression: QUERY_EXPRESSIONS.MODEL_CALLS,
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
-        },
+        ],
       },
-      dataSource: DATA_SOURCES.TRACES,
+      variables: {},
       projectId,
     };
   }
@@ -1322,78 +1356,44 @@ class SigNozStatsAPI {
     agentId?: string,
     projectId?: string
   ) {
-    const items: any[] = [
-      {
-        key: {
-          key: SPAN_KEYS.CONVERSATION_ID,
-          ...QUERY_FIELD_CONFIGS.STRING_TAG,
-        },
-        op: OPERATORS.EXISTS,
-        value: '',
-      },
+    const filterItems: Array<{ key: string; op: string; value: unknown }> = [
+      { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' },
       ...(agentId && agentId !== 'all'
-        ? [
-            {
-              key: {
-                key: SPAN_KEYS.AGENT_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              op: OPERATORS.EQUALS,
-              value: agentId,
-            },
-          ]
+        ? [{ key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EQUALS, value: agentId }]
         : []),
-      ...(projectId
-        ? [
-            {
-              key: {
-                key: SPAN_KEYS.PROJECT_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              op: OPERATORS.EQUALS,
-              value: projectId,
-            },
-          ]
-        : []),
+      ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
-
     return {
       start,
       end,
-      step: QUERY_DEFAULTS.STEP,
-      variables: {},
+      requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
-        queryType: QUERY_TYPES.BUILDER,
-        panelType: PANEL_TYPES.TABLE,
-        builderQueries: {
-          lastActivity: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: QUERY_EXPRESSIONS.LAST_ACTIVITY,
-            aggregateOperator: AGGREGATE_OPERATORS.MIN,
-            aggregateAttribute: {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+        queries: [
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: QUERY_EXPRESSIONS.LAST_ACTIVITY,
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: `min(${SPAN_KEYS.TIMESTAMP})` }],
+              filter: { expression: buildFilterExpression(filterItems) },
+              groupBy: [
+                {
+                  name: SPAN_KEYS.CONVERSATION_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+              ],
+              order: [
+                { key: { name: `min(${SPAN_KEYS.TIMESTAMP})` }, direction: ORDER_DIRECTIONS.DESC },
+              ],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
             },
-            filters: { op: OPERATORS.AND, items },
-            groupBy: [
-              {
-                key: SPAN_KEYS.CONVERSATION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-            ],
-            expression: QUERY_EXPRESSIONS.LAST_ACTIVITY,
-            reduceTo: REDUCE_OPERATIONS.MIN,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
-        },
+        ],
       },
-      dataSource: DATA_SOURCES.TRACES,
+      variables: {},
       projectId,
     };
   }
@@ -1405,374 +1405,278 @@ class SigNozStatsAPI {
     projectId: string | undefined,
     agentId: string | undefined,
     includeSearchData: boolean,
-    pagination?: { page: number; limit: number }
+    pagination?: { page: number; limit: number },
+    hasErrors?: boolean
   ) {
-    const buildBaseFilters = (): any[] => {
-      const items: any[] = [
-        {
-          key: {
-            key: SPAN_KEYS.CONVERSATION_ID,
-            ...QUERY_FIELD_CONFIGS.STRING_TAG,
-          },
-          op: OPERATORS.EXISTS,
-          value: '',
-        },
+    const buildBaseFilterItems = (): Array<{ key: string; op: string; value: unknown }> => {
+      const items: Array<{ key: string; op: string; value: unknown }> = [
+        { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' },
       ];
-
       if (agentId && agentId !== 'all') {
-        items.push({
-          key: {
-            key: SPAN_KEYS.AGENT_ID,
-            ...QUERY_FIELD_CONFIGS.STRING_TAG,
-          },
-          op: OPERATORS.EQUALS,
-          value: agentId,
-        });
+        items.push({ key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EQUALS, value: agentId });
       }
-
       if (projectId) {
-        items.push({
-          key: {
-            key: SPAN_KEYS.PROJECT_ID,
-            ...QUERY_FIELD_CONFIGS.STRING_TAG,
-          },
-          op: OPERATORS.EQUALS,
-          value: projectId,
-        });
+        items.push({ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId });
       }
-
+      if (hasErrors) {
+        items.push(
+          { key: SPAN_KEYS.HAS_ERROR, op: OPERATORS.EQUALS, value: true },
+          { key: SPAN_KEYS.NAME, op: OPERATORS.IN, value: CRITICAL_ERROR_SPAN_NAMES }
+        );
+      }
       return items;
     };
 
-    const paginationLimit =
-      pagination && !includeSearchData ? pagination.limit : QUERY_DEFAULTS.LIMIT_UNLIMITED;
-    const paginationOffset =
-      pagination && !includeSearchData ? (pagination.page - 1) * pagination.limit : 0;
+    const paginationWindowLimit =
+      pagination && !includeSearchData
+        ? pagination.page * pagination.limit
+        : QUERY_DEFAULTS.LIMIT_UNLIMITED;
 
-    const builderQueries: Record<string, any> = {
-      pageConversations: {
-        dataSource: DATA_SOURCES.TRACES,
-        queryName: QUERY_EXPRESSIONS.PAGE_CONVERSATIONS,
-        aggregateOperator: AGGREGATE_OPERATORS.MIN,
-        aggregateAttribute: {
-          key: SPAN_KEYS.TIMESTAMP,
-          ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+    const queries: any[] = [
+      {
+        type: QUERY_TYPES.BUILDER_QUERY,
+        spec: {
+          name: QUERY_EXPRESSIONS.PAGE_CONVERSATIONS,
+          signal: SIGNALS.TRACES,
+          aggregations: [{ expression: `max(${SPAN_KEYS.TIMESTAMP})` }],
+          filter: { expression: buildFilterExpression(buildBaseFilterItems()) },
+          groupBy: [
+            {
+              name: SPAN_KEYS.CONVERSATION_ID,
+              fieldDataType: FIELD_DATA_TYPES.STRING,
+              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+            },
+          ],
+          order: [
+            { key: { name: `max(${SPAN_KEYS.TIMESTAMP})` }, direction: ORDER_DIRECTIONS.DESC },
+          ],
+          stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+          limit: paginationWindowLimit,
+          disabled: QUERY_DEFAULTS.DISABLED,
         },
-        filters: { op: OPERATORS.AND, items: buildBaseFilters() },
-        groupBy: [
-          {
-            key: SPAN_KEYS.CONVERSATION_ID,
-            ...QUERY_FIELD_CONFIGS.STRING_TAG,
-          },
-        ],
-        expression: QUERY_EXPRESSIONS.PAGE_CONVERSATIONS,
-        reduceTo: REDUCE_OPERATIONS.MIN,
-        stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-        orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
-        offset: paginationOffset,
-        disabled: QUERY_DEFAULTS.DISABLED,
-        having: QUERY_DEFAULTS.HAVING,
-        legend: QUERY_DEFAULTS.LEGEND,
-        limit: paginationLimit,
       },
-      totalConversations: {
-        dataSource: DATA_SOURCES.TRACES,
-        queryName: QUERY_EXPRESSIONS.TOTAL_CONVERSATIONS,
-        aggregateOperator: AGGREGATE_OPERATORS.COUNT_DISTINCT,
-        aggregateAttribute: {
-          key: SPAN_KEYS.CONVERSATION_ID,
-          ...QUERY_FIELD_CONFIGS.STRING_TAG,
+      {
+        type: QUERY_TYPES.BUILDER_QUERY,
+        spec: {
+          name: QUERY_EXPRESSIONS.TOTAL_CONVERSATIONS,
+          signal: SIGNALS.TRACES,
+          aggregations: [{ expression: `count_distinct(${SPAN_KEYS.CONVERSATION_ID})` }],
+          filter: { expression: buildFilterExpression(buildBaseFilterItems()) },
+          groupBy: [],
+          order: [],
+          stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+          limit: 1,
+          disabled: QUERY_DEFAULTS.DISABLED,
         },
-        filters: { op: OPERATORS.AND, items: buildBaseFilters() },
-        groupBy: [],
-        expression: QUERY_EXPRESSIONS.TOTAL_CONVERSATIONS,
-        reduceTo: REDUCE_OPERATIONS.SUM,
-        stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-        orderBy: [],
-        offset: QUERY_DEFAULTS.OFFSET,
-        disabled: QUERY_DEFAULTS.DISABLED,
-        having: QUERY_DEFAULTS.HAVING,
-        legend: QUERY_DEFAULTS.LEGEND,
-        limit: 1,
       },
-    };
+    ];
 
-    // Add filtered conversations query if filters are provided
     if (filters?.spanName || filters?.attributes?.length) {
-      const filterItems: any[] = [
-        {
-          key: {
-            key: SPAN_KEYS.CONVERSATION_ID,
-            ...QUERY_FIELD_CONFIGS.STRING_TAG,
-          },
-          op: OPERATORS.EXISTS,
-          value: '',
-        },
+      const filteredConvItems: Array<{ key: string; op: string; value: unknown }> = [
+        { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' },
       ];
 
       if (filters.spanName) {
-        filterItems.push({
-          key: { key: SPAN_KEYS.NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
+        filteredConvItems.push({
+          key: SPAN_KEYS.NAME,
           op: OPERATORS.EQUALS,
           value: filters.spanName,
         });
       }
 
-      // Attribute filters
       for (const attr of filters.attributes ?? []) {
-        const op = attr.operator ?? OPERATORS.EQUALS;
+        let op = attr.operator ?? OPERATORS.EQUALS;
+        if (op === 'contains') op = OPERATORS.LIKE;
+        if (op === 'ncontains') op = OPERATORS.NOT_LIKE;
         let value: any = asTypedFilterValue(attr.value);
-        let dataType: DataType = DATA_TYPES.STRING;
-        if (typeof value === 'boolean') dataType = DATA_TYPES.BOOL;
-        else if (typeof value === 'number')
-          dataType = Number.isInteger(value) ? DATA_TYPES.INT64 : DATA_TYPES.FLOAT64;
+        let dataType: DataType = FIELD_DATA_TYPES.STRING;
+        if (typeof value === 'boolean') dataType = FIELD_DATA_TYPES.BOOL;
+        else if (typeof value === 'number' && op !== OPERATORS.LIKE && op !== OPERATORS.NOT_LIKE)
+          dataType = Number.isInteger(value) ? FIELD_DATA_TYPES.INT64 : FIELD_DATA_TYPES.FLOAT64;
 
         if (op === OPERATORS.EXISTS || op === OPERATORS.NOT_EXISTS) {
-          filterItems.push({
-            key: { key: attr.key, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            op,
-            value: '',
-          });
+          filteredConvItems.push({ key: attr.key, op, value: '' });
           continue;
         }
 
-        if (
-          (op === OPERATORS.LIKE || op === OPERATORS.NOT_LIKE) &&
-          typeof value === 'string' &&
-          !value.includes('%')
-        ) {
-          value = `%${value}%`;
+        if (op === OPERATORS.LIKE || op === OPERATORS.NOT_LIKE) {
+          value = String(value);
+          dataType = FIELD_DATA_TYPES.STRING;
+          if (!value.includes('%')) value = `%${value}%`;
         }
 
         if (
-          (dataType === DATA_TYPES.INT64 || dataType === DATA_TYPES.FLOAT64) &&
+          (dataType === FIELD_DATA_TYPES.INT64 || dataType === FIELD_DATA_TYPES.FLOAT64) &&
           op === OPERATORS.EQUALS
         ) {
-          const config =
-            dataType === DATA_TYPES.INT64
-              ? QUERY_FIELD_CONFIGS.INT64_TAG
-              : QUERY_FIELD_CONFIGS.FLOAT64_TAG;
-          filterItems.push({
-            key: { key: attr.key, ...config },
-            op: OPERATORS.GREATER_THAN_OR_EQUAL,
-            value,
-          });
-          filterItems.push({
-            key: { key: attr.key, ...config },
-            op: OPERATORS.LESS_THAN_OR_EQUAL,
-            value,
-          });
+          filteredConvItems.push({ key: attr.key, op: OPERATORS.GREATER_THAN_OR_EQUAL, value });
+          filteredConvItems.push({ key: attr.key, op: OPERATORS.LESS_THAN_OR_EQUAL, value });
         } else {
-          const config =
-            dataType === DATA_TYPES.STRING
-              ? QUERY_FIELD_CONFIGS.STRING_TAG
-              : dataType === DATA_TYPES.INT64
-                ? QUERY_FIELD_CONFIGS.INT64_TAG
-                : dataType === DATA_TYPES.FLOAT64
-                  ? QUERY_FIELD_CONFIGS.FLOAT64_TAG
-                  : QUERY_FIELD_CONFIGS.BOOL_TAG;
-          filterItems.push({ key: { key: attr.key, ...config }, op, value });
+          filteredConvItems.push({ key: attr.key, op, value });
         }
       }
 
       if (projectId) {
-        filterItems.push({
-          key: { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        filteredConvItems.push({
+          key: SPAN_KEYS.PROJECT_ID,
           op: OPERATORS.EQUALS,
           value: projectId,
         });
       }
 
-      builderQueries.filteredConversations = {
-        dataSource: DATA_SOURCES.TRACES,
-        queryName: QUERY_EXPRESSIONS.FILTERED_CONVERSATIONS,
-        aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-        aggregateAttribute: {
-          key: SPAN_KEYS.SPAN_ID,
-          ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+      queries.push({
+        type: QUERY_TYPES.BUILDER_QUERY,
+        spec: {
+          name: QUERY_EXPRESSIONS.FILTERED_CONVERSATIONS,
+          signal: SIGNALS.TRACES,
+          aggregations: [{ expression: 'count()' }],
+          filter: { expression: buildFilterExpression(filteredConvItems) },
+          groupBy: [
+            {
+              name: SPAN_KEYS.CONVERSATION_ID,
+              fieldDataType: FIELD_DATA_TYPES.STRING,
+              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+            },
+          ],
+          order: [],
+          stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+          limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+          disabled: QUERY_DEFAULTS.DISABLED,
         },
-        filters: { op: OPERATORS.AND, items: filterItems },
-        groupBy: [
-          {
-            key: SPAN_KEYS.CONVERSATION_ID,
-            ...QUERY_FIELD_CONFIGS.STRING_TAG,
-          },
-        ],
-        expression: QUERY_EXPRESSIONS.FILTERED_CONVERSATIONS,
-        reduceTo: REDUCE_OPERATIONS.SUM,
-        stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-        orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
-        offset: QUERY_DEFAULTS.OFFSET,
-        disabled: QUERY_DEFAULTS.DISABLED,
-        having: QUERY_DEFAULTS.HAVING,
-        legend: QUERY_DEFAULTS.LEGEND,
-        limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-      };
+      });
     }
 
-    // Add metadata and user messages queries if search is needed
     if (includeSearchData) {
-      const metadataFilters = buildBaseFilters();
-      metadataFilters.push(
-        {
-          key: { key: SPAN_KEYS.TENANT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-          op: OPERATORS.EXISTS,
-          value: '',
-        },
-        {
-          key: { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-          op: OPERATORS.EXISTS,
-          value: '',
-        }
-      );
+      const metadataItems: Array<{ key: string; op: string; value: unknown }> = [
+        ...buildBaseFilterItems(),
+        { key: SPAN_KEYS.TENANT_ID, op: OPERATORS.EXISTS, value: '' },
+        { key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EXISTS, value: '' },
+      ];
 
-      builderQueries.conversationMetadata = {
-        dataSource: DATA_SOURCES.TRACES,
-        queryName: QUERY_EXPRESSIONS.CONVERSATION_METADATA,
-        aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-        aggregateAttribute: {
-          key: SPAN_KEYS.SPAN_ID,
-          ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+      queries.push({
+        type: QUERY_TYPES.BUILDER_QUERY,
+        spec: {
+          name: QUERY_EXPRESSIONS.CONVERSATION_METADATA,
+          signal: SIGNALS.TRACES,
+          aggregations: [{ expression: 'count()' }],
+          filter: { expression: buildFilterExpression(metadataItems) },
+          groupBy: [
+            {
+              name: SPAN_KEYS.CONVERSATION_ID,
+              fieldDataType: FIELD_DATA_TYPES.STRING,
+              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+            },
+            {
+              name: SPAN_KEYS.TENANT_ID,
+              fieldDataType: FIELD_DATA_TYPES.STRING,
+              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+            },
+            {
+              name: SPAN_KEYS.AGENT_ID,
+              fieldDataType: FIELD_DATA_TYPES.STRING,
+              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+            },
+            {
+              name: SPAN_KEYS.AGENT_NAME,
+              fieldDataType: FIELD_DATA_TYPES.STRING,
+              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+            },
+          ],
+          order: [],
+          stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+          limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+          disabled: QUERY_DEFAULTS.DISABLED,
         },
-        filters: { op: OPERATORS.AND, items: metadataFilters },
-        groupBy: [
-          {
-            key: SPAN_KEYS.CONVERSATION_ID,
-            ...QUERY_FIELD_CONFIGS.STRING_TAG,
-          },
-          { key: SPAN_KEYS.TENANT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-          { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-          { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-        ],
-        expression: QUERY_EXPRESSIONS.CONVERSATION_METADATA,
-        reduceTo: REDUCE_OPERATIONS.SUM,
-        stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-        orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
-        offset: QUERY_DEFAULTS.OFFSET,
-        disabled: QUERY_DEFAULTS.DISABLED,
-        having: QUERY_DEFAULTS.HAVING,
-        legend: QUERY_DEFAULTS.LEGEND,
-        limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-      };
-
-      const userMessagesFilters = buildBaseFilters();
-      userMessagesFilters.push({
-        key: {
-          key: SPAN_KEYS.MESSAGE_CONTENT,
-          ...QUERY_FIELD_CONFIGS.STRING_TAG,
-        },
-        op: OPERATORS.EXISTS,
-        value: '',
       });
 
-      builderQueries.userMessages = {
-        dataSource: DATA_SOURCES.TRACES,
-        queryName: QUERY_EXPRESSIONS.USER_MESSAGES,
-        aggregateOperator: AGGREGATE_OPERATORS.MIN,
-        aggregateAttribute: {
-          key: SPAN_KEYS.TIMESTAMP,
-          ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+      const userMsgItems: Array<{ key: string; op: string; value: unknown }> = [
+        ...buildBaseFilterItems(),
+        { key: SPAN_KEYS.MESSAGE_CONTENT, op: OPERATORS.EXISTS, value: '' },
+      ];
+
+      queries.push({
+        type: QUERY_TYPES.BUILDER_QUERY,
+        spec: {
+          name: QUERY_EXPRESSIONS.USER_MESSAGES,
+          signal: SIGNALS.TRACES,
+          aggregations: [{ expression: `min(${SPAN_KEYS.TIMESTAMP})` }],
+          filter: { expression: buildFilterExpression(userMsgItems) },
+          groupBy: [
+            {
+              name: SPAN_KEYS.CONVERSATION_ID,
+              fieldDataType: FIELD_DATA_TYPES.STRING,
+              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+            },
+            {
+              name: SPAN_KEYS.MESSAGE_CONTENT,
+              fieldDataType: FIELD_DATA_TYPES.STRING,
+              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+            },
+          ],
+          order: [],
+          stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+          limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+          disabled: QUERY_DEFAULTS.DISABLED,
         },
-        filters: { op: OPERATORS.AND, items: userMessagesFilters },
+      });
+    }
+
+    const toolCallsItems: Array<{ key: string; op: string; value: unknown }> = [
+      ...buildBaseFilterItems(),
+      { key: SPAN_KEYS.NAME, op: OPERATORS.EQUALS, value: SPAN_NAMES.AI_TOOL_CALL },
+    ];
+
+    queries.push({
+      type: QUERY_TYPES.BUILDER_QUERY,
+      spec: {
+        name: 'aggToolCallsByType',
+        signal: SIGNALS.TRACES,
+        aggregations: [{ expression: 'count()' }],
+        filter: { expression: buildFilterExpression(toolCallsItems) },
         groupBy: [
           {
-            key: SPAN_KEYS.CONVERSATION_ID,
-            ...QUERY_FIELD_CONFIGS.STRING_TAG,
-          },
-          {
-            key: SPAN_KEYS.MESSAGE_CONTENT,
-            ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            name: SPAN_KEYS.AI_TOOL_TYPE,
+            fieldDataType: FIELD_DATA_TYPES.STRING,
+            fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
           },
         ],
-        expression: QUERY_EXPRESSIONS.USER_MESSAGES,
-        reduceTo: REDUCE_OPERATIONS.MIN,
+        order: [],
         stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-        orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.ASC }],
-        offset: QUERY_DEFAULTS.OFFSET,
-        disabled: QUERY_DEFAULTS.DISABLED,
-        having: QUERY_DEFAULTS.HAVING,
-        legend: QUERY_DEFAULTS.LEGEND,
         limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-      };
-    }
+        disabled: QUERY_DEFAULTS.DISABLED,
+      },
+    });
 
-    {
-      const convIdFilter = buildBaseFilters();
+    const aiCallsItems: Array<{ key: string; op: string; value: unknown }> = [
+      ...buildBaseFilterItems(),
+      {
+        key: SPAN_KEYS.AI_OPERATION_ID,
+        op: OPERATORS.IN,
+        value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+      },
+    ];
 
-      builderQueries.aggToolCallsByType = {
-        dataSource: DATA_SOURCES.TRACES,
-        queryName: 'aggToolCallsByType',
-        aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-        aggregateAttribute: {
-          key: SPAN_KEYS.SPAN_ID,
-          ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-        },
-        filters: {
-          op: OPERATORS.AND,
-          items: [
-            ...convIdFilter,
-            {
-              key: { key: SPAN_KEYS.NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
-              op: OPERATORS.EQUALS,
-              value: SPAN_NAMES.AI_TOOL_CALL,
-            },
-          ],
-        },
-        groupBy: [{ key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG }],
-        expression: 'aggToolCallsByType',
-        reduceTo: REDUCE_OPERATIONS.SUM,
+    queries.push({
+      type: QUERY_TYPES.BUILDER_QUERY,
+      spec: {
+        name: 'aggAICalls',
+        signal: SIGNALS.TRACES,
+        aggregations: [{ expression: 'count()' }],
+        filter: { expression: buildFilterExpression(aiCallsItems) },
+        groupBy: [],
+        order: [],
         stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-        orderBy: [],
-        offset: QUERY_DEFAULTS.OFFSET,
-        disabled: QUERY_DEFAULTS.DISABLED,
-        having: QUERY_DEFAULTS.HAVING,
-        legend: QUERY_DEFAULTS.LEGEND,
         limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-      };
-
-      builderQueries.aggAICalls = {
-        dataSource: DATA_SOURCES.TRACES,
-        queryName: 'aggAICalls',
-        aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-        aggregateAttribute: {
-          key: SPAN_KEYS.SPAN_ID,
-          ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-        },
-        filters: {
-          op: OPERATORS.AND,
-          items: [
-            ...convIdFilter,
-            {
-              key: { key: SPAN_KEYS.AI_OPERATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-              op: OPERATORS.IN,
-              value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
-            },
-          ],
-        },
-        groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
-        expression: 'aggAICalls',
-        reduceTo: REDUCE_OPERATIONS.SUM,
-        stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-        orderBy: [],
-        offset: QUERY_DEFAULTS.OFFSET,
         disabled: QUERY_DEFAULTS.DISABLED,
-        having: QUERY_DEFAULTS.HAVING,
-        legend: QUERY_DEFAULTS.LEGEND,
-        limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-      };
-    }
+      },
+    });
 
     return {
       start,
       end,
-      step: QUERY_DEFAULTS.STEP,
+      requestType: REQUEST_TYPES.SCALAR,
+      compositeQuery: { queries },
       variables: {},
-      compositeQuery: {
-        queryType: QUERY_TYPES.BUILDER,
-        panelType: PANEL_TYPES.TABLE,
-        builderQueries,
-      },
-      dataSource: DATA_SOURCES.TRACES,
       projectId,
     };
   }
@@ -1785,668 +1689,435 @@ class SigNozStatsAPI {
     agentId?: string,
     conversationIds?: string[]
   ) {
-    const withProjectAndAgent = (items: any[]) => {
-      let filtered = items;
-      if (projectId) {
-        filtered = [
-          ...filtered,
-          {
-            key: {
-              key: SPAN_KEYS.PROJECT_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            op: OPERATORS.EQUALS,
-            value: projectId,
-          },
-        ];
-      }
-      if (agentId) {
-        filtered = [
-          ...filtered,
-          {
-            key: {
-              key: SPAN_KEYS.AGENT_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            op: OPERATORS.EQUALS,
-            value: agentId,
-          },
-        ];
-      }
-      // Add conversation ID filters if provided (for pagination optimization)
+    const withContext = (
+      base: Array<{ key: string; op: string; value: unknown }>
+    ): Array<{ key: string; op: string; value: unknown }> => {
+      const items = [...base];
+      if (projectId)
+        items.push({ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId });
+      if (agentId) items.push({ key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EQUALS, value: agentId });
       if (conversationIds && conversationIds.length > 0) {
-        filtered = [
-          ...filtered,
-          {
-            key: {
-              key: SPAN_KEYS.CONVERSATION_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            op: OPERATORS.IN,
-            value: conversationIds,
-          },
-        ];
+        items.push({ key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.IN, value: conversationIds });
       } else {
-        // Only add EXISTS check if no specific IDs provided
-        filtered = [
-          ...filtered,
-          {
-            key: {
-              key: SPAN_KEYS.CONVERSATION_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            op: OPERATORS.EXISTS,
-            value: '',
-          },
-        ];
+        items.push({ key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' });
       }
-      return filtered;
+      return items;
     };
 
     return {
       start,
       end,
-      step: QUERY_DEFAULTS.STEP,
-      variables: {},
+      requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
-        queryType: QUERY_TYPES.BUILDER,
-        panelType: PANEL_TYPES.TABLE,
-        builderQueries: {
-          tools: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: QUERY_EXPRESSIONS.TOOLS,
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            filters: {
-              op: OPERATORS.AND,
-              items: withProjectAndAgent([
+        queries: [
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: QUERY_EXPRESSIONS.TOOLS,
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: 'count()' }],
+              filter: {
+                expression: buildFilterExpression(
+                  withContext([
+                    { key: SPAN_KEYS.NAME, op: OPERATORS.EQUALS, value: SPAN_NAMES.AI_TOOL_CALL },
+                    { key: SPAN_KEYS.AI_TOOL_TYPE, op: OPERATORS.EQUALS, value: AI_TOOL_TYPES.MCP },
+                  ])
+                ),
+              },
+              groupBy: [
                 {
-                  key: {
-                    key: SPAN_KEYS.NAME,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-                  },
-                  op: OPERATORS.EQUALS,
-                  value: SPAN_NAMES.AI_TOOL_CALL,
+                  name: SPAN_KEYS.CONVERSATION_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
                 },
                 {
-                  key: {
-                    key: SPAN_KEYS.AI_TOOL_TYPE,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG,
-                  },
-                  op: OPERATORS.EQUALS,
-                  value: AI_TOOL_TYPES.MCP,
+                  name: SPAN_KEYS.AI_TOOL_CALL_NAME,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
                 },
-              ]),
+              ],
+              order: [],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
             },
-            groupBy: [
-              {
-                key: SPAN_KEYS.CONVERSATION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              {
-                key: SPAN_KEYS.AI_TOOL_CALL_NAME,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-            ],
-            expression: QUERY_EXPRESSIONS.TOOLS,
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
-
-          conversationMetadata: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: QUERY_EXPRESSIONS.CONVERSATION_METADATA,
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            filters: {
-              op: OPERATORS.AND,
-              items: withProjectAndAgent([
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: QUERY_EXPRESSIONS.CONVERSATION_METADATA,
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: 'count()' }],
+              filter: {
+                expression: buildFilterExpression(
+                  withContext([
+                    { key: SPAN_KEYS.TENANT_ID, op: OPERATORS.EXISTS, value: '' },
+                    { key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EXISTS, value: '' },
+                  ])
+                ),
+              },
+              groupBy: [
                 {
-                  key: {
-                    key: SPAN_KEYS.TENANT_ID,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG,
-                  },
-                  op: OPERATORS.EXISTS,
-                  value: '',
+                  name: SPAN_KEYS.CONVERSATION_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
                 },
                 {
-                  key: {
-                    key: SPAN_KEYS.AGENT_ID,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG,
-                  },
-                  op: OPERATORS.EXISTS,
-                  value: '',
+                  name: SPAN_KEYS.TENANT_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
                 },
-              ]),
-            },
-            groupBy: [
-              {
-                key: SPAN_KEYS.CONVERSATION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              { key: SPAN_KEYS.TENANT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-              { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-              { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            ],
-            expression: QUERY_EXPRESSIONS.CONVERSATION_METADATA,
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-          },
-
-          lastActivity: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: QUERY_EXPRESSIONS.LAST_ACTIVITY,
-            aggregateOperator: AGGREGATE_OPERATORS.MIN,
-            aggregateAttribute: {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            filters: {
-              op: OPERATORS.AND,
-              items: withProjectAndAgent([]),
-            },
-            groupBy: [
-              {
-                key: SPAN_KEYS.CONVERSATION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-            ],
-            expression: QUERY_EXPRESSIONS.LAST_ACTIVITY,
-            reduceTo: REDUCE_OPERATIONS.MIN,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-          },
-
-          spansWithErrors: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: QUERY_EXPRESSIONS.SPANS_WITH_ERRORS,
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            filters: {
-              op: OPERATORS.AND,
-              items: withProjectAndAgent([
                 {
-                  key: {
-                    key: SPAN_KEYS.HAS_ERROR,
-                    ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
-                  },
-                  op: OPERATORS.EQUALS,
-                  value: true,
+                  name: SPAN_KEYS.AGENT_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
                 },
-              ]),
-            },
-            groupBy: [
-              {
-                key: SPAN_KEYS.CONVERSATION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              {
-                key: SPAN_KEYS.NAME,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-              },
-            ],
-            expression: QUERY_EXPRESSIONS.SPANS_WITH_ERRORS,
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-          },
-
-          userMessages: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: QUERY_EXPRESSIONS.USER_MESSAGES,
-            aggregateOperator: AGGREGATE_OPERATORS.MIN,
-            aggregateAttribute: {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            filters: {
-              op: OPERATORS.AND,
-              items: withProjectAndAgent([
                 {
-                  key: {
-                    key: SPAN_KEYS.MESSAGE_CONTENT,
-                    ...QUERY_FIELD_CONFIGS.STRING_TAG,
-                  },
-                  op: OPERATORS.EXISTS,
-                  value: '',
+                  name: SPAN_KEYS.AGENT_NAME,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
                 },
-              ]),
+              ],
+              order: [],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
             },
-            groupBy: [
-              {
-                key: SPAN_KEYS.CONVERSATION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              {
-                key: SPAN_KEYS.MESSAGE_CONTENT,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-            ],
-            expression: QUERY_EXPRESSIONS.USER_MESSAGES,
-            reduceTo: REDUCE_OPERATIONS.MIN,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.ASC }],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
-        },
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: QUERY_EXPRESSIONS.LAST_ACTIVITY,
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: `max(${SPAN_KEYS.TIMESTAMP})` }],
+              filter: { expression: buildFilterExpression(withContext([])) },
+              groupBy: [
+                {
+                  name: SPAN_KEYS.CONVERSATION_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+              ],
+              order: [
+                { key: { name: `max(${SPAN_KEYS.TIMESTAMP})` }, direction: ORDER_DIRECTIONS.DESC },
+              ],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
+            },
+          },
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: QUERY_EXPRESSIONS.SPANS_WITH_ERRORS,
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: 'count()' }],
+              filter: {
+                expression: buildFilterExpression(
+                  withContext([{ key: SPAN_KEYS.HAS_ERROR, op: OPERATORS.EQUALS, value: true }])
+                ),
+              },
+              groupBy: [
+                {
+                  name: SPAN_KEYS.CONVERSATION_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+                {
+                  name: SPAN_KEYS.NAME,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.SPAN,
+                },
+              ],
+              order: [],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
+            },
+          },
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: QUERY_EXPRESSIONS.USER_MESSAGES,
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: `min(${SPAN_KEYS.TIMESTAMP})` }],
+              filter: {
+                expression: buildFilterExpression(
+                  withContext([{ key: SPAN_KEYS.MESSAGE_CONTENT, op: OPERATORS.EXISTS, value: '' }])
+                ),
+              },
+              groupBy: [
+                {
+                  name: SPAN_KEYS.CONVERSATION_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+                {
+                  name: SPAN_KEYS.MESSAGE_CONTENT,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+              ],
+              order: [],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
+            },
+          },
+        ],
       },
-      dataSource: DATA_SOURCES.TRACES,
+      variables: {},
       projectId,
     };
   }
 
   private buildUniqueAgentsPayload(start: number, end: number, projectId?: string) {
-    const items: any[] = [
-      {
-        key: { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-        op: OPERATORS.EXISTS,
-        value: '',
-      },
-      {
-        key: { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-        op: OPERATORS.NOT_EQUALS,
-        value: UNKNOWN_VALUE,
-      },
-      ...(projectId
-        ? [
-            {
-              key: {
-                key: SPAN_KEYS.PROJECT_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              op: OPERATORS.EQUALS,
-              value: projectId,
-            },
-          ]
-        : []),
+    const filterItems: Array<{ key: string; op: string; value: unknown }> = [
+      { key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EXISTS, value: '' },
+      { key: SPAN_KEYS.AGENT_ID, op: OPERATORS.NOT_EQUALS, value: UNKNOWN_VALUE },
+      ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
-
     return {
       start,
       end,
-      step: QUERY_DEFAULTS.STEP,
-      variables: {},
+      requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
-        queryType: QUERY_TYPES.BUILDER,
-        panelType: PANEL_TYPES.TABLE,
-        builderQueries: {
-          uniqueAgents: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: QUERY_EXPRESSIONS.UNIQUE_AGENTS,
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+        queries: [
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: QUERY_EXPRESSIONS.UNIQUE_AGENTS,
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: 'count()' }],
+              filter: { expression: buildFilterExpression(filterItems) },
+              groupBy: [
+                {
+                  name: SPAN_KEYS.AGENT_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+              ],
+              order: [{ key: { name: SPAN_KEYS.AGENT_ID }, direction: ORDER_DIRECTIONS.ASC }],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
             },
-            filters: { op: OPERATORS.AND, items },
-            groupBy: [{ key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG }],
-            expression: QUERY_EXPRESSIONS.UNIQUE_AGENTS,
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.AGENT_ID, order: ORDER_DIRECTIONS.ASC }],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
-        },
+        ],
       },
-      dataSource: DATA_SOURCES.TRACES,
+      variables: {},
       projectId,
     };
   }
 
   private buildUniqueModelsPayload(start: number, end: number, projectId?: string) {
-    const items: any[] = [
-      {
-        key: {
-          key: SPAN_KEYS.AI_MODEL_ID,
-          ...QUERY_FIELD_CONFIGS.STRING_TAG,
-        },
-        op: OPERATORS.EXISTS,
-        value: '',
-      },
-      {
-        key: {
-          key: SPAN_KEYS.AI_MODEL_ID,
-          ...QUERY_FIELD_CONFIGS.STRING_TAG,
-        },
-        op: OPERATORS.NOT_EQUALS,
-        value: UNKNOWN_VALUE,
-      },
-      ...(projectId
-        ? [
-            {
-              key: {
-                key: SPAN_KEYS.PROJECT_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              op: OPERATORS.EQUALS,
-              value: projectId,
-            },
-          ]
-        : []),
+    const filterItems: Array<{ key: string; op: string; value: unknown }> = [
+      { key: SPAN_KEYS.AI_MODEL_ID, op: OPERATORS.EXISTS, value: '' },
+      { key: SPAN_KEYS.AI_MODEL_ID, op: OPERATORS.NOT_EQUALS, value: UNKNOWN_VALUE },
+      ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
-
     return {
       start,
       end,
-      step: QUERY_DEFAULTS.STEP,
-      variables: {},
+      requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
-        queryType: QUERY_TYPES.BUILDER,
-        panelType: PANEL_TYPES.TABLE,
-        builderQueries: {
-          uniqueModels: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: QUERY_EXPRESSIONS.UNIQUE_MODELS,
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+        queries: [
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: QUERY_EXPRESSIONS.UNIQUE_MODELS,
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: 'count()' }],
+              filter: { expression: buildFilterExpression(filterItems) },
+              groupBy: [
+                {
+                  name: SPAN_KEYS.AI_MODEL_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+              ],
+              order: [{ key: { name: SPAN_KEYS.AI_MODEL_ID }, direction: ORDER_DIRECTIONS.ASC }],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
             },
-            filters: { op: OPERATORS.AND, items },
-            groupBy: [
-              {
-                key: SPAN_KEYS.AI_MODEL_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-            ],
-            expression: QUERY_EXPRESSIONS.UNIQUE_MODELS,
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [
-              {
-                columnName: SPAN_KEYS.AI_MODEL_ID,
-                order: ORDER_DIRECTIONS.ASC,
-              },
-            ],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
-        },
+        ],
       },
-      dataSource: DATA_SOURCES.TRACES,
+      variables: {},
       projectId,
     };
   }
 
   private buildToolBreakdownPayload(start: number, end: number, projectId?: string) {
-    const baseFilters: any[] = [
-      {
-        key: { key: SPAN_KEYS.NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
-        op: OPERATORS.EQUALS,
-        value: SPAN_NAMES.AI_TOOL_CALL,
-      },
-      {
-        key: { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-        op: OPERATORS.EQUALS,
-        value: AI_TOOL_TYPES.MCP,
-      },
-      {
-        key: { key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-        op: OPERATORS.EXISTS,
-        value: '',
-      },
-      ...(projectId
-        ? [
-            {
-              key: { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-              op: OPERATORS.EQUALS,
-              value: projectId,
-            },
-          ]
-        : []),
+    const baseItems: Array<{ key: string; op: string; value: unknown }> = [
+      { key: SPAN_KEYS.NAME, op: OPERATORS.EQUALS, value: SPAN_NAMES.AI_TOOL_CALL },
+      { key: SPAN_KEYS.AI_TOOL_TYPE, op: OPERATORS.EQUALS, value: AI_TOOL_TYPES.MCP },
+      { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' },
+      ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
-
     return {
       start,
       end,
-      step: QUERY_DEFAULTS.STEP,
-      variables: {},
+      requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
-        queryType: QUERY_TYPES.BUILDER,
-        panelType: PANEL_TYPES.TABLE,
-        builderQueries: {
-          toolCalls: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: 'toolCalls',
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            filters: { op: OPERATORS.AND, items: baseFilters },
-            groupBy: [
-              { key: SPAN_KEYS.AI_TOOL_CALL_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-              { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-              { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            ],
-            expression: 'toolCalls',
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-          },
-          toolErrors: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: 'toolErrors',
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            filters: {
-              op: OPERATORS.AND,
-              items: [
-                ...baseFilters,
+        queries: [
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: 'toolCalls',
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: 'count()' }],
+              filter: { expression: buildFilterExpression(baseItems) },
+              groupBy: [
                 {
-                  key: { key: SPAN_KEYS.HAS_ERROR, ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN },
-                  op: OPERATORS.EQUALS,
-                  value: true,
+                  name: SPAN_KEYS.AI_TOOL_CALL_NAME,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+                {
+                  name: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+                {
+                  name: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
                 },
               ],
+              order: [],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
             },
-            groupBy: [{ key: SPAN_KEYS.AI_TOOL_CALL_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG }],
-            expression: 'toolErrors',
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
-        },
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: 'toolErrors',
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: 'count()' }],
+              filter: {
+                expression: buildFilterExpression([
+                  ...baseItems,
+                  { key: SPAN_KEYS.HAS_ERROR, op: OPERATORS.EQUALS, value: true },
+                ]),
+              },
+              groupBy: [
+                {
+                  name: SPAN_KEYS.AI_TOOL_CALL_NAME,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+              ],
+              order: [],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
+            },
+          },
+        ],
       },
-      dataSource: DATA_SOURCES.TRACES,
+      variables: {},
       projectId,
     };
   }
 
   private buildUniqueToolServersPayload(start: number, end: number, projectId?: string) {
-    const items: any[] = [
+    const filterItems: Array<{ key: string; op: string; value: unknown }> = [
+      { key: SPAN_KEYS.NAME, op: OPERATORS.EQUALS, value: SPAN_NAMES.AI_TOOL_CALL },
+      { key: SPAN_KEYS.AI_TOOL_TYPE, op: OPERATORS.EQUALS, value: AI_TOOL_TYPES.MCP },
+      { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, op: OPERATORS.EXISTS, value: '' },
       {
-        key: { key: SPAN_KEYS.NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
-        op: OPERATORS.EQUALS,
-        value: SPAN_NAMES.AI_TOOL_CALL,
-      },
-      {
-        key: { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-        op: OPERATORS.EQUALS,
-        value: AI_TOOL_TYPES.MCP,
-      },
-      {
-        key: { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-        op: OPERATORS.EXISTS,
-        value: '',
-      },
-      {
-        key: { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME,
         op: OPERATORS.NOT_EQUALS,
         value: UNKNOWN_VALUE,
       },
-      ...(projectId
-        ? [
-            {
-              key: { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-              op: OPERATORS.EQUALS,
-              value: projectId,
-            },
-          ]
-        : []),
+      ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
-
     return {
       start,
       end,
-      step: QUERY_DEFAULTS.STEP,
-      variables: {},
+      requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
-        queryType: QUERY_TYPES.BUILDER,
-        panelType: PANEL_TYPES.TABLE,
-        builderQueries: {
-          uniqueServers: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: 'uniqueServers',
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+        queries: [
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: 'uniqueServers',
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: 'count()' }],
+              filter: { expression: buildFilterExpression(filterItems) },
+              groupBy: [
+                {
+                  name: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+                {
+                  name: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+              ],
+              order: [
+                {
+                  key: { name: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME },
+                  direction: ORDER_DIRECTIONS.ASC,
+                },
+              ],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
             },
-            filters: { op: OPERATORS.AND, items },
-            groupBy: [
-              { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-              { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            ],
-            expression: 'uniqueServers',
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [
-              { columnName: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, order: ORDER_DIRECTIONS.ASC },
-            ],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
-        },
+        ],
       },
-      dataSource: DATA_SOURCES.TRACES,
+      variables: {},
       projectId,
     };
   }
 
   private buildUniqueToolNamesPayload(start: number, end: number, projectId?: string) {
-    const items: any[] = [
-      {
-        key: { key: SPAN_KEYS.NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
-        op: OPERATORS.EQUALS,
-        value: SPAN_NAMES.AI_TOOL_CALL,
-      },
-      {
-        key: { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-        op: OPERATORS.EQUALS,
-        value: AI_TOOL_TYPES.MCP,
-      },
-      {
-        key: { key: SPAN_KEYS.AI_TOOL_CALL_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-        op: OPERATORS.EXISTS,
-        value: '',
-      },
-      {
-        key: { key: SPAN_KEYS.AI_TOOL_CALL_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-        op: OPERATORS.NOT_EQUALS,
-        value: UNKNOWN_VALUE,
-      },
-      ...(projectId
-        ? [
-            {
-              key: { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-              op: OPERATORS.EQUALS,
-              value: projectId,
-            },
-          ]
-        : []),
+    const filterItems: Array<{ key: string; op: string; value: unknown }> = [
+      { key: SPAN_KEYS.NAME, op: OPERATORS.EQUALS, value: SPAN_NAMES.AI_TOOL_CALL },
+      { key: SPAN_KEYS.AI_TOOL_TYPE, op: OPERATORS.EQUALS, value: AI_TOOL_TYPES.MCP },
+      { key: SPAN_KEYS.AI_TOOL_CALL_NAME, op: OPERATORS.EXISTS, value: '' },
+      { key: SPAN_KEYS.AI_TOOL_CALL_NAME, op: OPERATORS.NOT_EQUALS, value: UNKNOWN_VALUE },
+      ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
-
     return {
       start,
       end,
-      step: QUERY_DEFAULTS.STEP,
-      variables: {},
+      requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
-        queryType: QUERY_TYPES.BUILDER,
-        panelType: PANEL_TYPES.TABLE,
-        builderQueries: {
-          uniqueTools: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: 'uniqueTools',
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+        queries: [
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: 'uniqueTools',
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: 'count()' }],
+              filter: { expression: buildFilterExpression(filterItems) },
+              groupBy: [
+                {
+                  name: SPAN_KEYS.AI_TOOL_CALL_NAME,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+              ],
+              order: [
+                { key: { name: SPAN_KEYS.AI_TOOL_CALL_NAME }, direction: ORDER_DIRECTIONS.ASC },
+              ],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
             },
-            filters: { op: OPERATORS.AND, items },
-            groupBy: [{ key: SPAN_KEYS.AI_TOOL_CALL_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG }],
-            expression: 'uniqueTools',
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.AI_TOOL_CALL_NAME, order: ORDER_DIRECTIONS.ASC }],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
-        },
+        ],
       },
-      dataSource: DATA_SOURCES.TRACES,
+      variables: {},
       projectId,
     };
   }
@@ -2542,7 +2213,7 @@ class SigNozStatsAPI {
 
       const buckets = new Map<string, number>();
       for (const s of activitySeries) {
-        const tsMs = nsToMs(numberFromSeries(s));
+        const tsMs = timestampMsFromSeries(s);
         if (!tsMs) continue;
         const d = new Date(tsMs);
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -2562,77 +2233,71 @@ class SigNozStatsAPI {
   /**
    * Get stats broken down by project
    */
+  private parseStatsByProjectResponse(resp: any): ProjectStatsResult {
+    const conversationsSeries = this.extractSeries(resp, 'conversationsByProject');
+    const aiCallsSeries = this.extractSeries(resp, 'aiCallsByProject');
+    const mcpCallsSeries = this.extractSeries(resp, 'mcpCallsByProject');
+
+    const projectStats = new Map<
+      string,
+      { totalConversations: number; totalAICalls: number; totalMCPCalls: number }
+    >();
+    const ensure = (id: string) => {
+      const cur = projectStats.get(id);
+      if (cur) return cur;
+      const init = { totalConversations: 0, totalAICalls: 0, totalMCPCalls: 0 };
+      projectStats.set(id, init);
+      return init;
+    };
+
+    for (const s of conversationsSeries) {
+      const id = s.labels?.[SPAN_KEYS.PROJECT_ID];
+      if (id) ensure(id).totalConversations = countFromSeries(s);
+    }
+    for (const s of aiCallsSeries) {
+      const id = s.labels?.[SPAN_KEYS.PROJECT_ID];
+      if (id) ensure(id).totalAICalls = countFromSeries(s);
+    }
+    for (const s of mcpCallsSeries) {
+      const id = s.labels?.[SPAN_KEYS.PROJECT_ID];
+      if (id) ensure(id).totalMCPCalls = countFromSeries(s);
+    }
+
+    return Array.from(projectStats.entries())
+      .map(([projectId, stats]) => ({ projectId, ...stats }))
+      .sort((a, b) => b.totalConversations - a.totalConversations);
+  }
+
   async getStatsByProject(
     startTime: number,
     endTime: number,
     projectIds?: string[]
-  ): Promise<
-    Array<{
-      projectId: string;
-      totalConversations: number;
-      totalAICalls: number;
-      totalMCPCalls: number;
-    }>
-  > {
+  ): Promise<ProjectStatsResult> {
     try {
-      // When filtering by a single project, pass it to makeRequest for server-side filtering
       const singleProjectId = projectIds?.length === 1 ? projectIds[0] : undefined;
       const payload = this.buildStatsByProjectPayload(startTime, endTime, projectIds);
       const resp = await this.makeRequest(payload, singleProjectId);
-
-      const conversationsSeries = this.extractSeries(resp, 'conversationsByProject');
-      const aiCallsSeries = this.extractSeries(resp, 'aiCallsByProject');
-      const mcpCallsSeries = this.extractSeries(resp, 'mcpCallsByProject');
-
-      const projectStats = new Map<
-        string,
-        { totalConversations: number; totalAICalls: number; totalMCPCalls: number }
-      >();
-
-      for (const s of conversationsSeries) {
-        const projectId = s.labels?.[SPAN_KEYS.PROJECT_ID];
-        if (!projectId) continue;
-        const count = countFromSeries(s);
-        const existing = projectStats.get(projectId) || {
-          totalConversations: 0,
-          totalAICalls: 0,
-          totalMCPCalls: 0,
-        };
-        existing.totalConversations = count;
-        projectStats.set(projectId, existing);
-      }
-
-      for (const s of aiCallsSeries) {
-        const projectId = s.labels?.[SPAN_KEYS.PROJECT_ID];
-        if (!projectId) continue;
-        const count = countFromSeries(s);
-        const existing = projectStats.get(projectId) || {
-          totalConversations: 0,
-          totalAICalls: 0,
-          totalMCPCalls: 0,
-        };
-        existing.totalAICalls = count;
-        projectStats.set(projectId, existing);
-      }
-
-      for (const s of mcpCallsSeries) {
-        const projectId = s.labels?.[SPAN_KEYS.PROJECT_ID];
-        if (!projectId) continue;
-        const count = countFromSeries(s);
-        const existing = projectStats.get(projectId) || {
-          totalConversations: 0,
-          totalAICalls: 0,
-          totalMCPCalls: 0,
-        };
-        existing.totalMCPCalls = count;
-        projectStats.set(projectId, existing);
-      }
-
-      return Array.from(projectStats.entries())
-        .map(([projectId, stats]) => ({ projectId, ...stats }))
-        .sort((a, b) => b.totalConversations - a.totalConversations);
+      return this.parseStatsByProjectResponse(resp);
     } catch (e) {
       console.error('getStatsByProject error:', e);
+      return [];
+    }
+  }
+
+  async getUsageStatsByProject(
+    startTime: number,
+    endTime: number,
+    projectIds?: string[]
+  ): Promise<ProjectStatsResult> {
+    try {
+      const singleProjectId = projectIds?.length === 1 ? projectIds[0] : undefined;
+      const payload = this.buildStatsByProjectPayload(startTime, endTime, projectIds, [
+        GENERATION_TYPE_SCOPE_FILTER,
+      ]);
+      const resp = await this.makeRequest(payload, singleProjectId);
+      return this.parseStatsByProjectResponse(resp);
+    } catch (e) {
+      console.error('getUsageStatsByProject error:', e);
       return [];
     }
   }
@@ -2640,271 +2305,140 @@ class SigNozStatsAPI {
   // ============= Project Overview Payload Builders =============
 
   private buildProjectOverviewStatsPayload(start: number, end: number, projectIds?: string[]) {
-    const tenantFilter = {
-      key: { key: SPAN_KEYS.TENANT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-      op: OPERATORS.EQUALS,
-      value: this.tenantId,
-    };
-
-    const buildProjectFilters = (): any[] => {
-      if (projectIds && projectIds.length > 0) {
-        return [
-          {
-            key: { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            op: OPERATORS.IN,
-            value: projectIds,
-          },
-        ];
-      }
-      return [
-        {
-          key: { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-          op: OPERATORS.EXISTS,
-          value: '',
-        },
-      ];
-    };
-
-    const projectFilters = buildProjectFilters();
+    const tenantItem = { key: SPAN_KEYS.TENANT_ID, op: OPERATORS.EQUALS, value: this.tenantId };
+    const projectItem: { key: string; op: string; value: unknown } =
+      projectIds && projectIds.length > 0
+        ? { key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.IN, value: projectIds }
+        : { key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EXISTS, value: '' };
+    const convExistsItem = { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' };
+    const base = [tenantItem, projectItem, convExistsItem];
 
     return {
       start,
       end,
-      step: QUERY_DEFAULTS.STEP,
-      variables: {},
+      requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
-        queryType: QUERY_TYPES.BUILDER,
-        panelType: PANEL_TYPES.TABLE,
-        builderQueries: {
-          totalConversations: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: 'totalConversations',
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT_DISTINCT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.CONVERSATION_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+        queries: [
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: 'totalConversations',
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: `count_distinct(${SPAN_KEYS.CONVERSATION_ID})` }],
+              filter: { expression: buildFilterExpression(base) },
+              groupBy: [],
+              order: [],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
             },
-            filters: {
-              op: OPERATORS.AND,
-              items: [
-                tenantFilter,
-                ...projectFilters,
-                {
-                  key: { key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-                  op: OPERATORS.EXISTS,
-                  value: '',
-                },
-              ],
-            },
-            groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
-            expression: QUERY_EXPRESSIONS.TOTAL_CONVERSATIONS,
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
-
-          totalUserMessages: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: 'totalUserMessages',
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: 'totalUserMessages',
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: 'count()' }],
+              filter: {
+                expression: buildFilterExpression([
+                  ...base,
+                  { key: SPAN_KEYS.MESSAGE_CONTENT, op: OPERATORS.EXISTS, value: '' },
+                ]),
+              },
+              groupBy: [],
+              order: [],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
             },
-            filters: {
-              op: OPERATORS.AND,
-              items: [
-                tenantFilter,
-                ...projectFilters,
-                {
-                  key: { key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-                  op: OPERATORS.EXISTS,
-                  value: '',
-                },
-                {
-                  key: { key: SPAN_KEYS.MESSAGE_CONTENT, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-                  op: OPERATORS.EXISTS,
-                  value: '',
-                },
-              ],
-            },
-            groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
-            expression: 'totalUserMessages',
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
-
-          totalTriggerInvocations: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: 'totalTriggerInvocations',
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT_DISTINCT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.TRIGGER_INVOCATION_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: 'totalTriggerInvocations',
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: `count_distinct(${SPAN_KEYS.TRIGGER_INVOCATION_ID})` }],
+              filter: {
+                expression: buildFilterExpression([
+                  tenantItem,
+                  projectItem,
+                  { key: SPAN_KEYS.INVOCATION_TYPE, op: OPERATORS.EQUALS, value: 'trigger' },
+                  { key: SPAN_KEYS.TRIGGER_INVOCATION_ID, op: OPERATORS.EXISTS, value: '' },
+                ]),
+              },
+              groupBy: [],
+              order: [],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
             },
-            filters: {
-              op: OPERATORS.AND,
-              items: [
-                tenantFilter,
-                ...projectFilters,
-                {
-                  key: { key: SPAN_KEYS.INVOCATION_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-                  op: OPERATORS.EQUALS,
-                  value: 'trigger',
-                },
-                {
-                  key: { key: SPAN_KEYS.TRIGGER_INVOCATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-                  op: OPERATORS.EXISTS,
-                  value: '',
-                },
-              ],
-            },
-            groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
-            expression: 'totalTriggerInvocations',
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
-
-          totalSlackMessages: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: 'totalSlackMessages',
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: 'totalSlackMessages',
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: 'count()' }],
+              filter: {
+                expression: buildFilterExpression([
+                  ...base,
+                  { key: SPAN_KEYS.MESSAGE_CONTENT, op: OPERATORS.EXISTS, value: '' },
+                  { key: SPAN_KEYS.INVOCATION_TYPE, op: OPERATORS.EQUALS, value: 'slack' },
+                ]),
+              },
+              groupBy: [],
+              order: [],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
             },
-            filters: {
-              op: OPERATORS.AND,
-              items: [
-                tenantFilter,
-                ...projectFilters,
-                {
-                  key: { key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-                  op: OPERATORS.EXISTS,
-                  value: '',
-                },
-                {
-                  key: { key: SPAN_KEYS.MESSAGE_CONTENT, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-                  op: OPERATORS.EXISTS,
-                  value: '',
-                },
-                {
-                  key: { key: SPAN_KEYS.INVOCATION_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-                  op: OPERATORS.EQUALS,
-                  value: 'slack',
-                },
-              ],
-            },
-            groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
-            expression: 'totalSlackMessages',
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
-
-          totalAICalls: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: 'totalAICalls',
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: 'totalAICalls',
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: 'count()' }],
+              filter: {
+                expression: buildFilterExpression([
+                  ...base,
+                  {
+                    key: SPAN_KEYS.AI_OPERATION_ID,
+                    op: OPERATORS.IN,
+                    value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+                  },
+                ]),
+              },
+              groupBy: [],
+              order: [],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
             },
-            filters: {
-              op: OPERATORS.AND,
-              items: [
-                tenantFilter,
-                ...projectFilters,
-                {
-                  key: { key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-                  op: OPERATORS.EXISTS,
-                  value: '',
-                },
-                {
-                  key: { key: SPAN_KEYS.AI_OPERATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-                  op: OPERATORS.IN,
-                  value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
-                },
-              ],
-            },
-            groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
-            expression: 'totalAICalls',
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
-
-          totalMCPCalls: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: 'totalMCPCalls',
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: 'totalMCPCalls',
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: 'count()' }],
+              filter: {
+                expression: buildFilterExpression([
+                  ...base,
+                  { key: SPAN_KEYS.NAME, op: OPERATORS.EQUALS, value: SPAN_NAMES.AI_TOOL_CALL },
+                  { key: SPAN_KEYS.AI_TOOL_TYPE, op: OPERATORS.EQUALS, value: AI_TOOL_TYPES.MCP },
+                ]),
+              },
+              groupBy: [],
+              order: [],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
             },
-            filters: {
-              op: OPERATORS.AND,
-              items: [
-                tenantFilter,
-                ...projectFilters,
-                {
-                  key: { key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-                  op: OPERATORS.EXISTS,
-                  value: '',
-                },
-                {
-                  key: { key: SPAN_KEYS.NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
-                  op: OPERATORS.EQUALS,
-                  value: SPAN_NAMES.AI_TOOL_CALL,
-                },
-                {
-                  key: { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-                  op: OPERATORS.EQUALS,
-                  value: AI_TOOL_TYPES.MCP,
-                },
-              ],
-            },
-            groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
-            expression: 'totalMCPCalls',
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
-        },
+        ],
       },
-      dataSource: DATA_SOURCES.TRACES,
+      variables: {},
     };
   }
 
@@ -2913,327 +2447,535 @@ class SigNozStatsAPI {
     end: number,
     projectIds?: string[]
   ) {
-    const buildProjectFilters = (): any[] => {
-      if (projectIds && projectIds.length > 0) {
-        return [
-          {
-            key: { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            op: OPERATORS.IN,
-            value: projectIds,
-          },
-        ];
-      }
-      return [
-        {
-          key: { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-          op: OPERATORS.EXISTS,
-          value: '',
-        },
-      ];
-    };
-
-    const items: any[] = [
-      {
-        key: { key: SPAN_KEYS.TENANT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-        op: OPERATORS.EQUALS,
-        value: this.tenantId,
-      },
-      ...buildProjectFilters(),
-      {
-        key: { key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-        op: OPERATORS.EXISTS,
-        value: '',
-      },
+    const projectItem: { key: string; op: string; value: unknown } =
+      projectIds && projectIds.length > 0
+        ? { key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.IN, value: projectIds }
+        : { key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EXISTS, value: '' };
+    const filterItems: Array<{ key: string; op: string; value: unknown }> = [
+      { key: SPAN_KEYS.TENANT_ID, op: OPERATORS.EQUALS, value: this.tenantId },
+      projectItem,
+      { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' },
     ];
-
     return {
       start,
       end,
-      step: QUERY_DEFAULTS.STEP,
-      variables: {},
+      requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
-        queryType: QUERY_TYPES.BUILDER,
-        panelType: PANEL_TYPES.TABLE,
-        builderQueries: {
-          lastActivity: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: QUERY_EXPRESSIONS.LAST_ACTIVITY,
-            aggregateOperator: AGGREGATE_OPERATORS.MIN,
-            aggregateAttribute: {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            filters: { op: OPERATORS.AND, items },
-            groupBy: [{ key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG }],
-            expression: QUERY_EXPRESSIONS.LAST_ACTIVITY,
-            reduceTo: REDUCE_OPERATIONS.MIN,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-          },
-        },
-      },
-      dataSource: DATA_SOURCES.TRACES,
-    };
-  }
-
-  private buildStatsByProjectPayload(start: number, end: number, projectIds?: string[]) {
-    const tenantFilter = {
-      key: { key: SPAN_KEYS.TENANT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-      op: OPERATORS.EQUALS,
-      value: this.tenantId,
-    };
-
-    const buildProjectFilters = (): any[] => {
-      if (projectIds && projectIds.length > 0) {
-        return [
+        queries: [
           {
-            key: { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            op: OPERATORS.IN,
-            value: projectIds,
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: QUERY_EXPRESSIONS.LAST_ACTIVITY,
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: `min(${SPAN_KEYS.TIMESTAMP})` }],
+              filter: { expression: buildFilterExpression(filterItems) },
+              groupBy: [
+                {
+                  name: SPAN_KEYS.CONVERSATION_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+              ],
+              order: [
+                { key: { name: `min(${SPAN_KEYS.TIMESTAMP})` }, direction: ORDER_DIRECTIONS.DESC },
+              ],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
+            },
           },
-        ];
-      }
-      return [
-        {
-          key: { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-          op: OPERATORS.EXISTS,
-          value: '',
-        },
-      ];
+        ],
+      },
+      variables: {},
     };
+  }
 
-    const projectFilters = buildProjectFilters();
+  private buildStatsByProjectPayload(
+    start: number,
+    end: number,
+    projectIds?: string[],
+    aiCallsFilterItems?: Array<{ key: string; op: string; value: unknown }>
+  ) {
+    const tenantItem = { key: SPAN_KEYS.TENANT_ID, op: OPERATORS.EQUALS, value: this.tenantId };
+    const projectItem: { key: string; op: string; value: unknown } =
+      projectIds && projectIds.length > 0
+        ? { key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.IN, value: projectIds }
+        : { key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EXISTS, value: '' };
+    const convExistsItem = { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' };
+    const base = [tenantItem, projectItem, convExistsItem];
+    const aiCallsBase = aiCallsFilterItems
+      ? [tenantItem, projectItem, ...aiCallsFilterItems]
+      : base;
 
     return {
       start,
       end,
-      step: QUERY_DEFAULTS.STEP,
-      variables: {},
+      requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
-        queryType: QUERY_TYPES.BUILDER,
-        panelType: PANEL_TYPES.TABLE,
-        builderQueries: {
-          conversationsByProject: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: 'conversationsByProject',
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT_DISTINCT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.CONVERSATION_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            filters: {
-              op: OPERATORS.AND,
-              items: [
-                tenantFilter,
-                ...projectFilters,
+        queries: [
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: 'conversationsByProject',
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: `count_distinct(${SPAN_KEYS.CONVERSATION_ID})` }],
+              filter: { expression: buildFilterExpression(base) },
+              groupBy: [
                 {
-                  key: { key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-                  op: OPERATORS.EXISTS,
-                  value: '',
+                  name: SPAN_KEYS.PROJECT_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
                 },
               ],
+              order: [],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
             },
-            groupBy: [{ key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG }],
-            expression: 'conversationsByProject',
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
-
-          aiCallsByProject: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: 'aiCallsByProject',
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            filters: {
-              op: OPERATORS.AND,
-              items: [
-                tenantFilter,
-                ...projectFilters,
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: 'aiCallsByProject',
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: 'count()' }],
+              filter: {
+                expression: buildFilterExpression([
+                  ...aiCallsBase,
+                  {
+                    key: SPAN_KEYS.AI_OPERATION_ID,
+                    op: OPERATORS.IN,
+                    value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+                  },
+                ]),
+              },
+              groupBy: [
                 {
-                  key: { key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-                  op: OPERATORS.EXISTS,
-                  value: '',
-                },
-                {
-                  key: { key: SPAN_KEYS.AI_OPERATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-                  op: OPERATORS.IN,
-                  value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+                  name: SPAN_KEYS.PROJECT_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
                 },
               ],
+              order: [],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
             },
-            groupBy: [{ key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG }],
-            expression: 'aiCallsByProject',
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
-
-          mcpCallsByProject: {
-            dataSource: DATA_SOURCES.TRACES,
-            queryName: 'mcpCallsByProject',
-            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
-            aggregateAttribute: {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            filters: {
-              op: OPERATORS.AND,
-              items: [
-                tenantFilter,
-                ...projectFilters,
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: 'mcpCallsByProject',
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: 'count()' }],
+              filter: {
+                expression: buildFilterExpression([
+                  ...base,
+                  { key: SPAN_KEYS.NAME, op: OPERATORS.EQUALS, value: SPAN_NAMES.AI_TOOL_CALL },
+                  { key: SPAN_KEYS.AI_TOOL_TYPE, op: OPERATORS.EQUALS, value: AI_TOOL_TYPES.MCP },
+                ]),
+              },
+              groupBy: [
                 {
-                  key: { key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-                  op: OPERATORS.EXISTS,
-                  value: '',
-                },
-                {
-                  key: { key: SPAN_KEYS.NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
-                  op: OPERATORS.EQUALS,
-                  value: SPAN_NAMES.AI_TOOL_CALL,
-                },
-                {
-                  key: { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-                  op: OPERATORS.EQUALS,
-                  value: AI_TOOL_TYPES.MCP,
+                  name: SPAN_KEYS.PROJECT_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
                 },
               ],
+              order: [],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
             },
-            groupBy: [{ key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG }],
-            expression: 'mcpCallsByProject',
-            reduceTo: REDUCE_OPERATIONS.SUM,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [],
-            offset: QUERY_DEFAULTS.OFFSET,
-            disabled: QUERY_DEFAULTS.DISABLED,
-            having: QUERY_DEFAULTS.HAVING,
-            legend: QUERY_DEFAULTS.LEGEND,
-            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
           },
-        },
+        ],
       },
-      dataSource: DATA_SOURCES.TRACES,
+      variables: {},
     };
   }
 
-  private buildTokenUsagePayload(start: number, end: number, projectId?: string) {
-    const baseFilters = [
+  async getUsageCostSummary(
+    startTime: number,
+    endTime: number,
+    groupBy: 'model' | 'agent' | 'generation_type' | 'conversation' | 'provider',
+    projectId?: string
+  ): Promise<
+    Array<{
+      groupKey: string;
+      totalInputTokens: number;
+      totalOutputTokens: number;
+      totalTokens: number;
+      totalEstimatedCostUsd: number;
+      eventCount: number;
+    }>
+  > {
+    try {
+      const resp = await this.makeRequest(
+        this.buildUsageCostPayload(startTime, endTime, groupBy, projectId),
+        projectId
+      );
+
+      const inputSeries = this.extractSeries(resp, 'inputTokens');
+      const outputSeries = this.extractSeries(resp, 'outputTokens');
+      const costSeries = this.extractSeries(resp, 'cost');
+      const countSeries = this.extractSeries(resp, 'eventCount');
+
+      const groupByKey =
+        groupBy === 'model'
+          ? SPAN_KEYS.AI_MODEL_ID
+          : groupBy === 'agent'
+            ? SPAN_KEYS.AGENT_ID
+            : groupBy === 'generation_type'
+              ? SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE
+              : groupBy === 'conversation'
+                ? SPAN_KEYS.CONVERSATION_ID
+                : groupBy === 'provider'
+                  ? SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER
+                  : 'timestamp';
+
+      const stats = new Map<
+        string,
+        { inputTokens: number; outputTokens: number; cost: number; count: number }
+      >();
+
+      for (const s of inputSeries) {
+        const key = s.labels?.[groupByKey] || UNKNOWN_VALUE;
+        const val = numberFromSeries(s);
+        const existing = stats.get(key) || { inputTokens: 0, outputTokens: 0, cost: 0, count: 0 };
+        existing.inputTokens += val;
+        stats.set(key, existing);
+      }
+      for (const s of outputSeries) {
+        const key = s.labels?.[groupByKey] || UNKNOWN_VALUE;
+        const val = numberFromSeries(s);
+        const existing = stats.get(key) || { inputTokens: 0, outputTokens: 0, cost: 0, count: 0 };
+        existing.outputTokens += val;
+        stats.set(key, existing);
+      }
+      for (const s of costSeries) {
+        const key = s.labels?.[groupByKey] || UNKNOWN_VALUE;
+        const val = numberFromSeries(s);
+        const existing = stats.get(key) || { inputTokens: 0, outputTokens: 0, cost: 0, count: 0 };
+        existing.cost += val;
+        stats.set(key, existing);
+      }
+      for (const s of countSeries) {
+        const key = s.labels?.[groupByKey] || UNKNOWN_VALUE;
+        const val = countFromSeries(s);
+        const existing = stats.get(key) || { inputTokens: 0, outputTokens: 0, cost: 0, count: 0 };
+        existing.count += val;
+        stats.set(key, existing);
+      }
+
+      return [...stats.entries()]
+        .map(([groupKey, data]) => ({
+          groupKey,
+          totalInputTokens: data.inputTokens,
+          totalOutputTokens: data.outputTokens,
+          totalTokens: data.inputTokens + data.outputTokens,
+          totalEstimatedCostUsd: data.cost,
+          eventCount: data.count,
+        }))
+        .sort((a, b) => b.totalTokens - a.totalTokens);
+    } catch (e) {
+      console.error('getUsageCostSummary error:', e);
+      return [];
+    }
+  }
+
+  async getUsageEventsList(
+    startTime: number,
+    endTime: number,
+    projectId?: string,
+    conversationId?: string,
+    limit = 25
+  ): Promise<
+    Array<{
+      spanId: string;
+      parentSpanId: string;
+      traceId: string;
+      timestamp: string;
+      generationType: string;
+      model: string;
+      provider: string;
+      agentId: string;
+      subAgentId: string;
+      conversationId: string;
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+      estimatedCostUsd: number;
+      finishReason: string;
+      status: string;
+    }>
+  > {
+    try {
+      const sf = (name: string, fieldDataType: string, fieldContext: string) => ({
+        name,
+        fieldDataType,
+        fieldContext,
+      });
+      const str = FIELD_DATA_TYPES.STRING;
+      const float64 = FIELD_DATA_TYPES.FLOAT64;
+      const spanCtx = FIELD_CONTEXTS.SPAN;
+      const attrCtx = FIELD_CONTEXTS.ATTRIBUTE;
+
+      const filterItems: Array<{ key: string; op: string; value: unknown }> = [
+        {
+          key: SPAN_KEYS.AI_OPERATION_ID,
+          op: OPERATORS.IN,
+          value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+        },
+        {
+          key: SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE,
+          op: OPERATORS.IN,
+          value: [...USAGE_GENERATION_TYPES],
+        },
+        ...(projectId
+          ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }]
+          : []),
+        ...(conversationId
+          ? [{ key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EQUALS, value: conversationId }]
+          : []),
+      ];
+
+      const payload = {
+        start: startTime,
+        end: endTime,
+        requestType: REQUEST_TYPES.RAW,
+        ...(projectId && { projectId }),
+        compositeQuery: {
+          queries: [
+            {
+              type: QUERY_TYPES.BUILDER_QUERY,
+              spec: {
+                name: 'usageEvents',
+                signal: SIGNALS.TRACES,
+                filter: { expression: buildFilterExpression(filterItems) },
+                selectFields: [
+                  sf(SPAN_KEYS.SPAN_ID, str, spanCtx),
+                  sf(SPAN_KEYS.PARENT_SPAN_ID, str, spanCtx),
+                  sf(SPAN_KEYS.TRACE_ID, str, spanCtx),
+                  sf(SPAN_KEYS.HAS_ERROR, FIELD_DATA_TYPES.BOOL, spanCtx),
+                  sf(SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, str, attrCtx),
+                  sf(SPAN_KEYS.AI_MODEL_ID, str, attrCtx),
+                  sf(SPAN_KEYS.AI_MODEL_PROVIDER, str, attrCtx),
+                  sf(SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER, str, attrCtx),
+                  sf(SPAN_KEYS.AGENT_ID, str, attrCtx),
+                  sf(SPAN_KEYS.SUB_AGENT_ID, str, attrCtx),
+                  sf(SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, str, attrCtx),
+                  sf(SPAN_KEYS.CONVERSATION_ID, str, attrCtx),
+                  sf(SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, float64, attrCtx),
+                  sf(SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, float64, attrCtx),
+                  sf(SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, float64, attrCtx),
+                  sf(SPAN_KEYS.AI_RESPONSE_FINISH_REASON, str, attrCtx),
+                ],
+                order: [{ key: { name: SPAN_KEYS.TIMESTAMP }, direction: ORDER_DIRECTIONS.DESC }],
+                limit,
+                stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+                disabled: QUERY_DEFAULTS.DISABLED,
+              },
+            },
+          ],
+        },
+      };
+
+      const resp = await this.makeRequest(payload, projectId);
+      const rows =
+        resp?.data?.data?.results?.find((r: any) => r?.queryName === 'usageEvents')?.rows ?? [];
+
+      return rows.map((row: any) => {
+        const d = row?.data ?? row;
+        const ts = row.timestamp || d.timestamp || '';
+
+        const inputTokens =
+          Number(d[SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS] || d[SPAN_KEYS.AI_USAGE_PROMPT_TOKENS]) ||
+          0;
+        const outputTokens =
+          Number(
+            d[SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS] || d[SPAN_KEYS.AI_USAGE_COMPLETION_TOKENS]
+          ) || 0;
+        const cost = Number(d[SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD]) || 0;
+
+        return {
+          spanId: d.spanID || '',
+          parentSpanId: d.parentSpanID || '',
+          traceId: d.traceID || '',
+          timestamp: ts,
+          generationType: d[SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE] || 'unknown',
+          model: d[SPAN_KEYS.AI_MODEL_ID] || 'unknown',
+          provider: d[SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER] || d[SPAN_KEYS.AI_MODEL_PROVIDER] || '',
+          agentId: d[SPAN_KEYS.AGENT_ID] || '',
+          subAgentId: d[SPAN_KEYS.SUB_AGENT_ID] || d[SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID] || '',
+          conversationId: d[SPAN_KEYS.CONVERSATION_ID] || '',
+          inputTokens,
+          outputTokens,
+          totalTokens: inputTokens + outputTokens,
+          estimatedCostUsd: cost,
+          finishReason: d[SPAN_KEYS.AI_RESPONSE_FINISH_REASON] || '',
+          status: d.hasError === true || d.hasError === 'true' ? 'failed' : 'succeeded',
+        };
+      });
+    } catch (e) {
+      console.error('getUsageEventsList error:', e);
+      return [];
+    }
+  }
+
+  private buildUsageCostPayload(start: number, end: number, groupBy: string, projectId?: string) {
+    const baseItems: Array<{ key: string; op: string; value: unknown }> = [
       {
-        key: { key: SPAN_KEYS.AI_OPERATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        key: SPAN_KEYS.AI_OPERATION_ID,
         op: OPERATORS.IN,
         value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
       },
       {
-        key: { key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-        op: OPERATORS.EXISTS,
-        value: '',
+        key: SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE,
+        op: OPERATORS.IN,
+        value: [...USAGE_GENERATION_TYPES],
       },
-      ...(projectId
-        ? [
-            {
-              key: { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-              op: OPERATORS.EQUALS,
-              value: projectId,
-            },
-          ]
-        : []),
+      ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
     ];
 
-    const buildQuery = (
-      queryName: string,
-      aggregateKey: string,
-      groupByKey: string,
-      groupByConfig: typeof QUERY_FIELD_CONFIGS.STRING_TAG
-    ) => ({
-      dataSource: DATA_SOURCES.TRACES,
-      queryName,
-      aggregateOperator: AGGREGATE_OPERATORS.SUM,
-      aggregateAttribute: {
-        key: aggregateKey,
-        dataType: DATA_TYPES.FLOAT64,
-        type: 'tag',
-        isColumn: false,
-        isJSON: false,
+    const groupByKey =
+      groupBy === 'model'
+        ? SPAN_KEYS.AI_MODEL_ID
+        : groupBy === 'agent'
+          ? SPAN_KEYS.AGENT_ID
+          : groupBy === 'generation_type'
+            ? SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE
+            : groupBy === 'conversation'
+              ? SPAN_KEYS.CONVERSATION_ID
+              : groupBy === 'provider'
+                ? SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER
+                : SPAN_KEYS.TIMESTAMP;
+
+    const groupByFieldContext = FIELD_CONTEXTS.ATTRIBUTE;
+
+    const makeAggQuery = (queryName: string, aggregateKey: string) => ({
+      type: QUERY_TYPES.BUILDER_QUERY,
+      spec: {
+        name: queryName,
+        signal: SIGNALS.TRACES,
+        aggregations: [{ expression: `sum(${aggregateKey})` }],
+        filter: { expression: buildFilterExpression(baseItems) },
+        groupBy: [
+          {
+            name: groupByKey,
+            fieldDataType: FIELD_DATA_TYPES.STRING,
+            fieldContext: groupByFieldContext,
+          },
+        ],
+        order: [],
+        stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+        limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+        disabled: QUERY_DEFAULTS.DISABLED,
       },
-      filters: { op: OPERATORS.AND, items: baseFilters },
-      groupBy: [{ key: groupByKey, ...groupByConfig }],
-      expression: queryName,
-      reduceTo: REDUCE_OPERATIONS.SUM,
-      stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-      orderBy: [],
-      offset: QUERY_DEFAULTS.OFFSET,
-      disabled: QUERY_DEFAULTS.DISABLED,
-      having: QUERY_DEFAULTS.HAVING,
-      legend: QUERY_DEFAULTS.LEGEND,
-      limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+    });
+
+    const makeCountQuery = (queryName: string) => ({
+      type: QUERY_TYPES.BUILDER_QUERY,
+      spec: {
+        name: queryName,
+        signal: SIGNALS.TRACES,
+        aggregations: [{ expression: 'count()' }],
+        filter: { expression: buildFilterExpression(baseItems) },
+        groupBy: [
+          {
+            name: groupByKey,
+            fieldDataType: FIELD_DATA_TYPES.STRING,
+            fieldContext: groupByFieldContext,
+          },
+        ],
+        order: [],
+        stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+        limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+        disabled: QUERY_DEFAULTS.DISABLED,
+      },
     });
 
     return {
       start,
       end,
-      step: QUERY_DEFAULTS.STEP,
-      variables: {},
+      requestType: REQUEST_TYPES.SCALAR,
+      ...(projectId && { projectId }),
       compositeQuery: {
-        queryType: QUERY_TYPES.BUILDER,
-        panelType: PANEL_TYPES.TABLE,
-        builderQueries: {
-          inputTokensByModel: buildQuery(
+        queries: [
+          makeAggQuery('inputTokens', SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS),
+          makeAggQuery('outputTokens', SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS),
+          makeAggQuery('cost', SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD),
+          makeCountQuery('eventCount'),
+        ],
+      },
+    };
+  }
+
+  private buildTokenUsagePayload(
+    start: number,
+    end: number,
+    filterItems: Array<{ key: string; op: string; value: unknown }>,
+    projectId?: string
+  ) {
+    const makeTokenQuery = (queryName: string, aggregateKey: string, groupByKey: string) => ({
+      type: QUERY_TYPES.BUILDER_QUERY,
+      spec: {
+        name: queryName,
+        signal: SIGNALS.TRACES,
+        aggregations: [{ expression: `sum(${aggregateKey})` }],
+        filter: { expression: buildFilterExpression(filterItems) },
+        groupBy: [
+          {
+            name: groupByKey,
+            fieldDataType: FIELD_DATA_TYPES.STRING,
+            fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+          },
+        ],
+        order: [],
+        stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+        limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+        disabled: QUERY_DEFAULTS.DISABLED,
+      },
+    });
+
+    return {
+      start,
+      end,
+      requestType: REQUEST_TYPES.SCALAR,
+      compositeQuery: {
+        queries: [
+          makeTokenQuery(
             'inputTokensByModel',
             SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS,
-            SPAN_KEYS.AI_MODEL_ID,
-            QUERY_FIELD_CONFIGS.STRING_TAG
+            SPAN_KEYS.AI_MODEL_ID
           ),
-          outputTokensByModel: buildQuery(
+          makeTokenQuery(
             'outputTokensByModel',
             SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS,
-            SPAN_KEYS.AI_MODEL_ID,
-            QUERY_FIELD_CONFIGS.STRING_TAG
+            SPAN_KEYS.AI_MODEL_ID
           ),
-          inputTokensByAgent: buildQuery(
+          makeTokenQuery(
             'inputTokensByAgent',
             SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS,
-            SPAN_KEYS.AGENT_ID,
-            QUERY_FIELD_CONFIGS.STRING_TAG
+            SPAN_KEYS.AGENT_ID
           ),
-          outputTokensByAgent: buildQuery(
+          makeTokenQuery(
             'outputTokensByAgent',
             SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS,
-            SPAN_KEYS.AGENT_ID,
-            QUERY_FIELD_CONFIGS.STRING_TAG
+            SPAN_KEYS.AGENT_ID
           ),
-          inputTokensByProject: buildQuery(
+          makeTokenQuery(
             'inputTokensByProject',
             SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS,
-            SPAN_KEYS.PROJECT_ID,
-            QUERY_FIELD_CONFIGS.STRING_TAG
+            SPAN_KEYS.PROJECT_ID
           ),
-          outputTokensByProject: buildQuery(
+          makeTokenQuery(
             'outputTokensByProject',
             SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS,
-            SPAN_KEYS.PROJECT_ID,
-            QUERY_FIELD_CONFIGS.STRING_TAG
+            SPAN_KEYS.PROJECT_ID
           ),
-        },
+        ],
       },
-      dataSource: DATA_SOURCES.TRACES,
+      variables: {},
       projectId,
     };
   }

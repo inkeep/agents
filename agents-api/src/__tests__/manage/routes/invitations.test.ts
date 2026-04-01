@@ -1,9 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Hoist the mock functions
-const { getPendingInvitationsByEmailMock, listUserInvitationsMock } = vi.hoisted(() => ({
+const {
+  getPendingInvitationsByEmailMock,
+  listUserInvitationsMock,
+  getFilteredAuthMethodsForEmailMock,
+  resolveEntitlementMock,
+  countSeatsByRoleMock,
+  getUserByEmailMock,
+} = vi.hoisted(() => ({
   getPendingInvitationsByEmailMock: vi.fn(),
   listUserInvitationsMock: vi.fn(),
+  getFilteredAuthMethodsForEmailMock: vi.fn().mockResolvedValue([]),
+  resolveEntitlementMock: vi.fn().mockResolvedValue(null),
+  countSeatsByRoleMock: vi.fn().mockResolvedValue(0),
+  getUserByEmailMock: vi.fn().mockResolvedValue(null),
 }));
 
 // Mock @inkeep/agents-core
@@ -12,6 +23,10 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   return {
     ...original,
     getPendingInvitationsByEmail: () => getPendingInvitationsByEmailMock,
+    getFilteredAuthMethodsForEmail: () => getFilteredAuthMethodsForEmailMock,
+    getUserByEmail: () => getUserByEmailMock,
+    resolveEntitlement: resolveEntitlementMock,
+    countSeatsByRole: countSeatsByRoleMock,
     createApiError: original.createApiError,
   };
 });
@@ -161,6 +176,7 @@ describe('Invitations Route', () => {
             organizationId: 'org-123',
             organizationName: 'Test Org',
             role: 'member',
+            authMethod: 'email-password',
           },
         ]);
 
@@ -172,6 +188,26 @@ describe('Invitations Route', () => {
         expect(body.organizationId).toBe('org-123');
         expect(body.role).toBe('member');
         expect(body.expiresAt).toBe(futureDate);
+        expect(body.authMethod).toBe('email-password');
+      });
+
+      it('should return authMethod as null when not set on invitation', async () => {
+        const futureDate = new Date(Date.now() + 86400000).toISOString();
+        const res = await makeRequestWithAuth('/verify?email=test@example.com&id=inv-123', [
+          {
+            id: 'inv-123',
+            email: 'test@example.com',
+            status: 'pending',
+            expiresAt: futureDate,
+            organizationId: 'org-123',
+            organizationName: 'Test Org',
+            role: 'member',
+          },
+        ]);
+
+        expect(res.status).toBe(200);
+        const body = await res.json();
+        expect(body.authMethod).toBeNull();
       });
 
       it('should handle invitation with no organizationName', async () => {

@@ -60,6 +60,12 @@ const weatherTool = mcpTool({
 
 The custom prompt is provided to agents as usage guidelines for all tools from this server, helping them understand the specific context and best practices for using these tools.
 
+## Tool Output Pipelines
+
+MCP tool outputs can be passed directly as inputs to subsequent tools — including other MCP tools or function tools — without creating an artifact in between. Agents handle this automatically when tools are designed for sequential use.
+
+For example, a search MCP tool's results can be passed directly into a content extraction MCP tool, with the intermediate data never surfacing to the user. See [Function Tools — Tool Output Pipelines](/typescript-sdk/tools/function-tools#tool-output-pipelines) for more detail on designing pipeline-friendly tools.
+
 </SkillRule>
 
 <SkillRule

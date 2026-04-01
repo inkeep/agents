@@ -5,6 +5,7 @@ import {
   CredentialReferenceApiUpdateSchema,
   CredentialReferenceListResponse,
   CredentialReferenceResponse,
+  type CredentialStore,
   commonGetErrorResponses,
   createApiError,
   createCredentialReference,
@@ -13,16 +14,22 @@ import {
   getCredentialReferenceById,
   getCredentialReferenceWithResources,
   getCredentialStoreLookupKeyFromRetrievalParams,
+  getUserScopedCredentialReference,
   ListResponseSchema,
   listCredentialReferencesPaginated,
   PaginationQueryParamsSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateCredentialReference,
+  upsertCredentialReference,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+import {
+  type ManageRouteHandler,
+  openapiRegisterPutPatchRoutesForLegacy,
+} from '../../../utils/openapiDualRoute';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -130,6 +137,14 @@ app.openapi(
       },
     },
     responses: {
+      200: {
+        description: 'Credential updated successfully (user-scoped upsert)',
+        content: {
+          'application/json': {
+            schema: CredentialReferenceResponse,
+          },
+        },
+      },
       201: {
         description: 'Credential created successfully',
         content: {
@@ -152,64 +167,108 @@ app.openapi(
       projectId,
     };
 
-    const credential = await createCredentialReference(db)(credentialData);
-    const validatedCredential = CredentialReferenceApiSelectSchema.parse(credential);
-    return c.json({ data: validatedCredential }, 201);
-  }
-);
+    let oldLookupKey: string | null | undefined;
+    let oldStore: CredentialStore | undefined;
 
-app.openapi(
-  createProtectedRoute({
-    method: 'put',
-    path: '/{id}',
-    summary: 'Update Credential',
-    operationId: 'update-credential',
-    tags: ['Credentials'],
-    permission: requireProjectPermission('edit'),
-    request: {
-      params: TenantProjectIdParamsSchema,
-      body: {
-        content: {
-          'application/json': {
-            schema: CredentialReferenceApiUpdateSchema,
-          },
-        },
-      },
-    },
-    responses: {
-      200: {
-        description: 'Credential updated successfully',
-        content: {
-          'application/json': {
-            schema: CredentialReferenceResponse,
-          },
-        },
-      },
-      ...commonGetErrorResponses,
-    },
-  }),
-  async (c) => {
-    const db = c.get('db');
-    const { tenantId, projectId, id } = c.req.valid('param');
-    const body = c.req.valid('json');
-
-    const updatedCredential = await updateCredentialReference(db)({
-      scopes: { tenantId, projectId },
-      id,
-      data: body,
-    });
-
-    if (!updatedCredential) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'Credential not found',
+    const isUserScoped = !!(credentialData.toolId && credentialData.userId);
+    let hadExistingUserScopedCredential = false;
+    // For user-scoped credentials, clean up the old credential store connection before upserting
+    if (isUserScoped) {
+      const existingCredential = await getUserScopedCredentialReference(db)({
+        scopes: { tenantId, projectId },
+        // biome-ignore lint/style/noNonNullAssertion: narrowed by isUserScoped guard above
+        toolId: credentialData.toolId!,
+        // biome-ignore lint/style/noNonNullAssertion: narrowed by isUserScoped guard above
+        userId: credentialData.userId!,
       });
+      hadExistingUserScopedCredential = existingCredential != null;
+
+      if (existingCredential?.retrievalParams) {
+        const credentialStores = c.get('credentialStores');
+        oldStore = credentialStores.get(existingCredential.credentialStoreId);
+
+        if (oldStore) {
+          oldLookupKey = getCredentialStoreLookupKeyFromRetrievalParams({
+            retrievalParams: existingCredential.retrievalParams,
+            credentialStoreType: oldStore.type,
+          });
+        }
+      }
     }
 
-    const validatedCredential = CredentialReferenceApiSelectSchema.parse(updatedCredential);
-    return c.json({ data: validatedCredential });
+    const credential = isUserScoped
+      ? await upsertCredentialReference(db)({ data: credentialData })
+      : await createCredentialReference(db)(credentialData);
+
+    if (oldLookupKey && oldStore) {
+      try {
+        await oldStore.delete(oldLookupKey);
+      } catch {
+        // Best-effort cleanup — don't block the upsert if the old connection is already gone
+      }
+    }
+
+    const validatedCredential = CredentialReferenceApiSelectSchema.parse(credential);
+    const status = isUserScoped && hadExistingUserScopedCredential ? 200 : 201;
+    return c.json({ data: validatedCredential }, status);
   }
 );
+
+const updateCredentialRouteConfig = {
+  path: '/{id}' as const,
+  summary: 'Update Credential',
+  tags: ['Credentials'],
+  permission: requireProjectPermission('edit'),
+  request: {
+    params: TenantProjectIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: CredentialReferenceApiUpdateSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'Credential updated successfully',
+      content: {
+        'application/json': {
+          schema: CredentialReferenceResponse,
+        },
+      },
+    },
+    ...commonGetErrorResponses,
+  },
+};
+
+const updateCredentialHandler: ManageRouteHandler<typeof updateCredentialRouteConfig> = async (
+  c
+) => {
+  const db = c.get('db');
+  const { tenantId, projectId, id } = c.req.valid('param');
+  const body = c.req.valid('json');
+
+  const updatedCredential = await updateCredentialReference(db)({
+    scopes: { tenantId, projectId },
+    id,
+    data: body,
+  });
+
+  if (!updatedCredential) {
+    throw createApiError({
+      code: 'not_found',
+      message: 'Credential not found',
+    });
+  }
+
+  const validatedCredential = CredentialReferenceApiSelectSchema.parse(updatedCredential);
+  return c.json({ data: validatedCredential });
+};
+
+openapiRegisterPutPatchRoutesForLegacy(app, updateCredentialRouteConfig, updateCredentialHandler, {
+  operationId: 'update-credential',
+});
 
 app.openapi(
   createProtectedRoute({

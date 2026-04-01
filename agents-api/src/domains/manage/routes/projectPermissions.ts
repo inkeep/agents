@@ -7,6 +7,7 @@ import {
   OrgRoles,
   SpiceDbProjectPermissions,
   SpiceDbResourceTypes,
+  toSpiceDbProjectId,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
@@ -54,7 +55,7 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { projectId } = c.req.valid('param');
+    const { projectId, tenantId } = c.req.valid('param');
     const userId = c.get('userId');
     const tenantRole = c.get('tenantRole') as OrgRole;
     const isTestEnvironment = process.env.ENVIRONMENT === 'test';
@@ -87,10 +88,12 @@ app.openapi(
       });
     }
 
+    const spiceProjectId = toSpiceDbProjectId(tenantId, projectId);
+
     // Use bulk permission check - single gRPC call for all permissions
     const permissions = await checkBulkPermissions({
       resourceType: SpiceDbResourceTypes.PROJECT,
-      resourceId: projectId,
+      resourceId: spiceProjectId,
       permissions: [
         SpiceDbProjectPermissions.VIEW,
         SpiceDbProjectPermissions.USE,

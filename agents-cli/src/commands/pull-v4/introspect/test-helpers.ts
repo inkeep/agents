@@ -37,6 +37,7 @@ export function createTestEnvironment(): { testDir: string; projectPaths: Projec
       credentialsDir: join(testDir, 'credentials'),
       contextConfigsDir: join(testDir, 'context-configs'),
       externalAgentsDir: join(testDir, 'external-agents'),
+      skillsDir: join(testDir, 'skills'),
     },
   };
 }
@@ -63,8 +64,7 @@ export function createProjectFixture(): FullProjectDefinition {
       'api-credentials': {
         id: 'api-credentials',
         name: 'API Credentials',
-        // @ts-expect-error -- fixme
-        type: 'bearer',
+        type: 'memory',
         credentialStoreId: 'main-store',
         retrievalParams: {
           key: 'token',
@@ -117,6 +117,7 @@ export function createProjectFixture(): FullProjectDefinition {
           'tier-one': {
             id: 'tier-one',
             name: 'Tier One',
+            canUse: [],
           },
         },
         contextConfig: {

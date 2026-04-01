@@ -1,6 +1,6 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
-import { manageApiKeyOrSessionAuth } from '../middleware';
+import { manageBearerOrSessionAuth } from '../middleware';
 import type { AppVariables } from '../types';
 
 export const capabilitiesHandler = new OpenAPIHono<{ Variables: AppVariables }>();
@@ -24,6 +24,16 @@ const CapabilitiesResponseSchema = z
           .describe('The configured sandbox runtime, if enabled.'),
       })
       .describe('Sandbox execution capabilities (used by Function Tools).'),
+    modelFallback: z
+      .object({
+        enabled: z.boolean().describe('Whether fallback model support is available.'),
+      })
+      .describe('Fallback model capabilities (requires AI Gateway).'),
+    costTracking: z
+      .object({
+        enabled: z.boolean().describe('Whether per-request cost tracking is available.'),
+      })
+      .describe('Cost tracking capabilities (requires AI Gateway).'),
   })
   .describe('Optional server capabilities and configuration.')
   .openapi('CapabilitiesResponseSchema');
@@ -35,7 +45,7 @@ capabilitiesHandler.openapi(
     operationId: 'capabilities',
     summary: 'Get server capabilities',
     description: 'Get information about optional server-side capabilities and configuration.',
-    permission: manageApiKeyOrSessionAuth(),
+    permission: manageBearerOrSessionAuth(),
     responses: {
       200: {
         description: 'Server capabilities',
@@ -49,15 +59,18 @@ capabilitiesHandler.openapi(
   }),
   (c) => {
     const sandboxConfig = c.get('sandboxConfig');
-    if (!sandboxConfig) {
-      return c.json({ sandbox: { configured: false } });
-    }
+    const aiGatewayConfigured = !!process.env.AI_GATEWAY_API_KEY;
+
     return c.json({
-      sandbox: {
-        configured: true,
-        provider: sandboxConfig.provider,
-        runtime: sandboxConfig.runtime,
-      },
+      sandbox: sandboxConfig
+        ? {
+            configured: true,
+            provider: sandboxConfig.provider,
+            runtime: sandboxConfig.runtime,
+          }
+        : { configured: false },
+      modelFallback: { enabled: aiGatewayConfigured },
+      costTracking: { enabled: aiGatewayConfigured },
     });
   }
 );

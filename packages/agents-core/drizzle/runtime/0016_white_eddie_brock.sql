@@ -1,0 +1,1 @@
+ALTER TABLE "work_app_slack_channel_agent_configs" DROP COLUMN "agent_name";

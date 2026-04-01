@@ -3,6 +3,7 @@ import { signSlackUserToken } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
 import { SlackStrings } from '../../i18n';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
+import { lookupAgentName } from '../agent-resolution';
 import { getSlackClient, getSlackUserInfo } from '../client';
 import { buildLinkPromptMessage, resolveUnlinkedUserAction } from '../link-prompt';
 import { findWorkspaceConnectionByTeamId } from '../nango';
@@ -72,7 +73,12 @@ export async function handleDirectMessage(params: {
 
       span.setAttribute(SLACK_SPAN_KEYS.AGENT_ID, defaultAgent.agentId);
       span.setAttribute(SLACK_SPAN_KEYS.PROJECT_ID, defaultAgent.projectId);
-      const agentDisplayName = defaultAgent.agentName || defaultAgent.agentId;
+      const resolvedAgentName = await lookupAgentName(
+        tenantId,
+        defaultAgent.projectId,
+        defaultAgent.agentId
+      );
+      const agentDisplayName = resolvedAgentName || defaultAgent.agentId;
 
       const [existingLink, userInfo] = await Promise.all([
         findCachedUserMapping(tenantId, slackUserId, teamId),

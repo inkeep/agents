@@ -7,32 +7,58 @@ import {
   OrgRoles,
   type ScheduledTrigger,
 } from '@inkeep/agents-core';
+import { user } from '@inkeep/agents-core/db/run-schema';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it, vi } from 'vitest';
 import manageDbClient from '../../../../data/db/manageDbClient';
 import runDbClient from '../../../../data/db/runDbClient';
-import {
-  assertCanMutateTrigger,
-  isScheduledTriggerChanged,
-} from '../../../../domains/manage/routes/scheduledTriggers';
+import { assertCanMutateTrigger } from '../../../../domains/manage/routes/triggerHelpers';
+import { isEntityChanged } from '../../../../utils/entityDiff';
 import { makeRequest } from '../../../utils/testRequest';
 import { createTestSubAgentData } from '../../../utils/testSubAgent';
 import { createTestTenantWithOrg } from '../../../utils/testTenant';
+
+async function seedTestUser(userId: string): Promise<void> {
+  await runDbClient
+    .insert(user)
+    .values({
+      id: userId,
+      name: `Test User ${userId}`,
+      email: `${userId}@test.local`,
+      emailVerified: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .onConflictDoNothing();
+}
 
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
     canUseProjectStrict: vi.fn(() => Promise.resolve(true)),
-    getUserById: vi.fn(() =>
-      vi.fn(() => Promise.resolve({ id: 'mock-user', name: 'Mock', email: 'mock@test.com' }))
+    getOrganizationMemberByUserId: vi.fn(() =>
+      vi.fn(() =>
+        Promise.resolve({
+          id: 'mock-user',
+          name: 'Mock',
+          email: 'mock@test.com',
+          role: 'member',
+          memberId: 'mock-member',
+        })
+      )
+    ),
+    resolveRef: vi.fn(() =>
+      vi.fn((refString: string) =>
+        Promise.resolve({ type: 'branch', name: refString, hash: 'test-hash' })
+      )
     ),
   };
 });
 
-const { canUseProjectStrict, getUserById } = await import('@inkeep/agents-core');
+const { canUseProjectStrict, getOrganizationMemberByUserId } = await import('@inkeep/agents-core');
 const canUseProjectStrictMock = vi.mocked(canUseProjectStrict);
-const getUserByIdMock = vi.mocked(getUserById);
+const getOrgMemberMock = vi.mocked(getOrganizationMemberByUserId);
 
 describe('User-Scoped Scheduled Triggers', () => {
   const createFullAgentData = (agentId: string) => {
@@ -70,6 +96,12 @@ describe('User-Scoped Scheduled Triggers', () => {
     runAsUserId?: string;
   }) => {
     const { tenantId, projectId, agentId, runAsUserId } = params;
+
+    await seedTestUser('anonymous');
+    if (runAsUserId && runAsUserId !== 'anonymous') {
+      await seedTestUser(runAsUserId);
+    }
+
     const createData: Record<string, unknown> = {
       name: 'User-scoped trigger',
       cronExpression: '0 * * * *',
@@ -162,7 +194,7 @@ describe('User-Scoped Scheduled Triggers', () => {
       const tenantId = await createTestTenantWithOrg('us-no-exist');
       const { agentId, projectId } = await createTestAgent(tenantId);
       canUseProjectStrictMock.mockResolvedValue(true);
-      getUserByIdMock.mockReturnValueOnce(vi.fn(() => Promise.resolve(null)) as any);
+      getOrgMemberMock.mockReturnValueOnce(vi.fn(() => Promise.resolve(null)) as any);
 
       const res = await createTriggerWithUserId({
         tenantId,
@@ -173,7 +205,7 @@ describe('User-Scoped Scheduled Triggers', () => {
 
       expect(res.status).toBe(400);
       const body = await res.json();
-      expect(body.error.message).toContain('does not exist');
+      expect(body.error.message).toContain('not found or does not have permission');
     });
 
     it('should normalize empty string runAsUserId to null (legacy behavior)', async () => {
@@ -218,6 +250,7 @@ describe('User-Scoped Scheduled Triggers', () => {
       const tenantId = await createTestTenantWithOrg('us-update-uid');
       const { agentId, projectId } = await createTestAgent(tenantId);
       canUseProjectStrictMock.mockResolvedValue(true);
+      await seedTestUser('new-user-456');
 
       const createRes = await createTriggerWithUserId({
         tenantId,
@@ -639,7 +672,7 @@ describe('User-Scoped Scheduled Triggers', () => {
     });
   });
 
-  describe('Push flow authorization (isScheduledTriggerChanged + assertCanMutateTrigger)', () => {
+  describe('Push flow authorization (isEntityChanged + assertCanMutateTrigger)', () => {
     const baseTrigger: ScheduledTrigger = {
       tenantId: 'tenant-1',
       id: 'trigger-1',
@@ -658,11 +691,13 @@ describe('User-Scoped Scheduled Triggers', () => {
       timeoutSeconds: 780,
       runAsUserId: 'user-a',
       createdBy: 'user-a',
+      ref: 'main',
+      nextRunAt: '2025-01-01T09:00:00Z',
       createdAt: '2025-01-01T00:00:00Z',
       updatedAt: '2025-01-01T00:00:00Z',
     };
 
-    describe('isScheduledTriggerChanged', () => {
+    describe('isEntityChanged', () => {
       it('should return false when no fields changed', () => {
         const incoming = {
           name: 'Daily sync',
@@ -678,7 +713,7 @@ describe('User-Scoped Scheduled Triggers', () => {
           timeoutSeconds: 780,
           runAsUserId: 'user-a',
         };
-        expect(isScheduledTriggerChanged(incoming, baseTrigger)).toBe(false);
+        expect(isEntityChanged(incoming, baseTrigger)).toBe(false);
       });
 
       it('should return false when incoming undefined matches existing null', () => {
@@ -694,7 +729,7 @@ describe('User-Scoped Scheduled Triggers', () => {
           timeoutSeconds: 780,
           runAsUserId: 'user-a',
         };
-        expect(isScheduledTriggerChanged(incoming, baseTrigger)).toBe(false);
+        expect(isEntityChanged(incoming, baseTrigger)).toBe(false);
       });
 
       it('should return true when a scalar field changed', () => {
@@ -710,7 +745,7 @@ describe('User-Scoped Scheduled Triggers', () => {
           timeoutSeconds: 780,
           runAsUserId: 'user-a',
         };
-        expect(isScheduledTriggerChanged(incoming, baseTrigger)).toBe(true);
+        expect(isEntityChanged(incoming, baseTrigger)).toBe(true);
       });
 
       it('should return true when runAsUserId changed', () => {
@@ -726,7 +761,7 @@ describe('User-Scoped Scheduled Triggers', () => {
           timeoutSeconds: 780,
           runAsUserId: 'user-b',
         };
-        expect(isScheduledTriggerChanged(incoming, baseTrigger)).toBe(true);
+        expect(isEntityChanged(incoming, baseTrigger)).toBe(true);
       });
 
       it('should return true when payload changed', () => {
@@ -743,7 +778,7 @@ describe('User-Scoped Scheduled Triggers', () => {
           timeoutSeconds: 780,
           runAsUserId: 'user-a',
         };
-        expect(isScheduledTriggerChanged(incoming, baseTrigger)).toBe(true);
+        expect(isEntityChanged(incoming, baseTrigger)).toBe(true);
       });
 
       it('should return false when payload objects are deeply equal', () => {
@@ -761,10 +796,10 @@ describe('User-Scoped Scheduled Triggers', () => {
           timeoutSeconds: 780,
           runAsUserId: 'user-a',
         };
-        expect(isScheduledTriggerChanged(incoming, triggerWithPayload)).toBe(false);
+        expect(isEntityChanged(incoming, triggerWithPayload)).toBe(false);
       });
 
-      it('should ignore identity fields (id, tenantId, projectId, agentId)', () => {
+      it('should ignore fields (id, tenantId, projectId, agentId)', () => {
         const incoming = {
           id: 'different-id',
           tenantId: 'different-tenant',
@@ -781,12 +816,11 @@ describe('User-Scoped Scheduled Triggers', () => {
           timeoutSeconds: 780,
           runAsUserId: 'user-a',
         };
-        expect(isScheduledTriggerChanged(incoming, baseTrigger)).toBe(false);
+        expect(isEntityChanged(incoming, baseTrigger)).toBe(false);
       });
 
-      it('should ignore server-stamped fields (createdBy, createdAt, updatedAt)', () => {
+      it('should ignore server-stamped fields (createdAt, updatedAt)', () => {
         const incoming = {
-          createdBy: 'different-creator',
           createdAt: '2099-01-01T00:00:00Z',
           updatedAt: '2099-01-01T00:00:00Z',
           name: 'Daily sync',
@@ -800,7 +834,7 @@ describe('User-Scoped Scheduled Triggers', () => {
           timeoutSeconds: 780,
           runAsUserId: 'user-a',
         };
-        expect(isScheduledTriggerChanged(incoming, baseTrigger)).toBe(false);
+        expect(isEntityChanged(incoming, baseTrigger)).toBe(false);
       });
     });
 
@@ -890,18 +924,18 @@ describe('User-Scoped Scheduled Triggers', () => {
       });
       expect(resB.status).toBe(201);
 
-      const beforeList = await listScheduledTriggers(manageDbClient)({
+      const beforeList = await listScheduledTriggers(runDbClient)({
         scopes: { tenantId, projectId, agentId },
       });
       expect(beforeList.length).toBe(2);
 
-      await deleteScheduledTriggersByRunAsUserId(manageDbClient)({
+      await deleteScheduledTriggersByRunAsUserId(runDbClient)({
         tenantId,
         projectId,
         runAsUserId: userA,
       });
 
-      const afterList = await listScheduledTriggers(manageDbClient)({
+      const afterList = await listScheduledTriggers(runDbClient)({
         scopes: { tenantId, projectId, agentId },
       });
       expect(afterList.length).toBe(1);
@@ -921,13 +955,13 @@ describe('User-Scoped Scheduled Triggers', () => {
       });
       expect(res.status).toBe(201);
 
-      await deleteScheduledTriggersByRunAsUserId(manageDbClient)({
+      await deleteScheduledTriggersByRunAsUserId(runDbClient)({
         tenantId,
         projectId,
         runAsUserId: 'nonexistent-user',
       });
 
-      const afterList = await listScheduledTriggers(manageDbClient)({
+      const afterList = await listScheduledTriggers(runDbClient)({
         scopes: { tenantId, projectId, agentId },
       });
       expect(afterList.length).toBe(1);
@@ -953,16 +987,16 @@ describe('User-Scoped Scheduled Triggers', () => {
         runAsUserId: userId,
       });
 
-      await deleteScheduledTriggersByRunAsUserId(manageDbClient)({
+      await deleteScheduledTriggersByRunAsUserId(runDbClient)({
         tenantId,
         projectId,
         runAsUserId: userId,
       });
 
-      const list1 = await listScheduledTriggers(manageDbClient)({
+      const list1 = await listScheduledTriggers(runDbClient)({
         scopes: { tenantId, projectId, agentId: agent1 },
       });
-      const list2 = await listScheduledTriggers(manageDbClient)({
+      const list2 = await listScheduledTriggers(runDbClient)({
         scopes: { tenantId, projectId, agentId: agent2Id },
       });
       expect(list1.length).toBe(0);

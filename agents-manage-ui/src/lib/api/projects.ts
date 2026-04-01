@@ -6,11 +6,8 @@ import type { ProjectFormData } from '@/components/projects/form/validation';
 import type { Project } from '../types/project';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
-import { validateTenantId } from './resource-validation';
 
 async function $fetchProjects(tenantId: string): Promise<ListResponse<Project>> {
-  validateTenantId(tenantId);
-
   const response = await makeManagementApiRequest<ListResponse<any>>(
     `tenants/${tenantId}/projects?limit=100`
   );
@@ -30,8 +27,6 @@ async function $fetchProject(
   tenantId: string,
   projectId: string
 ): Promise<SingleResponse<Project>> {
-  validateTenantId(tenantId);
-
   const response = await makeManagementApiRequest<SingleResponse<any>>(
     `tenants/${tenantId}/projects/${projectId}`
   );
@@ -51,8 +46,6 @@ export async function createProject(
   tenantId: string,
   project: ProjectFormData
 ): Promise<SingleResponse<Project>> {
-  validateTenantId(tenantId);
-
   const response = await makeManagementApiRequest<SingleResponse<any>>(
     `tenants/${tenantId}/projects`,
     {
@@ -76,8 +69,6 @@ export async function updateProject(
   projectId: string,
   project: ProjectFormData
 ): Promise<SingleResponse<Project>> {
-  validateTenantId(tenantId);
-
   const response = await makeManagementApiRequest<SingleResponse<any>>(
     `tenants/${tenantId}/projects/${projectId}`,
     {
@@ -96,8 +87,6 @@ export async function updateProject(
 }
 
 export async function deleteProject(tenantId: string, projectId: string): Promise<void> {
-  validateTenantId(tenantId);
-
   await makeManagementApiRequest<void>(`tenants/${tenantId}/projects/${projectId}`, {
     method: 'DELETE',
   });
@@ -107,14 +96,15 @@ export async function deleteProject(tenantId: string, projectId: string): Promis
  * Fetch project permissions for the current user.
  * Wrapped with React's cache() to deduplicate calls within a single request.
  */
-export const fetchProjectPermissions = cache(
-  async (tenantId: string, projectId: string): Promise<ProjectPermissions> => {
-    validateTenantId(tenantId);
+async function $fetchProjectPermissions(
+  tenantId: string,
+  projectId: string
+): Promise<ProjectPermissions> {
+  const response = await makeManagementApiRequest<{ data: ProjectPermissions }>(
+    `tenants/${tenantId}/projects/${projectId}/permissions`
+  );
 
-    const response = await makeManagementApiRequest<{ data: ProjectPermissions }>(
-      `tenants/${tenantId}/projects/${projectId}/permissions`
-    );
+  return response.data;
+}
 
-    return response.data;
-  }
-);
+export const fetchProjectPermissions = cache($fetchProjectPermissions);

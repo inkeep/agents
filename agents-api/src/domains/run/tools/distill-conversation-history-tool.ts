@@ -1,18 +1,14 @@
-import type { ModelSettings } from '@inkeep/agents-core';
-import { ModelFactory } from '@inkeep/agents-core';
-import { generateText, Output } from 'ai';
+import type { GenerationType, ModelSettings } from '@inkeep/agents-core';
 import { z } from 'zod';
 import { getLogger } from '../../../logger';
-import type { ArtifactInfo } from '../utils/artifact-utils';
+import { distillWithTruncation } from './distill-utils';
 
 const logger = getLogger('distill-conversation-history-tool');
 
-/**
- * Conversation History Summary Schema - structured object for replacing entire conversation histories
- */
 export const ConversationHistorySummarySchema = z.object({
   type: z.literal('conversation_history_summary_v1'),
-  session_id: z.string().nullable().optional(),
+  session_id: z.string().nullable(),
+  _fallback: z.boolean().nullable(),
   conversation_overview: z
     .string()
     .describe('2-4 sentences capturing the full conversation context and what was accomplished'),
@@ -58,7 +54,7 @@ export const ConversationHistorySummarySchema = z.object({
           .describe('Importance of this artifact to the overall conversation'),
       })
     )
-    .optional()
+    .nullable()
     .describe('All artifacts referenced in this conversation with their significance'),
   conversation_flow: z.object({
     major_phases: z
@@ -80,72 +76,36 @@ export const ConversationHistorySummarySchema = z.object({
 
 export type ConversationHistorySummary = z.infer<typeof ConversationHistorySummarySchema>;
 
-/**
- * Distill entire conversation history into a comprehensive summary that can replace the full message history
- */
 export async function distillConversationHistory(params: {
-  messages: any[];
   conversationId: string;
   summarizerModel: ModelSettings;
-  toolCallToArtifactMap?: Record<string, ArtifactInfo>;
+  currentSummary?: ConversationHistorySummary | null;
+  messageFormatter: (maxChars?: number) => string;
+  usageContext?: {
+    tenantId: string;
+    projectId: string;
+    agentId: string;
+    generationType: GenerationType;
+  };
 }): Promise<ConversationHistorySummary> {
-  const { messages, conversationId, summarizerModel, toolCallToArtifactMap } = params;
+  const { conversationId, summarizerModel, currentSummary, messageFormatter, usageContext } =
+    params;
+
+  const priorSummarySection = currentSummary
+    ? `**Prior summary (build on this — the new summary must incorporate everything from here plus the new messages below):**\n\n\`\`\`json\n${JSON.stringify(currentSummary, null, 2)}\n\`\`\`\n\n**New messages to incorporate:**`
+    : '**Complete Conversation to Summarize:**';
 
   try {
-    if (!summarizerModel?.model?.trim()) {
-      throw new Error('Summarizer model is required');
-    }
+    const output = await distillWithTruncation({
+      conversationId,
+      summarizerModel,
+      schema: ConversationHistorySummarySchema,
+      usageContext,
+      buildPrompt: (
+        formattedMessages
+      ) => `You are a conversation history summarization assistant. Your job is to create a comprehensive summary that can COMPLETELY REPLACE the original conversation history while preserving all essential context.
 
-    const model = ModelFactory.createModel(summarizerModel);
-
-    // Format messages for prompt with comprehensive content handling
-    const formattedMessages = messages
-      .map((msg: any) => {
-        const parts: string[] = [];
-
-        if (typeof msg.content === 'string') {
-          parts.push(msg.content);
-        } else if (Array.isArray(msg.content)) {
-          for (const block of msg.content) {
-            if (block.type === 'text') {
-              parts.push(block.text);
-            } else if (block.type === 'tool-call') {
-              parts.push(
-                `[TOOL CALL] ${block.toolName}(${JSON.stringify(block.input)}) [ID: ${block.toolCallId}]`
-              );
-            } else if (block.type === 'tool-result') {
-              const artifactInfo = toolCallToArtifactMap?.[block.toolCallId];
-
-              if (artifactInfo?.isOversized) {
-                // Oversized artifact - use metadata instead of full output
-                parts.push(
-                  `[TOOL RESULT] ${block.toolName} [ID: ${block.toolCallId}]\nTool Arguments: ${JSON.stringify(artifactInfo.toolArgs)}\n[ARTIFACT CREATED: ${artifactInfo.artifactId}]\n${artifactInfo.oversizedWarning}\nStructure: ${artifactInfo.structureInfo}`
-                );
-              } else if (artifactInfo) {
-                // Normal artifact created - include tool args and result
-                parts.push(
-                  `[TOOL RESULT] ${block.toolName} [ID: ${block.toolCallId}]\nTool Arguments: ${JSON.stringify(artifactInfo.toolArgs)}\n[ARTIFACT CREATED: ${artifactInfo.artifactId}]\nResult: ${JSON.stringify(block.result)}`
-                );
-              } else {
-                // No artifact - include full result
-                parts.push(
-                  `[TOOL RESULT] ${block.toolName} [ID: ${block.toolCallId}]\nResult: ${JSON.stringify(block.result)}`
-                );
-              }
-            }
-          }
-        } else if (msg.content?.text) {
-          parts.push(msg.content.text);
-        }
-
-        return parts.length > 0 ? `${msg.role || 'system'}: ${parts.join('\n')}` : '';
-      })
-      .filter((line) => line.trim().length > 0)
-      .join('\n\n');
-
-    const prompt = `You are a conversation history summarization assistant. Your job is to create a comprehensive summary that can COMPLETELY REPLACE the original conversation history while preserving all essential context.
-
-**Complete Conversation to Summarize:**
+${priorSummarySection}
 
 \`\`\`text
 ${formattedMessages}
@@ -228,34 +188,21 @@ Create a comprehensive summary using this exact JSON schema:
 
 **REMEMBER**: This summary is REPLACING the entire conversation history. Include everything essential for context continuation.
 
-Return **only** valid JSON.`;
-
-    const { output: summary } = await generateText({
-      model,
-      prompt,
-      output: Output.object({
-        schema: ConversationHistorySummarySchema,
-      }),
+Return **only** valid JSON.`,
+      messageFormatter,
     });
-
-    // Set session ID
-    summary.session_id = conversationId;
-
-    return summary;
+    output.session_id = conversationId;
+    return output;
   } catch (error) {
     logger.error(
-      {
-        conversationId,
-        messageCount: messages.length,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { conversationId, error: error instanceof Error ? error.message : 'Unknown error' },
       'Failed to distill conversation history'
     );
 
-    // Return minimal fallback summary
     return {
       type: 'conversation_history_summary_v1',
       session_id: conversationId,
+      _fallback: true,
       conversation_overview: 'Conversation session with technical discussion and problem-solving',
       user_goals: {
         primary: 'Technical assistance and problem-solving',

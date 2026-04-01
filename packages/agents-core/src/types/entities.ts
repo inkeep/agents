@@ -3,6 +3,12 @@ import type {
   AgentApiInsertSchema,
   AgentApiSelectSchema,
   AgentApiUpdateSchema,
+  AgentDatasetRelationInsertSchema,
+  AgentDatasetRelationSelectSchema,
+  AgentDatasetRelationUpdateSchema,
+  AgentEvaluatorRelationInsertSchema,
+  AgentEvaluatorRelationSelectSchema,
+  AgentEvaluatorRelationUpdateSchema,
   AgentInsertSchema,
   AgentSelectSchema,
   AgentUpdateSchema,
@@ -10,6 +16,7 @@ import type {
   AgentWithinContextOfProjectSelectSchema,
   AgentWithinContextOfProjectSelectSchemaWithRelationIds,
   AllAgentSchema,
+  AnonymousSessionResponseSchema,
   ApiKeyApiCreationResponseSchema,
   ApiKeyApiInsertSchema,
   ApiKeyApiSelectSchema,
@@ -17,6 +24,13 @@ import type {
   ApiKeyInsertSchema,
   ApiKeySelectSchema,
   ApiKeyUpdateSchema,
+  AppApiCreationResponseSchema,
+  AppApiInsertSchema,
+  AppApiSelectSchema,
+  AppApiUpdateSchema,
+  AppInsertSchema,
+  AppSelectSchema,
+  AppUpdateSchema,
   ArtifactComponentApiInsertSchema,
   ArtifactComponentApiSelectSchema,
   ArtifactComponentApiUpdateSchema,
@@ -154,12 +168,28 @@ import type {
   ProjectMetadataSelectSchema,
   ProjectSelectSchema,
   ProjectUpdateSchema,
+  ScheduledTriggerApiInsertSchema,
+  ScheduledTriggerApiSelectSchema,
+  ScheduledTriggerApiUpdateSchema,
+  ScheduledTriggerInsertSchema,
+  ScheduledTriggerInvocationInsertSchema,
+  ScheduledTriggerInvocationSelectSchema,
+  ScheduledTriggerInvocationUpdateSchema,
+  ScheduledTriggerSelectSchema,
+  ScheduledTriggerUpdateSchema,
+  SchedulerStateSelectSchema,
   SkillApiInsertSchema,
   SkillApiSelectSchema,
   SkillApiUpdateSchema,
+  SkillFileApiInsertSchema,
+  SkillFileApiSelectSchema,
+  SkillFileApiUpdateSchema,
+  SkillFileInsertSchema,
+  SkillFileSelectSchema,
   SkillInsertSchema,
   SkillSelectSchema,
   SkillUpdateSchema,
+  SkillWithFilesApiSelectSchema,
   SubAgentApiInsertSchema,
   SubAgentApiSelectSchema,
   SubAgentApiUpdateSchema,
@@ -233,7 +263,6 @@ import type {
   TriggerApiUpdateSchema,
   TriggerBatchConversationEvaluationSchema,
   TriggerConversationEvaluationSchema,
-  TriggerDatasetRunSchema,
   TriggerEvaluationJobSchema,
   TriggerInsertSchema,
   TriggerInvocationApiInsertSchema,
@@ -244,13 +273,21 @@ import type {
   TriggerInvocationUpdateSchema,
   TriggerSelectSchema,
   TriggerUpdateSchema,
+  UserProfileApiInsertSchema,
+  UserProfileApiUpdateSchema,
+  UserProfileInsertSchema,
+  UserProfileSelectSchema,
+  UserProfileUpdateSchema,
   WorkAppGitHubInstallationInsertSchema,
   WorkAppGitHubInstallationSelectSchema,
   WorkAppGitHubMcpToolRepositoryAccessSelectSchema,
   WorkAppGitHubProjectRepositoryAccessSelectSchema,
   WorkAppGitHubRepositoryInsertSchema,
   WorkAppGitHubRepositorySelectSchema,
-} from '../validation/schemas';
+  WorkflowExecutionInsertSchema,
+  WorkflowExecutionSelectSchema,
+  WorkflowExecutionUpdateSchema,
+} from '../validation';
 
 export type DatasetRunSelect = z.infer<typeof DatasetRunSelectSchema>;
 export type DatasetRunInsert = z.infer<typeof DatasetRunInsertSchema>;
@@ -324,6 +361,12 @@ export type DatasetItemUpdate = z.infer<typeof DatasetItemUpdateSchema>;
 export type DatasetRunConfigSelect = z.infer<typeof DatasetRunConfigSelectSchema>;
 export type DatasetRunConfigInsert = z.infer<typeof DatasetRunConfigInsertSchema>;
 export type DatasetRunConfigUpdate = z.infer<typeof DatasetRunConfigUpdateSchema>;
+export type AgentDatasetRelationSelect = z.infer<typeof AgentDatasetRelationSelectSchema>;
+export type AgentDatasetRelationInsert = z.infer<typeof AgentDatasetRelationInsertSchema>;
+export type AgentDatasetRelationUpdate = z.infer<typeof AgentDatasetRelationUpdateSchema>;
+export type AgentEvaluatorRelationSelect = z.infer<typeof AgentEvaluatorRelationSelectSchema>;
+export type AgentEvaluatorRelationInsert = z.infer<typeof AgentEvaluatorRelationInsertSchema>;
+export type AgentEvaluatorRelationUpdate = z.infer<typeof AgentEvaluatorRelationUpdateSchema>;
 export type DatasetRunConfigAgentRelationSelect = z.infer<
   typeof DatasetRunConfigAgentRelationSelectSchema
 >;
@@ -334,7 +377,6 @@ export type DatasetRunConfigAgentRelationUpdate = z.infer<
   typeof DatasetRunConfigAgentRelationUpdateSchema
 >;
 export type DatasetRunItem = z.infer<typeof DatasetRunItemSchema>;
-export type TriggerDatasetRunRequest = z.infer<typeof TriggerDatasetRunSchema>;
 export type TriggerConversationEvaluationRequest = z.infer<
   typeof TriggerConversationEvaluationSchema
 >;
@@ -404,6 +446,24 @@ export type TriggerInvocationUpdate = z.infer<typeof TriggerInvocationUpdateSche
 export type TriggerInvocationApiSelect = z.infer<typeof TriggerInvocationApiSelectSchema>;
 export type TriggerInvocationApiInsert = z.infer<typeof TriggerInvocationApiInsertSchema>;
 export type TriggerInvocationApiUpdate = z.infer<typeof TriggerInvocationApiUpdateSchema>;
+
+export type ScheduledTrigger = z.infer<typeof ScheduledTriggerSelectSchema>;
+export type ScheduledTriggerInsert = z.infer<typeof ScheduledTriggerInsertSchema>;
+export type ScheduledTriggerUpdate = z.infer<typeof ScheduledTriggerUpdateSchema>;
+export type ScheduledTriggerApiSelect = z.infer<typeof ScheduledTriggerApiSelectSchema>;
+export type ScheduledTriggerApiInsert = z.infer<typeof ScheduledTriggerApiInsertSchema>;
+export type ScheduledTriggerApiUpdate = z.infer<typeof ScheduledTriggerApiUpdateSchema>;
+
+export type ScheduledTriggerInvocation = z.infer<typeof ScheduledTriggerInvocationSelectSchema>;
+export type ScheduledTriggerInvocationInsert = z.infer<
+  typeof ScheduledTriggerInvocationInsertSchema
+>;
+export type ScheduledTriggerInvocationUpdate = z.infer<
+  typeof ScheduledTriggerInvocationUpdateSchema
+>;
+
+export type SchedulerState = z.infer<typeof SchedulerStateSelectSchema>;
+
 export type McpTool = z.infer<typeof McpToolSchema>;
 export type MCPToolConfig = z.infer<typeof MCPToolConfigSchema>;
 
@@ -470,6 +530,12 @@ export type SkillUpdate = z.infer<typeof SkillUpdateSchema>;
 export type SkillApiSelect = z.infer<typeof SkillApiSelectSchema>;
 export type SkillApiInsert = z.infer<typeof SkillApiInsertSchema>;
 export type SkillApiUpdate = z.infer<typeof SkillApiUpdateSchema>;
+export type SkillFileSelect = z.infer<typeof SkillFileSelectSchema>;
+export type SkillFileInsert = z.infer<typeof SkillFileInsertSchema>;
+export type SkillFileApiSelect = z.infer<typeof SkillFileApiSelectSchema>;
+export type SkillFileApiInsert = z.infer<typeof SkillFileApiInsertSchema>;
+export type SkillFileApiUpdate = z.infer<typeof SkillFileApiUpdateSchema>;
+export type SkillWithFilesApiSelect = z.infer<typeof SkillWithFilesApiSelectSchema>;
 
 export type DataComponentSelect = z.infer<typeof DataComponentSelectSchema>;
 export type DataComponentInsert = z.infer<typeof DataComponentInsertSchema>;
@@ -529,6 +595,16 @@ export type ApiKeyApiSelect = z.infer<typeof ApiKeyApiSelectSchema>;
 export type ApiKeyApiInsert = z.infer<typeof ApiKeyApiInsertSchema>;
 export type ApiKeyApiUpdate = z.infer<typeof ApiKeyApiUpdateSchema>;
 export type ApiKeyApiCreationResponse = z.infer<typeof ApiKeyApiCreationResponseSchema>;
+
+export type AppSelect = z.infer<typeof AppSelectSchema>;
+export type AppInsert = z.infer<typeof AppInsertSchema>;
+export type AppUpdate = z.infer<typeof AppUpdateSchema>;
+export type AppApiSelect = z.infer<typeof AppApiSelectSchema>;
+export type AppApiInsert = z.infer<typeof AppApiInsertSchema>;
+export type AppApiUpdate = z.infer<typeof AppApiUpdateSchema>;
+export type AppApiCreationResponse = z.infer<typeof AppApiCreationResponseSchema>;
+
+export type AnonymousSessionResponse = z.infer<typeof AnonymousSessionResponseSchema>;
 
 export type CredentialReferenceSelect = z.infer<typeof CredentialReferenceSelectSchema>;
 export type CredentialReferenceInsert = z.infer<typeof CredentialReferenceInsertSchema>;
@@ -650,3 +726,13 @@ export interface SummaryEvent {
     [key: string]: any; // Structured data from agent session
   };
 }
+
+export type UserProfileSelect = z.infer<typeof UserProfileSelectSchema>;
+export type UserProfileInsert = z.infer<typeof UserProfileInsertSchema>;
+export type UserProfileApiInsert = z.infer<typeof UserProfileApiInsertSchema>;
+export type UserProfileUpdate = z.infer<typeof UserProfileUpdateSchema>;
+export type UserProfileApiUpdate = z.infer<typeof UserProfileApiUpdateSchema>;
+
+export type WorkflowExecutionSelect = z.infer<typeof WorkflowExecutionSelectSchema>;
+export type WorkflowExecutionInsert = z.infer<typeof WorkflowExecutionInsertSchema>;
+export type WorkflowExecutionUpdate = z.infer<typeof WorkflowExecutionUpdateSchema>;

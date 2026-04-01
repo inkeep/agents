@@ -22,9 +22,11 @@ import { loadEnvironmentFiles } from '../env';
 
 loadEnvironmentFiles();
 
+import { createApp, getAppById } from '../data-access/runtime/apps';
 import { addUserToOrganization, upsertOrganization } from '../data-access/runtime/organizations';
 import { getUserByEmail } from '../data-access/runtime/users';
 import { createAgentsRunDatabaseClient } from '../db/runtime/runtime-client';
+import type { AppConfig, PublicKeyConfig } from '../types/utility';
 import { createAuth } from './auth';
 import { syncOrgMemberToSpiceDb } from './authz';
 import { OrgRoles } from './authz/types';
@@ -139,6 +141,7 @@ async function init() {
     userId: user.id,
     organizationId: TENANT_ID,
     role: OrgRoles.ADMIN,
+    isServiceAccount: true,
   });
   console.log(`   ✅ User ${user.email} added as ${OrgRoles.ADMIN}`);
 
@@ -155,11 +158,90 @@ async function init() {
     console.error('❌ SpiceDB sync failed:', error);
   }
 
+  // 7. Create global playground app (if configured)
+  const playgroundAppId = process.env.INKEEP_PLAYGROUND_APP_ID || 'app_playground';
+  const tempJwtPublicKeyB64 = process.env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY;
+
+  console.log(`\n🎮 Checking/creating playground app: ${playgroundAppId}`);
+
+  // Derive allowed domains from INKEEP_AGENTS_MANAGE_UI_URL
+  let allowedDomains: string[] = ['localhost', '127.0.0.1'];
+  const manageUiUrl = process.env.INKEEP_AGENTS_MANAGE_UI_URL;
+  if (manageUiUrl) {
+    try {
+      const url = new URL(manageUiUrl);
+      if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+        allowedDomains = ['localhost', '127.0.0.1'];
+      } else {
+        allowedDomains = [url.hostname];
+      }
+    } catch {
+      console.log(
+        `   ⚠️  Invalid INKEEP_AGENTS_MANAGE_UI_URL: ${manageUiUrl}, using localhost defaults`
+      );
+    }
+  }
+  console.log(`   📋 Playground allowed domains: ${JSON.stringify(allowedDomains)}`);
+
+  const existingApp = await getAppById(dbClient)(playgroundAppId);
+
+  if (existingApp) {
+    console.log(`   ℹ️  Playground app already exists: ${playgroundAppId}`);
+  } else {
+    const publicKeys: PublicKeyConfig[] = [];
+
+    if (tempJwtPublicKeyB64) {
+      const { derivePlaygroundKid } = await import('../utils/jwt-helpers');
+      const publicKeyPem = Buffer.from(tempJwtPublicKeyB64, 'base64').toString('utf-8');
+      const kid = await derivePlaygroundKid(publicKeyPem);
+      publicKeys.push({
+        kid,
+        publicKey: publicKeyPem,
+        algorithm: 'RS256',
+        addedAt: new Date().toISOString(),
+      });
+    } else {
+      console.log(
+        '   ⚠️  INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY not set — playground app created without auth keys'
+      );
+    }
+
+    const config: AppConfig = {
+      type: 'web_client',
+      webClient: {
+        allowedDomains,
+        publicKeys,
+        allowAnonymous: false,
+      },
+    };
+
+    await createApp(dbClient)({
+      id: playgroundAppId,
+      tenantId: null,
+      projectId: null,
+      name: 'Playground',
+      description: 'Global playground app for manage-ui',
+      type: 'web_client',
+      defaultAgentId: null,
+      defaultProjectId: null,
+      enabled: true,
+      config,
+    });
+
+    console.log(
+      `   ✅ Playground app created: ${playgroundAppId} (domains: ${JSON.stringify(allowedDomains)})`
+    );
+    if (publicKeys.length > 0) {
+      console.log(`   ✅ RSA public key configured (kid: playground-rsa)`);
+    }
+  }
+
   console.log('\n================================================');
   console.log('✅ Initialization complete!');
   console.log('================================================');
   console.log(`\nOrganization: ${TENANT_ID}`);
   console.log(`Admin user:   ${username}`);
+  console.log(`Playground:   ${playgroundAppId}`);
   console.log('\nYou can now log in with these credentials.\n');
 
   process.exit(0);

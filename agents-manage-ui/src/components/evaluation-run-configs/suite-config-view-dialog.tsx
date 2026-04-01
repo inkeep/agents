@@ -60,9 +60,7 @@ export function SuiteConfigViewDialog({
     if (!agentIds || agentIds.length === 0) {
       return [];
     }
-    return agents
-      .filter((agent) => agentIds.includes(agent.id))
-      .map((agent) => agent.name || agent.id);
+    return agents.filter((agent) => agentIds.includes(agent.id)).map((agent) => agent.name);
   };
 
   const agentIds = suiteConfig?.filters

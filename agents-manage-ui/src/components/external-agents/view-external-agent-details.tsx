@@ -1,10 +1,11 @@
 'use client';
 
-import { Lock, LockOpen, Pencil } from 'lucide-react';
+import { LockOpen, Pencil } from 'lucide-react';
 import Link from 'next/link';
+import { CredentialBadgeFallback } from '@/components/credentials/credential-name-badge';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
-import { useProjectPermissions } from '@/contexts/project';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
@@ -12,6 +13,7 @@ import { CopyableSingleLineCode } from '../ui/copyable-single-line-code';
 
 interface ExternalAgentProps {
   externalAgent: ExternalAgent;
+  credentialBadge?: React.ReactNode;
   tenantId: string;
   projectId: string;
   className?: string;
@@ -27,11 +29,14 @@ const ItemValue = ({ children, className }: { children: React.ReactNode; classNa
 
 export function ViewExternalAgentDetails({
   externalAgent,
+  credentialBadge,
   tenantId,
   projectId,
   className,
 }: ExternalAgentProps) {
-  const { canEdit } = useProjectPermissions();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -101,10 +106,11 @@ export function ViewExternalAgentDetails({
           <ItemValue className="items-center">
             {externalAgent.credentialReferenceId ? (
               <div className="flex items-center gap-2">
-                <Badge variant="code" className="flex items-center gap-2">
-                  <Lock className="w-4 h-4" />
-                  {externalAgent.credentialReferenceId}
-                </Badge>
+                {credentialBadge ?? (
+                  <CredentialBadgeFallback
+                    credentialReferenceId={externalAgent.credentialReferenceId}
+                  />
+                )}
                 <ExternalLink
                   href={`/${tenantId}/projects/${projectId}/credentials/${externalAgent.credentialReferenceId}`}
                   className="text-xs"

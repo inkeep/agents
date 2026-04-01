@@ -199,6 +199,7 @@ Header values are securely hashed before storage. The original values are never 
 | `authentication` | `object` | No | Header-based authentication configuration |
 | `signingSecret` | `string` | No | HMAC-SHA256 secret for signature verification |
 | `outputTransform` | `object` | No | Payload transformation configuration |
+| `runAsUserId` | `string` | No | User ID whose identity and credentials are used during execution |
 
 ### Authentication Configuration
 
@@ -339,6 +340,24 @@ The framework automatically verifies HMAC-SHA256 signatures in the `X-Signature-
 <Tip>
 For services like GitHub that sign webhooks, you often don't need header authentication—the signature verification provides security. Use `signingSecret` alone for these cases.
 </Tip>
+
+## User-Scoped Execution
+
+By default, webhook triggers execute without a user identity — tools with user-scoped credentials will fail. Setting `runAsUserId` makes the trigger execute as a specific user, enabling access to their connected credentials (e.g., per-user OAuth tokens for GitHub, Slack, or Jira).
+
+```typescript
+trigger({
+  id: "github-pr-review",
+  name: "GitHub PR Review",
+  messageTemplate: "New PR opened: {{title}}",
+  runAsUserId: "user_abc123",
+});
+```
+
+### Permission Rules
+
+- Any user with `edit` permission can set `runAsUserId` to themselves.
+- Org admins and owners can set `runAsUserId` to any user in the organization.
 
 ## Webhook URL
 

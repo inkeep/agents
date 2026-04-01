@@ -41,6 +41,7 @@ interface UseConversationStatsOptions {
   };
   searchQuery?: string;
   agentId?: string;
+  hasErrors?: boolean;
 }
 
 const DEFAULT_AGGREGATE_STATS: AggregateStats = {
@@ -85,7 +86,8 @@ export function useConversationStats(
           options?.projectId,
           { page, limit: pageSize },
           options?.searchQuery,
-          options?.agentId
+          options?.agentId,
+          options?.hasErrors
         );
 
         setStats(result.data);
@@ -110,6 +112,7 @@ export function useConversationStats(
       options?.tenantId,
       options?.searchQuery,
       options?.agentId,
+      options?.hasErrors,
       pageSize,
     ]
   );
@@ -163,6 +166,7 @@ export function useConversationStats(
     options?.tenantId,
     options?.searchQuery,
     options?.agentId,
+    options?.hasErrors,
     pageSize,
   ]);
 

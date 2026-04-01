@@ -1,17 +1,6 @@
 import type { Edge, Node } from '@xyflow/react';
 import { useEdges, useNodesData, useReactFlow } from '@xyflow/react';
 import { type LucideIcon, Workflow } from 'lucide-react';
-import { useMemo } from 'react';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
-import { useAgentErrors } from '@/hooks/use-agent-errors';
-import type { ArtifactComponent } from '@/lib/api/artifact-components';
-import type { Credential } from '@/lib/api/credentials';
-import type { DataComponent } from '@/lib/api/data-components';
-import type {
-  AgentToolConfigLookup,
-  SubAgentExternalAgentConfigLookup,
-  SubAgentTeamAgentConfigLookup,
-} from '@/lib/types/agent-full';
 import { cn } from '@/lib/utils';
 import { SidePane as SidePaneLayout } from '../../layout/sidepane';
 import { edgeTypeMap } from '../configuration/edge-types';
@@ -44,12 +33,6 @@ interface SidePaneProps {
   selectedEdgeId: string | null;
   onClose: () => void;
   backToAgent: () => void;
-  dataComponentLookup: Record<string, DataComponent>;
-  artifactComponentLookup: Record<string, ArtifactComponent>;
-  agentToolConfigLookup: AgentToolConfigLookup;
-  subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup;
-  subAgentTeamAgentConfigLookup: SubAgentTeamAgentConfigLookup;
-  credentialLookup: Record<string, Credential>;
   disabled?: boolean;
 }
 
@@ -58,49 +41,33 @@ export function SidePane({
   selectedEdgeId,
   onClose,
   backToAgent,
-  dataComponentLookup,
-  artifactComponentLookup,
-  agentToolConfigLookup,
-  subAgentExternalAgentConfigLookup,
-  subAgentTeamAgentConfigLookup,
-  credentialLookup,
   disabled = false,
 }: SidePaneProps) {
+  'use memo';
   const selectedNode = useNodesData(selectedNodeId || '');
   const { updateNode } = useReactFlow();
   const edges = useEdges();
-  const { hasFieldError, getFieldErrorMessage, getFirstErrorField } = useAgentErrors();
-  const errors = useAgentStore((state) => state.errors);
+  let selectedEdge: Edge | null = null;
+  let heading = '';
+  let HeadingIcon: LucideIcon | undefined;
 
-  const selectedEdge = useMemo(
-    () => (selectedEdgeId ? edges.find((edge) => edge.id === selectedEdgeId) : null),
-    [selectedEdgeId, edges]
-  );
-
-  const { heading, HeadingIcon } = useMemo(() => {
-    let heading = '';
-    let HeadingIcon: LucideIcon | undefined;
-
-    if (selectedNodeId) {
-      const nodeType = (selectedNode?.type as keyof typeof nodeTypeMap) || NodeType.SubAgent;
-      const nodeConfig = nodeTypeMap[nodeType];
-      heading = nodeConfig?.name || 'Node';
-      HeadingIcon = nodeConfig?.Icon;
-    } else if (selectedEdgeId) {
-      const edgeType = (selectedEdge?.type as keyof typeof edgeTypeMap) || 'default';
-      const edgeConfig = edgeTypeMap[edgeType];
-      heading = edgeConfig?.name || 'Connection';
-      HeadingIcon = edgeConfig?.Icon;
-    } else {
-      heading = 'Agent';
-      HeadingIcon = Workflow;
-    }
-
-    return { heading, HeadingIcon };
-  }, [selectedNode, selectedEdge, selectedNodeId, selectedEdgeId]);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ignore `errors` dependency, it rerender sidepane when errors changes
-  const editorContent = useMemo(() => {
+  if (selectedNodeId) {
+    const nodeType = (selectedNode?.type as keyof typeof nodeTypeMap) || NodeType.SubAgent;
+    const nodeConfig = nodeTypeMap[nodeType];
+    heading = nodeConfig?.name || 'Node';
+    HeadingIcon = nodeConfig?.Icon;
+  } else if (selectedEdgeId) {
+    const edge = edges.find((edge) => edge.id === selectedEdgeId);
+    if (edge) selectedEdge = edge;
+    const edgeType = (selectedEdge?.type as keyof typeof edgeTypeMap) || 'default';
+    const edgeConfig = edgeTypeMap[edgeType];
+    heading = edgeConfig?.name || 'Connection';
+    HeadingIcon = edgeConfig?.Icon;
+  } else {
+    heading = 'Agent';
+    HeadingIcon = Workflow;
+  }
+  function renderContent() {
     if (selectedNodeId && !selectedNode) {
       return <EditorLoadingSkeleton />;
     }
@@ -110,33 +77,19 @@ export function SidePane({
 
     if (selectedNode) {
       const nodeType = selectedNode?.type as keyof typeof nodeTypeMap;
-      // Use the agent ID from node data if available, otherwise fall back to React Flow node ID
-      const subAgentId = (selectedNode.data as any)?.id || selectedNode.id;
-      const errorHelpers = {
-        hasFieldError: (fieldName: string) => hasFieldError(subAgentId, fieldName),
-        getFieldErrorMessage: (fieldName: string) => getFieldErrorMessage(subAgentId, fieldName),
-        getFirstErrorField: () => getFirstErrorField(subAgentId),
-      };
-
       switch (nodeType) {
         case NodeType.SubAgentPlaceholder:
           return <SubAgentSelector selectedNode={selectedNode as Node} />;
         case NodeType.SubAgent:
           return (
             <SubAgentNodeEditor
-              selectedNode={selectedNode as Node<AgentNodeData>}
-              dataComponentLookup={dataComponentLookup}
-              artifactComponentLookup={artifactComponentLookup}
-              errorHelpers={errorHelpers}
+              selectedNode={selectedNode as Pick<Node<AgentNodeData>, 'id' | 'data'>}
             />
           );
         case NodeType.ExternalAgent: {
           return (
             <ExternalAgentNodeEditor
-              selectedNode={selectedNode as Node<ExternalAgentNodeData>}
-              credentialLookup={credentialLookup}
-              subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
-              errorHelpers={errorHelpers}
+              selectedNode={selectedNode as Pick<Node<ExternalAgentNodeData>, 'id' | 'data'>}
             />
           );
         }
@@ -146,9 +99,7 @@ export function SidePane({
         case NodeType.TeamAgent: {
           return (
             <TeamAgentNodeEditor
-              selectedNode={selectedNode as Node<TeamAgentNodeData>}
-              subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
-              errorHelpers={errorHelpers}
+              selectedNode={selectedNode as Pick<Node<TeamAgentNodeData>, 'id' | 'data'>}
             />
           );
         }
@@ -161,14 +112,15 @@ export function SidePane({
         case NodeType.MCP: {
           return (
             <MCPServerNodeEditor
-              selectedNode={selectedNode as Node<MCPNodeData>}
-              agentToolConfigLookup={agentToolConfigLookup}
+              selectedNode={selectedNode as Pick<Node<MCPNodeData>, 'id' | 'data'>}
             />
           );
         }
         case NodeType.FunctionTool: {
           return (
-            <FunctionToolNodeEditor selectedNode={selectedNode as Node<FunctionToolNodeData>} />
+            <FunctionToolNodeEditor
+              selectedNode={selectedNode as Pick<Node<FunctionToolNodeData>, 'id' | 'data'>}
+            />
           );
         }
         default:
@@ -179,22 +131,7 @@ export function SidePane({
       return <EdgeEditor selectedEdge={selectedEdge as Edge} />;
     }
     return <MetadataEditor />;
-  }, [
-    selectedNodeId,
-    selectedEdgeId,
-    selectedNode,
-    selectedEdge,
-    dataComponentLookup,
-    artifactComponentLookup,
-    hasFieldError,
-    getFieldErrorMessage,
-    getFirstErrorField,
-    agentToolConfigLookup,
-    credentialLookup,
-    subAgentExternalAgentConfigLookup,
-    subAgentTeamAgentConfigLookup,
-    errors,
-  ]);
+  }
 
   const nodeType = selectedNode?.type as keyof typeof nodeTypeMap | undefined;
   const nodeConfig = nodeType ? nodeTypeMap[nodeType] : undefined;
@@ -206,12 +143,17 @@ export function SidePane({
       ? () => {
           updateNode(selectedNode.id, {
             type: parentPlaceholder,
-            data: newNodeDefaults[parentPlaceholder],
+            data: newNodeDefaults[parentPlaceholder](selectedNode.id),
           });
         }
       : backToAgent;
 
   const showBackButton = selectedNode || selectedEdge;
+  const editorContentKey = selectedNodeId
+    ? `node:${selectedNodeId}`
+    : selectedEdgeId
+      ? `edge:${selectedEdgeId}`
+      : 'agent';
 
   return (
     <SidePaneLayout.Root>
@@ -229,8 +171,13 @@ export function SidePane({
         <SidePaneLayout.CloseButton onClick={onClose} />
       </SidePaneLayout.Header>
       <SidePaneLayout.Content>
-        <fieldset disabled={disabled} className="contents">
-          {editorContent}
+        <fieldset
+          // Remount editor when selection changes to avoid a one-frame stale render from previous node/edge data.
+          key={editorContentKey}
+          disabled={disabled}
+          className="contents"
+        >
+          {renderContent()}
         </fieldset>
       </SidePaneLayout.Content>
     </SidePaneLayout.Root>

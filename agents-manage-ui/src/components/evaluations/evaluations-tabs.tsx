@@ -107,12 +107,7 @@ export function EvaluationsTabs({
               onOpenChange={setIsCreateRunConfigOpen}
               onSuccess={() => {
                 // Trigger refresh by incrementing refreshKey
-                console.log('EvaluationRunConfigFormDialog onSuccess called');
-                setRefreshKey((prev) => {
-                  const newKey = prev + 1;
-                  console.log('Setting refreshKey to:', newKey);
-                  return newKey;
-                });
+                setRefreshKey((prev) => prev + 1);
               }}
               trigger={
                 <Button variant="ghost" size="sm">

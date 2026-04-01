@@ -4,14 +4,17 @@ import { conversations, messages } from '../../db/runtime/runtime-schema';
 import type {
   ConversationHistoryConfig,
   ConversationInsert,
+  ConversationMetadata,
   ConversationSelect,
   ConversationUpdate,
   MessageContent,
+  MessageSelect,
   PaginationConfig,
   ProjectScopeConfig,
 } from '../../types/index';
 import { getConversationId } from '../../utils/conversations';
 import type { ResolvedRef } from '../../validation/dolt-schemas';
+import { projectScopedWhere } from '../manage/scope-helpers';
 
 export const listConversations =
   (db: AgentsRunDatabaseClient) =>
@@ -26,10 +29,7 @@ export const listConversations =
     const limit = Math.min(pagination?.limit || 20, 200);
     const offset = (page - 1) * limit;
 
-    const whereConditions = [
-      eq(conversations.tenantId, params.scopes.tenantId),
-      eq(conversations.projectId, params.scopes.projectId),
-    ];
+    const whereConditions = [projectScopedWhere(conversations, params.scopes)];
 
     if (userId) {
       whereConditions.push(eq(conversations.userId, userId));
@@ -89,8 +89,7 @@ export const updateConversation =
       })
       .where(
         and(
-          eq(conversations.tenantId, params.scopes.tenantId),
-          eq(conversations.projectId, params.scopes.projectId),
+          projectScopedWhere(conversations, params.scopes),
           eq(conversations.id, params.conversationId)
         )
       )
@@ -107,8 +106,7 @@ export const deleteConversation =
         .delete(messages)
         .where(
           and(
-            eq(messages.tenantId, params.scopes.tenantId),
-            eq(messages.projectId, params.scopes.projectId),
+            projectScopedWhere(messages, params.scopes),
             eq(messages.conversationId, params.conversationId)
           )
         );
@@ -117,8 +115,7 @@ export const deleteConversation =
         .delete(conversations)
         .where(
           and(
-            eq(conversations.tenantId, params.scopes.tenantId),
-            eq(conversations.projectId, params.scopes.projectId),
+            projectScopedWhere(conversations, params.scopes),
             eq(conversations.id, params.conversationId)
           )
         );
@@ -152,8 +149,7 @@ export const getConversation =
   async (params: { scopes: ProjectScopeConfig; conversationId: string }) => {
     return await db.query.conversations.findFirst({
       where: and(
-        eq(conversations.tenantId, params.scopes.tenantId),
-        eq(conversations.projectId, params.scopes.projectId),
+        projectScopedWhere(conversations, params.scopes),
         eq(conversations.id, params.conversationId)
       ),
     });
@@ -224,7 +220,10 @@ function extractMessageText(content: MessageContent): string {
 /**
  * Apply context window management by truncating or summarizing old messages
  */
-function applyContextWindowManagement(messageHistory: any[], maxTokens: number): any[] {
+function applyContextWindowManagement(
+  messageHistory: MessageSelect[],
+  maxTokens: number
+): MessageSelect[] {
   // Simple token estimation: ~4 characters per token
   const estimateTokens = (text: string) => Math.ceil(text.length / 4);
 
@@ -243,15 +242,31 @@ function applyContextWindowManagement(messageHistory: any[], maxTokens: number):
     } else {
       // Add a summary message for truncated history if there are more messages
       if (i > 0) {
-        const summaryMessage = {
+        const referenceMessage = messageHistory[0];
+        const summaryMessage: MessageSelect = {
           id: `summary-${getConversationId()}`,
+          tenantId: referenceMessage.tenantId,
+          projectId: referenceMessage.projectId,
+          conversationId: referenceMessage.conversationId,
           role: 'system',
+          fromSubAgentId: null,
+          toSubAgentId: null,
+          fromExternalAgentId: null,
+          toExternalAgentId: null,
+          fromTeamAgentId: null,
+          toTeamAgentId: null,
           content: {
             text: `[Previous conversation history truncated - ${i + 1} earlier messages]`,
           },
           visibility: 'system',
           messageType: 'chat',
-          createdAt: messageHistory[0].createdAt,
+          taskId: null,
+          parentMessageId: null,
+          a2aTaskId: null,
+          a2aSessionId: null,
+          metadata: null,
+          createdAt: referenceMessage.createdAt,
+          updatedAt: referenceMessage.updatedAt,
         };
         managedHistory.unshift(summaryMessage);
       }
@@ -271,9 +286,8 @@ export const getConversationHistory =
     scopes: ProjectScopeConfig;
     conversationId: string;
     options?: ConversationHistoryConfig;
-  }) => {
+  }): Promise<MessageSelect[]> => {
     const { scopes, conversationId, options = {} } = params;
-    const { tenantId, projectId } = scopes;
 
     const {
       limit = options.limit ?? 50,
@@ -283,8 +297,7 @@ export const getConversationHistory =
     } = options;
 
     const whereConditions = [
-      eq(messages.tenantId, tenantId),
-      eq(messages.projectId, projectId),
+      projectScopedWhere(messages, scopes),
       eq(messages.conversationId, conversationId),
     ];
 
@@ -298,7 +311,7 @@ export const getConversationHistory =
       whereConditions.push(inArray(messages.messageType, messageTypes));
     }
 
-    const messageHistory = await db
+    const messageHistory: MessageSelect[] = await db
       .select()
       .from(messages)
       .where(and(...whereConditions))
@@ -324,8 +337,7 @@ export const getActiveAgentForConversation =
   async (params: { scopes: ProjectScopeConfig; conversationId: string }) => {
     return await db.query.conversations.findFirst({
       where: and(
-        eq(conversations.tenantId, params.scopes.tenantId),
-        eq(conversations.projectId, params.scopes.projectId),
+        projectScopedWhere(conversations, params.scopes),
         eq(conversations.id, params.conversationId)
       ),
     });
@@ -342,6 +354,8 @@ export const setActiveAgentForConversation =
     subAgentId: string;
     agentId: string;
     ref: ResolvedRef;
+    userId?: string;
+    metadata?: ConversationMetadata;
   }): Promise<void> => {
     await db
       .insert(conversations)
@@ -352,6 +366,8 @@ export const setActiveAgentForConversation =
         activeSubAgentId: params.subAgentId,
         agentId: params.agentId,
         ref: params.ref,
+        userId: params.userId,
+        metadata: params.metadata,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })

@@ -13,6 +13,7 @@ import { createApiError } from '../../utils';
 import { generateId } from '../../utils/conversations';
 import { validatePropsAsJsonSchema } from '../../validation/props-validation';
 import { validateRender } from '../../validation/render-validation';
+import { projectScopedWhere, subAgentScopedWhere } from './scope-helpers';
 
 /**
  * Get a data component by ID
@@ -25,8 +26,7 @@ export const getDataComponent =
   }): Promise<DataComponentSelect | null> => {
     const result = await db.query.dataComponents.findFirst({
       where: and(
-        eq(dataComponents.tenantId, params.scopes.tenantId),
-        eq(dataComponents.projectId, params.scopes.projectId),
+        projectScopedWhere(dataComponents, params.scopes),
         eq(dataComponents.id, params.dataComponentId)
       ),
     });
@@ -43,12 +43,7 @@ export const listDataComponents =
     return await db
       .select()
       .from(dataComponents)
-      .where(
-        and(
-          eq(dataComponents.tenantId, params.scopes.tenantId),
-          eq(dataComponents.projectId, params.scopes.projectId)
-        )
-      )
+      .where(projectScopedWhere(dataComponents, params.scopes))
       .orderBy(desc(dataComponents.createdAt));
   };
 
@@ -68,28 +63,17 @@ export const listDataComponentsPaginated =
     const limit = Math.min(params.pagination?.limit || 10, 100);
     const offset = (page - 1) * limit;
 
+    const whereClause = projectScopedWhere(dataComponents, params.scopes);
+
     const [data, totalResult] = await Promise.all([
       db
         .select()
         .from(dataComponents)
-        .where(
-          and(
-            eq(dataComponents.tenantId, params.scopes.tenantId),
-            eq(dataComponents.projectId, params.scopes.projectId)
-          )
-        )
+        .where(whereClause)
         .limit(limit)
         .offset(offset)
         .orderBy(desc(dataComponents.createdAt)),
-      db
-        .select({ count: count() })
-        .from(dataComponents)
-        .where(
-          and(
-            eq(dataComponents.tenantId, params.scopes.tenantId),
-            eq(dataComponents.projectId, params.scopes.projectId)
-          )
-        ),
+      db.select({ count: count() }).from(dataComponents).where(whereClause),
     ]);
 
     const total =
@@ -201,8 +185,7 @@ export const updateDataComponent =
       } as any)
       .where(
         and(
-          eq(dataComponents.tenantId, params.scopes.tenantId),
-          eq(dataComponents.projectId, params.scopes.projectId),
+          projectScopedWhere(dataComponents, params.scopes),
           eq(dataComponents.id, params.dataComponentId)
         )
       );
@@ -223,8 +206,7 @@ export const deleteDataComponent =
       .delete(dataComponents)
       .where(
         and(
-          eq(dataComponents.tenantId, params.scopes.tenantId),
-          eq(dataComponents.projectId, params.scopes.projectId),
+          projectScopedWhere(dataComponents, params.scopes),
           eq(dataComponents.id, params.dataComponentId)
         )
       )
@@ -262,8 +244,7 @@ export const getDataComponentsForAgent =
       )
       .where(
         and(
-          eq(dataComponents.tenantId, params.scopes.tenantId),
-          eq(dataComponents.projectId, params.scopes.projectId),
+          projectScopedWhere(dataComponents, params.scopes),
           eq(subAgentDataComponents.agentId, params.scopes.agentId),
           eq(subAgentDataComponents.subAgentId, params.scopes.subAgentId)
         )
@@ -302,10 +283,7 @@ export const removeDataComponentFromAgent =
       .delete(subAgentDataComponents)
       .where(
         and(
-          eq(subAgentDataComponents.tenantId, params.scopes.tenantId),
-          eq(subAgentDataComponents.projectId, params.scopes.projectId),
-          eq(subAgentDataComponents.agentId, params.scopes.agentId),
-          eq(subAgentDataComponents.subAgentId, params.scopes.subAgentId),
+          subAgentScopedWhere(subAgentDataComponents, params.scopes),
           eq(subAgentDataComponents.dataComponentId, params.dataComponentId)
         )
       )
@@ -318,14 +296,7 @@ export const deleteAgentDataComponentRelationByAgent =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
     const result = await db
       .delete(subAgentDataComponents)
-      .where(
-        and(
-          eq(subAgentDataComponents.tenantId, params.scopes.tenantId),
-          eq(subAgentDataComponents.projectId, params.scopes.projectId),
-          eq(subAgentDataComponents.agentId, params.scopes.agentId),
-          eq(subAgentDataComponents.subAgentId, params.scopes.subAgentId)
-        )
-      )
+      .where(subAgentScopedWhere(subAgentDataComponents, params.scopes))
       .returning();
     return result.length > 0;
   };
@@ -344,8 +315,7 @@ export const getAgentsUsingDataComponent =
       .from(subAgentDataComponents)
       .where(
         and(
-          eq(subAgentDataComponents.tenantId, params.scopes.tenantId),
-          eq(subAgentDataComponents.projectId, params.scopes.projectId),
+          projectScopedWhere(subAgentDataComponents, params.scopes),
           eq(subAgentDataComponents.dataComponentId, params.dataComponentId)
         )
       )
@@ -363,10 +333,7 @@ export const isDataComponentAssociatedWithAgent =
       .from(subAgentDataComponents)
       .where(
         and(
-          eq(subAgentDataComponents.tenantId, params.scopes.tenantId),
-          eq(subAgentDataComponents.projectId, params.scopes.projectId),
-          eq(subAgentDataComponents.agentId, params.scopes.agentId),
-          eq(subAgentDataComponents.subAgentId, params.scopes.subAgentId),
+          subAgentScopedWhere(subAgentDataComponents, params.scopes),
           eq(subAgentDataComponents.dataComponentId, params.dataComponentId)
         )
       )
@@ -401,12 +368,7 @@ export const countDataComponents =
     const result = await db
       .select({ count: count() })
       .from(dataComponents)
-      .where(
-        and(
-          eq(dataComponents.tenantId, params.scopes.tenantId),
-          eq(dataComponents.projectId, params.scopes.projectId)
-        )
-      );
+      .where(projectScopedWhere(dataComponents, params.scopes));
 
     const countValue = result[0]?.count;
     return typeof countValue === 'string' ? parseInt(countValue, 10) : countValue || 0;

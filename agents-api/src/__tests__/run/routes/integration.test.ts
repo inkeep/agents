@@ -126,7 +126,7 @@ vi.mock('../../../domains/run/a2a/transfer.js', () => ({
   }),
 }));
 
-vi.mock('../../../domains/run/utils/stream-registry.js', () => ({
+vi.mock('../../../domains/run/stream/stream-registry.js', () => ({
   registerStreamHelper: vi.fn(),
   unregisterStreamHelper: vi.fn(),
 }));
@@ -146,7 +146,7 @@ vi.mock('../../../domains/run/utils/tracer.js', () => ({
 }));
 
 // ExecutionHandler uses AgentSession manager from services
-vi.mock('../../../domains/run/services/AgentSession.js', () => ({
+vi.mock('../../../domains/run/session/AgentSession.js', () => ({
   agentSessionManager: {
     createSession: vi.fn(),
     enableEmitOperations: vi.fn(),

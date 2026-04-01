@@ -5,14 +5,7 @@ import { useCallback, useMemo } from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { useFieldArray, useWatch } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
-import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { FormControl, FormField, FormItem } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
@@ -104,8 +97,11 @@ export function GenericKeyValueInput<
   );
 
   return (
-    <FormItem>
-      <FormLabel isRequired={isRequired}>{label}</FormLabel>
+    <div className="grid gap-2">
+      <span className="text-sm font-medium leading-none">
+        {label}
+        {isRequired && <span className="text-red-500">*</span>}
+      </span>
       <div className="space-y-2">
         {fields.map((field, index) => {
           const currentKey = watchedFields?.[index]?.key?.trim() || '';
@@ -117,21 +113,22 @@ export function GenericKeyValueInput<
                 control={control}
                 name={`${name}.${index}.key` as FieldPath<TFieldValues>}
                 render={({ field: keyField }) => (
-                  <FormControl>
-                    <Input
-                      {...keyField}
-                      data-index={index}
-                      data-field="key"
-                      placeholder={keyPlaceholder}
-                      onKeyDown={(e) => handleKeyDown(e, index, 'key')}
-                      className={cn(
-                        'flex-1',
-                        isDuplicate && 'ring-2 ring-destructive/50 focus-visible:ring-destructive'
-                      )}
-                      aria-invalid={isDuplicate || undefined}
-                      disabled={disabled}
-                    />
-                  </FormControl>
+                  <FormItem className="flex-1">
+                    <FormControl>
+                      <Input
+                        {...keyField}
+                        data-index={index}
+                        data-field="key"
+                        placeholder={keyPlaceholder}
+                        onKeyDown={(e) => handleKeyDown(e, index, 'key')}
+                        className={cn(
+                          isDuplicate && 'ring-2 ring-destructive/50 focus-visible:ring-destructive'
+                        )}
+                        aria-invalid={isDuplicate || undefined}
+                        disabled={disabled}
+                      />
+                    </FormControl>
+                  </FormItem>
                 )}
               />
               <span className="text-muted-foreground select-none">:</span>
@@ -139,17 +136,18 @@ export function GenericKeyValueInput<
                 control={control}
                 name={`${name}.${index}.value` as FieldPath<TFieldValues>}
                 render={({ field }) => (
-                  <FormControl>
-                    <Input
-                      {...field}
-                      data-index={index}
-                      data-field="value"
-                      placeholder={valuePlaceholder}
-                      onKeyDown={(e) => handleKeyDown(e, index, 'value')}
-                      className="flex-1"
-                      disabled={disabled}
-                    />
-                  </FormControl>
+                  <FormItem className="flex-1">
+                    <FormControl>
+                      <Input
+                        {...field}
+                        data-index={index}
+                        data-field="value"
+                        placeholder={valuePlaceholder}
+                        onKeyDown={(e) => handleKeyDown(e, index, 'value')}
+                        disabled={disabled}
+                      />
+                    </FormControl>
+                  </FormItem>
                 )}
               />
               {!disabled && (
@@ -181,13 +179,12 @@ export function GenericKeyValueInput<
         )}
       </div>
 
-      {description && <FormDescription>{description}</FormDescription>}
+      {description && <p className="text-[0.8rem] text-muted-foreground">{description}</p>}
       {duplicateKeys.size > 0 && (
         <p className="text-sm font-medium text-destructive">
           Keys must be unique. Duplicate keys: {Array.from(duplicateKeys).join(', ')}
         </p>
       )}
-      <FormMessage />
-    </FormItem>
+    </div>
   );
 }

@@ -43,7 +43,7 @@ describe('Function Tool Generator', () => {
         ...testToolData,
       });
 
-      expect(definition).toContain('export const calculateBmi = functionTool({');
+      expect(definition).toContain('export const calculateBmiTool = functionTool({');
       expect(definition).toContain("name: 'calculate-bmi',");
       expect(definition).toContain("description: 'Calculate BMI and health category',");
       expect(definition).toContain('inputSchema: {');
@@ -58,7 +58,7 @@ describe('Function Tool Generator', () => {
         name: 'email-sender',
         description: 'Send emails',
         inputSchema: { type: 'object', properties: {} },
-        executeCode: 'return { sent: true };',
+        executeCode: '() => ({ sent: true })',
       };
       const definition = generateFunctionToolDefinition({
         functionToolId,
@@ -85,28 +85,7 @@ describe('Function Tool Generator', () => {
       }).toThrow("Missing required fields for function tool 'minimal': inputSchema, executeCode");
     });
 
-    it('should accept schema as alternative to inputSchema', async () => {
-      const functionToolId = 'test';
-      const dataWithSchema = {
-        name: 'test-tool',
-        description: 'Test tool',
-        schema: {
-          type: 'object',
-          properties: {
-            value: { type: 'string', description: 'Input value' },
-          },
-        },
-        executeCode: 'return { result: "test" };',
-      };
-
-      const definition = generateFunctionToolDefinition({
-        functionToolId,
-        ...dataWithSchema,
-      });
-      await expectSnapshots(definition);
-    });
-
-    it('should prefer inputSchema over schema when both exist', async () => {
+    it('should generate inputSchema', async () => {
       const functionToolId = 'test';
       const dataWithBoth = {
         name: 'test-tool',
@@ -117,13 +96,7 @@ describe('Function Tool Generator', () => {
             input: { type: 'string', description: 'Input field' },
           },
         },
-        schema: {
-          type: 'object',
-          properties: {
-            schema: { type: 'string', description: 'Schema field' },
-          },
-        },
-        executeCode: 'return { success: true };',
+        executeCode: '() => ({ success: true })',
       };
 
       const definition = generateFunctionToolDefinition({
@@ -131,7 +104,6 @@ describe('Function Tool Generator', () => {
         ...dataWithBoth,
       });
       expect(definition).toContain('input: {');
-      expect(definition).not.toContain('schema:');
       await expectSnapshots(definition);
     });
 
@@ -143,7 +115,7 @@ describe('Function Tool Generator', () => {
         name: 'detailed-tool',
         description: longDescription,
         inputSchema: { type: 'object', properties: {} },
-        executeCode: 'return { processed: true };',
+        executeCode: '() => ({ processed: true })',
       };
 
       const definition = generateFunctionToolDefinition({
@@ -182,7 +154,7 @@ describe('Function Tool Generator', () => {
       const toolData = {
         name: 'simple-tool',
         inputSchema: { type: 'object', properties: {} },
-        executeCode: 'return { message: "Hello World" };',
+        executeCode: '() => ({ message: "Hello World" })',
       };
 
       const definition = generateFunctionToolDefinition({
@@ -190,7 +162,7 @@ describe('Function Tool Generator', () => {
         ...toolData,
       });
 
-      expect(definition).toContain('execute: return { message: "Hello World" };');
+      expect(definition).toContain('execute: () => ({ message: "Hello World" }),');
       await expectSnapshots(definition);
     });
 
@@ -242,7 +214,7 @@ describe('Function Tool Generator', () => {
           },
           required: ['user'],
         },
-        executeCode: 'return { processed: true };',
+        executeCode: '() => ({ processed: true })',
       };
 
       const definition = generateFunctionToolDefinition({
@@ -267,7 +239,7 @@ describe('Function Tool Generator', () => {
       });
 
       expect(file).toContain("import { functionTool } from '@inkeep/agents-sdk';");
-      expect(file).toContain('export const calculateBmi = functionTool({');
+      expect(file).toContain('export const calculateBmiTool = functionTool({');
       expect(file).toContain("name: 'calculate-bmi',");
 
       // Should have proper spacing
@@ -359,45 +331,6 @@ describe('Function Tool Generator', () => {
       }).toThrow(
         "Missing required fields for function tool 'empty': name, inputSchema, executeCode"
       );
-    });
-
-    // it('should handle special characters in tool ID', () => {
-    //   const definition = generateFunctionToolDefinition('email-tool_v2', {
-    //     name: 'email-tool',
-    //     description: 'Email Tool',
-    //     inputSchema: { type: 'object', properties: {} },
-    //     executeCode: 'return { sent: true };',
-    //   });
-    //
-    //   expect(definition).toContain('export const emailToolV2 = functionTool({');
-    //   expect(definition).toContain("name: 'email-tool',");
-    // });
-
-    // it('should handle tool ID starting with number', () => {
-    //   const definition = generateFunctionToolDefinition('2023-calculator', {
-    //     name: 'calculator',
-    //     description: 'Calculator tool',
-    //     inputSchema: { type: 'object', properties: {} },
-    //     executeCode: 'return { result: 42 };',
-    //   });
-    //
-    //   expect(definition).toContain('export const _2023Calculator = functionTool({');
-    // });
-
-    it('should handle malformed execute function gracefully', async () => {
-      const functionToolId = 'bad-execute';
-      const toolData = {
-        name: 'bad-execute-tool',
-        inputSchema: { type: 'object', properties: {} },
-        executeCode: 'not a valid function',
-      };
-
-      const definition = generateFunctionToolDefinition({
-        functionToolId,
-        ...toolData,
-      });
-
-      await expectSnapshots(definition);
     });
 
     it.skip('should throw error for missing executeCode only', () => {

@@ -80,6 +80,86 @@ export async function getSlackUserInfo(client: WebClient, userId: string) {
 }
 
 /**
+ * Look up a Slack user by email address.
+ *
+ * @param client - Authenticated Slack WebClient
+ * @param email - Email address to look up
+ * @returns User profile object, or null if not found
+ */
+export async function getSlackUserByEmail(client: WebClient, email: string) {
+  const result = await client.users.lookupByEmail({ email });
+  if (result.ok && result.user) {
+    return {
+      id: result.user.id,
+      name: result.user.name,
+      realName: result.user.real_name,
+      displayName: result.user.profile?.display_name,
+      email: result.user.profile?.email,
+      isAdmin: result.user.is_admin,
+      isOwner: result.user.is_owner,
+      avatar: result.user.profile?.image_72,
+      tz: result.user.tz,
+      tzOffset: result.user.tz_offset,
+    };
+  }
+  return null;
+}
+
+/**
+ * List all members of a Slack workspace.
+ *
+ * Automatically paginates through results. Excludes deleted users and bots by default.
+ *
+ * @param client - Authenticated Slack WebClient
+ * @param options - Optional filters
+ * @param options.includeDeleted - Include deactivated users (default: false)
+ * @param options.includeBots - Include bot users (default: false)
+ * @param options.limit - Maximum number of users to return
+ * @returns Array of user profile objects
+ */
+export async function getSlackUsers(
+  client: WebClient,
+  options: { includeDeleted?: boolean; includeBots?: boolean; limit?: number } = {}
+) {
+  const { includeDeleted = false, includeBots = false, limit } = options;
+
+  const allMembers = await paginateSlack({
+    fetchPage: (cursor) =>
+      client.users.list({
+        limit: 200,
+        cursor,
+      }),
+    extractItems: (result) => {
+      if (!result.ok) {
+        throw new Error(`Slack API error during user listing: ${result.error}`);
+      }
+      return result.members ?? [];
+    },
+    getNextCursor: (result) => result.response_metadata?.next_cursor || undefined,
+    limit,
+  });
+
+  return allMembers
+    .filter((user) => {
+      if (!includeDeleted && user.deleted) return false;
+      if (!includeBots && (user.is_bot || user.id === 'USLACKBOT')) return false;
+      return true;
+    })
+    .map((user) => ({
+      id: user.id,
+      name: user.name,
+      realName: user.real_name,
+      displayName: user.profile?.display_name,
+      email: user.profile?.email,
+      isAdmin: user.is_admin,
+      isOwner: user.is_owner,
+      avatar: user.profile?.image_72,
+      tz: user.tz,
+      tzOffset: user.tz_offset,
+    }));
+}
+
+/**
  * Fetch workspace (team) information from Slack.
  *
  * @param client - Authenticated Slack WebClient
@@ -329,6 +409,55 @@ export async function checkUserIsChannelMember(
     getNextCursor: (result) => result.response_metadata?.next_cursor || undefined,
   });
   return members.includes(userId);
+}
+
+/**
+ * Open (or resume) a direct message conversation with a Slack user.
+ *
+ * @param client - Authenticated Slack WebClient
+ * @param userId - Slack user ID to DM (e.g., U0ABC123)
+ * @returns The DM channel ID
+ */
+export async function openDmConversation(client: WebClient, userId: string): Promise<string> {
+  const result = await client.conversations.open({
+    users: userId,
+  } as Parameters<typeof client.conversations.open>[0]);
+
+  const channelId = result.channel?.id;
+  if (!channelId) {
+    throw new Error(`Failed to open DM conversation with user ${userId}`);
+  }
+
+  return channelId;
+}
+
+/**
+ * Validate that the bot is a member of the given channels.
+ *
+ * @param client - Authenticated Slack WebClient
+ * @param channelIds - Channel IDs to validate
+ * @returns Object with valid and invalid channel ID arrays
+ */
+export async function validateBotChannelMembership(
+  client: WebClient,
+  channelIds: string[]
+): Promise<{ valid: string[]; invalid: string[] }> {
+  const botChannels = await getBotMemberChannels(client);
+  const memberChannelIds = new Set(
+    botChannels.filter((ch): ch is typeof ch & { id: string } => !!ch.id).map((ch) => ch.id)
+  );
+
+  const valid: string[] = [];
+  const invalid: string[] = [];
+  for (const id of channelIds) {
+    if (memberChannelIds.has(id)) {
+      valid.push(id);
+    } else {
+      invalid.push(id);
+    }
+  }
+
+  return { valid, invalid };
 }
 
 /**

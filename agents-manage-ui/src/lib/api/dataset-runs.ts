@@ -3,7 +3,6 @@
 import { cache } from 'react';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface DatasetRun {
   id: string;
@@ -27,21 +26,17 @@ interface DatasetRunConversation {
   updatedAt: string;
 }
 
+type DatasetMessageRole = 'user' | 'assistant' | 'system';
+
 interface DatasetRunItemWithConversations {
   id: string;
   tenantId: string;
   projectId: string;
   datasetId: string;
   input?: {
-    messages: Array<{ role: string; content: unknown }>;
-    headers?: Record<string, string>;
+    messages: Array<{ role: DatasetMessageRole; content: unknown }>;
   } | null;
-  expectedOutput?: Array<{ role: string; content: unknown }> | null;
-  simulationAgent?: {
-    stopWhen?: unknown;
-    prompt: string;
-    model: unknown;
-  } | null;
+  expectedOutput?: Array<{ role: DatasetMessageRole; content: unknown }> | null;
   createdAt: string;
   updatedAt: string;
   conversations: DatasetRunConversation[];
@@ -58,9 +53,6 @@ export async function fetchDatasetRuns(
   projectId: string,
   datasetId: string
 ): Promise<ListResponse<DatasetRun>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<ListResponse<DatasetRun>>(
     `tenants/${tenantId}/projects/${projectId}/evals/dataset-runs/by-dataset/${datasetId}`
   );
@@ -71,12 +63,34 @@ async function $fetchDatasetRun(
   projectId: string,
   runId: string
 ): Promise<SingleResponse<DatasetRunWithConversations>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<SingleResponse<DatasetRunWithConversations>>(
     `tenants/${tenantId}/projects/${projectId}/evals/dataset-runs/${runId}`
   );
 }
 
 export const fetchDatasetRun = cache($fetchDatasetRun);
+
+export interface DatasetRunInvocation {
+  id: string;
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  datasetRunId: string;
+  datasetItemId: string | null;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  startedAt?: string | null;
+  completedAt?: string | null;
+  attemptNumber: number;
+  createdAt: string;
+  conversationId?: string | null;
+}
+
+export async function fetchDatasetRunItems(
+  tenantId: string,
+  projectId: string,
+  runId: string
+): Promise<ListResponse<DatasetRunInvocation>> {
+  return makeManagementApiRequest<ListResponse<DatasetRunInvocation>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/dataset-runs/${runId}/items`
+  );
+}

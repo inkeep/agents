@@ -4,6 +4,7 @@ import { HTTPException } from 'hono/http-exception';
 import type { StatusCode } from 'hono/utils/http-status';
 import type { ZodIssue } from 'zod';
 import { getLogger } from '../logger';
+import { sentry } from '../sentry';
 
 const logger = getLogger('error-handler');
 
@@ -31,7 +32,6 @@ function extractZodIssues(err: unknown): ZodIssue[] | undefined {
 function formatZodValidationError(c: Context, zodIssues: ZodIssue[]) {
   c.status(400);
   c.header('Content-Type', 'application/problem+json');
-  c.header('X-Content-Type-Options', 'nosniff');
   return c.json({
     type: 'https://docs.inkeep.com/agents-api/errors#bad_request',
     title: 'Validation Failed',
@@ -98,26 +98,40 @@ export async function errorHandler(err: Error, c: Context): Promise<Response> {
     return formatZodValidationError(c, zodIssues);
   }
 
-  // Log server errors
+  // Log and report server errors
   if (status >= 500) {
     logServerError(err, c.req.path, requestId, status, isExpectedError);
+
+    sentry.captureException(err, {
+      extra: { requestId, path: c.req.path, status },
+    });
   }
 
   // Format as RFC 7807 Problem Details
   const errorResponse = await handleApiError(err, requestId);
   c.status(errorResponse.status as StatusCode);
 
+  const {
+    code,
+    title,
+    status: responseStatus,
+    detail,
+    instance,
+    requestId: _reqId,
+    error: errorObj,
+    ...extensions
+  } = errorResponse;
   const responseBody = {
-    ...(errorResponse.code && { code: errorResponse.code }),
-    title: errorResponse.title,
-    status: errorResponse.status,
-    detail: errorResponse.detail,
-    ...(errorResponse.instance && { instance: errorResponse.instance }),
-    ...(errorResponse.error && { error: errorResponse.error }),
+    ...(code && { code }),
+    title,
+    status: responseStatus,
+    detail,
+    ...(instance && { instance }),
+    ...(errorObj && { error: errorObj }),
+    ...extensions,
   };
 
   c.header('Content-Type', 'application/problem+json');
-  c.header('X-Content-Type-Options', 'nosniff');
 
   return c.body(JSON.stringify(responseBody));
 }

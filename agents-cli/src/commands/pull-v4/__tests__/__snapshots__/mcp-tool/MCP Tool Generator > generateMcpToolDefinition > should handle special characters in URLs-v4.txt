@@ -1,6 +1,6 @@
 import { mcpTool } from '@inkeep/agents-sdk';
 
-export const special = mcpTool({
+export const specialTool = mcpTool({
   id: 'special',
   name: 'Special Tool',
   imageUrl: 'https://images.example.com/icon.png?size=256&format=webp',

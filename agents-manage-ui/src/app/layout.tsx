@@ -9,13 +9,7 @@ import { INKEEP_BRAND_COLOR } from '@/constants/theme';
 import { AuthClientProvider } from '@/contexts/auth-client';
 import { PostHogProvider } from '@/contexts/posthog';
 import { RuntimeConfigProvider } from '@/contexts/runtime-config';
-import {
-  DEFAULT_INKEEP_AGENTS_API_URL,
-  DEFAULT_NANGO_CONNECT_BASE_URL,
-  DEFAULT_NANGO_SERVER_URL,
-  DEFAULT_SIGNOZ_URL,
-} from '@/lib/runtime-config/defaults';
-import type { RuntimeConfig } from '@/lib/runtime-config/types';
+import { getRuntimeConfig } from '@/lib/runtime-config/get-runtime-config';
 import { cn } from '@/lib/utils';
 import './globals.css';
 
@@ -71,45 +65,6 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: LayoutProps<'/'>) {
   await connection();
 
-  const runtimeConfig: RuntimeConfig = {
-    PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET:
-      process.env.PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET ||
-      process.env.NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET,
-    PUBLIC_INKEEP_AGENTS_API_URL:
-      process.env.PUBLIC_INKEEP_AGENTS_API_URL ||
-      process.env.NEXT_PUBLIC_INKEEP_AGENTS_API_URL ||
-      DEFAULT_INKEEP_AGENTS_API_URL,
-    PUBLIC_SIGNOZ_URL:
-      process.env.PUBLIC_SIGNOZ_URL || process.env.NEXT_PUBLIC_SIGNOZ_URL || DEFAULT_SIGNOZ_URL,
-    PUBLIC_NANGO_SERVER_URL:
-      process.env.PUBLIC_NANGO_SERVER_URL ||
-      process.env.NEXT_PUBLIC_NANGO_SERVER_URL ||
-      DEFAULT_NANGO_SERVER_URL,
-    PUBLIC_NANGO_CONNECT_BASE_URL:
-      process.env.PUBLIC_NANGO_CONNECT_BASE_URL ||
-      process.env.NEXT_PUBLIC_NANGO_CONNECT_BASE_URL ||
-      DEFAULT_NANGO_CONNECT_BASE_URL,
-    PUBLIC_INKEEP_COPILOT_AGENT_ID:
-      process.env.PUBLIC_INKEEP_COPILOT_AGENT_ID || process.env.NEXT_PUBLIC_INKEEP_COPILOT_AGENT_ID,
-    PUBLIC_INKEEP_COPILOT_PROJECT_ID:
-      process.env.PUBLIC_INKEEP_COPILOT_PROJECT_ID ||
-      process.env.NEXT_PUBLIC_INKEEP_COPILOT_PROJECT_ID,
-    PUBLIC_INKEEP_COPILOT_TENANT_ID:
-      process.env.PUBLIC_INKEEP_COPILOT_TENANT_ID ||
-      process.env.NEXT_PUBLIC_INKEEP_COPILOT_TENANT_ID,
-    PUBLIC_AUTH0_DOMAIN: process.env.PUBLIC_AUTH0_DOMAIN || process.env.NEXT_PUBLIC_AUTH0_DOMAIN,
-    PUBLIC_GOOGLE_CLIENT_ID:
-      process.env.PUBLIC_GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-    PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT:
-      process.env.PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT ||
-      process.env.NEXT_PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT ||
-      'false',
-    PUBLIC_POSTHOG_KEY: process.env.PUBLIC_POSTHOG_KEY || process.env.NEXT_PUBLIC_POSTHOG_KEY,
-    PUBLIC_POSTHOG_HOST: process.env.PUBLIC_POSTHOG_HOST || process.env.NEXT_PUBLIC_POSTHOG_HOST,
-    PUBLIC_POSTHOG_SITE_TAG:
-      process.env.PUBLIC_POSTHOG_SITE_TAG || process.env.NEXT_PUBLIC_POSTHOG_SITE_TAG,
-  };
-
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -129,7 +84,7 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
           disableTransitionOnChange
         >
           <NuqsAdapter>
-            <RuntimeConfigProvider value={runtimeConfig}>
+            <RuntimeConfigProvider value={getRuntimeConfig()}>
               <PostHogProvider>
                 <QueryProvider>
                   <AuthClientProvider>

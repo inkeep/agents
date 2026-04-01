@@ -377,7 +377,62 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('PUT /{id}', () => {
+  describe('POST / - render field persistence', () => {
+    it('should persist render field through create and read', async () => {
+      const tenantId = await createTestTenantWithOrg('artifact-components-create-render');
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const render = {
+        component: 'function MyComponent() { return <div>Test</div>; }',
+        mockData: { title: 'Test' },
+      };
+      const artifactData = { ...createArtifactComponentData(), render };
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components`,
+        { method: 'POST', body: JSON.stringify(artifactData) }
+      );
+      expect(createRes.status).toBe(201);
+      const created = await createRes.json();
+      expect(created.data.render).toEqual(render);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${created.data.id}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.render).toEqual(render);
+    });
+  });
+
+  describe('PATCH /{id} - render field persistence', () => {
+    it('should update render field', async () => {
+      const tenantId = await createTestTenantWithOrg('artifact-components-update-render');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { artifactComponentId } = await createTestArtifactComponent({ tenantId });
+
+      const render = {
+        component: 'function UpdatedComponent() { return <span>Updated</span>; }',
+        mockData: { value: 42 },
+      };
+      const updateRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
+        { method: 'PATCH', body: JSON.stringify({ render }) }
+      );
+      expect(updateRes.status).toBe(200);
+      const updated = await updateRes.json();
+      expect(updated.data.render).toEqual(render);
+
+      const getRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`
+      );
+      expect(getRes.status).toBe(200);
+      const fetched = await getRes.json();
+      expect(fetched.data.render).toEqual(render);
+    });
+  });
+
+  describe('PATCH /{id}', () => {
     it('should update an existing artifact component', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-update-success');
       await createTestProject(manageDbClient, tenantId, projectId);
@@ -398,7 +453,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(updateData),
         }
       );
@@ -429,7 +484,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify(partialUpdate),
         }
       );
@@ -454,7 +509,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${nonExistentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ name: 'Updated Name' }),
         }
       );
@@ -472,7 +527,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId2}/projects/${projectId}/artifact-components/${artifactComponentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ name: 'Updated Name' }),
         }
       );
@@ -490,7 +545,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({}),
         }
       );
@@ -505,6 +560,24 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
         props: artifactComponentData.props,
         tenantId,
       });
+    });
+  });
+
+  describe('PUT /{id} (backward compatibility)', () => {
+    it('should update an existing artifact component via PUT', async () => {
+      const tenantId = await createTestTenantWithOrg('artifact-components-put-compat');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { artifactComponentId } = await createTestArtifactComponent({ tenantId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ name: 'PutUpdatedArtifactComponent' }),
+        }
+      );
+
+      expect(res.status).toBe(200);
     });
   });
 
@@ -584,7 +657,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
       const updateRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
         {
-          method: 'PUT',
+          method: 'PATCH',
           body: JSON.stringify({ name: 'Updated E2E Artifact Component' }),
         }
       );

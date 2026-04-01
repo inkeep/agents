@@ -27,21 +27,28 @@ updates:
           - '*'
 
   - package-ecosystem: 'npm'
-    directory: '/create-agents-template'
+    directories:
+      - '/create-agents-template/**'
     schedule:
-      interval: 'weekly'
+      interval: 'daily'
+    versioning-strategy: increase
     allow:
-      - dependency-name: '@inkeep/*'
+      - dependency-name: '@inkeep/agents-*'
     groups:
       inkeep-agents:
         patterns:
-          - '@inkeep/*'
+          - '@inkeep/agents-*'
 
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
-      interval: 'monthly'
+      interval: 'daily'
     groups:
+      high-frequency:
+        patterns:
+          - 'pullfrog/*'
       github-actions:
         patterns:
           - '*'
+        exclude-patterns:
+          - 'pullfrog/*'

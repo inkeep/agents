@@ -67,7 +67,7 @@ const mySubAgent = subAgent({
 | Provider | Example Models | API Key |
 |----------|----------------|---------|
 | **Anthropic** | `anthropic/claude-sonnet-4-6`<br/>`anthropic/claude-sonnet-4-5`<br/>`anthropic/claude-haiku-4-5`<br/>`anthropic/claude-opus-4-6` | `ANTHROPIC_API_KEY` |
-| **OpenAI** | `openai/gpt-5.2`<br/>`openai/gpt-5.1`<br/>`openai/gpt-4.1`<br/>`openai/gpt-4.1-mini`<br/>`openai/gpt-4.1-nano`<br/>`openai/gpt-5`* | `OPENAI_API_KEY` |
+| **OpenAI** | `openai/gpt-5.4-pro`<br/>`openai/gpt-5.4`<br/>`openai/gpt-5.4-mini`<br/>`openai/gpt-5.4-nano`<br/>`openai/gpt-5.2`<br/>`openai/gpt-5.1`<br/>`openai/gpt-4.1`<br/>`openai/gpt-4.1-mini`<br/>`openai/gpt-4.1-nano`<br/>`openai/gpt-5`* | `OPENAI_API_KEY` |
 | **Azure OpenAI** | `azure/my-gpt4-deployment`<br/>`azure/my-gpt35-deployment` | `AZURE_API_KEY` |
 | **Google** | `google/gemini-3.1-pro-preview`<br/>`google/gemini-2.5-flash`<br/>`google/gemini-2.5-flash-lite` | `GOOGLE_GENERATIVE_AI_API_KEY` |
 | **OpenRouter** | `openrouter/anthropic/claude-sonnet-4-0`<br/>`openrouter/meta-llama/llama-3.1-405b` | `OPENROUTER_API_KEY` |
@@ -118,6 +118,28 @@ models: {
 ## Provider Options
 
 Inkeep Agents supports all [Vercel AI SDK provider options](https://ai-sdk.dev/providers/ai-sdk-providers/).
+
+### How providerOptions works
+
+`providerOptions` accepts two types of values:
+
+- **Scalars** (`temperature`, `topP`, `maxOutputTokens`, `seed`, `maxDuration`) — standard generation parameters applied to every call
+- **Objects** (`anthropic: {}`, `openai: {}`, `gateway: {}`, etc.) — provider-specific options for that provider
+
+This means you can mix them freely:
+
+```typescript
+providerOptions: {
+  temperature: 0.7,            // generation param
+  anthropic: {                 // Anthropic-specific options
+    thinking: { type: 'enabled', budgetTokens: 8000 }
+  }
+}
+```
+
+<Note>
+Constructor-level config (`baseURL`, `headers`, `resourceName`, `apiVersion`) is always specified at the top level of `providerOptions`, not nested under a provider key.
+</Note>
 
 ### Complete Examples
 
@@ -189,9 +211,9 @@ models: {
     model: "anthropic/claude-sonnet-4-5",
     providerOptions: {
       anthropic: {
-        thinking: { type: 'enabled', budgetTokens: 8000 },
-        temperature: 0.5
-      }
+        thinking: { type: 'enabled', budgetTokens: 8000 }
+      },
+      temperature: 0.5
     }
   }
 }
@@ -238,6 +260,10 @@ models: {
 ```
 </Tab>
 </Tabs>
+
+**Vercel AI Gateway:**
+
+When `AI_GATEWAY_API_KEY` is set, Anthropic, OpenAI, and Google models are automatically routed through [Vercel AI Gateway](https://ai-sdk.dev/providers/ai-sdk-providers/ai-gateway) for per-request cost tracking. No configuration changes are needed — your existing model strings work as-is. See [AI Gateway](#ai-gateway) below for fallback models, allowed providers, and advanced gateway configuration.
 
 **Azure OpenAI:**
 
@@ -339,6 +365,115 @@ This affects compression triggers and oversized artifact detection (artifacts ex
 </Note>
 
 </SkillRule>
+
+## AI Gateway
+
+[Vercel AI Gateway](https://ai-sdk.dev/providers/ai-sdk-providers/ai-gateway) provides intelligent model routing, automatic failover, and per-request cost tracking. All AI Gateway features require `AI_GATEWAY_API_KEY` to be set in your environment.
+
+When the gateway is active, **Anthropic**, **OpenAI**, and **Google** models are automatically routed through it — no configuration changes needed. This enables **fallback models** and **allowed providers** for those providers. **Per-request cost tracking** is available for any model routed through the gateway.
+
+For self-hosted deployments, you can [bring your own API keys](https://ai-sdk.dev/providers/ai-sdk-providers/ai-gateway#bring-your-own-key-byok) (BYOK) for any provider by configuring them in your Vercel AI Gateway team settings.
+
+### Fallback Models
+
+Configure an ordered list of backup models that the gateway tries if the primary model fails or is unavailable:
+
+<Tabs>
+<Tab title="TypeScript">
+```typescript
+models: {
+  base: {
+    model: "anthropic/claude-sonnet-4-5",
+    fallbackModels: [
+      "openai/gpt-5.2",
+      "google/gemini-2.5-flash",
+    ],
+  }
+}
+```
+</Tab>
+<Tab title="JSON">
+```json
+{
+  "model": "anthropic/claude-sonnet-4-5",
+  "fallbackModels": [
+    "openai/gpt-5.2",
+    "google/gemini-2.5-flash"
+  ]
+}
+```
+</Tab>
+</Tabs>
+
+If the primary model (`anthropic/claude-sonnet-4-5`) fails, the gateway automatically tries `openai/gpt-5.2`, then `google/gemini-2.5-flash`. If all models fail, the request errors.
+
+Fallback models can be configured on any model slot (`base`, `structuredOutput`, `summarizer`). They inherit through the project → agent → sub agent hierarchy — even when a sub agent overrides the model itself, it still inherits `fallbackModels` from its parent unless it explicitly sets its own. All entries must use the `provider/model` format (e.g., `"openai/gpt-5.2"`).
+
+### Allowed Providers
+
+Restrict and prioritize which providers can serve requests. The order determines preference — the first provider in the list has the highest priority:
+
+<Tabs>
+<Tab title="TypeScript">
+```typescript
+models: {
+  base: {
+    model: "claude-sonnet-4-5",
+    allowedProviders: ["bedrock", "anthropic"],
+  }
+}
+```
+</Tab>
+<Tab title="JSON">
+```json
+{
+  "model": "claude-sonnet-4-5",
+  "allowedProviders": ["bedrock", "anthropic"]
+}
+```
+</Tab>
+</Tabs>
+
+The gateway will try to serve the request via AWS Bedrock first. If Bedrock is unavailable, it falls back to Anthropic's direct API. When `allowedProviders` is set, the model string should omit the provider prefix (e.g., `"claude-sonnet-4-5"` instead of `"anthropic/claude-sonnet-4-5"`) since the gateway determines which provider to use.
+
+Available providers include: `anthropic`, `openai`, `google`, `bedrock`, `azure`, `vertex`.
+
+Like `fallbackModels`, `allowedProviders` inherits through the project → agent → sub agent hierarchy even when the model is overridden at a lower level.
+
+### Combining Both
+
+Both features can be used together. With this configuration, `allowedProviders` restricts and prioritizes which providers can serve the primary model, while `fallbackModels` defines alternative models to try if the primary model is unavailable:
+
+```typescript
+models: {
+  base: {
+    model: "claude-sonnet-4-5",
+    allowedProviders: ["bedrock", "anthropic"],
+    fallbackModels: ["openai/gpt-5.2", "google/gemini-2.5-flash"],
+  }
+}
+```
+
+### Advanced: Manual Gateway Provider Options
+
+You can also configure gateway routing directly via `providerOptions` for access to the full [gateway provider options](https://ai-sdk.dev/providers/ai-sdk-providers/ai-gateway#gateway-provider-options) (`order`, `only`, `models`, `byok`, `providerTimeouts`, `tags`, `zeroDataRetention`):
+
+```typescript
+models: {
+  base: {
+    model: "gateway/openai/gpt-4.1",
+    providerOptions: {
+      gateway: {
+        models: ["openai/gpt-4.1", "anthropic/claude-sonnet-4-5"],
+      }
+    }
+  }
+}
+```
+
+<Note>
+If you set both `fallbackModels` and `providerOptions.gateway.models`, `fallbackModels` takes precedence.
+</Note>
 
 ## CLI Defaults
 

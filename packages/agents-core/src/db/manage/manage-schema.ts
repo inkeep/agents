@@ -33,7 +33,6 @@ import type {
   AgentStopWhen,
   ModelSettings,
   SignatureVerificationConfig,
-  SimulationAgent,
   StopWhen,
   SubAgentStopWhen,
 } from '../../validation/schemas';
@@ -95,6 +94,10 @@ export const agents = pgTable(
     statusUpdates: jsonb('status_updates').$type<StatusUpdateSettings>(),
     prompt: text('prompt'),
     stopWhen: jsonb('stop_when').$type<AgentStopWhen>(),
+    executionMode: varchar('execution_mode', { length: 50 })
+      .$type<'classic' | 'durable'>()
+      .notNull()
+      .default('classic'),
     ...timestamps,
   },
   (table) => [
@@ -144,6 +147,8 @@ export const triggers = pgTable(
     signatureVerification: jsonb('signature_verification')
       .$type<SignatureVerificationConfig | null>()
       .default(null),
+    runAsUserId: varchar('run_as_user_id', { length: 256 }),
+    createdBy: varchar('created_by', { length: 256 }),
     ...timestamps,
   },
   (table) => [
@@ -158,64 +163,6 @@ export const triggers = pgTable(
       foreignColumns: [credentialReferences.id],
       name: 'triggers_credential_reference_fk',
     }).onDelete('set null'),
-  ]
-);
-
-export const scheduledTriggers = pgTable(
-  'scheduled_triggers',
-  {
-    ...agentScoped,
-    ...uiProperties,
-    enabled: boolean('enabled').notNull().default(true),
-    cronExpression: varchar('cron_expression', { length: 256 }),
-    cronTimezone: varchar('cron_timezone', { length: 64 }).default('UTC'),
-    runAt: timestamp('run_at', { withTimezone: true, mode: 'string' }),
-    payload: jsonb('payload').$type<Record<string, unknown> | null>(),
-    messageTemplate: text('message_template'),
-    maxRetries: numeric('max_retries', { mode: 'number' }).notNull().default(1),
-    retryDelaySeconds: numeric('retry_delay_seconds', { mode: 'number' }).notNull().default(60),
-    timeoutSeconds: numeric('timeout_seconds', { mode: 'number' }).notNull().default(780),
-    runAsUserId: varchar('run_as_user_id', { length: 256 }),
-    createdBy: varchar('created_by', { length: 256 }),
-    ...timestamps,
-  },
-  (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
-    foreignKey({
-      columns: [table.tenantId, table.projectId, table.agentId],
-      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
-      name: 'scheduled_triggers_agent_fk',
-    }).onDelete('cascade'),
-  ]
-);
-
-export const scheduledWorkflows = pgTable(
-  'scheduled_workflows',
-  {
-    ...agentScoped,
-    ...uiProperties,
-    workflowRunId: varchar('workflow_run_id', { length: 256 }),
-    status: varchar('status', { length: 50 }).notNull().default('pending'),
-    scheduledTriggerId: varchar('scheduled_trigger_id', { length: 256 }).notNull(),
-    ...timestamps,
-  },
-  (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
-    foreignKey({
-      columns: [table.tenantId, table.projectId, table.agentId],
-      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
-      name: 'scheduled_workflows_agent_fk',
-    }).onDelete('cascade'),
-    foreignKey({
-      columns: [table.tenantId, table.projectId, table.agentId, table.scheduledTriggerId],
-      foreignColumns: [
-        scheduledTriggers.tenantId,
-        scheduledTriggers.projectId,
-        scheduledTriggers.agentId,
-        scheduledTriggers.id,
-      ],
-      name: 'scheduled_workflows_trigger_fk',
-    }).onDelete('cascade'),
   ]
 );
 
@@ -267,6 +214,32 @@ export const skills = pgTable(
       foreignColumns: [projects.tenantId, projects.id],
       name: 'skills_project_fk',
     }).onDelete('cascade'),
+  ]
+);
+
+export const skillFiles = pgTable(
+  'skill_files',
+  {
+    ...projectScoped,
+    skillId: varchar('skill_id', { length: 64 }).notNull(),
+    filePath: varchar('file_path', { length: 1024 }).notNull(),
+    content: text('content').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.skillId],
+      foreignColumns: [skills.tenantId, skills.projectId, skills.id],
+      name: 'skill_files_skill_fk',
+    }).onDelete('cascade'),
+    unique('skill_files_skill_path_unique').on(
+      table.tenantId,
+      table.projectId,
+      table.skillId,
+      table.filePath
+    ),
+    index('skill_files_skill_idx').on(table.skillId),
   ]
 );
 
@@ -691,15 +664,12 @@ export const dataset = pgTable(
 );
 
 /**
- *
  * Individual test case within a dataset. Contains the input messages to send
- * to an agent and optionally expected output or simulation configuration.
+ * to an agent and optionally expected output.
  * When a dataset run executes, it creates conversations from these items.
  *
- *
  * Includes: input (messages array with optional headers), expected output (array of messages),
- * simulation agent (stopWhen conditions, prompt/modelConfig), and timestamps
- * simulationAgent is for when a user wants to create a multi-turn simulation aka a simulating agent is creating input messages based on a persona
+ * and timestamps.
  */
 export const datasetItem = pgTable(
   'dataset_item',
@@ -708,7 +678,6 @@ export const datasetItem = pgTable(
     datasetId: varchar('dataset_id', { length: 256 }).notNull(),
     input: jsonb('input').$type<DatasetItemInput>().notNull(),
     expectedOutput: jsonb('expected_output').$type<DatasetItemExpectedOutput>(),
-    simulationAgent: jsonb('simulation_agent').$type<SimulationAgent>(),
     ...timestamps,
   },
   (table) => [
@@ -1013,6 +982,7 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   artifactComponents: many(artifactComponents),
   credentialReferences: many(credentialReferences),
   skills: many(skills),
+  skillFiles: many(skillFiles),
 }));
 
 export const contextConfigsRelations = relations(contextConfigs, ({ many, one }) => ({
@@ -1056,37 +1026,6 @@ export const agentRelations = relations(agents, ({ one, many }) => ({
     references: [contextConfigs.id],
   }),
   functionTools: many(functionTools),
-  scheduledWorkflows: many(scheduledWorkflows),
-  scheduledTriggers: many(scheduledTriggers),
-}));
-
-export const scheduledTriggersRelations = relations(scheduledTriggers, ({ one }) => ({
-  agent: one(agents, {
-    fields: [scheduledTriggers.tenantId, scheduledTriggers.projectId, scheduledTriggers.agentId],
-    references: [agents.tenantId, agents.projectId, agents.id],
-  }),
-  scheduledWorkflow: one(scheduledWorkflows),
-}));
-
-export const scheduledWorkflowsRelations = relations(scheduledWorkflows, ({ one }) => ({
-  agent: one(agents, {
-    fields: [scheduledWorkflows.tenantId, scheduledWorkflows.projectId, scheduledWorkflows.agentId],
-    references: [agents.tenantId, agents.projectId, agents.id],
-  }),
-  scheduledTrigger: one(scheduledTriggers, {
-    fields: [
-      scheduledWorkflows.tenantId,
-      scheduledWorkflows.projectId,
-      scheduledWorkflows.agentId,
-      scheduledWorkflows.scheduledTriggerId,
-    ],
-    references: [
-      scheduledTriggers.tenantId,
-      scheduledTriggers.projectId,
-      scheduledTriggers.agentId,
-      scheduledTriggers.id,
-    ],
-  }),
 }));
 
 export const externalAgentsRelations = relations(externalAgents, ({ one, many }) => ({
@@ -1179,7 +1118,19 @@ export const skillsRelations = relations(skills, ({ one, many }) => ({
     fields: [skills.tenantId, skills.projectId],
     references: [projects.tenantId, projects.id],
   }),
+  files: many(skillFiles),
   subAgentRelations: many(subAgentSkills),
+}));
+
+export const skillFilesRelations = relations(skillFiles, ({ one }) => ({
+  project: one(projects, {
+    fields: [skillFiles.tenantId, skillFiles.projectId],
+    references: [projects.tenantId, projects.id],
+  }),
+  skill: one(skills, {
+    fields: [skillFiles.tenantId, skillFiles.projectId, skillFiles.skillId],
+    references: [skills.tenantId, skills.projectId, skills.id],
+  }),
 }));
 
 export const subAgentSkillsRelations = relations(subAgentSkills, ({ one }) => ({
@@ -1300,6 +1251,80 @@ export const subAgentTeamAgentRelationsRelations = relations(
 );
 
 /**
+ * Links agents to datasets. Many-to-many relationship that scopes a dataset
+ * to specific agents. When a dataset has agent relations, it is only associated
+ * with those agents. When it has NO agent relations, it is treated as
+ * project-wide and available to all agents.
+ *
+ * Includes: agentId, datasetId, and timestamps
+ */
+export const agentDatasetRelations = pgTable(
+  'agent_dataset_relations',
+  {
+    ...projectScoped,
+    agentId: varchar('agent_id', { length: 256 }).notNull(),
+    datasetId: varchar('dataset_id', { length: 256 }).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'agent_dataset_relations_agent_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.datasetId],
+      foreignColumns: [dataset.tenantId, dataset.projectId, dataset.id],
+      name: 'agent_dataset_relations_dataset_fk',
+    }).onDelete('cascade'),
+    unique('agent_dataset_relations_unique').on(
+      table.tenantId,
+      table.projectId,
+      table.agentId,
+      table.datasetId
+    ),
+  ]
+);
+
+/**
+ * Links agents to evaluators. Many-to-many relationship that scopes an evaluator
+ * to specific agents. When an evaluator has agent relations, it is only associated
+ * with those agents. When it has NO agent relations, it is treated as
+ * project-wide and available to all agents.
+ *
+ * Includes: agentId, evaluatorId, and timestamps
+ */
+export const agentEvaluatorRelations = pgTable(
+  'agent_evaluator_relations',
+  {
+    ...projectScoped,
+    agentId: varchar('agent_id', { length: 256 }).notNull(),
+    evaluatorId: varchar('evaluator_id', { length: 256 }).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'agent_evaluator_relations_agent_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.evaluatorId],
+      foreignColumns: [evaluator.tenantId, evaluator.projectId, evaluator.id],
+      name: 'agent_evaluator_relations_evaluator_fk',
+    }).onDelete('cascade'),
+    unique('agent_evaluator_relations_unique').on(
+      table.tenantId,
+      table.projectId,
+      table.agentId,
+      table.evaluatorId
+    ),
+  ]
+);
+
+/**
  * Links agents to dataset run configs. Many-to-many relationship that
  * allows one dataset run config to use multiple agents, and one agent to be used
  * by multiple dataset run configs.
@@ -1328,3 +1353,41 @@ export const datasetRunConfigAgentRelations = pgTable(
     }).onDelete('cascade'),
   ]
 );
+
+export const agentDatasetRelationsRelations = relations(agentDatasetRelations, ({ one }) => ({
+  agent: one(agents, {
+    fields: [
+      agentDatasetRelations.tenantId,
+      agentDatasetRelations.projectId,
+      agentDatasetRelations.agentId,
+    ],
+    references: [agents.tenantId, agents.projectId, agents.id],
+  }),
+  dataset: one(dataset, {
+    fields: [
+      agentDatasetRelations.tenantId,
+      agentDatasetRelations.projectId,
+      agentDatasetRelations.datasetId,
+    ],
+    references: [dataset.tenantId, dataset.projectId, dataset.id],
+  }),
+}));
+
+export const agentEvaluatorRelationsRelations = relations(agentEvaluatorRelations, ({ one }) => ({
+  agent: one(agents, {
+    fields: [
+      agentEvaluatorRelations.tenantId,
+      agentEvaluatorRelations.projectId,
+      agentEvaluatorRelations.agentId,
+    ],
+    references: [agents.tenantId, agents.projectId, agents.id],
+  }),
+  evaluator: one(evaluator, {
+    fields: [
+      agentEvaluatorRelations.tenantId,
+      agentEvaluatorRelations.projectId,
+      agentEvaluatorRelations.evaluatorId,
+    ],
+    references: [evaluator.tenantId, evaluator.projectId, evaluator.id],
+  }),
+}));

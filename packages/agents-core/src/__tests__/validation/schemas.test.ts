@@ -5,12 +5,14 @@ import {
   PaginationQueryParamsSchema,
   PaginationSchema,
   ResourceIdSchema,
+  ScheduledTriggerApiUpdateSchema,
   SubAgentApiInsertSchema,
   SubAgentApiUpdateSchema,
   SubAgentInsertSchema,
   TaskInsertSchema,
+  TriggerApiUpdateSchema,
   TriggerInsertSchema,
-} from '../../validation/schemas';
+} from '../../validation';
 
 describe('Validation Schemas', () => {
   describe('ResourceIdSchema', () => {
@@ -123,6 +125,36 @@ describe('Validation Schemas', () => {
       // This should not throw because tenantId is omitted from the schema
       const result = SubAgentApiUpdateSchema.parse(invalidUpdate);
       expect(result).not.toHaveProperty('tenantId');
+    });
+  });
+
+  describe('TriggerApiUpdateSchema', () => {
+    it('should strip tenantId, projectId, and agentId from updates', () => {
+      const result = TriggerApiUpdateSchema.parse({
+        tenantId: 'malicious-tenant',
+        projectId: 'malicious-project',
+        agentId: 'malicious-agent',
+        name: 'Updated Name',
+      });
+      expect(result).not.toHaveProperty('tenantId');
+      expect(result).not.toHaveProperty('projectId');
+      expect(result).not.toHaveProperty('agentId');
+      expect(result).toHaveProperty('name', 'Updated Name');
+    });
+  });
+
+  describe('ScheduledTriggerApiUpdateSchema', () => {
+    it('should strip tenantId, projectId, and agentId from updates', () => {
+      const result = ScheduledTriggerApiUpdateSchema.parse({
+        tenantId: 'malicious-tenant',
+        projectId: 'malicious-project',
+        agentId: 'malicious-agent',
+        name: 'Updated Scheduled Trigger',
+      });
+      expect(result).not.toHaveProperty('tenantId');
+      expect(result).not.toHaveProperty('projectId');
+      expect(result).not.toHaveProperty('agentId');
+      expect(result).toHaveProperty('name', 'Updated Scheduled Trigger');
     });
   });
 

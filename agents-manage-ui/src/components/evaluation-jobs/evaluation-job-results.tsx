@@ -16,12 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { fetchDatasetRun } from '@/lib/api/dataset-runs';
-import type {
-  EvaluationJobConfig,
-  EvaluationJobFilterCriteria,
-} from '@/lib/api/evaluation-job-configs';
-import { fetchEvaluationJobConfigEvaluators } from '@/lib/api/evaluation-job-configs';
+import type { EvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import type { EvaluationResult } from '@/lib/api/evaluation-results';
 import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
 import type { Evaluator } from '@/lib/api/evaluators';
@@ -72,53 +67,19 @@ export function EvaluationJobResults({
       );
       setResults(latestResults.data || []);
 
-      // Get evaluator relations for this job
-      const evaluatorRelations = await fetchEvaluationJobConfigEvaluators(
-        tenantId,
-        projectId,
-        jobConfig.id
-      );
-      const evaluatorCount = evaluatorRelations.data?.length || 0;
-
-      // Get conversation count from dataset run if available
-      let conversationCount = 0;
-      const criteria = jobConfig.jobFilters as EvaluationJobFilterCriteria;
-      if (criteria?.datasetRunIds && criteria.datasetRunIds.length > 0) {
-        try {
-          const datasetRun = await fetchDatasetRun(tenantId, projectId, criteria.datasetRunIds[0]);
-          conversationCount =
-            datasetRun.data?.items?.reduce(
-              (acc, item) => acc + (item.conversations?.length || 0),
-              0
-            ) || 0;
-        } catch {
-          // If we can't get dataset run, estimate from unique conversations in results
-          const uniqueConversations = new Set(
-            latestResults.data?.map((r) => r.conversationId) || []
-          );
-          conversationCount = uniqueConversations.size;
-        }
-      } else {
-        // For non-dataset-run jobs, estimate from unique conversations
-        const uniqueConversations = new Set(latestResults.data?.map((r) => r.conversationId) || []);
-        conversationCount = uniqueConversations.size;
-      }
-
-      // Expected = conversations × evaluators
-      const expectedTotal = conversationCount * evaluatorCount;
-      // Only count results with output as completed
+      const totalCount = latestResults.data?.length || 0;
       const completedCount =
         latestResults.data?.filter((r) => r.output !== null && r.output !== undefined).length || 0;
 
       setProgress({
-        total: expectedTotal,
+        total: totalCount,
         completed: completedCount,
-        isRunning: completedCount < expectedTotal && expectedTotal > 0,
+        isRunning: completedCount < totalCount && totalCount > 0,
       });
     } catch (err) {
       console.error('Error loading evaluation progress:', err);
     }
-  }, [tenantId, projectId, jobConfig.id, jobConfig.jobFilters]);
+  }, [tenantId, projectId, jobConfig.id]);
 
   // Initial progress load
   useEffect(() => {
@@ -273,7 +234,7 @@ export function EvaluationJobResults({
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                       {result.conversationCreatedAt
-                        ? formatDateTimeTable(result.conversationCreatedAt)
+                        ? formatDateTimeTable(result.conversationCreatedAt, { local: true })
                         : '-'}
                     </TableCell>
                     <TableCell>
@@ -344,6 +305,8 @@ export function EvaluationJobResults({
 
       {selectedEvaluator && (
         <EvaluatorViewDialog
+          tenantId={tenantId}
+          projectId={projectId}
           evaluator={selectedEvaluator}
           isOpen={selectedEvaluator !== undefined}
           onOpenChange={(open) => !open && setSelectedEvaluatorId(null)}

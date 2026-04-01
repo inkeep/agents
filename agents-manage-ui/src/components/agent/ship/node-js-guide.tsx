@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   const response = await fetch('${apiUrl}', {
     method: 'POST',
     headers: {
-      'Authorization': \`Bearer \${process.env.INKEEP_AGENT_API_KEY}\`,
+      'Authorization': \`Bearer \${process.env.INKEEP_APP_SECRET}\`,
       'Content-Type': 'application/json',
       'x-emit-operations': 'true',
     },
