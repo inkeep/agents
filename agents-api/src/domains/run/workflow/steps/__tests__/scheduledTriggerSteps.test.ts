@@ -130,6 +130,7 @@ describe('scheduledTriggerSteps', () => {
   describe('disableOneTimeTriggerStep', () => {
     it('calls advanceScheduledTriggerNextRunAt with enabled: false and nextRunAt: null', async () => {
       const mockAdvance = vi.fn().mockResolvedValue(undefined);
+      mockGetTriggerById.mockReturnValue(() => Promise.resolve({ enabled: true, id: 'trigger-1' }));
       mockAdvanceNextRunAt.mockReturnValue(mockAdvance);
 
       await disableOneTimeTriggerStep(baseParams);

@@ -90,27 +90,33 @@ export const getScheduledTriggerUserCount =
     return result[0]?.count ?? 0;
   };
 
+export const getTriggerIdsWithUser =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: { tenantId: string; projectId: string; userId: string }) => {
+    return db
+      .select({ id: scheduledTriggers.id })
+      .from(scheduledTriggers)
+      .innerJoin(
+        scheduledTriggerUsers,
+        and(
+          eq(scheduledTriggerUsers.tenantId, scheduledTriggers.tenantId),
+          eq(scheduledTriggerUsers.scheduledTriggerId, scheduledTriggers.id)
+        )
+      )
+      .where(
+        and(
+          eq(scheduledTriggers.tenantId, params.tenantId),
+          eq(scheduledTriggers.projectId, params.projectId),
+          eq(scheduledTriggerUsers.userId, params.userId)
+        )
+      );
+  };
+
 export const removeUserFromProjectScheduledTriggers =
   (db: AgentsRunDatabaseClient) =>
   async (params: { tenantId: string; projectId: string; userId: string }) => {
     await db.transaction(async (tx) => {
-      const triggerIdsWithUser = await tx
-        .select({ id: scheduledTriggers.id })
-        .from(scheduledTriggers)
-        .innerJoin(
-          scheduledTriggerUsers,
-          and(
-            eq(scheduledTriggerUsers.tenantId, scheduledTriggers.tenantId),
-            eq(scheduledTriggerUsers.scheduledTriggerId, scheduledTriggers.id)
-          )
-        )
-        .where(
-          and(
-            eq(scheduledTriggers.tenantId, params.tenantId),
-            eq(scheduledTriggers.projectId, params.projectId),
-            eq(scheduledTriggerUsers.userId, params.userId)
-          )
-        );
+      const triggerIdsWithUser = await getTriggerIdsWithUser(tx)(params);
 
       if (triggerIdsWithUser.length === 0) return;
 
@@ -126,7 +132,7 @@ export const removeUserFromProjectScheduledTriggers =
           )
         );
 
-      const triggersToDisable = await tx
+      const triggersWithRemainingUsers = await tx
         .select({ triggerId: scheduledTriggerUsers.scheduledTriggerId })
         .from(scheduledTriggerUsers)
         .where(
@@ -137,7 +143,9 @@ export const removeUserFromProjectScheduledTriggers =
         )
         .groupBy(scheduledTriggerUsers.scheduledTriggerId);
 
-      const triggerIdsWithRemainingUsers = new Set(triggersToDisable.map((r) => r.triggerId));
+      const triggerIdsWithRemainingUsers = new Set(
+        triggersWithRemainingUsers.map((r) => r.triggerId)
+      );
       const emptyTriggerIds = triggerIds.filter((id) => !triggerIdsWithRemainingUsers.has(id));
 
       if (emptyTriggerIds.length > 0) {

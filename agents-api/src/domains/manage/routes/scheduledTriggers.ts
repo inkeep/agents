@@ -59,13 +59,6 @@ import type { ManageAppVariables } from '../../../types/app';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 import { onTriggerUpdated } from '../../run/services/ScheduledTriggerService';
 import { buildTimezoneHeaders, executeAgentAsync } from '../../run/services/TriggerService';
-
-export {
-  assertCanMutateTrigger,
-  validateRunAsUserId,
-  validateRunAsUserIds,
-} from './triggerHelpers';
-
 import {
   assertCanMutateTrigger,
   validateRunAsUserId,
@@ -642,30 +635,36 @@ app.openapi(
       });
     }
 
-    const updatedTrigger = await updateScheduledTrigger(runDbClient)({
-      scopes: { tenantId, projectId, agentId },
-      scheduledTriggerId: id,
-      data: {
-        ...body,
-        maxRetries: resolveRetryValue(body.maxRetries, existing.maxRetries, 3),
-        retryDelaySeconds: resolveRetryValue(
-          body.retryDelaySeconds,
-          existing.retryDelaySeconds,
-          60
-        ),
-        timeoutSeconds: resolveRetryValue(body.timeoutSeconds, existing.timeoutSeconds, 300),
-        runAsUserId,
-        ...(nextRunAt !== undefined ? { nextRunAt } : {}),
-      },
-    });
+    const updatedTrigger = await runDbClient.transaction(async (tx) => {
+      const transactionalDb = tx as Parameters<typeof updateScheduledTrigger>[0];
 
-    if (runAsUserIds) {
-      await setScheduledTriggerUsers(runDbClient)({
-        tenantId,
+      const updated = await updateScheduledTrigger(transactionalDb)({
+        scopes: { tenantId, projectId, agentId },
         scheduledTriggerId: id,
-        userIds: runAsUserIds,
+        data: {
+          ...body,
+          maxRetries: resolveRetryValue(body.maxRetries, existing.maxRetries, 3),
+          retryDelaySeconds: resolveRetryValue(
+            body.retryDelaySeconds,
+            existing.retryDelaySeconds,
+            60
+          ),
+          timeoutSeconds: resolveRetryValue(body.timeoutSeconds, existing.timeoutSeconds, 300),
+          runAsUserId,
+          ...(nextRunAt !== undefined ? { nextRunAt } : {}),
+        },
       });
-    }
+
+      if (runAsUserIds) {
+        await setScheduledTriggerUsers(transactionalDb)({
+          tenantId,
+          scheduledTriggerId: id,
+          userIds: runAsUserIds,
+        });
+      }
+
+      return updated;
+    });
 
     // Handle workflow lifecycle changes
     try {

@@ -8,6 +8,7 @@ import {
 import { start } from 'workflow/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
+import { sentry } from '../../../sentry';
 import {
   scheduledTriggerRunnerWorkflow,
   type TriggerPayload,
@@ -102,14 +103,25 @@ async function dispatchSingleTrigger(trigger: ScheduledTrigger): Promise<number>
       if (workflowResults[i].status === 'fulfilled') {
         workflowsStarted++;
       } else {
+        const error = (workflowResults[i] as PromiseRejectedResult).reason;
         logger.error(
           {
             scheduledTriggerId,
             userId: joinTableUsers[i].userId,
-            error: (workflowResults[i] as PromiseRejectedResult).reason,
+            error,
           },
           'Failed to start workflow for user'
         );
+        sentry.captureException(error instanceof Error ? error : new Error(String(error)), {
+          extra: {
+            scheduledTriggerId,
+            tenantId,
+            projectId,
+            agentId,
+            scheduledFor,
+            userId: joinTableUsers[i].userId,
+          },
+        });
       }
     }
   } else if (trigger.runAsUserId) {
