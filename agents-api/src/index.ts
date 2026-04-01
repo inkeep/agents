@@ -134,6 +134,18 @@ if (workflowWorld === '@workflow/world-postgres' || workflowWorld === 'local') {
   }, STARTUP_DELAY_MS);
 }
 
+// Periodic cleanup of expired stream chunks (every 60s, removes chunks older than 5 min)
+import { cleanupExpiredStreamChunks } from '@inkeep/agents-core';
+import runDbClient from './data/db/runDbClient';
+
+setInterval(async () => {
+  try {
+    await cleanupExpiredStreamChunks(runDbClient)();
+  } catch (err) {
+    logger.error({ error: err }, 'Failed to cleanup expired stream chunks');
+  }
+}, 60_000);
+
 // Start Slack Socket Mode client for local development (when configured)
 if (env.ENVIRONMENT === 'development' && env.SLACK_APP_TOKEN) {
   const SOCKET_MODE_DELAY_MS = 3000;

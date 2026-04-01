@@ -357,13 +357,16 @@ export const AgentInsertSchema = createInsertSchema(agents, {
   name: () => NameSchema,
   description: () => DescriptionSchema,
   defaultSubAgentId: () =>
-    ResourceIdSchema.clone().openapi({
-      description:
-        'ID of the default sub-agent that handles initial user messages. ' +
-        'Required at runtime but nullable on creation to avoid circular FK dependency. ' +
-        'Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.',
-      example: 'my-default-subagent',
-    }),
+    ResourceIdSchema.clone()
+      .nullable()
+      .optional()
+      .openapi({
+        description:
+          'ID of the default sub-agent that handles initial user messages. ' +
+          'Required at runtime but nullable on creation to avoid circular FK dependency. ' +
+          'Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.',
+        example: 'my-default-subagent',
+      }),
   executionMode: () => z.enum(['classic', 'durable']).optional(),
 });
 export const AgentUpdateSchema = AgentInsertSchema.partial();

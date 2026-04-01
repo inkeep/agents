@@ -157,6 +157,31 @@ export const workflowExecutions = pgTable(
   ]
 );
 
+export const streamChunks = pgTable(
+  'stream_chunks',
+  {
+    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
+    projectId: varchar('project_id', { length: 256 }).notNull(),
+    conversationId: varchar('conversation_id', { length: 256 }).notNull(),
+    idx: integer('idx').notNull(),
+    data: text('data').notNull(),
+    isFinal: boolean('is_final').notNull().default(false),
+    createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.tenantId, table.projectId, table.conversationId, table.idx],
+    }),
+    index('stream_chunks_cleanup_idx').on(table.createdAt),
+    index('stream_chunks_conversation_idx').on(
+      table.tenantId,
+      table.projectId,
+      table.conversationId,
+      table.idx
+    ),
+  ]
+);
+
 export const apiKeys = pgTable(
   'api_keys',
   {
