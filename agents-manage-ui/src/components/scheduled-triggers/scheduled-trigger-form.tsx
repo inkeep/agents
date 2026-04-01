@@ -79,7 +79,7 @@ const scheduledTriggerFormSchema = z
     retryDelaySeconds: z.coerce.number().int().min(10).max(3600).default(60),
     timeoutSeconds: z.coerce.number().int().min(30).max(780).default(780),
     runAsUserId: z.string().optional(),
-    dispatchDelayMs: z.coerce.number().int().min(0).max(5000).optional(),
+    dispatchDelayMs: z.coerce.number().int().min(0).max(600_000).optional(),
     ref: z.string().default('main'),
   })
   .refine(
@@ -716,12 +716,12 @@ export function ScheduledTriggerForm({
                       }}
                       type="number"
                       min={0}
-                      max={5000}
+                      max={600_000}
                       placeholder="0"
                     />
                   </FormControl>
                   <FormDescription>
-                    Delay in milliseconds between dispatching each user&apos;s execution (0-5000).
+                    Delay in milliseconds between dispatching each user&apos;s execution (0-600000).
                     Useful for managing MCP tool rate limits with multi-user triggers.
                   </FormDescription>
                   <FormMessage />
