@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-ui
 
+## 0.64.1
+
+### Patch Changes
+
+- 9bf97a7: Dockerize visual regression tests for cross-OS screenshot consistency
+  - @inkeep/agents-core@0.64.1
+
 ## 0.64.0
 
 ### Minor Changes
