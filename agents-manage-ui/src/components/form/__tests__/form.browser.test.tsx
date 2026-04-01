@@ -144,7 +144,7 @@ describe('Form', () => {
     agentStore.setState({ jsonSchemaMode: true });
     const { container } = render(<NestedTestForm />);
 
-    await waitFor(async () => {
+    await waitFor(() => {
       expect(container.querySelector('[data-slot="form-message"]')).toBeInTheDocument();
       expect(container.querySelector('.monaco-editor')).toBeInTheDocument();
     });
