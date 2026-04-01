@@ -124,6 +124,8 @@ railway_graphql() {
   local max_attempts="${RAILWAY_GRAPHQL_MAX_ATTEMPTS:-6}"
   local sleep_seconds="${RAILWAY_GRAPHQL_SLEEP_SECONDS:-3}"
   local max_sleep_seconds="${RAILWAY_GRAPHQL_MAX_SLEEP_SECONDS:-30}"
+  local connect_timeout_seconds="${RAILWAY_GRAPHQL_CONNECT_TIMEOUT_SECONDS:-10}"
+  local curl_max_time_seconds="${RAILWAY_GRAPHQL_CURL_MAX_TIME_SECONDS:-30}"
   local attempt=""
   local body_file=""
   local header_file=""
@@ -145,7 +147,7 @@ railway_graphql() {
     : > "${body_file}"
     : > "${header_file}"
     status="$(
-      curl --connect-timeout 10 --max-time 30 -sS \
+      curl --connect-timeout "${connect_timeout_seconds}" --max-time "${curl_max_time_seconds}" -sS \
         -D "${header_file}" \
         -o "${body_file}" \
         -w '%{http_code}' \
@@ -400,21 +402,11 @@ railway_wait_for_environment_absent() {
   return 1
 }
 
-railway_service_instance_json() {
-  local project_id="$1"
-  local env_name="$2"
-  local service_name="$3"
-  local env_id=""
-  local service_id=""
+railway_service_instance_json_by_id() {
+  local env_id="$1"
+  local service_id="$2"
   local response=""
   local variables_json=""
-
-  env_id="$(railway_wait_for_environment_id "${project_id}" "${env_name}")" || return 1
-  service_id="$(railway_project_service_id "${project_id}" "${service_name}")"
-  if [ -z "${service_id}" ]; then
-    echo "Unable to resolve Railway service ID for ${service_name} in project ${project_id}." >&2
-    return 1
-  fi
 
   variables_json="$(jq -nc \
     --arg environment_id "${env_id}" \
@@ -422,7 +414,9 @@ railway_service_instance_json() {
     '{environmentId: $environment_id, serviceId: $service_id}')"
 
   response="$(
-    railway_graphql 'query($environmentId: String!, $serviceId: String!) {
+    RAILWAY_GRAPHQL_MAX_ATTEMPTS="${RAILWAY_GRAPHQL_POLL_MAX_ATTEMPTS:-1}" \
+      RAILWAY_GRAPHQL_CURL_MAX_TIME_SECONDS="${RAILWAY_GRAPHQL_POLL_CURL_MAX_TIME_SECONDS:-8}" \
+      railway_graphql 'query($environmentId: String!, $serviceId: String!) {
   serviceInstance(environmentId: $environmentId, serviceId: $serviceId) {
     latestDeployment {
       id
@@ -448,16 +442,25 @@ railway_wait_for_service_deployment_ready() {
   local project_id="$1"
   local env_name="$2"
   local service_name="$3"
-  local max_attempts="${4:-30}"
+  local max_attempts="${4:-15}"
   local sleep_seconds="${5:-4}"
   local attempt=""
+  local env_id=""
+  local service_id=""
   local service_instance_json=""
   local deployment_json=""
   local deployment_id=""
   local deployment_status=""
 
+  env_id="$(railway_wait_for_environment_id "${project_id}" "${env_name}" 10 2)" || return 1
+  service_id="$(railway_project_service_id "${project_id}" "${service_name}")"
+  if [ -z "${service_id}" ]; then
+    echo "Unable to resolve Railway service ID for ${service_name} in project ${project_id}." >&2
+    return 1
+  fi
+
   for attempt in $(seq 1 "${max_attempts}"); do
-    service_instance_json="$(railway_service_instance_json "${project_id}" "${env_name}" "${service_name}")" || return 1
+    service_instance_json="$(railway_service_instance_json_by_id "${env_id}" "${service_id}")" || return 1
     deployment_json="$(
       jq -c '
         if ((.activeDeployments // []) | length) > 0 then

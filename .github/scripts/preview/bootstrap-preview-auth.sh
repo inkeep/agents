@@ -88,7 +88,7 @@ export INKEEP_AGENTS_API_URL="${API_URL}"
 export INKEEP_AGENTS_RUN_DATABASE_URL="${RUN_DB_URL}"
 export SPICEDB_ENDPOINT
 export TENANT_ID="${TENANT_ID:-default}"
-export SPICEDB_READY_MAX_ATTEMPTS="${SPICEDB_READY_MAX_ATTEMPTS:-30}"
+export SPICEDB_READY_MAX_ATTEMPTS="${SPICEDB_READY_MAX_ATTEMPTS:-20}"
 export SPICEDB_READY_INTERVAL_MS="${SPICEDB_READY_INTERVAL_MS:-2000}"
 
 echo "::group::Run preview runtime migrations"
@@ -106,7 +106,7 @@ if [ -n "${RAILWAY_API_TOKEN:-}" ] &&
     "${RAILWAY_PROJECT_ID}" \
     "$(pr_env_name "${PR_NUMBER}")" \
     "${RAILWAY_SPICEDB_SERVICE}" \
-    30 \
+    15 \
     4
   echo "::endgroup::"
 fi

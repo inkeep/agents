@@ -227,7 +227,7 @@ jobs:
   bootstrap-preview-auth:
     name: Bootstrap Preview Auth
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     needs: [compute-context, provision-tier1]
     if: |
       needs.compute-context.outputs.preview_enabled == 'true' &&
