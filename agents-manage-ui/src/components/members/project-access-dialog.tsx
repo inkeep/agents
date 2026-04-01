@@ -26,8 +26,7 @@ import {
   removeProjectMember,
   updateProjectMember,
 } from '@/lib/api/project-members';
-import { fetchProjects } from '@/lib/api/projects';
-import type { Project } from '@/lib/types/project';
+import { useProjectsQuery } from '@/lib/query/projects';
 
 interface ProjectAssignment {
   role: ProjectRole;
@@ -60,10 +59,8 @@ export function ProjectAccessDialog({
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [assignments, setAssignments] = useState<Map<string, ProjectAssignment>>(new Map());
-  const [originalAssignments, setOriginalAssignments] = useState<Map<string, ProjectRole>>(
-    new Map()
-  );
+  const [assignments, setAssignments] = useState(new Map<string, ProjectAssignment>());
+  const [originalAssignments, setOriginalAssignments] = useState(new Map<string, ProjectRole>());
 
   // Load data when dialog opens
   useEffect(() => {
@@ -72,19 +69,14 @@ export function ProjectAccessDialog({
     let cancelled = false;
 
     const loadData = async () => {
-      setLoading(true);
+      setLoadingMemberships(true);
 
       try {
-        const [projectsRes, membershipsRes] = await Promise.all([
-          fetchProjects(tenantId),
-          mode === 'manage'
-            ? listUserProjectMemberships({ tenantId, userId })
-            : Promise.resolve({ data: [] }),
-        ]);
+        const membershipsRes =
+          mode === 'manage' ? await listUserProjectMemberships({ tenantId, userId }) : { data: [] };
 
         if (cancelled) return;
 
-        const projectsData = projectsRes.data || [];
         const assignmentsMap = new Map<string, ProjectAssignment>();
         const originalsMap = new Map<string, ProjectRole>();
 
@@ -97,14 +89,13 @@ export function ProjectAccessDialog({
           originalsMap.set(m.projectId, m.role);
         }
 
-        setProjects(projectsData);
         setAssignments(assignmentsMap);
         setOriginalAssignments(originalsMap);
       } catch (err) {
         console.error('Failed to fetch data:', err);
         toast.error('Failed to load data');
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setLoadingMemberships(false);
       }
     };
 
@@ -117,10 +108,9 @@ export function ProjectAccessDialog({
   // Reset state when dialog closes
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
-      setProjects([]);
       setAssignments(new Map());
       setOriginalAssignments(new Map());
-      setLoading(true);
+      setLoadingMemberships(true);
     }
     onOpenChange(isOpen);
   };
