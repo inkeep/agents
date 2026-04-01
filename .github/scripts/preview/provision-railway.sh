@@ -43,6 +43,50 @@ if [ -z "${SPICEDB_SERVICE_ID}" ]; then
   exit 1
 fi
 
+create_preview_environment() {
+  local max_attempts="${1:-6}"
+  local attempt=""
+  local error_file=""
+  local create_error=""
+  local existing_env_id=""
+
+  for attempt in $(seq 1 "${max_attempts}"); do
+    preview_log "Creating Railway environment ${RAILWAY_ENV_NAME} from ${RAILWAY_TEMPLATE_ENVIRONMENT} (attempt ${attempt}/${max_attempts})."
+    error_file="$(mktemp)"
+
+    if railway_environment_create_from_source \
+      "${RAILWAY_PROJECT_ID}" \
+      "${RAILWAY_ENV_NAME}" \
+      "${RAILWAY_TEMPLATE_ENV_ID}" \
+      >/dev/null 2>"${error_file}"; then
+      rm -f "${error_file}"
+      return 0
+    fi
+
+    create_error="$(cat "${error_file}")"
+    rm -f "${error_file}"
+
+    existing_env_id="$(railway_environment_id "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}")"
+    if [ -n "${existing_env_id}" ]; then
+      preview_log "Railway create returned an error, but ${RAILWAY_ENV_NAME} now exists with ID ${existing_env_id}; continuing."
+      return 0
+    fi
+
+    if [ "${attempt}" -lt "${max_attempts}" ] && printf '%s' "${create_error}" | grep -qi 'already exists'; then
+      preview_log "Railway still reports ${RAILWAY_ENV_NAME} exists after delete; waiting before retrying create."
+      railway_wait_for_environment_absent "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" 5 2 || true
+      sleep_with_backoff_and_jitter 2 "${attempt}" 10
+      continue
+    fi
+
+    echo "${create_error:-Failed to create Railway environment ${RAILWAY_ENV_NAME}.}" >&2
+    return 1
+  done
+
+  echo "Failed to create Railway environment ${RAILWAY_ENV_NAME} after ${max_attempts} attempts." >&2
+  return 1
+}
+
 ENV_EXISTS="$(railway_env_exists_count "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}")"
 
 if [ "${RECREATE_PREVIEW_ENV}" = "true" ] && [ "${ENV_EXISTS}" != "0" ]; then
@@ -54,9 +98,7 @@ if [ "${RECREATE_PREVIEW_ENV}" = "true" ] && [ "${ENV_EXISTS}" != "0" ]; then
 fi
 
 if [ "${ENV_EXISTS}" = "0" ]; then
-  preview_log "Creating Railway environment ${RAILWAY_ENV_NAME} from ${RAILWAY_TEMPLATE_ENVIRONMENT}."
-  if ! railway_environment_create_from_source "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" "${RAILWAY_TEMPLATE_ENV_ID}" >/dev/null; then
-    echo "Initial create attempt failed; re-checking whether ${RAILWAY_ENV_NAME} now exists."
+  if ! create_preview_environment; then
     if ! railway_wait_for_environment_id "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" 20 4 >/dev/null; then
       echo "Failed to create Railway environment ${RAILWAY_ENV_NAME}."
       exit 1

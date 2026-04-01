@@ -129,7 +129,7 @@ railway_graphql() {
   local attempt=""
   local body_file=""
   local header_file=""
-  local status=""
+  local http_status=""
   local retry_after=""
   local exit_code="0"
 
@@ -146,7 +146,7 @@ railway_graphql() {
     exit_code="0"
     : > "${body_file}"
     : > "${header_file}"
-    status="$(
+    http_status="$(
       curl --connect-timeout "${connect_timeout_seconds}" --max-time "${curl_max_time_seconds}" -sS \
         -D "${header_file}" \
         -o "${body_file}" \
@@ -158,7 +158,7 @@ railway_graphql() {
         https://backboard.railway.com/graphql/v2
     )" || exit_code="$?"
 
-    if [ "${exit_code}" = "0" ] && [ "${status}" = "200" ]; then
+    if [ "${exit_code}" = "0" ] && [ "${http_status}" = "200" ]; then
       cat "${body_file}"
       rm -f "${body_file}" "${header_file}"
       return 0
@@ -172,10 +172,10 @@ railway_graphql() {
 
     if [ "${attempt}" -lt "${max_attempts}" ]; then
       if [ -n "${retry_after}" ] && [[ "${retry_after}" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
-        preview_log "Railway GraphQL attempt ${attempt}/${max_attempts} got HTTP ${status}; retrying after ${retry_after}s."
+        preview_log "Railway GraphQL attempt ${attempt}/${max_attempts} got HTTP ${http_status}; retrying after ${retry_after}s."
         sleep_with_jitter "${retry_after}"
-      elif [ "${exit_code}" != "0" ] || [[ "${status}" =~ ^(429|5[0-9]{2}|000)$ ]]; then
-        preview_log "Railway GraphQL attempt ${attempt}/${max_attempts} failed with HTTP ${status} and exit code ${exit_code}; retrying with backoff."
+      elif [ "${exit_code}" != "0" ] || [[ "${http_status}" =~ ^(429|5[0-9]{2}|000)$ ]]; then
+        preview_log "Railway GraphQL attempt ${attempt}/${max_attempts} failed with HTTP ${http_status} and exit code ${exit_code}; retrying with backoff."
         sleep_with_backoff_and_jitter "${sleep_seconds}" "${attempt}" "${max_sleep_seconds}"
       else
         cat "${body_file}" >&2
