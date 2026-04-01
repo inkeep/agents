@@ -524,13 +524,19 @@ export async function GET(
     const logger = getLogger('conversation-detail');
     const t0 = Date.now();
 
-    const { start, end } = await getConversationTimeRange({
+    const timeRange = await getConversationTimeRange({
       startParam,
       endParam,
       projectId,
       tenantId,
       conversationId,
     });
+
+    if (timeRange.notFound) {
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+    }
+
+    const { start, end } = timeRange;
     const tTimeRange = Date.now();
 
     const payloads = buildConversationPayloads(conversationId, start, end, projectId);
