@@ -49,6 +49,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
   pull-requests: write
 
 concurrency:
@@ -349,6 +350,19 @@ jobs:
         run: |
           echo "Smoke checks failed"
           exit 1
+
+      - name: Publish stable preview URLs
+        if: ${{ steps.smoke.outcome == 'success' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_API_URL: ${{ github.api_url }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ needs.compute-context.outputs.pr_number }}
+          API_URL: ${{ needs.compute-context.outputs.api_url }}
+          UI_URL: ${{ needs.compute-context.outputs.ui_url }}
+          API_DEPLOYMENT_URL: ${{ needs.configure-vercel-preview.outputs.api_deployment_url }}
+          UI_DEPLOYMENT_URL: ${{ needs.configure-vercel-preview.outputs.ui_deployment_url }}
+        run: bash .github/scripts/preview/comment-preview-urls.sh
 
   teardown-tier1:
     name: Teardown Tier 1 (Railway)
