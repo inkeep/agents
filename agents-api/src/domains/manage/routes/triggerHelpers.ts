@@ -11,6 +11,55 @@ import { isEntityChanged } from '../../../utils/entityDiff';
 const INVALID_RUN_AS_USER =
   'Invalid runAsUserId: user not found or does not have permission on this project';
 
+export async function validateRunAsUserIds(params: {
+  runAsUserIds: string[];
+  callerId: string;
+  tenantId: string;
+  projectId: string;
+  tenantRole: OrgRole;
+}): Promise<void> {
+  const { runAsUserIds, callerId, tenantId, projectId, tenantRole } = params;
+  const isAdmin = tenantRole === OrgRoles.OWNER || tenantRole === OrgRoles.ADMIN;
+
+  for (const userId of runAsUserIds) {
+    if (userId === 'system' || userId.startsWith('apikey:')) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'runAsUserIds must contain real user IDs, not system identifiers',
+      });
+    }
+
+    if (userId !== callerId && !isAdmin) {
+      throw createApiError({
+        code: 'forbidden',
+        message:
+          'Only org admins or owners can set runAsUserIds to include other users. Regular users can only include themselves.',
+      });
+    }
+
+    const targetMember = await getOrganizationMemberByUserId(runDbClient)(tenantId, userId);
+    if (!targetMember) {
+      throw createApiError({
+        code: 'bad_request',
+        message: `Invalid runAsUserIds: user ${userId} not found or is not an organization member`,
+      });
+    }
+
+    const targetCanUse = await canUseProjectStrict({
+      userId,
+      tenantId,
+      projectId,
+    });
+
+    if (!targetCanUse) {
+      throw createApiError({
+        code: 'bad_request',
+        message: `Invalid runAsUserIds: user ${userId} does not have permission on this project`,
+      });
+    }
+  }
+}
+
 export async function validateRunAsUserId(params: {
   runAsUserId: string;
   callerId: string;
@@ -79,7 +128,12 @@ export function assertCanMutateTrigger(params: {
 }
 
 export async function validateTriggerPermissions(params: {
-  triggerData: { runAsUserId?: string | null; createdBy?: string | null; [key: string]: unknown };
+  triggerData: {
+    runAsUserId?: string | null;
+    runAsUserIds?: string[];
+    createdBy?: string | null;
+    [key: string]: unknown;
+  };
   existing: { id: string; runAsUserId?: string | null; createdBy?: string | null } | undefined;
   callerId: string;
   tenantId: string;
@@ -93,7 +147,15 @@ export async function validateTriggerPermissions(params: {
 
     assertCanMutateTrigger({ trigger: existing, callerId, tenantRole });
 
-    if (triggerData.runAsUserId !== existing.runAsUserId && triggerData.runAsUserId) {
+    if (triggerData.runAsUserIds && triggerData.runAsUserIds.length > 0) {
+      await validateRunAsUserIds({
+        runAsUserIds: triggerData.runAsUserIds,
+        callerId,
+        tenantId,
+        projectId,
+        tenantRole,
+      });
+    } else if (triggerData.runAsUserId !== existing.runAsUserId && triggerData.runAsUserId) {
       await validateRunAsUserId({
         runAsUserId: triggerData.runAsUserId,
         callerId,
@@ -103,7 +165,15 @@ export async function validateTriggerPermissions(params: {
       });
     }
   } else {
-    if (triggerData.runAsUserId) {
+    if (triggerData.runAsUserIds && triggerData.runAsUserIds.length > 0) {
+      await validateRunAsUserIds({
+        runAsUserIds: triggerData.runAsUserIds,
+        callerId,
+        tenantId,
+        projectId,
+        tenantRole,
+      });
+    } else if (triggerData.runAsUserId) {
       await validateRunAsUserId({
         runAsUserId: triggerData.runAsUserId,
         callerId,
