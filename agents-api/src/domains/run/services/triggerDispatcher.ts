@@ -111,16 +111,6 @@ async function dispatchSingleTrigger(trigger: ScheduledTrigger): Promise<number>
           },
           'Failed to start workflow for user'
         );
-        sentry.captureException(error instanceof Error ? error : new Error(String(error)), {
-          extra: {
-            scheduledTriggerId,
-            tenantId,
-            projectId,
-            agentId,
-            scheduledFor,
-            userId: joinTableUsers[i].userId,
-          },
-        });
       }
     }
   } else if (trigger.runAsUserId) {
