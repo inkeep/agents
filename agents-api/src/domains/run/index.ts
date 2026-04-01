@@ -1,6 +1,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { AppVariables } from '../../types';
 import agentRoutes from './routes/agents';
+import artifactRoutes from './routes/artifacts';
 import authRoutes from './routes/auth';
 import chatRoutes from './routes/chat';
 import chatDataRoutes from './routes/chatDataStream';
@@ -13,6 +14,7 @@ export function createRunRoutes() {
   const app = new OpenAPIHono<{ Variables: AppVariables }>();
 
   app.route('/v1/chat', chatRoutes);
+  app.route('/v1/artifacts', artifactRoutes);
   app.route('/v1/conversations', conversationRoutes);
   app.route('/api', chatDataRoutes);
   app.route('/api', executionsRoutes);

@@ -253,7 +253,8 @@ function createAgentsHono(config: AppConfig) {
 
   // Fetch project config upfront for authenticated execution routes
   // Skip for lightweight endpoints that only need base execution context (tenant/project/user scoping)
-  const isLightweightRunRoute = (path: string) => path.startsWith('/run/v1/conversations');
+  const isLightweightRunRoute = (path: string) =>
+    path.startsWith('/run/v1/conversations') || path.startsWith('/run/v1/artifacts');
   app.use('/run/tenants/*', projectConfigMiddlewareExcept(isWebhookRoute));
   app.use('/run/agents/*', projectConfigMiddleware);
   app.use('/run/v1/*', projectConfigMiddlewareExcept(isLightweightRunRoute));

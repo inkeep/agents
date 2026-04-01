@@ -20,6 +20,7 @@ const TitleToIcon: Record<keyof typeof TagToDescription, string> = {
   Agents: 'LuUser',
   Apps: 'LuAppWindow',
   Auth: 'LuShieldCheck',
+  Artifacts: 'TbInputSpark',
   'Artifact Components': 'TbInputSpark',
   Branches: 'LuGitBranch',
   Channels: 'LuHash',

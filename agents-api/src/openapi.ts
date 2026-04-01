@@ -9,6 +9,7 @@ export const TagToDescription = {
   Agents: 'Operations for managing agents',
   Apps: 'Operations for managing app credentials',
   Auth: 'Authentication endpoints for app credentials',
+  Artifacts: 'Operations for listing and retrieving runtime artifacts',
   'Artifact Components': 'Operations for managing artifact components',
   Branches: 'Operations for managing branches',
   Channels: 'Operations for managing Slack channels',

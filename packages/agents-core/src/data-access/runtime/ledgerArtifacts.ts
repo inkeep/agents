@@ -1,8 +1,14 @@
-import { and, count, eq, inArray } from 'drizzle-orm';
+import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
-import { ledgerArtifacts } from '../../db/runtime/runtime-schema';
+import { conversations, ledgerArtifacts } from '../../db/runtime/runtime-schema';
 import { isRetryableError } from '../../retry/retryable-errors';
-import type { Artifact, LedgerArtifactSelect, Part, ProjectScopeConfig } from '../../types/index';
+import type {
+  Artifact,
+  LedgerArtifactSelect,
+  PaginationConfig,
+  Part,
+  ProjectScopeConfig,
+} from '../../types/index';
 import { generateId } from '../../utils/conversations';
 import { projectScopedWhere } from '../manage/scope-helpers';
 
@@ -444,4 +450,102 @@ export const countLedgerArtifactsByTask =
 
     const countValue = result[0]?.count;
     return typeof countValue === 'string' ? parseInt(countValue, 10) : countValue || 0;
+  };
+
+export const listLedgerArtifacts =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    conversationId?: string;
+    userId?: string;
+    pagination?: PaginationConfig;
+  }): Promise<{ artifacts: LedgerArtifactSelect[]; total: number }> => {
+    const { conversationId, userId, pagination } = params;
+
+    const page = pagination?.page || 1;
+    const limit = Math.min(pagination?.limit || 20, 200);
+    const offset = (page - 1) * limit;
+
+    const whereConditions = [projectScopedWhere(ledgerArtifacts, params.scopes)];
+
+    if (conversationId) {
+      whereConditions.push(eq(ledgerArtifacts.contextId, conversationId));
+    }
+
+    if (userId) {
+      whereConditions.push(
+        inArray(
+          ledgerArtifacts.contextId,
+          db
+            .select({ id: conversations.id })
+            .from(conversations)
+            .where(
+              and(
+                projectScopedWhere(conversations, params.scopes),
+                eq(conversations.userId, userId)
+              )
+            )
+        )
+      );
+    }
+
+    const whereClause = and(...whereConditions);
+
+    const artifactList = await db
+      .select()
+      .from(ledgerArtifacts)
+      .where(whereClause)
+      .orderBy(desc(ledgerArtifacts.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const totalResult = await db
+      .select({ count: count() })
+      .from(ledgerArtifacts)
+      .where(whereClause);
+
+    const total = totalResult[0]?.count || 0;
+
+    return {
+      artifacts: artifactList,
+      total: typeof total === 'string' ? Number.parseInt(total, 10) : (total as number),
+    };
+  };
+
+export const getLedgerArtifact =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    artifactId: string;
+    userId?: string;
+  }): Promise<LedgerArtifactSelect | undefined> => {
+    const whereConditions = [
+      projectScopedWhere(ledgerArtifacts, params.scopes),
+      eq(ledgerArtifacts.id, params.artifactId),
+    ];
+
+    if (params.userId) {
+      whereConditions.push(
+        inArray(
+          ledgerArtifacts.contextId,
+          db
+            .select({ id: conversations.id })
+            .from(conversations)
+            .where(
+              and(
+                projectScopedWhere(conversations, params.scopes),
+                eq(conversations.userId, params.userId)
+              )
+            )
+        )
+      );
+    }
+
+    const result = await db
+      .select()
+      .from(ledgerArtifacts)
+      .where(and(...whereConditions))
+      .limit(1);
+
+    return result[0];
   };
