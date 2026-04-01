@@ -179,9 +179,7 @@ export const cascadeDeleteByBranch =
  */
 export const cascadeDeleteByProject =
   (db: AgentsRunDatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-  }): Promise<CascadeDeleteResult> => {
+  async (params: { scopes: ProjectScopeConfig }): Promise<CascadeDeleteResult> => {
     const { scopes } = params;
 
     // Delete contextCache for this project on this branch
@@ -197,10 +195,7 @@ export const cascadeDeleteByProject =
       .returning();
 
     // Delete tasks for this project on this branch (cascades to ledgerArtifacts, taskRelations)
-    const tasksResult = await db
-      .delete(tasks)
-      .where(projectScopedWhere(tasks, scopes))
-      .returning();
+    const tasksResult = await db.delete(tasks).where(projectScopedWhere(tasks, scopes)).returning();
 
     // Delete trigger invocations for this project on this branch
     const triggerInvocationsResult = await db
@@ -227,10 +222,7 @@ export const cascadeDeleteByProject =
     const datasetRunsResult = await db
       .delete(datasetRun)
       .where(
-        and(
-          eq(datasetRun.tenantId, scopes.tenantId),
-          eq(datasetRun.projectId, scopes.projectId)
-        )
+        and(eq(datasetRun.tenantId, scopes.tenantId), eq(datasetRun.projectId, scopes.projectId))
       )
       .returning();
 
