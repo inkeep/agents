@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getAgentsApiUrl } from '@/lib/api/api-config';
-import { fetchWithRetry, isNetworkOrServerError } from '@/lib/api/fetch-with-retry';
+import { fetchWithRetry } from '@/lib/api/fetch-with-retry';
 import { getLogger } from '@/lib/logger';
 
 const queryEnvelopeSchema = z.object({
@@ -138,8 +138,8 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify(validationResult.data),
         credentials: 'include',
         timeout: 60000,
-        retries: 3,
-        retryCondition: isNetworkOrServerError,
+        maxAttempts: 3,
+        label: 'signoz-batch-query',
       });
 
       const data = await response.json();
@@ -180,8 +180,8 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(validatedBody),
       credentials: 'include',
       timeout: 30000,
-      retries: 3,
-      retryCondition: isNetworkOrServerError,
+      maxAttempts: 3,
+      label: 'signoz-query',
     });
 
     const data = await response.json();
@@ -225,8 +225,8 @@ export async function GET(request: NextRequest) {
       headers,
       credentials: 'include',
       timeout: 5000,
-      retries: 3,
-      retryCondition: isNetworkOrServerError,
+      maxAttempts: 3,
+      label: 'signoz-health',
     });
 
     const data = await response.json();

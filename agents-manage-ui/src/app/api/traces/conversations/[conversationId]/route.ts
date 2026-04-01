@@ -24,7 +24,7 @@ import {
   UNKNOWN_VALUE,
 } from '@/constants/signoz';
 import { getAgentsApiUrl } from '@/lib/api/api-config';
-import { fetchWithRetry, isNetworkOrServerError } from '@/lib/api/fetch-with-retry';
+import { fetchWithRetry } from '@/lib/api/fetch-with-retry';
 import {
   DEFAULT_LOOKBACK_MS,
   getConversationTimeRange,
@@ -127,8 +127,8 @@ async function signozQuery(
       body: JSON.stringify(payload),
       credentials: 'include',
       timeout: 30000,
-      retries: 3,
-      retryCondition: isNetworkOrServerError,
+      maxAttempts: 3,
+      label: 'signoz-conversation-query',
     });
 
     if (!response.ok) {

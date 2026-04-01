@@ -17,7 +17,7 @@ import {
   UNKNOWN_VALUE,
   USAGE_GENERATION_TYPES,
 } from '@/constants/signoz';
-import { fetchWithRetry, isNetworkOrServerError } from '@/lib/api/fetch-with-retry';
+import { fetchWithRetry } from '@/lib/api/fetch-with-retry';
 
 // ---------- String Constants for Type Safety
 
@@ -262,8 +262,8 @@ class SigNozStatsAPI {
       body: JSON.stringify(requestPayload),
       credentials: 'include',
       timeout: 30000,
-      retries: 3,
-      retryCondition: isNetworkOrServerError,
+      maxAttempts: 3,
+      label: 'signoz-stats-query',
     });
 
     if (!response.ok) {
@@ -287,8 +287,8 @@ class SigNozStatsAPI {
       body: JSON.stringify({ paginationPayload, detailPayloadTemplate }),
       credentials: 'include',
       timeout: 60000,
-      retries: 3,
-      retryCondition: isNetworkOrServerError,
+      maxAttempts: 3,
+      label: 'signoz-stats-batch-query',
     });
 
     if (!response.ok) {

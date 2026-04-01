@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { getAgentsApiUrl } from '@/lib/api/api-config';
-import { fetchWithRetry, isNetworkOrServerError } from '@/lib/api/fetch-with-retry';
+import { fetchWithRetry } from '@/lib/api/fetch-with-retry';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,8 +38,8 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/traces/s
       body: JSON.stringify({ conversationId, spanId }),
       credentials: 'include',
       timeout: 15000,
-      retries: 3,
-      retryCondition: isNetworkOrServerError,
+      maxAttempts: 3,
+      label: 'signoz-span-lookup',
     });
 
     if (!response.ok) {
