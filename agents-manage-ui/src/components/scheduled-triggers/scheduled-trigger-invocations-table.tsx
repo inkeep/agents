@@ -16,13 +16,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ExternalLink } from '@/components/ui/external-link';
+import { useOrgMembers } from '@/hooks/use-org-members';
 import {
   cancelScheduledTriggerInvocationAction,
   getScheduledTriggerInvocationsAction,
   rerunScheduledTriggerInvocationAction,
 } from '@/lib/actions/scheduled-triggers';
 import type { ScheduledTriggerInvocation } from '@/lib/api/scheduled-triggers';
-import { useOrgMembers } from '@/hooks/use-org-members';
 import {
   formatInvocationDateTime,
   formatInvocationDuration,
@@ -76,12 +76,21 @@ function groupByTick(invocations: ScheduledTriggerInvocation[]): TickGroup[] {
 function TickStatusSummary({ summary }: { summary: TickGroup['summary'] }) {
   if (summary.total === 1) return null;
 
-  const parts: { label: string; count: number; variant: 'default' | 'destructive' | 'secondary' | 'outline' }[] = [];
-  if (summary.completed > 0) parts.push({ label: 'completed', count: summary.completed, variant: 'default' });
-  if (summary.failed > 0) parts.push({ label: 'failed', count: summary.failed, variant: 'destructive' });
-  if (summary.running > 0) parts.push({ label: 'running', count: summary.running, variant: 'secondary' });
-  if (summary.pending > 0) parts.push({ label: 'pending', count: summary.pending, variant: 'outline' });
-  if (summary.cancelled > 0) parts.push({ label: 'cancelled', count: summary.cancelled, variant: 'outline' });
+  const parts: {
+    label: string;
+    count: number;
+    variant: 'default' | 'destructive' | 'secondary' | 'outline';
+  }[] = [];
+  if (summary.completed > 0)
+    parts.push({ label: 'completed', count: summary.completed, variant: 'default' });
+  if (summary.failed > 0)
+    parts.push({ label: 'failed', count: summary.failed, variant: 'destructive' });
+  if (summary.running > 0)
+    parts.push({ label: 'running', count: summary.running, variant: 'secondary' });
+  if (summary.pending > 0)
+    parts.push({ label: 'pending', count: summary.pending, variant: 'outline' });
+  if (summary.cancelled > 0)
+    parts.push({ label: 'cancelled', count: summary.cancelled, variant: 'outline' });
 
   return (
     <div className="flex items-center gap-1.5">
@@ -147,10 +156,7 @@ export function ScheduledTriggerInvocationsTable({
 
   const tickGroups = useMemo(() => groupByTick(invocations), [invocations]);
 
-  const isMultiUser = useMemo(
-    () => tickGroups.some((g) => g.invocations.length > 1),
-    [tickGroups]
-  );
+  const isMultiUser = useMemo(() => tickGroups.some((g) => g.invocations.length > 1), [tickGroups]);
 
   const toggleTick = useCallback((scheduledFor: string) => {
     setExpandedTicks((prev) => {
@@ -272,10 +278,7 @@ export function ScheduledTriggerInvocationsTable({
               </DropdownMenuItem>
             )}
             {canCancel && (
-              <DropdownMenuItem
-                variant="destructive"
-                onClick={() => cancelInvocation(inv.id)}
-              >
+              <DropdownMenuItem variant="destructive" onClick={() => cancelInvocation(inv.id)}>
                 <Ban className="w-4 h-4" />
                 Cancel
               </DropdownMenuItem>
@@ -482,9 +485,7 @@ function TickGroupRows({
           )}
         </td>
         <td className="p-4 align-middle">
-          <div className="font-mono text-sm">
-            {formatInvocationDateTime(group.scheduledFor)}
-          </div>
+          <div className="font-mono text-sm">{formatInvocationDateTime(group.scheduledFor)}</div>
         </td>
         <td className="p-4 align-middle">
           <TickStatusSummary summary={group.summary} />
@@ -500,14 +501,13 @@ function TickGroupRows({
       </tr>
       {isExpanded &&
         group.invocations.map((inv) => (
-          <tr
-            key={inv.id}
-            className="border-b transition-colors hover:bg-muted/30 bg-muted/10"
-          >
+          <tr key={inv.id} className="border-b transition-colors hover:bg-muted/30 bg-muted/10">
             <td className="p-4 align-middle" />
             <td className="p-4 align-middle pl-8">
               <div className="text-sm font-medium">
-                {getUserDisplayName((inv as ScheduledTriggerInvocation & { runAsUserId?: string }).runAsUserId)}
+                {getUserDisplayName(
+                  (inv as ScheduledTriggerInvocation & { runAsUserId?: string }).runAsUserId
+                )}
               </div>
             </td>
             <td className="p-4 align-middle">
