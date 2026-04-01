@@ -24,6 +24,8 @@ export default defineConfig({
         vmThreads: false,
       },
     },
+    // Exclude integration tests (run separately via test:integration)
+    exclude: ['node_modules', 'dist', '**/integration/**'],
     // Disable parallelism for stability
     maxConcurrency: 1,
     fileParallelism: false,
