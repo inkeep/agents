@@ -621,10 +621,9 @@ app.openapi(
     }
 
     try {
-      // 1. Delete runtime entities for this project
+      // 1. Delete runtime entities for this project (across all branches)
       await cascadeDeleteByProject(runDbClient)({
         scopes: { tenantId, projectId },
-        fullBranchName: resolvedRef.name,
       });
 
       // 2. Delete the full project config from the config DB

@@ -181,36 +181,25 @@ export const cascadeDeleteByProject =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
-    fullBranchName: string;
   }): Promise<CascadeDeleteResult> => {
-    const { scopes, fullBranchName } = params;
+    const { scopes } = params;
 
     // Delete contextCache for this project on this branch
     const contextCacheResult = await db
       .delete(contextCache)
-      .where(
-        and(
-          projectScopedWhere(contextCache, scopes),
-          sql`${contextCache.ref}->>'name' = ${fullBranchName}`
-        )
-      )
+      .where(projectScopedWhere(contextCache, scopes))
       .returning();
 
     // Delete conversations for this project on this branch (cascades to messages)
     const conversationsResult = await db
       .delete(conversations)
-      .where(
-        and(
-          projectScopedWhere(conversations, scopes),
-          sql`${conversations.ref}->>'name' = ${fullBranchName}`
-        )
-      )
+      .where(projectScopedWhere(conversations, scopes))
       .returning();
 
     // Delete tasks for this project on this branch (cascades to ledgerArtifacts, taskRelations)
     const tasksResult = await db
       .delete(tasks)
-      .where(and(projectScopedWhere(tasks, scopes), sql`${tasks.ref}->>'name' = ${fullBranchName}`))
+      .where(projectScopedWhere(tasks, scopes))
       .returning();
 
     // Delete trigger invocations for this project on this branch
@@ -219,20 +208,17 @@ export const cascadeDeleteByProject =
       .where(
         and(
           eq(triggerInvocations.tenantId, scopes.tenantId),
-          eq(triggerInvocations.projectId, scopes.projectId),
-          sql`${triggerInvocations.ref}->>'name' = ${fullBranchName}`
+          eq(triggerInvocations.projectId, scopes.projectId)
         )
       )
       .returning();
 
-    // Delete scheduled trigger invocations for this project on this branch
     const scheduledTriggerInvocationsResult = await db
       .delete(scheduledTriggerInvocations)
       .where(
         and(
           eq(scheduledTriggerInvocations.tenantId, scopes.tenantId),
-          eq(scheduledTriggerInvocations.projectId, scopes.projectId),
-          sql`${scheduledTriggerInvocations.ref}->>'name' = ${fullBranchName}`
+          eq(scheduledTriggerInvocations.projectId, scopes.projectId)
         )
       )
       .returning();
@@ -243,8 +229,7 @@ export const cascadeDeleteByProject =
       .where(
         and(
           eq(datasetRun.tenantId, scopes.tenantId),
-          eq(datasetRun.projectId, scopes.projectId),
-          sql`${datasetRun.ref}->>'name' = ${fullBranchName}`
+          eq(datasetRun.projectId, scopes.projectId)
         )
       )
       .returning();
@@ -255,8 +240,7 @@ export const cascadeDeleteByProject =
       .where(
         and(
           eq(evaluationRun.tenantId, scopes.tenantId),
-          eq(evaluationRun.projectId, scopes.projectId),
-          sql`${evaluationRun.ref}->>'name' = ${fullBranchName}`
+          eq(evaluationRun.projectId, scopes.projectId)
         )
       )
       .returning();
