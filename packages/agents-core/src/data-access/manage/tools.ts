@@ -195,14 +195,6 @@ function extractOriginalSchema(toolDef: any): any {
   return {};
 }
 
-function normalizeServerInstructions(value: string | undefined): string | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  return value.replaceAll(String.fromCharCode(0), '').replace(/\\(?:\r\n|\r|\n)/g, '\\n');
-}
-
 const convertToMCPToolConfig = (tool: ToolSelect): MCPToolConfig => {
   if (tool.config.type !== 'mcp') {
     throw new Error(`Cannot convert non-MCP tool to MCP config: ${tool.id}`);
@@ -337,8 +329,7 @@ const discoverToolsFromServer = async (
     await client.connect();
 
     const serverTools = await client.tools();
-    const rawServerInstructions = client.getInstructions();
-    const serverInstructions = normalizeServerInstructions(rawServerInstructions);
+    const serverInstructions = client.getInstructions() ?? undefined;
 
     await client.disconnect();
 

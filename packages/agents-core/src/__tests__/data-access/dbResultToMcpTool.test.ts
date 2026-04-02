@@ -397,7 +397,7 @@ describe('dbResultToMcpTool - three-tier error classification', () => {
   });
 });
 
-describe('dbResultToMcpTool - serverInstructions sanitization', () => {
+describe('dbResultToMcpTool - serverInstructions passthrough', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockMcpConnect.mockResolvedValue(undefined);
@@ -410,13 +410,10 @@ describe('dbResultToMcpTool - serverInstructions sanitization', () => {
     mockMcpGetInstructions.mockReturnValue(undefined);
   });
 
-  it('sanitizes backslash-newline sequences before persisting capabilities', async () => {
-    const badInstructions =
-      'When passing string values, use literal backslash-n (' + '\\' + '\n' + ') characters.';
-    const sanitizedInstructions =
-      'When passing string values, use literal backslash-n (\\n) characters.';
+  it('passes server instructions through to capabilities without modification', async () => {
+    const instructions = 'Use backslash-n (\\n) for newlines in markdown content.';
 
-    mockMcpGetInstructions.mockReturnValue(badInstructions);
+    mockMcpGetInstructions.mockReturnValue(instructions);
 
     const mockReturning = vi.fn().mockResolvedValue([{}]);
     const mockWhere = vi.fn().mockReturnValue({ returning: mockReturning });
@@ -431,14 +428,7 @@ describe('dbResultToMcpTool - serverInstructions sanitization', () => {
 
     expect(result.status).toBe('healthy');
     expect(result.capabilities).toEqual({
-      serverInstructions: sanitizedInstructions,
+      serverInstructions: instructions,
     });
-    expect(mockSet).toHaveBeenCalledWith(
-      expect.objectContaining({
-        capabilities: {
-          serverInstructions: sanitizedInstructions,
-        },
-      })
-    );
   });
 });
