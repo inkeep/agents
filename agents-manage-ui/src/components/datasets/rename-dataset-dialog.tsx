@@ -64,9 +64,8 @@ export function RenameDatasetDialog({
     } catch (error) {
       console.error('Error renaming dataset:', error);
       toast.error('An unexpected error occurred');
-    } finally {
-      setIsSubmitting(false);
     }
+    setIsSubmitting(false);
   };
 
   return (

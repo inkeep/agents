@@ -88,9 +88,8 @@ export function SlackAccessEditDialog({
     } catch (error) {
       console.error('Failed to load Slack data:', error);
       toast.error('Failed to load Slack access configuration');
-    } finally {
-      setIsLoading(false);
     }
+    setIsLoading(false);
   }, [tenantId, projectId, tool.id]);
 
   useEffect(() => {

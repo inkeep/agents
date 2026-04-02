@@ -53,9 +53,8 @@ export function DatasetAgentPicker({ tenantId, projectId, datasetId }: DatasetAg
       } catch {
         setSelectedAgentIds(prev);
         toast.error('Failed to update agent associations');
-      } finally {
-        setSyncing(false);
       }
+      setSyncing(false);
     },
     [selectedAgentIds, tenantId, projectId, datasetId]
   );

@@ -49,17 +49,14 @@ function MCPToolDialogMenu({ toolId, toolName, editPath }: MCPToolDialogMenuProp
 
   const handleDelete = async () => {
     setIsSubmitting(true);
-    try {
-      const result = await deleteToolAction(tenantId, projectId, toolId);
-      if (result.success) {
-        setIsOpen(false);
-        toast.success('MCP server deleted.');
-      } else {
-        toast.error('Failed to delete MCP server.');
-      }
-    } finally {
-      setIsSubmitting(false);
+    const result = await deleteToolAction(tenantId, projectId, toolId);
+    if (result.success) {
+      setIsOpen(false);
+      toast.success('MCP server deleted.');
+    } else {
+      toast.error('Failed to delete MCP server.');
     }
+    setIsSubmitting(false);
   };
 
   return (

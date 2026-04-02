@@ -47,17 +47,14 @@ function CredentialDialogMenu({ credentialId, credentialName }: CredentialDialog
 
   const handleDelete = async () => {
     setIsSubmitting(true);
-    try {
-      const result = await deleteCredentialAction(tenantId, projectId, credentialId);
-      if (result.success) {
-        setIsOpen(false);
-        toast.success('Credential deleted.');
-      } else {
-        toast.error(result.error);
-      }
-    } finally {
-      setIsSubmitting(false);
+    const result = await deleteCredentialAction(tenantId, projectId, credentialId);
+    if (result.success) {
+      setIsOpen(false);
+      toast.success('Credential deleted.');
+    } else {
+      toast.error(result.error);
     }
+    setIsSubmitting(false);
   };
 
   return (

@@ -29,20 +29,17 @@ export function DeleteDatasetConfirmation({
 
   const handleDelete = async () => {
     setIsSubmitting(true);
-    try {
-      const result = await deleteDatasetAction(tenantId, projectId, datasetId);
-      if (result.success) {
-        toast.success('Test suite deleted.');
-        setIsOpen(false);
-        if (redirectOnDelete) {
-          router.push(`/${tenantId}/projects/${projectId}/datasets`);
-        }
-      } else {
-        toast.error(result.error);
+    const result = await deleteDatasetAction(tenantId, projectId, datasetId);
+    if (result.success) {
+      toast.success('Test suite deleted.');
+      setIsOpen(false);
+      if (redirectOnDelete) {
+        router.push(`/${tenantId}/projects/${projectId}/datasets`);
       }
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      toast.error(result.error);
     }
+    setIsSubmitting(false);
   };
 
   return (

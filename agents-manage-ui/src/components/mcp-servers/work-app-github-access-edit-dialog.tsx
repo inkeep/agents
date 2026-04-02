@@ -99,9 +99,8 @@ export function GitHubAccessEditDialog({
     } catch (error) {
       console.error('Failed to load GitHub data:', error);
       toast.error('Failed to load GitHub access configuration');
-    } finally {
-      setIsLoading(false);
     }
+    setIsLoading(false);
   }, [tenantId, projectId, tool.id]);
 
   useEffect(() => {
