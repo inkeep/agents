@@ -15,6 +15,7 @@ import { GenericPromptEditor } from '@/components/form/generic-prompt-editor';
 import { GenericSelect } from '@/components/form/generic-select';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Form } from '@/components/ui/form';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { GenericComboBox } from '../generic-combo-box';
 import '@/lib/utils/test-utils/styles.css';
@@ -115,11 +116,13 @@ const NestedTestForm: FC = () => {
   }, [form]);
 
   return (
-    <Form {...form}>
-      <form style={{ width: 320 }}>
-        <GenericJsonSchemaEditor {...getCommonProps(form, 'jsonSchemaEditor')} />
-      </form>
-    </Form>
+    <TooltipProvider>
+      <Form {...form}>
+        <form style={{ width: 320 }}>
+          <GenericJsonSchemaEditor {...getCommonProps(form, 'jsonSchemaEditor')} />
+        </form>
+      </Form>
+    </TooltipProvider>
   );
 };
 
