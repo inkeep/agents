@@ -58,6 +58,8 @@ export default defineConfig({
             instances: [{ browser: 'chromium' }],
             expect: {
               toMatchScreenshot: {
+                // Increase timeout because the default `5s` is insufficient on CI
+                timeout: 8_000,
                 resolveScreenshotPath,
                 resolveDiffPath: resolveScreenshotPath,
               },
