@@ -445,7 +445,7 @@ app.openapi(resumeConversationStreamRoute, async (c) => {
     throw createApiError({ code: 'not_found', message: 'Conversation not found' });
   }
 
-  if (conversation.userId && endUserId && conversation.userId !== endUserId) {
+  if (conversation.userId && conversation.userId !== endUserId) {
     throw createApiError({ code: 'not_found', message: 'Conversation not found' });
   }
 

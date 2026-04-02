@@ -191,13 +191,16 @@
             "type": "string"
           },
           "defaultSubAgentId": {
-            "description": "ID of the default sub-agent that handles initial user messages. Required at runtime but nullable on creation to avoid circular FK dependency. Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.",
-            "example": "my-default-subagent",
-            "maxLength": 255,
-            "minLength": 1,
-            "nullable": true,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceId"
+              },
+              {
+                "description": "ID of the default sub-agent that handles initial user messages. Required at runtime but nullable on creation to avoid circular FK dependency. Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.",
+                "example": "my-default-subagent",
+                "nullable": true
+              }
+            ]
           },
           "description": {
             "$ref": "#/components/schemas/DescriptionSchema"
@@ -432,13 +435,16 @@
             "type": "string"
           },
           "defaultSubAgentId": {
-            "description": "ID of the default sub-agent that handles initial user messages. Required at runtime but nullable on creation to avoid circular FK dependency. Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.",
-            "example": "my-default-subagent",
-            "maxLength": 255,
-            "minLength": 1,
-            "nullable": true,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceId"
+              },
+              {
+                "description": "ID of the default sub-agent that handles initial user messages. Required at runtime but nullable on creation to avoid circular FK dependency. Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.",
+                "example": "my-default-subagent",
+                "nullable": true
+              }
+            ]
           },
           "description": {
             "$ref": "#/components/schemas/DescriptionSchema"

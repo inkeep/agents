@@ -9,8 +9,11 @@ import { getLogger } from '../../../logger';
 
 const logger = getLogger('stream-buffer-registry');
 
+/** How often the write buffer is flushed to Postgres */
 const FLUSH_INTERVAL_MS = 100;
+/** How often the readable polls Postgres for new chunks when the local buffer is empty */
 const POLL_INTERVAL_MS = 200;
+/** Maximum time a readable will poll before giving up (prevents indefinite hangs) */
 const MAX_POLL_DURATION_MS = 5 * 60 * 1000;
 
 interface StreamScope {
@@ -172,8 +175,8 @@ class PgStreamBufferRegistry {
     }
   }
 
-  private async flush(conversationId: string): Promise<void> {
-    const buffer = this.writeBuffers.get(conversationId);
+  private async flush(bufferKey: string): Promise<void> {
+    const buffer = this.writeBuffers.get(bufferKey);
     if (!buffer || buffer.pendingChunks.length === 0) return;
 
     const toFlush = [...buffer.pendingChunks];
@@ -185,7 +188,7 @@ class PgStreamBufferRegistry {
       buffer.pendingChunks.splice(0, toFlush.length);
     } catch (err) {
       logger.error(
-        { err, conversationId, count: toFlush.length },
+        { err, conversationId: buffer.scope.conversationId, count: toFlush.length },
         'Failed to insert stream chunks — will retry on next flush'
       );
     }
