@@ -143,7 +143,7 @@ if (isolatedName) {
         apiKey: process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET,
       },
       {
-        projectPath: 'agents-cookbook/template-projects/chat-to-edit',
+        projectPath: 'agents-cookbook/template-projects/copilot',
         configPath: 'agents-cookbook/template-projects/inkeep.config.ts',
         apiKey: process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET,
       },

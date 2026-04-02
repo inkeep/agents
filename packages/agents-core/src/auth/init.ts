@@ -236,12 +236,12 @@ async function init() {
     }
   }
 
-  // 8. Create copilot app for chat-to-edit (if configured)
+  // 8. Create copilot app (if configured)
   // The copilot project + agent are pushed via the CLI in setup-dev (template project)
   const copilotAppId = process.env.PUBLIC_INKEEP_COPILOT_APP_ID;
   const copilotPrivateKeyB64 = process.env.INKEEP_COPILOT_JWT_PRIVATE_KEY;
   const copilotKid = process.env.INKEEP_COPILOT_JWT_KID;
-  const copilotProjectId = 'chat-to-edit';
+  const copilotProjectId = 'copilot';
   const copilotAgentId = 'chat-to-edit';
 
   if (copilotAppId) {
