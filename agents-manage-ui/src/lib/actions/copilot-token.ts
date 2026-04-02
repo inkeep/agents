@@ -96,10 +96,10 @@ export async function getCopilotTokenAction(): Promise<ActionResult<CopilotToken
         cookieHeader: cookieHeader || undefined,
       },
     };
-  } catch (error) {
+  } catch {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      error: 'Failed to generate copilot token',
       code: 'network_error',
     };
   }
