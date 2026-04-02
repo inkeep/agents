@@ -255,6 +255,9 @@ export interface SetupConfig {
   isCloud?: boolean;
   skipPush?: boolean;
 
+  /** Runs after project push while the API server is still up */
+  afterPush?: (apiUrl: string) => Promise<void>;
+
   /** If set, upgrades packages instead of just migrating on subsequent runs */
   upgradeCommand?: string;
 }
@@ -811,6 +814,11 @@ export async function runSetup(config: SetupConfig) {
         };
         const success = await pushProject(resolvedPush);
         if (!success) allPushSuccess = false;
+      }
+
+      if (config.afterPush) {
+        const apiUrl = config.apiHealthUrl?.replace('/health', '') || 'http://localhost:3002';
+        await config.afterPush(apiUrl);
       }
     } finally {
       // Step 8: Cleanup — only stop servers we started

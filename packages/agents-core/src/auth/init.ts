@@ -236,75 +236,12 @@ async function init() {
     }
   }
 
-  // 8. Create copilot app (if configured)
-  // The copilot project + agent are pushed via the CLI in setup-dev (template project)
-  const copilotAppId = process.env.PUBLIC_INKEEP_COPILOT_APP_ID;
-  const copilotPrivateKeyB64 = process.env.INKEEP_COPILOT_JWT_PRIVATE_KEY;
-  const copilotKid = process.env.INKEEP_COPILOT_JWT_KID;
-  const copilotProjectId = 'copilot';
-  const copilotAgentId = 'chat-to-edit';
-
-  if (copilotAppId) {
-    console.log(`\n🤖 Checking/creating copilot app: ${copilotAppId}`);
-
-    const existingCopilotApp = await getAppById(dbClient)(copilotAppId);
-
-    if (existingCopilotApp) {
-      console.log(`   ℹ️  Copilot app already exists: ${copilotAppId}`);
-    } else {
-      const copilotPublicKeys: PublicKeyConfig[] = [];
-
-      if (copilotPrivateKeyB64 && copilotKid) {
-        const { createPrivateKey, createPublicKey } = await import('node:crypto');
-        const privPem = Buffer.from(copilotPrivateKeyB64, 'base64').toString('utf-8');
-        const pubPem = createPublicKey(createPrivateKey(privPem)).export({
-          type: 'spki',
-          format: 'pem',
-        }) as string;
-        copilotPublicKeys.push({
-          kid: copilotKid,
-          publicKey: pubPem,
-          algorithm: 'RS256',
-          addedAt: new Date().toISOString(),
-        });
-      } else {
-        console.log('   ⚠️  Copilot JWT keys not set — copilot app created without auth keys');
-      }
-
-      const copilotConfig: AppConfig = {
-        type: 'web_client',
-        webClient: {
-          allowedDomains,
-          publicKeys: copilotPublicKeys,
-          allowAnonymous: false,
-        },
-      };
-
-      await createApp(dbClient)({
-        id: copilotAppId,
-        tenantId: TENANT_ID,
-        projectId: copilotProjectId,
-        name: 'Copilot',
-        description: 'Chat-to-edit copilot app',
-        type: 'web_client',
-        defaultAgentId: copilotAgentId,
-        enabled: true,
-        config: copilotConfig,
-      });
-
-      console.log(`   ✅ Copilot app created: ${copilotAppId}`);
-    }
-  }
-
   console.log('\n================================================');
   console.log('✅ Initialization complete!');
   console.log('================================================');
   console.log(`\nOrganization: ${TENANT_ID}`);
   console.log(`Admin user:   ${username}`);
   console.log(`Playground:   ${playgroundAppId}`);
-  if (copilotAppId) {
-    console.log(`Copilot:      ${copilotAppId}`);
-  }
   console.log('\nYou can now log in with these credentials.\n');
 
   process.exit(0);
