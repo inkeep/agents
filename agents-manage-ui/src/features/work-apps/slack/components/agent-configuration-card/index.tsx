@@ -74,9 +74,8 @@ export function AgentConfigurationCard() {
       }
     } catch (error) {
       console.error('Failed to fetch agents:', error);
-    } finally {
-      setLoadingAgents(false);
     }
+    setLoadingAgents(false);
   }, [tenantId, teamId]);
 
   const fetchChannels = useCallback(async () => {
@@ -87,9 +86,8 @@ export function AgentConfigurationCard() {
       setChannels(result.channels);
     } catch (error) {
       console.error('Failed to fetch channels:', error);
-    } finally {
-      setLoadingChannels(false);
     }
+    setLoadingChannels(false);
   }, [teamId]);
 
   const fetchWorkspaceSettings = useCallback(async () => {
@@ -138,9 +136,8 @@ export function AgentConfigurationCard() {
     } catch (error) {
       console.error('Failed to save default agent:', error);
       toast.error('Failed to save default agent');
-    } finally {
-      setSavingDefault(false);
     }
+    setSavingDefault(false);
   };
 
   const handleToggleWorkspaceGrantAccess = async (grantAccess: boolean) => {

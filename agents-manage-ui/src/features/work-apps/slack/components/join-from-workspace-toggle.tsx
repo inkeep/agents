@@ -57,9 +57,8 @@ export function JoinFromWorkspaceToggle() {
       toast.error('Failed to update join from workspace setting');
       console.error('Failed to update join from workspace setting:', error);
       setIsEnabled(!enabled); // Revert optimistic update
-    } finally {
-      setIsUpdating(false);
     }
+    setIsUpdating(false);
   };
 
   return (

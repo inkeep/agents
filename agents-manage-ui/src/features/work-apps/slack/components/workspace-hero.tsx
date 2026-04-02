@@ -167,9 +167,8 @@ export function WorkspaceHero() {
       }
     } catch {
       toast.error('Failed to send test message');
-    } finally {
-      setSendingTestMessage(false);
     }
+    setSendingTestMessage(false);
   };
 
   const handleUninstall = async () => {
