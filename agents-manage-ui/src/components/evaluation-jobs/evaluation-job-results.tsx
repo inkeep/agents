@@ -129,23 +129,21 @@ export function EvaluationJobResults({
   }, [results]);
 
   // Extract unique output schema keys from results for filtering dropdown
-  const availableOutputKeys = useMemo(() => {
-    const collect = (obj: unknown, prefix = ''): string[] => {
-      if (!isPlainObject(obj)) return [];
+  function collect(obj: unknown, prefix = ''): string[] {
+    if (!isPlainObject(obj)) return [];
 
-      return Object.entries(obj).flatMap(([k, v]) => {
-        const p = prefix ? `${prefix}.${k}` : k;
-        if (Array.isArray(v)) {
-          const first = v[0];
-          return isPlainObject(first) ? [p, ...collect(first, p)] : [p];
-        }
-        return isPlainObject(v) ? [p, ...collect(v, p)] : [p];
-      });
-    };
+    return Object.entries(obj).flatMap(([k, v]) => {
+      const p = prefix ? `${prefix}.${k}` : k;
+      if (Array.isArray(v)) {
+        const first = v[0];
+        return isPlainObject(first) ? [p, ...collect(first, p)] : [p];
+      }
+      return isPlainObject(v) ? [p, ...collect(v, p)] : [p];
+    });
+  }
 
-    const keys = results.flatMap((r) => collect(r.output));
-    return [...new Set(keys)].filter((key) => key.startsWith('output.')).sort();
-  }, [results]);
+  const keys = results.flatMap((r) => collect(r.output));
+  const availableOutputKeys = [...new Set(keys)].filter((key) => key.startsWith('output.')).sort();
 
   return (
     <div className="space-y-6">
