@@ -156,5 +156,5 @@ describe('Form', () => {
       { timeout: 10_000 }
     );
     await expect(container).toMatchScreenshot();
-  }, 10_000);
+  });
 });

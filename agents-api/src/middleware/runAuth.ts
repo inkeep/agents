@@ -53,7 +53,6 @@ interface RequestData {
   baseUrl: string;
   runAsUserId?: string;
   appId?: string;
-  appPrompt?: string;
   origin?: string;
 }
 
@@ -82,7 +81,6 @@ function extractRequestData(c: { req: any }): RequestData {
   const subAgentId = c.req.header('x-inkeep-sub-agent-id');
   const runAsUserId = c.req.header('x-inkeep-run-as-user-id');
   const appId = c.req.header('x-inkeep-app-id');
-  const appPrompt = c.req.header('x-inkeep-app-prompt');
   const origin = c.req.header('Origin');
   const proto = c.req.header('x-forwarded-proto')?.split(',')[0].trim();
   const fwdHost = c.req.header('x-forwarded-host')?.split(',')[0].trim();
@@ -109,7 +107,6 @@ function extractRequestData(c: { req: any }): RequestData {
     baseUrl,
     runAsUserId,
     appId,
-    appPrompt,
     origin,
   };
 }
@@ -777,6 +774,8 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
               endUserId,
               initiatedBy: { type: 'user' as const, id: endUserId },
               authMethod,
+              appId: app.id,
+              appPrompt: app.prompt || undefined,
               ...(Object.keys(verifiedClaims).length > 0 ? { verifiedClaims } : {}),
             },
           },
@@ -848,6 +847,7 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
         endUserId,
         ...(endUserId ? { initiatedBy: { type: 'user' as const, id: endUserId } } : {}),
         authMethod,
+        appId: app.id,
         appPrompt: app.prompt || undefined,
       },
     },
@@ -897,7 +897,9 @@ function createDevContext(reqData: RequestData): AuthResult {
 async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
   const { apiKey, subAgentId } = reqData;
 
-  if (reqData.appId) {
+  // When subAgentId is set, this is an internal A2A call — skip app credential auth.
+  // The appId is forwarded for context only; the sub-agent authenticates via its own token.
+  if (reqData.appId && !subAgentId) {
     if (!apiKey) {
       return { authResult: null, failureMessage: 'Bearer token required for app credential auth' };
     }
@@ -972,10 +974,10 @@ async function runApiKeyAuthHandler(
     const attempt = await authenticateRequest(reqData);
 
     if (attempt.authResult) {
-      if (reqData.appPrompt && !attempt.authResult.metadata?.appPrompt) {
+      if (reqData.appId && !attempt.authResult.metadata?.appId) {
         attempt.authResult.metadata = {
           ...attempt.authResult.metadata,
-          appPrompt: reqData.appPrompt,
+          appId: reqData.appId,
         };
       }
       c.set('executionContext', buildExecutionContext(attempt.authResult, reqData));
@@ -1040,9 +1042,9 @@ async function runApiKeyAuthHandler(
     'API key authenticated successfully'
   );
 
-  // Forward appPrompt from internal A2A header when not already set by auth strategy
-  if (reqData.appPrompt && !attempt.authResult.metadata?.appPrompt) {
-    attempt.authResult.metadata = { ...attempt.authResult.metadata, appPrompt: reqData.appPrompt };
+  // Forward appId from internal A2A header when not already set by auth strategy
+  if (reqData.appId && !attempt.authResult.metadata?.appId) {
+    attempt.authResult.metadata = { ...attempt.authResult.metadata, appId: reqData.appId };
   }
 
   c.set('executionContext', buildExecutionContext(attempt.authResult, reqData));
