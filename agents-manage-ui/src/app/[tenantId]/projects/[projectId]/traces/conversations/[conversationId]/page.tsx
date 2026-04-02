@@ -83,10 +83,9 @@ export default function ConversationDetail({
       toast.error('Failed to copy trace', {
         description: err instanceof Error ? err.message : 'An unknown error occurred',
       });
-    } finally {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      setIsCopying(false);
     }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    setIsCopying(false);
   };
 
   const handleCopySummarizedTrace = async () => {
@@ -108,10 +107,9 @@ export default function ConversationDetail({
       toast.error('Failed to copy trace', {
         description: err instanceof Error ? err.message : 'An unknown error occurred',
       });
-    } finally {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      setIsCopying(false);
     }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    setIsCopying(false);
   };
 
   const handleRerunTrigger = async () => {
@@ -148,10 +146,8 @@ export default function ConversationDetail({
         toast.error('Failed to rerun scheduled trigger', {
           description: err instanceof Error ? err.message : 'An unknown error occurred',
         });
-      } finally {
-        setIsRerunning(false);
       }
-      return;
+      setIsRerunning(false);
     }
 
     const userMessageActivity = conversation.activities?.find(

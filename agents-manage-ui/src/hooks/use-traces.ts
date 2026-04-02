@@ -255,7 +255,7 @@ export function useConversationsPerDayAcrossProjects(options?: {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
+  async function fetchData() {
     try {
       setLoading(true);
       setError(null);
@@ -278,7 +278,7 @@ export function useConversationsPerDayAcrossProjects(options?: {
       setError(errorMessage);
     }
     setLoading(false);
-  }, [options?.startTime, options?.endTime, options?.projectIds, options?.tenantId]);
+  }
 
   useEffect(() => {
     fetchData();
