@@ -30,7 +30,7 @@ export function AgentConfigurationCard() {
   const [defaultAgent, setDefaultAgent] = useState<DefaultAgentConfig | null>(null);
   const [defaultOpen, setDefaultOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [selectedChannels, setSelectedChannels] = useState<Set<string>>(new Set());
+  const [selectedChannels, setSelectedChannels] = useState(new Set<string>());
   const [bulkSaving, setBulkSaving] = useState(false);
   const [channelFilter, setChannelFilter] = useState<'all' | 'private' | 'connect'>('all');
   const [channelSearchQuery, setChannelSearchQuery] = useState('');

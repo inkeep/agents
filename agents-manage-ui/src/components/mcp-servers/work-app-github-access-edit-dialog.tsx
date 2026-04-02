@@ -62,9 +62,9 @@ export function GitHubAccessEditDialog({
   const [installationsWithRepos, setInstallationsWithRepos] = useState<InstallationWithRepos[]>([]);
 
   const [mode, setMode] = useState<WorkAppGitHubAccessMode>('all');
-  const [selectedRepoIds, setSelectedRepoIds] = useState<Set<string>>(new Set());
+  const [selectedRepoIds, setSelectedRepoIds] = useState(new Set<string>());
 
-  const loadData = useCallback(async () => {
+  async function loadData() {
     try {
       setIsLoading(true);
 
@@ -102,7 +102,7 @@ export function GitHubAccessEditDialog({
     } finally {
       setIsLoading(false);
     }
-  }, [tenantId, projectId, tool.id]);
+  }
 
   useEffect(() => {
     if (open) {
@@ -146,7 +146,7 @@ export function GitHubAccessEditDialog({
     });
   };
 
-  const getAvailableRepositories = useCallback((): WorkAppGitHubRepository[] => {
+  function getAvailableRepositories(): WorkAppGitHubRepository[] {
     if (!projectAccess) return [];
 
     if (projectAccess.mode === 'all') {
@@ -154,7 +154,7 @@ export function GitHubAccessEditDialog({
     }
 
     return projectAccess.repositories;
-  }, [projectAccess, installationsWithRepos]);
+  }
 
   const handleSelectAllForInstallation = (repos: WorkAppGitHubRepository[], checked: boolean) => {
     const availableRepoIds = new Set(getAvailableRepositories().map((r) => r.id));

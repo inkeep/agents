@@ -252,15 +252,15 @@ function ConfigureAccessDialog({
   onSaved,
 }: ConfigureAccessDialogProps) {
   const [mode, setMode] = useState<WorkAppGitHubAccessMode>(currentConfig?.mode || 'all');
-  const [selectedRepoIds, setSelectedRepoIds] = useState<Set<string>>(
-    new Set(currentConfig?.repositories.map((r: WorkAppGitHubRepository) => r.id) || [])
+  const [selectedRepoIds, setSelectedRepoIds] = useState(
+    new Set<string>(currentConfig?.repositories.map((r: WorkAppGitHubRepository) => r.id) || [])
   );
   const [installationsWithRepos, setInstallationsWithRepos] = useState<InstallationWithRepos[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSyncing, setSyncing] = useState<string | null>(null);
 
-  const loadInstallations = useCallback(async () => {
+  async function loadInstallations() {
     try {
       setIsLoading(true);
       const installations = await fetchWorkAppGitHubInstallations(tenantId);
@@ -285,7 +285,7 @@ function ConfigureAccessDialog({
     } finally {
       setIsLoading(false);
     }
-  }, [tenantId]);
+  }
 
   useEffect(() => {
     if (open) {

@@ -54,7 +54,7 @@ export function WorkAppSlackChannelConfigDialog({
   const [channels, setChannels] = useState<SlackChannelInfo[]>([]);
   const [teamId, setTeamId] = useState<string | null>(null);
 
-  const loadData = useCallback(async () => {
+  async function loadData() {
     try {
       setDialogState('loading');
 
@@ -83,7 +83,7 @@ export function WorkAppSlackChannelConfigDialog({
       console.error('Failed to load Slack data:', error);
       setDialogState('no-workspace');
     }
-  }, []);
+  }
 
   useEffect(() => {
     if (open) {
@@ -183,7 +183,7 @@ function ReadyState({ tenantId, projectId, channels, onOpenChange, onSuccess }: 
   const [name, setName] = useState('Slack');
   const [mode, setMode] = useState<SlackMcpChannelAccessMode>('all');
   const [dmEnabled, setDmEnabled] = useState(true);
-  const [selectedChannelIds, setSelectedChannelIds] = useState<Set<string>>(new Set());
+  const [selectedChannelIds, setSelectedChannelIds] = useState(new Set<string>());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChannelToggle = (channelId: string) => {

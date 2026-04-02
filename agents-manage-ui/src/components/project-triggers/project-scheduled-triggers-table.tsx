@@ -86,7 +86,7 @@ export function ProjectScheduledTriggersTable({
   projectId,
 }: ProjectScheduledTriggersTableProps) {
   const router = useRouter();
-  const [loadingTriggers, setLoadingTriggers] = useState<Set<string>>(new Set());
+  const [loadingTriggers, setLoadingTriggers] = useState(new Set<string>());
   const { members: orgMembers } = useOrgMembers(tenantId);
   const { user } = useAuthSession();
   const { isAdmin } = useIsOrgAdmin();

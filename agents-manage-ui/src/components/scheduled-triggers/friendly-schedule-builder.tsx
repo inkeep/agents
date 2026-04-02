@@ -126,7 +126,7 @@ export function FriendlyScheduleBuilder({
   const [dayOfMonth, setDayOfMonth] = useState(parsed.dayOfMonth || '1');
   const [customCron, setCustomCron] = useState(parsed.frequency === 'custom' ? value : '');
 
-  const updateCronExpression = useCallback(() => {
+  function updateCronExpression() {
     if (frequency === 'custom') {
       return;
     }
@@ -140,7 +140,7 @@ export function FriendlyScheduleBuilder({
     if (newCron !== value) {
       onChange(newCron);
     }
-  }, [frequency, minuteInterval, minute, hour, daysOfWeek, dayOfMonth, value, onChange]);
+  }
 
   useEffect(() => {
     updateCronExpression();

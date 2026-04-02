@@ -48,7 +48,7 @@ export function ScheduledTriggerInvocationsTable({
 }: ScheduledTriggerInvocationsTableProps) {
   const router = useRouter();
   const [invocations, setInvocations] = useState(initialInvocations);
-  const [loadingInvocations, setLoadingInvocations] = useState<Set<string>>(new Set());
+  const [loadingInvocations, setLoadingInvocations] = useState(new Set<string>());
 
   const hasTransientInvocations = invocations.some(
     (inv) => inv.status === 'pending' || inv.status === 'running'

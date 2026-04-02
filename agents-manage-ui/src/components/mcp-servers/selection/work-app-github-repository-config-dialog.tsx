@@ -252,7 +252,7 @@ function ReadyState({
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const [name, setName] = useState('GitHub');
   const [mode, setMode] = useState<WorkAppGitHubAccessMode>('all');
-  const [selectedRepoIds, setSelectedRepoIds] = useState<Set<string>>(new Set());
+  const [selectedRepoIds, setSelectedRepoIds] = useState(new Set<string>());
   const [installationsWithRepos, setInstallationsWithRepos] = useState<InstallationWithRepos[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setSyncing] = useState<string | null>(null);

@@ -198,12 +198,12 @@ export function TimelineWrapper({
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // State for collapsible AI messages
-  const [collapsedAiMessages, setCollapsedAiMessages] = useState<Set<string>>(new Set());
+  const [collapsedAiMessages, setCollapsedAiMessages] = useState(new Set<string>());
   const [aiMessagesGloballyCollapsed, setAiMessagesGloballyCollapsed] =
     useState<boolean>(enableAutoScroll);
 
   // State for collapsible tree nodes (lifted from HierarchicalTimeline)
-  const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
+  const [collapsedNodes, setCollapsedNodes] = useState(new Set<string>());
 
   useEffect(() => {
     if (selected) {
@@ -243,7 +243,7 @@ export function TimelineWrapper({
   const [isCalculatingTokens, setIsCalculatingTokens] = useState(false);
 
   // Calculate token estimates when dropdown opens
-  const calculateTokenEstimates = useCallback(async () => {
+  async function calculateTokenEstimates() {
     if (!conversation || !tenantId || !projectId || tokenEstimates.summarized !== null) return;
 
     setIsCalculatingTokens(true);
@@ -261,7 +261,7 @@ export function TimelineWrapper({
     } finally {
       setIsCalculatingTokens(false);
     }
-  }, [conversation, tenantId, projectId, tokenEstimates.summarized]);
+  }
 
   // Memoize sorted activities to prevent re-sorting on every render
   const sortedActivities = [...activities].sort((a, b) => {

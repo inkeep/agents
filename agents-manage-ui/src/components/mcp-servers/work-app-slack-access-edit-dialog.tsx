@@ -56,9 +56,9 @@ export function SlackAccessEditDialog({
   const [channels, setChannels] = useState<SlackChannelInfo[]>([]);
   const [mode, setMode] = useState<SlackMcpChannelAccessMode>('selected');
   const [dmEnabled, setDmEnabled] = useState(false);
-  const [selectedChannelIds, setSelectedChannelIds] = useState<Set<string>>(new Set());
+  const [selectedChannelIds, setSelectedChannelIds] = useState(new Set<string>());
 
-  const loadData = useCallback(async () => {
+  async function loadData() {
     try {
       setIsLoading(true);
 
@@ -91,7 +91,7 @@ export function SlackAccessEditDialog({
     } finally {
       setIsLoading(false);
     }
-  }, [tenantId, projectId, tool.id]);
+  }
 
   useEffect(() => {
     if (open) {

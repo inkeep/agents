@@ -29,7 +29,7 @@ export function WorkAppGitHubAccessSection({
   const [error, setError] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-  const loadAccessConfig = useCallback(async () => {
+  async function loadAccessConfig() {
     try {
       setIsLoading(true);
       setError(null);
@@ -41,7 +41,7 @@ export function WorkAppGitHubAccessSection({
     } finally {
       setIsLoading(false);
     }
-  }, [tenantId, projectId, tool.id]);
+  }
 
   useEffect(() => {
     loadAccessConfig();
