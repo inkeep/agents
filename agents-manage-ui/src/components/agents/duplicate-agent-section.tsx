@@ -80,11 +80,7 @@ export function DuplicateAgentSection({
     tenantId,
     enabled: isOpen,
   });
-  const {
-    data: agents,
-    isFetching: agentsLoading,
-    isError: agentsError,
-  } = useAgentsListQuery({
+  const { data: agents } = useAgentsListQuery({
     tenantId,
     projectId: sourceProjectId,
     enabled: isOpen && Boolean(sourceProjectId),
@@ -94,7 +90,7 @@ export function DuplicateAgentSection({
   const selectedAgent = agents.find((agent) => agent.id === sourceAgentId);
   const isImportingFromAnotherProject = sourceProjectId !== projectId;
   const currentProjectName = currentProject?.name ?? 'This project';
-  const currentProjectDescription = currentProject?.description || projectId;
+  const currentProjectDescription = currentProject?.description;
   const otherProjects = projects.filter((project) => project.projectId !== projectId);
   const projectOptions = [
     {
@@ -103,7 +99,11 @@ export function DuplicateAgentSection({
       label: (
         <div className="min-w-0">
           <div className="truncate font-medium">{currentProjectName}</div>
-          <div className="truncate text-xs text-muted-foreground">{currentProjectDescription}</div>
+          {currentProjectDescription && (
+            <div className="truncate text-xs text-muted-foreground">
+              {currentProjectDescription}
+            </div>
+          )}
         </div>
       ),
       searchBy: `${currentProjectName} ${currentProjectDescription} ${projectId}`,
@@ -114,9 +114,9 @@ export function DuplicateAgentSection({
       label: (
         <div className="min-w-0">
           <div className="truncate font-medium">{project.name}</div>
-          <div className="truncate text-xs text-muted-foreground">
-            {project.description || project.projectId}
-          </div>
+          {project.description && (
+            <div className="truncate text-xs text-muted-foreground">{project.description}</div>
+          )}
         </div>
       ),
       searchBy: `${project.name} ${project.description ?? ''} ${project.projectId}`,
@@ -227,50 +227,32 @@ export function DuplicateAgentSection({
 
         <div className="space-y-2">
           <FieldLabel label="Source agent" />
-          {agentsError ? (
-            <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-              Could not load agents from the selected project. Try again.
-            </div>
-          ) : agentsLoading ? (
-            <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-              Loading agents...
-            </div>
-          ) : !agents.length ? (
-            <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-              {isImportingFromAnotherProject
-                ? 'No agents available in the selected project.'
-                : 'Create your first agent before copying one.'}
-            </div>
-          ) : (
-            <Combobox
-              options={agents.map((agent) => ({
-                value: agent.id,
-                selectedLabel: agent.name,
-                label: (
-                  <div className="min-w-0">
-                    <div className="truncate font-medium">{agent.name}</div>
-                    {agent.description && (
-                      <div className="truncate text-xs text-muted-foreground">
-                        {agent.description}
-                      </div>
-                    )}
-                  </div>
-                ),
-                searchBy: `${agent.name} ${agent.description ?? ''}`,
-              }))}
-              onSelect={handleSourceAgentSelect}
-              defaultValue={sourceAgentId}
-              placeholder={
-                isImportingFromAnotherProject
-                  ? 'Select an agent to copy'
-                  : 'Select an existing agent'
-              }
-              searchPlaceholder="Search agents..."
-              notFoundMessage="No agents found."
-              triggerClassName="w-full"
-              className="w-(--radix-popover-trigger-width)"
-            />
-          )}
+          <Combobox
+            options={agents.map((agent) => ({
+              value: agent.id,
+              selectedLabel: agent.name,
+              label: (
+                <div className="min-w-0">
+                  <div className="truncate font-medium">{agent.name}</div>
+                  {agent.description && (
+                    <div className="truncate text-xs text-muted-foreground">
+                      {agent.description}
+                    </div>
+                  )}
+                </div>
+              ),
+              searchBy: `${agent.name} ${agent.description ?? ''}`,
+            }))}
+            onSelect={handleSourceAgentSelect}
+            defaultValue={sourceAgentId}
+            placeholder={
+              isImportingFromAnotherProject ? 'Select an agent to copy' : 'Select an existing agent'
+            }
+            searchPlaceholder="Search agents..."
+            notFoundMessage="No agents found."
+            triggerClassName="w-full"
+            className="w-(--radix-popover-trigger-width)"
+          />
         </div>
 
         {selectedAgent && isImportingFromAnotherProject && (

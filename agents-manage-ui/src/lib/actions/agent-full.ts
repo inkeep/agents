@@ -18,8 +18,8 @@ import {
   createAgent as apiCreateAgent,
   deleteFullAgent as apiDeleteFullAgent,
   duplicateAgent as apiDuplicateAgent,
-  importAgent as apiImportAgent,
   getFullAgent as apiGetFullAgent,
+  importAgent as apiImportAgent,
   updateAgent as apiUpdateAgent,
   updateFullAgent as apiUpdateFullAgent,
 } from '../api/agent-full-client';
