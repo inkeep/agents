@@ -1,4 +1,4 @@
-import { act } from '@testing-library/react';
+import { act, cleanup } from '@testing-library/react';
 import { type NodeProps, ReactFlowProvider } from '@xyflow/react';
 import { NodeType } from '@/components/agent/configuration/node-types';
 import { ExternalAgentNode } from '@/components/agent/nodes/external-agent-node';
@@ -157,6 +157,7 @@ function Nodes() {
 }
 
 describe('Nodes', () => {
+  afterEach(cleanup);
   test('should handle long names with character limit', async () => {
     const queryClient = createTestQueryClient();
     queryClient.setQueryData(projectQueryKeys.detail(TENANT_ID, PROJECT_ID), {
@@ -172,5 +173,5 @@ describe('Nodes', () => {
     await act(async () => {
       await expect(container).toMatchScreenshot();
     });
-  }, 30_000);
+  }, 10_000);
 });
