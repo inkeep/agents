@@ -141,7 +141,7 @@ describe('Form', () => {
     });
 
     await expect(container).toMatchScreenshot();
-  }, 30_000);
+  }, 20_000);
 
   test('should properly highlight nested error state', async () => {
     agentStore.setState({ jsonSchemaMode: true });
@@ -155,5 +155,5 @@ describe('Form', () => {
       { timeout: 30_000 }
     );
     await expect(container).toMatchScreenshot();
-  }, 60_000);
+  }, 30_000);
 });

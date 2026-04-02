@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
 import { DiffField } from '../diff-viewer';
 
 describe('DiffField', () => {
@@ -10,7 +9,7 @@ describe('DiffField', () => {
         field="executeCode"
         originalValue=""
         newValue="async function execute() { return 1; }"
-        renderAsCode={true}
+        renderAsCode
       />
     );
     expect(screen.getByText('Execute code')).toBeInTheDocument();
