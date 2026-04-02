@@ -881,6 +881,26 @@ describe('User-Scoped Scheduled Triggers', () => {
         ).not.toThrow();
       });
 
+      it('should allow non-admin to mutate trigger with only their user in runAsUserIds', () => {
+        expect(() =>
+          assertCanMutateTrigger({
+            trigger: { createdBy: 'admin-user', runAsUserIds: ['member-user'] },
+            callerId: 'member-user',
+            tenantRole: OrgRoles.MEMBER,
+          })
+        ).not.toThrow();
+      });
+
+      it('should reject non-admin mutating trigger with multiple runAsUserIds', () => {
+        expect(() =>
+          assertCanMutateTrigger({
+            trigger: { createdBy: 'admin-user', runAsUserIds: ['member-user', 'other-user'] },
+            callerId: 'member-user',
+            tenantRole: OrgRoles.MEMBER,
+          })
+        ).toThrow(/You can only modify triggers/);
+      });
+
       it('should reject non-admin mutating trigger they did not create and does not run as them', () => {
         expect(() =>
           assertCanMutateTrigger({
