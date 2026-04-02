@@ -59,6 +59,15 @@ function buildWarningSummary(warnings: ImportAgentWarning[]) {
   return parts.join(' | ');
 }
 
+function renderLabel(name: string, description?: string) {
+  return (
+    <div className="min-w-0">
+      <div className="truncate font-medium">{name}</div>
+      {description && <div className="truncate text-xs text-muted-foreground">{description}</div>}
+    </div>
+  );
+}
+
 export function DuplicateAgentSection({
   tenantId,
   projectId,
@@ -96,29 +105,13 @@ export function DuplicateAgentSection({
     {
       value: projectId,
       selectedLabel: currentProjectName,
-      label: (
-        <div className="min-w-0">
-          <div className="truncate font-medium">{currentProjectName}</div>
-          {currentProjectDescription && (
-            <div className="truncate text-xs text-muted-foreground">
-              {currentProjectDescription}
-            </div>
-          )}
-        </div>
-      ),
+      label: renderLabel(currentProjectName, currentProjectDescription),
       searchBy: `${currentProjectName} ${currentProjectDescription} ${projectId}`,
     },
     ...otherProjects.map((project) => ({
       value: project.projectId,
       selectedLabel: project.name,
-      label: (
-        <div className="min-w-0">
-          <div className="truncate font-medium">{project.name}</div>
-          {project.description && (
-            <div className="truncate text-xs text-muted-foreground">{project.description}</div>
-          )}
-        </div>
-      ),
+      label: renderLabel(project.name, project.description),
       searchBy: `${project.name} ${project.description ?? ''} ${project.projectId}`,
     })),
   ];
@@ -231,16 +224,7 @@ export function DuplicateAgentSection({
             options={agents.map((agent) => ({
               value: agent.id,
               selectedLabel: agent.name,
-              label: (
-                <div className="min-w-0">
-                  <div className="truncate font-medium">{agent.name}</div>
-                  {agent.description && (
-                    <div className="truncate text-xs text-muted-foreground">
-                      {agent.description}
-                    </div>
-                  )}
-                </div>
-              ),
+              label: renderLabel(agent.name, agent.description),
               searchBy: `${agent.name} ${agent.description ?? ''}`,
             }))}
             onSelect={handleSourceAgentSelect}
