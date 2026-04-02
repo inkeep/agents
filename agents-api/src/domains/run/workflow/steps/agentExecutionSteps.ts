@@ -592,8 +592,7 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
         }
       }
 
-      const textContent =
-        response.steps?.[response.steps.length - 1]?.text || response.text || '';
+      const textContent = response.steps?.[response.steps.length - 1]?.text || response.text || '';
 
       return await tracer.startActiveSpan('execution_handler.execute', {}, async (span) => {
         try {
@@ -616,8 +615,7 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
                   (part: { kind: string; text?: string; data?: unknown }) => ({
                     kind: part.kind,
                     text: part.kind === 'text' ? part.text : undefined,
-                    data:
-                      part.kind === 'data' ? (part.data as Record<string, unknown>) : undefined,
+                    data: part.kind === 'data' ? (part.data as Record<string, unknown>) : undefined,
                   })
                 ) || [{ kind: 'text', text: textContent }],
               },
