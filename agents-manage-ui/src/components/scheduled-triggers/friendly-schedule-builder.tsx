@@ -144,7 +144,10 @@ export function FriendlyScheduleBuilder({
 
   useEffect(() => {
     updateCronExpression();
-  }, [updateCronExpression]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    updateCronExpression,
+  ]);
 
   const handleFrequencyChange = (newFrequency: FrequencyType) => {
     setFrequency(newFrequency);

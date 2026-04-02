@@ -77,7 +77,10 @@ export function ProjectWorkAppGitHubAccessSection({
 
   useEffect(() => {
     loadAccessConfig();
-  }, [loadAccessConfig]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadAccessConfig,
+  ]);
 
   function handleConfigSaved() {
     loadAccessConfig();
@@ -291,7 +294,11 @@ function ConfigureAccessDialog({
     if (open) {
       loadInstallations();
     }
-  }, [open, loadInstallations]);
+  }, [
+    open,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadInstallations,
+  ]);
 
   const handleSync = async (installationId: string) => {
     setSyncing(installationId);

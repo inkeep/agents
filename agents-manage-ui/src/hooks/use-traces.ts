@@ -228,7 +228,10 @@ export function useProjectOverviewStats(options?: {
 
   useEffect(() => {
     fetchStats();
-  }, [fetchStats]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchStats,
+  ]);
 
   return {
     stats,
@@ -277,7 +280,10 @@ export function useConversationsPerDayAcrossProjects(options?: {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchData,
+  ]);
 
   return {
     data,
@@ -332,7 +338,10 @@ export function useStatsByProject(options?: {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchData,
+  ]);
 
   return {
     data,

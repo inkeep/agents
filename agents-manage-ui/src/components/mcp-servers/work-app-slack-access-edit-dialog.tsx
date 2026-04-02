@@ -97,7 +97,11 @@ export function SlackAccessEditDialog({
     if (open) {
       loadData();
     }
-  }, [open, loadData]);
+  }, [
+    open,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadData,
+  ]);
 
   const handleChannelToggle = (channelId: string) => {
     setSelectedChannelIds((prev) => {
