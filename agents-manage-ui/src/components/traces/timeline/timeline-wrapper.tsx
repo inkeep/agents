@@ -198,12 +198,11 @@ export function TimelineWrapper({
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // State for collapsible AI messages
-  const [collapsedAiMessages, setCollapsedAiMessages] = useState<Set<string>>(new Set());
-  const [aiMessagesGloballyCollapsed, setAiMessagesGloballyCollapsed] =
-    useState<boolean>(enableAutoScroll);
+  const [collapsedAiMessages, setCollapsedAiMessages] = useState(new Set<string>());
+  const [aiMessagesGloballyCollapsed, setAiMessagesGloballyCollapsed] = useState(enableAutoScroll);
 
   // State for collapsible tree nodes (lifted from HierarchicalTimeline)
-  const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
+  const [collapsedNodes, setCollapsedNodes] = useState(new Set<string>());
 
   useEffect(() => {
     if (selected) {
