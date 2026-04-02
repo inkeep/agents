@@ -3,6 +3,7 @@ import {
   createDataComponent,
   createExternalAgent,
   createFullAgentServerSide,
+  createScheduledTrigger,
   createSkill,
   createTool,
   duplicateFullAgentServerSide,
@@ -20,6 +21,7 @@ import {
 } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import manageDbClient from '../../../data/db/manageDbClient';
+import runDbClient from '../../../data/db/runDbClient';
 import {
   createTestArtifactComponentData,
   createTestContextConfigDataFull,
@@ -161,20 +163,6 @@ const createSourceAgentDefinition = (params: {
       messageTemplate: 'Incoming message: {{message}}',
     },
   },
-  scheduledTriggers: {
-    hourly: {
-      id: 'hourly',
-      name: 'Hourly Trigger',
-      description: 'Should not be duplicated',
-      enabled: true,
-      cronExpression: '0 * * * *',
-      cronTimezone: 'UTC',
-      messageTemplate: 'Scheduled: {{message}}',
-      maxRetries: 1,
-      retryDelaySeconds: 60,
-      timeoutSeconds: 780,
-    },
-  },
 });
 
 const getProjectResourceCounts = async (tenantId: string) => {
@@ -218,6 +206,7 @@ describe('Duplicate Agent Service Layer', () => {
     const contextConfigId = `context-${generateId(6)}`;
     const teamAgentId = `team-agent-${generateId(6)}`;
     const teamSubAgentId = `team-sub-agent-${generateId(6)}`;
+    const scheduledTriggerId = `hourly-${generateId(6)}`;
 
     await Promise.all([
       createTool(manageDbClient)({
@@ -248,6 +237,7 @@ describe('Duplicate Agent Service Layer', () => {
         name: skillId,
         description: 'Duplicate skill',
         content: 'Skill content',
+        files: [],
         metadata: null,
       }),
       upsertFunction(manageDbClient)({
@@ -289,6 +279,22 @@ describe('Duplicate Agent Service Layer', () => {
         contextConfigId,
       })
     );
+
+    await createScheduledTrigger(runDbClient)({
+      id: scheduledTriggerId,
+      tenantId,
+      projectId,
+      agentId: sourceAgentId,
+      name: 'Hourly Trigger',
+      description: 'Should not be duplicated',
+      enabled: true,
+      cronExpression: '0 * * * *',
+      cronTimezone: 'UTC',
+      messageTemplate: 'Scheduled: {{message}}',
+      maxRetries: 1,
+      retryDelaySeconds: 60,
+      timeoutSeconds: 780,
+    });
 
     const beforeCounts = await getProjectResourceCounts(tenantId);
 
@@ -381,7 +387,7 @@ describe('Duplicate Agent Service Layer', () => {
       })
     ).toHaveLength(0);
     expect(
-      await listScheduledTriggers(manageDbClient)({
+      await listScheduledTriggers(runDbClient)({
         scopes: { tenantId, projectId, agentId: duplicateAgentId },
       })
     ).toHaveLength(0);

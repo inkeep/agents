@@ -3,6 +3,7 @@ import {
   createDataComponent,
   createExternalAgent,
   createFullAgentServerSide,
+  createScheduledTrigger,
   createSkill,
   createTool,
   generateId,
@@ -19,6 +20,7 @@ import {
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it } from 'vitest';
 import manageDbClient from '../../../../data/db/manageDbClient';
+import runDbClient from '../../../../data/db/runDbClient';
 import {
   createTestArtifactComponentData,
   createTestContextConfigDataFull,
@@ -1016,20 +1018,6 @@ describe('Agent CRUD Routes - Integration Tests', () => {
           messageTemplate: 'Incoming message: {{message}}',
         },
       },
-      scheduledTriggers: {
-        hourly: {
-          id: 'hourly',
-          name: 'Hourly Trigger',
-          description: 'Should not be duplicated',
-          enabled: true,
-          cronExpression: '0 * * * *',
-          cronTimezone: 'UTC',
-          messageTemplate: 'Scheduled: {{message}}',
-          maxRetries: 1,
-          retryDelaySeconds: 60,
-          timeoutSeconds: 780,
-        },
-      },
     });
 
     const getProjectResourceCounts = async (tenantId: string) => {
@@ -1072,6 +1060,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       const contextConfigId = `context-${generateId(6)}`;
       const teamAgentId = `team-agent-${generateId(6)}`;
       const teamSubAgentId = `team-sub-agent-${generateId(6)}`;
+      const scheduledTriggerId = `hourly-${generateId(6)}`;
 
       await Promise.all([
         createTool(manageDbClient)({
@@ -1102,6 +1091,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
           name: skillId,
           description: 'Duplicate route skill',
           content: 'Skill content',
+          files: [],
           metadata: null,
         }),
         upsertFunction(manageDbClient)({
@@ -1141,8 +1131,24 @@ describe('Agent CRUD Routes - Integration Tests', () => {
           teamAgentId,
           skillId,
           contextConfigId,
-        })
+          })
       );
+
+      await createScheduledTrigger(runDbClient)({
+        id: scheduledTriggerId,
+        tenantId,
+        projectId,
+        agentId: sourceAgentId,
+        name: 'Hourly Trigger',
+        description: 'Should not be duplicated',
+        enabled: true,
+        cronExpression: '0 * * * *',
+        cronTimezone: 'UTC',
+        messageTemplate: 'Scheduled: {{message}}',
+        maxRetries: 1,
+        retryDelaySeconds: 60,
+        timeoutSeconds: 780,
+      });
 
       const beforeCounts = await getProjectResourceCounts(tenantId);
 
@@ -1205,7 +1211,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
         })
       ).toHaveLength(0);
       expect(
-        await listScheduledTriggers(manageDbClient)({
+        await listScheduledTriggers(runDbClient)({
           scopes: { tenantId, projectId, agentId: duplicateAgentId },
         })
       ).toHaveLength(0);
