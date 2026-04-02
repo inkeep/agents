@@ -59,38 +59,35 @@ export function DatasetRunsList({
     loadRuns();
   }, [loadRuns, refreshKey]);
 
-  const columns = useMemo<ColumnDef<DatasetRun>[]>(
-    () => [
-      {
-        id: 'name',
-        accessorFn: (row) => row.runConfigName || `Run ${row.id.slice(0, 8)}`,
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
-        sortingFn: 'text',
-        cell: ({ row }) => (
-          <span className="font-medium">
-            {row.original.runConfigName || `Run ${row.original.id.slice(0, 8)}`}
-          </span>
-        ),
-      },
-      {
-        id: 'createdAt',
-        accessorFn: (row) => new Date(row.createdAt),
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
-        sortingFn: 'datetime',
-        cell: ({ row }) => (
-          <span className="text-muted-foreground">{formatDateAgo(row.original.createdAt)}</span>
-        ),
-      },
-      {
-        id: 'chevron',
-        header: '',
-        enableSorting: false,
-        meta: { className: 'w-12' },
-        cell: () => <ChevronRight className="h-4 w-4" />,
-      },
-    ],
-    []
-  );
+  const columns: ColumnDef<DatasetRun>[] = [
+    {
+      id: 'name',
+      accessorFn: (row) => row.runConfigName || `Run ${row.id.slice(0, 8)}`,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+      sortingFn: 'text',
+      cell: ({ row }) => (
+        <span className="font-medium">
+          {row.original.runConfigName || `Run ${row.original.id.slice(0, 8)}`}
+        </span>
+      ),
+    },
+    {
+      id: 'createdAt',
+      accessorFn: (row) => new Date(row.createdAt),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
+      sortingFn: 'datetime',
+      cell: ({ row }) => (
+        <span className="text-muted-foreground">{formatDateAgo(row.original.createdAt)}</span>
+      ),
+    },
+    {
+      id: 'chevron',
+      header: '',
+      enableSorting: false,
+      meta: { className: 'w-12' },
+      cell: () => <ChevronRight className="h-4 w-4" />,
+    },
+  ];
 
   if (loading) {
     return (

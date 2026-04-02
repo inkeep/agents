@@ -59,97 +59,92 @@ export function EvaluationRunConfigsList({
     }
   }, [refreshKey, refreshRunConfigs]);
 
-  const columns = useMemo<ColumnDef<EvaluationRunConfig>[]>(
-    () => [
-      {
-        accessorKey: 'name',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
-        sortingFn: 'text',
-        cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
-      },
-      {
-        accessorKey: 'description',
-        header: 'Description',
-        enableSorting: false,
-        cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground line-clamp-1">
-            {row.original.description || 'No description'}
-          </span>
-        ),
-      },
-      {
-        accessorKey: 'isActive',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
-        sortingFn: 'basic',
-        cell: ({ row }) => (
-          <Badge className="uppercase" variant={row.original.isActive ? 'primary' : 'code'}>
-            {row.original.isActive ? 'Active' : 'Inactive'}
-          </Badge>
-        ),
-      },
-      {
-        id: 'updatedAt',
-        accessorFn: (row) => new Date(row.updatedAt),
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Updated" />,
-        sortingFn: 'datetime',
-        cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground">
-            {formatDate(row.original.updatedAt)}
-          </span>
-        ),
-      },
-      {
-        id: 'actions',
-        header: '',
-        enableSorting: false,
-        meta: { className: 'w-12' },
-        cell: ({ row }) => (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setEditingRunConfig(row.original);
-                  setIsEditDialogOpen(true);
-                }}
-              >
-                <Pencil className="h-4 w-4" />
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDeletingRunConfig(row.original);
-                }}
-                variant="destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ),
-      },
-      {
-        id: 'chevron',
-        header: '',
-        enableSorting: false,
-        meta: { className: 'w-12' },
-        cell: () => <ChevronRight className="h-4 w-4 text-muted-foreground" />,
-      },
-    ],
-    []
-  );
+  const columns: ColumnDef<EvaluationRunConfig>[] = [
+    {
+      accessorKey: 'name',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+      sortingFn: 'text',
+      cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
+    },
+    {
+      accessorKey: 'description',
+      header: 'Description',
+      enableSorting: false,
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground line-clamp-1">
+          {row.original.description || 'No description'}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'isActive',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+      sortingFn: 'basic',
+      cell: ({ row }) => (
+        <Badge className="uppercase" variant={row.original.isActive ? 'primary' : 'code'}>
+          {row.original.isActive ? 'Active' : 'Inactive'}
+        </Badge>
+      ),
+    },
+    {
+      id: 'updatedAt',
+      accessorFn: (row) => new Date(row.updatedAt),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Updated" />,
+      sortingFn: 'datetime',
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">{formatDate(row.original.updatedAt)}</span>
+      ),
+    },
+    {
+      id: 'actions',
+      header: '',
+      enableSorting: false,
+      meta: { className: 'w-12' },
+      cell: ({ row }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingRunConfig(row.original);
+                setIsEditDialogOpen(true);
+              }}
+            >
+              <Pencil className="h-4 w-4" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeletingRunConfig(row.original);
+              }}
+              variant="destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+    {
+      id: 'chevron',
+      header: '',
+      enableSorting: false,
+      meta: { className: 'w-12' },
+      cell: () => <ChevronRight className="h-4 w-4 text-muted-foreground" />,
+    },
+  ];
 
   return (
     <>

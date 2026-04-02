@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getCopilotTokenAction } from '@/lib/actions/copilot-token';
 
 const MAX_RETRIES = 3;

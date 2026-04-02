@@ -5,7 +5,7 @@ import {
   QUOTA_RESOURCE_TYPES,
   SEAT_RESOURCE_TYPES,
 } from '@inkeep/agents-core/client-exports';
-import { use, useCallback, useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';

@@ -110,16 +110,13 @@ export default function TracesOverview({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const spanFilters = useMemo<SpanFilterOptions | undefined>(() => {
-    if (!spanName && attributes.length === 0) {
-      return undefined;
-    }
-    const filters = {
-      spanName: spanName || undefined,
-      attributes: attributes.length > 0 ? attributes : undefined,
-    };
-    return filters;
-  }, [spanName, attributes]);
+  const spanFilters: SpanFilterOptions | undefined =
+    !spanName && attributes.length === 0
+      ? undefined
+      : {
+          spanName: spanName || undefined,
+          attributes: attributes.length > 0 ? attributes : undefined,
+        };
 
   const { stats, loading, error, pagination, aggregateStats } = useConversationStats({
     startTime,

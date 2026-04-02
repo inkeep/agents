@@ -2,7 +2,6 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
-import { useCallback } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { fetchMCPTools } from '@/lib/api/tools';
 import { mcpToolQueryKeys } from '@/lib/query/keys/mcp-tools';

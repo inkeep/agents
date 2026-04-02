@@ -59,87 +59,84 @@ export function AppsTable({ apps, agentLookup, agentOptions }: AppsTableProps) {
     data: { canUse },
   } = useProjectPermissionsQuery();
 
-  const columns = useMemo<ColumnDef<App>[]>(
-    () => [
-      {
-        accessorKey: 'name',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
-        sortingFn: 'text',
-        cell: ({ row }) => (
-          <div className="flex flex-col">
-            <span className="font-medium text-foreground">{row.original.name}</span>
-            {row.original.description && (
-              <span className="text-sm text-muted-foreground truncate max-w-[200px]">
-                {row.original.description}
-              </span>
-            )}
-          </div>
+  const columns: ColumnDef<App>[] = [
+    {
+      accessorKey: 'name',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+      sortingFn: 'text',
+      cell: ({ row }) => (
+        <div className="flex flex-col">
+          <span className="font-medium text-foreground">{row.original.name}</span>
+          {row.original.description && (
+            <span className="text-sm text-muted-foreground truncate max-w-[200px]">
+              {row.original.description}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'type',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Type" />,
+      sortingFn: 'text',
+      cell: ({ row }) => (
+        <Badge variant={TYPE_BADGE_VARIANT[row.original.type] ?? 'secondary'}>
+          {TYPE_LABELS[row.original.type] ?? row.original.type}
+        </Badge>
+      ),
+    },
+    {
+      id: 'defaultAgent',
+      header: 'Default Agent',
+      enableSorting: false,
+      cell: ({ row }) =>
+        row.original.defaultAgentId && row.original.defaultProjectId ? (
+          <Link
+            href={`/${tenantId}/projects/${row.original.defaultProjectId}/agents/${row.original.defaultAgentId}`}
+            className="text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors"
+          >
+            {agentLookup[row.original.defaultAgentId]?.name ?? row.original.defaultAgentId}
+          </Link>
+        ) : (
+          <span className="text-sm text-muted-foreground italic">None</span>
         ),
-      },
-      {
-        accessorKey: 'type',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Type" />,
-        sortingFn: 'text',
-        cell: ({ row }) => (
-          <Badge variant={TYPE_BADGE_VARIANT[row.original.type] ?? 'secondary'}>
-            {TYPE_LABELS[row.original.type] ?? row.original.type}
-          </Badge>
-        ),
-      },
-      {
-        id: 'defaultAgent',
-        header: 'Default Agent',
-        enableSorting: false,
-        cell: ({ row }) =>
-          row.original.defaultAgentId && row.original.defaultProjectId ? (
-            <Link
-              href={`/${tenantId}/projects/${row.original.defaultProjectId}/agents/${row.original.defaultAgentId}`}
-              className="text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors"
-            >
-              {agentLookup[row.original.defaultAgentId]?.name ?? row.original.defaultAgentId}
-            </Link>
-          ) : (
-            <span className="text-sm text-muted-foreground italic">None</span>
-          ),
-      },
-      {
-        id: 'appId',
-        header: 'App ID',
-        enableSorting: false,
-        cell: ({ row }) => <AppIdCell appId={row.original.id} />,
-      },
-      {
-        accessorKey: 'enabled',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
-        sortingFn: 'basic',
-        cell: ({ row }) => (
-          <Badge variant={row.original.enabled ? 'success' : 'warning'}>
-            {row.original.enabled ? 'Enabled' : 'Disabled'}
-          </Badge>
-        ),
-      },
-      {
-        id: 'createdAt',
-        accessorFn: (row) => (row.createdAt ? new Date(row.createdAt) : undefined),
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
-        sortingFn: 'datetime',
-        sortUndefined: 'last',
-        cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground">
-            {row.original.createdAt ? formatDateAgo(row.original.createdAt) : ''}
-          </span>
-        ),
-      },
-      {
-        id: 'actions',
-        header: '',
-        enableSorting: false,
-        meta: { className: 'w-12' },
-        cell: ({ row }) => canUse && <AppItemMenu app={row.original} agentOptions={agentOptions} />,
-      },
-    ],
-    [agentLookup, agentOptions, canUse, tenantId]
-  );
+    },
+    {
+      id: 'appId',
+      header: 'App ID',
+      enableSorting: false,
+      cell: ({ row }) => <AppIdCell appId={row.original.id} />,
+    },
+    {
+      accessorKey: 'enabled',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+      sortingFn: 'basic',
+      cell: ({ row }) => (
+        <Badge variant={row.original.enabled ? 'success' : 'warning'}>
+          {row.original.enabled ? 'Enabled' : 'Disabled'}
+        </Badge>
+      ),
+    },
+    {
+      id: 'createdAt',
+      accessorFn: (row) => (row.createdAt ? new Date(row.createdAt) : undefined),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Created" />,
+      sortingFn: 'datetime',
+      sortUndefined: 'last',
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">
+          {row.original.createdAt ? formatDateAgo(row.original.createdAt) : ''}
+        </span>
+      ),
+    },
+    {
+      id: 'actions',
+      header: '',
+      enableSorting: false,
+      meta: { className: 'w-12' },
+      cell: ({ row }) => canUse && <AppItemMenu app={row.original} agentOptions={agentOptions} />,
+    },
+  ];
 
   return (
     <div className="rounded-lg border">

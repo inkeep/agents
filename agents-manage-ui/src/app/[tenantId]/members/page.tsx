@@ -1,7 +1,7 @@
 'use client';
 
 import { DEFAULT_MEMBERSHIP_LIMIT } from '@inkeep/agents-core/client-exports';
-import { use, useCallback, useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { MembersTable } from '@/components/members/members-table';
 import { OrgRoles } from '@/constants/signoz';

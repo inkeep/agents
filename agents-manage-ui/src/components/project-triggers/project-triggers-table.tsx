@@ -131,183 +131,171 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
     [tenantId, projectId, router]
   );
 
-  const columns = useMemo<ColumnDef<TriggerWithAgent>[]>(
-    () => [
-      {
-        accessorKey: 'name',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
-        sortingFn: 'text',
-        cell: ({ row }) => <div className="font-medium text-foreground">{row.original.name}</div>,
-      },
-      {
-        id: 'agentName',
-        accessorFn: (row) => row.agentName,
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Agent" />,
-        sortingFn: 'text',
-        cell: ({ row }) => (
-          <Link
-            href={`/${tenantId}/projects/${projectId}/agents/${row.original.agentId}`}
-            className="text-sm text-muted-foreground hover:text-foreground hover:underline"
-          >
-            {row.original.agentName}
-          </Link>
+  const columns: ColumnDef<TriggerWithAgent>[] = [
+    {
+      accessorKey: 'name',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+      sortingFn: 'text',
+      cell: ({ row }) => <div className="font-medium text-foreground">{row.original.name}</div>,
+    },
+    {
+      id: 'agentName',
+      accessorFn: (row) => row.agentName,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Agent" />,
+      sortingFn: 'text',
+      cell: ({ row }) => (
+        <Link
+          href={`/${tenantId}/projects/${projectId}/agents/${row.original.agentId}`}
+          className="text-sm text-muted-foreground hover:text-foreground hover:underline"
+        >
+          {row.original.agentName}
+        </Link>
+      ),
+    },
+    {
+      id: 'runAs',
+      header: 'Run As',
+      enableSorting: false,
+      cell: ({ row }) =>
+        row.original.runAsUserId ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="text-sm text-muted-foreground truncate max-w-[150px] inline-block cursor-default">
+                {getUserDisplayName(row.original.runAsUserId)}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <code className="font-mono text-xs">{row.original.runAsUserId}</code>
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          <span className="text-muted-foreground">—</span>
         ),
-      },
-      {
-        id: 'runAs',
-        header: 'Run As',
-        enableSorting: false,
-        cell: ({ row }) =>
-          row.original.runAsUserId ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="text-sm text-muted-foreground truncate max-w-[150px] inline-block cursor-default">
-                  {getUserDisplayName(row.original.runAsUserId)}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <code className="font-mono text-xs">{row.original.runAsUserId}</code>
-              </TooltipContent>
-            </Tooltip>
-          ) : (
-            <span className="text-muted-foreground">—</span>
-          ),
-      },
-      {
-        accessorKey: 'description',
-        header: 'Description',
-        enableSorting: false,
-        cell: ({ row }) => (
-          <div className="text-sm text-muted-foreground max-w-md truncate">
-            {row.original.description || '—'}
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'enabled',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
-        sortingFn: 'basic',
-        cell: ({ row }) => {
-          const isLoading = loadingTriggers.has(row.original.id);
-          const canManage = canManageTrigger(row.original);
-          return (
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={row.original.enabled}
-                onCheckedChange={() =>
-                  toggleEnabled(row.original.id, row.original.agentId, row.original.enabled)
-                }
-                disabled={isLoading || !canManage}
-              />
-              <Badge className="uppercase" variant={row.original.enabled ? 'primary' : 'code'}>
-                {row.original.enabled ? 'Enabled' : 'Disabled'}
-              </Badge>
-            </div>
-          );
-        },
-      },
-      {
-        accessorKey: 'webhookUrl',
-        header: 'Webhook URL',
-        enableSorting: false,
-        cell: ({ row }) => (
+    },
+    {
+      accessorKey: 'description',
+      header: 'Description',
+      enableSorting: false,
+      cell: ({ row }) => (
+        <div className="text-sm text-muted-foreground max-w-md truncate">
+          {row.original.description || '—'}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'enabled',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+      sortingFn: 'basic',
+      cell: ({ row }) => {
+        const isLoading = loadingTriggers.has(row.original.id);
+        const canManage = canManageTrigger(row.original);
+        return (
           <div className="flex items-center gap-2">
-            <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-xs font-mono truncate max-w-xs">
-              {row.original.webhookUrl}
-            </code>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => copyWebhookUrl(row.original.webhookUrl, row.original.name)}
-              title="Copy webhook URL"
-            >
-              <Copy className="w-4 h-4" />
-            </Button>
+            <Switch
+              checked={row.original.enabled}
+              onCheckedChange={() =>
+                toggleEnabled(row.original.id, row.original.agentId, row.original.enabled)
+              }
+              disabled={isLoading || !canManage}
+            />
+            <Badge className="uppercase" variant={row.original.enabled ? 'primary' : 'code'}>
+              {row.original.enabled ? 'Enabled' : 'Disabled'}
+            </Badge>
           </div>
-        ),
+        );
       },
-      {
-        id: 'actions',
-        header: '',
-        enableSorting: false,
-        meta: { className: 'w-12' },
-        cell: ({ row }) => {
-          const isLoading = loadingTriggers.has(row.original.id);
-          const canManage = canManageTrigger(row.original);
-          return (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon-sm" disabled={isLoading}>
-                  <MoreHorizontal className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+    },
+    {
+      accessorKey: 'webhookUrl',
+      header: 'Webhook URL',
+      enableSorting: false,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-xs font-mono truncate max-w-xs">
+            {row.original.webhookUrl}
+          </code>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => copyWebhookUrl(row.original.webhookUrl, row.original.name)}
+            title="Copy webhook URL"
+          >
+            <Copy className="w-4 h-4" />
+          </Button>
+        </div>
+      ),
+    },
+    {
+      id: 'actions',
+      header: '',
+      enableSorting: false,
+      meta: { className: 'w-12' },
+      cell: ({ row }) => {
+        const isLoading = loadingTriggers.has(row.original.id);
+        const canManage = canManageTrigger(row.original);
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-sm" disabled={isLoading}>
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link
+                  href={`/${tenantId}/projects/${projectId}/triggers/webhooks/${row.original.agentId}/${row.original.id}/invocations`}
+                >
+                  <History className="w-4 h-4" />
+                  View Invocations
+                </Link>
+              </DropdownMenuItem>
+              {canManage && (
                 <DropdownMenuItem asChild>
                   <Link
-                    href={`/${tenantId}/projects/${projectId}/triggers/webhooks/${row.original.agentId}/${row.original.id}/invocations`}
+                    href={`/${tenantId}/projects/${projectId}/triggers/webhooks/${row.original.agentId}/${row.original.id}/edit`}
                   >
-                    <History className="w-4 h-4" />
-                    View Invocations
+                    <Pencil className="w-4 h-4" />
+                    Edit
                   </Link>
                 </DropdownMenuItem>
-                {canManage && (
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href={`/${tenantId}/projects/${projectId}/triggers/webhooks/${row.original.agentId}/${row.original.id}/edit`}
-                    >
-                      <Pencil className="w-4 h-4" />
-                      Edit
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem asChild>
-                  <Link
-                    href={(() => {
-                      const params = new URLSearchParams();
-                      if (row.original.messageTemplate)
-                        params.set('messageTemplate', row.original.messageTemplate);
-                      if (row.original.inputSchema)
-                        params.set('inputSchema', JSON.stringify(row.original.inputSchema));
-                      if (row.original.outputTransform)
-                        params.set('outputTransform', JSON.stringify(row.original.outputTransform));
-                      params.set('enabled', String(row.original.enabled));
-                      if (row.original.runAsUserId)
-                        params.set('runAsUserId', row.original.runAsUserId);
-                      return `/${tenantId}/projects/${projectId}/triggers/webhooks/${row.original.agentId}/new?${params.toString()}`;
-                    })()}
-                  >
-                    <CopyPlus className="w-4 h-4" />
-                    Duplicate
-                  </Link>
+              )}
+              <DropdownMenuItem asChild>
+                <Link
+                  href={(() => {
+                    const params = new URLSearchParams();
+                    if (row.original.messageTemplate)
+                      params.set('messageTemplate', row.original.messageTemplate);
+                    if (row.original.inputSchema)
+                      params.set('inputSchema', JSON.stringify(row.original.inputSchema));
+                    if (row.original.outputTransform)
+                      params.set('outputTransform', JSON.stringify(row.original.outputTransform));
+                    params.set('enabled', String(row.original.enabled));
+                    if (row.original.runAsUserId)
+                      params.set('runAsUserId', row.original.runAsUserId);
+                    return `/${tenantId}/projects/${projectId}/triggers/webhooks/${row.original.agentId}/new?${params.toString()}`;
+                  })()}
+                >
+                  <CopyPlus className="w-4 h-4" />
+                  Duplicate
+                </Link>
+              </DropdownMenuItem>
+              {canManage && (
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() =>
+                    deleteTrigger(row.original.id, row.original.agentId, row.original.name)
+                  }
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete
                 </DropdownMenuItem>
-                {canManage && (
-                  <DropdownMenuItem
-                    variant="destructive"
-                    onClick={() =>
-                      deleteTrigger(row.original.id, row.original.agentId, row.original.name)
-                    }
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Delete
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          );
-        },
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
       },
-    ],
-    [
-      tenantId,
-      projectId,
-      loadingTriggers,
-      canManageTrigger,
-      toggleEnabled,
-      deleteTrigger,
-      copyWebhookUrl,
-      getUserDisplayName,
-    ]
-  );
+    },
+  ];
 
   return (
     <div className="rounded-lg border">

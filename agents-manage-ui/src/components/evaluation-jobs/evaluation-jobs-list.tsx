@@ -109,84 +109,81 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
     [datasetRunNames]
   );
 
-  const columns = useMemo<ColumnDef<EvaluationJobConfig>[]>(
-    () => [
-      {
-        id: 'name',
-        accessorFn: (row) => formatFilters(row.jobFilters),
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
-        sortingFn: 'text',
-        cell: ({ row }) =>
-          isLoadingNames ? (
-            <Skeleton className="h-4 w-48" />
-          ) : (
-            <span className="font-medium">{formatFilters(row.original.jobFilters)}</span>
-          ),
-      },
-      {
-        id: 'updatedAt',
-        accessorFn: (row) => new Date(row.updatedAt),
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Updated" />,
-        sortingFn: 'datetime',
-        cell: ({ row }) =>
-          isLoadingNames ? (
-            <Skeleton className="h-4 w-24" />
-          ) : (
-            <span className="text-sm text-muted-foreground">
-              {formatDate(row.original.updatedAt)}
-            </span>
-          ),
-      },
-      {
-        id: 'actions',
-        header: '',
-        enableSorting: false,
-        meta: { className: 'w-12' },
-        cell: ({ row }) =>
-          isLoadingNames ? (
-            <Skeleton className="h-4 w-8" />
-          ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDeletingJobConfig(row.original);
-                  }}
-                  variant="destructive"
-                >
-                  <Trash2 className="text-inherit" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ),
-      },
-      {
-        id: 'chevron',
-        header: '',
-        enableSorting: false,
-        meta: { className: 'w-12' },
-        cell: () =>
-          isLoadingNames ? (
-            <Skeleton className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          ),
-      },
-    ],
-    [isLoadingNames, formatFilters]
-  );
+  const columns: ColumnDef<EvaluationJobConfig>[] = [
+    {
+      id: 'name',
+      accessorFn: (row) => formatFilters(row.jobFilters),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+      sortingFn: 'text',
+      cell: ({ row }) =>
+        isLoadingNames ? (
+          <Skeleton className="h-4 w-48" />
+        ) : (
+          <span className="font-medium">{formatFilters(row.original.jobFilters)}</span>
+        ),
+    },
+    {
+      id: 'updatedAt',
+      accessorFn: (row) => new Date(row.updatedAt),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Updated" />,
+      sortingFn: 'datetime',
+      cell: ({ row }) =>
+        isLoadingNames ? (
+          <Skeleton className="h-4 w-24" />
+        ) : (
+          <span className="text-sm text-muted-foreground">
+            {formatDate(row.original.updatedAt)}
+          </span>
+        ),
+    },
+    {
+      id: 'actions',
+      header: '',
+      enableSorting: false,
+      meta: { className: 'w-12' },
+      cell: ({ row }) =>
+        isLoadingNames ? (
+          <Skeleton className="h-4 w-8" />
+        ) : (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDeletingJobConfig(row.original);
+                }}
+                variant="destructive"
+              >
+                <Trash2 className="text-inherit" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ),
+    },
+    {
+      id: 'chevron',
+      header: '',
+      enableSorting: false,
+      meta: { className: 'w-12' },
+      cell: () =>
+        isLoadingNames ? (
+          <Skeleton className="h-4 w-4" />
+        ) : (
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        ),
+    },
+  ];
 
   return (
     <>
