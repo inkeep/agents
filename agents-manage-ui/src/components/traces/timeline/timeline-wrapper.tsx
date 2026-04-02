@@ -222,23 +222,18 @@ export function TimelineWrapper({
   }, [conversationId]);
 
   // Memoize activities calculation to prevent expensive operations on every render
-  const activities = useMemo(() => {
-    if (conversation?.activities && conversation.activities.length > 0) {
-      return conversation.activities;
-    }
-
-    return (
-      conversation?.toolCalls?.map((tc: ActivityItem) => ({
-        ...tc, // keep saveResultSaved, saveSummaryData, etc.
-        id: tc.id ?? `tool-call-${Date.now()}`,
-        type: 'tool_call' as const,
-        description: `Called ${tc.toolName} tool${tc.toolDescription ? ` - ${tc.toolDescription}` : ''}`,
-        timestamp: new Date(tc.timestamp).toISOString(),
-        subAgentName: tc.subAgentName || 'AI Agent',
-        toolResult: tc.result ?? tc.toolResult ?? 'Tool call completed',
-      })) || []
-    );
-  }, [conversation?.activities, conversation?.toolCalls]);
+  const activities =
+    conversation?.activities && conversation.activities.length > 0
+      ? conversation.activities
+      : conversation?.toolCalls?.map((tc) => ({
+          ...tc, // keep saveResultSaved, saveSummaryData, etc.
+          id: tc.id ?? `tool-call-${Date.now()}`,
+          type: 'tool_call' as const,
+          description: `Called ${tc.toolName} tool${tc.toolDescription ? ` - ${tc.toolDescription}` : ''}`,
+          timestamp: new Date(tc.timestamp).toISOString(),
+          subAgentName: tc.subAgentName || 'AI Agent',
+          toolResult: tc.result ?? tc.toolResult ?? 'Tool call completed',
+        })) || [];
 
   // Token estimates state - calculated when dropdown opens
   const [tokenEstimates, setTokenEstimates] = useState<{
@@ -269,15 +264,11 @@ export function TimelineWrapper({
   }, [conversation, tenantId, projectId, tokenEstimates.summarized]);
 
   // Memoize sorted activities to prevent re-sorting on every render
-  const sortedActivities = useMemo(() => {
-    const list = [...activities];
-    list.sort((a, b) => {
-      const ta = new Date(a.timestamp).getTime();
-      const tb = new Date(b.timestamp).getTime();
-      return ta !== tb ? ta - tb : String(a.id).localeCompare(String(b.id));
-    });
-    return list;
-  }, [activities]);
+  const sortedActivities = [...activities].sort((a, b) => {
+    const ta = new Date(a.timestamp).getTime();
+    const tb = new Date(b.timestamp).getTime();
+    return ta !== tb ? ta - tb : String(a.id).localeCompare(String(b.id));
+  });
 
   // Ref to track if we've already scrolled to the first error
   const hasScrolledToErrorRef = useRef<string | undefined>(undefined);
