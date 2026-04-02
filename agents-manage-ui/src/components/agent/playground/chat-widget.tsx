@@ -283,12 +283,12 @@ export function ChatWidget({
                 },
               },
               ...(copilotCtx.isCopilotConfigured
-                ? ([
+                ? [
                     {
                       label: 'Improve with AI',
-                      icon: { builtIn: 'LuSparkles' },
+                      icon: { builtIn: 'LuSparkles' as const },
                       action: {
-                        type: 'invoke_message_callback',
+                        type: 'invoke_message_callback' as const,
                         callback({ messageId }: { messageId?: string }) {
                           setMessageId(messageId);
                           setFeedbackType('negative');
@@ -296,7 +296,7 @@ export function ChatWidget({
                         },
                       },
                     },
-                  ] satisfies typeof messageActions)
+                  ]
                 : []),
             ],
             components: new Proxy(
