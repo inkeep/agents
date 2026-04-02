@@ -2,7 +2,7 @@
 
 import { notFound } from 'next/navigation';
 import { parseAsString, useQueryState } from 'nuqs';
-import { use, useMemo } from 'react';
+import { use } from 'react';
 import { CostDashboard } from '@/components/cost/cost-dashboard';
 import { PageHeader } from '@/components/layout/page-header';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';

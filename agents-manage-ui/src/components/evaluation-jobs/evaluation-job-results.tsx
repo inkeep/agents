@@ -2,7 +2,7 @@
 
 import { ChevronDown, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
 import { EvaluatorViewDialog } from '@/components/evaluators/evaluator-view-dialog';

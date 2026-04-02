@@ -1,7 +1,7 @@
 'use client';
 
 import { Info, Loader2, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { Streamdown } from 'streamdown';
 import { CodeEditor } from '@/components/editors/code-editor';

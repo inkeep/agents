@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Bug, X } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { type Dispatch, useEffect, useMemo, useState } from 'react';
+import { type Dispatch, useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';

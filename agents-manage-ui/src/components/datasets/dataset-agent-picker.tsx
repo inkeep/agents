@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
 import {

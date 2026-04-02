@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Combobox } from '@/components/ui/combobox';
 import type { AgentSummary, TriggerWithAgent } from '@/lib/api/project-triggers';
 import { FilterTriggerComponent } from '../traces/filters/filter-trigger';

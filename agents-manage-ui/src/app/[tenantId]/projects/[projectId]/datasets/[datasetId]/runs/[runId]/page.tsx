@@ -2,7 +2,7 @@
 
 import { ArrowLeft, ChevronRight, Clock, ExternalLink, Loader2, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { use, useCallback, useEffect, useMemo, useState } from 'react';
+import { use, useCallback, useEffect, useState } from 'react';
 import { DatasetItemViewDialog } from '@/components/dataset-items/dataset-item-view-dialog';
 import {
   TestCaseFilters,

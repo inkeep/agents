@@ -3,7 +3,7 @@
 import { ArrowLeft, CheckCircle, Wrench } from 'lucide-react';
 import NextLink from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { use, useEffect, useMemo, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
 import { StatCard } from '@/components/traces/charts/stat-card';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';

@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useController, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';

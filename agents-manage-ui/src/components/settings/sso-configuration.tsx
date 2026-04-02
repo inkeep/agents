@@ -4,7 +4,7 @@ import type { SSOPlugin } from '@better-auth/sso';
 import type { AllowedAuthMethod } from '@inkeep/agents-core/auth/auth-types';
 import { parseAllowedAuthMethods } from '@inkeep/agents-core/auth/auth-types';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';

@@ -2,7 +2,7 @@
 
 import { History } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import { getProjectScheduledTriggersAction } from '@/lib/actions/project-triggers';

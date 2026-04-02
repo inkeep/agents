@@ -1,7 +1,7 @@
 import { type OrgRole, OrgRoles } from '@inkeep/agents-core/client-exports';
 import { ChevronDown, Plus } from 'lucide-react';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { ChangePasswordDialog } from '@/components/members/change-password-dialog';
 import { InviteMemberDialog } from '@/components/members/invite-member-dialog';
