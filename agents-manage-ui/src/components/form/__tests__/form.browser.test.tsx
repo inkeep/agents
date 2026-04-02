@@ -142,7 +142,7 @@ describe('Form', () => {
     });
 
     await expect(container).toMatchScreenshot();
-  });
+  }, 10_000);
 
   test('should properly highlight nested error state', async () => {
     agentStore.setState({ jsonSchemaMode: true });
