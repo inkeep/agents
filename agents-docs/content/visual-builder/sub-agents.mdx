@@ -21,14 +21,39 @@ You can use the Visual Builder to add Sub Agents to an Agent, give Sub Agents to
 
 2. Provide a name, prompt, and description.
 
-## Duplicating an Agent
+## Copying an Agent
 
-If you already have an agent in the same project, open the **New Agent** dialog and choose
-**Duplicate existing agent**.
+The **New Agent** dialog now has two starting points:
 
-Select the source agent, then provide a new name or ID for the copy. The duplicate keeps the
-original agent's agent-scoped configuration and references the same project-scoped dependencies.
-Triggers are not copied.
+- **Create blank agent** starts from scratch.
+- **Copy existing agent** lets you copy from the current project or another project.
+
+When you choose **Copy existing agent**, the flow is the same in both cases:
+
+1. Choose a **Source project**. The current project is selected by default.
+2. Choose the **Source agent**.
+3. Change the suggested name and ID.
+4. Click **Copy agent**.
+
+### Copy within the same project
+
+If you keep **Source project** set to the current project, the copied agent stays within that
+project.
+
+The copy keeps the original agent's agent-scoped configuration and continues to reference the same
+project-scoped dependencies. Webhook and scheduled triggers are not copied.
+
+### Copy from another project
+
+If you change **Source project** to a different project, the builder copies that agent into the
+current project instead. Cross-project copies always read from the source project's main branch.
+
+When you copy an agent across projects:
+
+- Referenced project resources like MCP servers, external agents, functions, skills, data components, and artifact components are recreated in the target project when needed.
+- Webhook and scheduled triggers are skipped.
+- Team-agent relationships are not supported.
+- Credentials are not copied. If a copied MCP server or external agent depends on credentials that are not available in the target project, it is added disconnected and needs to be reconnected after the copy.
 
 ### Agent Prompt
 
