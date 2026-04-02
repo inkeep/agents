@@ -23,19 +23,10 @@ interface CopilotTokenResponse {
 }
 
 export async function getCopilotTokenAction(): Promise<ActionResult<CopilotTokenResponse>> {
-  const copilotTenantId = process.env.PUBLIC_INKEEP_COPILOT_TENANT_ID;
   const agentsApiUrl =
     process.env.INKEEP_AGENTS_API_URL ||
     process.env.PUBLIC_INKEEP_AGENTS_API_URL ||
     DEFAULT_INKEEP_AGENTS_API_URL;
-
-  if (!copilotTenantId) {
-    return {
-      success: false,
-      error: 'Copilot tenant ID is not configured',
-      code: 'configuration_error',
-    };
-  }
 
   try {
     const cookieStore = await cookies();
@@ -50,15 +41,12 @@ export async function getCopilotTokenAction(): Promise<ActionResult<CopilotToken
       };
     }
 
-    const response = await fetch(
-      `${agentsApiUrl}/manage/tenants/${copilotTenantId}/copilot/token`,
-      {
-        method: 'POST',
-        headers: {
-          'x-forwarded-cookie': cookieHeader,
-        },
-      }
-    );
+    const response = await fetch(`${agentsApiUrl}/manage/copilot/token`, {
+      method: 'POST',
+      headers: {
+        'x-forwarded-cookie': cookieHeader,
+      },
+    });
 
     if (!response.ok) {
       let errorMessage = 'Failed to fetch copilot token';

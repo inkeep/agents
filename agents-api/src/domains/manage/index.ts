@@ -47,9 +47,6 @@ export function createManageRoutes() {
   // Mount playground token routes under tenant (uses requireTenantAccess middleware)
   app.route('/tenants/:tenantId/playground/token', playgroundTokenRoutes);
 
-  // Mount copilot token routes under tenant (uses requireTenantAccess middleware)
-  app.route('/tenants/:tenantId/copilot/token', copilotTokenRoutes);
-
   // Mount SigNoz proxy routes under tenant (uses requireTenantAccess middleware for authorization)
   app.route('/tenants/:tenantId/signoz', signozRoutes);
 
@@ -76,6 +73,9 @@ export function createManageRoutes() {
 
   // Mount full project routes directly under tenant
   app.route('/tenants/:tenantId', projectFullRoutes);
+
+  // Mount copilot token route (session auth only, no tenant scoping needed)
+  app.route('/copilot/token', copilotTokenRoutes);
 
   // Mount OAuth routes - global OAuth callback endpoint
   app.route('/oauth', oauthRoutes);

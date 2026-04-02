@@ -1,19 +1,17 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
-import {
-  createApiError,
-  derivePlaygroundKid,
-  ErrorResponseSchema,
-  TenantParamsSchema,
-} from '@inkeep/agents-core';
-import { createProtectedRoute, inheritedManageTenantAuth } from '@inkeep/agents-core/middleware';
+import { createApiError, derivePlaygroundKid, ErrorResponseSchema } from '@inkeep/agents-core';
+import { createProtectedRoute, noAuth } from '@inkeep/agents-core/middleware';
 import { exportSPKI, importPKCS8, SignJWT } from 'jose';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
-import type { ManageAppVariables } from '../../../types/app';
+import { sessionAuth } from '../../../middleware/sessionAuth';
+import type { AppVariables } from '../../../types/app';
 
 const logger = getLogger('copilotToken');
 
-const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
+const app = new OpenAPIHono<{ Variables: AppVariables }>();
+
+app.use('*', sessionAuth());
 
 const CopilotTokenResponseSchema = z.object({
   apiKey: z.string().describe('Temporary JWT for copilot use'),
@@ -31,10 +29,7 @@ app.openapi(
     description:
       'Generates a short-lived JWT (1 hour) for authenticated users to access the copilot agent. The token is a minimal identity assertion; scope comes from the copilot app record.',
     security: [{ cookieAuth: [] }],
-    permission: inheritedManageTenantAuth(),
-    request: {
-      params: TenantParamsSchema,
-    },
+    permission: noAuth(),
     responses: {
       200: {
         description: 'Copilot JWT generated successfully',
@@ -56,12 +51,11 @@ app.openapi(
   }),
   async (c) => {
     const userId = c.get('userId');
-    const tenantId = c.get('tenantId');
 
-    if (!userId || !tenantId) {
+    if (!userId) {
       throw createApiError({
         code: 'unauthorized',
-        message: 'User or tenant ID not found',
+        message: 'User not found',
       });
     }
 

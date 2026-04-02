@@ -160,12 +160,7 @@ export function CopilotChat() {
     refreshAgentGraph,
   ]);
 
-  const {
-    PUBLIC_INKEEP_AGENTS_API_URL,
-    PUBLIC_INKEEP_COPILOT_AGENT_ID,
-    PUBLIC_INKEEP_COPILOT_PROJECT_ID,
-    PUBLIC_INKEEP_COPILOT_TENANT_ID,
-  } = useRuntimeConfig();
+  const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
 
   const {
     apiKey: copilotToken,
@@ -324,9 +319,6 @@ export function CopilotChat() {
               'x-emit-operations': 'true',
               Authorization: `Bearer ${copilotToken}`,
               ...(copilotAppId && { 'x-inkeep-app-id': copilotAppId }),
-              'x-inkeep-tenant-id': PUBLIC_INKEEP_COPILOT_TENANT_ID || '',
-              'x-inkeep-project-id': PUBLIC_INKEEP_COPILOT_PROJECT_ID || '',
-              'x-inkeep-agent-id': PUBLIC_INKEEP_COPILOT_AGENT_ID || '',
               // Target is the agent that the copilot is building or editing.
               'x-target-tenant-id': tenantId,
               'x-target-project-id': projectId,
