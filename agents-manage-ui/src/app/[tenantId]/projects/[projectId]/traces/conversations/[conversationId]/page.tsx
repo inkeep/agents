@@ -205,9 +205,8 @@ export default function ConversationDetail({
       toast.error('Failed to rerun trigger', {
         description: err instanceof Error ? err.message : 'An unknown error occurred',
       });
-    } finally {
-      setIsRerunning(false);
     }
+    setIsRerunning(false);
   };
 
   useEffect(() => {
@@ -244,9 +243,8 @@ export default function ConversationDetail({
         );
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     if (conversationId && tenantId && projectId) fetchConversationDetail();
