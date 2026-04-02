@@ -1,12 +1,10 @@
 'use client';
 
-import { notFound } from 'next/navigation';
 import { use, useMemo } from 'react';
 import { CostDashboard } from '@/components/cost/cost-dashboard';
 import { PageHeader } from '@/components/layout/page-header';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
 import { useTracesQueryState } from '@/hooks/use-traces-query-state';
-import { useCapabilitiesQuery } from '@/lib/query/capabilities';
 
 const TIME_RANGES = {
   '24h': { label: 'Last 24 hours', hours: 24 },
@@ -19,11 +17,6 @@ export default function ProjectUsagePage({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/cost'>) {
   const { tenantId, projectId } = use(params);
-  const { data: capabilities, isLoading: capabilitiesLoading } = useCapabilitiesQuery();
-
-  if (!capabilitiesLoading && !capabilities?.costTracking?.enabled) {
-    notFound();
-  }
 
   const {
     timeRange: selectedTimeRange,

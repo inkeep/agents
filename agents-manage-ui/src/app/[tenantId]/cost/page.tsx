@@ -1,6 +1,5 @@
 'use client';
 
-import { notFound } from 'next/navigation';
 import { parseAsString, useQueryState } from 'nuqs';
 import { use, useMemo } from 'react';
 import { CostDashboard } from '@/components/cost/cost-dashboard';
@@ -9,7 +8,6 @@ import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-
 import { FilterTriggerComponent } from '@/components/traces/filters/filter-trigger';
 import { Combobox } from '@/components/ui/combobox';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
-import { useCapabilitiesQuery } from '@/lib/query/capabilities';
 import { useProjectsQuery } from '@/lib/query/projects';
 
 const TIME_RANGES = {
@@ -21,11 +19,6 @@ const TIME_RANGES = {
 
 export default function TenantUsagePage({ params }: PageProps<'/[tenantId]/cost'>) {
   const { tenantId } = use(params);
-  const { data: capabilities, isLoading: capabilitiesLoading } = useCapabilitiesQuery();
-
-  if (!capabilitiesLoading && !capabilities?.costTracking?.enabled) {
-    notFound();
-  }
 
   const {
     timeRange: selectedTimeRange,
