@@ -1336,12 +1336,12 @@ describe('Agent CRUD Routes - Integration Tests', () => {
         },
         get: (key: string) =>
           (
-            {
+            ({
               userId: 'test-user',
               tenantId: 'test-tenant',
               tenantRole: 'member',
               ...overrides?.context,
-            } as Record<string, string | undefined>
+            }) as Record<string, string | undefined>
           )[key],
       }) as Parameters<typeof importAgentHandler>[0];
 
@@ -1396,10 +1396,57 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       }
     });
 
-    it('should return 500 until the import service is implemented and not create records', async () => {
-      const tenantId = await createTestTenantWithOrg('agent-import-not-implemented');
+    it('should import an agent from another project', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-import-success');
+      const sourceAgentId = `source-agent-${generateId(6)}`;
+      const sourceSubAgentId = `sub-agent-${generateId(6)}`;
       const newAgentId = `imported-agent-${generateId(6)}`;
 
+      await createTestProject(manageDbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, sourceProjectId);
+      await createFullAgentServerSide(manageDbClient)(
+        { tenantId, projectId: sourceProjectId },
+        {
+          id: sourceAgentId,
+          name: 'Source Agent',
+          defaultSubAgentId: sourceSubAgentId,
+          subAgents: {
+            [sourceSubAgentId]: {
+              ...createTestSubAgentData({ id: sourceSubAgentId, suffix: ' Import' }),
+              type: 'internal',
+              canUse: [],
+            },
+          },
+        }
+      );
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/import`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            sourceProjectId,
+            sourceAgentId,
+            newAgentId,
+          }),
+        }
+      );
+
+      expect(res.status).toBe(201);
+
+      const body = await res.json();
+      expect(body.data.id).toBe(newAgentId);
+      expect(body.data.name).toBe('Source Agent (Copy)');
+      expect(body.warnings).toEqual([]);
+      expect(
+        await getAgentById(manageDbClient)({
+          scopes: { tenantId, projectId, agentId: newAgentId },
+        })
+      ).toBeTruthy();
+    });
+
+    it('should return 404 when the source agent does not exist', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-import-source-missing');
       await createTestProject(manageDbClient, tenantId, projectId);
       await createTestProject(manageDbClient, tenantId, sourceProjectId);
 
@@ -1409,21 +1456,57 @@ describe('Agent CRUD Routes - Integration Tests', () => {
           method: 'POST',
           body: JSON.stringify({
             sourceProjectId,
-            sourceAgentId: 'source-agent',
-            newAgentId,
+            sourceAgentId: 'missing-source-agent',
+            newAgentId: `imported-agent-${generateId(6)}`,
           }),
         }
       );
 
-      expect(res.status).toBe(500);
+      expect(res.status).toBe(404);
+    });
+
+    it('should return 409 when the target agent id already exists', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-import-conflict');
+      const sourceAgentId = `source-agent-${generateId(6)}`;
+      const sourceSubAgentId = `sub-agent-${generateId(6)}`;
+
+      await createTestProject(manageDbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, sourceProjectId);
+
+      await createFullAgentServerSide(manageDbClient)(
+        { tenantId, projectId: sourceProjectId },
+        {
+          id: sourceAgentId,
+          name: 'Source Agent',
+          defaultSubAgentId: sourceSubAgentId,
+          subAgents: {
+            [sourceSubAgentId]: {
+              ...createTestSubAgentData({ id: sourceSubAgentId, suffix: ' Conflict' }),
+              type: 'internal',
+              canUse: [],
+            },
+          },
+        }
+      );
+
+      const { agentId: targetAgentId } = await createTestAgent({ tenantId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/import`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            sourceProjectId,
+            sourceAgentId,
+            newAgentId: targetAgentId,
+          }),
+        }
+      );
+
+      expect(res.status).toBe(409);
 
       const body = await res.json();
-      expect(body.detail).toBe('Import agent service not implemented');
-      expect(
-        await getAgentById(manageDbClient)({
-          scopes: { tenantId, projectId, agentId: newAgentId },
-        })
-      ).toBeNull();
+      expect(body.detail).toBe(`An agent with ID '${targetAgentId}' already exists`);
     });
   });
 });

@@ -1,7 +1,7 @@
 'use client';
 
-import type { DuplicateAgentRequest } from '@inkeep/agents-core';
 import { zodResolver } from '@hookform/resolvers/zod';
+import type { DuplicateAgentRequest } from '@inkeep/agents-core';
 import { DuplicateAgentRequestSchema } from '@inkeep/agents-core/client-exports';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';

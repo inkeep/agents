@@ -18,22 +18,27 @@ import {
   getAgentById,
   getAgentSubAgentInfos,
   getFullAgentDefinition,
+  getProjectMainResolvedRef,
   type ImportAgentRequest,
   ImportAgentRequestSchema,
   ImportAgentResponseSchema,
+  importFullAgentServerSide,
   listAgentsPaginated,
+  type OrgRole,
   PaginationQueryParamsSchema,
   RelatedAgentInfoListResponse,
   TenantProjectAgentParamsSchema,
   TenantProjectAgentSubAgentParamsSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
-  type OrgRole,
   throwIfUniqueConstraintError,
   updateAgent,
+  withRef,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { clearWorkspaceConnectionCache } from '@inkeep/agents-work-apps/slack';
+import manageDbClient from '../../../data/db/manageDbClient';
+import manageDbPool from '../../../data/db/manageDbPool';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import {
@@ -53,7 +58,7 @@ type ImportAgentHandlerContext = {
 };
 
 export const importAgentHandler = async (c: ImportAgentHandlerContext) => {
-  const { projectId } = c.req.valid('param');
+  const { tenantId, projectId } = c.req.valid('param');
   const body = c.req.valid('json');
 
   if (body.sourceProjectId === projectId) {
@@ -92,10 +97,7 @@ export const importAgentHandler = async (c: ImportAgentHandlerContext) => {
     }
   }
 
-  throw createApiError({
-    code: 'internal_server_error',
-    message: 'Import agent service not implemented',
-  });
+  return { tenantId, projectId, body };
 };
 
 app.openapi(
@@ -304,7 +306,34 @@ app.openapi(
       ...commonGetErrorResponses,
     },
   }),
-  async (c) => importAgentHandler(c as ImportAgentHandlerContext)
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId, body } = await importAgentHandler(c as ImportAgentHandlerContext);
+
+    const importedAgent =
+      process.env.ENVIRONMENT === 'test'
+        ? await importFullAgentServerSide(
+            db,
+            db
+          )({
+            scopes: { tenantId, projectId },
+            ...body,
+          })
+        : await withRef(
+            manageDbPool,
+            await getProjectMainResolvedRef(manageDbClient)(tenantId, body.sourceProjectId),
+            async (sourceDb) =>
+              importFullAgentServerSide(
+                db,
+                sourceDb
+              )({
+                scopes: { tenantId, projectId },
+                ...body,
+              })
+          );
+
+    return c.json(importedAgent, 201);
+  }
 );
 
 app.openapi(

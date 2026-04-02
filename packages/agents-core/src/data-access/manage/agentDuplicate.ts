@@ -21,7 +21,7 @@ const defaultLogger: AgentLogger = {
 const toOptionalValue = <T>(value: T | null | undefined): T | undefined =>
   value === null || value === undefined ? undefined : value;
 
-const buildDuplicateAgentDefinition = (
+export const buildCopiedAgentDefinition = (
   sourceAgent: FullAgentDefinition & {
     createdAt?: string | Date;
     updatedAt?: string | Date;
@@ -166,7 +166,7 @@ export const duplicateFullAgentServerSide =
     }
 
     const targetScopes: ProjectScopeConfig = { tenantId, projectId };
-    const duplicateAgentDefinition = buildDuplicateAgentDefinition(sourceAgent, {
+    const duplicateAgentDefinition = buildCopiedAgentDefinition(sourceAgent, {
       newAgentId,
       newAgentName,
     });
