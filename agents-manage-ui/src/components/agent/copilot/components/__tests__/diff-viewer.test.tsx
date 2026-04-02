@@ -13,7 +13,6 @@ vi.mock('@/features/agent/state/use-monaco-store', async () => {
     }),
   };
 });
-});
 
 describe('DiffField', () => {
   afterEach(cleanup);
