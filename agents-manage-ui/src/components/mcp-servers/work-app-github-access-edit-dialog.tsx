@@ -128,9 +128,8 @@ export function GitHubAccessEditDialog({
       toast.success('Repositories synced');
     } catch {
       toast.error('Failed to sync repositories');
-    } finally {
-      setSyncing(null);
     }
+    setSyncing(null);
   };
 
   const handleRepoToggle = (repoId: string) => {
@@ -201,9 +200,8 @@ export function GitHubAccessEditDialog({
     } catch (error) {
       console.error('Failed to update GitHub access:', error);
       toast.error('Failed to update GitHub access. Please try again.');
-    } finally {
-      setIsSaving(false);
     }
+    setIsSaving(false);
   };
 
   const filteredInstallations = getFilteredInstallationsWithRepos();

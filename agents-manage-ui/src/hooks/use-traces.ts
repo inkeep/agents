@@ -330,9 +330,8 @@ export function useStatsByProject(options?: {
       console.error('Error fetching stats by project:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch stats by project';
       setError(errorMessage);
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }, [options?.startTime, options?.endTime, options?.projectIds, options?.tenantId]);
 
   useEffect(() => {

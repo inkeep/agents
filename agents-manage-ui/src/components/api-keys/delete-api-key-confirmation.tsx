@@ -37,7 +37,7 @@ export function DeleteApiKeyConfirmation({
   }
 
   return (
-    <Dialog open={true} onOpenChange={(open) => !open && setIsOpen(false)}>
+    <Dialog open onOpenChange={(open) => !open && setIsOpen(false)}>
       <DeleteConfirmation
         itemName={apiKeyName || 'this API key'}
         isSubmitting={isSubmitting}

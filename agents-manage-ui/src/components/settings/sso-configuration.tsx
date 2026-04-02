@@ -80,9 +80,8 @@ export function useSSOProviders(organizationId: string | undefined) {
       }
     } catch {
       setProviders([]);
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }, [authClient, organizationId]);
 
   useEffect(() => {

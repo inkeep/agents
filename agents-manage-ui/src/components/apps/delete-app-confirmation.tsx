@@ -20,23 +20,20 @@ export function DeleteAppConfirmation({ appId, appName, setIsOpen }: DeleteAppCo
     projectId: string;
   }>();
 
-  const handleDelete = async () => {
+  async function handleDelete() {
     setIsSubmitting(true);
-    try {
-      const result = await deleteAppAction(tenantId, projectId, appId);
-      if (result.success) {
-        setIsOpen(false);
-        toast.success('App deleted.');
-      } else {
-        toast.error(result.error);
-      }
-    } finally {
-      setIsSubmitting(false);
+    const result = await deleteAppAction(tenantId, projectId, appId);
+    if (result.success) {
+      setIsOpen(false);
+      toast.success('App deleted.');
+    } else {
+      toast.error(result.error);
     }
-  };
+    setIsSubmitting(false);
+  }
 
   return (
-    <Dialog open={true} onOpenChange={(open) => !open && setIsOpen(false)}>
+    <Dialog open onOpenChange={(open) => !open && setIsOpen(false)}>
       <DeleteConfirmation itemName={appName} isSubmitting={isSubmitting} onDelete={handleDelete} />
     </Dialog>
   );

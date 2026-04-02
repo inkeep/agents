@@ -104,9 +104,8 @@ export function WorkAppGitHubInstallationsList({
         toast.error('Failed to sync repositories', {
           description: error instanceof Error ? error.message : 'An unexpected error occurred',
         });
-      } finally {
-        setSyncingInstallationId(null);
       }
+      setSyncingInstallationId(null);
     },
     [tenantId, onInstallationsChange, router]
   );
@@ -125,9 +124,8 @@ export function WorkAppGitHubInstallationsList({
         toast.error('Failed to reconnect installation', {
           description: error instanceof Error ? error.message : 'An unexpected error occurred',
         });
-      } finally {
-        setReconnectingInstallationId(null);
       }
+      setReconnectingInstallationId(null);
     },
     [tenantId, onInstallationsChange, router]
   );
@@ -154,9 +152,8 @@ export function WorkAppGitHubInstallationsList({
       toast.error('Failed to disconnect installation', {
         description: error instanceof Error ? error.message : 'An unexpected error occurred',
       });
-    } finally {
-      setDisconnecting(false);
     }
+    setDisconnecting(false);
   };
 
   const columns = useMemo<ColumnDef<WorkAppGitHubInstallation>[]>(
