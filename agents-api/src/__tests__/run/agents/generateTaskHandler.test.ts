@@ -1,4 +1,4 @@
-import { getAppById, type Part, parseEmbeddedJson, TaskState } from '@inkeep/agents-core';
+import { getAppByIdForTenant, type Part, parseEmbeddedJson, TaskState } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { A2ATask } from '../../../domains/run/a2a/types';
 import { Agent } from '../../../domains/run/agents/Agent';
@@ -95,7 +95,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
       error: vi.fn(),
       debug: vi.fn(),
     })),
-    getAppById: vi.fn(() => vi.fn().mockResolvedValue(null)),
+    getAppByIdForTenant: vi.fn(() => vi.fn().mockResolvedValue(null)),
     generateId: vi.fn(() => 'test-id-123'),
     loadEnvironmentFiles: vi.fn(),
     TaskState: {
@@ -1082,16 +1082,16 @@ describe('generateTaskHandler', () => {
     });
   });
 
-  describe('appPrompt resolution from DB', () => {
+  describe('appPrompt resolution from DB (tenant-scoped)', () => {
     const makeTask = (text: string): A2ATask => ({
       id: 'task-123',
       input: { parts: [{ kind: 'text', text }] },
       context: { conversationId: 'conv-123' },
     });
 
-    it('should resolve appPrompt from DB when only appId is set', async () => {
+    it('should resolve appPrompt from DB using tenant-scoped lookup', async () => {
       const mockGetApp = vi.fn().mockResolvedValue({ prompt: 'Resolved prompt from DB' });
-      (getAppById as any).mockReturnValue(mockGetApp);
+      (getAppByIdForTenant as any).mockReturnValue(mockGetApp);
 
       const configWithAppId: TaskHandlerConfig = {
         ...mockConfig,
@@ -1104,32 +1104,36 @@ describe('generateTaskHandler', () => {
       const handler = createTaskHandler(configWithAppId);
       await handler(makeTask('hello'));
 
-      expect(getAppById).toHaveBeenCalled();
-      expect(mockGetApp).toHaveBeenCalledWith('test-app-id');
+      expect(getAppByIdForTenant).toHaveBeenCalled();
+      expect(mockGetApp).toHaveBeenCalledWith({
+        id: 'test-app-id',
+        scopes: { tenantId: mockConfig.executionContext.tenantId },
+      });
       expect(configWithAppId.executionContext.metadata?.appPrompt).toBe('Resolved prompt from DB');
     });
 
-    it('should skip DB lookup when appPrompt is already set', async () => {
-      (getAppById as any).mockClear();
+    it('should re-resolve appPrompt from DB even when already set', async () => {
+      const mockGetApp = vi.fn().mockResolvedValue({ prompt: 'Fresh prompt from DB' });
+      (getAppByIdForTenant as any).mockReturnValue(mockGetApp);
 
       const configWithBoth: TaskHandlerConfig = {
         ...mockConfig,
         executionContext: {
           ...mockConfig.executionContext,
-          metadata: { appId: 'test-app-id', appPrompt: 'Already resolved' },
+          metadata: { appId: 'test-app-id', appPrompt: 'Stale prompt' },
         },
       };
 
       const handler = createTaskHandler(configWithBoth);
       await handler(makeTask('hello'));
 
-      expect(getAppById).not.toHaveBeenCalled();
-      expect(configWithBoth.executionContext.metadata?.appPrompt).toBe('Already resolved');
+      expect(getAppByIdForTenant).toHaveBeenCalled();
+      expect(configWithBoth.executionContext.metadata?.appPrompt).toBe('Fresh prompt from DB');
     });
 
     it('should continue without appPrompt when DB lookup fails', async () => {
       const mockGetApp = vi.fn().mockRejectedValue(new Error('Connection refused'));
-      (getAppById as any).mockReturnValue(mockGetApp);
+      (getAppByIdForTenant as any).mockReturnValue(mockGetApp);
 
       const configWithAppId: TaskHandlerConfig = {
         ...mockConfig,

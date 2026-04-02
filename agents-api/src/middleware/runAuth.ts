@@ -445,6 +445,7 @@ async function tryTeamAgentAuth(token: string, expectedSubAgentId?: string): Pro
         teamDelegation: true,
         originAgentId: payload.sub,
         ...(payload.initiatedBy ? { initiatedBy: payload.initiatedBy } : {}),
+        ...(payload.appId ? { appId: payload.appId } : {}),
       },
     },
   };
@@ -775,7 +776,6 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
               initiatedBy: { type: 'user' as const, id: endUserId },
               authMethod,
               appId: app.id,
-              appPrompt: app.prompt || undefined,
               ...(Object.keys(verifiedClaims).length > 0 ? { verifiedClaims } : {}),
             },
           },
@@ -848,7 +848,6 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
         ...(endUserId ? { initiatedBy: { type: 'user' as const, id: endUserId } } : {}),
         authMethod,
         appId: app.id,
-        appPrompt: app.prompt || undefined,
       },
     },
   };
@@ -974,12 +973,6 @@ async function runApiKeyAuthHandler(
     const attempt = await authenticateRequest(reqData);
 
     if (attempt.authResult) {
-      if (reqData.appId && !attempt.authResult.metadata?.appId) {
-        attempt.authResult.metadata = {
-          ...attempt.authResult.metadata,
-          appId: reqData.appId,
-        };
-      }
       c.set('executionContext', buildExecutionContext(attempt.authResult, reqData));
     } else {
       logger.info(
@@ -991,8 +984,8 @@ async function runApiKeyAuthHandler(
       c.set('executionContext', buildExecutionContext(createDevContext(reqData), reqData));
     }
 
-    if (reqData.appId && attempt.authResult) {
-      trace.getActiveSpan()?.setAttribute('app.id', reqData.appId);
+    if (attempt.authResult?.metadata?.appId) {
+      trace.getActiveSpan()?.setAttribute('app.id', attempt.authResult.metadata.appId);
     }
     await next();
     return;
@@ -1042,14 +1035,9 @@ async function runApiKeyAuthHandler(
     'API key authenticated successfully'
   );
 
-  // Forward appId from internal A2A header when not already set by auth strategy
-  if (reqData.appId && !attempt.authResult.metadata?.appId) {
-    attempt.authResult.metadata = { ...attempt.authResult.metadata, appId: reqData.appId };
-  }
-
   c.set('executionContext', buildExecutionContext(attempt.authResult, reqData));
-  if (reqData.appId) {
-    trace.getActiveSpan()?.setAttribute('app.id', reqData.appId);
+  if (attempt.authResult.metadata?.appId) {
+    trace.getActiveSpan()?.setAttribute('app.id', attempt.authResult.metadata.appId);
   }
   await next();
 }

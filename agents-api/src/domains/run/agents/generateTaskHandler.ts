@@ -4,7 +4,7 @@ import {
   type FilePart,
   type FullExecutionContext,
   generateId,
-  getAppById,
+  getAppByIdForTenant,
   getMcpToolById,
   type McpTool,
   type Part,
@@ -88,11 +88,13 @@ export const createTaskHandler = (
         | Record<string, string>
         | undefined;
 
-      // Resolve appPrompt from DB when only appId is set (A2A sub-agent path).
-      // Parent agents already have appPrompt set at auth time.
-      if (!config.executionContext.metadata?.appPrompt && config.executionContext.metadata?.appId) {
+      // Resolve appPrompt from DB using tenant-scoped lookup.
+      if (config.executionContext.metadata?.appId) {
         try {
-          const app = await getAppById(runDbClient)(config.executionContext.metadata.appId);
+          const app = await getAppByIdForTenant(runDbClient)({
+            id: config.executionContext.metadata.appId,
+            scopes: { tenantId: config.executionContext.tenantId },
+          });
           if (app?.prompt) {
             config.executionContext.metadata = {
               ...config.executionContext.metadata,
@@ -105,7 +107,7 @@ export const createTaskHandler = (
               appId: config.executionContext.metadata.appId,
               error: error instanceof Error ? error.message : 'Unknown error',
             },
-            'Failed to resolve app prompt for sub-agent, continuing without it'
+            'Failed to resolve app prompt, continuing without it'
           );
         }
       }
