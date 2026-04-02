@@ -92,7 +92,11 @@ export function SpanFilters({
     if (totalFilters > 0 && !hasFetchedRef.current) {
       fetchSpanNames();
     }
-  }, [totalFilters, fetchSpanNames]);
+  }, [
+    totalFilters,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchSpanNames,
+  ]);
 
   function handleOpenChange(open: boolean) {
     if (open && !hasFetchedRef.current) {

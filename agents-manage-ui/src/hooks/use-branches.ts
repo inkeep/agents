@@ -20,7 +20,10 @@ export function useBranches(tenantId: string, projectId: string) {
 
   useEffect(() => {
     load();
-  }, [load]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    load,
+  ]);
 
   return { branches, isLoading };
 }

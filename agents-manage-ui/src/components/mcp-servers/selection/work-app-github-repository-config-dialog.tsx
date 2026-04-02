@@ -102,7 +102,11 @@ export function WorkAppGitHubRepositoryConfigDialog({
     if (open) {
       loadData();
     }
-  }, [open, loadData]);
+  }, [
+    open,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadData,
+  ]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -293,7 +297,10 @@ function ReadyState({
 
   useEffect(() => {
     loadInstallationDetails();
-  }, [loadInstallationDetails]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadInstallationDetails,
+  ]);
 
   const handleSync = async (installationId: string) => {
     setSyncing(installationId);
