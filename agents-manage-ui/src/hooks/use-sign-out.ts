@@ -1,21 +1,17 @@
 'use client';
 
-import { useCallback } from 'react';
 import { useAuthClient } from '@/contexts/auth-client';
 
 export function useSignOut() {
   const authClient = useAuthClient();
 
-  const signOut = useCallback(async () => {
-    try {
-      await authClient.signOut();
-    } finally {
-      if (process.env.NODE_ENV === 'development') {
-        document.cookie = 'dev-logged-out=1; path=/; max-age=86400; SameSite=Lax';
-      }
-      window.location.href = '/login';
+  async function signOut() {
+    await authClient.signOut();
+    if (process.env.NODE_ENV === 'development') {
+      document.cookie = 'dev-logged-out=1; path=/; max-age=86400; SameSite=Lax';
     }
-  }, [authClient]);
+    window.location.href = '/login';
+  }
 
   return signOut;
 }
