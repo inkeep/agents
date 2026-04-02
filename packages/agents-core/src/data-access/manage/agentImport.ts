@@ -14,8 +14,8 @@ import type {
 } from '../../types/entities';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/utility';
 import { createApiError, throwIfUniqueConstraintError } from '../../utils/error';
-import { buildCopiedAgentDefinition } from './agentDuplicate';
 import { type AgentLogger, createFullAgentServerSide } from './agentFull';
+import { buildCopiedAgentDefinition, collectReferencedDependencyIds } from './agentPortability';
 import { getAgentById, getFullAgentDefinition } from './agents';
 import { createArtifactComponent, getArtifactComponentById } from './artifactComponents';
 import { getCredentialReference } from './credentialReferences';
@@ -125,62 +125,21 @@ const normalizeSkill = (skill: SourceSkill) => ({
   files: normalizeSkillFiles(skill.files),
 });
 
-const collectReferencedDependencyIds = (sourceAgent: FullAgentDefinition) => {
-  const functionToolIds = new Set(Object.keys(sourceAgent.functionTools ?? {}));
-  const toolIds = new Set<string>();
-  const externalAgentIds = new Set<string>();
-  const dataComponentIds = new Set<string>();
-  const artifactComponentIds = new Set<string>();
-  const skillIds = new Set<string>();
-  const functionIds = new Set<string>();
-  let hasTeamAgentDelegation = false;
+const getRequiredDependency = <T>(
+  dependencies: Map<string, T>,
+  dependencyId: string,
+  resourceLabel: string
+): T => {
+  const dependency = dependencies.get(dependencyId);
 
-  for (const subAgent of Object.values(sourceAgent.subAgents)) {
-    for (const canUseItem of subAgent.canUse ?? []) {
-      if (!functionToolIds.has(canUseItem.toolId)) {
-        toolIds.add(canUseItem.toolId);
-      }
-    }
-
-    for (const delegateTarget of subAgent.canDelegateTo ?? []) {
-      if (typeof delegateTarget === 'string') {
-        continue;
-      }
-
-      if ('externalAgentId' in delegateTarget) {
-        externalAgentIds.add(delegateTarget.externalAgentId);
-        continue;
-      }
-
-      hasTeamAgentDelegation = true;
-    }
-
-    for (const dataComponentId of subAgent.dataComponents ?? []) {
-      dataComponentIds.add(dataComponentId);
-    }
-
-    for (const artifactComponentId of subAgent.artifactComponents ?? []) {
-      artifactComponentIds.add(artifactComponentId);
-    }
-
-    for (const skill of subAgent.skills ?? []) {
-      skillIds.add(skill.id);
-    }
+  if (!dependency) {
+    throw createApiError({
+      code: 'not_found',
+      message: `Source ${resourceLabel} '${dependencyId}' not found`,
+    });
   }
 
-  for (const functionTool of Object.values(sourceAgent.functionTools ?? {})) {
-    functionIds.add(functionTool.functionId);
-  }
-
-  return {
-    toolIds,
-    externalAgentIds,
-    dataComponentIds,
-    artifactComponentIds,
-    skillIds,
-    functionIds,
-    hasTeamAgentDelegation,
-  };
+  return dependency;
 };
 
 const loadReferencedSourceDependencies = async (params: {
@@ -597,7 +556,7 @@ const ensureReferencedDependenciesInTargetProject = async (params: {
 
   for (const toolId of params.sourceDependencies.toolIds) {
     await ensureToolInTargetProject({
-      sourceTool: params.sourceDependencies.tools.get(toolId)!,
+      sourceTool: getRequiredDependency(params.sourceDependencies.tools, toolId, 'tool'),
       targetDb: params.targetDb,
       targetScopes: params.targetScopes,
       warnings: params.warnings,
@@ -606,7 +565,11 @@ const ensureReferencedDependenciesInTargetProject = async (params: {
 
   for (const externalAgentId of params.sourceDependencies.externalAgentIds) {
     await ensureExternalAgentInTargetProject({
-      sourceExternalAgent: params.sourceDependencies.externalAgents.get(externalAgentId)!,
+      sourceExternalAgent: getRequiredDependency(
+        params.sourceDependencies.externalAgents,
+        externalAgentId,
+        'external agent'
+      ),
       targetDb: params.targetDb,
       targetScopes: params.targetScopes,
       warnings: params.warnings,
@@ -615,7 +578,11 @@ const ensureReferencedDependenciesInTargetProject = async (params: {
 
   for (const dataComponentId of params.sourceDependencies.dataComponentIds) {
     await ensureDataComponentInTargetProject({
-      sourceDataComponent: params.sourceDependencies.dataComponents.get(dataComponentId)!,
+      sourceDataComponent: getRequiredDependency(
+        params.sourceDependencies.dataComponents,
+        dataComponentId,
+        'data component'
+      ),
       targetDb: params.targetDb,
       targetScopes: params.targetScopes,
     });
@@ -623,8 +590,11 @@ const ensureReferencedDependenciesInTargetProject = async (params: {
 
   for (const artifactComponentId of params.sourceDependencies.artifactComponentIds) {
     await ensureArtifactComponentInTargetProject({
-      sourceArtifactComponent:
-        params.sourceDependencies.artifactComponents.get(artifactComponentId)!,
+      sourceArtifactComponent: getRequiredDependency(
+        params.sourceDependencies.artifactComponents,
+        artifactComponentId,
+        'artifact component'
+      ),
       targetDb: params.targetDb,
       targetScopes: params.targetScopes,
     });
@@ -632,7 +602,11 @@ const ensureReferencedDependenciesInTargetProject = async (params: {
 
   for (const functionId of params.sourceDependencies.functionIds) {
     await ensureFunctionInTargetProject({
-      sourceFunction: params.sourceDependencies.functions.get(functionId)!,
+      sourceFunction: getRequiredDependency(
+        params.sourceDependencies.functions,
+        functionId,
+        'function'
+      ),
       targetDb: params.targetDb,
       targetScopes: params.targetScopes,
     });
@@ -640,7 +614,7 @@ const ensureReferencedDependenciesInTargetProject = async (params: {
 
   for (const skillId of params.sourceDependencies.skillIds) {
     await ensureSkillInTargetProject({
-      sourceSkill: params.sourceDependencies.skills.get(skillId)!,
+      sourceSkill: getRequiredDependency(params.sourceDependencies.skills, skillId, 'skill'),
       targetDb: params.targetDb,
       targetScopes: params.targetScopes,
     });

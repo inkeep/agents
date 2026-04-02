@@ -926,6 +926,14 @@ describe('Agent CRUD Routes - Integration Tests', () => {
   });
 
   describe('POST /{agentId}/duplicate', () => {
+    const sourceConversationHistoryConfig = {
+      mode: 'scoped' as const,
+      limit: 12,
+      maxOutputTokens: 2000,
+      includeInternal: true,
+      messageTypes: ['chat'] as Array<'chat'>,
+    };
+
     const createTeamAgentDefinition = (teamAgentId: string, teamSubAgentId: string) => ({
       id: teamAgentId,
       name: `Team Agent ${teamAgentId}`,
@@ -967,6 +975,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
         [params.defaultSubAgentId]: {
           ...createTestSubAgentData({ id: params.defaultSubAgentId, suffix: ' Router' }),
           type: 'internal' as const,
+          conversationHistoryConfig: sourceConversationHistoryConfig,
           canUse: [
             {
               toolId: params.toolId,
@@ -1189,6 +1198,9 @@ describe('Agent CRUD Routes - Integration Tests', () => {
         id: functionToolId,
         functionId,
       });
+      expect(persistedPrimarySubAgent.conversationHistoryConfig).toEqual(
+        sourceConversationHistoryConfig
+      );
       expect(persistedPrimarySubAgent.canUse).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ toolId }),
@@ -1305,6 +1317,13 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
   describe('POST /import', () => {
     const sourceProjectId = 'source-project';
+    const sourceConversationHistoryConfig = {
+      mode: 'scoped' as const,
+      limit: 12,
+      maxOutputTokens: 2000,
+      includeInternal: true,
+      messageTypes: ['chat'] as Array<'chat'>,
+    };
 
     const createImportHandlerContext = (overrides?: {
       param?: { tenantId?: string; projectId?: string };
@@ -1414,6 +1433,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
             [sourceSubAgentId]: {
               ...createTestSubAgentData({ id: sourceSubAgentId, suffix: ' Import' }),
               type: 'internal',
+              conversationHistoryConfig: sourceConversationHistoryConfig,
               canUse: [],
             },
           },
@@ -1437,6 +1457,9 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       const body = await res.json();
       expect(body.data.id).toBe(newAgentId);
       expect(body.data.name).toBe('Source Agent (Copy)');
+      expect(body.data.subAgents[sourceSubAgentId]?.conversationHistoryConfig).toEqual(
+        sourceConversationHistoryConfig
+      );
       expect(body.warnings).toEqual([]);
       expect(
         await getAgentById(manageDbClient)({

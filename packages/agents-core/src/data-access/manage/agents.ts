@@ -582,6 +582,7 @@ const getFullAgentDefinitionInternal =
           name: agent.name,
           description: agent.description,
           prompt: agent.prompt,
+          conversationHistoryConfig: agent.conversationHistoryConfig,
           models: agent.models,
           stopWhen: agent.stopWhen,
           canTransferTo,

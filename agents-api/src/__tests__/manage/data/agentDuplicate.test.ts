@@ -41,6 +41,13 @@ vi.mock('../../../logger', () => ({
 }));
 
 const projectId = 'default';
+const sourceConversationHistoryConfig = {
+  mode: 'scoped' as const,
+  limit: 12,
+  maxOutputTokens: 2000,
+  includeInternal: true,
+  messageTypes: ['chat'] as Array<'chat'>,
+};
 
 const createTeamAgentDefinition = (
   teamAgentId: string,
@@ -95,6 +102,7 @@ const createSourceAgentDefinition = (params: {
     [params.defaultSubAgentId]: {
       ...createTestSubAgentData({ id: params.defaultSubAgentId, suffix: ' Router' }),
       type: 'internal',
+      conversationHistoryConfig: sourceConversationHistoryConfig,
       canUse: [
         {
           toolId: params.toolId,
@@ -334,6 +342,9 @@ describe('Duplicate Agent Service Layer', () => {
       id: functionToolId,
       functionId,
     });
+    expect(duplicatePrimarySubAgent.conversationHistoryConfig).toEqual(
+      sourceConversationHistoryConfig
+    );
     expect(duplicatePrimarySubAgent.canTransferTo).toContain(secondarySubAgentId);
     expect(duplicatePrimarySubAgent.dataComponents).toContain(dataComponentId);
     expect(duplicatePrimarySubAgent.artifactComponents).toContain(artifactComponentId);
