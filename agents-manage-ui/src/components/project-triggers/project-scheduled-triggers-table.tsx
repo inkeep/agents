@@ -123,13 +123,12 @@ export function ProjectScheduledTriggersTable({
     } catch (error) {
       console.error('Failed to update scheduled trigger:', error);
       toast.error('Failed to update scheduled trigger status');
-    } finally {
-      setLoadingTriggers((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(triggerId);
-        return newSet;
-      });
     }
+    setLoadingTriggers((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(triggerId);
+      return newSet;
+    });
   };
 
   const deleteTrigger = async (triggerId: string, agentId: string, name: string) => {
