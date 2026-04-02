@@ -99,18 +99,6 @@ export async function waitForToolApproval(
         toolName,
         input: args as Record<string, unknown>,
       });
-    } else if (ctx.isDelegatedAgent) {
-      const currentStreamRequestId = ctx.streamRequestId ?? '';
-      if (currentStreamRequestId) {
-        await toolApprovalUiBus.publish(currentStreamRequestId, {
-          type: 'approval-needed',
-          toolCallId,
-          toolName,
-          input: args,
-          providerMetadata,
-          approvalId: `aitxt-${toolCallId}`,
-        });
-      }
     }
 
     ctx.pendingDurableApproval = { toolCallId, toolName, args };

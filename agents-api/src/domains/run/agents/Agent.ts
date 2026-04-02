@@ -158,7 +158,19 @@ export class Agent {
     this.ctx.approvedToolCalls = approvedToolCalls;
   }
 
-  getPendingDurableApproval(): { toolCallId: string; toolName: string; args: unknown } | undefined {
+  getPendingDurableApproval():
+    | {
+        toolCallId: string;
+        toolName: string;
+        args: unknown;
+        delegatedApproval?: {
+          toolCallId: string;
+          toolName: string;
+          args: unknown;
+          subAgentId: string;
+        };
+      }
+    | undefined {
     return this.ctx.pendingDurableApproval;
   }
 
