@@ -371,7 +371,8 @@ describe('User-Scoped Scheduled Triggers', () => {
 
       const body = await runRes.json();
       expect(body.success).toBe(true);
-      expect(body.invocationId).toBeDefined();
+      expect(body.invocationIds).toBeDefined();
+      expect(body.invocationIds.length).toBeGreaterThan(0);
     });
 
     it('should allow Run Now for admin-delegated trigger (caller is admin)', async () => {
@@ -692,6 +693,7 @@ describe('User-Scoped Scheduled Triggers', () => {
       runAsUserId: 'user-a',
       createdBy: 'user-a',
       ref: 'main',
+      dispatchDelayMs: null,
       nextRunAt: '2025-01-01T09:00:00Z',
       createdAt: '2025-01-01T00:00:00Z',
       updatedAt: '2025-01-01T00:00:00Z',
@@ -877,6 +879,26 @@ describe('User-Scoped Scheduled Triggers', () => {
             tenantRole: OrgRoles.MEMBER,
           })
         ).not.toThrow();
+      });
+
+      it('should allow non-admin to mutate trigger with only their user in runAsUserIds', () => {
+        expect(() =>
+          assertCanMutateTrigger({
+            trigger: { createdBy: 'admin-user', runAsUserIds: ['member-user'] },
+            callerId: 'member-user',
+            tenantRole: OrgRoles.MEMBER,
+          })
+        ).not.toThrow();
+      });
+
+      it('should reject non-admin mutating trigger with multiple runAsUserIds', () => {
+        expect(() =>
+          assertCanMutateTrigger({
+            trigger: { createdBy: 'admin-user', runAsUserIds: ['member-user', 'other-user'] },
+            callerId: 'member-user',
+            tenantRole: OrgRoles.MEMBER,
+          })
+        ).toThrow(/You can only modify triggers/);
       });
 
       it('should reject non-admin mutating trigger they did not create and does not run as them', () => {

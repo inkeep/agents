@@ -218,6 +218,20 @@
       "when": 1775145600000,
       "tag": "0030_set-allow-anonymous-for-existing-apps",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1775145600001,
+      "tag": "0031_public_zaran",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1775145600002,
+      "tag": "0032_backfill-scheduled-trigger-users",
+      "breakpoints": true
     }
   ]
 }
