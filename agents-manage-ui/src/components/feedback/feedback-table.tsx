@@ -227,7 +227,7 @@ export function FeedbackTable({
             <TableHead className="w-[170px]">Created</TableHead>
             <TableHead className="w-[90px]">Type</TableHead>
             <TableHead>Feedback</TableHead>
-            <TableHead className="w-[100px]">View conversation</TableHead>
+            <TableHead className="w-[140px] text-right">View conversation</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -255,8 +255,8 @@ export function FeedbackTable({
                 <TableCell className="text-sm text-foreground whitespace-normal">
                   {item.details ? truncate(String(item.details), 240) : '-'}
                 </TableCell>
-                <TableCell className="whitespace-nowrap">
-                  <div className="flex items-center gap-1">
+                <TableCell className="whitespace-nowrap text-right">
+                  <div className="flex items-center justify-end gap-1">
                     <Link
                       href={conversationHref}
                       className="inline-flex items-center justify-center h-8 w-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"

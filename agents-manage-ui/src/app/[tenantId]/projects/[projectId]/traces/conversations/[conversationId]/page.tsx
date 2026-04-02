@@ -29,6 +29,7 @@ import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GENERATION_TYPES } from '@/constants/signoz';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { hasConversationFeedbackAction } from '@/lib/actions/feedback';
 import { rerunScheduledTriggerInvocationAction } from '@/lib/actions/scheduled-triggers';
 import { rerunTriggerAction } from '@/lib/actions/triggers';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
@@ -69,6 +70,7 @@ export default function ConversationDetail({
     messageId?: string;
     type?: 'positive' | 'negative';
   }>({ open: false });
+  const [hasFeedback, setHasFeedback] = useState(false);
   const { PUBLIC_SIGNOZ_URL, PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
   const isCloudDeployment = PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true';
 
@@ -232,11 +234,12 @@ export default function ConversationDetail({
         const start = new Date('2020-01-01T00:00:00Z').getTime();
         const end = Date.now();
 
-        const [traceResponse, eventsResult] = await Promise.allSettled([
+        const [traceResponse, eventsResult, feedbackResult] = await Promise.allSettled([
           fetch(
             `/api/traces/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`
           ),
           client.getUsageEventsList(start, end, projectId, conversationId, 200),
+          hasConversationFeedbackAction(tenantId, projectId, conversationId),
         ]);
 
         if (traceResponse.status === 'rejected' || !traceResponse.value.ok) {
@@ -254,6 +257,8 @@ export default function ConversationDetail({
               )
             : []
         );
+
+        setHasFeedback(feedbackResult.status === 'fulfilled' && feedbackResult.value === true);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -321,6 +326,13 @@ export default function ConversationDetail({
               href={`/${tenantId}/projects/${projectId}/agents/${conversation.agentId}`}
             >
               {conversation.agentName ? `${conversation.agentName}` : conversation.agentId}
+            </ExternalLink>
+          )}
+          {hasFeedback && (
+            <ExternalLink
+              href={`/${tenantId}/projects/${projectId}/feedback?conversationId=${conversationId}`}
+            >
+              View Feedback
             </ExternalLink>
           )}
           <SignozLink conversationId={conversationId} />
@@ -578,6 +590,7 @@ export default function ConversationDetail({
         conversationId={conversationId}
         messageId={feedbackDialog.messageId}
         initialType={feedbackDialog.type}
+        onSubmitSuccess={() => setHasFeedback(true)}
       />
     </div>
   );

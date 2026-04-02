@@ -6,6 +6,7 @@ import {
   deleteFeedback,
   type Feedback,
   type FeedbackCreate,
+  fetchFeedback,
 } from '../api/feedback';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
@@ -36,6 +37,19 @@ export async function createFeedbackAction(
       error: error instanceof Error ? error.message : 'Unknown error occurred',
       code: 'unknown_error',
     };
+  }
+}
+
+export async function hasConversationFeedbackAction(
+  tenantId: string,
+  projectId: string,
+  conversationId: string
+): Promise<boolean> {
+  try {
+    const result = await fetchFeedback(tenantId, projectId, { conversationId, limit: 1 });
+    return result.data.length > 0;
+  } catch {
+    return false;
   }
 }
 

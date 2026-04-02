@@ -26,6 +26,7 @@ interface FeedbackDialogProps {
   messageId?: string;
   initialType?: 'positive' | 'negative';
   onNegativeFeedbackSubmit?: (feedback: string) => void;
+  onSubmitSuccess?: () => void;
 }
 
 const feedbackSchema = z
@@ -49,6 +50,7 @@ export const FeedbackDialog = ({
   messageId,
   initialType,
   onNegativeFeedbackSubmit,
+  onSubmitSuccess,
 }: FeedbackDialogProps) => {
   const form = useForm<FeedbackFormData>({
     defaultValues: {
@@ -92,12 +94,14 @@ export const FeedbackDialog = ({
 
     if (type === 'positive') {
       toast.success('Feedback saved');
+      onSubmitSuccess?.();
       onOpenChange(false);
       return;
     }
 
     if (feedback) onNegativeFeedbackSubmit?.(feedback);
     toast.success('Feedback saved');
+    onSubmitSuccess?.();
     onOpenChange(false);
   };
 
