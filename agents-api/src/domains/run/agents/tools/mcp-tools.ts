@@ -32,10 +32,13 @@ export async function getMcpTools(
       if (result.status === 'fulfilled') {
         toolSets.push(result.value);
       } else {
-        logger.error(
+        logger.warn(
           {
             toolName: mcpTools[i].name,
             toolId: mcpTools[i].id,
+            tenantId: ctx.config.tenantId,
+            projectId: ctx.config.projectId,
+            agentId: ctx.config.agentId,
             error: result.reason instanceof Error ? result.reason.message : String(result.reason),
           },
           'MCP tool failed to load — skipping this tool and continuing with others'
