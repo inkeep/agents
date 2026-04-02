@@ -7,7 +7,7 @@
  * type-safe functions that can be called from React components.
  */
 
-import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
+import type { AgentApiInsert, DuplicateAgentRequest } from '@inkeep/agents-core';
 import { revalidatePath } from 'next/cache';
 import {
   createAgent as apiCreateAgent,
@@ -16,7 +16,6 @@ import {
   getFullAgent as apiGetFullAgent,
   updateAgent as apiUpdateAgent,
   updateFullAgent as apiUpdateFullAgent,
-  type DuplicateAgentRequest,
 } from '../api/agent-full-client';
 import type { FullAgentPayload, FullAgentResponse } from '../types/agent-full';
 import { ApiError } from '../types/errors';
