@@ -19,7 +19,8 @@ import { PgJsonb, PgJsonbBuilder } from 'drizzle-orm/pg-core';
 const BACKSLASH_PLACEHOLDER = '\uE000';
 
 export function encodeBackslashes(value: unknown): unknown {
-  if (typeof value === 'string') return value.replaceAll('\\', BACKSLASH_PLACEHOLDER);
+  if (typeof value === 'string')
+    return value.replaceAll('\0', '').replaceAll('\\', BACKSLASH_PLACEHOLDER);
   if (Array.isArray(value)) return value.map(encodeBackslashes);
   if (value !== null && typeof value === 'object') {
     const out: Record<string, unknown> = {};

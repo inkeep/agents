@@ -37,6 +37,10 @@ describe('encodeBackslashes', () => {
     expect(encodeBackslashes(input)).toEqual(expected);
   });
 
+  it('strips null bytes from strings', () => {
+    expect(encodeBackslashes('before\0after')).toBe('beforeafter');
+  });
+
   it('handles empty strings and objects', () => {
     expect(encodeBackslashes('')).toBe('');
     expect(encodeBackslashes({})).toEqual({});
