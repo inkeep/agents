@@ -164,30 +164,6 @@ export function DuplicateAgentSection({
           />
         </div>
 
-        {selectedAgent && (
-          <div className="rounded-lg border bg-muted/20 p-4">
-            <div className="text-sm font-medium">Source agent</div>
-            <dl className="mt-3 grid gap-3 text-sm md:grid-cols-2">
-              <div className="space-y-1">
-                <dt className="text-muted-foreground">Name</dt>
-                <dd className="font-medium">{selectedAgent.name}</dd>
-              </div>
-              <div className="space-y-1">
-                <dt className="text-muted-foreground">ID</dt>
-                <dd className="font-medium">{selectedAgent.id}</dd>
-              </div>
-              <div className="space-y-1 md:col-span-2">
-                <dt className="text-muted-foreground">Description</dt>
-                <dd>{selectedAgent.description || 'No description provided.'}</dd>
-              </div>
-              <div className="space-y-1 md:col-span-2">
-                <dt className="text-muted-foreground">What gets copied</dt>
-                <dd>Agent-scoped configuration is duplicated. Triggers are not copied.</dd>
-              </div>
-            </dl>
-          </div>
-        )}
-
         <GenericInput
           control={form.control}
           name="newAgentName"
