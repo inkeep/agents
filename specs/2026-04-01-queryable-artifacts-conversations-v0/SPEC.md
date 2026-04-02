@@ -6,7 +6,7 @@
 
 **Complication:** There are no API endpoints to list or retrieve individual artifacts. Conversation list endpoints lack `agentId` filtering and `summary` in the response. Conversation titles are only computed at read-time as a fallback (first 100 chars of first user message). There's no mechanism to generate conversation titles or summaries.
 
-**Resolution:** Add list + get endpoints for artifacts (mirroring conversation APIs). Add `agentId` filter and `summary` to conversation list endpoints. Unify artifact and conversation metadata generation into a shared module. Generate conversation title + summary on every turn (LLM decides whether to update).
+**Resolution:** Add list + get endpoints for artifacts (mirroring conversation APIs). Add `agentId` filter and `summary` to conversation list endpoints. Unify artifact and conversation metadata generation into a shared module. Every conversation always has a title and summary — short conversations use a cheap deterministic fallback, longer ones use LLM generation.
 
 ---
 
@@ -14,13 +14,14 @@
 
 | # | Decision | Status | Type |
 |---|----------|--------|------|
-| D1 | V0 scope: list + get endpoints with filters. No full-text search indexes, no tsvector, no ranking algorithms. | LOCKED | Product |
-| D2 | "Search" = list endpoint returning id, name/title, summary with optional filters (agentId, userId, conversationId). Agent can grep/navigate results itself. | LOCKED | Product |
+| D1 | V0 scope: list + get endpoints with filters. No full-text search indexes, no tsvector, no ranking algorithms. Within-entity retrieval (grep/jq) deferred to code mode. | LOCKED | Product |
+| D2 | "Search" = list endpoint returning id, name/title, summary with optional filters (agentId, userId, conversationId). Agent can scan/navigate results itself. | LOCKED | Product |
 | D3 | Add `summary` column to `conversations` table. No changes to `ledgerArtifacts` (already has name, description, summary). | LOCKED | Technical |
-| D4 | Unified metadata generation module following compressor pattern: `BaseMetadataGenerator` → `ArtifactMetadataGenerator` / `ConversationMetadataGenerator`. | LOCKED | Technical |
-| D5 | Conversation metadata generation triggered every assistant message (fire-and-forget). Conversations with < 3 user messages use cheap fallback (first message as title). 3+ messages: LLM generates title + summary (nullable — null means "current value is fine", saves output tokens). | LOCKED | Technical |
+| D4 | Unified metadata generation module following compressor pattern: `BaseMetadataGenerator` -> `ArtifactMetadataGenerator` / `ConversationMetadataGenerator`. | LOCKED | Technical |
+| D5 | Every conversation always has a title and summary (never null after first message). < 3 user messages: deterministic fallback (title from first message, summary from first 2-3 messages). 3+ user messages: LLM generates title + summary every turn (nullable output = "current value is fine", saves tokens). | LOCKED | Technical |
 | D6 | Artifact list filtered by userId/agentId via inner join to conversations table (artifacts link to conversations via `contextId`). | LOCKED | Technical |
 | D7 | Authorization: Run API = end-user sees own only (JWT sub). Manage API = admin sees all in project, optional userId/agentId filters. | LOCKED | Product |
+| D8 | Backfill: one-time migration job generates title + summary for all existing conversations that lack them. | LOCKED | Technical |
 
 ---
 
@@ -70,7 +71,7 @@ Already has: `name` (varchar 256, nullable), `description` (text, nullable), `su
 
 Artifact metadata generation currently lives as a ~500-line private method `processArtifact()` in `AgentSession` (lines 1368-1898). It handles model resolution, retry logic, telemetry, prompt construction, and persistence — all tightly coupled.
 
-Conversation metadata generation needs the same infrastructure (model resolution, retry, telemetry, fire-and-forget). Rather than duplicating, extract into a shared module following the compressor pattern (`BaseCompressor` → `MidGenerationCompressor` / `ConversationCompressor`).
+Conversation metadata generation needs the same infrastructure (model resolution, retry, telemetry, fire-and-forget). Rather than duplicating, extract into a shared module following the compressor pattern (`BaseCompressor` -> `MidGenerationCompressor` / `ConversationCompressor`).
 
 ### 4.2 Module Structure
 
@@ -111,7 +112,7 @@ export abstract class BaseMetadataGenerator<TResult, TContext> {
 
   // --- Shared infrastructure ---
 
-  // Model resolution chain (summarizerModel → baseModel → sub-agent model → undefined)
+  // Model resolution chain (summarizerModel -> baseModel -> sub-agent model -> undefined)
   // Extracted from AgentSession.processArtifact() lines 1528-1576
   protected resolveModel(): ModelSettings | undefined { ... }
 
@@ -150,7 +151,7 @@ export abstract class BaseMetadataGenerator<TResult, TContext> {
 
   async generate(context: TContext): Promise<void> {
     if (!this.shouldGenerate(context)) {
-      // Still run fallback so early conversations get a title immediately
+      // Still run fallback so early conversations get title + summary immediately
       await this.saveFallback(context);
       return;
     }
@@ -278,16 +279,16 @@ interface ConversationMetadataContext {
 }
 
 export class ConversationMetadataGenerator extends BaseMetadataGenerator<
-  { title: string; summary: string; shouldUpdate: boolean },
+  { title: string | null; summary: string | null },
   ConversationMetadataContext
 > {
   getGenerationType(): string {
     return GENERATION_TYPES.CONVERSATION_METADATA;
   }
 
-  // Skip LLM call when conversation is too short to benefit.
-  // First 2 user messages: use fallback (first message as title, no summary).
-  // 3+ user messages: start calling LLM to generate richer title + summary.
+  // Skip LLM call for short conversations — use deterministic fallback instead.
+  // The fallback always produces both title AND summary, so no conversation is left without metadata.
+  // 3+ user messages: LLM generates richer, topic-aware title + summary.
   protected shouldGenerate(ctx: ConversationMetadataContext): boolean {
     return ctx.userMessageCount >= 3;
   }
@@ -319,7 +320,7 @@ ${conversationHistory}
 Requirements:
 - Title: Max 80 chars. Capture the specific topic, not a generic label.
 - Summary: Max 200 chars. Describe what was discussed, decided, or accomplished.
-${hasExisting ? '- Return null for title and/or summary if the current value still accurately captures the conversation. Only generate new values when the topic has meaningfully shifted or substantial new ground was covered.' : ''}
+${hasExisting ? '- Return null for title and/or summary if the current value still accurately captures the conversation. Only generate new values when the topic has meaningfully shifted or substantial new ground was covered. Bias toward keeping existing values.' : ''}
 
 BAD title examples (too generic):
 - "Chat with Assistant"
@@ -335,7 +336,7 @@ GOOD title examples:
   }
 
   async processAndSave(result, ctx: ConversationMetadataContext): Promise<void> {
-    // null fields = no update needed (LLM skipped generating them)
+    // null fields = no update needed (LLM decided current values are fine)
     const updates: Record<string, string> = {};
     if (result.title !== null) updates.title = result.title;
     if (result.summary !== null) updates.summary = result.summary;
@@ -344,16 +345,40 @@ GOOD title examples:
   }
 
   async saveFallback(ctx: ConversationMetadataContext): Promise<void> {
-    // No model available — use first user message as title (existing behavior, now persisted)
-    if (!ctx.existingTitle && ctx.recentMessages.length > 0) {
-      const firstUserMsg = ctx.recentMessages.find(m => m.role === 'user');
-      if (firstUserMsg) {
-        const text = extractText(firstUserMsg.content);
-        if (text) {
-          const title = text.length > 100 ? `${text.slice(0, 100)}...` : text;
-          await ctx.persistMetadata({ title });
+    // Deterministic fallback for short conversations (< 3 user messages) or when no model is available.
+    // Always produces both title AND summary so no conversation is left with null metadata.
+    const updates: Record<string, string> = {};
+
+    if (ctx.recentMessages.length > 0) {
+      // Title: first user message (truncated to 100 chars)
+      if (!ctx.existingTitle) {
+        const firstUserMsg = ctx.recentMessages.find(m => m.role === 'user');
+        if (firstUserMsg) {
+          const text = extractText(firstUserMsg.content);
+          if (text) {
+            updates.title = text.length > 100 ? `${text.slice(0, 100)}...` : text;
+          }
         }
       }
+
+      // Summary: concatenation of first 2-3 messages (truncated to 200 chars)
+      if (!ctx.existingSummary) {
+        const earlyMessages = ctx.recentMessages.slice(0, 3);
+        const summaryParts = earlyMessages
+          .map(m => {
+            const text = extractText(m.content);
+            return text ? `${m.role}: ${text}` : null;
+          })
+          .filter(Boolean);
+        if (summaryParts.length > 0) {
+          const raw = summaryParts.join(' | ');
+          updates.summary = raw.length > 200 ? `${raw.slice(0, 200)}...` : raw;
+        }
+      }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await ctx.persistMetadata(updates);
     }
   }
 }
@@ -361,9 +386,11 @@ GOOD title examples:
 
 **Design notes:**
 
-1. **`shouldGenerate` gate:** Conversations with < 3 user messages skip the LLM call entirely and use the cheap fallback (first message as title). This avoids paying for an LLM call on every single-question conversation, which is the majority of traffic.
+1. **No null summaries:** The fallback always generates both `title` and `summary` from the first 2-3 messages. This means every conversation has metadata after its first turn. Short conversations get a deterministic summary (concatenation of early messages); longer ones get LLM-generated summaries. No conversation is ever left unsearchable.
 
-2. **`persistMetadata` callback:** Persistence is injected via context rather than passing a DB client directly. The caller constructs it:
+2. **`shouldGenerate` gate:** Conversations with < 3 user messages skip the LLM call entirely and use the cheap fallback. This avoids paying for an LLM call on every single-question conversation, which is the majority of traffic.
+
+3. **`persistMetadata` callback:** Persistence is injected via context rather than passing a DB client directly. The caller constructs it:
    ```typescript
    persistMetadata: (data) => updateConversation(runDbClient)({
      scopes: { tenantId, projectId },
@@ -373,13 +400,13 @@ GOOD title examples:
    ```
    This matches the artifact pattern where `artifactService` is injected, and keeps the generator decoupled from the DAL.
 
-3. **Prompt quality:** Includes good/bad examples (same pattern as artifact prompt) to guide the LLM toward specific, useful titles rather than generic labels.
+4. **Bias toward stability:** The LLM prompt explicitly biases toward keeping existing values. Title and summary should only change when the conversation meaningfully shifts topic — not on every turn.
 
 ### 4.6 Trigger Integration
 
 **Artifacts:** `AgentSession.processArtifact()` delegates to `ArtifactMetadataGenerator.generate()`. Same fire-and-forget pattern. Zero behavior change.
 
-**Conversations:** triggered every assistant message completion in execution handler. The generator's `shouldGenerate()` gate skips the LLM call for conversations with < 3 user messages — those get the cheap fallback instead.
+**Conversations:** triggered every assistant message completion in execution handler. The generator's `shouldGenerate()` gate skips the LLM call for conversations with < 3 user messages — those get the cheap deterministic fallback instead (which still produces both title and summary).
 
 ```typescript
 // agents-api/src/domains/run/handlers/executionHandler.ts
@@ -404,15 +431,30 @@ void conversationMetadataGenerator.generate({
 ```
 
 **Cost profile:**
-- Conversations with 1-2 user messages: no LLM call, just fallback (first message as title)
-- Conversations with 3+ user messages: LLM call every turn, but most return `shouldUpdate: false` (no DB write)
+- Conversations with 1-2 user messages: no LLM call, deterministic fallback (title from first message, summary from first 2-3 messages)
+- Conversations with 3+ user messages: LLM call every turn, but most return null fields (no DB write needed)
 - Uses summarizer model (cheapest available), small prompt (~500 tokens)
+- Prompt biases toward not updating, so most 3+ message turns result in no DB write
 
-### 4.7 Migration path
+### 4.7 Backfill Strategy
+
+Existing conversations created before this feature will have null `title` and `summary`. These must be backfilled so all conversations are searchable.
+
+**Approach:** One-time background migration job that:
+1. Queries conversations where `title IS NULL OR summary IS NULL`, paginated
+2. For each conversation, fetches the first 3 messages
+3. Applies the same deterministic fallback logic as `saveFallback()` (title from first user message, summary from first 2-3 messages)
+4. Does NOT use LLM — deterministic only, to keep backfill fast and cheap
+5. Runs as a script (`pnpm db:backfill-conversation-metadata`) or as a one-time job on deploy
+
+**Graceful degradation:** The existing read-time title fallback in run conversation routes is preserved as a safety net for any conversations the backfill hasn't reached yet.
+
+### 4.8 Migration path
 
 1. Extract `ArtifactMetadataGenerator` from `AgentSession.processArtifact()` — `AgentSession` delegates to it. Zero behavior change.
 2. Add `ConversationMetadataGenerator` and wire trigger.
-3. Keep existing read-time title fallback in run conversation routes as graceful degradation for pre-existing conversations.
+3. Run backfill job to populate title + summary for existing conversations.
+4. Keep existing read-time title fallback as graceful degradation.
 
 ---
 
@@ -439,7 +481,7 @@ GET /v1/artifacts
   Query params: page, limit, conversationId?, agentId?, toolName?
   Auth: API key + JWT (same as conversation list)
   Scoping: userId always from JWT sub. Artifacts scoped via join:
-    ledgerArtifacts.contextId → conversations.id
+    ledgerArtifacts.contextId -> conversations.id
     WHERE conversations.userId = endUserId
     AND (conversations.agentId = agentId if provided)
     AND (ledgerArtifacts.contextId = conversationId if provided)
@@ -527,11 +569,12 @@ Follows existing patterns exactly:
 
 ### 5.4 Consistency Model
 
-Conversation `title` and `summary` fields are generated asynchronously (fire-and-forget) after each turn. Callers should expect:
-- `title` may be `null` for brand-new conversations (before the first fallback runs)
-- `summary` may be `null` for conversations with < 3 user messages
-- Both fields may be briefly stale immediately after a turn completes (generation is in-flight)
-- The existing read-time title fallback in run conversation routes covers the `null` title case for display purposes
+Conversation `title` and `summary` fields are generated asynchronously (fire-and-forget) after each turn.
+
+- **After first message:** Both `title` and `summary` are always populated via the deterministic fallback. No conversation should have null metadata after its first completed turn.
+- **After 3+ messages:** LLM may update title/summary if the conversation topic has meaningfully shifted. Most turns result in no change (LLM returns null = "keep current values").
+- **Brief staleness:** Both fields may be briefly stale immediately after a turn completes (generation is in-flight). This window is short (fallback is synchronous-fast; LLM calls complete within seconds).
+- **Backfill coverage:** Pre-existing conversations are backfilled via one-time migration job. The read-time title fallback in run conversation routes is preserved as a safety net.
 
 ---
 
@@ -578,7 +621,7 @@ export const listLedgerArtifacts =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
-    contextId?: string;        // = conversationId (API) → contextId (DB)
+    contextId?: string;        // = conversationId (API) -> contextId (DB)
     userId?: string;           // Run API: ALWAYS pass from JWT. Manage API: optional.
     agentId?: string;          // optional filter
     toolName?: string;         // filter by tool name (JSONB access)
@@ -749,6 +792,7 @@ export type { RuntimeClientConfig } from './runtimeClient';
 | `agents-api/src/domains/run/routes/artifacts.ts` | Run domain: artifact list + get endpoints |
 | `agents-api/src/domains/manage/routes/artifacts.ts` | Manage domain: artifact list + get endpoints |
 | `packages/agents-sdk/src/runtimeClient.ts` | SDK client: conversation + artifact list/get methods |
+| `scripts/backfill-conversation-metadata.ts` | One-time backfill script for existing conversations |
 
 ### Modified files
 
@@ -775,12 +819,13 @@ export type { RuntimeClientConfig } from './runtimeClient';
 
 ## 9. Phasing
 
-### Phase 1: Schema + DAL
+### Phase 1: Schema + DAL + Backfill
 
 1. Add `summary` column to `conversations` table in runtime-schema.ts
 2. Generate and apply Drizzle migration
 3. Add `agentId` filter to `listConversations` DAL
 4. Add `listLedgerArtifacts` + `getLedgerArtifactById` DAL functions
+5. Create and run backfill script for existing conversations (deterministic title + summary)
 
 ### Phase 2: Metadata generation module
 
@@ -810,6 +855,8 @@ export type { RuntimeClientConfig } from './runtimeClient';
 | # | Question | Leaning | Priority |
 |---|----------|---------|----------|
 | OQ1 | `ledgerArtifacts` has a 4-part composite PK `(tenantId, projectId, id, taskId)`. Same `id` can appear with different `taskId`s. `getLedgerArtifactById` currently returns the most recent by `createdAt`. Should it return all rows? Require `taskId`? Or is most-recent sufficient? | Most-recent (Option A) is sufficient for V0. The list endpoint doesn't expose `taskId`, so requiring it would break the get-by-id flow. Revisit if users need version-specific retrieval. | P2 |
+| OQ2 | Should internal messages (system prompts, tool-internal reasoning, mid-generation artifacts) be accessible to agents when they retrieve conversation history? This significantly affects the data volume and usefulness of within-conversation retrieval. | Defer to V1 when within-entity retrieval is built. V0 list/get endpoints only expose user-visible metadata (title, summary, name, description). | P1 |
+| OQ3 | Within-conversation/artifact retrieval: code mode (agent writes ad-hoc queries) vs lightweight text search (ILIKE/contains) vs full postgres FTS (tsvector)? Code mode is most flexible; FTS is most performant for repeated patterns. | Defer to V1. V0 gives agents list + get; they can scan results themselves. Code mode is the likely first approach — lets agents write their own queries without new platform infrastructure. FTS (tsvector on JSONB cast to text) is a strong option if code mode proves insufficient. | P1 |
 
 ---
 
@@ -826,36 +873,42 @@ export type { RuntimeClientConfig } from './runtimeClient';
    - `agentId` optional filter works on both run and manage list endpoints
    - `summary` field included in list response
 
-3. **Conversation metadata auto-generated:**
-   - After several messages, conversations have non-null `title` and `summary`
-   - LLM only updates when conversation direction meaningfully changes
+3. **Conversation metadata always populated:**
+   - Every conversation has non-null `title` and `summary` after its first completed turn
+   - Short conversations (< 3 user messages): deterministic fallback (title from first message, summary from first 2-3 messages)
+   - Longer conversations (3+ user messages): LLM-generated title and summary
+   - LLM only updates when conversation direction meaningfully changes (biased toward stability)
    - Fire-and-forget — never blocks user response
    - Telemetry tracked as `CONVERSATION_METADATA` generation type
 
-4. **Artifact metadata refactored:**
+4. **Backfill complete:**
+   - All pre-existing conversations have non-null `title` and `summary` after backfill runs
+   - Backfill uses deterministic fallback only (no LLM calls)
+
+5. **Artifact metadata refactored:**
    - Existing artifact name/description generation works identically after refactor
    - `AgentSession.processArtifact()` delegates to `ArtifactMetadataGenerator`
    - Same prompt, same schema, same retry logic, same fallback behavior
 
-5. **No regression:**
+6. **No regression:**
    - Existing conversation list/get endpoints unchanged (additive only)
    - Existing artifact creation/retrieval unchanged
-   - Read-time title fallback preserved for pre-existing conversations
+   - Read-time title fallback preserved as safety net
 
 ---
 
 ## 12. What's NOT in This Spec (Deferred)
 
-| Deferred capability | Why |
-|---|---|
-| Full-text search indexes (tsvector, GIN) | List + grep is sufficient for V0 |
-| Search ranking (RRF, recency weighting) | No search index to rank |
-| Platform tools for agent self-search | V1 — agents will use list/get endpoints via tools |
-| MCP adapter for search tools | Depends on platform tools |
-| Semantic/vector search (pgvector) | V2+ — when keyword filtering proves insufficient |
-| Text-based ILIKE filtering on name/summary | Can add if list scanning is too coarse |
-| Windowed message search within conversations | V1+ |
-| Cross-conversation artifact retrieval tool | V1+ |
+| Deferred capability | Why | Likely approach |
+|---|---|---|
+| Within-conversation grep/search | V0 gives list + get; agents scan results themselves | Code mode first (agent writes ad-hoc queries). If insufficient, postgres FTS with tsvector on message content. |
+| Within-artifact grep/search | Same as above; artifact data is JSONB which complicates indexing | Code mode first. FTS via `JSONB::text` + tsvector if needed. For large artifacts, read-time regex on single row is cheap. |
+| jq-like structured queries on artifact JSONB | Powerful but complex; code mode covers this naturally | Code mode — agent can write arbitrary JSONB path queries |
+| Full-text search indexes (tsvector, GIN) on summaries | List + agent scanning is sufficient for V0 | Add if list scanning proves too coarse at scale |
+| Search ranking (RRF, recency weighting) | No search index to rank | Depends on FTS adoption |
+| Platform tools for agent self-search | V1 — agents will use list/get endpoints via tools | Wrap V0 endpoints as platform tools |
+| MCP adapter for search tools | Depends on platform tools | After platform tools |
+| Semantic/vector search (pgvector) | V2+ — when keyword filtering proves insufficient | pgvector extension + embedding generation |
 
 ---
 
@@ -863,8 +916,9 @@ export type { RuntimeClientConfig } from './runtimeClient';
 
 | Risk | Mitigation |
 |------|-----------|
-| LLM call every turn adds cost | Gated: no LLM call for conversations < 3 user messages (majority of traffic). 3+ messages: small prompt, summarizer model, most calls return `shouldUpdate: false`. Track via telemetry. |
-| Conversation metadata generation fails | Fire-and-forget with error logging. Read-time title fallback preserved. |
+| LLM call every turn adds cost | Gated: no LLM call for conversations < 3 user messages (majority of traffic). 3+ messages: small prompt, summarizer model, biased toward no-update (most calls return null). Track via telemetry. |
+| Conversation metadata generation fails | Fire-and-forget with error logging. Deterministic fallback always runs first, so conversations have baseline metadata even if LLM fails. |
 | Artifact list with join is slow at scale | Project-scoped queries limit cardinality. Add indexes if needed. |
 | Large artifact refactor introduces bugs | Zero behavior change on artifact path — same prompt, schema, save logic. Test thoroughly. |
 | `ledgerArtifacts` PK is 4-part composite (tenantId, projectId, id, taskId) | `getLedgerArtifactById` returns most recent by `createdAt` when multiple rows share an `id`. See OQ1. |
+| Backfill takes too long on large datasets | Paginated processing, deterministic only (no LLM), can run in background. Progress logged. |
