@@ -193,13 +193,12 @@ export function ProjectScheduledTriggerInvocationsTable({
       } catch (error) {
         console.error('Failed to rerun invocation:', error);
         toast.error('Failed to rerun invocation');
-      } finally {
-        setLoadingInvocations((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(invocation.id);
-          return newSet;
-        });
       }
+      setLoadingInvocations((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(invocation.id);
+        return newSet;
+      });
     },
     [tenantId, projectId, router]
   );

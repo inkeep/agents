@@ -177,13 +177,12 @@ export function ProjectScheduledTriggersTable({
     } catch (error) {
       console.error('Failed to run scheduled trigger:', error);
       toast.error('Failed to run scheduled trigger');
-    } finally {
-      setLoadingTriggers((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(triggerId);
-        return newSet;
-      });
     }
+    setLoadingTriggers((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(triggerId);
+      return newSet;
+    });
   };
 
   const localTz = getLocalTimezoneAbbreviation();
