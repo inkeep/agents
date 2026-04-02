@@ -119,9 +119,8 @@ export default function AllProjectsToolCallsBreakdown({
       } catch (err) {
         console.error('Error fetching tool calls data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch tool calls data');
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     fetchData();

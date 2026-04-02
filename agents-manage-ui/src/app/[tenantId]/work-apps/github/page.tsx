@@ -29,9 +29,8 @@ export default function WorkAppGitHubSettingsPage({
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch GitHub installations');
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }, [tenantId]);
 
   useEffect(() => {
