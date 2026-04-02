@@ -6,7 +6,12 @@
  * inkeep-chat backend AgentFull REST API endpoints.
  */
 
-import type { AgentApiInsert, DuplicateAgentRequest } from '@inkeep/agents-core';
+import type {
+  AgentApiInsert,
+  DuplicateAgentRequest,
+  ImportAgentRequest,
+  ImportAgentResponse,
+} from '@inkeep/agents-core';
 import { cache } from 'react';
 import type {
   Agent,
@@ -53,6 +58,20 @@ export async function duplicateAgent(
     {
       method: 'POST',
       body: JSON.stringify(duplicateData),
+    }
+  );
+}
+
+export async function importAgent(
+  tenantId: string,
+  projectId: string,
+  importData: ImportAgentRequest
+): Promise<ImportAgentResponse> {
+  return makeManagementApiRequest<ImportAgentResponse>(
+    `tenants/${tenantId}/projects/${projectId}/agents/import`,
+    {
+      method: 'POST',
+      body: JSON.stringify(importData),
     }
   );
 }
