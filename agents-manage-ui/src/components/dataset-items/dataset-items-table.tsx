@@ -2,7 +2,7 @@
 
 import type { ColumnDef } from '@tanstack/react-table';
 import { MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
-import { type FC, useMemo, useState } from 'react';
+import { type FC, useState } from 'react';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';

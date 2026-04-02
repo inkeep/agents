@@ -4,7 +4,6 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { Check, Copy } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useMemo } from 'react';
 import type { SelectOption } from '@/components/form/generic-select';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/ui/data-table';
