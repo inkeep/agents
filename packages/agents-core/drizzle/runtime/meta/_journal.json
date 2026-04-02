@@ -197,6 +197,27 @@
       "when": 1774595413621,
       "tag": "0027_seed-playground-app",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1774878983266,
+      "tag": "0028_thick_squirrel_girl",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1774957339561,
+      "tag": "0029_burly_satana",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1775145600000,
+      "tag": "0030_set-allow-anonymous-for-existing-apps",
+      "breakpoints": true
     }
   ]
 }

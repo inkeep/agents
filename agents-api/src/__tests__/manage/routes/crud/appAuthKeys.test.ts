@@ -33,8 +33,11 @@ describe('App Auth Keys Routes', () => {
     return body.data.app;
   };
 
+  const appUrl = (tenantId: string, projectId: string, appId: string) =>
+    `/manage/tenants/${tenantId}/projects/${projectId}/apps/${appId}`;
+
   const keysUrl = (tenantId: string, projectId: string, appId: string) =>
-    `/manage/tenants/${tenantId}/projects/${projectId}/apps/${appId}/auth/keys`;
+    `${appUrl(tenantId, projectId, appId)}/auth/keys`;
 
   describe('POST /auth/keys', () => {
     it('should add a public key to an app', async () => {
@@ -188,6 +191,191 @@ describe('App Auth Keys Routes', () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.data).toEqual([]);
+    });
+  });
+
+  describe('PATCH /apps/:id (allowAnonymous via app update)', () => {
+    it('should set allowAnonymous via app PATCH config merge', async () => {
+      const tenantId = await createTestTenantWithOrg('auth-settings-merge');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const app = await createTestApp(tenantId, projectId);
+
+      const res = await makeRequest(appUrl(tenantId, projectId, app.id), {
+        method: 'PATCH',
+        body: JSON.stringify({
+          config: {
+            type: 'web_client',
+            webClient: { allowedDomains: ['*'], allowAnonymous: true },
+          },
+        }),
+      });
+
+      expect(res.status).toBe(200);
+      const getRes = await makeRequest(appUrl(tenantId, projectId, app.id));
+      const appBody = await getRes.json();
+      expect(appBody.data.config.webClient.allowAnonymous).toBe(true);
+    });
+
+    it('should preserve existing keys when updating allowAnonymous via app PATCH', async () => {
+      const tenantId = await createTestTenantWithOrg('auth-settings-preserve');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const app = await createTestApp(tenantId, projectId);
+
+      const pem = await rsaPem();
+      await makeRequest(keysUrl(tenantId, projectId, app.id), {
+        method: 'POST',
+        body: JSON.stringify({ kid: 'preserved-key', publicKey: pem, algorithm: 'RS256' }),
+      });
+
+      await makeRequest(appUrl(tenantId, projectId, app.id), {
+        method: 'PATCH',
+        body: JSON.stringify({
+          config: {
+            type: 'web_client',
+            webClient: { allowedDomains: ['*'], allowAnonymous: true },
+          },
+        }),
+      });
+
+      const listRes = await makeRequest(keysUrl(tenantId, projectId, app.id));
+      const body = await listRes.json();
+      expect(body.data).toHaveLength(1);
+      expect(body.data[0].kid).toBe('preserved-key');
+    });
+
+    it('should preserve audience when updating allowAnonymous via app PATCH', async () => {
+      const tenantId = await createTestTenantWithOrg('auth-settings-audience');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const app = await createTestApp(tenantId, projectId);
+
+      await makeRequest(appUrl(tenantId, projectId, app.id), {
+        method: 'PATCH',
+        body: JSON.stringify({
+          config: {
+            type: 'web_client',
+            webClient: {
+              allowedDomains: ['example.com'],
+              audience: 'https://my-app.example.com',
+            },
+          },
+        }),
+      });
+
+      await makeRequest(appUrl(tenantId, projectId, app.id), {
+        method: 'PATCH',
+        body: JSON.stringify({
+          config: {
+            type: 'web_client',
+            webClient: {
+              allowedDomains: ['example.com'],
+              allowAnonymous: true,
+            },
+          },
+        }),
+      });
+
+      const getRes = await makeRequest(appUrl(tenantId, projectId, app.id));
+      const appBody = await getRes.json();
+      expect(appBody.data.config.webClient.audience).toBe('https://my-app.example.com');
+      expect(appBody.data.config.webClient.allowAnonymous).toBe(true);
+    });
+  });
+
+  describe('PATCH /apps/:id strips publicKeys from payload', () => {
+    it('should not overwrite existing keys when publicKeys is sent in PATCH body', async () => {
+      const tenantId = await createTestTenantWithOrg('auth-settings-strip-keys');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const app = await createTestApp(tenantId, projectId);
+
+      const pem = await rsaPem();
+      await makeRequest(keysUrl(tenantId, projectId, app.id), {
+        method: 'POST',
+        body: JSON.stringify({ kid: 'real-key', publicKey: pem, algorithm: 'RS256' }),
+      });
+
+      const res = await makeRequest(appUrl(tenantId, projectId, app.id), {
+        method: 'PATCH',
+        body: JSON.stringify({
+          config: {
+            type: 'web_client',
+            webClient: {
+              allowedDomains: ['example.com'],
+              publicKeys: [],
+              allowAnonymous: true,
+            },
+          },
+        }),
+      });
+      expect(res.status).toBe(200);
+
+      const listRes = await makeRequest(keysUrl(tenantId, projectId, app.id));
+      const body = await listRes.json();
+      expect(body.data).toHaveLength(1);
+      expect(body.data[0].kid).toBe('real-key');
+    });
+  });
+
+  describe('Key operations preserve allowAnonymous', () => {
+    it('should preserve allowAnonymous when adding a key', async () => {
+      const tenantId = await createTestTenantWithOrg('auth-keys-preserve-anon-add');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const app = await createTestApp(tenantId, projectId);
+
+      await makeRequest(appUrl(tenantId, projectId, app.id), {
+        method: 'PATCH',
+        body: JSON.stringify({
+          config: {
+            type: 'web_client',
+            webClient: { allowedDomains: ['example.com'], allowAnonymous: true },
+          },
+        }),
+      });
+
+      const pem = await rsaPem();
+      await makeRequest(keysUrl(tenantId, projectId, app.id), {
+        method: 'POST',
+        body: JSON.stringify({ kid: 'new-key', publicKey: pem, algorithm: 'RS256' }),
+      });
+
+      const getRes = await makeRequest(appUrl(tenantId, projectId, app.id));
+      const appBody = await getRes.json();
+      expect(appBody.data.config.webClient.allowAnonymous).toBe(true);
+    });
+
+    it('should preserve allowAnonymous when deleting a key', async () => {
+      const tenantId = await createTestTenantWithOrg('auth-keys-preserve-anon-del');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const app = await createTestApp(tenantId, projectId);
+
+      const pem = await rsaPem();
+      await makeRequest(keysUrl(tenantId, projectId, app.id), {
+        method: 'POST',
+        body: JSON.stringify({ kid: 'del-key', publicKey: pem, algorithm: 'RS256' }),
+      });
+
+      await makeRequest(appUrl(tenantId, projectId, app.id), {
+        method: 'PATCH',
+        body: JSON.stringify({
+          config: {
+            type: 'web_client',
+            webClient: { allowedDomains: ['example.com'], allowAnonymous: true },
+          },
+        }),
+      });
+
+      await makeRequest(`${keysUrl(tenantId, projectId, app.id)}/del-key`, {
+        method: 'DELETE',
+      });
+
+      const getRes = await makeRequest(appUrl(tenantId, projectId, app.id));
+      const appBody = await getRes.json();
+      expect(appBody.data.config.webClient.allowAnonymous).toBe(true);
     });
   });
 

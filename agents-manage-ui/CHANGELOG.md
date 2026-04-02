@@ -1,5 +1,82 @@
 # @inkeep/agents-manage-ui
 
+## 0.64.1
+
+### Patch Changes
+
+- 9bf97a7: Dockerize visual regression tests for cross-OS screenshot consistency
+  - @inkeep/agents-core@0.64.1
+
+## 0.64.0
+
+### Minor Changes
+
+- a929847: Add Require Authentication toggle for web client apps
+
+### Patch Changes
+
+- 254edb8: fast fail signoz for conversations not in db
+- 47915b3: Add agent-scoped datasets and evaluators with direct agent execution for dataset runs
+- 981ba48: Fix active sidebar item when file or folder path contains whitespace
+- ba40c53: Fix breadcrumbs in cost page
+- 47a3df7: Remove evaluations from conversation traces
+- d27011a: Reuse existing TanStack Query hooks for project fetching instead of manual fetch calls
+- 1512a7b: fix `Uncaught Error: Previous layout not found for panel index 2` when resizing `Try it` side-pane
+- abc3b5d: Add per-role seat limit enforcement to invitations and members UI
+- Updated dependencies [47915b3]
+- Updated dependencies [2ebe1c4]
+- Updated dependencies [68a55f5]
+- Updated dependencies [abc3b5d]
+  - @inkeep/agents-core@0.64.0
+
+## 0.63.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.63.3
+
+## 0.63.2
+
+### Patch Changes
+
+- 8e2f1e0: Fix Monaco Editor WebAssembly `CompileError` by adding `wasm-unsafe-eval` to CSP `script-src` directive
+- dc818c0: Add support for nested files and folders within Skills. Each skill is now a directory containing a `SKILL.md` entry file plus any number of nested reference files (templates, checklists, examples). The SDK `loadSkills()` function recursively discovers all files under each skill directory. The CLI `pull` command writes one file per skill file path. The Visual Builder shows a file-tree sidebar with per-file editing, context menus for adding and removing files, and breadcrumb navigation. The API accepts a `files` array for skill create and update, with four new file-level endpoints for individual CRUD operations. `SKILL.md` frontmatter remains the source of truth for skill name, description, and metadata.
+- Updated dependencies [dc818c0]
+- Updated dependencies [dc818c0]
+  - @inkeep/agents-core@0.63.2
+
+## 0.63.1
+
+### Patch Changes
+
+- 02eb244: Updated Cost UI
+- e222844: Omit falsy model configs in agent form to prevent empty model objects in payload
+- 4fa11aa: Making agent timeout more noticeable in trace conversation view
+  - @inkeep/agents-core@0.63.1
+
+## 0.63.0
+
+### Minor Changes
+
+- 0f77d00: Add scheduler workflow with centralized trigger dispatch and deploy restart endpoint
+
+### Patch Changes
+
+- Updated dependencies [0f77d00]
+  - @inkeep/agents-core@0.63.0
+
+## 0.62.2
+
+### Patch Changes
+
+- fe4b442: Prevent sidebar links rerenders on query param changes
+- c799d92: Fix ExternalLink icon shrinking in flex containers
+- 9ee6ab7: Remove redundant client-side `validateProjectId` and `validateTenantId` calls that duplicated server-side Zod validation
+- 9bba8fc: Fix CSP policy for PostHog and Sentry to use wildcard subdomains instead of exact host URLs
+- ea88f5f: Fix local login CSP defaults so auth requests reach the API without extra public env vars.
+- Updated dependencies [f614c56]
+  - @inkeep/agents-core@0.62.2
+
 ## 0.62.1
 
 ### Patch Changes

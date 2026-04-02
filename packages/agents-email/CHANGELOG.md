@@ -1,5 +1,23 @@
 # @inkeep/agents-email
 
+## 0.64.1
+
+## 0.64.0
+
+## 0.63.3
+
+## 0.63.2
+
+## 0.63.1
+
+## 0.63.0
+
+## 0.62.2
+
+### Patch Changes
+
+- 6332134: Upgrade nodemailer to v8.0.4 to address SMTP command injection
+
 ## 0.62.1
 
 ## 0.62.0

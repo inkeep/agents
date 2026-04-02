@@ -33,7 +33,7 @@ jobs:
         uses: ./.github/composite-actions/install
 
       - name: Setup npm for OIDC publishing
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
@@ -65,6 +65,14 @@ jobs:
         with:
           app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
           private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
+
+      # Set the git remote URL to use the App token so that commits pushed by
+      # changesets/action trigger downstream CI workflows. Without this, the
+      # push uses the default GITHUB_TOKEN which GitHub ignores for triggering.
+      - name: Configure git remote with App token
+        run: git remote set-url origin "https://x-access-token:${APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+        env:
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Publish packages
         id: changesets

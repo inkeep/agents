@@ -42,6 +42,8 @@ export interface InvitationVerification {
   expiresAt: string;
   authMethod: string | null;
   allowedAuthMethods?: MethodOption[];
+  userExists?: boolean;
+  seatLimitReached?: string | null;
 }
 
 interface InvitationVerificationError {

@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  PublicKeyAlgorithmSchema,
-  PublicKeyConfigSchema,
-  WebClientAuthConfigSchema,
-  WebClientConfigSchema,
-} from '../schemas';
+import { PublicKeyAlgorithmSchema, PublicKeyConfigSchema, WebClientConfigSchema } from '../schemas';
 
 describe('PublicKeyAlgorithmSchema', () => {
   it('accepts valid algorithms', () => {
@@ -50,36 +45,7 @@ describe('PublicKeyConfigSchema', () => {
   });
 });
 
-describe('WebClientAuthConfigSchema', () => {
-  it('accepts empty publicKeys array', () => {
-    const result = WebClientAuthConfigSchema.parse({ publicKeys: [] });
-    expect(result.publicKeys).toEqual([]);
-    expect(result.audience).toBeUndefined();
-  });
-
-  it('defaults publicKeys to empty array', () => {
-    const result = WebClientAuthConfigSchema.parse({});
-    expect(result.publicKeys).toEqual([]);
-  });
-
-  it('accepts audience string', () => {
-    const result = WebClientAuthConfigSchema.parse({ publicKeys: [], audience: 'my-app' });
-    expect(result.audience).toBe('my-app');
-  });
-
-  it('accepts many keys (no limit)', () => {
-    const keys = Array.from({ length: 10 }, (_, i) => ({
-      kid: `key-${i}`,
-      publicKey: 'pem-data',
-      algorithm: 'RS256',
-      addedAt: '2026-03-24T00:00:00Z',
-    }));
-    const result = WebClientAuthConfigSchema.parse({ publicKeys: keys });
-    expect(result.publicKeys).toHaveLength(10);
-  });
-});
-
-describe('WebClientConfigSchema with auth', () => {
+describe('WebClientConfigSchema', () => {
   const baseConfig = {
     type: 'web_client' as const,
     webClient: {
@@ -87,30 +53,42 @@ describe('WebClientConfigSchema with auth', () => {
     },
   };
 
-  it('accepts config without auth (backward compatible)', () => {
+  it('applies defaults when auth fields are omitted', () => {
     const result = WebClientConfigSchema.parse(baseConfig);
-    expect(result.webClient.auth).toBeUndefined();
+    expect(result.webClient.publicKeys).toEqual([]);
+    expect(result.webClient.allowAnonymous).toBe(false);
   });
 
-  it('accepts config with auth block', () => {
+  it('accepts config with auth fields directly on webClient', () => {
     const result = WebClientConfigSchema.parse({
       ...baseConfig,
       webClient: {
         ...baseConfig.webClient,
-        auth: {
-          publicKeys: [
-            {
-              kid: 'key-1',
-              publicKey: 'pem-data',
-              algorithm: 'ES256',
-              addedAt: '2026-03-24T00:00:00Z',
-            },
-          ],
-          audience: 'https://api.example.com',
-        },
+        publicKeys: [
+          {
+            kid: 'key-1',
+            publicKey: 'pem-data',
+            algorithm: 'ES256',
+            addedAt: '2026-03-24T00:00:00Z',
+          },
+        ],
+        audience: 'https://api.example.com',
+        allowAnonymous: false,
       },
     });
-    expect(result.webClient.auth?.publicKeys).toHaveLength(1);
-    expect(result.webClient.auth?.audience).toBe('https://api.example.com');
+    expect(result.webClient.publicKeys).toHaveLength(1);
+    expect(result.webClient.audience).toBe('https://api.example.com');
+    expect(result.webClient.allowAnonymous).toBe(false);
+  });
+
+  it('does not accept validateScopeClaims', () => {
+    const result = WebClientConfigSchema.parse({
+      ...baseConfig,
+      webClient: {
+        ...baseConfig.webClient,
+        validateScopeClaims: true,
+      },
+    });
+    expect((result.webClient as Record<string, unknown>).validateScopeClaims).toBeUndefined();
   });
 });

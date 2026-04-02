@@ -21,6 +21,7 @@ import runDbClient from '../../../../data/db/runDbClient';
 import { env } from '../../../../env';
 import { getLogger } from '../../../../logger';
 import { agentSessionManager } from '../../session/AgentSession';
+import { mergeHeadersWithoutOverrides } from '../../utils/merge-headers';
 import { setSpanWithError, tracer } from '../../utils/tracer';
 import type { AgentConfig } from '../Agent';
 import type { AiSdkToolDefinition } from '../agent-types';
@@ -177,10 +178,10 @@ export class AgentMcpManager {
     }
 
     if (this.config.forwardedHeaders && Object.keys(this.config.forwardedHeaders).length > 0) {
-      serverConfig.headers = {
-        ...serverConfig.headers,
-        ...this.config.forwardedHeaders,
-      };
+      serverConfig.headers = mergeHeadersWithoutOverrides(
+        serverConfig.headers,
+        this.config.forwardedHeaders
+      );
     }
 
     logger.info(

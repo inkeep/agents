@@ -78,18 +78,36 @@ function processModels(modelsData?: AgentModels): ExtendedAgent['models'] | unde
       ? {
           model: modelsData.base.model,
           providerOptions: safeJsonParse(modelsData.base.providerOptions),
+          ...(modelsData.base.fallbackModels?.length && {
+            fallbackModels: modelsData.base.fallbackModels.filter(Boolean),
+          }),
+          ...(modelsData.base.allowedProviders?.length && {
+            allowedProviders: modelsData.base.allowedProviders.filter(Boolean),
+          }),
         }
       : undefined,
     structuredOutput: modelsData.structuredOutput
       ? {
           model: modelsData.structuredOutput.model,
           providerOptions: safeJsonParse(modelsData.structuredOutput.providerOptions),
+          ...(modelsData.structuredOutput.fallbackModels?.length && {
+            fallbackModels: modelsData.structuredOutput.fallbackModels.filter(Boolean),
+          }),
+          ...(modelsData.structuredOutput.allowedProviders?.length && {
+            allowedProviders: modelsData.structuredOutput.allowedProviders.filter(Boolean),
+          }),
         }
       : undefined,
     summarizer: modelsData.summarizer
       ? {
           model: modelsData.summarizer.model,
           providerOptions: safeJsonParse(modelsData.summarizer.providerOptions),
+          ...(modelsData.summarizer.fallbackModels?.length && {
+            fallbackModels: modelsData.summarizer.fallbackModels.filter(Boolean),
+          }),
+          ...(modelsData.summarizer.allowedProviders?.length && {
+            allowedProviders: modelsData.summarizer.allowedProviders.filter(Boolean),
+          }),
         }
       : undefined,
   };

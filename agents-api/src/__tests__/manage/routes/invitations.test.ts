@@ -5,10 +5,16 @@ const {
   getPendingInvitationsByEmailMock,
   listUserInvitationsMock,
   getFilteredAuthMethodsForEmailMock,
+  resolveEntitlementMock,
+  countSeatsByRoleMock,
+  getUserByEmailMock,
 } = vi.hoisted(() => ({
   getPendingInvitationsByEmailMock: vi.fn(),
   listUserInvitationsMock: vi.fn(),
   getFilteredAuthMethodsForEmailMock: vi.fn().mockResolvedValue([]),
+  resolveEntitlementMock: vi.fn().mockResolvedValue(null),
+  countSeatsByRoleMock: vi.fn().mockResolvedValue(0),
+  getUserByEmailMock: vi.fn().mockResolvedValue(null),
 }));
 
 // Mock @inkeep/agents-core
@@ -18,6 +24,9 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     ...original,
     getPendingInvitationsByEmail: () => getPendingInvitationsByEmailMock,
     getFilteredAuthMethodsForEmail: () => getFilteredAuthMethodsForEmailMock,
+    getUserByEmail: () => getUserByEmailMock,
+    resolveEntitlement: resolveEntitlementMock,
+    countSeatsByRole: countSeatsByRoleMock,
     createApiError: original.createApiError,
   };
 });

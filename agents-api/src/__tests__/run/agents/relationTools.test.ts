@@ -10,7 +10,11 @@ vi.mock('ai', () => ({
 
 import { generateServiceToken } from '@inkeep/agents-core';
 import { A2AClient } from '../../../domains/run/a2a/client';
-import type { AgentConfig, ExternalAgentRelationConfig } from '../../../domains/run/agents/Agent';
+import type {
+  AgentConfig,
+  ExternalAgentRelationConfig,
+  TeamAgentRelationConfig,
+} from '../../../domains/run/agents/Agent';
 import {
   createDelegateToAgentTool,
   createTransferToAgentTool,
@@ -246,6 +250,7 @@ vi.mock('../../../domains/run/session/AgentSession.js', () => ({
 describe('Relationship Tools', () => {
   let mockAgentConfig: AgentConfig;
   let mockExternalAgentConfig: ExternalAgentRelationConfig;
+  let mockTeamAgentConfig: TeamAgentRelationConfig;
   let _mockSendMessageInstance: any;
   let mockCredentialStoreRegistry: any;
   let mockExecutionContext: any;
@@ -274,6 +279,24 @@ describe('Relationship Tools', () => {
     delegateConfig: {
       type: 'external' as const,
       config: { ...mockExternalAgentConfig, ...config },
+    },
+    callingAgentId: 'test-calling-agent',
+    executionContext: mockExecutionContext,
+    contextId: 'test-context',
+    metadata: {
+      conversationId: 'test-conversation',
+      threadId: 'test-thread',
+      apiKey: 'test-api-key',
+    },
+    get credentialStoreRegistry() {
+      return mockCredentialStoreRegistry;
+    },
+  });
+
+  const getTeamDelegateParams = (config?: Partial<TeamAgentRelationConfig>) => ({
+    delegateConfig: {
+      type: 'team' as const,
+      config: { ...mockTeamAgentConfig, ...config },
     },
     callingAgentId: 'test-calling-agent',
     executionContext: mockExecutionContext,
@@ -330,6 +353,15 @@ describe('Relationship Tools', () => {
       credentialReferenceId: null,
       relationId: 'test-relation-id',
       relationType: 'delegate',
+    };
+
+    mockTeamAgentConfig = {
+      relationId: 'test-team-relation-id',
+      id: 'team-agent',
+      ref: { type: 'branch', name: 'main', hash: 'test-hash' },
+      name: 'Team Agent',
+      description: 'A team agent for testing',
+      baseUrl: 'http://team-agent.example.com',
     };
   });
 
@@ -505,12 +537,75 @@ describe('Relationship Tools', () => {
           metadata: {
             conversationId: 'test-conversation',
             threadId: 'test-thread',
-            apiKey: 'test-api-key',
             fromExternalAgentId: 'test-calling-agent',
             isDelegation: true,
             delegationId: 'del_test-nanoid-123',
           },
         },
+      });
+    });
+
+    it('should not forward apiKey metadata to external delegates', async () => {
+      mockSendMessage.mockResolvedValue({ result: 'external success', error: null });
+
+      const tool = createDelegateToAgentTool(getExternalDelegateParams());
+
+      if (!tool.execute) {
+        throw new Error('Tool execute method is undefined');
+      }
+
+      await tool.execute({ message: 'Test external delegation message' }, mockToolCallOptions);
+
+      const sentMetadata = mockSendMessage.mock.calls[0][0].message.metadata;
+      expect(sentMetadata).not.toHaveProperty('apiKey');
+      expect(sentMetadata).toMatchObject({
+        conversationId: 'test-conversation',
+        threadId: 'test-thread',
+        isDelegation: true,
+        fromExternalAgentId: 'test-calling-agent',
+      });
+    });
+
+    it('should not forward apiKey metadata to team delegates', async () => {
+      mockSendMessage.mockResolvedValue({ result: 'team success', error: null });
+
+      const tool = createDelegateToAgentTool(getTeamDelegateParams());
+
+      if (!tool.execute) {
+        throw new Error('Tool execute method is undefined');
+      }
+
+      await tool.execute({ message: 'Test team delegation message' }, mockToolCallOptions);
+
+      const sentMetadata = mockSendMessage.mock.calls[0][0].message.metadata;
+      expect(sentMetadata).not.toHaveProperty('apiKey');
+      expect(sentMetadata).toMatchObject({
+        conversationId: 'test-conversation',
+        threadId: 'test-thread',
+        isDelegation: true,
+        fromExternalAgentId: 'test-calling-agent',
+      });
+    });
+
+    it('should forward apiKey metadata to internal delegates', async () => {
+      mockSendMessage.mockResolvedValue({ result: 'internal success', error: null });
+
+      const tool = createDelegateToAgentTool(getDelegateParams());
+
+      if (!tool.execute) {
+        throw new Error('Tool execute method is undefined');
+      }
+
+      await tool.execute({ message: 'Test internal delegation message' }, mockToolCallOptions);
+
+      const sentMetadata = mockSendMessage.mock.calls[0][0].message.metadata;
+      expect(sentMetadata).toHaveProperty('apiKey', 'test-api-key');
+      expect(sentMetadata).toMatchObject({
+        conversationId: 'test-conversation',
+        threadId: 'test-thread',
+        apiKey: 'test-api-key',
+        isDelegation: true,
+        fromSubAgentId: 'test-calling-agent',
       });
     });
 

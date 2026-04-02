@@ -1,21 +1,31 @@
-import { OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
   createSkill,
+  createSkillFileById,
   deleteSkill,
-  getSkillById,
+  deleteSkillFileById,
+  getSkillByIdWithFiles,
+  getSkillFileById,
   listSkills,
   PaginationQueryParamsSchema,
+  ResourceIdSchema,
+  SKILL_ENTRY_FILE_PATH,
   SkillApiInsertSchema,
   SkillApiUpdateSchema,
+  SkillFileApiInsertSchema,
+  SkillFileApiUpdateSchema,
+  SkillFileResponse,
   SkillListResponse,
-  SkillResponse,
+  SkillWithFilesResponse,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateSkill,
+  updateSkillFileById,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
+import { HTTPException } from 'hono/http-exception';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types';
 import {
@@ -25,6 +35,9 @@ import {
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
+const TenantProjectSkillFileParamsSchema = TenantProjectIdParamsSchema.extend({
+  fileId: ResourceIdSchema,
+});
 
 app.openapi(
   createProtectedRoute({
@@ -67,6 +80,116 @@ app.openapi(
 
 app.openapi(
   createProtectedRoute({
+    method: 'post',
+    path: '/{id}/files',
+    summary: 'Create Skill File',
+    operationId: 'create-skill-file',
+    tags: ['Skills'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: TenantProjectIdParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: SkillFileApiInsertSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      201: {
+        description: 'Skill file created successfully',
+        content: {
+          'application/json': {
+            schema: SkillFileResponse,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId, id } = c.req.valid('param');
+    const body = c.req.valid('json');
+
+    try {
+      const file = await createSkillFileById(db)({
+        scopes: { tenantId, projectId },
+        skillId: id,
+        data: body,
+      });
+
+      if (!file) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'Skill not found',
+        });
+      }
+
+      return c.json({ data: file }, 201);
+    } catch (error) {
+      if (error instanceof HTTPException) {
+        throw error;
+      }
+
+      if (error instanceof Error) {
+        throw createApiError({
+          code: error.message.includes('already exists') ? 'conflict' : 'unprocessable_entity',
+          message: error.message,
+        });
+      }
+
+      throw error;
+    }
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/{id}/files/{fileId}',
+    summary: 'Get Skill File',
+    operationId: 'get-skill-file',
+    tags: ['Skills'],
+    permission: requireProjectPermission('view'),
+    request: {
+      params: TenantProjectSkillFileParamsSchema,
+    },
+    responses: {
+      200: {
+        description: 'Skill file found',
+        content: {
+          'application/json': {
+            schema: SkillFileResponse,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId, id, fileId } = c.req.valid('param');
+    const file = await getSkillFileById(db)({
+      scopes: { tenantId, projectId },
+      skillId: id,
+      fileId,
+    });
+
+    if (!file) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Skill file not found',
+      });
+    }
+
+    return c.json({ data: file });
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
     method: 'get',
     path: '/{id}',
     summary: 'Get Skill',
@@ -81,7 +204,7 @@ app.openapi(
         description: 'Skill found',
         content: {
           'application/json': {
-            schema: SkillResponse,
+            schema: SkillWithFilesResponse,
           },
         },
       },
@@ -91,7 +214,7 @@ app.openapi(
   async (c) => {
     const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
-    const skill = await getSkillById(db)({
+    const skill = await getSkillByIdWithFiles(db)({
       scopes: { tenantId, projectId },
       skillId: id,
     });
@@ -130,7 +253,7 @@ app.openapi(
         description: 'Skill created successfully',
         content: {
           'application/json': {
-            schema: SkillResponse,
+            schema: SkillWithFilesResponse,
           },
         },
       },
@@ -172,7 +295,7 @@ const updateSkillRouteConfig = {
       description: 'Skill updated successfully',
       content: {
         'application/json': {
-          schema: SkillResponse,
+          schema: SkillWithFilesResponse,
         },
       },
     },
@@ -185,10 +308,14 @@ const updateSkillHandler: ManageRouteHandler<typeof updateSkillRouteConfig> = as
   const { tenantId, projectId, id } = c.req.valid('param');
   const body = c.req.valid('json');
 
+  const data = body.files.some((file) => file.filePath === SKILL_ENTRY_FILE_PATH)
+    ? body
+    : { files: [] };
+
   const skill = await updateSkill(db)({
     scopes: { tenantId, projectId },
     skillId: id,
-    data: body,
+    data,
   });
 
   if (!skill) {
@@ -204,6 +331,81 @@ const updateSkillHandler: ManageRouteHandler<typeof updateSkillRouteConfig> = as
 openapiRegisterPutPatchRoutesForLegacy(app, updateSkillRouteConfig, updateSkillHandler, {
   operationId: 'update-skill',
 });
+
+app.openapi(
+  createProtectedRoute({
+    method: 'patch',
+    path: '/{id}/files/{fileId}',
+    summary: 'Update Skill File',
+    operationId: 'update-skill-file',
+    tags: ['Skills'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: TenantProjectSkillFileParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: SkillFileApiUpdateSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Skill file updated successfully',
+        content: {
+          'application/json': {
+            schema: SkillFileResponse,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId, id, fileId } = c.req.valid('param');
+    const body = c.req.valid('json');
+
+    try {
+      const file = await updateSkillFileById(db)({
+        scopes: { tenantId, projectId },
+        skillId: id,
+        fileId,
+        ...body,
+      });
+
+      if (!file) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'Skill file not found',
+        });
+      }
+
+      return c.json({ data: file });
+    } catch (error) {
+      if (error instanceof HTTPException) {
+        throw error;
+      }
+
+      if (error instanceof z.ZodError) {
+        throw createApiError({
+          code: 'unprocessable_entity',
+          message: 'Invalid skill file payload',
+        });
+      }
+
+      if (error instanceof Error) {
+        throw createApiError({
+          code: 'unprocessable_entity',
+          message: error.message,
+        });
+      }
+
+      throw error;
+    }
+  }
+);
 
 app.openapi(
   createProtectedRoute({
@@ -240,6 +442,60 @@ app.openapi(
     }
 
     return c.body(null, 204);
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'delete',
+    path: '/{id}/files/{fileId}',
+    summary: 'Delete Skill File',
+    operationId: 'delete-skill-file',
+    tags: ['Skills'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: TenantProjectSkillFileParamsSchema,
+    },
+    responses: {
+      204: {
+        description: 'Skill file deleted successfully',
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId, id, fileId } = c.req.valid('param');
+
+    try {
+      const removed = await deleteSkillFileById(db)({
+        scopes: { tenantId, projectId },
+        skillId: id,
+        fileId,
+      });
+
+      if (!removed) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'Skill file not found',
+        });
+      }
+
+      return c.body(null, 204);
+    } catch (error) {
+      if (error instanceof HTTPException) {
+        throw error;
+      }
+
+      if (error instanceof Error) {
+        throw createApiError({
+          code: 'unprocessable_entity',
+          message: error.message,
+        });
+      }
+
+      throw error;
+    }
   }
 );
 

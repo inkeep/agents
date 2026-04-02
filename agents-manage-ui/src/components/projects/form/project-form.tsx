@@ -77,7 +77,17 @@ export function ProjectForm({
       } else {
         const res = await createProjectAction(tenantId, data);
         if (!res.success) {
-          toast.error(res.error || 'Failed to create project');
+          const isEntitlementError = res.code === 'payment_required';
+          toast.error(res.error || 'Failed to create project', {
+            ...(isEntitlementError && {
+              action: {
+                label: 'See usage',
+                onClick: () => {
+                  window.location.href = `/${tenantId}/billing`;
+                },
+              },
+            }),
+          });
           return;
         }
         toast.success('Project created successfully');

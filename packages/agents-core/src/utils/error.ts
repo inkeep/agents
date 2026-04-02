@@ -5,6 +5,7 @@ import { getLogger } from './logger';
 export const ErrorCode = z.enum([
   'bad_request',
   'unauthorized',
+  'payment_required',
   'forbidden',
   'not_found',
   'conflict',
@@ -16,6 +17,7 @@ export const ErrorCode = z.enum([
 const errorCodeToHttpStatus: Record<z.infer<typeof ErrorCode>, number> = {
   bad_request: 400,
   unauthorized: 401,
+  payment_required: 402,
   forbidden: 403,
   not_found: 404,
   conflict: 409,
@@ -223,6 +225,8 @@ function getTitleFromCode(code: ErrorCodes): string {
       return 'Bad Request';
     case 'unauthorized':
       return 'Unauthorized';
+    case 'payment_required':
+      return 'Payment Required';
     case 'forbidden':
       return 'Forbidden';
     case 'not_found':

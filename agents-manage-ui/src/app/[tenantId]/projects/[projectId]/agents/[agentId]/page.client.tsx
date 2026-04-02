@@ -144,9 +144,10 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
 
   const { screenToFlowPosition, fitView } = useReactFlow();
   const form = useFullAgentFormContext();
-  const { nodes, edges } = useAgentStore((state) => ({
+  const { nodes, edges, dirty } = useAgentStore((state) => ({
     nodes: state.nodes,
     edges: state.edges,
+    dirty: state.dirty,
   }));
   const {
     setNodes,
@@ -700,23 +701,25 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
         </ReactFlow>
       </ResizablePanel>
 
-      <Activity mode={showSidePane ? 'visible' : 'hidden'}>
-        <ResizableHandle withHandle />
-        <ResizablePanel
-          minSize={30}
-          // Panel id and order props recommended when panels are dynamically rendered
-          id="side-pane"
-          order={2}
-        >
-          <SidePane
-            selectedNodeId={selectedNode?.id ?? null}
-            selectedEdgeId={selectedEdge?.id ?? null}
-            onClose={closeSidePane}
-            backToAgent={backToAgent}
-            disabled={isCopilotStreaming || !canEdit}
-          />
-        </ResizablePanel>
-      </Activity>
+      {showSidePane && (
+        /* fix Uncaught Error: Previous layout not found for panel index 2 */ <>
+          <ResizableHandle withHandle />
+          <ResizablePanel
+            minSize={30}
+            // Panel id and order props recommended when panels are dynamically rendered
+            id="side-pane"
+            order={2}
+          >
+            <SidePane
+              selectedNodeId={selectedNode?.id ?? null}
+              selectedEdgeId={selectedEdge?.id ?? null}
+              onClose={closeSidePane}
+              backToAgent={backToAgent}
+              disabled={isCopilotStreaming || !canEdit}
+            />
+          </ResizablePanel>
+        </>
+      )}
       <Activity mode={showPlayground ? 'visible' : 'hidden'}>
         {!showTraces && <ResizableHandle withHandle />}
         <ResizablePanel
@@ -734,7 +737,7 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
           />
         </ResizablePanel>
       </Activity>
-      <UnsavedChangesDialog onSubmit={onSubmit} />
+      <UnsavedChangesDialog dirty={dirty} onSubmit={onSubmit} control={form.control} />
     </ResizablePanelGroup>
   );
 };

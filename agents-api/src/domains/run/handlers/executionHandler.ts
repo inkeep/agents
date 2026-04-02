@@ -29,6 +29,7 @@ import type { StreamHelper } from '../stream/stream-helpers.js';
 import { BufferingStreamHelper } from '../stream/stream-helpers.js';
 import { registerStreamHelper, unregisterStreamHelper } from '../stream/stream-registry.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
+import { mergeHeadersWithoutOverrides } from '../utils/merge-headers.js';
 import { resolveModelConfig } from '../utils/model-resolver.js';
 import { tracer } from '../utils/tracer.js';
 
@@ -306,17 +307,18 @@ export class ExecutionHandler {
 
         const appPrompt = executionContext.metadata?.appPrompt;
 
+        const trustedHeaders: Record<string, string> = {
+          Authorization: `Bearer ${authToken}`,
+          'x-inkeep-tenant-id': tenantId,
+          'x-inkeep-project-id': projectId,
+          'x-inkeep-agent-id': agentId,
+          'x-inkeep-sub-agent-id': currentAgentId,
+          ...(runAsUserId ? { 'x-inkeep-run-as-user-id': runAsUserId } : {}),
+          ...(appPrompt ? { 'x-inkeep-app-prompt': appPrompt } : {}),
+        };
+
         const a2aClient = new A2AClient(agentBaseUrl, {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-            'x-inkeep-tenant-id': tenantId,
-            'x-inkeep-project-id': projectId,
-            'x-inkeep-agent-id': agentId,
-            'x-inkeep-sub-agent-id': currentAgentId,
-            ...(runAsUserId ? { 'x-inkeep-run-as-user-id': runAsUserId } : {}),
-            ...(appPrompt ? { 'x-inkeep-app-prompt': appPrompt } : {}),
-            ...(forwardedHeaders || {}),
-          },
+          headers: mergeHeadersWithoutOverrides(trustedHeaders, forwardedHeaders || {}),
           fetchFn: getInProcessFetch(),
         });
 

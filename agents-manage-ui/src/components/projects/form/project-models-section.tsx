@@ -2,7 +2,7 @@
 
 import { Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { type UseFormReturn, useFormState, useWatch } from 'react-hook-form';
+import { type UseFormReturn, useController, useFormState, useWatch } from 'react-hook-form';
 import { CollapsibleSettings } from '@/components/agent/sidepane/collapsible-settings';
 import { SectionHeader } from '@/components/agent/sidepane/section';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
@@ -29,8 +29,16 @@ interface ProjectModelsSectionProps {
 
 function BaseModelSection({ form, disabled }: ProjectModelsSectionProps) {
   'use memo';
-  const baseModel = useWatch({ control: form.control, name: 'models.base.model' });
-
+  const { control } = form;
+  const baseModel = useWatch({ control, name: 'models.base.model' });
+  const { field: fallbackModelsField } = useController({
+    control,
+    name: 'models.base.fallbackModels',
+  });
+  const { field: allowedProvidersField } = useController({
+    control,
+    name: 'models.base.allowedProviders',
+  });
   return (
     <div className="space-y-4">
       <FormFieldWrapper
@@ -54,6 +62,14 @@ function BaseModelSection({ form, disabled }: ProjectModelsSectionProps) {
             onProviderOptionsChange={field.onChange}
             editorNamePrefix="project-base"
             disabled={disabled}
+            fallbackModels={fallbackModelsField.value ?? undefined}
+            onFallbackModelsChange={(models) => {
+              fallbackModelsField.onChange(models.length ? models : undefined);
+            }}
+            allowedProviders={allowedProvidersField.value ?? undefined}
+            onAllowedProvidersChange={(providers) => {
+              allowedProvidersField.onChange(providers.length ? providers : undefined);
+            }}
           />
         )}
       </FormFieldWrapper>
@@ -63,20 +79,31 @@ function BaseModelSection({ form, disabled }: ProjectModelsSectionProps) {
 
 function StructuredOutputModelSection({ form, disabled }: ProjectModelsSectionProps) {
   'use memo';
+  const { control } = form;
   const structuredOutputModel = useWatch({
     control: form.control,
     name: 'models.structuredOutput.model',
   });
-  const baseModel = useWatch({ control: form.control, name: 'models.base.model' });
+  const { field: fallbackModelsField } = useController({
+    control,
+    name: 'models.structuredOutput.fallbackModels',
+  });
+  const { field: allowedProvidersField } = useController({
+    control,
+    name: 'models.structuredOutput.allowedProviders',
+  });
+  const baseModel = useWatch({ control, name: 'models.base.model' });
   const baseProviderOptions = useWatch({
-    control: form.control,
+    control,
     name: 'models.base.providerOptions',
   });
+  const baseFallbackModels = useWatch({ control, name: 'models.base.fallbackModels' });
+  const baseAllowedProviders = useWatch({ control, name: 'models.base.allowedProviders' });
 
   return (
     <FormFieldWrapper
       label=""
-      control={form.control}
+      control={control}
       // Show validation errors of provider options editor
       name="models.structuredOutput.providerOptions"
       description="Model for structured outputs and components (defaults to base model)"
@@ -107,6 +134,16 @@ function StructuredOutputModelSection({ form, disabled }: ProjectModelsSectionPr
             return structuredOutputModelProviderOptionsTemplate;
           }}
           disabled={disabled}
+          fallbackModels={fallbackModelsField.value ?? undefined}
+          inheritedFallbackModels={baseFallbackModels ?? undefined}
+          onFallbackModelsChange={(models) => {
+            fallbackModelsField.onChange(models.length ? models : undefined);
+          }}
+          allowedProviders={allowedProvidersField.value ?? undefined}
+          inheritedAllowedProviders={baseAllowedProviders ?? undefined}
+          onAllowedProvidersChange={(providers) => {
+            allowedProvidersField.onChange(providers.length ? providers : undefined);
+          }}
         />
       )}
     </FormFieldWrapper>
@@ -115,17 +152,28 @@ function StructuredOutputModelSection({ form, disabled }: ProjectModelsSectionPr
 
 function SummarizerModelSection({ form, disabled }: ProjectModelsSectionProps) {
   'use memo';
-  const summarizerModel = useWatch({ control: form.control, name: 'models.summarizer.model' });
-  const baseModel = useWatch({ control: form.control, name: 'models.base.model' });
+  const { control } = form;
+  const summarizerModel = useWatch({ control, name: 'models.summarizer.model' });
+  const { field: fallbackModelsField } = useController({
+    control,
+    name: 'models.summarizer.fallbackModels',
+  });
+  const { field: allowedProvidersField } = useController({
+    control,
+    name: 'models.summarizer.allowedProviders',
+  });
+  const baseModel = useWatch({ control, name: 'models.base.model' });
   const baseProviderOptions = useWatch({
-    control: form.control,
+    control,
     name: 'models.base.providerOptions',
   });
+  const baseFallbackModels = useWatch({ control, name: 'models.base.fallbackModels' });
+  const baseAllowedProviders = useWatch({ control, name: 'models.base.allowedProviders' });
 
   return (
     <FormFieldWrapper
       label=""
-      control={form.control}
+      control={control}
       // Show validation errors of provider options editor
       name="models.summarizer.providerOptions"
       description="Model for summarization tasks (defaults to base model)"
@@ -156,6 +204,16 @@ function SummarizerModelSection({ form, disabled }: ProjectModelsSectionProps) {
             return summarizerModelProviderOptionsTemplate;
           }}
           disabled={disabled}
+          fallbackModels={fallbackModelsField.value ?? undefined}
+          inheritedFallbackModels={baseFallbackModels ?? undefined}
+          onFallbackModelsChange={(models) => {
+            fallbackModelsField.onChange(models.length ? models : undefined);
+          }}
+          allowedProviders={allowedProvidersField.value ?? undefined}
+          inheritedAllowedProviders={baseAllowedProviders ?? undefined}
+          onAllowedProvidersChange={(providers) => {
+            allowedProvidersField.onChange(providers.length ? providers : undefined);
+          }}
         />
       )}
     </FormFieldWrapper>

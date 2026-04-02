@@ -8,6 +8,7 @@
     "@inkeep/agents-cli": "workspace:*"
   },
   "scripts": {
+    "knip": "knip --directory .. --workspace test-agents --config test-agents/knip.config.ts --dependencies",
     "lint": "biome lint --error-on-warnings",
     "lint:fix": "biome check --write"
   }
