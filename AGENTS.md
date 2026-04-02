@@ -262,7 +262,7 @@ describe('MyFeature', () => {
 
 ### Environment Configuration
 Required environment variables in `.env` files:
-```
+```dotenv
 ENVIRONMENT=development|production|test
 INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@localhost:5432/inkeep_agents
 INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@localhost:5433/inkeep_agents
