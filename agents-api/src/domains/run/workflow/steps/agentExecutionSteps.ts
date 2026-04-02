@@ -758,6 +758,7 @@ export async function executeToolStep(params: ExecuteToolStepParams): Promise<Ex
   );
   const { agentSessionManager } = await import('../../session/AgentSession');
   const { loadToolsAndPrompts } = await import('../../agents/generation/tool-loading');
+  const { errorOp } = await import('../../utils/agent-operations');
 
   const { agent, executionContext } = await buildAgentForStep({
     tenantId,
@@ -847,20 +848,66 @@ export async function executeToolStep(params: ExecuteToolStepParams): Promise<Ex
         throw new Error(`Tool '${toolName}' not found in agent tool set`);
       }
 
-      await (
-        toolDef as { execute?: (args: unknown, context?: unknown) => Promise<unknown> }
-      ).execute?.(args, { toolCallId });
+      return await tracer.startActiveSpan('durable.tool_execution', {}, async (span) => {
+        try {
+          span.setAttributes({
+            'subAgent.id': currentSubAgentId,
+            'tool.name': toolName,
+            'tool.callId': toolCallId,
+          });
 
-      if (agent.runContext.pendingDurableApproval) {
-        logger.info(
-          { toolName, toolCallId, workflowRunId },
-          'executeToolStep: tool requires approval'
-        );
-        return { type: 'needs_approval' as const };
-      }
+          await (
+            toolDef as { execute?: (args: unknown, context?: unknown) => Promise<unknown> }
+          ).execute?.(args, { toolCallId });
 
-      logger.info({ toolName, toolCallId }, 'executeToolStep: tool executed successfully');
-      return { type: 'completed' as const };
+          if (agent.runContext.pendingDurableApproval) {
+            logger.info(
+              { toolName, toolCallId, workflowRunId },
+              'executeToolStep: tool requires approval'
+            );
+            return { type: 'needs_approval' as const };
+          }
+
+          logger.info({ toolName, toolCallId }, 'executeToolStep: tool executed successfully');
+          return { type: 'completed' as const };
+        } finally {
+          span.end();
+        }
+      });
+    } catch (error) {
+      const rootCause = error instanceof Error ? error : new Error(String(error));
+      logger.error(
+        { error: rootCause.message, stack: rootCause.stack, toolName, toolCallId, requestId },
+        'executeToolStep: error during tool execution'
+      );
+
+      return await tracer.startActiveSpan('durable.tool_execution', {}, async (span) => {
+        try {
+          span.setAttributes({
+            'tool.response.content': `Tool execution error: ${rootCause.message}`,
+            'tool.response.timestamp': new Date().toISOString(),
+            'subAgent.id': currentSubAgentId,
+            'tool.name': toolName,
+            'tool.callId': toolCallId,
+          });
+          setSpanWithError(span, rootCause);
+
+          try {
+            await sseHelper.writeOperation(
+              errorOp(
+                `Tool execution error: ${rootCause.message}`,
+                currentSubAgentId || 'system'
+              )
+            );
+          } catch (streamErr) {
+            logger.warn({ error: streamErr, requestId }, 'Failed to write error to SSE stream');
+          }
+
+          throw error;
+        } finally {
+          span.end();
+        }
+      });
     } finally {
       await agentSessionManager.endSession(requestId);
       unregisterStreamHelper(requestId);

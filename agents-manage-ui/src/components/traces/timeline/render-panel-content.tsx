@@ -860,6 +860,39 @@ export function renderPanelContent({
         </>
       );
 
+    case 'durable_tool_execution':
+      return (
+        <>
+          <Section>
+            {a.toolName && (
+              <Info
+                label="Tool name"
+                value={<Badge variant="code">{a.toolName}</Badge>}
+              />
+            )}
+            {a.toolCallId && <Info label="Tool call ID" value={a.toolCallId} />}
+            {a.subAgentId && <Info label="Sub-agent" value={a.subAgentId} />}
+            <Info
+              label="Status"
+              value={
+                <Badge variant={a.status === 'error' ? 'destructive' : 'default'}>
+                  {a.status === 'error' ? 'Failed' : 'Completed'}
+                </Badge>
+              }
+            />
+            {a.toolResponseContent && (
+              <LabeledBlock label="Tool response">
+                <Bubble>{a.toolResponseContent}</Bubble>
+              </LabeledBlock>
+            )}
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
     default:
       return null;
   }
