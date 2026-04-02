@@ -54,7 +54,7 @@ export const Playground = ({
     return () => resetPlaygroundConversationId();
   }, []);
 
-  const headersTemplate = useMemo(() => {
+  const headersTemplate = (() => {
     if (!headersSchemaString) return undefined;
     try {
       const schema = JSON.parse(headersSchemaString);
@@ -65,16 +65,12 @@ export const Playground = ({
     } catch {
       return undefined;
     }
-  }, [headersSchemaString]);
+  })();
 
-  const resolver = useMemo(
-    () =>
-      zodResolver(
-        z.strictObject({
-          headers: createCustomHeadersSchema(headersSchemaString),
-        })
-      ),
-    [headersSchemaString]
+  const resolver = zodResolver(
+    z.strictObject({
+      headers: createCustomHeadersSchema(headersSchemaString),
+    })
   );
 
   const form = useForm({

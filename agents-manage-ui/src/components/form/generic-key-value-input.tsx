@@ -59,7 +59,7 @@ export function GenericKeyValueInput<
     | { key: string; value: string }[]
     | undefined;
 
-  const duplicateKeys = useMemo(() => {
+  const duplicateKeys = (() => {
     if (!watchedFields) return new Set<string>();
     const keys = watchedFields.map((f) => f.key?.trim()).filter(Boolean);
     const seen = new Set<string>();
@@ -71,7 +71,7 @@ export function GenericKeyValueInput<
       seen.add(key);
     }
     return duplicates;
-  }, [watchedFields]);
+  })();
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>, index: number, field: 'key' | 'value') => {

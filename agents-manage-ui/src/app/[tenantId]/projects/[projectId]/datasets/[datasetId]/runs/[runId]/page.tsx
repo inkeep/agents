@@ -89,7 +89,7 @@ export default function Page({
     [tenantId, projectId, runId]
   );
 
-  const conversationProgress = useMemo(() => {
+  const conversationProgress = (() => {
     if (invocations.length === 0) return { total: 0, completed: 0, failed: 0, isRunning: false };
     const total = invocations.length;
     const completed = invocations.filter((inv) => inv.status === 'completed').length;
@@ -98,7 +98,7 @@ export default function Page({
     ).length;
     const settled = completed + failed;
     return { total, completed, failed, isRunning: settled < total && total > 0 };
-  }, [invocations]);
+  })();
 
   // Overall progress - run is complete only when both conversations AND evaluations are done
   const isRunInProgress =
@@ -120,17 +120,14 @@ export default function Page({
     return () => clearInterval(interval);
   }, [isRunInProgress, loadRun]);
 
-  const invocationByItemId = useMemo(() => {
-    const map = new Map<string, DatasetRunInvocation>();
-    for (const inv of invocations) {
-      if (inv.datasetItemId) {
-        map.set(inv.datasetItemId, inv);
-      }
+  const invocationByItemId = new Map<string, DatasetRunInvocation>();
+  for (const inv of invocations) {
+    if (inv.datasetItemId) {
+      invocationByItemId.set(inv.datasetItemId, inv);
     }
-    return map;
-  }, [invocations]);
+  }
 
-  const uniqueAgents = useMemo(() => {
+  const uniqueAgents = (() => {
     if (!run?.items) return [];
     const agentIds = new Set<string>();
     run.items.forEach((item) => {
@@ -141,12 +138,10 @@ export default function Page({
       });
     });
     return Array.from(agentIds).map((id) => ({ id, name: id }));
-  }, [run]);
+  })();
 
-  const filteredItems = useMemo(() => {
-    if (!run?.items) return [];
-
-    return run.items
+  const filteredItems =
+    run?.items
       .map((item) => {
         const getInputText = (): string => {
           const input = item.input;
@@ -203,8 +198,7 @@ export default function Page({
           conversations,
         };
       })
-      .filter((item): item is NonNullable<typeof item> => item !== null);
-  }, [run, filters]);
+      .filter((item) => item !== null) ?? [];
 
   if (loading) {
     return (

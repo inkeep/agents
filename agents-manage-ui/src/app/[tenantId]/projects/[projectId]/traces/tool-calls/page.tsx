@@ -29,14 +29,12 @@ export default function ToolCallsBreakdown({
   const { tenantId, projectId } = use(params);
   const searchParams = useSearchParams();
 
-  const backLink = useMemo(() => {
-    const current = new URLSearchParams(searchParams.toString());
-    const queryString = current.toString();
+  const current = new URLSearchParams(searchParams.toString());
+  const queryString = current.toString();
 
-    return queryString
-      ? `/${tenantId}/projects/${projectId}/traces?${queryString}`
-      : `/${tenantId}/projects/${projectId}/traces`;
-  }, [tenantId, projectId, searchParams]);
+  const backLink = queryString
+    ? `/${tenantId}/projects/${projectId}/traces?${queryString}`
+    : `/${tenantId}/projects/${projectId}/traces`;
 
   const {
     timeRange,
@@ -72,7 +70,7 @@ export default function ToolCallsBreakdown({
     }
   };
 
-  const { startTime, endTime } = useMemo(() => {
+  const { startTime, endTime } = (() => {
     const currentEndTime = Date.now();
 
     if (timeRange === 'custom') {
@@ -100,7 +98,7 @@ export default function ToolCallsBreakdown({
       startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
       endTime: currentEndTime,
     };
-  }, [timeRange, customStartDate, customEndDate]);
+  })();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -131,10 +129,9 @@ export default function ToolCallsBreakdown({
     fetchData();
   }, [tenantId, selectedServer, startTime, endTime, projectId]);
 
-  const filteredToolCalls = useMemo(() => {
-    return toolCalls.filter((tool) => selectedTool === 'all' || tool.toolName === selectedTool);
-  }, [toolCalls, selectedTool]);
-
+  const filteredToolCalls = toolCalls.filter(
+    (tool) => selectedTool === 'all' || tool.toolName === selectedTool
+  );
   const totalToolCalls = filteredToolCalls.reduce((sum, item) => sum + item.totalCalls, 0);
   const totalErrors = filteredToolCalls.reduce((sum, item) => sum + item.errorCount, 0);
   const overallErrorRate = totalToolCalls > 0 ? (totalErrors / totalToolCalls) * 100 : 0;

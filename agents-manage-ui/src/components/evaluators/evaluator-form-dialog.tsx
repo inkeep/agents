@@ -91,7 +91,7 @@ export function EvaluatorFormDialog({
   });
 
   const { data: agents, isFetching: loadingAgents } = useAgentsQuery();
-  const agentLookup = useMemo(() => createLookup(agents), [agents]);
+  const agentLookup = createLookup(agents);
   const [selectedAgentIds, setSelectedAgentIds] = useState<string[]>([]);
   const [initialAgentIds, setInitialAgentIds] = useState<string[]>([]);
 

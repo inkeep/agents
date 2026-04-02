@@ -64,7 +64,7 @@ export function EvaluationJobFormDialog({
   const { isSubmitting } = form.formState;
   const jobFilters = form.watch('jobFilters');
 
-  const evaluatorLookup = useMemo(() => createLookup(evaluators), [evaluators]);
+  const evaluatorLookup = createLookup(evaluators);
 
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');

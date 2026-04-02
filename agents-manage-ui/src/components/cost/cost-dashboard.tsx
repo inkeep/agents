@@ -86,31 +86,27 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
     fetchData();
   }, [fetchData]);
 
-  const totals = useMemo(() => {
-    return summaryByModel.reduce(
-      (acc, row) => ({
-        totalTokens: acc.totalTokens + row.totalTokens,
-        totalInputTokens: acc.totalInputTokens + row.totalInputTokens,
-        totalOutputTokens: acc.totalOutputTokens + row.totalOutputTokens,
-        totalCost: acc.totalCost + row.totalEstimatedCostUsd,
-        totalEvents: acc.totalEvents + row.eventCount,
-      }),
-      { totalTokens: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCost: 0, totalEvents: 0 }
-    );
-  }, [summaryByModel]);
+  const totals = summaryByModel.reduce(
+    (acc, row) => ({
+      totalTokens: acc.totalTokens + row.totalTokens,
+      totalInputTokens: acc.totalInputTokens + row.totalInputTokens,
+      totalOutputTokens: acc.totalOutputTokens + row.totalOutputTokens,
+      totalCost: acc.totalCost + row.totalEstimatedCostUsd,
+      totalEvents: acc.totalEvents + row.eventCount,
+    }),
+    { totalTokens: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCost: 0, totalEvents: 0 }
+  );
 
-  const chartData = useMemo(() => {
-    const buckets = new Map<string, number>();
-    for (const event of events) {
-      if (!event.timestamp) continue;
-      const date = new Date(event.timestamp);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-      buckets.set(key, (buckets.get(key) ?? 0) + event.estimatedCostUsd);
-    }
-    return [...buckets.entries()]
-      .map(([date, cost]) => ({ date, cost }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-  }, [events]);
+  const buckets = new Map<string, number>();
+  for (const event of events) {
+    if (!event.timestamp) continue;
+    const date = new Date(event.timestamp);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    buckets.set(key, (buckets.get(key) ?? 0) + event.estimatedCostUsd);
+  }
+  const chartData = [...buckets.entries()]
+    .map(([date, cost]) => ({ date, cost }))
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   return (
     <>

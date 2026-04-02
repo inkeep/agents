@@ -87,13 +87,11 @@ export function MembersTable({
   });
 
   // Sort members alphabetically by name (A→Z)
-  const sortedMembers = useMemo(() => {
-    return [...members].sort((a, b) => {
-      const nameA = (a.user.name || a.user.email).toLowerCase();
-      const nameB = (b.user.name || b.user.email).toLowerCase();
-      return nameA.localeCompare(nameB);
-    });
-  }, [members]);
+  const sortedMembers = [...members].sort((a, b) => {
+    const nameA = (a.user.name || a.user.email).toLowerCase();
+    const nameB = (b.user.name || b.user.email).toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
 
   const handleRoleChange = async (member: Member, newRole: OrgRole) => {
     if (!isOrgAdmin) return;

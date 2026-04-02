@@ -102,15 +102,15 @@ export function DatasetRunConfigForm({
       .catch(() => toast.error('Failed to load dataset agent scope'));
   }, [tenantId, projectId, datasetId]);
 
-  const filteredAgents = useMemo(() => {
+  const filteredAgents = (() => {
     if (!datasetScopedAgentIds) return agents;
     const allowed = new Set(datasetScopedAgentIds);
     return agents.filter((a) => allowed.has(a.id));
-  }, [agents, datasetScopedAgentIds]);
+  })();
 
-  const agentLookup = useMemo(() => createLookup(filteredAgents), [filteredAgents]);
+  const agentLookup = createLookup(filteredAgents);
 
-  const [evaluatorAgentMap, setEvaluatorAgentMap] = useState<Map<string, string[]>>(new Map());
+  const [evaluatorAgentMap, setEvaluatorAgentMap] = useState(new Map<string, string[]>());
 
   useEffect(() => {
     if (evaluators.length === 0) return;
@@ -129,7 +129,7 @@ export function DatasetRunConfigForm({
     return () => abortController.abort();
   }, [evaluators, tenantId, projectId]);
 
-  const filteredEvaluators = useMemo(() => {
+  const filteredEvaluators = (() => {
     const selected = agentIds as string[];
     if (selected.length === 0) return evaluators;
     return evaluators.filter((ev) => {
@@ -137,9 +137,9 @@ export function DatasetRunConfigForm({
       if (!scopedAgents || scopedAgents.length === 0) return true;
       return scopedAgents.some((agentId) => selected.includes(agentId));
     });
-  }, [evaluators, agentIds, evaluatorAgentMap]);
+  })();
 
-  const evaluatorLookup = useMemo(() => createLookup(filteredEvaluators), [filteredEvaluators]);
+  const evaluatorLookup = createLookup(filteredEvaluators);
 
   const selectedEvaluatorIds = useWatch({ control: form.control, name: 'evaluatorIds' });
 

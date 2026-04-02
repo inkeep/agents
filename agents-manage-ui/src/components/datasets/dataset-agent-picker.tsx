@@ -32,7 +32,7 @@ export function DatasetAgentPicker({ tenantId, projectId, datasetId }: DatasetAg
     });
   }, [tenantId, projectId, datasetId]);
 
-  const agentLookup = useMemo(() => createLookup(agents), [agents]);
+  const agentLookup = createLookup(agents);
 
   const handleSelectionChange = useCallback(
     async (newSelection: string[]) => {

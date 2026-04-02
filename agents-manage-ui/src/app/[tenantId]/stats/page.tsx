@@ -63,7 +63,7 @@ export default function ProjectsStatsPage({ params }: PageProps<'/[tenantId]/sta
   const { data: projects, isFetching: projectsLoading } = useProjectsQuery({ tenantId });
 
   // Calculate time range based on selection
-  const { startTime, endTime } = useMemo(() => {
+  const { startTime, endTime } = (() => {
     const currentEndTime = Date.now() - 1;
 
     if (selectedTimeRange === CUSTOM) {
@@ -94,13 +94,10 @@ export default function ProjectsStatsPage({ params }: PageProps<'/[tenantId]/sta
       startTime: calculatedStart,
       endTime: currentEndTime,
     };
-  }, [selectedTimeRange, customStartDate, customEndDate]);
+  })();
 
   // Memoize projectIds to prevent new array reference on every render
-  const projectIds = useMemo(
-    () => (selectedProjectId ? [selectedProjectId] : undefined),
-    [selectedProjectId]
-  );
+  const projectIds = selectedProjectId ? [selectedProjectId] : undefined;
 
   const {
     stats: overviewStats,
@@ -128,13 +125,10 @@ export default function ProjectsStatsPage({ params }: PageProps<'/[tenantId]/sta
   });
 
   // Create a map of project IDs to names
-  const projectNameMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const project of projects) {
-      map.set(project.projectId, project.name);
-    }
-    return map;
-  }, [projects]);
+  const projectNameMap = new Map<string, string>();
+  for (const project of projects) {
+    projectNameMap.set(project.projectId, project.name);
+  }
 
   return (
     <div className="space-y-6">

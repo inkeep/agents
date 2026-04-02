@@ -63,7 +63,7 @@ export default function AllProjectsToolCallsBreakdown({
     }
   };
 
-  const { startTime, endTime } = useMemo(() => {
+  const { startTime, endTime } = (() => {
     const currentEndTime = Date.now();
 
     if (timeRange === CUSTOM) {
@@ -91,7 +91,7 @@ export default function AllProjectsToolCallsBreakdown({
       startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
       endTime: currentEndTime,
     };
-  }, [timeRange, customStartDate, customEndDate]);
+  })();
 
   // Fetch tool calls data
   useEffect(() => {
@@ -128,13 +128,10 @@ export default function AllProjectsToolCallsBreakdown({
   }, [selectedProjectId, startTime, endTime, tenantId]);
 
   // Create a map of project IDs to names
-  const projectNameMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const project of projects) {
-      map.set(project.projectId, project.name);
-    }
-    return map;
-  }, [projects]);
+  const projectNameMap = new Map<string, string>();
+  for (const project of projects) {
+    projectNameMap.set(project.projectId, project.name);
+  }
 
   const totalMCPCalls = projectStats.reduce((sum, item) => sum + item.totalMCPCalls, 0);
   const totalToolErrors = toolCalls.reduce((sum, item) => sum + item.errorCount, 0);
