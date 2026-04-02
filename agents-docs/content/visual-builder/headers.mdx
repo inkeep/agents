@@ -28,19 +28,19 @@ Here is an example of a valid headers schema:
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
-    "user_id": {
+    "user-id": {
       "type": "string"
     }
   },
   "required": [
-    "user_id"
+    "user-id"
   ],
   "additionalProperties": {}
 }
 ```
 
 <Warning>
-  Header keys are normalized to **lowercase** before validation. Always define schema properties in lowercase (e.g., `user_id`, not `userId`). A casing mismatch will cause a `Context validation failed` error.
+  Header keys are converted to **lowercase** before validation — for example, `Auth-Token` becomes `auth-token`. No other transformation is applied. A mismatch will cause a `Context validation failed` error.
 </Warning>
 
 You can generate custom schemas using this [JSON Schema generator](https://transform.tools/json-to-json-schema).
@@ -65,7 +65,7 @@ When you enter custom headers in the playground, they are validated in real-time
 
 Here is an example of a valid prompt:
 ```text
-You are a helpful assistant for {{headers.user_id}}!.
+You are a helpful assistant for {{headers.user-id}}!.
 ```
 
 ## Forwarding Headers to MCP Servers
@@ -78,8 +78,8 @@ You can forward header values to MCP servers using `{{headers.*}}` templates. Th
 
 ```json
 {
-  "Authorization": "Bearer {{headers.auth_token}}",
-  "X-Tenant-Id": "{{headers.tenant_id}}"
+  "Authorization": "Bearer {{headers.auth-token}}",
+  "Tenant-Id": "{{headers.tenant-id}}"
 }
 ```
 

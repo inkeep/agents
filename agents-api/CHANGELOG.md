@@ -1,5 +1,37 @@
 # @inkeep/agents-api
 
+## 0.64.1
+
+### Patch Changes
+
+- 0fc8043: Add S3 presigned URL support for private media delivery
+- Updated dependencies [a26343d]
+  - @inkeep/agents-work-apps@0.64.1
+  - @inkeep/agents-core@0.64.1
+  - @inkeep/agents-email@0.64.1
+  - @inkeep/agents-mcp@0.64.1
+
+## 0.64.0
+
+### Minor Changes
+
+- a929847: Add server-side config merge for web client app updates, enforce allowAnonymous across all auth paths, flatten auth config into webClient, and add migration to backfill allowAnonymous for existing apps
+
+### Patch Changes
+
+- 47915b3: Add agent-scoped datasets and evaluators with direct agent execution for dataset runs
+- 2ebe1c4: Extend /capabilities with modelFallback and costTracking flags
+- 704026c: Bind tenant/project into anonymous session JWTs for global apps
+- abc3b5d: Add per-role seat limit enforcement to invitations and members UI
+- Updated dependencies [47915b3]
+- Updated dependencies [2ebe1c4]
+- Updated dependencies [68a55f5]
+- Updated dependencies [abc3b5d]
+  - @inkeep/agents-core@0.64.0
+  - @inkeep/agents-mcp@0.64.0
+  - @inkeep/agents-work-apps@0.64.0
+  - @inkeep/agents-email@0.64.0
+
 ## 0.63.3
 
 ### Patch Changes

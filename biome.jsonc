@@ -143,6 +143,12 @@
         "noDangerouslySetInnerHtml": "off"
       },
       "nursery": {
+        "useRequiredScripts": {
+          "level": "error",
+          "options": {
+            "requiredScripts": ["knip"]
+          }
+        },
         "noReactForwardRef": "error"
       }
     }
