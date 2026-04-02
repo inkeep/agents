@@ -1,9 +1,32 @@
-import { generateId } from '@inkeep/agents-core';
+import {
+  createArtifactComponent,
+  createDataComponent,
+  createExternalAgent,
+  createFullAgentServerSide,
+  createSkill,
+  createTool,
+  generateId,
+  listArtifactComponents,
+  listDataComponents,
+  listExternalAgents,
+  listFunctions,
+  listScheduledTriggers,
+  listSkills,
+  listTools,
+  listTriggers,
+  upsertFunction,
+} from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it } from 'vitest';
 import manageDbClient from '../../../../data/db/manageDbClient';
+import {
+  createTestArtifactComponentData,
+  createTestContextConfigDataFull,
+  createTestDataComponentData,
+  createTestToolData,
+} from '../../../utils/testHelpers';
 import { makeRequest } from '../../../utils/testRequest';
-import { createTestSubAgentData } from '../../../utils/testSubAgent';
+import { createTestExternalAgentData, createTestSubAgentData } from '../../../utils/testSubAgent';
 import { createTestTenantWithOrg } from '../../../utils/testTenant';
 
 describe('Agent CRUD Routes - Integration Tests', () => {
@@ -893,6 +916,380 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       expect(body.data.subAgents[subAgentId].canTransferTo).toEqual([]);
       expect(body.data.subAgents[subAgentId].canDelegateTo).toEqual([]);
       expect(body.data.subAgents[subAgentId].canUse).toEqual([]);
+    });
+  });
+
+  describe('POST /{agentId}/duplicate', () => {
+    const createTeamAgentDefinition = (teamAgentId: string, teamSubAgentId: string) => ({
+      id: teamAgentId,
+      name: `Team Agent ${teamAgentId}`,
+      description: 'Existing team agent',
+      defaultSubAgentId: teamSubAgentId,
+      subAgents: {
+        [teamSubAgentId]: {
+          ...createTestSubAgentData({ id: teamSubAgentId, suffix: ' Team' }),
+          type: 'internal' as const,
+          canUse: [],
+        },
+      },
+    });
+
+    const createSourceAgentDefinition = (params: {
+      agentId: string;
+      defaultSubAgentId: string;
+      secondarySubAgentId: string;
+      toolId: string;
+      functionToolId: string;
+      functionId: string;
+      dataComponentId: string;
+      artifactComponentId: string;
+      externalAgentId: string;
+      teamAgentId: string;
+      skillId: string;
+      contextConfigId: string;
+    }) => ({
+      id: params.agentId,
+      name: `Source Agent ${params.agentId}`,
+      description: 'Source agent description',
+      defaultSubAgentId: params.defaultSubAgentId,
+      contextConfig: createTestContextConfigDataFull({ id: params.contextConfigId }),
+      prompt: 'You are the source agent.',
+      stopWhen: {
+        transferCountIs: 4,
+      },
+      subAgents: {
+        [params.defaultSubAgentId]: {
+          ...createTestSubAgentData({ id: params.defaultSubAgentId, suffix: ' Router' }),
+          type: 'internal' as const,
+          canUse: [
+            {
+              toolId: params.toolId,
+              toolSelection: ['testTool'],
+              headers: { Authorization: 'Bearer route-test' },
+            },
+            {
+              toolId: params.functionToolId,
+            },
+          ],
+          canTransferTo: [params.secondarySubAgentId],
+          canDelegateTo: [
+            params.secondarySubAgentId,
+            {
+              externalAgentId: params.externalAgentId,
+              headers: { 'X-External': 'route-test' },
+            },
+            {
+              agentId: params.teamAgentId,
+              headers: { 'X-Team': 'route-test' },
+            },
+          ],
+          dataComponents: [params.dataComponentId],
+          artifactComponents: [params.artifactComponentId],
+          skills: [
+            {
+              id: params.skillId,
+              index: 0,
+              alwaysLoaded: true,
+            },
+          ],
+        },
+        [params.secondarySubAgentId]: {
+          ...createTestSubAgentData({ id: params.secondarySubAgentId, suffix: ' Secondary' }),
+          type: 'internal' as const,
+          canUse: [],
+        },
+      },
+      functionTools: {
+        [params.functionToolId]: {
+          id: params.functionToolId,
+          name: 'Route Function Tool',
+          description: 'Function tool for duplicate route testing',
+          functionId: params.functionId,
+        },
+      },
+      triggers: {
+        webhook: {
+          id: 'webhook',
+          name: 'Webhook Trigger',
+          description: 'Should not be duplicated',
+          enabled: true,
+          messageTemplate: 'Incoming message: {{message}}',
+        },
+      },
+      scheduledTriggers: {
+        hourly: {
+          id: 'hourly',
+          name: 'Hourly Trigger',
+          description: 'Should not be duplicated',
+          enabled: true,
+          cronExpression: '0 * * * *',
+          cronTimezone: 'UTC',
+          messageTemplate: 'Scheduled: {{message}}',
+          maxRetries: 1,
+          retryDelaySeconds: 60,
+          timeoutSeconds: 780,
+        },
+      },
+    });
+
+    const getProjectResourceCounts = async (tenantId: string) => {
+      const scopes = { tenantId, projectId };
+      const [tools, dataComponents, artifactComponents, externalAgents, functions, skills] =
+        await Promise.all([
+          listTools(manageDbClient)({ scopes, pagination: { page: 1, limit: 100 } }),
+          listDataComponents(manageDbClient)({ scopes }),
+          listArtifactComponents(manageDbClient)({ scopes }),
+          listExternalAgents(manageDbClient)({ scopes }),
+          listFunctions(manageDbClient)({ scopes }),
+          listSkills(manageDbClient)({ scopes, pagination: { page: 1, limit: 100 } }),
+        ]);
+
+      return {
+        tools: tools.data.length,
+        dataComponents: dataComponents.length,
+        artifactComponents: artifactComponents.length,
+        externalAgents: externalAgents.length,
+        functions: functions.length,
+        skills: skills.data.length,
+      };
+    };
+
+    it('should duplicate a full agent and persist the copy', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-duplicate-success');
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const toolId = `tool-${generateId(6)}`;
+      const dataComponentId = `data-component-${generateId(6)}`;
+      const artifactComponentId = `artifact-component-${generateId(6)}`;
+      const externalAgentId = `external-agent-${generateId(6)}`;
+      const skillId = `skill-${generateId(6)}`;
+      const functionId = `function-${generateId(6)}`;
+      const functionToolId = `function-tool-${generateId(6)}`;
+      const sourceAgentId = `source-agent-${generateId(6)}`;
+      const duplicateAgentId = `duplicate-agent-${generateId(6)}`;
+      const defaultSubAgentId = `sub-agent-${generateId(6)}`;
+      const secondarySubAgentId = `sub-agent-${generateId(6)}`;
+      const contextConfigId = `context-${generateId(6)}`;
+      const teamAgentId = `team-agent-${generateId(6)}`;
+      const teamSubAgentId = `team-sub-agent-${generateId(6)}`;
+
+      await Promise.all([
+        createTool(manageDbClient)({
+          ...createTestToolData(toolId),
+          tenantId,
+          projectId,
+        }),
+        createDataComponent(manageDbClient)({
+          ...createTestDataComponentData(dataComponentId),
+          props: createTestDataComponentData(dataComponentId).props as any,
+          tenantId,
+          projectId,
+        }),
+        createArtifactComponent(manageDbClient)({
+          ...createTestArtifactComponentData(artifactComponentId),
+          props: createTestArtifactComponentData(artifactComponentId).props as any,
+          tenantId,
+          projectId,
+        }),
+        createExternalAgent(manageDbClient)({
+          ...createTestExternalAgentData({ id: externalAgentId }),
+          tenantId,
+          projectId,
+        }),
+        createSkill(manageDbClient)({
+          tenantId,
+          projectId,
+          name: skillId,
+          description: 'Duplicate route skill',
+          content: 'Skill content',
+          metadata: null,
+        }),
+        upsertFunction(manageDbClient)({
+          scopes: { tenantId, projectId },
+          data: {
+            id: functionId,
+            inputSchema: {
+              type: 'object',
+              properties: {
+                query: {
+                  type: 'string',
+                },
+              },
+            },
+            executeCode: 'function run({ query }) { return { query }; }',
+            dependencies: {},
+          },
+        }),
+        createFullAgentServerSide(manageDbClient)(
+          { tenantId, projectId },
+          createTeamAgentDefinition(teamAgentId, teamSubAgentId)
+        ),
+      ]);
+
+      await createFullAgentServerSide(manageDbClient)(
+        { tenantId, projectId },
+        createSourceAgentDefinition({
+          agentId: sourceAgentId,
+          defaultSubAgentId,
+          secondarySubAgentId,
+          toolId,
+          functionToolId,
+          functionId,
+          dataComponentId,
+          artifactComponentId,
+          externalAgentId,
+          teamAgentId,
+          skillId,
+          contextConfigId,
+        })
+      );
+
+      const beforeCounts = await getProjectResourceCounts(tenantId);
+
+      const duplicateRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${sourceAgentId}/duplicate`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            newAgentId: duplicateAgentId,
+            newAgentName: 'Duplicated Agent',
+          }),
+        }
+      );
+
+      expect(duplicateRes.status).toBe(201);
+
+      const duplicateBody = await duplicateRes.json();
+      expect(duplicateBody.data.id).toBe(duplicateAgentId);
+      expect(duplicateBody.data.name).toBe('Duplicated Agent');
+
+      const persistedRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agent/${duplicateAgentId}`
+      );
+
+      expect(persistedRes.status).toBe(200);
+
+      const persistedBody = await persistedRes.json();
+      const persistedPrimarySubAgent = persistedBody.data.subAgents[defaultSubAgentId];
+      const afterCounts = await getProjectResourceCounts(tenantId);
+
+      expect(persistedBody.data.defaultSubAgentId).toBe(defaultSubAgentId);
+      expect(persistedBody.data.contextConfig.id).toBe(contextConfigId);
+      expect(persistedBody.data.functionTools[functionToolId]).toMatchObject({
+        id: functionToolId,
+        functionId,
+      });
+      expect(persistedPrimarySubAgent.canUse).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ toolId }),
+          expect.objectContaining({ toolId: functionToolId }),
+        ])
+      );
+      expect(persistedPrimarySubAgent.canTransferTo).toContain(secondarySubAgentId);
+      expect(persistedPrimarySubAgent.canDelegateTo).toEqual(
+        expect.arrayContaining([
+          secondarySubAgentId,
+          expect.objectContaining({ externalAgentId }),
+          expect.objectContaining({ agentId: teamAgentId }),
+        ])
+      );
+      expect(persistedPrimarySubAgent.dataComponents).toContain(dataComponentId);
+      expect(persistedPrimarySubAgent.artifactComponents).toContain(artifactComponentId);
+      expect(persistedPrimarySubAgent.skills).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: skillId, index: 0 })])
+      );
+      expect(afterCounts).toEqual(beforeCounts);
+      expect(
+        await listTriggers(manageDbClient)({
+          scopes: { tenantId, projectId, agentId: duplicateAgentId },
+        })
+      ).toHaveLength(0);
+      expect(
+        await listScheduledTriggers(manageDbClient)({
+          scopes: { tenantId, projectId, agentId: duplicateAgentId },
+        })
+      ).toHaveLength(0);
+    });
+
+    it('should return 400 for an invalid new agent id', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-duplicate-invalid-id');
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const { agentId } = await createTestAgent({ tenantId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/duplicate`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            newAgentId: 'invalid id',
+          }),
+        }
+      );
+
+      expect(res.status).toBe(400);
+    });
+
+    it('should return 400 when the new agent id matches the source agent id', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-duplicate-same-id');
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const { agentId } = await createTestAgent({ tenantId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/duplicate`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            newAgentId: agentId,
+          }),
+        }
+      );
+
+      expect(res.status).toBe(400);
+
+      const body = await res.json();
+      expect(body.detail).toBe('New agent ID must differ from source agent ID');
+    });
+
+    it('should return 404 when the source agent does not exist', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-duplicate-source-missing');
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/non-existent-agent/duplicate`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            newAgentId: `duplicate-agent-${generateId(6)}`,
+          }),
+        }
+      );
+
+      expect(res.status).toBe(404);
+    });
+
+    it('should return 409 when the new agent id already exists', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-duplicate-conflict');
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const { agentId: sourceAgentId } = await createTestAgent({ tenantId });
+      const { agentId: targetAgentId } = await createTestAgent({ tenantId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${sourceAgentId}/duplicate`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            newAgentId: targetAgentId,
+          }),
+        }
+      );
+
+      expect(res.status).toBe(409);
+
+      const body = await res.json();
+      expect(body.detail).toBe(`An agent with ID '${targetAgentId}' already exists`);
     });
   });
 });

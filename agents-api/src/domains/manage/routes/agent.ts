@@ -5,10 +5,13 @@ import {
   AgentListResponse,
   AgentResponse,
   AgentWithinContextOfProjectResponse,
+  AgentWithinContextOfProjectSelectResponse,
   commonGetErrorResponses,
   createAgent,
   createApiError,
   deleteAgent,
+  DuplicateAgentRequestSchema,
+  duplicateFullAgentServerSide,
   ErrorResponseSchema,
   generateId,
   getAgentById,
@@ -201,6 +204,58 @@ app.openapi(
     }
 
     return c.json({ data: fullAgent });
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'post',
+    path: '/{agentId}/duplicate',
+    summary: 'Duplicate Agent',
+    operationId: 'duplicate-agent',
+    tags: ['Agents'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: TenantProjectAgentParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: DuplicateAgentRequestSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      201: {
+        description: 'Agent duplicated successfully',
+        content: {
+          'application/json': {
+            schema: AgentWithinContextOfProjectSelectResponse,
+          },
+        },
+      },
+      409: {
+        description: 'Agent already exists',
+        content: {
+          'application/json': {
+            schema: ErrorResponseSchema,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId, agentId } = c.req.valid('param');
+    const body = c.req.valid('json');
+
+    const duplicatedAgent = await duplicateFullAgentServerSide(db)({
+      scopes: { tenantId, projectId, agentId },
+      ...body,
+    });
+
+    return c.json({ data: duplicatedAgent }, 201);
   }
 );
 

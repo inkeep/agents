@@ -11,10 +11,12 @@ import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
 import { revalidatePath } from 'next/cache';
 import {
   createAgent as apiCreateAgent,
+  duplicateAgent as apiDuplicateAgent,
   deleteFullAgent as apiDeleteFullAgent,
   getFullAgent as apiGetFullAgent,
   updateAgent as apiUpdateAgent,
   updateFullAgent as apiUpdateFullAgent,
+  type DuplicateAgentRequest,
 } from '../api/agent-full-client';
 import type { FullAgentPayload, FullAgentResponse } from '../types/agent-full';
 import { ApiError } from '../types/errors';
@@ -93,6 +95,39 @@ export async function updateAgentAction(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to update agent',
+      code: 'validation_error',
+    };
+  }
+}
+
+export async function duplicateAgentAction(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  duplicateData: DuplicateAgentRequest
+): Promise<ActionResult<FullAgentResponse>> {
+  try {
+    const response = await apiDuplicateAgent(tenantId, projectId, agentId, duplicateData);
+
+    revalidatePath(`/${tenantId}/projects/${projectId}/agents`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/agents/${response.data.id}`);
+
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return {
+        success: false,
+        error: error.message,
+        code: error.error.code,
+      };
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to duplicate agent',
       code: 'validation_error',
     };
   }
