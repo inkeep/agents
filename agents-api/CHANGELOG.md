@@ -1,5 +1,16 @@
 # @inkeep/agents-api
 
+## 0.64.1
+
+### Patch Changes
+
+- 0fc8043: Add S3 presigned URL support for private media delivery
+- Updated dependencies [a26343d]
+  - @inkeep/agents-work-apps@0.64.1
+  - @inkeep/agents-core@0.64.1
+  - @inkeep/agents-email@0.64.1
+  - @inkeep/agents-mcp@0.64.1
+
 ## 0.64.0
 
 ### Minor Changes
