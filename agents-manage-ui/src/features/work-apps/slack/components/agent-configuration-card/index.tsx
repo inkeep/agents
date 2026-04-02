@@ -303,9 +303,8 @@ export function AgentConfigurationCard() {
     } catch (error) {
       console.error('Failed to toggle grant access:', error);
       toast.error('Failed to update access setting');
-    } finally {
-      setSavingChannel(null);
     }
+    setSavingChannel(null);
   };
 
   const handleToggleChannel = (channelId: string) => {
@@ -365,9 +364,8 @@ export function AgentConfigurationCard() {
     } catch (error) {
       console.error('Bulk update failed:', error);
       toast.error('Failed to update channels');
-    } finally {
-      setBulkSaving(false);
     }
+    setBulkSaving(false);
   };
 
   const handleBulkResetToDefault = async () => {
@@ -391,9 +389,8 @@ export function AgentConfigurationCard() {
     } catch (error) {
       console.error('Bulk reset failed:', error);
       toast.error('Failed to reset channels');
-    } finally {
-      setBulkSaving(false);
     }
+    setBulkSaving(false);
   };
 
   const cardTitle = (

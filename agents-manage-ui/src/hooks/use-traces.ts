@@ -207,7 +207,7 @@ export function useProjectOverviewStats(options?: {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchStats = useCallback(async () => {
+  async function fetchStats() {
     try {
       setLoading(true);
       setError(null);
@@ -230,7 +230,7 @@ export function useProjectOverviewStats(options?: {
       setError(errorMessage);
     }
     setLoading(false);
-  }, [options?.startTime, options?.endTime, options?.projectIds, options?.tenantId]);
+  }
 
   useEffect(() => {
     fetchStats();

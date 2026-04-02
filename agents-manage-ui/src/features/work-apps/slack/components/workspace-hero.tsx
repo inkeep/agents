@@ -96,7 +96,7 @@ export function WorkspaceHero() {
     setMounted(true);
   }, []);
 
-  const checkHealth = useCallback(async () => {
+  async function checkHealth() {
     if (!workspace?.teamId) return;
 
     setHealth((h) => ({ ...h, checking: true }));
@@ -111,7 +111,7 @@ export function WorkspaceHero() {
     } catch {
       setHealth({ healthy: false, error: 'Failed to check health', checking: false });
     }
-  }, [workspace?.teamId]);
+  }
 
   useEffect(() => {
     if (!workspace?.teamId) return;
