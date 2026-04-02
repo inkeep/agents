@@ -4,7 +4,6 @@ import { HTTPException } from 'hono/http-exception';
 import runDbClient from '../data/db/runDbClient';
 import { env } from '../env';
 import { getLogger } from '../logger';
-import { isCopilotAgent } from '../utils/copilot';
 
 const logger = getLogger('tenantAccess');
 
@@ -58,17 +57,6 @@ export const requireTenantAccess = () =>
     if (userId === 'system') {
       c.set('tenantId', tenantId);
       c.set('tenantRole', OrgRoles.OWNER);
-      await next();
-      return;
-    }
-
-    // Copilot tenant bypass — scoped to the playground token endpoint only.
-    // Any authenticated user can obtain a copilot playground token without
-    // being a member of the copilot tenant.
-    if (c.req.path.includes('/playground/token') && isCopilotAgent({ tenantId })) {
-      logger.info({ userId, tenantId }, 'Copilot tenant bypass: granting MEMBER access');
-      c.set('tenantId', tenantId);
-      c.set('tenantRole', OrgRoles.MEMBER);
       await next();
       return;
     }
