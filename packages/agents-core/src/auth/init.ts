@@ -238,7 +238,7 @@ async function init() {
 
   // 8. Create copilot app for chat-to-edit (if configured)
   const copilotAppId = process.env.PUBLIC_INKEEP_COPILOT_APP_ID;
-  const copilotPublicKeyPem = process.env.INKEEP_COPILOT_JWT_PUBLIC_KEY_PEM;
+  const copilotPrivateKeyB64 = process.env.INKEEP_COPILOT_JWT_PRIVATE_KEY;
   const copilotKid = process.env.INKEEP_COPILOT_JWT_KID;
 
   if (copilotAppId) {
@@ -251,10 +251,16 @@ async function init() {
     } else {
       const copilotPublicKeys: PublicKeyConfig[] = [];
 
-      if (copilotPublicKeyPem && copilotKid) {
+      if (copilotPrivateKeyB64 && copilotKid) {
+        const { createPrivateKey, createPublicKey } = await import('node:crypto');
+        const privPem = Buffer.from(copilotPrivateKeyB64, 'base64').toString('utf-8');
+        const pubPem = createPublicKey(createPrivateKey(privPem)).export({
+          type: 'spki',
+          format: 'pem',
+        }) as string;
         copilotPublicKeys.push({
           kid: copilotKid,
-          publicKey: copilotPublicKeyPem,
+          publicKey: pubPem,
           algorithm: 'RS256',
           addedAt: new Date().toISOString(),
         });

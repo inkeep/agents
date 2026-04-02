@@ -347,9 +347,6 @@ async function generateSecrets() {
       const privateKeyBase64 = Buffer.from(privateKey).toString('base64');
       const kid = `pg-${createHash('sha256').update(publicKey).digest('hex').substring(0, 12)}`;
 
-      // Store public key PEM in process.env for init.ts to read when creating the copilot app
-      process.env.INKEEP_COPILOT_JWT_PUBLIC_KEY_PEM = publicKey;
-
       const copilotVars: Array<{ name: string; value: string }> = [
         { name: 'INKEEP_COPILOT_JWT_PRIVATE_KEY', value: privateKeyBase64 },
         { name: 'INKEEP_COPILOT_JWT_KID', value: kid },
