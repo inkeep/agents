@@ -1,6 +1,5 @@
 'use server';
 
-import crypto from 'crypto';
 import { importPKCS8, SignJWT } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -40,22 +39,13 @@ async function getSessionUserId(cookieHeader: string): Promise<string | null> {
   return data?.user?.id ?? null;
 }
 
-async function deriveKid(publicKeyPem: string): Promise<string> {
-  const data = new TextEncoder().encode(publicKeyPem);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashHex = Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-  return `pg-${hashHex.substring(0, 12)}`;
-}
-
 export async function getCopilotTokenAction(): Promise<ActionResult<CopilotTokenResponse>> {
   const copilotAppId =
     process.env.PUBLIC_INKEEP_COPILOT_APP_ID || process.env.NEXT_PUBLIC_INKEEP_COPILOT_APP_ID;
   const privateKeyB64 = process.env.INKEEP_COPILOT_JWT_PRIVATE_KEY;
-  const publicKeyPemB64 = process.env.INKEEP_COPILOT_JWT_PUBLIC_KEY;
+  const kid = process.env.INKEEP_COPILOT_JWT_KID;
 
-  if (!copilotAppId || !privateKeyB64 || !publicKeyPemB64) {
+  if (!copilotAppId || !privateKeyB64 || !kid) {
     return {
       success: false,
       error: 'Copilot is not configured',
@@ -87,8 +77,6 @@ export async function getCopilotTokenAction(): Promise<ActionResult<CopilotToken
 
     const privateKeyPem = Buffer.from(privateKeyB64, 'base64').toString('utf-8');
     const privateKey = await importPKCS8(privateKeyPem, 'RS256');
-    const publicKeyPem = Buffer.from(publicKeyPemB64, 'base64').toString('utf-8');
-    const kid = await deriveKid(publicKeyPem);
 
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
