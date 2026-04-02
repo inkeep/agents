@@ -4693,21 +4693,12 @@
       },
       "FeedbackUpdate": {
         "properties": {
-          "conversationId": {
-            "$ref": "#/components/schemas/ResourceId"
-          },
           "createdAt": {
             "type": "string"
           },
           "details": {
             "nullable": true,
             "type": "string"
-          },
-          "id": {
-            "$ref": "#/components/schemas/ResourceId"
-          },
-          "messageId": {
-            "$ref": "#/components/schemas/ResourceId"
           },
           "type": {
             "enum": [
