@@ -175,12 +175,9 @@ export function WorkspaceHero() {
     if (!workspace?.connectionId) return;
 
     setUninstalling(true);
-    try {
-      await uninstallWorkspace(workspace.connectionId);
-      setShowUninstallDialog(false);
-    } finally {
-      setUninstalling(false);
-    }
+    await uninstallWorkspace(workspace.connectionId);
+    setShowUninstallDialog(false);
+    setUninstalling(false);
   };
 
   if (!mounted || isLoading) {

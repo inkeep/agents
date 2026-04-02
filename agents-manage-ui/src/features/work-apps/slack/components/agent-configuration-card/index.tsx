@@ -188,9 +188,8 @@ export function AgentConfigurationCard() {
       console.error('Failed to remove default agent:', error);
       setDefaultAgent(previousAgent);
       toast.error('Failed to remove default agent');
-    } finally {
-      setSavingDefault(false);
     }
+    setSavingDefault(false);
   };
 
   const handleSetChannelAgent = async (
@@ -237,9 +236,8 @@ export function AgentConfigurationCard() {
           ? `You can only configure channels you're a member of`
           : 'Failed to set channel agent';
       toast.error(errorMessage);
-    } finally {
-      setSavingChannel(null);
     }
+    setSavingChannel(null);
   };
 
   const handleResetChannelToDefault = async (channelId: string, channelName: string) => {
@@ -264,9 +262,8 @@ export function AgentConfigurationCard() {
           ? `You can only configure channels you're a member of`
           : 'Failed to reset channel to default';
       toast.error(errorMessage);
-    } finally {
-      setSavingChannel(null);
     }
+    setSavingChannel(null);
   };
 
   const handleToggleGrantAccess = async (channelId: string, grantAccess: boolean) => {

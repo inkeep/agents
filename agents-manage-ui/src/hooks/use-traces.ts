@@ -228,9 +228,8 @@ export function useProjectOverviewStats(options?: {
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to fetch project overview stats';
       setError(errorMessage);
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }, [options?.startTime, options?.endTime, options?.projectIds, options?.tenantId]);
 
   useEffect(() => {
