@@ -1131,7 +1131,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
           teamAgentId,
           skillId,
           contextConfigId,
-          })
+        })
       );
 
       await createScheduledTrigger(runDbClient)({
