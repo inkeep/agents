@@ -6,7 +6,7 @@
  * inkeep-chat backend AgentFull REST API endpoints.
  */
 
-import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
+import type { AgentApiInsert, DuplicateAgentRequest } from '@inkeep/agents-core/client-exports';
 import { cache } from 'react';
 import type {
   Agent,

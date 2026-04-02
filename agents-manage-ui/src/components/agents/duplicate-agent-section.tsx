@@ -47,11 +47,7 @@ export function DuplicateAgentSection({
   'use memo';
   const router = useRouter();
   const [sourceAgentId, setSourceAgentId] = useState('');
-  const form = useForm<
-    DuplicateAgentInput,
-    unknown,
-    z.output<typeof DuplicateAgentFormSchema>
-  >({
+  const form = useForm({
     resolver: zodResolver(DuplicateAgentFormSchema),
     defaultValues: initialData,
     mode: 'onChange',

@@ -11,8 +11,8 @@ import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
 import { revalidatePath } from 'next/cache';
 import {
   createAgent as apiCreateAgent,
-  duplicateAgent as apiDuplicateAgent,
   deleteFullAgent as apiDeleteFullAgent,
+  duplicateAgent as apiDuplicateAgent,
   getFullAgent as apiGetFullAgent,
   updateAgent as apiUpdateAgent,
   updateFullAgent as apiUpdateFullAgent,

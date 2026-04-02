@@ -1,15 +1,17 @@
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
-import type { FullAgentDefinition, FullAgentSelect } from '../../types/entities';
+import type {
+  DuplicateAgentRequest,
+  FullAgentDefinition,
+  FullAgentSelect,
+} from '../../types/entities';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/utility';
 import { createApiError, throwIfUniqueConstraintError } from '../../utils/error';
 import { type AgentLogger, createFullAgentServerSide } from './agentFull';
 import { getAgentById, getFullAgentDefinition } from './agents';
 
-type DuplicateAgentParams = {
+interface DuplicateAgentParams extends DuplicateAgentRequest {
   scopes: AgentScopeConfig;
-  newAgentId: string;
-  newAgentName?: string;
-};
+}
 
 const defaultLogger: AgentLogger = {
   info: () => {},
@@ -24,10 +26,7 @@ const buildDuplicateAgentDefinition = (
     createdAt?: string | Date;
     updatedAt?: string | Date;
   },
-  params: {
-    newAgentId: string;
-    newAgentName?: string;
-  }
+  params: DuplicateAgentRequest
 ): FullAgentDefinition => {
   const duplicateName = params.newAgentName ?? `${sourceAgent.name} (Copy)`;
 
