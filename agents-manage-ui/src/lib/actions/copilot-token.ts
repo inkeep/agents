@@ -1,7 +1,7 @@
 'use server';
 
 import crypto from 'crypto';
-import { exportSPKI, importPKCS8, SignJWT } from 'jose';
+import { importPKCS8, SignJWT } from 'jose';
 import { cookies } from 'next/headers';
 
 import { DEFAULT_INKEEP_AGENTS_API_URL } from '../runtime-config/defaults';
@@ -53,8 +53,9 @@ export async function getCopilotTokenAction(): Promise<ActionResult<CopilotToken
   const copilotAppId =
     process.env.PUBLIC_INKEEP_COPILOT_APP_ID || process.env.NEXT_PUBLIC_INKEEP_COPILOT_APP_ID;
   const privateKeyB64 = process.env.INKEEP_COPILOT_JWT_PRIVATE_KEY;
+  const publicKeyPem = process.env.INKEEP_COPILOT_JWT_PUBLIC_KEY;
 
-  if (!copilotAppId || !privateKeyB64) {
+  if (!copilotAppId || !privateKeyB64 || !publicKeyPem) {
     return {
       success: false,
       error: 'Copilot is not configured',
@@ -86,7 +87,6 @@ export async function getCopilotTokenAction(): Promise<ActionResult<CopilotToken
 
     const privateKeyPem = Buffer.from(privateKeyB64, 'base64').toString('utf-8');
     const privateKey = await importPKCS8(privateKeyPem, 'RS256');
-    const publicKeyPem = await exportSPKI(privateKey);
     const kid = await deriveKid(publicKeyPem);
 
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
