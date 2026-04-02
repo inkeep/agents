@@ -236,12 +236,68 @@ async function init() {
     }
   }
 
+  // 8. Create copilot app for chat-to-edit (if configured)
+  const copilotAppId = process.env.PUBLIC_INKEEP_COPILOT_APP_ID;
+  const copilotPublicKeyPem = process.env.INKEEP_COPILOT_JWT_PUBLIC_KEY_PEM;
+  const copilotKid = process.env.INKEEP_COPILOT_JWT_KID;
+
+  if (copilotAppId) {
+    console.log(`\n🤖 Checking/creating copilot app: ${copilotAppId}`);
+
+    const existingCopilotApp = await getAppById(dbClient)(copilotAppId);
+
+    if (existingCopilotApp) {
+      console.log(`   ℹ️  Copilot app already exists: ${copilotAppId}`);
+    } else {
+      const copilotPublicKeys: PublicKeyConfig[] = [];
+
+      if (copilotPublicKeyPem && copilotKid) {
+        copilotPublicKeys.push({
+          kid: copilotKid,
+          publicKey: copilotPublicKeyPem,
+          algorithm: 'RS256',
+          addedAt: new Date().toISOString(),
+        });
+      } else {
+        console.log('   ⚠️  Copilot JWT keys not set — copilot app created without auth keys');
+      }
+
+      const copilotConfig: AppConfig = {
+        type: 'web_client',
+        webClient: {
+          allowedDomains,
+          publicKeys: copilotPublicKeys,
+          allowAnonymous: false,
+        },
+      };
+
+      await createApp(dbClient)({
+        id: copilotAppId,
+        tenantId: TENANT_ID,
+        projectId: 'chat-to-edit',
+        name: 'Copilot',
+        description: 'Chat-to-edit copilot app',
+        type: 'web_client',
+        defaultAgentId: 'agent-builder',
+        enabled: true,
+        config: copilotConfig,
+      });
+
+      console.log(
+        `   ✅ Copilot app created: ${copilotAppId} (tenant: ${TENANT_ID}, project: chat-to-edit)`
+      );
+    }
+  }
+
   console.log('\n================================================');
   console.log('✅ Initialization complete!');
   console.log('================================================');
   console.log(`\nOrganization: ${TENANT_ID}`);
   console.log(`Admin user:   ${username}`);
   console.log(`Playground:   ${playgroundAppId}`);
+  if (copilotAppId) {
+    console.log(`Copilot:      ${copilotAppId}`);
+  }
   console.log('\nYou can now log in with these credentials.\n');
 
   process.exit(0);

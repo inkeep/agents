@@ -1,5 +1,5 @@
 import { exec, spawn } from 'node:child_process';
-import { generateKeyPairSync, randomBytes } from 'node:crypto';
+import { createHash, generateKeyPairSync, randomBytes } from 'node:crypto';
 import { copyFileSync, existsSync, openSync, writeFileSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -328,6 +328,55 @@ async function generateSecrets() {
     }
   } else {
     logInfo('JWT keys already configured, skipping generation');
+  }
+
+  // Generate copilot JWT keypair if not already configured
+  const copilotKeyHasValue =
+    envContent.includes('INKEEP_COPILOT_JWT_PRIVATE_KEY=') &&
+    !envContent.includes('# INKEEP_COPILOT_JWT_PRIVATE_KEY=') &&
+    !!envContent.match(/INKEEP_COPILOT_JWT_PRIVATE_KEY=(.+)/)?.[1]?.trim();
+
+  if (!copilotKeyHasValue) {
+    try {
+      const { privateKey, publicKey } = generateKeyPairSync('rsa', {
+        modulusLength: 2048,
+        privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+        publicKeyEncoding: { type: 'spki', format: 'pem' },
+      });
+
+      const privateKeyBase64 = Buffer.from(privateKey).toString('base64');
+      const kid = `pg-${createHash('sha256').update(publicKey).digest('hex').substring(0, 12)}`;
+
+      // Store public key PEM in process.env for init.ts to read when creating the copilot app
+      process.env.INKEEP_COPILOT_JWT_PUBLIC_KEY_PEM = publicKey;
+
+      const copilotVars: Array<{ name: string; value: string }> = [
+        { name: 'INKEEP_COPILOT_JWT_PRIVATE_KEY', value: privateKeyBase64 },
+        { name: 'INKEEP_COPILOT_JWT_KID', value: kid },
+        { name: 'PUBLIC_INKEEP_COPILOT_APP_ID', value: 'app_copilot' },
+      ];
+
+      for (const { name, value } of copilotVars) {
+        let found = false;
+        for (let i = 0; i < lines.length; i++) {
+          if (lines[i].startsWith(`# ${name}=`) || lines[i].startsWith(`${name}=`)) {
+            lines[i] = `${name}=${value}`;
+            found = true;
+          }
+        }
+        if (!found) {
+          lines.push(`${name}=${value}`);
+        }
+        process.env[name] = value;
+      }
+
+      modified = true;
+      logSuccess('Copilot JWT keys generated and added to .env');
+    } catch (error) {
+      logError('Failed to generate copilot JWT keys', error);
+    }
+  } else {
+    logInfo('Copilot JWT keys already configured, skipping generation');
   }
 
   const secretDefs: Array<{
