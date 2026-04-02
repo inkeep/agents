@@ -151,9 +151,9 @@ describe('Project Lifecycle Utilities', () => {
         mainBranchName: `${testTenantId}_delete-lifecycle-project_main`,
       });
 
-      const mockDoltListBranchesFn = vi.fn().mockResolvedValue([
-        { name: `${testTenantId}_delete-lifecycle-project_main` },
-      ]);
+      const mockDoltListBranchesFn = vi
+        .fn()
+        .mockResolvedValue([{ name: `${testTenantId}_delete-lifecycle-project_main` }]);
       mockedDoltListBranches.mockReturnValue(mockDoltListBranchesFn);
 
       const mockDoltDeleteBranchFn = vi.fn().mockResolvedValue(undefined);
@@ -220,9 +220,9 @@ describe('Project Lifecycle Utilities', () => {
         mainBranchName: `${testTenantId}_branch-fail-project_main`,
       });
 
-      const mockDoltListBranchesFn = vi.fn().mockResolvedValue([
-        { name: `${testTenantId}_branch-fail-project_main` },
-      ]);
+      const mockDoltListBranchesFn = vi
+        .fn()
+        .mockResolvedValue([{ name: `${testTenantId}_branch-fail-project_main` }]);
       mockedDoltListBranches.mockReturnValue(mockDoltListBranchesFn);
 
       const mockDoltDeleteBranchFn = vi.fn().mockRejectedValue(new Error('Branch deletion failed'));
