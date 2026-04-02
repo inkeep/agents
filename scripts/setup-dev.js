@@ -136,11 +136,18 @@ if (isolatedName) {
     manageMigrateCommand: 'pnpm db:manage:migrate',
     runMigrateCommand: 'pnpm db:run:migrate',
     authInitCommand: 'pnpm db:auth:init',
-    pushProject: {
-      projectPath: 'agents-cookbook/template-projects/activities-planner',
-      configPath: 'agents-cookbook/template-projects/inkeep.config.ts',
-      apiKey: process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET,
-    },
+    pushProject: [
+      {
+        projectPath: 'agents-cookbook/template-projects/activities-planner',
+        configPath: 'agents-cookbook/template-projects/inkeep.config.ts',
+        apiKey: process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET,
+      },
+      {
+        projectPath: 'agents-cookbook/template-projects/chat-to-edit',
+        configPath: 'agents-cookbook/template-projects/inkeep.config.ts',
+        apiKey: process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET,
+      },
+    ],
     devApiCommand: 'pnpm turbo dev --filter @inkeep/agents-api',
     apiHealthUrl: 'http://localhost:3002/health',
     isCloud: false,

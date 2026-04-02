@@ -245,7 +245,7 @@ export interface SetupConfig {
   runMigrateCommand: string;
   authInitCommand: string;
 
-  pushProject?: SetupPushConfig;
+  pushProject?: SetupPushConfig | SetupPushConfig[];
 
   devApiCommand?: string;
   devUiCommand?: string;
@@ -837,20 +837,27 @@ export async function runSetup(config: SetupConfig) {
   await initAuth(config.authInitCommand);
 
   // Steps 6-8: Project push (if configured)
-  if (config.pushProject && !config.skipPush) {
-    // Resolve apiKey from config or env
-    const resolvedPush: SetupPushConfig = {
-      ...config.pushProject,
-      apiKey: config.pushProject.apiKey || process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET,
-    };
+  const pushConfigs = config.pushProject
+    ? Array.isArray(config.pushProject)
+      ? config.pushProject
+      : [config.pushProject]
+    : [];
 
+  if (pushConfigs.length > 0 && !config.skipPush) {
     logStep(6, 'Checking server availability');
     const servers = await startServersIfNeeded(config);
 
-    let pushSuccess = false;
+    let allPushSuccess = true;
     try {
-      logStep(7, 'Pushing project to API');
-      pushSuccess = await pushProject(resolvedPush);
+      logStep(7, 'Pushing projects to API');
+      for (const push of pushConfigs) {
+        const resolvedPush: SetupPushConfig = {
+          ...push,
+          apiKey: push.apiKey || process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET,
+        };
+        const success = await pushProject(resolvedPush);
+        if (!success) allPushSuccess = false;
+      }
     } finally {
       // Step 8: Cleanup — only stop servers we started
       if (servers.startedApi || servers.startedUi) {
@@ -865,7 +872,7 @@ export async function runSetup(config: SetupConfig) {
     }
 
     console.log(`\n${colors.bright}=== Setup Complete ===${colors.reset}\n`);
-    if (pushSuccess) {
+    if (allPushSuccess) {
       logSuccess('All steps completed successfully!');
     } else {
       logWarning('Setup completed with some warnings. See details above.');
@@ -873,7 +880,7 @@ export async function runSetup(config: SetupConfig) {
   } else {
     console.log(`\n${colors.bright}=== Setup Complete ===${colors.reset}\n`);
     logSuccess('Database setup completed!');
-    if (!config.pushProject) {
+    if (pushConfigs.length === 0) {
       logInfo('No project push configured. Run "pnpm dev" to start development servers.');
     }
   }
