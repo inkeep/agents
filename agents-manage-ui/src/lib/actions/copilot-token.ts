@@ -1,6 +1,6 @@
 'use server';
 
-import { importPKCS8, SignJWT } from 'jose';
+import { createSign } from 'node:crypto';
 import { cookies } from 'next/headers';
 
 import { DEFAULT_INKEEP_AGENTS_API_URL } from '../runtime-config/defaults';
@@ -37,6 +37,23 @@ async function getSessionUserId(cookieHeader: string): Promise<string | null> {
 
   const data = await res.json();
   return data?.user?.id ?? null;
+}
+
+function base64url(input: string | Buffer): string {
+  const b = typeof input === 'string' ? Buffer.from(input) : input;
+  return b.toString('base64url');
+}
+
+function signJwt(payload: Record<string, unknown>, privateKeyPem: string, kid: string): string {
+  const header = base64url(JSON.stringify({ alg: 'RS256', kid }));
+  const body = base64url(JSON.stringify(payload));
+  const signingInput = `${header}.${body}`;
+
+  const sign = createSign('RSA-SHA256');
+  sign.update(signingInput);
+  const signature = sign.sign(privateKeyPem, 'base64url');
+
+  return `${signingInput}.${signature}`;
 }
 
 export async function getCopilotTokenAction(): Promise<ActionResult<CopilotTokenResponse>> {
@@ -76,16 +93,11 @@ export async function getCopilotTokenAction(): Promise<ActionResult<CopilotToken
     }
 
     const privateKeyPem = Buffer.from(privateKeyB64, 'base64').toString('utf-8');
-    const privateKey = await importPKCS8(privateKeyPem, 'RS256');
+    const now = Math.floor(Date.now() / 1000);
+    const exp = now + 3600;
+    const expiresAt = new Date(exp * 1000).toISOString();
 
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-
-    const token = await new SignJWT({})
-      .setProtectedHeader({ alg: 'RS256', kid })
-      .setSubject(userId)
-      .setIssuedAt()
-      .setExpirationTime('1h')
-      .sign(privateKey);
+    const token = signJwt({ sub: userId, iat: now, exp }, privateKeyPem, kid);
 
     return {
       success: true,
