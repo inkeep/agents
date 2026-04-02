@@ -1,4 +1,5 @@
 import type { FullExecutionContext, McpTool, Part, ResolvedRef } from '@inkeep/agents-core';
+import { SPAN_NAMES } from '@inkeep/agents-core';
 import { context as otelContext, propagation } from '@opentelemetry/api';
 import { getWritable } from 'workflow';
 import { env } from '../../../../env';
@@ -472,8 +473,7 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
 
   let isTerminal = false;
 
-  const bag = propagation
-    .createBaggage()
+  const bag = (propagation.getBaggage(otelContext.active()) ?? propagation.createBaggage())
     .setEntry('conversation.id', { value: conversationId })
     .setEntry('tenant.id', { value: tenantId })
     .setEntry('project.id', { value: projectId })
@@ -594,74 +594,79 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
 
       const textContent = response.steps?.[response.steps.length - 1]?.text || response.text || '';
 
-      return await tracer.startActiveSpan('execution_handler.execute', {}, async (span) => {
-        try {
-          span.setAttributes({
-            'ai.response.content': textContent || 'No response content',
-            'ai.response.timestamp': new Date().toISOString(),
-            'subAgent.name': agent.runContext.config.name,
-            'subAgent.id': currentSubAgentId,
-          });
+      return await tracer.startActiveSpan(
+        SPAN_NAMES.EXECUTION_HANDLER_EXECUTE,
+        {},
+        async (span) => {
+          try {
+            span.setAttributes({
+              'ai.response.content': textContent || 'No response content',
+              'ai.response.timestamp': new Date().toISOString(),
+              'subAgent.name': agent.runContext.config.name,
+              'subAgent.id': currentSubAgentId,
+            });
 
-          await createMessage(runDbClient)({
-            scopes: { tenantId, projectId },
-            data: {
-              id: generateId(),
-              conversationId,
-              role: 'agent',
-              content: {
-                text: textContent,
-                parts: response.formattedContent?.parts?.map(
-                  (part: { kind: string; text?: string; data?: unknown }) => ({
-                    kind: part.kind,
-                    text: part.kind === 'text' ? part.text : undefined,
-                    data: part.kind === 'data' ? (part.data as Record<string, unknown>) : undefined,
-                  })
-                ) || [{ kind: 'text', text: textContent }],
+            await createMessage(runDbClient)({
+              scopes: { tenantId, projectId },
+              data: {
+                id: generateId(),
+                conversationId,
+                role: 'agent',
+                content: {
+                  text: textContent,
+                  parts: response.formattedContent?.parts?.map(
+                    (part: { kind: string; text?: string; data?: unknown }) => ({
+                      kind: part.kind,
+                      text: part.kind === 'text' ? part.text : undefined,
+                      data:
+                        part.kind === 'data' ? (part.data as Record<string, unknown>) : undefined,
+                    })
+                  ) || [{ kind: 'text', text: textContent }],
+                },
+                visibility: 'user-facing',
+                messageType: 'chat',
+                fromSubAgentId: currentSubAgentId,
+                taskId,
               },
-              visibility: 'user-facing',
-              messageType: 'chat',
-              fromSubAgentId: currentSubAgentId,
+            });
+
+            await updateTask(runDbClient)({
               taskId,
-            },
-          });
-
-          await updateTask(runDbClient)({
-            taskId,
-            scopes: { tenantId, projectId },
-            data: {
-              status: 'completed',
-              metadata: {
-                completed_at: new Date().toISOString(),
-                response: { text: textContent, hasText: !!textContent },
+              scopes: { tenantId, projectId },
+              data: {
+                status: 'completed',
+                metadata: {
+                  completed_at: new Date().toISOString(),
+                  response: { text: textContent, hasText: !!textContent },
+                },
               },
-            },
-          });
+            });
 
-          if (emitOperations) {
-            await sseHelper.writeOperation(completionOp(currentSubAgentId, 1));
+            if (emitOperations) {
+              await sseHelper.writeOperation(completionOp(currentSubAgentId, 1));
+            }
+            await sseHelper.complete();
+
+            triggerConversationEvaluation({
+              tenantId,
+              projectId,
+              conversationId,
+              resolvedRef: payload.resolvedRef,
+            }).catch((evalError) => {
+              logger.error(
+                { error: evalError, conversationId, tenantId, projectId },
+                'Failed to trigger conversation evaluation (non-blocking)'
+              );
+            });
+
+            logger.info({ currentSubAgentId, workflowRunId }, 'callLlmStep: completion');
+            isTerminal = true;
+            return { type: 'completion' as const };
+          } finally {
+            span.end();
           }
-          await sseHelper.complete();
-
-          triggerConversationEvaluation({
-            tenantId,
-            projectId,
-            conversationId,
-            resolvedRef: payload.resolvedRef,
-          }).catch((evalError) => {
-            logger.error(
-              { error: evalError, conversationId, tenantId, projectId },
-              'Failed to trigger conversation evaluation (non-blocking)'
-            );
-          });
-
-          logger.info({ currentSubAgentId, workflowRunId }, 'callLlmStep: completion');
-          isTerminal = true;
-          return { type: 'completion' as const };
-        } finally {
-          span.end();
         }
-      });
+      );
     } catch (error) {
       const rootCause = error instanceof Error ? error : new Error(String(error));
       logger.error(
@@ -670,38 +675,54 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
       );
 
       isTerminal = true;
-      return await tracer.startActiveSpan('execution_handler.execute', {}, async (span) => {
-        try {
-          span.setAttributes({
-            'ai.response.content':
-              'Hmm.. It seems I might be having some issues right now. Please clear the chat and try again.',
-            'ai.response.timestamp': new Date().toISOString(),
-            'subAgent.name': agent.runContext.config.name,
-            'subAgent.id': currentSubAgentId,
-          });
-          setSpanWithError(span, rootCause);
+      return await tracer.startActiveSpan(
+        SPAN_NAMES.EXECUTION_HANDLER_EXECUTE,
+        {},
+        async (span) => {
+          try {
+            span.setAttributes({
+              'ai.response.content':
+                'Hmm.. It seems I might be having some issues right now. Please clear the chat and try again.',
+              'ai.response.timestamp': new Date().toISOString(),
+              'subAgent.name': agent.runContext.config.name,
+              'subAgent.id': currentSubAgentId,
+            });
+            setSpanWithError(span, rootCause);
 
-          await sseHelper.writeOperation(
-            errorOp(`Execution error: ${rootCause.message}`, currentSubAgentId || 'system')
-          );
+            try {
+              await sseHelper.writeOperation(
+                errorOp(`Execution error: ${rootCause.message}`, currentSubAgentId || 'system')
+              );
+              await sseHelper.complete();
+            } catch (streamErr) {
+              logger.warn({ error: streamErr, requestId }, 'Failed to write error to SSE stream');
+            }
 
-          await updateTask(runDbClient)({
-            taskId,
-            scopes: { tenantId, projectId },
-            data: {
-              status: 'failed',
-              metadata: {
-                failed_at: new Date().toISOString(),
-                error: rootCause.message,
-              },
-            },
-          });
+            try {
+              await updateTask(runDbClient)({
+                taskId,
+                scopes: { tenantId, projectId },
+                data: {
+                  status: 'failed',
+                  metadata: {
+                    failed_at: new Date().toISOString(),
+                    error: rootCause.message,
+                  },
+                },
+              });
+            } catch (taskErr) {
+              logger.warn(
+                { error: taskErr, taskId, requestId },
+                'Failed to update task status to failed'
+              );
+            }
 
-          throw error;
-        } finally {
-          span.end();
+            throw error;
+          } finally {
+            span.end();
+          }
         }
-      });
+      );
     } finally {
       await agentSessionManager.endSession(requestId);
       unregisterStreamHelper(requestId);
@@ -796,8 +817,7 @@ export async function executeToolStep(params: ExecuteToolStepParams): Promise<Ex
     agentSessionManager.enableEmitOperations(requestId);
   }
 
-  const bag = propagation
-    .createBaggage()
+  const bag = (propagation.getBaggage(otelContext.active()) ?? propagation.createBaggage())
     .setEntry('conversation.id', { value: conversationId })
     .setEntry('tenant.id', { value: tenantId })
     .setEntry('project.id', { value: projectId })
@@ -848,12 +868,13 @@ export async function executeToolStep(params: ExecuteToolStepParams): Promise<Ex
         throw new Error(`Tool '${toolName}' not found in agent tool set`);
       }
 
-      return await tracer.startActiveSpan('durable.tool_execution', {}, async (span) => {
+      return await tracer.startActiveSpan(SPAN_NAMES.DURABLE_TOOL_EXECUTION, {}, async (span) => {
         try {
           span.setAttributes({
             'subAgent.id': currentSubAgentId,
             'tool.name': toolName,
             'tool.callId': toolCallId,
+            'tool.response.timestamp': new Date().toISOString(),
           });
 
           await (
@@ -881,7 +902,7 @@ export async function executeToolStep(params: ExecuteToolStepParams): Promise<Ex
         'executeToolStep: error during tool execution'
       );
 
-      return await tracer.startActiveSpan('durable.tool_execution', {}, async (span) => {
+      return await tracer.startActiveSpan(SPAN_NAMES.DURABLE_TOOL_EXECUTION, {}, async (span) => {
         try {
           span.setAttributes({
             'tool.response.content': `Tool execution error: ${rootCause.message}`,
@@ -898,6 +919,27 @@ export async function executeToolStep(params: ExecuteToolStepParams): Promise<Ex
             );
           } catch (streamErr) {
             logger.warn({ error: streamErr, requestId }, 'Failed to write error to SSE stream');
+          }
+
+          const { updateTask } = await import('@inkeep/agents-core');
+          const { default: runDbClient } = await import('../../../../data/db/runDbClient');
+          try {
+            await updateTask(runDbClient)({
+              taskId: params.taskId,
+              scopes: { tenantId, projectId },
+              data: {
+                status: 'failed',
+                metadata: {
+                  failed_at: new Date().toISOString(),
+                  error: rootCause.message,
+                },
+              },
+            });
+          } catch (taskErr) {
+            logger.warn(
+              { error: taskErr, taskId: params.taskId, requestId },
+              'Failed to update task status to failed'
+            );
           }
 
           throw error;

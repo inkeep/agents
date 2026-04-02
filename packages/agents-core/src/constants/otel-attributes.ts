@@ -19,6 +19,7 @@ export const SPAN_NAMES = {
   AGENT_MAX_STEPS_REACHED: 'agent.max_steps_reached',
   STREAM_FORCE_CLEANUP: 'stream.force_cleanup',
   DURABLE_TOOL_EXECUTION: 'durable.tool_execution',
+  EXECUTION_HANDLER_EXECUTE: 'execution_handler.execute',
 } as const;
 
 export const AI_OPERATIONS = {
