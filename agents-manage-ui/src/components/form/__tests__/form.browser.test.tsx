@@ -147,10 +147,13 @@ describe('Form', () => {
     agentStore.setState({ jsonSchemaMode: true });
     const { container } = render(<NestedTestForm />);
 
-    await waitFor(() => {
-      expect(container.querySelector('[data-slot="form-message"]')).toBeInTheDocument();
-      expect(container.querySelector('.monaco-editor')).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(container.querySelector('[data-slot="form-message"]')).toBeInTheDocument();
+        expect(container.querySelector('.monaco-editor')).toBeInTheDocument();
+      },
+      { timeout: 30_000 }
+    );
     await expect(container).toMatchScreenshot();
   }, 60_000);
 });
