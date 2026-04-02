@@ -355,7 +355,7 @@ describe('Cascade Delete Utilities', () => {
         ref: branch1Ref,
       });
 
-      // Create entities for project1 on branch2 (should NOT be deleted)
+      // Create entities for project1 on branch2 (should also be deleted by project-wide cascade)
       const conv1Branch2Id = generateId();
       await db.insert(conversations).values({
         tenantId,

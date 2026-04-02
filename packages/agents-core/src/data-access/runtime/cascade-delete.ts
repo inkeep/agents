@@ -170,8 +170,8 @@ export const cascadeDeleteByBranch =
   };
 
 /**
- * Delete all runtime entities for a project on a specific branch.
- * Used when deleting a project from a branch.
+ * Delete all runtime entities for a project across all branches.
+ * Used when deleting a project entirely.
  * PostgreSQL cascades handle: messages, taskRelations, ledgerArtifacts
  *
  * @param db - Runtime database client
@@ -182,22 +182,22 @@ export const cascadeDeleteByProject =
   async (params: { scopes: ProjectScopeConfig }): Promise<CascadeDeleteResult> => {
     const { scopes } = params;
 
-    // Delete contextCache for this project on this branch
+    // Delete contextCache for this project (across all branches)
     const contextCacheResult = await db
       .delete(contextCache)
       .where(projectScopedWhere(contextCache, scopes))
       .returning();
 
-    // Delete conversations for this project on this branch (cascades to messages)
+    // Delete conversations for this project (cascades to messages)
     const conversationsResult = await db
       .delete(conversations)
       .where(projectScopedWhere(conversations, scopes))
       .returning();
 
-    // Delete tasks for this project on this branch (cascades to ledgerArtifacts, taskRelations)
+    // Delete tasks for this project (cascades to ledgerArtifacts, taskRelations)
     const tasksResult = await db.delete(tasks).where(projectScopedWhere(tasks, scopes)).returning();
 
-    // Delete trigger invocations for this project on this branch
+    // Delete trigger invocations for this project
     const triggerInvocationsResult = await db
       .delete(triggerInvocations)
       .where(
@@ -218,7 +218,7 @@ export const cascadeDeleteByProject =
       )
       .returning();
 
-    // Delete dataset runs for this project on this branch (cascades to datasetRunConversationRelations)
+    // Delete dataset runs for this project (cascades to datasetRunConversationRelations)
     const datasetRunsResult = await db
       .delete(datasetRun)
       .where(
@@ -226,7 +226,7 @@ export const cascadeDeleteByProject =
       )
       .returning();
 
-    // Delete evaluation runs for this project on this branch (cascades to evaluationResult)
+    // Delete evaluation runs for this project (cascades to evaluationResult)
     const evaluationRunsResult = await db
       .delete(evaluationRun)
       .where(

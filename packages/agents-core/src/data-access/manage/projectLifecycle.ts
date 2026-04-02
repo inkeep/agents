@@ -105,11 +105,11 @@ export const createProjectMetadataAndBranch =
   };
 
 /**
- * Delete a project and its branch
+ * Delete a project and ALL its branches
  *
  * This utility:
- * 1. Gets the project from runtime DB to find the branch name
- * 2. Deletes the project branch from config DB (Doltgres)
+ * 1. Gets the project from runtime DB
+ * 2. Lists and deletes ALL branches matching the project prefix from config DB (Doltgres)
  * 3. Deletes the project record from runtime DB
  *
  * Note: Callers should handle cascade deletion of runtime entities (conversations, etc.)
@@ -139,11 +139,13 @@ export const deleteProjectWithBranch =
       const prefix = `${tenantId}_${projectId}_`;
       const projectBranches = allBranches.filter((b) => b.name.startsWith(prefix));
 
+      const failedBranches: string[] = [];
       for (const branch of projectBranches) {
         try {
           await doltDeleteBranch(configDb)({ name: branch.name, force: true });
           logger.debug({ branchName: branch.name }, 'Deleted project branch');
         } catch (error) {
+          failedBranches.push(branch.name);
           logger.error(
             { error, branchName: branch.name },
             'Failed to delete project branch, continuing with remaining branches'
@@ -151,10 +153,22 @@ export const deleteProjectWithBranch =
         }
       }
 
-      logger.info(
-        { tenantId, projectId, branchCount: projectBranches.length },
-        'Deleted all project branches'
-      );
+      if (failedBranches.length > 0) {
+        logger.warn(
+          {
+            tenantId,
+            projectId,
+            failedBranches,
+            successCount: projectBranches.length - failedBranches.length,
+          },
+          'Some project branches could not be deleted'
+        );
+      } else {
+        logger.info(
+          { tenantId, projectId, branchCount: projectBranches.length },
+          'Deleted all project branches'
+        );
+      }
     } catch (error) {
       logger.error(
         { error, tenantId, projectId },
