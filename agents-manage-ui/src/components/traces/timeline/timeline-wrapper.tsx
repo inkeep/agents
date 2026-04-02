@@ -275,23 +275,19 @@ export function TimelineWrapper({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Memoize AI message IDs to avoid recalculating on every render
-  const aiMessageIds = useMemo(() => {
-    return sortedActivities
-      .filter(
-        (activity) =>
-          activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
-          (activity.hasError && activity.otelStatusDescription)
-      )
-      .map((activity) => activity.id);
-  }, [sortedActivities]);
+  const aiMessageIds = sortedActivities
+    .filter(
+      (activity) =>
+        activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
+        activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
+        (activity.hasError && activity.otelStatusDescription)
+    )
+    .map((activity) => activity.id);
 
   // Memoize stream text IDs for cleaner collapse logic
-  const streamTextIds = useMemo(() => {
-    return sortedActivities
-      .filter((activity) => activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT)
-      .map((activity) => activity.id);
-  }, [sortedActivities]);
+  const streamTextIds = sortedActivities
+    .filter((activity) => activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT)
+    .map((activity) => activity.id);
 
   // Memoize IDs of nodes that have children (referenced as parentSpanId by other activities)
   const parentNodeIds = useMemo(() => {
