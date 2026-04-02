@@ -4,7 +4,7 @@ import { DiffField } from '../diff-viewer';
 
 describe('DiffField', () => {
   afterEach(cleanup);
-  it('renders field label from field name', () => {
+  it('renders field label from field name', async () => {
     render(
       <DiffField
         field="executeCode"
@@ -13,10 +13,11 @@ describe('DiffField', () => {
         renderAsCode
       />
     );
+    await vi.dynamicImportSettled();
     expect(screen.getByText('Execute code')).toBeInTheDocument();
   });
 
-  it('uses text diff when renderAsCode is false for string values', () => {
+  it('uses text diff when renderAsCode is false for string values', async () => {
     render(
       <DiffField
         field="description"
@@ -25,6 +26,7 @@ describe('DiffField', () => {
         renderAsCode={false}
       />
     );
+    await vi.dynamicImportSettled();
     expect(screen.getByText('Description')).toBeInTheDocument();
     expect(screen.getByText('Old')).toBeInTheDocument();
     expect(screen.getByText('New')).toBeInTheDocument();
