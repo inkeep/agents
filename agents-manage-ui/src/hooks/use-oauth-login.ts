@@ -351,9 +351,8 @@ export function useOAuthLogin({
         const errorObj = error instanceof Error ? error : new Error('OAuth login failed');
         toast.error(errorObj.message);
         throw errorObj;
-      } finally {
-        setIsConnecting(false);
       }
+      setIsConnecting(false);
     },
     [
       tenantId,

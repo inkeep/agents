@@ -146,9 +146,8 @@ export function WorkspaceHero() {
         });
       } catch (error) {
         console.error('Failed to fetch stats:', error);
-      } finally {
-        setLoadingStats(false);
       }
+      setLoadingStats(false);
     };
 
     fetchStats();

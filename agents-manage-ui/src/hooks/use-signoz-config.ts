@@ -26,9 +26,8 @@ export function useSignozConfig() {
       } catch (err) {
         console.error('Error checking Signoz configuration:', err);
         setConfigError(err instanceof Error ? err.message : 'Failed to check SigNoz configuration');
-      } finally {
-        setIsLoading(false);
       }
+      setIsLoading(false);
     };
 
     if (tenantId) {

@@ -82,10 +82,9 @@ export function useCopilotToken(): UseCopilotTokenResult {
         setError(new Error(errorMessage));
         console.error('Copilot token fetch failed after all retries:', errorMessage);
       }
-    } finally {
-      if (isMountedRef.current) {
-        setIsLoading(false);
-      }
+    }
+    if (isMountedRef.current) {
+      setIsLoading(false);
     }
   }, []);
 

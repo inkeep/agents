@@ -100,9 +100,8 @@ export function useConversationStats(
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to fetch conversation stats';
         setError(errorMessage);
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     },
     [
       options?.startTime,
