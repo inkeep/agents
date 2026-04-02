@@ -166,9 +166,8 @@ function ProviderSetupPage({
         } else {
           toast.error('Failed to create credential. Please try again.');
         }
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     },
     [
       canEdit,
@@ -234,9 +233,8 @@ function ProviderSetupPage({
         } else {
           toast.error('An unexpected error occurred. Please try again.');
         }
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     },
     [canEdit, provider, tenantId, formMode]
   );
@@ -263,9 +261,8 @@ function ProviderSetupPage({
         } else {
           toast.error('An unexpected error occurred. Please try again.');
         }
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     },
     [canEdit, provider, tenantId]
   );
