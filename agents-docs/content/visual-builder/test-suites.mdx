@@ -1,0 +1,68 @@
+---
+title: Test Suites
+sidebarTitle: Test Suites
+description: Build fixed test cases, run agents against them, and evaluate outputs using test suites in the Visual Builder
+icon: LuDatabase
+keywords: test suites, evaluation items, test suite runs, regression tests
+---
+
+A **test suite** is a named collection of **items**: each item supplies the messages sent to an agent (the **input**) and optionally the **expected output** you want to compare against. In the Visual Builder, test suites appear under **Test Suites** in the project sidebar.
+
+Test suite runs execute those items against one or more agents, create conversations from each item, and can attach **evaluators** to score the results.
+
+When you start a run with **evaluators** selected, the platform also creates a **batch evaluation** job scoped to that run’s conversations. 
+
+## Where to find test suites
+
+1. Open your project in the Visual Builder.
+2. In the project sidebar, choose **Test Suites**.
+
+<Note>
+You need **Edit** permission on the project to create or change test suites, items, run configurations, and to start runs. See [Access control](/visual-builder/access-control).
+</Note>
+
+## Create a test suite
+
+From the **Test Suites** list, create a new suite and give it a **name**. The suite is empty until you add items.
+
+## Test suite items
+
+Each item has:
+
+- **Input** — JSON object with a `messages` array. Each message has a `role` (`user`, `assistant`, or `system`) and `content` in the same shape as chat messages elsewhere in the product (for example `text` strings, or `parts` for richer content). This is what the agent sees when the item is run.
+- **Expected output** (optional) — JSON array of messages with the same role/content shape. Use it to record the reference reply you care about; evaluators or your own tooling can compare model output to this.
+
+
+<img src="/images/test-suite-item.png" alt="Create Test Suite Item dialog showing input messages and optional expected output" style={{ borderRadius: '8px' }} />
+
+## Agents
+
+You can **link agents to a test suite** so you can filter or scope which agents are associated with that suite (for example when choosing who runs the items). Run configurations still declare which agents actually execute a given run.
+
+## Run configurations and runs
+
+A **run configuration** ties a test suite to:
+
+- One or more **agents** that will each process every item (each item × agent produces a run invocation).
+- Optional **evaluators** to run on the resulting conversations.
+
+Create a run configuration from the test suite detail page (**Runs** tab). When you **start a run**, the platform creates a **test suite run** and processes items. You need at least one item and at least one agent on the configuration before a run can start.
+
+<img src="/images/test-suite-run.png" alt="Create Test Suite Run dialog showing name, description, agent selection, and optional evaluators" style={{ borderRadius: '8px' }} />
+
+Open a run to see per-item invocations, conversation links, and evaluation output when evaluators are configured.
+
+## Programmatic access
+
+| Surface | Use for |
+|---------|---------|
+| [Evaluations API reference](/api-reference/evaluations) | CRUD test suites and items, agent links, run configs, trigger runs (`POST .../dataset-run-configs/{id}/run`), list runs and results |
+| [TypeScript SDK: Evaluations](/typescript-sdk/evaluations) | `EvaluationClient` helpers (`listDatasets`, `createDataset`, `createDatasetItem`, `createDatasetItems`, etc.) |
+
+Listing test suites supports an optional `agentId` query parameter on the list endpoint to restrict results to suites linked to that agent.
+
+## Related
+
+- [Evaluations in Visual Builder](/visual-builder/evaluations) — Evaluators, batch evaluations over conversations, and continuous tests
+- [Evaluations API reference](/api-reference/evaluations)
+- [TypeScript SDK: Evaluations](/typescript-sdk/evaluations)

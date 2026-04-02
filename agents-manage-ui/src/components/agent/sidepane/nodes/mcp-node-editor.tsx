@@ -57,7 +57,7 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
   const skeletonToolLookup = createLookup(mcpTools);
 
   // Lazy-load actual tool status
-  const { data: liveToolData, isLoading: isLoadingToolStatus } = useMcpToolStatusQuery({
+  const { data: liveToolData, isFetching: isLoadingToolStatus } = useMcpToolStatusQuery({
     tenantId,
     projectId,
     toolId,
