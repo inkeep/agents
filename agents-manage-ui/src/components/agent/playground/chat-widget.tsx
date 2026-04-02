@@ -76,8 +76,6 @@ export function ChatWidget({
   setShowTraces,
   hasHeadersError,
 }: ChatWidgetProps) {
-  'use memo';
-
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const { isCopilotConfigured } = useCopilotContext();
   const { data: dataComponents } = useDataComponentsQuery();

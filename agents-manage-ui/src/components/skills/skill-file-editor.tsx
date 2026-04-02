@@ -106,7 +106,6 @@ export const SkillDirectoryBrowser: FC<SkillDirectoryBrowserProps> = ({
   projectId,
   directoryNode,
 }) => {
-  'use memo';
   const {
     data: { canEdit },
   } = useProjectPermissionsQuery();
@@ -208,7 +207,6 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
   initialDirectoryPath,
   initialContent,
 }) => {
-  'use memo';
   const {
     data: { canEdit },
   } = useProjectPermissionsQuery();

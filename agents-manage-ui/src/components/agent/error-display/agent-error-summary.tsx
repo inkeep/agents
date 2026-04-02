@@ -144,7 +144,6 @@ function useWindowFocus(): boolean {
 }
 
 export function AgentErrorSummary() {
-  'use memo';
   const { setQueryState } = useSidePane();
   const nodes = useNodes();
   const { setNodes, setEdges } = useAgentActions();

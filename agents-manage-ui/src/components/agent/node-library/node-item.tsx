@@ -26,7 +26,6 @@ const onDragStart: ComponentProps<'button'>['onDragStart'] = (event) => {
 };
 
 export const NodeItem: FC<NodeItemProps> = ({ node, className }) => {
-  'use memo';
   const { type, name, Icon, disabled, disabledTooltip } = node;
   const content = (
     <FlowButton

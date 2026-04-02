@@ -52,7 +52,6 @@ export function updateSkillAlwaysLoaded(
 }
 
 export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onChange }) => {
-  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const [draggingId, setDraggingId] = useState('');
   const [dragOverId, setDragOverId] = useState('');

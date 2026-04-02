@@ -42,8 +42,6 @@ const styleOverrides = css`
 `;
 
 export function CopilotChat() {
-  'use memo';
-
   const {
     chatFunctionsRef,
     isOpen,

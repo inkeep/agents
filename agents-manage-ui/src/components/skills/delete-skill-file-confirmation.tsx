@@ -22,7 +22,6 @@ export const DeleteSkillFileConfirmation: FC<DeleteSkillFileConfirmationProps> =
   redirectPath,
   setIsOpen,
 }) => {
-  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const router = useRouter();
   const [isSubmitting, startTransition] = useTransition();

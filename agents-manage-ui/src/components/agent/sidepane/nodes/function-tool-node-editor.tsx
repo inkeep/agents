@@ -35,7 +35,6 @@ interface FunctionToolNodeEditorProps {
 }
 
 export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorProps) {
-  'use memo';
   const { deleteNode } = useDeleteNode(selectedNode.id);
 
   const {

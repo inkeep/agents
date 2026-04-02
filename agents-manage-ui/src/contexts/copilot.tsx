@@ -25,7 +25,6 @@ interface CopilotContextValue {
 const CopilotContext = createContext<CopilotContextValue | null>(null);
 
 export function CopilotProvider({ children }: { children: ReactNode }) {
-  'use memo';
   const [isOpen, setIsOpen] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const chatFunctionsRef = useRef<AIChatFunctions | null>(null);

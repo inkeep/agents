@@ -22,7 +22,6 @@ export function useEvaluationSuiteConfigQuery({
   suiteConfigId?: string;
   enabled?: boolean;
 } = {}) {
-  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
   if (!tenantId || !projectId) {
@@ -53,7 +52,6 @@ export function useEvaluationSuiteConfigEvaluatorsQuery({
   suiteConfigId?: string;
   enabled?: boolean;
 } = {}) {
-  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
   if (!tenantId || !projectId) {
