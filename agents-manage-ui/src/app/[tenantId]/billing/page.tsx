@@ -48,7 +48,7 @@ export default function BillingPage({ params }: PageProps<'/[tenantId]/billing'>
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
+  async function fetchData() {
     if (!tenantId) return;
 
     try {
@@ -73,7 +73,7 @@ export default function BillingPage({ params }: PageProps<'/[tenantId]/billing'>
     } finally {
       setLoading(false);
     }
-  }, [tenantId, authClient]);
+  }
 
   useEffect(() => {
     fetchData();

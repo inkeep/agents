@@ -29,7 +29,7 @@ export function useTempApiKey({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchToken = useCallback(async (): Promise<string | null> => {
+  async function fetchToken(): Promise<string | null> {
     try {
       const response = await fetch(
         `${PUBLIC_INKEEP_AGENTS_API_URL}/manage/tenants/${tenantId}/playground/token`,
@@ -62,7 +62,7 @@ export function useTempApiKey({
     } finally {
       setIsLoading(false);
     }
-  }, [tenantId, projectId, agentId, PUBLIC_INKEEP_AGENTS_API_URL]);
+  }
 
   // Initial fetch
   useEffect(() => {

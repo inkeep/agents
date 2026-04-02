@@ -23,7 +23,7 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
+  async function fetchData() {
     if (!tenantId) return;
 
     try {
@@ -68,7 +68,7 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
     } finally {
       setLoading(false);
     }
-  }, [tenantId, authClient]);
+  }
 
   useEffect(() => {
     fetchData();

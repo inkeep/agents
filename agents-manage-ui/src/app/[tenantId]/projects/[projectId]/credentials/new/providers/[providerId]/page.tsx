@@ -88,187 +88,163 @@ function ProviderSetupPage({
     load();
   }, [canEdit, provider, tenantId]);
 
-  const handleNangoConnect = useCallback(
-    async (event: any) => {
-      if (!canEdit || !provider || event.type !== 'connect') return;
+  async function handleNangoConnect(event: any) {
+    if (!canEdit || !provider || event.type !== 'connect') return;
 
-      if (!event.payload?.connectionId || !event.payload?.providerConfigKey) {
-        console.error('Missing required connection data:', event.payload);
-        toast.error('Invalid connection data received');
+    if (!event.payload?.connectionId || !event.payload?.providerConfigKey) {
+      console.error('Missing required connection data:', event.payload);
+      toast.error('Invalid connection data received');
+      return;
+    }
+
+    try {
+      await findOrCreateCredential(tenantId, projectId, {
+        id: generateId(),
+        name: provider.name,
+        type: CredentialStoreType.nango,
+        createdBy: user?.email ?? undefined,
+        credentialStoreId: DEFAULT_NANGO_STORE_ID,
+        retrievalParams: {
+          connectionId: event.payload.connectionId,
+          providerConfigKey: event.payload.providerConfigKey,
+          provider: provider.name,
+          authMode: provider.auth_mode,
+        },
+      });
+
+      toast.success('Credential created successfully');
+      router.push(`/${tenantId}/projects/${projectId}/credentials`);
+    } catch (credentialError) {
+      console.error('Failed to create credential record:', credentialError);
+      if (credentialError instanceof Error && credentialError.message?.includes('database')) {
+        toast.error('Failed to save credential. Please check your connection and try again.');
+      } else {
+        toast.error('Failed to save credential. Please try again.');
+      }
+    }
+  }
+
+  async function startConnectFlow(integrationKey: string, credentials?: Record<string, any>) {
+    if (!canEdit || !provider) return;
+
+    const { data: organizationData } = await authClient.organization.getFullOrganization();
+
+    setLoading(true);
+    setHasAttempted(true);
+    try {
+      const connectToken = await createProviderConnectSession({
+        providerName: provider.name,
+        uniqueKey: integrationKey,
+        displayName: provider.name,
+        credentials: await buildCredentialsPayload(credentials, provider.auth_mode),
+        endUserId: user?.id,
+        endUserEmail: user?.email,
+        endUserDisplayName: user?.name,
+        organizationId: organizationData?.id,
+        organizationDisplayName: organizationData?.name,
+      });
+
+      openNangoConnect({
+        sessionToken: connectToken,
+        onEvent: handleNangoConnect,
+      });
+    } catch (error) {
+      console.error('Failed to create credential:', error);
+
+      if (error instanceof NangoError) {
+        if (error.operation === 'createConnectSession') {
+          toast.error('Failed to start authentication flow. Please try again.');
+        } else {
+          toast.error('Service temporarily unavailable. Please try again later.');
+        }
+      } else if (error instanceof Error && error.message?.includes('NANGO_SECRET_KEY')) {
+        toast.error('Configuration error. Please contact support.');
+      } else {
+        toast.error('Failed to create credential. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleCreateNewIntegration(credentials?: Record<string, any>) {
+    if (!canEdit || !provider) return;
+
+    const integrationKey = `${provider.name}-${tenantId}-${generateId().slice(0, 6)}`;
+
+    await startConnectFlow(integrationKey, credentials);
+
+    try {
+      const result = await listNangoProviderIntegrations(provider.name, tenantId);
+      setIntegrations(result);
+    } catch (error) {
+      console.error('Failed to refresh integrations list:', error);
+    }
+  }
+
+  async function handleUpdateCredentials(credentials?: Record<string, any>) {
+    if (!canEdit || !provider || !credentials || formMode.type !== 'update') return;
+
+    setLoading(true);
+    try {
+      const payload = await buildCredentialsPayload(credentials, provider.auth_mode);
+      if (!payload) {
+        toast.error(`Unsupported authentication mode: ${provider.auth_mode}`);
         return;
       }
 
-      try {
-        await findOrCreateCredential(tenantId, projectId, {
-          id: generateId(),
-          name: provider.name,
-          type: CredentialStoreType.nango,
-          createdBy: user?.email ?? undefined,
-          credentialStoreId: DEFAULT_NANGO_STORE_ID,
-          retrievalParams: {
-            connectionId: event.payload.connectionId,
-            providerConfigKey: event.payload.providerConfigKey,
-            provider: provider.name,
-            authMode: provider.auth_mode,
-          },
-        });
+      await updateNangoIntegrationCredentials({
+        uniqueKey: formMode.integrationKey,
+        credentials: payload,
+        tenantId,
+      });
 
-        toast.success('Credential created successfully');
-        router.push(`/${tenantId}/projects/${projectId}/credentials`);
-      } catch (credentialError) {
-        console.error('Failed to create credential record:', credentialError);
-        if (credentialError instanceof Error && credentialError.message?.includes('database')) {
-          toast.error('Failed to save credential. Please check your connection and try again.');
-        } else {
-          toast.error('Failed to save credential. Please try again.');
-        }
-      }
-    },
-    [canEdit, provider, tenantId, projectId, router, user?.email]
-  );
-
-  const startConnectFlow = useCallback(
-    async (integrationKey: string, credentials?: Record<string, any>) => {
-      if (!canEdit || !provider) return;
-
-      const { data: organizationData } = await authClient.organization.getFullOrganization();
-
-      setLoading(true);
-      setHasAttempted(true);
-      try {
-        const connectToken = await createProviderConnectSession({
-          providerName: provider.name,
-          uniqueKey: integrationKey,
-          displayName: provider.name,
-          credentials: await buildCredentialsPayload(credentials, provider.auth_mode),
-          endUserId: user?.id,
-          endUserEmail: user?.email,
-          endUserDisplayName: user?.name,
-          organizationId: organizationData?.id,
-          organizationDisplayName: organizationData?.name,
-        });
-
-        openNangoConnect({
-          sessionToken: connectToken,
-          onEvent: handleNangoConnect,
-        });
-      } catch (error) {
-        console.error('Failed to create credential:', error);
-
-        if (error instanceof NangoError) {
-          if (error.operation === 'createConnectSession') {
-            toast.error('Failed to start authentication flow. Please try again.');
-          } else {
-            toast.error('Service temporarily unavailable. Please try again later.');
-          }
-        } else if (error instanceof Error && error.message?.includes('NANGO_SECRET_KEY')) {
-          toast.error('Configuration error. Please contact support.');
-        } else {
-          toast.error('Failed to create credential. Please try again.');
-        }
-      } finally {
-        setLoading(false);
-      }
-    },
-    [
-      canEdit,
-      provider,
-      openNangoConnect,
-      handleNangoConnect,
-      user?.id,
-      user?.email,
-      user?.name,
-      authClient,
-    ]
-  );
-
-  const handleCreateNewIntegration = useCallback(
-    async (credentials?: Record<string, any>) => {
-      if (!canEdit || !provider) return;
-
-      const integrationKey = `${provider.name}-${tenantId}-${generateId().slice(0, 6)}`;
-
-      await startConnectFlow(integrationKey, credentials);
+      toast.success('App credentials updated');
+      setFormMode({ type: 'idle' });
 
       try {
         const result = await listNangoProviderIntegrations(provider.name, tenantId);
         setIntegrations(result);
-      } catch (error) {
-        console.error('Failed to refresh integrations list:', error);
+      } catch (refreshError) {
+        console.error('Failed to refresh integrations list:', refreshError);
       }
-    },
-    [canEdit, provider, tenantId, startConnectFlow]
-  );
+    } catch (error) {
+      console.error('Failed to update credentials:', error);
+      if (error instanceof NangoError) {
+        toast.error('Failed to update credentials. Please try again.');
+      } else {
+        toast.error('An unexpected error occurred. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  const handleUpdateCredentials = useCallback(
-    async (credentials?: Record<string, any>) => {
-      if (!canEdit || !provider || !credentials || formMode.type !== 'update') return;
+  async function handleDeleteIntegration(uniqueKey: string) {
+    if (!canEdit || !provider) return;
 
-      setLoading(true);
+    setLoading(true);
+    try {
+      await deleteNangoIntegration(uniqueKey, tenantId);
+      toast.success('OAuth app deleted');
+
       try {
-        const payload = await buildCredentialsPayload(credentials, provider.auth_mode);
-        if (!payload) {
-          toast.error(`Unsupported authentication mode: ${provider.auth_mode}`);
-          return;
-        }
-
-        await updateNangoIntegrationCredentials({
-          uniqueKey: formMode.integrationKey,
-          credentials: payload,
-          tenantId,
-        });
-
-        toast.success('App credentials updated');
-        setFormMode({ type: 'idle' });
-
-        try {
-          const result = await listNangoProviderIntegrations(provider.name, tenantId);
-          setIntegrations(result);
-        } catch (refreshError) {
-          console.error('Failed to refresh integrations list:', refreshError);
-        }
-      } catch (error) {
-        console.error('Failed to update credentials:', error);
-        if (error instanceof NangoError) {
-          toast.error('Failed to update credentials. Please try again.');
-        } else {
-          toast.error('An unexpected error occurred. Please try again.');
-        }
-      } finally {
-        setLoading(false);
+        const result = await listNangoProviderIntegrations(provider.name, tenantId);
+        setIntegrations(result);
+      } catch {
+        setIntegrations([]);
       }
-    },
-    [canEdit, provider, tenantId, formMode]
-  );
-
-  const handleDeleteIntegration = useCallback(
-    async (uniqueKey: string) => {
-      if (!canEdit || !provider) return;
-
-      setLoading(true);
-      try {
-        await deleteNangoIntegration(uniqueKey, tenantId);
-        toast.success('OAuth app deleted');
-
-        try {
-          const result = await listNangoProviderIntegrations(provider.name, tenantId);
-          setIntegrations(result);
-        } catch {
-          setIntegrations([]);
-        }
-      } catch (error) {
-        console.error('Failed to delete OAuth app:', error);
-        if (error instanceof NangoError) {
-          toast.error('Failed to delete OAuth app. Please try again.');
-        } else {
-          toast.error('An unexpected error occurred. Please try again.');
-        }
-      } finally {
-        setLoading(false);
+    } catch (error) {
+      console.error('Failed to delete OAuth app:', error);
+      if (error instanceof NangoError) {
+        toast.error('Failed to delete OAuth app. Please try again.');
+      } else {
+        toast.error('An unexpected error occurred. Please try again.');
       }
-    },
-    [canEdit, provider, tenantId]
-  );
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const cancelToInterstitial = useCallback(() => setFormMode({ type: 'idle' }), []);
 
