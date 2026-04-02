@@ -298,7 +298,7 @@ importers:
         version: link:../packages/agents-core
       '@inkeep/agents-manage-ui':
         specifier: '*'
-        version: 0.41.1(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.0(hono@4.12.7)(zod@4.3.6))(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.16.0)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(babel-plugin-react-compiler@1.0.0)(better-call@1.1.8(zod@4.3.6))(bun-types@1.3.5)(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(bun-types@1.3.5)(kysely@0.28.11)(pg@8.20.0)(postgres@3.4.8))(kysely@0.28.11)(mongodb@7.1.0)(pg@8.20.0)(postgres@3.4.8)(react-router@7.13.1(react-dom@19.2.0(react@19.2.4))(react@19.2.4))(use-sync-external-store@1.6.0(react@19.2.4))(vitest@3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.19.3)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))
+        version: 0.41.1(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.0(hono@4.12.7)(zod@4.3.6))(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.16.0)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(babel-plugin-react-compiler@1.0.0)(better-call@1.1.8(zod@4.3.6))(bun-types@1.3.5)(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(bun-types@1.3.5)(kysely@0.28.11)(pg@8.20.0)(postgres@3.4.8))(kysely@0.28.11)(mongodb@7.1.0)(pg@8.20.0)(postgres@3.4.8)(react-router@7.13.1(react-dom@19.2.0(react@19.2.4))(react@19.2.4))(use-sync-external-store@1.6.0(react@19.2.4))(vitest@3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.19.3)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)
       '@inkeep/agents-sdk':
         specifier: workspace:^
         version: link:../packages/agents-sdk
@@ -413,11 +413,11 @@ importers:
         specifier: workspace:*
         version: link:../packages/agents-core
       '@inkeep/agents-ui':
-        specifier: ^0.15.25
-        version: 0.15.25(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: ^0.15.27
+        version: 0.15.27(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@inkeep/agents-ui-cloud':
-        specifier: ^0.15.25
-        version: 0.15.25(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: ^0.15.27
+        version: 0.15.27(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@inkeep/docskit':
         specifier: ^0.0.8
         version: 0.0.8(@svta/cml-cta@1.0.1(@svta/cml-structured-field-values@1.0.1(@svta/cml-utils@1.0.1))(@svta/cml-utils@1.0.1))(@svta/cml-structured-field-values@1.0.1(@svta/cml-utils@1.0.1))(@svta/cml-utils@1.0.1)(next@16.2.1(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react-router@7.13.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@7.3.1(@types/node@24.0.7)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))
@@ -573,8 +573,8 @@ importers:
         specifier: workspace:^
         version: link:../packages/agents-core
       '@inkeep/agents-ui':
-        specifier: ^0.15.23
-        version: 0.15.25(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: ^0.15.27
+        version: 0.15.27(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@nangohq/frontend':
         specifier: ^0.69.41
         version: 0.69.41
@@ -809,8 +809,8 @@ importers:
   agents-ui-demo:
     dependencies:
       '@inkeep/agents-ui':
-        specifier: ^0.15.23
-        version: 0.15.25(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: ^0.15.27
+        version: 0.15.27(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react:
         specifier: ^19.1.1
         version: 19.2.4
@@ -3026,8 +3026,14 @@ packages:
   '@floating-ui/core@1.7.4':
     resolution: {integrity: sha512-C3HlIdsBxszvm5McXlB8PeOEWfBhcGBTZGkGlWc2U0KFY5IwG5OQEuQ8rq52DZmcHDlPLd+YFBK+cZcytwIFWg==}
 
+  '@floating-ui/core@1.7.5':
+    resolution: {integrity: sha512-1Ih4WTWyw0+lKyFMcBHGbb5U5FtuHJuujoyyr5zTaWS5EYMeT6Jb2AuDeftsCsEuchO+mM2ij5+q9crhydzLhQ==}
+
   '@floating-ui/dom@1.7.5':
     resolution: {integrity: sha512-N0bD2kIPInNHUHehXhMke1rBGs1dwqvC9O9KYMyyjK7iXt7GAhnro7UlcuYcGdS/yYOlq0MAVgrow8IbWJwyqg==}
+
+  '@floating-ui/dom@1.7.6':
+    resolution: {integrity: sha512-9gZSAI5XM36880PPMm//9dfiEngYoC6Am2izES1FF406YFsjvyBMmeJ2g4SAju3xWwtuynNRFL2s9hgxpLI5SQ==}
 
   '@floating-ui/react-dom@2.1.6':
     resolution: {integrity: sha512-4JX6rEatQEvlmgU80wZyq9RT96HZJa88q8hp0pBd+LrczeDI4o6uA2M+uvxngVHo4Ihr8uibXxH6+70zhAFrVw==}
@@ -3037,6 +3043,9 @@ packages:
 
   '@floating-ui/utils@0.2.10':
     resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
+
+  '@floating-ui/utils@0.2.11':
+    resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
 
   '@formatjs/intl-localematcher@0.6.2':
     resolution: {integrity: sha512-XOMO2Hupl0wdd172Y06h6kLpBz6Dv+J4okPLl4LPtzbr8f66WbIoy4ev98EBuZ6ZK4h5ydTN6XneT4QVpD7cdA==}
@@ -3328,11 +3337,14 @@ packages:
   '@inkeep/agents-manage-ui@0.41.1':
     resolution: {integrity: sha512-30g1KSk2zt+qOY+pWmjEohoSJLObCLG6sWheEOUuM0vED9xzLNd+gF/Np7dmrWSTtacDnAR23ARgMHlzeIWPhw==}
 
-  '@inkeep/agents-ui-cloud@0.15.25':
-    resolution: {integrity: sha512-mSJrBRQ5XM7kV4ae7mV+zcN+J2Mm3gvT/a1PiAU59J7KEK6JNB64Q8oJwheTXbPOTNAzPRrWZVTwSZAtZ7sGHg==}
+  '@inkeep/agents-ui-cloud@0.15.27':
+    resolution: {integrity: sha512-vxAsKs5NGJJsqyd9I7bXh+PJhC8m2mLZa6/uwv+DgkYd4/gvjkfyhlGvN1YAkhiWcnOQCH9xjJk3x1HRvFAyng==}
 
   '@inkeep/agents-ui@0.15.25':
     resolution: {integrity: sha512-MmIGCnYT3+YWYvOQWUR7qUp1Skc+L4FLl6aKXHKSnz23ItfofqW+05efD4d+DbchVAHOQCdz6+P0gTuzZrKgeQ==}
+
+  '@inkeep/agents-ui@0.15.27':
+    resolution: {integrity: sha512-LyGcLmIsxe8gEGYpgMkyBcNzipeUFpxNEww89iAbr3AkiI5ebAwsGw641guFEE/kv3zTDOdhw8yDuccXX9M9GA==}
 
   '@inkeep/docskit@0.0.8':
     resolution: {integrity: sha512-TADEWay7CTZNQS+Fjy4qQH2QcYkUB2USmfrAUDt2TmW827T2a7Zy2lyYaJx3wFYfGGN34djY2s1PxEZkWeGYrw==}
@@ -9032,38 +9044,83 @@ packages:
   '@zag-js/anatomy@1.35.1':
     resolution: {integrity: sha512-TBz/TvF0IMujQyoAvF5MOcbgP79helL+kEGKT4MpojDoT8mqyg9vCajbKvzr66z3iTTEs1vK5ODwndNj5mOY3Q==}
 
+  '@zag-js/anatomy@1.38.2':
+    resolution: {integrity: sha512-3wEwuHkHiErD1r36MrC1Jd4lqvQK+wQ5EgqdEk8r3L2koD7fTdq8CB5KbMcP0JM08eFCOo2CBl3gP3VBmiTNJA==}
+
   '@zag-js/aria-hidden@1.35.1':
     resolution: {integrity: sha512-g/KUEZ2jSJ/EArJLPbMZ0f3UFJvjZm+Wkd4f/rW5Ls3n2uPyyKQsGEPCZI3VYWi57i2tcXGtXfcHLKKrUgGXzw==}
+
+  '@zag-js/aria-hidden@1.38.2':
+    resolution: {integrity: sha512-TvMdHUouslt6RZmKZ6k41B1KTqjOFaD4T6c4sTb6qSUkuTYgyYsA7ZqimiR0vcvmmG852nSaOepvr6Jj0sRPNA==}
 
   '@zag-js/collection@1.35.1':
     resolution: {integrity: sha512-PxdQu1sgeRHfgk0FqbvZlQEdS78hhf2VMtubzUrqEKaImCXwDSxVpX1/BKVW3PTsRtKDfr8Q6syvKx+LKTW0xA==}
 
+  '@zag-js/collection@1.38.2':
+    resolution: {integrity: sha512-1Edek5yrjHfpmciK4M5PoUbDFRgEEkFh3HMIwWjMRdcRzea9ibVhSGXvXsenafC/b3so/ApEXBhs1ch7dFn+NQ==}
+
   '@zag-js/combobox@1.35.1':
     resolution: {integrity: sha512-xPQUTCckXJzIdr76Tv8ErhsWwNXYX447nLogwvsmwSAqEa55MYw1aYf6EGOzprKRNPI+N05Ufps6PElqn6cVMA==}
+
+  '@zag-js/combobox@1.38.2':
+    resolution: {integrity: sha512-J2M1vB3Keepv2Wr/sC5kue18ver+nf/7gj9LgHxSU5sgwl9Fr4wZLPH1s9ZQ7FDhBXjWsitILbf9dqR1UpyLJQ==}
 
   '@zag-js/core@1.35.1':
     resolution: {integrity: sha512-dQYYCuptNe59DA7Lphziiy3rqVrw1lPoYyTskK1q1E3DJ/U/aQBeh7RuO4ECWBdni80OSU+6Yf2KrGoFhzlK0w==}
 
+  '@zag-js/core@1.38.2':
+    resolution: {integrity: sha512-UaRU6TVOJV07phQkToR6fNceJbfPiNLx2itSh78ofHn8w9w860mNrS5tyn8HExuNwY5JVQdfMkyFlMF0LfgVLQ==}
+
   '@zag-js/dismissable@1.35.1':
     resolution: {integrity: sha512-jnm5KPwUxncIGnkKDErRxOnwSO1jqDo6+VyVEFz1y521qBsnIVSrFAAVn68Bt4zi8GY9EY6Z9TVigsauOVYNOw==}
+
+  '@zag-js/dismissable@1.38.2':
+    resolution: {integrity: sha512-4B83ZGD8YKnwiXwL4J49txeXSPdS29bPt6p00v99u6nJPlQRRubzPUQo4OJr6NxUuT9cIn2kDqt5oj8ZCwhmng==}
 
   '@zag-js/dom-query@1.35.1':
     resolution: {integrity: sha512-VQ9vAwzMyN6YbF3ukPDowxTr59ZYVR3P4jo5eorO7BIsXH/OAay9TKsoO0lPhe/P3rATNxOM5RUIyLiqwE9VMg==}
 
+  '@zag-js/dom-query@1.38.2':
+    resolution: {integrity: sha512-E2plmm/bDjMQhi4fmyhw2uhoQv2cgNYaG+fzLrJgepLqovCOTU85lwzaLFiB7ldG2a9DVmjbAnFX4nVVWvaxGA==}
+
+  '@zag-js/file-upload@1.38.2':
+    resolution: {integrity: sha512-sA5gKafIRDcKc6zsEYrByQQpl2am+ioRzGcuxhwBdOIacJP3G2vs4bJx0wCbdM8O9Ue11s9KBcqfJhenDlBWMg==}
+
+  '@zag-js/file-utils@1.38.2':
+    resolution: {integrity: sha512-498kXYSlUrNXdjmn0mKfovd7zQv1PnLXhNW94L0DYX7GcAqd6SQ4QohtxbT4IHrzlV9FfskKhe9ahXxV2IlNVQ==}
+
   '@zag-js/focus-trap@1.35.1':
     resolution: {integrity: sha512-UGtEJ5liGE9HcmnOsvz3qWcKrxp8T1W6LwogaeSxcKLXZnBmILINgGT68DWf4dunawOCY/mDwKhYQp4l1ocOxg==}
+
+  '@zag-js/focus-trap@1.38.2':
+    resolution: {integrity: sha512-m1CBTmUy7kHsMVBFlzOmxddxESv7ce6XOX+3YhXKWNJLvnt4a3bWMnh+C3CmV7B14pntTkQwfXJALR6e3gfS6Q==}
 
   '@zag-js/focus-visible@1.35.1':
     resolution: {integrity: sha512-+uDn81VYX5ZAPVv22Z/JeTBHGjQ0ZKFcjkV6rCRiRnHfYb3F239vvLvKq0PtzOUTxHndTVHT2goP2WO6KLNqBA==}
 
+  '@zag-js/focus-visible@1.38.2':
+    resolution: {integrity: sha512-ME0zulSEZLxR9jJqtwDpcWuBnZKO/8xQ+UtuYrJPvqPyUyUVkxFon+jCqNUOGjK4rHB+OjEV19LrHAzq6CQjNg==}
+
+  '@zag-js/i18n-utils@1.38.2':
+    resolution: {integrity: sha512-/thV2gwDtfubrL8gcBXGiNmQVcHACmYIXneLVW94wVADdsuRKV/s0QrMQXe/QH3f3M9QAU5VWQnoz9Z2ySilGQ==}
+
   '@zag-js/interact-outside@1.35.1':
     resolution: {integrity: sha512-yO+nhjHuEgeuFZfvrI+Q2DrQ1ipRhvLAi4/xwlUw7eG6yZ51hm+wASQl8cELHVlVszlfuWKtA2FnxVLsuLmq5Q==}
+
+  '@zag-js/interact-outside@1.38.2':
+    resolution: {integrity: sha512-jszzVoozqcO3vn1iiZ726xYXpy/mR+fLnx1tBs4Dvkg/n52Mm3Uv+pFDBfHgswqS/kRJ/U8P0fItFJjOH0yvlA==}
 
   '@zag-js/popper@1.35.1':
     resolution: {integrity: sha512-hI2Vl6IdloqlePQfo4iKybEqMBET/O2RyC/KU2XBhqFjq1eft08yqLPCVKDIWr5Pse1RF4x6Kjnk2OMivURVFw==}
 
+  '@zag-js/popper@1.38.2':
+    resolution: {integrity: sha512-iqAFCeximjd2SGbsciXxbrHdrB/T5jeV4bf5KAPPGNM8Ce/dMcz5RteAArqBYJt1RDpB5px4RdeO8y+8vZOK/w==}
+
   '@zag-js/presence@1.35.1':
     resolution: {integrity: sha512-FjmIY/Qgn3/3WjjBZ2LTpBWB/0vAT90CPm3TaNJODOwpA1OylCWfZALGvcfB0bmP9A7BxB53e8UXKwwyt5IUmw==}
+
+  '@zag-js/presence@1.38.2':
+    resolution: {integrity: sha512-jDBN6Jw6+oDZT7yms1/ZyfwTZjKI8wHpAOPdOOD+uwoJSW/zCrwyymLRf28QVqCfr60gD/oaHt3azKA8sO6ySQ==}
 
   '@zag-js/react@1.35.1':
     resolution: {integrity: sha512-l2HlnjCw7xm6nmnoBiRyEUrHCzBTTsHZJiO201c/b66qiflYD5/DWNM9j3SehzSglYX9RbqzR1Vmephmr+EYsg==}
@@ -9071,17 +9128,35 @@ packages:
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
 
+  '@zag-js/react@1.38.2':
+    resolution: {integrity: sha512-9MViJDg8zQZLITtTRkVIj00KnLc8NU9m9D4Qis2VbMnXg/Wp3mxpW0je8+Dd650ptPKQGFXYONnBB6iIxYJOtA==}
+    peerDependencies:
+      react: '>=18.0.0'
+      react-dom: '>=18.0.0'
+
   '@zag-js/remove-scroll@1.35.1':
     resolution: {integrity: sha512-z3zI/b0zF25F6PBpMImMMvRrdNI+j59h63s2gUPZE0aWmaUhyY0ThJ82U4cS8AKDJ90UQGo6dw2aNlrkP6036w==}
+
+  '@zag-js/remove-scroll@1.38.2':
+    resolution: {integrity: sha512-2NInlGgJmMQKMOyd5J2pc+L9/wj4NBhz028VwE31yxCK4dm3swcm5NYHdBAdpNG96ymximJsJndTkry7pnNNIA==}
 
   '@zag-js/store@1.35.1':
     resolution: {integrity: sha512-PRb8RnTOKPTdtLvgcPEl2xLeGzrAl0WGJUIDVhKgek9J8yw9nCmz4IZ6fhp7XHZU/E+z+zvl5Sfq0GAmRpdX8g==}
 
+  '@zag-js/store@1.38.2':
+    resolution: {integrity: sha512-TlJM6M2dW5W9jr6US4/R/VobLmlFrSv48ls18XffmXp+uuwZ7Aisciq0Djtwx7Y7e5KhlUWtk4ncE5PtjP4AzQ==}
+
   '@zag-js/types@1.35.1':
     resolution: {integrity: sha512-kygaWQQ3rBUsvF3NPtrseO/IcGKNb069Ipfasrq4/D2l63+lVwKdFYo/p39Aqxzn6IUkyDwq5ZqlGRqrAQgkGw==}
 
+  '@zag-js/types@1.38.2':
+    resolution: {integrity: sha512-fvUf3J4QOFAliuo5wHTO/awO0GKFAn5AHNOXbGH5IuoxIwa0oK5tSXVwdF8JE7ISOkQh4oB2fq3g4QjxmAXDyA==}
+
   '@zag-js/utils@1.35.1':
     resolution: {integrity: sha512-qwQ8QE60KFGNFtk9jJsFy2URgykhR1CsxlAXo0SRHTDEMasXxeymasI1iJqGEGI41qJjVWr+2kFfe+389Mueew==}
+
+  '@zag-js/utils@1.38.2':
+    resolution: {integrity: sha512-8UuWDomJ5JLX/KSDjEA4poX9rzqkGL47RiSCuVod+qZpWD0jpyXP7Lf600GUFtirRAiuN3x1+7KE6Elt/0rxtw==}
 
   abort-controller@3.0.0:
     resolution: {integrity: sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==}
@@ -18216,10 +18291,19 @@ snapshots:
     dependencies:
       '@floating-ui/utils': 0.2.10
 
+  '@floating-ui/core@1.7.5':
+    dependencies:
+      '@floating-ui/utils': 0.2.11
+
   '@floating-ui/dom@1.7.5':
     dependencies:
       '@floating-ui/core': 1.7.4
       '@floating-ui/utils': 0.2.10
+
+  '@floating-ui/dom@1.7.6':
+    dependencies:
+      '@floating-ui/core': 1.7.5
+      '@floating-ui/utils': 0.2.11
 
   '@floating-ui/react-dom@2.1.6(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
@@ -18234,6 +18318,8 @@ snapshots:
       react-dom: 19.2.4(react@19.2.4)
 
   '@floating-ui/utils@0.2.10': {}
+
+  '@floating-ui/utils@0.2.11': {}
 
   '@formatjs/intl-localematcher@0.6.2':
     dependencies:
@@ -18434,7 +18520,7 @@ snapshots:
   '@img/sharp-win32-x64@0.34.5':
     optional: true
 
-  '@inkeep/agents-core@0.41.1(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.0(hono@4.12.7)(zod@4.3.6))(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.16.0)(better-call@1.1.8(zod@4.3.6))(bun-types@1.3.5)(drizzle-kit@0.31.8)(kysely@0.28.11)(mongodb@7.1.0)(next@16.1.0(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(postgres@3.4.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(vitest@3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.19.3)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))(zod@4.3.6)':
+  '@inkeep/agents-core@0.41.1(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.0(hono@4.12.7)(zod@4.3.6))(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.16.0)(better-call@1.1.8(zod@4.3.6))(bun-types@1.3.5)(drizzle-kit@0.31.8)(kysely@0.28.11)(mongodb@7.1.0)(next@16.1.0(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(postgres@3.4.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(vitest@3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.19.3)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)':
     dependencies:
       '@ai-sdk/anthropic': 3.0.7(zod@4.3.6)
       '@ai-sdk/azure': 3.0.7(zod@4.3.6)
@@ -18531,11 +18617,11 @@ snapshots:
       - vue
       - ws
 
-  '@inkeep/agents-manage-ui@0.41.1(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.0(hono@4.12.7)(zod@4.3.6))(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.16.0)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(babel-plugin-react-compiler@1.0.0)(better-call@1.1.8(zod@4.3.6))(bun-types@1.3.5)(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(bun-types@1.3.5)(kysely@0.28.11)(pg@8.20.0)(postgres@3.4.8))(kysely@0.28.11)(mongodb@7.1.0)(pg@8.20.0)(postgres@3.4.8)(react-router@7.13.1(react-dom@19.2.0(react@19.2.4))(react@19.2.4))(use-sync-external-store@1.6.0(react@19.2.4))(vitest@3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.19.3)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))':
+  '@inkeep/agents-manage-ui@0.41.1(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.0(hono@4.12.7)(zod@4.3.6))(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.16.0)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(babel-plugin-react-compiler@1.0.0)(better-call@1.1.8(zod@4.3.6))(bun-types@1.3.5)(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(bun-types@1.3.5)(kysely@0.28.11)(pg@8.20.0)(postgres@3.4.8))(kysely@0.28.11)(mongodb@7.1.0)(pg@8.20.0)(postgres@3.4.8)(react-router@7.13.1(react-dom@19.2.0(react@19.2.4))(react@19.2.4))(use-sync-external-store@1.6.0(react@19.2.4))(vitest@3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.19.3)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)':
     dependencies:
       '@better-auth/sso': 1.4.19(@better-auth/utils@0.3.0)(better-auth@1.4.19(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(bun-types@1.3.5)(kysely@0.28.11)(pg@8.20.0)(postgres@3.4.8))(mongodb@7.1.0)(next@16.1.0(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.20.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(vitest@3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.19.3)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)))(better-call@1.1.8(zod@4.3.6))
       '@hookform/resolvers': 5.2.2(react-hook-form@7.70.0(react@19.2.4))
-      '@inkeep/agents-core': 0.41.1(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.0(hono@4.12.7)(zod@4.3.6))(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.16.0)(better-call@1.1.8(zod@4.3.6))(bun-types@1.3.5)(drizzle-kit@0.31.8)(kysely@0.28.11)(mongodb@7.1.0)(next@16.1.0(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(postgres@3.4.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(vitest@3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.19.3)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))(zod@4.3.6)
+      '@inkeep/agents-core': 0.41.1(@better-auth/utils@0.3.0)(@hono/zod-openapi@1.2.0(hono@4.12.7)(zod@4.3.6))(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@types/pg@8.16.0)(better-call@1.1.8(zod@4.3.6))(bun-types@1.3.5)(drizzle-kit@0.31.8)(kysely@0.28.11)(mongodb@7.1.0)(next@16.1.0(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(postgres@3.4.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(vitest@3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.19.3)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))(ws@8.19.0)(zod@4.3.6)
       '@inkeep/agents-ui': 0.15.25(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@nangohq/frontend': 0.69.41
       '@nangohq/node': 0.69.41
@@ -18673,9 +18759,9 @@ snapshots:
       - webpack
       - ws
 
-  '@inkeep/agents-ui-cloud@0.15.25(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+  '@inkeep/agents-ui-cloud@0.15.27(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
-      '@inkeep/agents-ui': 0.15.25(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@inkeep/agents-ui': 0.15.27(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@radix-ui/react-use-controllable-state': 1.2.2(@types/react@19.2.7)(react@19.2.4)
       lucide-react: 0.503.0(react@19.2.4)
     transitivePeerDependencies:
@@ -18754,7 +18840,7 @@ snapshots:
       - react-dom
       - supports-color
 
-  '@inkeep/agents-ui@0.15.25(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+  '@inkeep/agents-ui@0.15.27(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
       '@ai-sdk/openai': 3.0.14(zod@4.3.6)
       '@ai-sdk/react': 3.0.46(react@19.2.4)(zod@4.3.6)
@@ -18783,11 +18869,12 @@ snapshots:
       '@radix-ui/react-use-callback-ref': 1.1.1(@types/react@19.2.7)(react@19.2.4)
       '@radix-ui/react-use-controllable-state': 1.2.2(@types/react@19.2.7)(react@19.2.4)
       '@radix-ui/react-use-layout-effect': 1.1.1(@types/react@19.2.7)(react@19.2.4)
-      '@zag-js/combobox': 1.35.1
-      '@zag-js/focus-trap': 1.35.1
-      '@zag-js/presence': 1.35.1
-      '@zag-js/react': 1.35.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      '@zag-js/remove-scroll': 1.35.1
+      '@zag-js/combobox': 1.38.2
+      '@zag-js/file-upload': 1.38.2
+      '@zag-js/focus-trap': 1.38.2
+      '@zag-js/presence': 1.38.2
+      '@zag-js/react': 1.38.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@zag-js/remove-scroll': 1.38.2
       ai: 6.0.44(zod@4.3.6)
       altcha-lib: 1.4.1
       aria-hidden: 1.2.6
@@ -26698,13 +26785,23 @@ snapshots:
 
   '@zag-js/anatomy@1.35.1': {}
 
+  '@zag-js/anatomy@1.38.2': {}
+
   '@zag-js/aria-hidden@1.35.1':
     dependencies:
       '@zag-js/dom-query': 1.35.1
 
+  '@zag-js/aria-hidden@1.38.2':
+    dependencies:
+      '@zag-js/dom-query': 1.38.2
+
   '@zag-js/collection@1.35.1':
     dependencies:
       '@zag-js/utils': 1.35.1
+
+  '@zag-js/collection@1.38.2':
+    dependencies:
+      '@zag-js/utils': 1.38.2
 
   '@zag-js/combobox@1.35.1':
     dependencies:
@@ -26719,10 +26816,28 @@ snapshots:
       '@zag-js/types': 1.35.1
       '@zag-js/utils': 1.35.1
 
+  '@zag-js/combobox@1.38.2':
+    dependencies:
+      '@zag-js/anatomy': 1.38.2
+      '@zag-js/aria-hidden': 1.38.2
+      '@zag-js/collection': 1.38.2
+      '@zag-js/core': 1.38.2
+      '@zag-js/dismissable': 1.38.2
+      '@zag-js/dom-query': 1.38.2
+      '@zag-js/focus-visible': 1.38.2
+      '@zag-js/popper': 1.38.2
+      '@zag-js/types': 1.38.2
+      '@zag-js/utils': 1.38.2
+
   '@zag-js/core@1.35.1':
     dependencies:
       '@zag-js/dom-query': 1.35.1
       '@zag-js/utils': 1.35.1
+
+  '@zag-js/core@1.38.2':
+    dependencies:
+      '@zag-js/dom-query': 1.38.2
+      '@zag-js/utils': 1.38.2
 
   '@zag-js/dismissable@1.35.1':
     dependencies:
@@ -26730,22 +26845,63 @@ snapshots:
       '@zag-js/interact-outside': 1.35.1
       '@zag-js/utils': 1.35.1
 
+  '@zag-js/dismissable@1.38.2':
+    dependencies:
+      '@zag-js/dom-query': 1.38.2
+      '@zag-js/interact-outside': 1.38.2
+      '@zag-js/utils': 1.38.2
+
   '@zag-js/dom-query@1.35.1':
     dependencies:
       '@zag-js/types': 1.35.1
+
+  '@zag-js/dom-query@1.38.2':
+    dependencies:
+      '@zag-js/types': 1.38.2
+
+  '@zag-js/file-upload@1.38.2':
+    dependencies:
+      '@zag-js/anatomy': 1.38.2
+      '@zag-js/core': 1.38.2
+      '@zag-js/dom-query': 1.38.2
+      '@zag-js/file-utils': 1.38.2
+      '@zag-js/i18n-utils': 1.38.2
+      '@zag-js/types': 1.38.2
+      '@zag-js/utils': 1.38.2
+
+  '@zag-js/file-utils@1.38.2':
+    dependencies:
+      '@zag-js/i18n-utils': 1.38.2
 
   '@zag-js/focus-trap@1.35.1':
     dependencies:
       '@zag-js/dom-query': 1.35.1
 
+  '@zag-js/focus-trap@1.38.2':
+    dependencies:
+      '@zag-js/dom-query': 1.38.2
+
   '@zag-js/focus-visible@1.35.1':
     dependencies:
       '@zag-js/dom-query': 1.35.1
+
+  '@zag-js/focus-visible@1.38.2':
+    dependencies:
+      '@zag-js/dom-query': 1.38.2
+
+  '@zag-js/i18n-utils@1.38.2':
+    dependencies:
+      '@zag-js/dom-query': 1.38.2
 
   '@zag-js/interact-outside@1.35.1':
     dependencies:
       '@zag-js/dom-query': 1.35.1
       '@zag-js/utils': 1.35.1
+
+  '@zag-js/interact-outside@1.38.2':
+    dependencies:
+      '@zag-js/dom-query': 1.38.2
+      '@zag-js/utils': 1.38.2
 
   '@zag-js/popper@1.35.1':
     dependencies:
@@ -26753,11 +26909,23 @@ snapshots:
       '@zag-js/dom-query': 1.35.1
       '@zag-js/utils': 1.35.1
 
+  '@zag-js/popper@1.38.2':
+    dependencies:
+      '@floating-ui/dom': 1.7.6
+      '@zag-js/dom-query': 1.38.2
+      '@zag-js/utils': 1.38.2
+
   '@zag-js/presence@1.35.1':
     dependencies:
       '@zag-js/core': 1.35.1
       '@zag-js/dom-query': 1.35.1
       '@zag-js/types': 1.35.1
+
+  '@zag-js/presence@1.38.2':
+    dependencies:
+      '@zag-js/core': 1.38.2
+      '@zag-js/dom-query': 1.38.2
+      '@zag-js/types': 1.38.2
 
   '@zag-js/react@1.35.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
@@ -26768,12 +26936,12 @@ snapshots:
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
 
-  '@zag-js/react@1.35.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+  '@zag-js/react@1.38.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
-      '@zag-js/core': 1.35.1
-      '@zag-js/store': 1.35.1
-      '@zag-js/types': 1.35.1
-      '@zag-js/utils': 1.35.1
+      '@zag-js/core': 1.38.2
+      '@zag-js/store': 1.38.2
+      '@zag-js/types': 1.38.2
+      '@zag-js/utils': 1.38.2
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
 
@@ -26781,7 +26949,15 @@ snapshots:
     dependencies:
       '@zag-js/dom-query': 1.35.1
 
+  '@zag-js/remove-scroll@1.38.2':
+    dependencies:
+      '@zag-js/dom-query': 1.38.2
+
   '@zag-js/store@1.35.1':
+    dependencies:
+      proxy-compare: 3.0.1
+
+  '@zag-js/store@1.38.2':
     dependencies:
       proxy-compare: 3.0.1
 
@@ -26789,7 +26965,13 @@ snapshots:
     dependencies:
       csstype: 3.2.3
 
+  '@zag-js/types@1.38.2':
+    dependencies:
+      csstype: 3.2.3
+
   '@zag-js/utils@1.35.1': {}
+
+  '@zag-js/utils@1.38.2': {}
 
   abort-controller@3.0.0:
     dependencies:
