@@ -11,7 +11,9 @@ vi.mock('@/features/agent/state/use-monaco-store', async () => {
   const actual = await vi.importActual('@/features/agent/state/use-monaco-store');
   return {
     ...actual,
-    importMonaco: vi.fn(),
+    useMonacoActions: () => ({
+      importMonaco: vi.fn(),
+    }),
   };
 });
 
