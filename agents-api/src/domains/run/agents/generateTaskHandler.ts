@@ -4,6 +4,7 @@ import {
   type FilePart,
   type FullExecutionContext,
   generateId,
+  getAppById,
   getMcpToolById,
   type McpTool,
   type Part,
@@ -13,6 +14,7 @@ import {
   withRef,
 } from '@inkeep/agents-core';
 import manageDbPool from '../../../data/db/manageDbPool';
+import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import type { A2ATask, A2ATaskResult } from '../a2a/types';
 import { agentSessionManager } from '../session/AgentSession';
@@ -85,6 +87,28 @@ export const createTaskHandler = (
       const forwardedHeaders = task.context?.metadata?.forwardedHeaders as
         | Record<string, string>
         | undefined;
+
+      // Resolve appPrompt from DB when only appId is set (A2A sub-agent path).
+      // Parent agents already have appPrompt set at auth time.
+      if (!config.executionContext.metadata?.appPrompt && config.executionContext.metadata?.appId) {
+        try {
+          const app = await getAppById(runDbClient)(config.executionContext.metadata.appId);
+          if (app?.prompt) {
+            config.executionContext.metadata = {
+              ...config.executionContext.metadata,
+              appPrompt: app.prompt,
+            };
+          }
+        } catch (error) {
+          logger.warn(
+            {
+              appId: config.executionContext.metadata.appId,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            },
+            'Failed to resolve app prompt for sub-agent, continuing without it'
+          );
+        }
+      }
 
       // Get data from project context instead of database
       const { project, agentId, tenantId, projectId, resolvedRef } = config.executionContext;

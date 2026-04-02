@@ -1,18 +1,16 @@
 ---
 title: Evaluations in TypeScript SDK
 sidebarTitle: Evaluations
-description: Manage evaluators programmatically with the TypeScript SDK
+description: Manage evaluators, test suites, and batch evaluations programmatically with the TypeScript SDK
 icon: LuFlaskConical
-keywords: evaluations, evaluators, batch evaluation
+keywords: evaluations, evaluators, batch evaluation, test suites
 ---
 
-The TypeScript SDK provides an **EvaluationClient** that talks to the Evaluations API so you can manage evaluators, evaluation suite configs, trigger batch evaluations, and read results—all from code.
+The TypeScript SDK provides an **EvaluationClient** that talks to the Evaluations API so you can manage evaluators, test suites, run configurations, trigger runs with scoring, and read results—all from code.
 
 For full endpoint details and request/response shapes, see the [Evaluations API reference](/api-reference/evaluations).
 
 ## Setup: create a client
-
-Create an evaluation client with your tenant ID, project ID, API base URL, and optional API key. 
 
 ```typescript
 import { EvaluationClient } from "@inkeep/agents-sdk";
@@ -30,92 +28,228 @@ const client = new EvaluationClient({
 | `tenantId` | string | Yes | Your tenant (organization) ID |
 | `projectId` | string | Yes | Your project ID |
 | `apiUrl` | string | Yes | API base URL (e.g. `https://api.inkeep.com` or your self-hosted URL) |
-| `apiKey` | string | No | Bearer token for authenticated requests. Omit for unauthenticated or custom auth. |
+| `apiKey` | string | No | Bearer token for authenticated requests |
 
-Use `client` in the examples below (e.g. `client.createEvaluator(...)`).
+## End-to-end example
 
-## Evaluators
+The walkthrough below creates an evaluator, a test suite with items, a run configuration, triggers an evaluation, and checks the results. Each step builds on the previous one.
 
-Evaluators define how to score agent outputs (e.g. with a prompt and model, optional pass criteria).
+### Step 1 — Create an evaluator
 
-### Creating an evaluator
+An evaluator defines **how** to score agent output. You provide a prompt, a JSON schema for the structured result, and a model to run the evaluation.
 
-Pass an object with `name`, `description`, `prompt`, `schema` (JSON schema for the evaluator output), and `model` (model identifier and optional provider options). Optionally include `passCriteria` to define pass/fail conditions on the schema fields.
+The schema should include a numeric `score`, a boolean `passed`, and a `reasoning` string so you get both a quantitative metric and a human-readable explanation for every evaluation.
 
 ```typescript
-const evaluator = await client.createEvaluator({
-  name: "Helpfulness",
-  description: "Scores how helpful the agent response is (0-1)",
-  prompt: `You are an expert evaluator. Score how helpful the assistant's response is to the user on a scale of 0.0 to 1.0.
-Consider clarity, relevance, and completeness. Respond with a JSON object with a "score" field.`,
+const evaluator = (await client.createEvaluator({
+  name: "Answer quality",
+  description: "Checks correctness, helpfulness, and tone of agent replies",
+  prompt: `You are an expert QA evaluator.
+
+Given the full conversation between a user and an AI assistant, evaluate the **last assistant reply** on three dimensions:
+1. **Correctness** — Is the information factually accurate? If an expected output is provided, does the reply match its intent?
+2. **Helpfulness** — Does the reply fully address the user's question without unnecessary filler?
+3. **Tone** — Is the reply professional, clear, and appropriately concise?
+
+Return a JSON object with:
+- "score": a number from 1 to 5 (1 = poor, 5 = excellent) reflecting overall quality.
+- "passed": true if the reply is acceptable for production (score >= 4), false otherwise.
+- "reasoning": 1-2 sentences explaining the score, citing specific strengths or issues.`,
   schema: {
     type: "object",
     properties: {
-      score: { type: "number", description: "Helpfulness score from 0 to 1" },
+      score: {
+        type: "number",
+        description: "Overall quality score from 1 to 5",
+      },
+      passed: {
+        type: "boolean",
+        description: "Whether the reply meets production quality bar",
+      },
+      reasoning: {
+        type: "string",
+        description: "Brief explanation of the score",
+      },
     },
-    required: ["score"],
+    required: ["score", "passed", "reasoning"],
   },
-  model: {
-    model: "gpt-4o-mini",
-    providerOptions: {},
-  },
+  model: { model: "gpt-4o-mini" },
   passCriteria: {
     operator: "and",
-    conditions: [{ field: "score", operator: ">=", value: 0.8 }],
+    conditions: [{ field: "score", operator: ">=", value: 4 }],
   },
-});
+})) as { id: string };
 ```
 
-## Evaluation suite configs
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Display name |
+| `description` | string | No | What this evaluator checks |
+| `prompt` | string | Yes | Instructions for the evaluation model |
+| `schema` | object (JSON Schema) | Yes | Structure of the evaluation output — typically includes `score`, `passed`, and `reasoning` |
+| `model` | object | Yes | `{ model: string, providerOptions?: object }` |
+| `passCriteria` | object | No | `{ operator: "and"\|"or", conditions: [{ field, operator, value }] }`. Operators: `>`, `<`, `>=`, `<=`, `=`, `!=` |
 
-Suite configs group evaluators and optional agent filters and sample rates. They are used by **continuous tests** (evaluation run configs) to decide which conversations to evaluate automatically.
+### Step 2 — Create a test suite and add items
 
-### Creating an evaluation suite config
-
-Pass **evaluatorIds** (required, at least one) and optionally **sampleRate** (0–1) and **filters** (e.g. `agentIds` to restrict which agents’ conversations are evaluated). The suite can then be attached to a continuous test (evaluation run config).
+A test suite is a named collection of items. Each item has **input** (the messages sent to the agent) and optional **expectedOutput** (reference answer).
 
 ```typescript
-const suiteConfig = await client.createEvaluationSuiteConfig({
-  evaluatorIds: ["eval-helpfulness", "eval-accuracy"],
-  sampleRate: 0.1,
-  filters: {
-    agentIds: ["agent-support-bot"],
+const testSuite = (await client.createDataset({
+  name: "Support FAQs",
+})) as { id: string };
+
+await client.createDatasetItem(testSuite.id, {
+  input: {
+    messages: [
+      { role: "user", content: { text: "How do I reset my password?" } },
+    ],
   },
+  expectedOutput: [
+    { role: "assistant", content: { text: "Go to Settings → Security → Reset password." } },
+  ],
 });
+
+await client.createDatasetItems(testSuite.id, [
+  {
+    input: {
+      messages: [{ role: "user", content: { text: "What are your hours?" } }],
+    },
+  },
+  {
+    input: {
+      messages: [{ role: "user", content: { text: "Do you offer refunds?" } }],
+    },
+  },
+]);
 ```
 
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `evaluatorIds` | string[] | Yes | At least one evaluator ID to run in this suite |
-| `sampleRate` | number | No | Fraction of matching conversations to evaluate (0–1). Omit to evaluate all. |
-| `filters` | object | No | Restrict which conversations are in scope, e.g. `{ agentIds: ["agent-id"] }` |
+### Step 3 — Create a run configuration
 
-## Batch evaluation
-
-Trigger a one-off batch evaluation over conversations, optionally filtered by conversation IDs or date range:
+A **run configuration** ties the test suite to one or more **agents** and optional default **evaluators**. It is a saved "recipe" you can trigger repeatedly.
 
 ```typescript
-const result = await client.triggerBatchEvaluation({
-  evaluatorIds: ["eval-1", "eval-2"],
-  name: "Weekly quality check",
-  dateRange: {
-    startDate: "2025-02-01",
-    endDate: "2025-02-07",
-  },
-});
-// result: { message, evaluationJobConfigId, evaluatorIds }
+const runConfig = (await client.createDatasetRunConfig({
+  name: "Support smoke test",
+  datasetId: testSuite.id,
+  agentIds: ["your-agent-id"],
+  evaluatorIds: [evaluator.id],
+})) as { id: string };
 ```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Display name for the config |
+| `description` | string | No | Optional description |
+| `datasetId` | string | Yes | The test suite to run |
+| `agentIds` | string[] | No | Agents that process each item (at least one needed before trigger) |
+| `evaluatorIds` | string[] | No | Default evaluators attached when you trigger a run |
+
+### Step 4 — Trigger a run
+
+Starting a run queues every item × agent combination. When evaluators are included, a **batch evaluation** job is automatically created for the resulting conversations.
+
+```typescript
+const started = await client.triggerDatasetRun(runConfig.id, {
+  evaluatorIds: [evaluator.id],
+});
+// { datasetRunId: "...", status: "pending", totalItems: 3 }
+```
+
+The `evaluatorIds` on trigger is optional — omit it to use the defaults from the run configuration, or pass different ids to override.
+
+### Step 5 — Check run status
+
+```typescript
+const run = await client.getDatasetRun(started.datasetRunId);
+console.log(run);
+```
+
+Poll `getDatasetRun` or check the **Test Suites** page in the Visual Builder to watch items transition from pending to completed with evaluation scores.
+
+### Step 6 (optional) — Evaluate a previous run after the fact
+
+If you ran a test suite **without** evaluators and want to score those conversations later, trigger a batch evaluation scoped to the run:
+
+```typescript
+await client.triggerBatchEvaluation({
+  evaluatorIds: [evaluator.id],
+  datasetRunIds: [started.datasetRunId],
+});
+```
+
+## Method reference
+
+### Evaluators
+
+| Method | Purpose |
+|--------|---------|
+| `createEvaluator(data)` | Create an evaluator (prompt, schema, model, optional pass criteria) |
+| `listEvaluators()` | List all evaluators in the project |
+| `getEvaluator(evaluatorId)` | Fetch one evaluator |
+| `updateEvaluator(evaluatorId, partial)` | Update evaluator fields |
+| `deleteEvaluator(evaluatorId)` | Delete an evaluator |
+
+### Test suites and items
+
+| Method | Purpose |
+|--------|---------|
+| `listDatasets()` | List test suites for the project |
+| `getDataset(testSuiteId)` | Fetch one test suite |
+| `createDataset({ name })` | Create a test suite |
+| `updateDataset(testSuiteId, partial)` | Update name, etc. |
+| `deleteDataset(testSuiteId)` | Delete a test suite and its items |
+| `listDatasetItems(testSuiteId)` | List items |
+| `getDatasetItem(testSuiteId, itemId)` | Fetch one item |
+| `createDatasetItem(testSuiteId, itemData)` | Create an item (`input` required; `expectedOutput` optional) |
+| `createDatasetItems(testSuiteId, items[])` | Bulk create |
+| `updateDatasetItem(testSuiteId, itemId, partial)` | Update an item |
+| `deleteDatasetItem(testSuiteId, itemId)` | Delete an item |
+
+### Run configurations and runs
+
+| Method | Purpose |
+|--------|---------|
+| `createDatasetRunConfig({ name, datasetId, agentIds?, evaluatorIds? })` | Create a run configuration (which agents run the suite; optional default evaluators) |
+| `triggerDatasetRun(runConfigId, { evaluatorIds?, branchName? }?)` | Start a run; returns `datasetRunId`, `status`, `totalItems` |
+| `listDatasetRuns(testSuiteId)` | List runs for a test suite |
+| `getDatasetRun(runId)` | Fetch a run with items and conversations |
+
+### Batch evaluation
+
+| Method | Purpose |
+|--------|---------|
+| `triggerBatchEvaluation({ evaluatorIds, name?, conversationIds?, dateRange?, datasetRunIds? })` | One-off batch evaluation over conversations |
 
 | Option | Type | Required | Description |
 |--------|------|----------|-------------|
 | `evaluatorIds` | string[] | Yes | IDs of evaluators to run |
-| `name` | string | No | Name for the job (defaults to a timestamped name) |
+| `name` | string | No | Name for the job |
 | `conversationIds` | string[] | No | Limit to these conversations |
-| `dateRange` | Object with `startDate` and `endDate` (YYYY-MM-DD) | No | Limit to conversations in this date range |
+| `dateRange` | `{ startDate, endDate }` (YYYY-MM-DD) | No | Limit to conversations in this date range |
+| `datasetRunIds` | string[] | No | Limit to conversations from these test suite runs |
 
-To list results by job or run config, use the [Evaluations API](/api-reference/evaluations) (e.g. get evaluation results by job config ID or by run config ID).
+### Evaluation suite configs (continuous tests)
+
+Suite configs group evaluators and optional agent filters and sample rates for **continuous tests** that evaluate a fraction of live conversations automatically.
+
+| Method | Purpose |
+|--------|---------|
+| `createEvaluationSuiteConfig({ evaluatorIds, sampleRate?, filters? })` | Create a suite config |
+| `addEvaluatorToSuiteConfig(configId, evaluatorId)` | Add an evaluator |
+| `removeEvaluatorFromSuiteConfig(configId, evaluatorId)` | Remove an evaluator |
+| `listEvaluationSuiteConfigEvaluators(configId)` | List evaluators on a config |
+
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `evaluatorIds` | string[] | Yes | At least one evaluator ID |
+| `sampleRate` | number | No | Fraction of matching conversations to evaluate (0–1) |
+| `filters` | object | No | Restrict scope, e.g. `{ agentIds: ["agent-id"] }` |
+
+To list results by job or run config, use the [Evaluations API](/api-reference/evaluations).
 
 ## Related
 
 - [Evaluations API reference](/api-reference/evaluations) — Full list of evaluation endpoints and schemas
 - [Visual Builder: Evaluations](/visual-builder/evaluations) — Configure evaluators, batch evaluations, and continuous tests in the UI
+- [Test suites](/visual-builder/test-suites) — How test suites work in the Visual Builder

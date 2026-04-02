@@ -173,5 +173,5 @@ describe('Nodes', () => {
     await act(async () => {
       await expect(container).toMatchScreenshot();
     });
-  }, 10_000);
+  });
 });
