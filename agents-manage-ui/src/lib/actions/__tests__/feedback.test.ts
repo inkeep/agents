@@ -2,6 +2,10 @@ import { describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../types/errors';
 import { createFeedbackAction, deleteFeedbackAction } from '../feedback';
 
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn(),
+}));
+
 vi.mock('../../api/feedback', () => ({
   createFeedback: vi.fn(),
   deleteFeedback: vi.fn(),
