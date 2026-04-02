@@ -60,7 +60,7 @@ export function WorkAppGitHubRepositoryConfigDialog({
   const [installations, setInstallations] = useState<WorkAppGitHubInstallation[]>([]);
   const [projectAccess, setProjectAccess] = useState<WorkAppGitHubProjectAccess | null>(null);
 
-  const loadData = useCallback(async () => {
+  async function loadData() {
     try {
       setDialogState('loading');
 
@@ -96,7 +96,7 @@ export function WorkAppGitHubRepositoryConfigDialog({
       console.error('Failed to load GitHub data:', error);
       setDialogState('no-installations');
     }
-  }, [tenantId, projectId]);
+  }
 
   useEffect(() => {
     if (open) {
@@ -255,7 +255,7 @@ function ReadyState({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Get the available repositories based on project access
-  const getAvailableRepositories = useCallback((): WorkAppGitHubRepository[] => {
+  function getAvailableRepositories(): WorkAppGitHubRepository[] {
     if (!projectAccess) return [];
 
     if (projectAccess.mode === 'all') {
@@ -265,9 +265,9 @@ function ReadyState({
 
     // Return only the repositories the project has access to
     return projectAccess.repositories;
-  }, [projectAccess, installationsWithRepos]);
+  }
 
-  const loadInstallationDetails = useCallback(async () => {
+  async function loadInstallationDetails() {
     try {
       setIsLoading(true);
       const activeInstallations = installations.filter((i) => i.status === 'active');
@@ -289,7 +289,7 @@ function ReadyState({
     } finally {
       setIsLoading(false);
     }
-  }, [tenantId, installations]);
+  }
 
   useEffect(() => {
     loadInstallationDetails();

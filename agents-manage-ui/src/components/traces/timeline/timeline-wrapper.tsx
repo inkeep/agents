@@ -298,7 +298,7 @@ export function TimelineWrapper({
     }
   }
 
-  const toggleNodeCollapse = useCallback((nodeId: string) => {
+  function toggleNodeCollapse(nodeId: string) {
     setCollapsedNodes((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(nodeId)) {
@@ -308,10 +308,10 @@ export function TimelineWrapper({
       }
       return newSet;
     });
-  }, []);
+  }
 
   // Track which messages we've already processed
-  const processedIdsRef = useRef<Set<string>>(new Set());
+  const processedIdsRef = useRef(new Set<string>());
   const lastConversationRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
@@ -387,17 +387,17 @@ export function TimelineWrapper({
   }, [conversationId]);
 
   // Functions to handle expand/collapse all (memoized to prevent unnecessary re-renders)
-  const expandAll = useCallback(() => {
+  function expandAll() {
     setCollapsedAiMessages(new Set());
     setCollapsedNodes(new Set());
     setAiMessagesGloballyCollapsed(false);
-  }, []);
+  }
 
-  const collapseAll = useCallback(() => {
+  function collapseAll() {
     setCollapsedAiMessages(new Set(aiMessageIds));
     setCollapsedNodes(new Set(parentNodeIds));
     setAiMessagesGloballyCollapsed(true);
-  }, [aiMessageIds, parentNodeIds]);
+  }
 
   const toggleAiMessageCollapse = (activityId: string) => {
     const newCollapsed = new Set(collapsedAiMessages);
@@ -491,10 +491,9 @@ export function TimelineWrapper({
     };
   }, [selected, conversationId, tenantId]);
 
-  const findSpanById = useCallback(
-    (id?: string) => (id && lazySpan?.spanId === id ? lazySpan : undefined),
-    [lazySpan]
-  );
+  function findSpanById(id?: string) {
+    return id && lazySpan?.spanId === id ? lazySpan : undefined;
+  }
 
   const determinePanelType = (a: ActivityItem): Exclude<PanelType, 'mcp_tool_error'> => {
     if (a.type === ACTIVITY_TYPES.TOOL_CALL && a.toolType === TOOL_TYPES.TRANSFER)

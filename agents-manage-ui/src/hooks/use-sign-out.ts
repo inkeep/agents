@@ -1,12 +1,11 @@
 'use client';
 
-import { useCallback } from 'react';
 import { useAuthClient } from '@/contexts/auth-client';
 
 export function useSignOut() {
   const authClient = useAuthClient();
 
-  const signOut = useCallback(async () => {
+  async function signOut() {
     try {
       await authClient.signOut();
     } finally {
@@ -15,7 +14,7 @@ export function useSignOut() {
       }
       window.location.href = '/login';
     }
-  }, [authClient]);
+  }
 
   return signOut;
 }

@@ -1,13 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { type Branch, fetchBranches } from '@/lib/api/branches';
 
 export function useBranches(tenantId: string, projectId: string) {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const load = useCallback(async () => {
+  async function load() {
     try {
       const data = await fetchBranches(tenantId, projectId);
       setBranches(data);
@@ -16,7 +16,7 @@ export function useBranches(tenantId: string, projectId: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [tenantId, projectId]);
+  }
 
   useEffect(() => {
     load();

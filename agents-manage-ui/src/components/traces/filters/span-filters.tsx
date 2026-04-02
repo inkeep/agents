@@ -49,10 +49,10 @@ export function SpanFilters({
   const [availableSpanNames, setAvailableSpanNames] = useState<string[]>([]);
   const [spanNamesLoading, setSpanNamesLoading] = useState(false);
   const hasFetchedRef = useRef(false);
-  const lastFetchParamsRef = useRef<string>('');
+  const lastFetchParamsRef = useRef('');
   const isFetchingRef = useRef(false);
 
-  const fetchSpanNames = useCallback(async () => {
+  async function fetchSpanNames() {
     if (!startTime || !endTime || !tenantId) return;
     if (isFetchingRef.current) return; // Guard against concurrent fetches
 
@@ -81,7 +81,7 @@ export function SpanFilters({
       isFetchingRef.current = false;
       setSpanNamesLoading(false);
     }
-  }, [startTime, endTime, selectedAgent, projectId, tenantId]);
+  }
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Intentionally reset ref when filter params change to trigger re-fetch
   useEffect(() => {
@@ -94,14 +94,11 @@ export function SpanFilters({
     }
   }, [totalFilters, fetchSpanNames]);
 
-  const handleOpenChange = useCallback(
-    (open: boolean) => {
-      if (open && !hasFetchedRef.current) {
-        fetchSpanNames();
-      }
-    },
-    [fetchSpanNames]
-  );
+  function handleOpenChange(open: boolean) {
+    if (open && !hasFetchedRef.current) {
+      fetchSpanNames();
+    }
+  }
 
   return (
     <Collapsible

@@ -20,7 +20,7 @@ export function useOrgMembers(tenantId: string, projectId?: string) {
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchMembers = useCallback(async () => {
+  async function fetchMembers() {
     try {
       const { data } = await authClient.organization.getFullOrganization({
         query: { organizationId: tenantId, membersLimit: DEFAULT_MEMBERSHIP_LIMIT },
@@ -54,7 +54,7 @@ export function useOrgMembers(tenantId: string, projectId?: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [authClient, tenantId, projectId]);
+  }
 
   useEffect(() => {
     fetchMembers();
