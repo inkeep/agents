@@ -78,6 +78,10 @@
       "types": "./dist/utils/schema-conversion.d.ts",
       "import": "./dist/utils/schema-conversion.js"
     },
+    "./utils/retry": {
+      "types": "./dist/utils/retry-client.d.ts",
+      "import": "./dist/utils/retry-client.js"
+    },
     "./utils/signature-validation": {
       "types": "./dist/utils/signature-validation.d.ts",
       "import": "./dist/utils/signature-validation.js"
