@@ -1184,8 +1184,9 @@ export const FeedbackApiSelectSchema = createApiSchema(FeedbackSelectSchema).ope
 export const FeedbackApiInsertSchema = createApiInsertSchema(FeedbackInsertSchema)
   .extend({ id: ResourceIdSchema.optional() })
   .openapi('FeedbackCreate');
-export const FeedbackApiUpdateSchema =
-  createApiUpdateSchema(FeedbackUpdateSchema).openapi('FeedbackUpdate');
+export const FeedbackApiUpdateSchema = createApiUpdateSchema(FeedbackUpdateSchema)
+  .omit({ conversationId: true, messageId: true, id: true })
+  .openapi('FeedbackUpdate');
 
 export const ContextCacheSelectSchema = createSelectSchema(contextCache).extend({
   ref: ResolvedRefSchema.nullable().optional(),

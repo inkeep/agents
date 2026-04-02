@@ -8,6 +8,7 @@ import {
   FeedbackApiInsertSchema,
   FeedbackResponse,
   generateId,
+  getConversation,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
@@ -69,6 +70,18 @@ app.openapi(
     const { tenantId, projectId } = executionContext;
     const endUserId = requireEndUserId(executionContext);
     const body = c.req.valid('json');
+
+    const conversation = await getConversation(runDbClient)({
+      scopes: { tenantId, projectId },
+      conversationId: body.conversationId,
+    });
+
+    if (!conversation || conversation.userId !== endUserId) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Conversation not found',
+      });
+    }
 
     const created = await createFeedback(runDbClient)({
       ...body,
