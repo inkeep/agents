@@ -125,79 +125,73 @@ export function ProjectScheduledTriggerInvocationsTable({
     setInvocations(initialInvocations);
   }, [initialInvocations]);
 
-  const cancelInvocation = useCallback(
-    async (invocation: ScheduledTriggerInvocationWithContext) => {
-      if (!confirm('Are you sure you want to cancel this invocation?')) {
-        return;
+  async function cancelInvocation(invocation: ScheduledTriggerInvocationWithContext) {
+    if (!confirm('Are you sure you want to cancel this invocation?')) {
+      return;
+    }
+
+    setLoadingInvocations((prev) => new Set(prev).add(invocation.id));
+
+    try {
+      const result = await cancelScheduledTriggerInvocationAction(
+        tenantId,
+        projectId,
+        invocation.agentId,
+        invocation.scheduledTriggerId,
+        invocation.id
+      );
+
+      if (result.success) {
+        toast.success('Invocation cancelled successfully');
+        router.refresh();
+      } else {
+        toast.error(result.error || 'Failed to cancel invocation');
       }
+    } catch (error) {
+      console.error('Failed to cancel invocation:', error);
+      toast.error('Failed to cancel invocation');
+    } finally {
+      setLoadingInvocations((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(invocation.id);
+        return newSet;
+      });
+    }
+  }
 
-      setLoadingInvocations((prev) => new Set(prev).add(invocation.id));
+  async function rerunInvocation(invocation: ScheduledTriggerInvocationWithContext) {
+    if (!confirm('Are you sure you want to rerun this invocation?')) {
+      return;
+    }
 
-      try {
-        const result = await cancelScheduledTriggerInvocationAction(
-          tenantId,
-          projectId,
-          invocation.agentId,
-          invocation.scheduledTriggerId,
-          invocation.id
-        );
+    setLoadingInvocations((prev) => new Set(prev).add(invocation.id));
 
-        if (result.success) {
-          toast.success('Invocation cancelled successfully');
-          router.refresh();
-        } else {
-          toast.error(result.error || 'Failed to cancel invocation');
-        }
-      } catch (error) {
-        console.error('Failed to cancel invocation:', error);
-        toast.error('Failed to cancel invocation');
-      } finally {
-        setLoadingInvocations((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(invocation.id);
-          return newSet;
-        });
+    try {
+      const result = await rerunScheduledTriggerInvocationAction(
+        tenantId,
+        projectId,
+        invocation.agentId,
+        invocation.scheduledTriggerId,
+        invocation.id
+      );
+
+      if (result.success) {
+        toast.success('Invocation rerun started successfully');
+        router.refresh();
+      } else {
+        toast.error(result.error || 'Failed to rerun invocation');
       }
-    },
-    [tenantId, projectId, router]
-  );
-
-  const rerunInvocation = useCallback(
-    async (invocation: ScheduledTriggerInvocationWithContext) => {
-      if (!confirm('Are you sure you want to rerun this invocation?')) {
-        return;
-      }
-
-      setLoadingInvocations((prev) => new Set(prev).add(invocation.id));
-
-      try {
-        const result = await rerunScheduledTriggerInvocationAction(
-          tenantId,
-          projectId,
-          invocation.agentId,
-          invocation.scheduledTriggerId,
-          invocation.id
-        );
-
-        if (result.success) {
-          toast.success('Invocation rerun started successfully');
-          router.refresh();
-        } else {
-          toast.error(result.error || 'Failed to rerun invocation');
-        }
-      } catch (error) {
-        console.error('Failed to rerun invocation:', error);
-        toast.error('Failed to rerun invocation');
-      } finally {
-        setLoadingInvocations((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(invocation.id);
-          return newSet;
-        });
-      }
-    },
-    [tenantId, projectId, router]
-  );
+    } catch (error) {
+      console.error('Failed to rerun invocation:', error);
+      toast.error('Failed to rerun invocation');
+    } finally {
+      setLoadingInvocations((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(invocation.id);
+        return newSet;
+      });
+    }
+  }
 
   const columns: ColumnDef<ScheduledTriggerInvocationWithContext>[] = [
     {

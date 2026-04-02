@@ -53,7 +53,7 @@ export function useSSOProviders(organizationId: string | undefined) {
   const [providers, setProviders] = useState<SSOProviderInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchProviders = useCallback(async () => {
+  async function fetchProviders() {
     if (!organizationId) {
       setProviders([]);
       setLoading(false);
@@ -83,7 +83,7 @@ export function useSSOProviders(organizationId: string | undefined) {
     } finally {
       setLoading(false);
     }
-  }, [authClient, organizationId]);
+  }
 
   useEffect(() => {
     fetchProviders();

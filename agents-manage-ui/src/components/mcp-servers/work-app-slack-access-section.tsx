@@ -25,12 +25,12 @@ export function WorkAppSlackAccessSection({
   canEdit,
 }: WorkAppSlackAccessSectionProps) {
   const [accessConfig, setAccessConfig] = useState<SlackMcpAccessConfig | null>(null);
-  const [channelNameMap, setChannelNameMap] = useState<Map<string, string>>(new Map());
+  const [channelNameMap, setChannelNameMap] = useState(new Map<string, string>());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-  const loadAccessConfig = useCallback(async () => {
+  async function loadAccessConfig() {
     try {
       setIsLoading(true);
       setError(null);
@@ -59,7 +59,7 @@ export function WorkAppSlackAccessSection({
     } finally {
       setIsLoading(false);
     }
-  }, [tenantId, projectId, tool.id]);
+  }
 
   useEffect(() => {
     loadAccessConfig();

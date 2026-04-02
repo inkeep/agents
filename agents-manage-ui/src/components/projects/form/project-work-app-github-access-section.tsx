@@ -59,7 +59,7 @@ export function ProjectWorkAppGitHubAccessSection({
   const [hasInstallations, setHasInstallations] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const loadAccessConfig = useCallback(async () => {
+  async function loadAccessConfig() {
     try {
       setIsLoading(true);
       const [access, installations] = await Promise.all([
@@ -73,16 +73,16 @@ export function ProjectWorkAppGitHubAccessSection({
     } finally {
       setIsLoading(false);
     }
-  }, [tenantId, projectId]);
+  }
 
   useEffect(() => {
     loadAccessConfig();
   }, [loadAccessConfig]);
 
-  const handleConfigSaved = useCallback(() => {
+  function handleConfigSaved() {
     loadAccessConfig();
     setDialogOpen(false);
-  }, [loadAccessConfig]);
+  }
 
   if (isLoading) {
     return (

@@ -44,7 +44,7 @@ export function ConversationStatsCard({
   onSearchChange,
   totalConversations,
 }: ConversationStatsCardProps) {
-  const [localQuery, setLocalQuery] = React.useState<string>(searchQuery);
+  const [localQuery, setLocalQuery] = React.useState(searchQuery);
   const [searchError, setSearchError] = React.useState<string | null>(null);
   const debounceTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 

@@ -64,7 +64,7 @@ export function AgentConfigurationCard() {
     setMounted(true);
   }, []);
 
-  const fetchAgents = useCallback(async () => {
+  async function fetchAgents() {
     if (!teamId) return;
     setLoadingAgents(true);
     try {
@@ -77,9 +77,9 @@ export function AgentConfigurationCard() {
     } finally {
       setLoadingAgents(false);
     }
-  }, [tenantId, teamId]);
+  }
 
-  const fetchChannels = useCallback(async () => {
+  async function fetchChannels() {
     if (!teamId) return;
     setLoadingChannels(true);
     try {
@@ -90,9 +90,9 @@ export function AgentConfigurationCard() {
     } finally {
       setLoadingChannels(false);
     }
-  }, [teamId]);
+  }
 
-  const fetchWorkspaceSettings = useCallback(async () => {
+  async function fetchWorkspaceSettings() {
     if (!teamId) return;
     try {
       const settings = await slackApi.getWorkspaceSettings(teamId);
@@ -100,7 +100,7 @@ export function AgentConfigurationCard() {
     } catch {
       // No saved workspace settings found
     }
-  }, [teamId]);
+  }
 
   useEffect(() => {
     if (teamId && mounted) {

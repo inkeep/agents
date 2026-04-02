@@ -37,24 +37,18 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
   const { user } = useAuthSession();
   const { isAdmin } = useIsOrgAdmin();
 
-  const canManageTrigger = useCallback(
-    (trigger: TriggerWithAgent): boolean => {
-      if (isAdmin) return true;
-      if (!user) return false;
-      return trigger.createdBy === user.id || trigger.runAsUserId === user.id;
-    },
-    [isAdmin, user]
-  );
+  function canManageTrigger(trigger: TriggerWithAgent): boolean {
+    if (isAdmin) return true;
+    if (!user) return false;
+    return trigger.createdBy === user.id || trigger.runAsUserId === user.id;
+  }
 
-  const getUserDisplayName = useCallback(
-    (userId: string): string => {
-      const member = orgMembers.find((m) => m.id === userId);
-      return member?.name || member?.email || userId;
-    },
-    [orgMembers]
-  );
+  function getUserDisplayName(userId: string): string {
+    const member = orgMembers.find((m) => m.id === userId);
+    return member?.name || member?.email || userId;
+  }
 
-  const copyWebhookUrl = useCallback(async (webhookUrl: string, name: string) => {
+  async function copyWebhookUrl(webhookUrl: string, name: string) {
     try {
       await navigator.clipboard.writeText(webhookUrl);
       toast.success(`Webhook URL for "${name}" copied to clipboard`);
@@ -62,74 +56,68 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
       console.error('Failed to copy webhook URL:', error);
       toast.error('Failed to copy webhook URL');
     }
-  }, []);
+  }
 
-  const toggleEnabled = useCallback(
-    async (triggerId: string, agentId: string, currentEnabled: boolean) => {
-      const newEnabled = !currentEnabled;
-      setLoadingTriggers((prev) => new Set(prev).add(triggerId));
+  async function toggleEnabled(triggerId: string, agentId: string, currentEnabled: boolean) {
+    const newEnabled = !currentEnabled;
+    setLoadingTriggers((prev) => new Set(prev).add(triggerId));
 
-      try {
-        const result = await updateTriggerEnabledAction(
-          tenantId,
-          projectId,
-          agentId,
-          triggerId,
-          newEnabled
-        );
-        if (result.success) {
-          toast.success(`Trigger ${newEnabled ? 'enabled' : 'disabled'}`);
-          router.refresh();
-        } else {
-          toast.error(result.error);
-        }
-      } catch (error) {
-        console.error('Failed to update trigger:', error);
-        toast.error('Failed to update trigger status');
-      } finally {
+    try {
+      const result = await updateTriggerEnabledAction(
+        tenantId,
+        projectId,
+        agentId,
+        triggerId,
+        newEnabled
+      );
+      if (result.success) {
+        toast.success(`Trigger ${newEnabled ? 'enabled' : 'disabled'}`);
+        router.refresh();
+      } else {
+        toast.error(result.error);
+      }
+    } catch (error) {
+      console.error('Failed to update trigger:', error);
+      toast.error('Failed to update trigger status');
+    } finally {
+      setLoadingTriggers((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(triggerId);
+        return newSet;
+      });
+    }
+  }
+
+  async function deleteTrigger(triggerId: string, agentId: string, name: string) {
+    if (!confirm(`Are you sure you want to delete the trigger "${name}"?`)) {
+      return;
+    }
+
+    setLoadingTriggers((prev) => new Set(prev).add(triggerId));
+
+    try {
+      const result = await deleteTriggerAction(tenantId, projectId, agentId, triggerId);
+      if (result.success) {
+        toast.success(`Trigger "${name}" deleted successfully`);
+        router.refresh();
+      } else {
+        toast.error(result.error);
         setLoadingTriggers((prev) => {
           const newSet = new Set(prev);
           newSet.delete(triggerId);
           return newSet;
         });
       }
-    },
-    [tenantId, projectId, router]
-  );
-
-  const deleteTrigger = useCallback(
-    async (triggerId: string, agentId: string, name: string) => {
-      if (!confirm(`Are you sure you want to delete the trigger "${name}"?`)) {
-        return;
-      }
-
-      setLoadingTriggers((prev) => new Set(prev).add(triggerId));
-
-      try {
-        const result = await deleteTriggerAction(tenantId, projectId, agentId, triggerId);
-        if (result.success) {
-          toast.success(`Trigger "${name}" deleted successfully`);
-          router.refresh();
-        } else {
-          toast.error(result.error);
-          setLoadingTriggers((prev) => {
-            const newSet = new Set(prev);
-            newSet.delete(triggerId);
-            return newSet;
-          });
-        }
-      } catch (error) {
-        console.error('Failed to delete trigger:', error);
-        toast.error('Failed to delete trigger');
-        setLoadingTriggers((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(triggerId);
-          return newSet;
-        });
-      }
-    },
-    [tenantId, projectId, router]
-  );
+    } catch (error) {
+      console.error('Failed to delete trigger:', error);
+      toast.error('Failed to delete trigger');
+      setLoadingTriggers((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(triggerId);
+        return newSet;
+      });
+    }
+  }
 
   const columns: ColumnDef<TriggerWithAgent>[] = [
     {
