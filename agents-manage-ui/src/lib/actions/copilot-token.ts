@@ -53,9 +53,9 @@ export async function getCopilotTokenAction(): Promise<ActionResult<CopilotToken
   const copilotAppId =
     process.env.PUBLIC_INKEEP_COPILOT_APP_ID || process.env.NEXT_PUBLIC_INKEEP_COPILOT_APP_ID;
   const privateKeyB64 = process.env.INKEEP_COPILOT_JWT_PRIVATE_KEY;
-  const publicKeyPem = process.env.INKEEP_COPILOT_JWT_PUBLIC_KEY?.replace(/\\n/g, '\n');
+  const publicKeyPemB64 = process.env.INKEEP_COPILOT_JWT_PUBLIC_KEY;
 
-  if (!copilotAppId || !privateKeyB64 || !publicKeyPem) {
+  if (!copilotAppId || !privateKeyB64 || !publicKeyPemB64) {
     return {
       success: false,
       error: 'Copilot is not configured',
@@ -87,6 +87,7 @@ export async function getCopilotTokenAction(): Promise<ActionResult<CopilotToken
 
     const privateKeyPem = Buffer.from(privateKeyB64, 'base64').toString('utf-8');
     const privateKey = await importPKCS8(privateKeyPem, 'RS256');
+    const publicKeyPem = Buffer.from(publicKeyPemB64, 'base64').toString('utf-8');
     const kid = await deriveKid(publicKeyPem);
 
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
