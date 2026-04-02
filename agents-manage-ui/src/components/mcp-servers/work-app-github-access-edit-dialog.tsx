@@ -108,7 +108,11 @@ export function GitHubAccessEditDialog({
     if (open) {
       loadData();
     }
-  }, [open, loadData]);
+  }, [
+    open,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadData,
+  ]);
 
   const handleSync = async (installationId: string) => {
     setSyncing(installationId);

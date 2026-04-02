@@ -45,7 +45,10 @@ export function WorkAppGitHubAccessSection({
 
   useEffect(() => {
     loadAccessConfig();
-  }, [loadAccessConfig]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadAccessConfig,
+  ]);
 
   const handleEditSuccess = () => {
     // Refresh the access config after successful edit
