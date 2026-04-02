@@ -72,7 +72,10 @@ export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings
 
   useEffect(() => {
     fetchOrganization();
-  }, [fetchOrganization]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchOrganization,
+  ]);
 
   if (loading || isAdminLoading) {
     return <SettingsLoadingSkeleton />;

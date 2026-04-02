@@ -69,7 +69,10 @@ export function AppUpdateForm({
 
   useEffect(() => {
     loadKeys();
-  }, [loadKeys]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadKeys,
+  ]);
 
   const form = useForm<AppUpdateFormInput>({
     resolver: zodResolver(AppUpdateFormSchema),

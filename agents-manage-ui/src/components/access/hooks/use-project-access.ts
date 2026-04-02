@@ -141,7 +141,12 @@ export function useProjectAccess({
   useEffect(() => {
     fetchProjectMembers();
     fetchOrgMembers();
-  }, [fetchProjectMembers, fetchOrgMembers]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchProjectMembers,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchOrgMembers,
+  ]);
 
   // Enrich raw members with org member data and convert to AccessPrincipal
   const enrichedPrincipals: AccessPrincipal[] = rawMembers.map((member) => {

@@ -36,7 +36,10 @@ export default function WorkAppGitHubSettingsPage({
 
   useEffect(() => {
     loadInstallations();
-  }, [loadInstallations]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadInstallations,
+  ]);
 
   useEffect(() => {
     const status = searchParams.get('status');
@@ -55,7 +58,13 @@ export default function WorkAppGitHubSettingsPage({
       });
       router.replace(`/${tenantId}/work-apps/github`);
     }
-  }, [searchParams, router, tenantId, loadInstallations]);
+  }, [
+    searchParams,
+    router,
+    tenantId,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadInstallations,
+  ]);
 
   if (loading) {
     return <GitHubSettingsLoading />;

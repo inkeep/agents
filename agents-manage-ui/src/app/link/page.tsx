@@ -91,7 +91,14 @@ function SlackLinkForm() {
       linkingRef.current = true;
       handleLinkWithToken(initialToken);
     }
-  }, [initialToken, isAuthenticated, user?.id, state, handleLinkWithToken]);
+  }, [
+    initialToken,
+    isAuthenticated,
+    user?.id,
+    state,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    handleLinkWithToken,
+  ]);
 
   if (authLoading) {
     return (

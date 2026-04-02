@@ -76,7 +76,10 @@ export function EvaluationRunConfigResults({
     }, 5000); // Refresh every 5 seconds
 
     return () => clearInterval(interval);
-  }, [refreshResults]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    refreshResults,
+  ]);
 
   const evaluatorMap = new Map<string, string>();
   evaluators.forEach((evaluator) => {

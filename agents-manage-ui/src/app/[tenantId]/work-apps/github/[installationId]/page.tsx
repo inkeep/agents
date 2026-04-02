@@ -92,7 +92,10 @@ export default function GitHubInstallationDetailPage({
 
   useEffect(() => {
     loadInstallation();
-  }, [loadInstallation]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadInstallation,
+  ]);
 
   const handleSync = async () => {
     setSyncing(true);

@@ -57,7 +57,11 @@ export function EvaluationRunConfigsList({
     if (refreshKey !== undefined && typeof refreshKey === 'number' && refreshKey > 0) {
       refreshRunConfigs();
     }
-  }, [refreshKey, refreshRunConfigs]);
+  }, [
+    refreshKey,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    refreshRunConfigs,
+  ]);
 
   const columns: ColumnDef<EvaluationRunConfig>[] = [
     {

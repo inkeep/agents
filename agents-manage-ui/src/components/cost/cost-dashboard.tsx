@@ -84,7 +84,10 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchData,
+  ]);
 
   const totals = summaryByModel.reduce(
     (acc, row) => ({

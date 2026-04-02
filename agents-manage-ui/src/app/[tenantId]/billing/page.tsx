@@ -77,7 +77,10 @@ export default function BillingPage({ params }: PageProps<'/[tenantId]/billing'>
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchData,
+  ]);
 
   if (isAdminLoading || loading || isProjectsFetching) {
     return <BillingLoadingSkeleton />;

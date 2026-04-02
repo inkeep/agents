@@ -104,7 +104,10 @@ export default function Page({
   // Initial load
   useEffect(() => {
     loadRun();
-  }, [loadRun]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadRun,
+  ]);
 
   // Auto-refresh when run is in progress
   useEffect(() => {
@@ -115,7 +118,11 @@ export default function Page({
     }, 3000); // Refresh every 3 seconds
 
     return () => clearInterval(interval);
-  }, [isRunInProgress, loadRun]);
+  }, [
+    isRunInProgress,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadRun,
+  ]);
 
   const invocationByItemId = new Map<string, DatasetRunInvocation>();
   for (const inv of invocations) {

@@ -72,7 +72,10 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchData,
+  ]);
 
   if (loading) {
     return <MembersLoadingSkeleton />;
