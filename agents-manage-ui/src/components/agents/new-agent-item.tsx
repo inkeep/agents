@@ -47,7 +47,7 @@ const NewAgentDialogContent = ({
     <DialogContent>
       <DialogHeader>
         <DialogTitle>New Agent</DialogTitle>
-        <DialogDescription>Create a blank agent or duplicate an existing one.</DialogDescription>
+        <DialogDescription>Create a blank agent or copy an existing one.</DialogDescription>
       </DialogHeader>
       <RadioGroup value={value} onValueChange={setValue}>
         <FieldLabel htmlFor={newAgentId}>
@@ -64,9 +64,10 @@ const NewAgentDialogContent = ({
         <FieldLabel htmlFor={duplicateAgentId}>
           <Field orientation="horizontal">
             <FieldContent>
-              <FieldTitle>Duplicate existing agent</FieldTitle>
+              <FieldTitle>Copy existing agent</FieldTitle>
               <FieldDescription>
-                Copy an agent from this project into a new agent. Triggers are not duplicated.
+                Copy an agent from this project or another project into a new agent. Triggers are
+                not copied.
               </FieldDescription>
             </FieldContent>
             <RadioGroupItem value="duplicate" id={duplicateAgentId} />

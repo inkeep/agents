@@ -4,4 +4,5 @@
 'agents-manage-ui': patch
 ---
 
-Add same-project agent duplication in the manage API and dashboard so users can create a copied agent with a new ID while keeping project-scoped dependencies as references.
+Add agent copy flows in the manage API and dashboard for both same-project duplication and cross-project import.
+Cross-project imports recreate referenced project resources when needed, skip triggers, and surface warnings when imported tools or external agents need credentials reconnected.

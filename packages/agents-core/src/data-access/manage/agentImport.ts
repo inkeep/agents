@@ -380,7 +380,7 @@ const ensureToolInTargetProject = async (params: {
     credentialReferenceId: credentialReferenceId ?? undefined,
     credentialScope: params.sourceTool.credentialScope,
     headers: params.sourceTool.headers,
-    imageUrl: params.sourceTool.imageUrl,
+    imageUrl: params.sourceTool.imageUrl ?? undefined,
     capabilities: params.sourceTool.capabilities,
     lastError: params.sourceTool.lastError,
     isWorkApp: params.sourceTool.isWorkApp,
