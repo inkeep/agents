@@ -25,7 +25,7 @@ export default function NoOrganizationPage() {
   const [inviteError, setInviteError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
 
-  const checkInvitations = useCallback(async () => {
+  async function checkInvitations() {
     if (!user?.email) {
       setLoadingInvites(false);
       return;
@@ -51,7 +51,7 @@ export default function NoOrganizationPage() {
       setPendingInvites([]);
     }
     setLoadingInvites(false);
-  }, [user?.email]);
+  }
 
   useEffect(() => {
     checkInvitations();

@@ -107,9 +107,8 @@ export function useProjectAccess({
       setRawMembers(response.data || []);
     } catch (err) {
       setMembersError(err instanceof Error ? err.message : 'Failed to load members');
-    } finally {
-      setIsLoadingMembers(false);
     }
+    setIsLoadingMembers(false);
   }, [tenantId, projectId]);
 
   // Fetch org members for enrichment and available principals list
@@ -132,9 +131,8 @@ export function useProjectAccess({
       }
     } catch {
       // Silent fail - org members are for enrichment
-    } finally {
-      setIsLoadingOrg(false);
     }
+    setIsLoadingOrg(false);
   }, [authClient, tenantId]);
 
   // Initial data fetch
@@ -192,9 +190,8 @@ export function useProjectAccess({
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to add member');
       throw err;
-    } finally {
-      setIsMutating(false);
     }
+    setIsMutating(false);
   };
 
   const removePrincipal = async (
@@ -224,9 +221,8 @@ export function useProjectAccess({
       setRawMembers(previousMembers);
       toast.error(err instanceof Error ? err.message : 'Failed to remove member');
       throw err;
-    } finally {
-      setIsMutating(false);
     }
+    setIsMutating(false);
   };
 
   const changeRole = async (
@@ -262,9 +258,8 @@ export function useProjectAccess({
       setRawMembers(previousMembers);
       toast.error(err instanceof Error ? err.message : 'Failed to update role');
       throw err;
-    } finally {
-      setIsMutating(false);
     }
+    setIsMutating(false);
   };
 
   return {
