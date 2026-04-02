@@ -1,5 +1,5 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
-import { createApiError, derivePlaygroundKid, ErrorResponseSchema } from '@inkeep/agents-core';
+import { createApiError, deriveKidFromPublicKey, ErrorResponseSchema } from '@inkeep/agents-core';
 import { createProtectedRoute, noAuth } from '@inkeep/agents-core/middleware';
 import { exportSPKI, importPKCS8, SignJWT } from 'jose';
 import { env } from '../../../env';
@@ -82,7 +82,7 @@ app.openapi(
     const publicKeyPem = env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY
       ? Buffer.from(env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY, 'base64').toString('utf-8')
       : await exportSPKI(privateKey);
-    const kid = await derivePlaygroundKid(publicKeyPem);
+    const kid = await deriveKidFromPublicKey(publicKeyPem);
 
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 

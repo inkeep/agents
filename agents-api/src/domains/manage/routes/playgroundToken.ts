@@ -2,7 +2,7 @@ import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   canUseProject,
   createApiError,
-  derivePlaygroundKid,
+  deriveKidFromPublicKey,
   ErrorResponseSchema,
   getAgentById,
   type OrgRole,
@@ -141,7 +141,7 @@ app.openapi(
     const publicKeyPem = env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY
       ? Buffer.from(env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY, 'base64').toString('utf-8')
       : await exportSPKI(privateKey);
-    const kid = await derivePlaygroundKid(publicKeyPem);
+    const kid = await deriveKidFromPublicKey(publicKeyPem);
 
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
