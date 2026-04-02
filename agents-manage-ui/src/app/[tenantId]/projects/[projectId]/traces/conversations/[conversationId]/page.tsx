@@ -28,7 +28,6 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GENERATION_TYPES } from '@/constants/signoz';
-import { FeedbackDialog } from '@/components/agent/playground/feedback-dialog';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { rerunScheduledTriggerInvocationAction } from '@/lib/actions/scheduled-triggers';
 import { rerunTriggerAction } from '@/lib/actions/triggers';

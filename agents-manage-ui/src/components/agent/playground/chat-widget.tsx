@@ -336,17 +336,6 @@ export function ChatWidget({
           conversationId={conversationId}
           messageId={messageId}
           initialType={feedbackType}
-          onNegativeFeedbackSubmit={(feedback) => {
-            const { chatFunctionsRef, openCopilot, setDynamicHeaders } = copilotCtx;
-            if (chatFunctionsRef?.current) {
-              openCopilot();
-              setShowTraces(false);
-              setDynamicHeaders({ conversationId, messageId });
-              setTimeout(() => {
-                chatFunctionsRef?.current?.submitMessage(feedback);
-              }, 100);
-            }
-          }}
         />
       )}
     </div>
