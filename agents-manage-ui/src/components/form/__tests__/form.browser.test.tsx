@@ -1,6 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { transformToJson } from '@inkeep/agents-core/client-exports';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+// @ts-expect-error -- worker params exist in vite
+import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker.js?worker';
+// @ts-expect-error -- worker param exist in vite
+import JsonWorker from 'monaco-editor/esm/vs/language/json/json.worker.js?worker';
 import { type FC, useEffect } from 'react';
 import { type FieldPath, type FieldValues, type UseFormReturn, useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -11,11 +15,26 @@ import { GenericPromptEditor } from '@/components/form/generic-prompt-editor';
 import { GenericSelect } from '@/components/form/generic-select';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Form } from '@/components/ui/form';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { GenericComboBox } from '../generic-combo-box';
 import '@/lib/utils/test-utils/styles.css';
 
 const error = 'This field is required';
+
+vi.mock('@/lib/monaco-editor/setup-monaco-workers', () => {
+  globalThis.MonacoEnvironment = {
+    getWorker(_workerId: string, label: string) {
+      console.info('setup-workers/vite', { label });
+      switch (label) {
+        case 'json':
+          return new JsonWorker();
+      }
+      return new EditorWorker();
+    },
+  };
+  return {};
+});
 
 function getCommonProps<TFieldValues extends FieldValues, TTransformedValues = TFieldValues>(
   form: UseFormReturn<TFieldValues, unknown, TTransformedValues>,
@@ -97,17 +116,22 @@ const NestedTestForm: FC = () => {
   }, [form]);
 
   return (
-    <Form {...form}>
-      <form style={{ width: 320 }}>
-        <GenericJsonSchemaEditor {...getCommonProps(form, 'jsonSchemaEditor')} />
-      </form>
-    </Form>
+    <TooltipProvider>
+      <Form {...form}>
+        <form style={{ width: 320 }}>
+          <GenericJsonSchemaEditor {...getCommonProps(form, 'jsonSchemaEditor')} />
+        </form>
+      </Form>
+    </TooltipProvider>
   );
 };
 
 describe('Form', () => {
-  afterEach(() => {
-    agentStore.setState({ jsonSchemaMode: false });
+  afterEach(async () => {
+    await act(() => {
+      agentStore.setState({ jsonSchemaMode: false });
+    });
+    cleanup();
   });
 
   test('should properly highlight error state', async () => {
@@ -118,7 +142,7 @@ describe('Form', () => {
     });
 
     await expect(container).toMatchScreenshot();
-  }, 30_000);
+  }, 10_000);
 
   test('should properly highlight nested error state', async () => {
     agentStore.setState({ jsonSchemaMode: true });
@@ -126,12 +150,11 @@ describe('Form', () => {
 
     await waitFor(
       () => {
-        // Wait for form validation error message to render
         expect(container.querySelector('[data-slot="form-message"]')).toBeInTheDocument();
+        expect(container.querySelector('.monaco-editor')).toBeInTheDocument();
       },
-      { timeout: 45_000 }
+      { timeout: 10_000 }
     );
-
     await expect(container).toMatchScreenshot();
-  }, 60_000);
+  }, 10_000);
 });

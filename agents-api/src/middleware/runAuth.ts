@@ -619,19 +619,30 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       return { authResult: null, failureMessage: 'Bearer token required for web_client app' };
     }
 
-    const publicKeys = config.webClient.auth?.publicKeys ?? [];
+    const publicKeys = config.webClient.publicKeys ?? [];
     const hasAuthConfigured = publicKeys.length > 0;
+    const allowAnonymous = config.webClient.allowAnonymous !== false;
+
+    if (!hasAuthConfigured && !allowAnonymous) {
+      logger.debug(
+        { appId: app.id },
+        'Anonymous access disabled but no public keys configured — rejecting request'
+      );
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Authentication is required but no public keys are configured for this app',
+      });
+    }
 
     if (hasAuthConfigured) {
       const asymResult = await tryAsymmetricJwtVerification(
         bearerToken,
         publicKeys,
-        config.webClient.auth?.audience,
+        config.webClient.audience,
         app.id
       );
 
       if (!asymResult.ok) {
-        const allowAnonymous = config.webClient.auth?.allowAnonymous !== false;
         if (!allowAnonymous) {
           logger.debug(
             { appId: app.id, reason: asymResult.failureMessage },
@@ -698,8 +709,8 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
             });
           }
 
-          // Opt-in SpiceDB validation for global apps
-          if (config.webClient.auth?.validateScopeClaims) {
+          // SpiceDB validation for global apps — always verify scope claims
+          {
             try {
               const canUse = await canUseProjectStrict({
                 userId: asymResult.endUserId,

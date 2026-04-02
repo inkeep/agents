@@ -1,5 +1,34 @@
 # @inkeep/agents-manage-ui
 
+## 0.64.1
+
+### Patch Changes
+
+- 9bf97a7: Dockerize visual regression tests for cross-OS screenshot consistency
+  - @inkeep/agents-core@0.64.1
+
+## 0.64.0
+
+### Minor Changes
+
+- a929847: Add Require Authentication toggle for web client apps
+
+### Patch Changes
+
+- 254edb8: fast fail signoz for conversations not in db
+- 47915b3: Add agent-scoped datasets and evaluators with direct agent execution for dataset runs
+- 981ba48: Fix active sidebar item when file or folder path contains whitespace
+- ba40c53: Fix breadcrumbs in cost page
+- 47a3df7: Remove evaluations from conversation traces
+- d27011a: Reuse existing TanStack Query hooks for project fetching instead of manual fetch calls
+- 1512a7b: fix `Uncaught Error: Previous layout not found for panel index 2` when resizing `Try it` side-pane
+- abc3b5d: Add per-role seat limit enforcement to invitations and members UI
+- Updated dependencies [47915b3]
+- Updated dependencies [2ebe1c4]
+- Updated dependencies [68a55f5]
+- Updated dependencies [abc3b5d]
+  - @inkeep/agents-core@0.64.0
+
 ## 0.63.3
 
 ### Patch Changes

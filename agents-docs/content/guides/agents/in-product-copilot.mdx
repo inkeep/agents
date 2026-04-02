@@ -1,0 +1,211 @@
+---
+title: Build an in-product copilot without code
+sidebarTitle: In-Product Copilot
+description: Step-by-step tutorial to build an in-product copilot.
+icon: LuMessageSquareCode
+---
+
+## Overview
+
+In this tutorial, you'll build an in-product copilot using the Inkeep Visual Builder. The copilot is embedded in your application and acts on behalf of the signed-in user by forwarding their credentials to an MCP server at runtime.
+
+When a user asks "What are my open tickets?", the copilot will:
+1. Receive the user's authentication token and user ID from the host application via HTTP headers
+2. Forward those credentials to your MCP server on each tool call
+3. Return personalized results scoped to that user
+
+<Image src="/images/in-product-copilot-flow.png" alt="Header forwarding flow: Your App sends custom headers to the Inkeep Agent, which resolves templates and forwards credentials to Your MCP Server" />
+
+## Prerequisites
+
+- An existing Inkeep Visual Builder instance running (follow the [quick start guide](/get-started/quick-start) to get started)
+- Or access to [Inkeep Enterprise](https://inkeep.com/demo)
+- A deployed MCP server that accepts per-user auth tokens (see [Build Custom MCP Servers](/guides/mcp-servers/custom-mcp-servers) if you need to create one)
+
+## Set up the agent
+
+<NumberedStepsTOC stepIds={["create-the-copilot-agent", "define-the-headers-schema", "configure-the-sub-agent"]} />
+
+<Steps>
+  <Step>
+    ### Create the copilot agent
+
+    Go to the **Agents** tab in the left sidebar, then select **Create Agent**. Provide the following details:
+    - **Name**: `Support Copilot`
+    - **Description**: `An in-product copilot that helps users manage their tickets and account`
+  </Step>
+  <Step>
+    ### Define the headers schema
+
+    The headers schema tells Inkeep which headers to expect and validate on every incoming request. These values come from your host application at runtime.
+
+    On the agent settings pane, scroll down to **Headers schema** and enter the following:
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "auth-token": {
+      "type": "string",
+      "description": "The signed-in user's API token, forwarded to MCP servers."
+    },
+    "user-id": {
+      "type": "string",
+      "description": "The signed-in user's ID."
+    }
+  },
+  "required": ["auth-token", "user-id"],
+  "additionalProperties": {}
+}
+```
+
+    Click **Save** to apply the schema.
+
+    <Warning>
+      Header keys are normalized to **lowercase** before validation. Always define schema properties in lowercase (e.g., `auth-token`, not `authToken`).
+    </Warning>
+  </Step>
+  <Step>
+    ### Configure the sub agent
+
+    Click on the **Default Sub Agent** to configure it. Provide the following details:
+    - **Name**: `Support assistant`
+    - **Description**: `Help users with their tickets and account information`
+    - **Prompt**: Copy the prompt below
+
+    **Prompt:**
+```text
+You are an in-product support assistant for user {{headers.user-id}}.
+
+<rules>
+- Always use the available tools to look up real data — never fabricate ticket IDs, statuses, or account details
+- Respect the user's permissions — only surface data returned by the API
+- Be concise and actionable: summarize results, then ask if the user wants to take action
+- When listing items, use a clean numbered or bulleted format
+</rules>
+```
+
+    <Tip>
+      The `{{headers.user-id}}` template is resolved at runtime from the validated request headers. You can reference any key defined in the headers schema.
+    </Tip>
+  </Step>
+</Steps>
+
+## Register and connect the MCP server
+
+<NumberedStepsTOC stepIds={["register-the-mcp-server", "connect-the-mcp-server-with-header-forwarding"]} />
+
+<Steps>
+  <Step>
+    ### Register the MCP server
+
+    Because each user has their own token, you don't store a single static credential. Instead, credentials are forwarded dynamically from the incoming request headers.
+
+    Go to the **MCP Servers** tab in the left sidebar, then select **+ New MCP Server**. Fill in the server details:
+    - **Name**: `Product API`
+    - **URL**: The URL of your deployed MCP server (e.g., `https://api.yourproduct.com/mcp`)
+    - **Credential**: Select **No Authentication**
+
+    Click **Create** to register the server.
+
+    <Note>
+      Leaving the credential blank is intentional. Auth will be injected per-request via header forwarding in the next step.
+    </Note>
+  </Step>
+  <Step>
+    ### Connect the MCP server with header forwarding
+
+    Navigate to the agent canvas: **Agents** → **Support Copilot**. Drag and drop an **MCP** block from the top left toolbar onto the canvas, then select the **Product API** MCP server and connect it to the **Support assistant** sub agent.
+
+    Click on the connection line between the MCP server and the sub agent. In the **Headers** field, enter:
+
+```json
+{
+  "Authorization": "Bearer {{headers.auth-token}}",
+  "X-User-Id": "{{headers.user-id}}"
+}
+```
+
+    Click **Save Changes** in the top right corner.
+
+    The `{{headers.*}}` templates are resolved at runtime from the validated incoming request headers. On every tool call to the MCP server, Inkeep replaces the template with the actual header value from the current request.
+  </Step>
+</Steps>
+
+## Embed the copilot in your application
+
+Pass the signed-in user's credentials as custom headers from your chat component. The chat component sends these headers with every request to the agent API.
+
+<Tabs>
+  <Tab title="React">
+
+```tsx
+import { InkeepEmbeddedChat } from '@inkeep/agents-ui-cloud';
+import type { InkeepAIChatSettings } from '@inkeep/agents-ui-cloud/types';
+
+function Copilot({ authToken, userId }: { authToken: string; userId: string }) {
+  const aiChatSettings: InkeepAIChatSettings = {
+    appId: 'YOUR_APP_ID',
+    headers: {
+      auth-token: authToken,
+      user-id: userId,
+    },
+  };
+
+  return <InkeepEmbeddedChat aiChatSettings={aiChatSettings} />;
+}
+```
+
+  </Tab>
+  <Tab title="JavaScript">
+
+```javascript
+const chat = Inkeep.EmbeddedChat({
+  aiChatSettings: {
+    appId: 'YOUR_APP_ID',
+    headers: {
+      auth-token: currentUser.authToken,
+      user-id: currentUser.id,
+    },
+  },
+});
+```
+
+  </Tab>
+</Tabs>
+
+<Note>
+  Replace `YOUR_APP_ID` with the App ID from your project's **Apps** settings. See [App Credentials](/talk-to-your-agents/app-credentials) for setup details.
+</Note>
+
+## Test the copilot
+
+<NumberedStepsTOC stepIds={["test-in-the-visual-builder-playground", "test-in-your-application"]} />
+
+<Steps>
+  <Step>
+    ### Test in the Visual Builder playground
+
+    Click **Try it** in the top right corner to open the chat interface. Click the **Custom headers** button and enter test values:
+
+```json
+{
+  "auth-token": "test-token-abc123",
+  "user-id": "user-42"
+}
+```
+
+    Click **Apply**, then send a message like "What are my open tickets?"
+
+    The agent should call your MCP server tools with the `Authorization` and `X-User-Id` headers populated from the values you entered. Verify in your MCP server logs that the headers arrive as expected.
+  </Step>
+  <Step>
+    ### Test in your application
+
+    After embedding the chat component, sign in as a test user and interact with the copilot. Confirm that:
+    1. The agent responds with data scoped to the signed-in user
+    2. Your MCP server logs show the correct auth token and user ID on each tool call
+    3. Switching users changes the data the copilot returns
+  </Step>
+</Steps>

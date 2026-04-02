@@ -56,7 +56,7 @@ Each key in the JSON should map to a fetch definition with the following propert
   - **`requiredToFetch`** (optional): Array of template variables that must resolve to non-empty values for the fetch to execute. If any variable is missing or empty, the fetch is skipped and `defaultValue` is used instead. Useful for optional fetches that depend on request headers.
 - **`responseSchema`** (optional): Valid JSON Schema object to validate the API response structure.
 - **`defaultValue`** (optional): Default value to use if the fetch fails or returns no data
-- **`credential`** (optional): Reference to stored credentials for authentication
+- **`credentialReferenceId`** (optional): The ID of a stored credential to use for authentication. The credential's secret value will be injected into the request headers at runtime. See [Finding the Credential Reference ID](#finding-the-credential-reference-id) below.
 
 Here is an example of a valid Context Variables JSON object:
 ```json
@@ -92,7 +92,41 @@ Here is an example of a valid Context Variables JSON object:
 }
 ```
 
-### Optional Context Fetches
+## Using Credentials
+
+If your API requires authentication via a stored credential, add the `credentialReferenceId` field to your context variable definition:
+
+```json
+{
+  "projectDescription": {
+    "id": "project-info",
+    "name": "Project Information",
+    "trigger": "initialization",
+    "fetchConfig": {
+      "url": "https://api.example.com/graphql",
+      "body": {
+        "query": "query GetProjectInfo { project { name description } }"
+      },
+      "method": "POST",
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    },
+    "defaultValue": "Unable to fetch project information",
+    "credentialReferenceId": "u6zq98tz0lkloakuqbpdv"
+  }
+}
+```
+
+### Finding the Credential Reference ID
+
+To find the credential reference ID:
+
+1. Navigate to the **Credentials** page in the Inkeep dashboard.
+2. Click on the credential you want to use.
+3. Copy the ID from the browser URL — it is the last path segment. For example, in `https://app.inkeep.com/.../credentials/u6zq98tz0lkloakuqbpdv`, the credential reference ID is `u6zq98tz0lkloakuqbpdv`.
+
+## Optional Context Fetches
 
 Use `requiredToFetch` when you want a fetch to only execute when certain headers are provided. This is useful for optional data that enhances the agent experience but isn't required.
 

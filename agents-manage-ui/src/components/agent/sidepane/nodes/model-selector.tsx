@@ -1,5 +1,6 @@
 'use client';
 
+import { GATEWAY_ROUTABLE_PROVIDERS_SET } from '@inkeep/agents-core/constants/models';
 import { Check, ChevronsUpDown, X } from 'lucide-react';
 import { type FC, useEffect, useState } from 'react';
 import { modelOptions } from '@/components/agent/configuration/model-options';
@@ -33,6 +34,9 @@ interface ModelSelectorProps {
   isRequired?: boolean;
   canClear?: boolean;
   disabled?: boolean;
+  gatewayOnly?: boolean;
+  defaultOpen?: boolean;
+  onClose?: () => void;
 }
 
 export const ModelSelector: FC<ModelSelectorProps> = ({
@@ -46,10 +50,14 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
   isRequired = false,
   canClear = true,
   disabled = false,
+  gatewayOnly = false,
+  defaultOpen = false,
+  onClose,
 }) => {
   'use memo';
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
+
   const [showCustomInput, setShowCustomInput] = useState<
     'openrouter' | 'gateway' | 'nim' | 'custom' | 'azure' | null
   >(null);
@@ -107,7 +115,20 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
   return (
     <div className="flex flex-col gap-2">
       {label && <FieldLabel label={label} tooltip={tooltip} isRequired={isRequired} />}
-      <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
+      <Popover
+        defaultOpen={defaultOpen}
+        open={open}
+        onOpenChange={
+          disabled
+            ? undefined
+            : (nextOpen) => {
+                setOpen(nextOpen);
+                if (!nextOpen && !value && onClose) {
+                  onClose();
+                }
+              }
+        }
+      >
         <ButtonGroup className="w-full">
           <PopoverTrigger asChild>
             <Button
@@ -207,99 +228,107 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                 })()}
               </CommandEmpty>
               {/* Predefined models */}
-              {Object.entries(modelOptions).map(([provider, models]) => (
-                <CommandGroup key={provider} heading={provider}>
-                  {models.map((model) => (
-                    <CommandItem
-                      key={model.value}
-                      className="flex items-center justify-between cursor-pointer text-foreground"
-                      value={model.value}
-                      onSelect={(currentValue) => {
-                        onValueChange?.(currentValue === value ? '' : currentValue);
-                        setOpen(false);
-                        setCustomModelInput('');
-                        setShowCustomInput(null);
-                      }}
-                    >
-                      {model.label}
-                      <Check
-                        className={cn(
-                          'ml-2 h-4 w-4',
-                          value === model.value ? 'opacity-100' : 'opacity-0'
-                        )}
-                      />
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              ))}
+              {Object.entries(modelOptions)
+                .filter(
+                  ([provider]) => !gatewayOnly || GATEWAY_ROUTABLE_PROVIDERS_SET.has(provider)
+                )
+                .map(([provider, models]) => (
+                  <CommandGroup key={provider} heading={provider}>
+                    {models.map((model) => (
+                      <CommandItem
+                        key={model.value}
+                        className="flex items-center justify-between cursor-pointer text-foreground"
+                        value={model.value}
+                        onSelect={(currentValue) => {
+                          onValueChange?.(currentValue === value ? '' : currentValue);
+                          setOpen(false);
+                          setCustomModelInput('');
+                          setShowCustomInput(null);
+                        }}
+                      >
+                        {model.label}
+                        <Check
+                          className={cn(
+                            'ml-2 h-4 w-4',
+                            value === model.value ? 'opacity-100' : 'opacity-0'
+                          )}
+                        />
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                ))}
               {/* Custom OpenAI-compatible */}
-              <CommandGroup heading="Custom OpenAI-compatible">
-                <CommandItem
-                  className="flex items-center justify-between cursor-pointer text-foreground"
-                  value="__custom__"
-                  onSelect={() => {
-                    setShowCustomInput('custom');
-                    setOpen(false);
-                    setCustomModelInput('');
-                  }}
-                >
-                  Custom OpenAI-compatible ...
-                </CommandItem>
-              </CommandGroup>
+              {!gatewayOnly && (
+                <CommandGroup heading="Custom OpenAI-compatible">
+                  <CommandItem
+                    className="flex items-center justify-between cursor-pointer text-foreground"
+                    value="__custom__"
+                    onSelect={() => {
+                      setShowCustomInput('custom');
+                      setOpen(false);
+                      setCustomModelInput('');
+                    }}
+                  >
+                    Custom OpenAI-compatible ...
+                  </CommandItem>
+                </CommandGroup>
+              )}
               {/* LLM Gateway options */}
-              <CommandGroup heading="LLM Gateway">
-                <CommandItem
-                  className="flex items-center justify-between cursor-pointer text-foreground"
-                  value="__openrouter__"
-                  onSelect={() => {
-                    setShowCustomInput('openrouter');
-                    setOpen(false);
-                    setCustomModelInput('');
-                    onValueChange?.('openrouter/...');
-                  }}
-                >
-                  OpenRouter ...
-                </CommandItem>
-                <CommandItem
-                  className="flex items-center justify-between cursor-pointer text-foreground"
-                  value="__gateway__"
-                  onSelect={() => {
-                    setShowCustomInput('gateway');
-                    setOpen(false);
-                    setCustomModelInput('');
-                    onValueChange?.('gateway/...');
-                  }}
-                >
-                  Vercel AI Gateway ...
-                </CommandItem>
-                <CommandItem
-                  className="flex items-center justify-between cursor-pointer text-foreground"
-                  value="__nim__"
-                  onSelect={() => {
-                    setShowCustomInput('nim');
-                    setOpen(false);
-                    setCustomModelInput('');
-                    onValueChange?.('nim/...');
-                  }}
-                >
-                  NVIDIA NIM ...
-                </CommandItem>
-                <CommandItem
-                  className="flex items-center justify-between cursor-pointer text-foreground"
-                  value="__azure__"
-                  onSelect={() => {
-                    setShowCustomInput('azure');
-                    setOpen(false);
-                    setCustomModelInput('');
-                    setAzureDeploymentName('');
-                    setAzureResourceName('');
-                    setAzureBaseURL('');
-                    onValueChange?.('azure/...');
-                  }}
-                >
-                  Azure ...
-                </CommandItem>
-              </CommandGroup>
+              {!gatewayOnly && (
+                <CommandGroup heading="LLM Gateway">
+                  <CommandItem
+                    className="flex items-center justify-between cursor-pointer text-foreground"
+                    value="__openrouter__"
+                    onSelect={() => {
+                      setShowCustomInput('openrouter');
+                      setOpen(false);
+                      setCustomModelInput('');
+                      onValueChange?.('openrouter/...');
+                    }}
+                  >
+                    OpenRouter ...
+                  </CommandItem>
+                  <CommandItem
+                    className="flex items-center justify-between cursor-pointer text-foreground"
+                    value="__gateway__"
+                    onSelect={() => {
+                      setShowCustomInput('gateway');
+                      setOpen(false);
+                      setCustomModelInput('');
+                      onValueChange?.('gateway/...');
+                    }}
+                  >
+                    Vercel AI Gateway ...
+                  </CommandItem>
+                  <CommandItem
+                    className="flex items-center justify-between cursor-pointer text-foreground"
+                    value="__nim__"
+                    onSelect={() => {
+                      setShowCustomInput('nim');
+                      setOpen(false);
+                      setCustomModelInput('');
+                      onValueChange?.('nim/...');
+                    }}
+                  >
+                    NVIDIA NIM ...
+                  </CommandItem>
+                  <CommandItem
+                    className="flex items-center justify-between cursor-pointer text-foreground"
+                    value="__azure__"
+                    onSelect={() => {
+                      setShowCustomInput('azure');
+                      setOpen(false);
+                      setCustomModelInput('');
+                      setAzureDeploymentName('');
+                      setAzureResourceName('');
+                      setAzureBaseURL('');
+                      onValueChange?.('azure/...');
+                    }}
+                  >
+                    Azure ...
+                  </CommandItem>
+                </CommandGroup>
+              )}
             </CommandList>
           </Command>
         </PopoverContent>

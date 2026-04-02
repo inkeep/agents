@@ -58,14 +58,14 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: 22.x
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@c5ba7f7862a0f64c1b1a05fbac13e0b8e86ba08c # v4
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
         with:
-          version: 10.10.0
+          version: 10.33.0
           run_install: false
 
       - name: Get pnpm store directory
@@ -162,7 +162,27 @@ jobs:
           APP_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Install Playwright
-        run: pnpx playwright install chromium --with-deps # install browsers + dependencies for Chromium only
+        run: pnpm --filter @inkeep/agents-manage-ui exec playwright install chromium --with-deps # install browsers + dependencies for Chromium only
+
+      - name: Start Playwright Docker server
+        run: |
+          docker run --rm --init -d --name playwright-server \
+            --network host \
+            mcr.microsoft.com/playwright:v1.58.0-noble \
+            /bin/sh -c "npx -y playwright@1.58.0 run-server --port 3100 --host 0.0.0.0"
+          echo "Waiting for Playwright server..."
+          for i in $(seq 1 30); do
+            if nc -z 127.0.0.1 3100 2>/dev/null; then
+              echo "Playwright server is ready!"
+              break
+            fi
+            sleep 1
+          done
+          if ! nc -z 127.0.0.1 3100 2>/dev/null; then
+            echo "::error::Playwright server failed to start within 30s"
+            docker logs playwright-server || true
+            exit 1
+          fi
 
       # Clean database files before running tests
       - name: Clean database files
@@ -200,6 +220,7 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=8192
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
+          PW_TEST_CONNECT_WS_ENDPOINT: ws://127.0.0.1:3100
           CI: true
           HUSKY: 0
 
@@ -288,14 +309,14 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: 22.x
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@c5ba7f7862a0f64c1b1a05fbac13e0b8e86ba08c # v4
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
         with:
-          version: 10.10.0
+          version: 10.33.0
           run_install: false
 
       - name: Get pnpm store directory
@@ -337,7 +358,7 @@ jobs:
           restore-keys: playwright-${{ runner.os }}-
 
       - name: Install Playwright
-        run: pnpx playwright install chromium --with-deps
+        run: pnpm --filter @inkeep/agents-manage-ui exec playwright install chromium --with-deps
 
       - name: Build create-agents and dependencies
         run: |

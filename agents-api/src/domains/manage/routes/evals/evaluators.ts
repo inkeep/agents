@@ -12,6 +12,7 @@ import {
   getEvaluatorsByIds,
   ListResponseSchema,
   listEvaluators,
+  listEvaluatorsForAgent,
   SingleResponseSchema,
   TenantProjectParamsSchema,
   updateEvaluator,
@@ -36,6 +37,9 @@ app.openapi(
     permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
+      query: z.object({
+        agentId: z.string().optional(),
+      }),
     },
     responses: {
       200: {
@@ -52,9 +56,12 @@ app.openapi(
   async (c) => {
     const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
+    const { agentId } = c.req.valid('query');
 
     try {
-      const evaluators = await listEvaluators(db)({ scopes: { tenantId, projectId } });
+      const evaluators = agentId
+        ? await listEvaluatorsForAgent(db)({ scopes: { tenantId, projectId }, agentId })
+        : await listEvaluators(db)({ scopes: { tenantId, projectId } });
       return c.json({
         data: evaluators as any,
         pagination: {
@@ -131,7 +138,7 @@ app.openapi(
     summary: 'Get Evaluators by IDs',
     operationId: 'get-evaluators-batch',
     tags: ['Evaluations'],
-    permission: requireProjectPermission('edit'),
+    permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema,
       body: {

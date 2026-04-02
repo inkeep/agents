@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-cli",
-  "version": "0.63.3",
+  "version": "0.64.1",
   "description": "Inkeep CLI tool",
   "type": "module",
   "main": "./dist/index.js",
@@ -20,11 +20,12 @@
     "cli": "node ./dist/index.js",
     "prepare": "pnpm build --no-dts",
     "dev": "pnpm build --watch",
-    "test": "node -e \"process.exit(process.env.CI ? 0 : 1)\" && vitest --run --config vitest.config.ci.ts || vitest --run",
+    "test": "(node -e \"process.exit(process.env.CI ? 0 : 1)\" && vitest --run --config vitest.config.ci.ts || vitest --run) && vitest --run --config vitest.integration.config.ts",
     "test:debug": "vitest --run --reporter=verbose --no-coverage",
     "test:watch": "vitest",
     "test:coverage": "node -e \"process.exit(process.env.CI ? 0 : 1)\" && vitest --run --coverage --config vitest.config.ci.ts || vitest --run --coverage",
-    "test:ci": "vitest --run --config vitest.config.ci.ts",
+    "test:ci": "vitest --run --config vitest.config.ci.ts && vitest --run --config vitest.integration.config.ts",
+    "test:integration": "vitest --run --config vitest.integration.config.ts",
     "typecheck": "tsc --noEmit --project tsconfig.typecheck.json",
     "typecheck:watch": "tsc --noEmit --watch --project tsconfig.typecheck.json"
   },

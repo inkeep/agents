@@ -88,6 +88,10 @@ export const SPAN_KEYS = {
   GEN_AI_USAGE_OUTPUT_TOKENS: 'gen_ai.usage.output_tokens',
   GEN_AI_COST_ESTIMATED_USD: 'gen_ai.cost.estimated_usd',
 
+  // Provider routing
+  GEN_AI_REQUEST_PROVIDER: 'gen_ai.request.provider',
+  GEN_AI_RESPONSE_PROVIDER: 'gen_ai.response.provider',
+
   // Context attributes
   CONTEXT_URL: 'context.url',
   CONTEXT_CONFIG_ID: 'context.context_config_id',

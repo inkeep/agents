@@ -4,6 +4,7 @@ import {
   createApiError,
   createEvaluationRun,
   generateId,
+  getAgentIdsForEvaluators,
   getConversation,
   getEvaluatorsByIds,
   type ResolvedRef,
@@ -175,7 +176,13 @@ app.openapi(
         ) as any;
       }
 
-      // Create evaluation run
+      const agentIdsMap = await withRef(manageDbPool, resolvedRef, (db) =>
+        getAgentIdsForEvaluators(db)({
+          scopes: { tenantId, projectId },
+          evaluatorIds,
+        })
+      );
+
       const evaluationRunId = generateId();
       await createEvaluationRun(runDbClient)({
         id: evaluationRunId,
@@ -184,23 +191,52 @@ app.openapi(
         ref: resolvedRef,
       });
 
-      // Trigger evaluations via Workflow
-      await Promise.all(
-        conversationIds.map((conversationId) =>
+      const triggeredConversationIds: string[] = [];
+      const workflowPromises: Promise<unknown>[] = [];
+
+      for (const [i, conversation] of conversations.entries()) {
+        if (!conversation) continue;
+        const conversationId = conversationIds[i];
+        const { agentId } = conversation;
+
+        const scopedEvaluatorIds = agentId
+          ? evaluatorIds.filter((evalId) => {
+              const scopedAgents = agentIdsMap.get(evalId);
+              return !scopedAgents?.length || scopedAgents.includes(agentId);
+            })
+          : evaluatorIds;
+
+        if (!scopedEvaluatorIds.length) {
+          logger.info(
+            { conversationId, agentId },
+            'All evaluators filtered out by agent scoping for conversation'
+          );
+          continue;
+        }
+
+        triggeredConversationIds.push(conversationId);
+        workflowPromises.push(
           start(evaluateConversationWorkflow, [
             {
               tenantId,
               projectId,
               conversationId,
-              evaluatorIds,
+              evaluatorIds: scopedEvaluatorIds,
               evaluationRunId,
             },
           ])
-        )
-      );
+        );
+      }
+      await Promise.all(workflowPromises);
 
       logger.info(
-        { tenantId, projectId, conversationIds, evaluatorIds, evaluationRunId },
+        {
+          tenantId,
+          projectId,
+          conversationIds: triggeredConversationIds,
+          evaluatorIds,
+          evaluationRunId,
+        },
         'Conversation evaluations triggered'
       );
 
@@ -208,7 +244,7 @@ app.openapi(
         {
           message: 'Evaluations triggered successfully',
           evaluationRunId,
-          conversationIds,
+          conversationIds: triggeredConversationIds,
           evaluatorIds,
         },
         202

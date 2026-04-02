@@ -1,5 +1,16 @@
 # @inkeep/agents-core
 
+## 0.64.1
+
+## 0.64.0
+
+### Patch Changes
+
+- 47915b3: Add agent-scoped datasets and evaluators with direct agent execution for dataset runs
+- 2ebe1c4: Add fallbackModels field to ModelSettings for gateway-based model failover
+- 68a55f5: Fix false positive 'Needs Login' status for connected MCP servers with valid credentials
+- abc3b5d: Add per-role seat limit enforcement to invitations and members UI
+
 ## 0.63.3
 
 ## 0.63.2

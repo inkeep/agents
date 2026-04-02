@@ -24,6 +24,16 @@ const CapabilitiesResponseSchema = z
           .describe('The configured sandbox runtime, if enabled.'),
       })
       .describe('Sandbox execution capabilities (used by Function Tools).'),
+    modelFallback: z
+      .object({
+        enabled: z.boolean().describe('Whether fallback model support is available.'),
+      })
+      .describe('Fallback model capabilities (requires AI Gateway).'),
+    costTracking: z
+      .object({
+        enabled: z.boolean().describe('Whether per-request cost tracking is available.'),
+      })
+      .describe('Cost tracking capabilities (requires AI Gateway).'),
   })
   .describe('Optional server capabilities and configuration.')
   .openapi('CapabilitiesResponseSchema');
@@ -49,15 +59,18 @@ capabilitiesHandler.openapi(
   }),
   (c) => {
     const sandboxConfig = c.get('sandboxConfig');
-    if (!sandboxConfig) {
-      return c.json({ sandbox: { configured: false } });
-    }
+    const aiGatewayConfigured = !!process.env.AI_GATEWAY_API_KEY;
+
     return c.json({
-      sandbox: {
-        configured: true,
-        provider: sandboxConfig.provider,
-        runtime: sandboxConfig.runtime,
-      },
+      sandbox: sandboxConfig
+        ? {
+            configured: true,
+            provider: sandboxConfig.provider,
+            runtime: sandboxConfig.runtime,
+          }
+        : { configured: false },
+      modelFallback: { enabled: aiGatewayConfigured },
+      costTracking: { enabled: aiGatewayConfigured },
     });
   }
 );
