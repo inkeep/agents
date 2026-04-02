@@ -1,10 +1,7 @@
 import type { FullExecutionContext, McpTool, Part, ResolvedRef } from '@inkeep/agents-core';
-import { SPAN_NAMES } from '@inkeep/agents-core';
-import { context as otelContext, propagation } from '@opentelemetry/api';
 import { getWritable } from 'workflow';
 import { env } from '../../../../env';
 import { getLogger } from '../../../../logger';
-import { setSpanWithError, tracer } from '../../utils/tracer';
 
 const logger = getLogger('agentExecutionSteps');
 
@@ -31,6 +28,14 @@ export type CallLlmStepParams = {
   workflowRunId: string;
   streamNamespace?: string;
   taskId: string;
+  isPostApproval?: boolean;
+};
+
+export type DelegatedApprovalContext = {
+  toolCallId: string;
+  toolName: string;
+  args: unknown;
+  subAgentId: string;
 };
 
 export type CallLlmResult =
@@ -39,6 +44,7 @@ export type CallLlmResult =
   | {
       type: 'tool_calls';
       toolCalls: Array<{ toolCallId: string; toolName: string; args: unknown }>;
+      delegatedApproval?: DelegatedApprovalContext;
     };
 
 export type ExecuteToolStepParams = {
@@ -52,6 +58,8 @@ export type ExecuteToolStepParams = {
   preApproved?: boolean;
   approvalReason?: string;
   taskId: string;
+  delegatedApproval?: DelegatedApprovalContext;
+  delegatedApprovalDecision?: { approved: boolean; reason?: string };
 };
 
 export type ExecuteToolResult = { type: 'completed' } | { type: 'needs_approval' };
@@ -73,11 +81,11 @@ async function buildAgentForStep(params: {
     params;
 
   const {
+    CredentialStoreRegistry,
+    createDefaultCredentialStores,
     getFullProjectWithRelationIds,
     getMcpToolById,
     withRef,
-    CredentialStoreRegistry,
-    createDefaultCredentialStores,
   } = await import('@inkeep/agents-core');
   const { default: manageDbPool } = await import('../../../../data/db/manageDbPool');
   const { Agent } = await import('../../agents/Agent');
@@ -109,11 +117,18 @@ async function buildAgentForStep(params: {
   const currentSubAgent = agentEntry.subAgents?.[currentSubAgentId];
   if (!currentSubAgent) throw new Error(`Sub-agent ${currentSubAgentId} not found`);
 
+  const apiBaseUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
+  // Durable mode bakes `/run/agents` into baseUrl because buildAgentForStep passes
+  // executionContext.baseUrl directly to AgentConfig and A2AClient configs. The non-durable
+  // executionHandler keeps the bare root and appends `/run/agents` locally, but here we
+  // set it once to avoid repeating the suffix in every config builder below.
+  const agentBaseUrl = `${apiBaseUrl}/run/agents`;
+
   const executionContext: FullExecutionContext = {
     tenantId,
     projectId,
     agentId,
-    baseUrl: env.INKEEP_AGENTS_API_URL || 'http://localhost:3002',
+    baseUrl: agentBaseUrl,
     apiKey: env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET || '',
     apiKeyId: 'durable-execution',
     resolvedRef,
@@ -394,8 +409,15 @@ export async function initializeTaskStep(params: {
 export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmResult> {
   'use step';
 
-  const { payload, currentSubAgentId, isFirstMessage, workflowRunId, streamNamespace, taskId } =
-    params;
+  const {
+    payload,
+    currentSubAgentId,
+    isFirstMessage,
+    workflowRunId,
+    streamNamespace,
+    taskId,
+    isPostApproval,
+  } = params;
   const {
     tenantId,
     projectId,
@@ -410,7 +432,7 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
   } = payload;
 
   logger.info(
-    { currentSubAgentId, isFirstMessage, workflowRunId, streamNamespace, taskId },
+    { currentSubAgentId, isFirstMessage, workflowRunId, streamNamespace, taskId, isPostApproval },
     'callLlmStep starting'
   );
 
@@ -426,9 +448,7 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
     '../../stream/stream-registry'
   );
   const { agentSessionManager } = await import('../../session/AgentSession');
-  const { agentInitializingOp, completionOp, errorOp } = await import(
-    '../../utils/agent-operations'
-  );
+  const { agentInitializingOp, completionOp } = await import('../../utils/agent-operations');
   const { executeTransfer } = await import('../../a2a/transfer');
   const { triggerConversationEvaluation } = await import(
     '../../../evals/services/conversationEvaluation'
@@ -484,42 +504,61 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
 
   let isTerminal = false;
 
-  const bag = (propagation.getBaggage(otelContext.active()) ?? propagation.createBaggage())
-    .setEntry('conversation.id', { value: conversationId })
-    .setEntry('tenant.id', { value: tenantId })
-    .setEntry('project.id', { value: projectId })
-    .setEntry('agent.id', { value: agentId });
-  const ctxWithBaggage = propagation.setBaggage(otelContext.active(), bag);
+  try {
+    if (isFirstMessage && emitOperations) {
+      await sseHelper.writeOperation(agentInitializingOp(requestId, agentId));
+    }
 
-  return otelContext.with(ctxWithBaggage, async () => {
+    // After a tool approval round, send a continuation prompt instead of the original
+    // user message. This relies on the delegation tool result being persisted to
+    // conversation history (via the `skipHistoryStorage` fix in tool-wrapper.ts) so the
+    // LLM sees the tool output in its context window.
+    const userParts: Part[] = isPostApproval
+      ? [
+          {
+            kind: 'text',
+            text: 'Continue the conversation. The tool results above contain the information needed to respond to the user.',
+          },
+        ]
+      : isFirstMessage && messageParts && messageParts.length > 0
+        ? messageParts
+        : [{ kind: 'text', text: userMessage }];
+
+    const runtimeContext = {
+      contextId: conversationId,
+      metadata: {
+        conversationId,
+        threadId: conversationId,
+        taskId,
+        streamRequestId: requestId,
+        apiKey: executionContext.apiKey,
+      },
+    };
+
+    logger.debug(
+      { requestId, currentSubAgentId, userPartsCount: userParts.length },
+      'callLlmStep: calling agent.generate'
+    );
+
+    let response: Awaited<ReturnType<typeof agent.generate>> | undefined;
     try {
-      if (isFirstMessage && emitOperations) {
-        await sseHelper.writeOperation(agentInitializingOp(requestId, agentId));
+      response = await agent.generate(userParts, runtimeContext);
+    } catch (generateError: unknown) {
+      if (!agent.runContext.pendingDurableApproval) {
+        throw generateError;
       }
-
-      const userParts: Part[] =
-        isFirstMessage && messageParts && messageParts.length > 0
-          ? messageParts
-          : [{ kind: 'text', text: userMessage }];
-
-      const runtimeContext = {
-        contextId: conversationId,
-        metadata: {
-          conversationId,
-          threadId: conversationId,
-          taskId,
-          streamRequestId: requestId,
-          apiKey: executionContext.apiKey,
+      logger.info(
+        {
+          requestId,
+          currentSubAgentId,
+          error: generateError instanceof Error ? generateError.message : String(generateError),
+          errorName: generateError instanceof Error ? generateError.name : undefined,
         },
-      };
-
-      logger.debug(
-        { requestId, currentSubAgentId, userPartsCount: userParts.length },
-        'callLlmStep: calling agent.generate'
+        'callLlmStep: agent.generate threw during durable approval flow, continuing with pending approval'
       );
+    }
 
-      const response = await agent.generate(userParts, runtimeContext);
-
+    if (response) {
       logger.info(
         {
           requestId,
@@ -531,222 +570,193 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
         },
         'callLlmStep: agent.generate completed'
       );
+    }
 
-      const pendingApproval = agent.runContext.pendingDurableApproval;
-      if (pendingApproval) {
-        logger.info(
-          { toolName: pendingApproval.toolName, toolCallId: pendingApproval.toolCallId },
-          'callLlmStep: tool needs approval, suspending'
-        );
-        isTerminal = true;
-        return {
-          type: 'tool_calls' as const,
-          toolCalls: [
-            {
-              toolCallId: pendingApproval.toolCallId,
-              toolName: pendingApproval.toolName,
-              args: pendingApproval.args,
-            },
-          ],
-        };
-      }
+    const pendingApproval = agent.runContext.pendingDurableApproval;
+    if (pendingApproval) {
+      logger.info(
+        {
+          toolName: pendingApproval.toolName,
+          toolCallId: pendingApproval.toolCallId,
+          isDelegated: !!pendingApproval.delegatedApproval,
+        },
+        'callLlmStep: tool needs approval, suspending'
+      );
 
-      if (hasToolCallWithPrefix('transfer_to_')(response)) {
-        const transferReason =
-          response.steps?.[response.steps.length - 1]?.text || response.text || '';
-
-        const lastStepToolCallsForTransfer =
-          (
-            response.steps?.at(-1) as
-              | { toolCalls?: Array<{ toolCallId: string; toolName: string; args: unknown }> }
-              | undefined
-          )?.toolCalls ?? [];
-
-        const transferToolCall = lastStepToolCallsForTransfer.find((tc) =>
-          tc.toolName.startsWith('transfer_to_')
-        );
-        const targetSubAgentId = transferToolCall?.toolName.slice('transfer_to_'.length);
-
-        logger.info(
-          { currentSubAgentId, targetSubAgentId, transferToolName: transferToolCall?.toolName },
-          'callLlmStep: transfer detected'
-        );
-
-        if (targetSubAgentId) {
-          await createMessage(runDbClient)({
-            scopes: { tenantId, projectId },
-            data: {
-              id: generateId(),
-              conversationId,
-              role: 'agent',
-              content: {
-                text: transferReason,
-                parts: [{ kind: 'text', text: transferReason }],
-              },
-              visibility: 'user-facing',
-              messageType: 'chat',
-              fromSubAgentId: currentSubAgentId,
-              taskId,
-            },
-          });
-
-          await executeTransfer({
-            projectId,
-            tenantId,
-            threadId: conversationId,
-            agentId,
-            targetSubAgentId,
-            ref: payload.resolvedRef,
-          });
-
-          return { type: 'transfer' as const, targetSubAgentId };
-        }
-      }
-
-      const textContent = response.steps?.[response.steps.length - 1]?.text || response.text || '';
-
-      return await tracer.startActiveSpan(
-        SPAN_NAMES.EXECUTION_HANDLER_EXECUTE,
-        {},
-        async (span) => {
-          try {
-            span.setAttributes({
-              'ai.response.content': textContent || 'No response content',
-              'ai.response.timestamp': new Date().toISOString(),
-              'subAgent.name': agent.runContext.config.name,
-              'subAgent.id': currentSubAgentId,
+      if (pendingApproval.delegatedApproval) {
+        const da = pendingApproval.delegatedApproval;
+        try {
+          await sseHelper.writeToolInputStart({ toolCallId: da.toolCallId, toolName: da.toolName });
+          const inputText = JSON.stringify(da.args ?? {});
+          for (let i = 0; i < inputText.length; i += 16) {
+            await sseHelper.writeToolInputDelta({
+              toolCallId: da.toolCallId,
+              inputTextDelta: inputText.slice(i, i + 16),
             });
-
-            await createMessage(runDbClient)({
-              scopes: { tenantId, projectId },
-              data: {
-                id: generateId(),
-                conversationId,
-                role: 'agent',
-                content: {
-                  text: textContent,
-                  parts: response.formattedContent?.parts?.map(
-                    (part: { kind: string; text?: string; data?: unknown }) => ({
-                      kind: part.kind,
-                      text: part.kind === 'text' ? part.text : undefined,
-                      data:
-                        part.kind === 'data' ? (part.data as Record<string, unknown>) : undefined,
-                    })
-                  ) || [{ kind: 'text', text: textContent }],
-                },
-                visibility: 'user-facing',
-                messageType: 'chat',
-                fromSubAgentId: currentSubAgentId,
-                taskId,
-              },
-            });
-
-            await updateTask(runDbClient)({
-              taskId,
-              scopes: { tenantId, projectId },
-              data: {
-                status: 'completed',
-                metadata: {
-                  completed_at: new Date().toISOString(),
-                  response: { text: textContent, hasText: !!textContent },
-                },
-              },
-            });
-
-            if (emitOperations) {
-              await sseHelper.writeOperation(completionOp(currentSubAgentId, 1));
-            }
-            await sseHelper.complete();
-
-            triggerConversationEvaluation({
-              tenantId,
-              projectId,
-              conversationId,
-              resolvedRef: payload.resolvedRef,
-            }).catch((evalError) => {
-              logger.error(
-                { error: evalError, conversationId, tenantId, projectId },
-                'Failed to trigger conversation evaluation (non-blocking)'
-              );
-            });
-
-            logger.info({ currentSubAgentId, workflowRunId }, 'callLlmStep: completion');
-            isTerminal = true;
-            return { type: 'completion' as const };
-          } finally {
-            span.end();
           }
+          await sseHelper.writeToolInputAvailable({
+            toolCallId: da.toolCallId,
+            toolName: da.toolName,
+            input: (da.args ?? {}) as Record<string, unknown>,
+          });
+          await sseHelper.writeToolApprovalRequest({
+            approvalId: `aitxt-${da.toolCallId}`,
+            toolCallId: da.toolCallId,
+            toolName: da.toolName,
+            input: (da.args ?? {}) as Record<string, unknown>,
+          });
+        } catch (sseError) {
+          logger.error(
+            { error: sseError, toolCallId: da.toolCallId, toolName: da.toolName },
+            'Failed to stream delegated approval request — workflow will suspend but client may not see approval UI'
+          );
+          throw new Error(
+            `Failed to deliver delegated approval request for ${da.toolName}: ${sseError instanceof Error ? sseError.message : String(sseError)}`
+          );
         }
-      );
-    } catch (error) {
-      const rootCause = error instanceof Error ? error : new Error(String(error));
-      logger.error(
-        { error: rootCause.message, stack: rootCause.stack, currentSubAgentId, requestId },
-        'callLlmStep: error during execution'
-      );
+      }
 
       isTerminal = true;
-      return await tracer.startActiveSpan(
-        SPAN_NAMES.EXECUTION_HANDLER_EXECUTE,
-        {},
-        async (span) => {
-          try {
-            span.setAttributes({
-              'ai.response.content':
-                'Hmm.. It seems I might be having some issues right now. Please clear the chat and try again.',
-              'ai.response.timestamp': new Date().toISOString(),
-              'subAgent.name': agent.runContext.config.name,
-              'subAgent.id': currentSubAgentId,
-            });
-            setSpanWithError(span, rootCause);
+      return {
+        type: 'tool_calls',
+        toolCalls: [
+          {
+            toolCallId: pendingApproval.toolCallId,
+            toolName: pendingApproval.toolName,
+            args: pendingApproval.args,
+          },
+        ],
+        ...(pendingApproval.delegatedApproval
+          ? { delegatedApproval: pendingApproval.delegatedApproval }
+          : {}),
+      };
+    }
 
-            try {
-              await sseHelper.writeOperation(
-                errorOp(`Execution error: ${rootCause.message}`, currentSubAgentId || 'system')
-              );
-              await sseHelper.complete();
-            } catch (streamErr) {
-              logger.warn({ error: streamErr, requestId }, 'Failed to write error to SSE stream');
-            }
+    if (!response) {
+      throw new Error('agent.generate() produced no response and no pending approval was found');
+    }
 
-            try {
-              await updateTask(runDbClient)({
-                taskId,
-                scopes: { tenantId, projectId },
-                data: {
-                  status: 'failed',
-                  metadata: {
-                    failed_at: new Date().toISOString(),
-                    error: rootCause.message,
-                  },
-                },
-              });
-            } catch (taskErr) {
-              logger.warn(
-                { error: taskErr, taskId, requestId },
-                'Failed to update task status to failed'
-              );
-            }
+    if (hasToolCallWithPrefix('transfer_to_')(response)) {
+      const transferReason =
+        response.steps?.[response.steps.length - 1]?.text || response.text || '';
 
-            throw error;
-          } finally {
-            span.end();
-          }
-        }
+      const lastStepToolCallsForTransfer =
+        (
+          response.steps?.at(-1) as
+            | { toolCalls?: Array<{ toolCallId: string; toolName: string; args: unknown }> }
+            | undefined
+        )?.toolCalls ?? [];
+
+      const transferToolCall = lastStepToolCallsForTransfer.find((tc) =>
+        tc.toolName.startsWith('transfer_to_')
       );
-    } finally {
-      await agentSessionManager.endSession(requestId);
-      unregisterStreamHelper(requestId);
-      await agent.cleanup();
-      if (isTerminal) {
-        await closeable.close();
-        logger.debug({ requestId }, 'callLlmStep: stream closed (terminal)');
-      } else {
-        closeable.releaseLock();
-        logger.debug({ requestId }, 'callLlmStep: stream lock released (non-terminal)');
+      const targetSubAgentId = transferToolCall?.toolName.slice('transfer_to_'.length);
+
+      logger.info(
+        { currentSubAgentId, targetSubAgentId, transferToolName: transferToolCall?.toolName },
+        'callLlmStep: transfer detected'
+      );
+
+      if (targetSubAgentId) {
+        await createMessage(runDbClient)({
+          scopes: { tenantId, projectId },
+          data: {
+            id: generateId(),
+            conversationId,
+            role: 'agent',
+            content: {
+              text: transferReason,
+              parts: [{ kind: 'text', text: transferReason }],
+            },
+            visibility: 'user-facing',
+            messageType: 'chat',
+            fromSubAgentId: currentSubAgentId,
+            taskId,
+          },
+        });
+
+        await executeTransfer({
+          projectId,
+          tenantId,
+          threadId: conversationId,
+          agentId,
+          targetSubAgentId,
+          ref: payload.resolvedRef,
+        });
+
+        return { type: 'transfer', targetSubAgentId };
       }
     }
-  });
+
+    const textContent = response.steps?.[response.steps.length - 1]?.text || response.text || '';
+
+    await createMessage(runDbClient)({
+      scopes: { tenantId, projectId },
+      data: {
+        id: generateId(),
+        conversationId,
+        role: 'agent',
+        content: {
+          text: textContent,
+          parts: response.formattedContent?.parts?.map(
+            (part: { kind: string; text?: string; data?: unknown }) => ({
+              kind: part.kind,
+              text: part.kind === 'text' ? part.text : undefined,
+              data: part.kind === 'data' ? (part.data as Record<string, unknown>) : undefined,
+            })
+          ) || [{ kind: 'text', text: textContent }],
+        },
+        visibility: 'user-facing',
+        messageType: 'chat',
+        fromSubAgentId: currentSubAgentId,
+        taskId,
+      },
+    });
+
+    await updateTask(runDbClient)({
+      taskId,
+      scopes: { tenantId, projectId },
+      data: {
+        status: 'completed',
+        metadata: {
+          completed_at: new Date().toISOString(),
+          response: { text: textContent, hasText: !!textContent },
+        },
+      },
+    });
+
+    if (emitOperations) {
+      await sseHelper.writeOperation(completionOp(currentSubAgentId, 1));
+    }
+    await sseHelper.complete();
+
+    triggerConversationEvaluation({
+      tenantId,
+      projectId,
+      conversationId,
+      resolvedRef: payload.resolvedRef,
+    }).catch((evalError) => {
+      logger.error(
+        { error: evalError, conversationId, tenantId, projectId },
+        'Failed to trigger conversation evaluation (non-blocking)'
+      );
+    });
+
+    logger.info({ currentSubAgentId, workflowRunId }, 'callLlmStep: completion');
+    isTerminal = true;
+    return { type: 'completion' };
+  } finally {
+    await agentSessionManager.endSession(requestId);
+    unregisterStreamHelper(requestId);
+    await agent.cleanup();
+    if (isTerminal) {
+      await closeable.close();
+      logger.debug({ requestId }, 'callLlmStep: stream closed (terminal)');
+    } else {
+      closeable.releaseLock();
+      logger.debug({ requestId }, 'callLlmStep: stream lock released (non-terminal)');
+    }
+  }
 }
 
 export async function executeToolStep(params: ExecuteToolStepParams): Promise<ExecuteToolResult> {
@@ -790,7 +800,6 @@ export async function executeToolStep(params: ExecuteToolStepParams): Promise<Ex
   );
   const { agentSessionManager } = await import('../../session/AgentSession');
   const { loadToolsAndPrompts } = await import('../../agents/generation/tool-loading');
-  const { errorOp } = await import('../../utils/agent-operations');
 
   const { agent, executionContext } = await buildAgentForStep({
     tenantId,
@@ -829,144 +838,79 @@ export async function executeToolStep(params: ExecuteToolStepParams): Promise<Ex
     agentSessionManager.enableEmitOperations(requestId);
   }
 
-  const bag = (propagation.getBaggage(otelContext.active()) ?? propagation.createBaggage())
-    .setEntry('conversation.id', { value: conversationId })
-    .setEntry('tenant.id', { value: tenantId })
-    .setEntry('project.id', { value: projectId })
-    .setEntry('agent.id', { value: agentId });
-  const ctxWithBaggage = propagation.setBaggage(otelContext.active(), bag);
+  try {
+    agent.streamRequestId = requestId;
+    agent.runContext.streamHelper = sseHelper;
+    agent.setConversationId(conversationId);
+    agent.setDurableWorkflowRunId(workflowRunId);
 
-  return otelContext.with(ctxWithBaggage, async () => {
-    try {
-      agent.streamRequestId = requestId;
-      agent.runContext.streamHelper = sseHelper;
-      agent.setConversationId(conversationId);
-      agent.setDurableWorkflowRunId(workflowRunId);
-
-      if (preApproved !== undefined) {
-        agent.setApprovedToolCalls({
-          [toolName]: [
-            { approved: preApproved, reason: approvalReason, originalToolCallId: toolCallId },
-          ],
-        });
-      }
-
-      const sessionId = requestId;
-      const runtimeContext = {
-        contextId: conversationId,
-        metadata: {
-          conversationId,
-          threadId: conversationId,
-          taskId: params.taskId,
-          streamRequestId: requestId,
-          apiKey: executionContext.apiKey,
-        },
-      };
-
-      logger.debug(
-        { toolName, toolCallId, sessionId },
-        'executeToolStep: loading tools and executing'
-      );
-
-      const { sanitizedTools } = await loadToolsAndPrompts(
-        agent.runContext,
-        sessionId,
-        requestId,
-        runtimeContext
-      );
-
-      const toolDef = sanitizedTools[toolName];
-      if (!toolDef) {
-        throw new Error(`Tool '${toolName}' not found in agent tool set`);
-      }
-
-      return await tracer.startActiveSpan(SPAN_NAMES.DURABLE_TOOL_EXECUTION, {}, async (span) => {
-        try {
-          span.setAttributes({
-            'subAgent.id': currentSubAgentId,
-            'tool.name': toolName,
-            'tool.callId': toolCallId,
-            'tool.response.timestamp': new Date().toISOString(),
-          });
-
-          await (
-            toolDef as { execute?: (args: unknown, context?: unknown) => Promise<unknown> }
-          ).execute?.(args, { toolCallId });
-
-          if (agent.runContext.pendingDurableApproval) {
-            logger.info(
-              { toolName, toolCallId, workflowRunId },
-              'executeToolStep: tool requires approval'
-            );
-            return { type: 'needs_approval' as const };
-          }
-
-          logger.info({ toolName, toolCallId }, 'executeToolStep: tool executed successfully');
-          return { type: 'completed' as const };
-        } finally {
-          span.end();
-        }
+    if (preApproved !== undefined) {
+      agent.setApprovedToolCalls({
+        [toolName]: [
+          { approved: preApproved, reason: approvalReason, originalToolCallId: toolCallId },
+        ],
       });
-    } catch (error) {
-      const rootCause = error instanceof Error ? error : new Error(String(error));
-      logger.error(
-        { error: rootCause.message, stack: rootCause.stack, toolName, toolCallId, requestId },
-        'executeToolStep: error during tool execution'
-      );
-
-      return await tracer.startActiveSpan(SPAN_NAMES.DURABLE_TOOL_EXECUTION, {}, async (span) => {
-        try {
-          span.setAttributes({
-            'tool.response.content': `Tool execution error: ${rootCause.message}`,
-            'tool.response.timestamp': new Date().toISOString(),
-            'subAgent.id': currentSubAgentId,
-            'tool.name': toolName,
-            'tool.callId': toolCallId,
-          });
-          setSpanWithError(span, rootCause);
-
-          try {
-            await sseHelper.writeOperation(
-              errorOp(`Tool execution error: ${rootCause.message}`, currentSubAgentId || 'system')
-            );
-          } catch (streamErr) {
-            logger.warn({ error: streamErr, requestId }, 'Failed to write error to SSE stream');
-          }
-
-          const { updateTask } = await import('@inkeep/agents-core');
-          const { default: runDbClient } = await import('../../../../data/db/runDbClient');
-          try {
-            await updateTask(runDbClient)({
-              taskId: params.taskId,
-              scopes: { tenantId, projectId },
-              data: {
-                status: 'failed',
-                metadata: {
-                  failed_at: new Date().toISOString(),
-                  error: rootCause.message,
-                },
-              },
-            });
-          } catch (taskErr) {
-            logger.warn(
-              { error: taskErr, taskId: params.taskId, requestId },
-              'Failed to update task status to failed'
-            );
-          }
-
-          throw error;
-        } finally {
-          span.end();
-        }
-      });
-    } finally {
-      await agentSessionManager.endSession(requestId);
-      unregisterStreamHelper(requestId);
-      await agent.cleanup();
-      closeable.releaseLock();
-      logger.debug({ requestId, toolName }, 'executeToolStep: stream lock released');
     }
-  });
+
+    if (params.delegatedApproval && params.delegatedApprovalDecision) {
+      agent.runContext.delegatedToolApproval = {
+        toolCallId: params.delegatedApproval.toolCallId,
+        toolName: params.delegatedApproval.toolName,
+        approved: params.delegatedApprovalDecision.approved,
+        reason: params.delegatedApprovalDecision.reason,
+      };
+    }
+
+    const sessionId = requestId;
+    const runtimeContext = {
+      contextId: conversationId,
+      metadata: {
+        conversationId,
+        threadId: conversationId,
+        taskId: params.taskId,
+        streamRequestId: requestId,
+        apiKey: executionContext.apiKey,
+      },
+    };
+
+    logger.debug(
+      { toolName, toolCallId, sessionId },
+      'executeToolStep: loading tools and executing'
+    );
+
+    const { sanitizedTools } = await loadToolsAndPrompts(
+      agent.runContext,
+      sessionId,
+      requestId,
+      runtimeContext
+    );
+
+    const toolDef = sanitizedTools[toolName];
+    if (!toolDef) {
+      throw new Error(`Tool '${toolName}' not found in agent tool set`);
+    }
+
+    await (
+      toolDef as { execute?: (args: unknown, context?: unknown) => Promise<unknown> }
+    ).execute?.(args, { toolCallId });
+
+    if (agent.runContext.pendingDurableApproval) {
+      logger.info(
+        { toolName, toolCallId, workflowRunId },
+        'executeToolStep: tool requires approval'
+      );
+      return { type: 'needs_approval' };
+    }
+
+    logger.info({ toolName, toolCallId }, 'executeToolStep: tool executed successfully');
+    return { type: 'completed' };
+  } finally {
+    await agentSessionManager.endSession(requestId);
+    unregisterStreamHelper(requestId);
+    await agent.cleanup();
+    closeable.releaseLock();
+    logger.debug({ requestId, toolName }, 'executeToolStep: stream lock released');
+  }
 }
 
 export async function markWorkflowSuspendedStep(params: {
