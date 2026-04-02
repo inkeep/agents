@@ -10689,6 +10689,24 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/cron/cleanup-stream-chunks": {
+      "get": {
+        "description": "Called by Vercel Cron to delete stream chunks older than 5 minutes. Auth via CRON_SECRET or INKEEP_AGENTS_RUN_API_BYPASS_SECRET.",
+        "responses": {
+          "200": {
+            "description": "Cleanup completed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [],
+        "summary": "Clean up expired stream chunks",
+        "tags": [
+          "Cron"
+        ]
+      }
+    },
     "/api/deploy/restart-scheduler": {
       "post": {
         "description": "Called by CI after deploy to restart the scheduler workflow on the latest deployment. Auth via INKEEP_AGENTS_RUN_API_BYPASS_SECRET.",
