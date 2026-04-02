@@ -26,7 +26,7 @@
   "crons": [
     {
       "path": "/api/cron/cleanup-stream-chunks",
-      "schedule": "* * * * *"
+      "schedule": "0 0 * * *"
     }
   ],
   "headers": [

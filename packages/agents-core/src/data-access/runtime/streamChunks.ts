@@ -9,7 +9,8 @@ interface ConversationScope {
 }
 
 const DEFAULT_CHUNK_BATCH_LIMIT = 500;
-const DEFAULT_CLEANUP_AGE_MINUTES = 5;
+const DEFAULT_CLEANUP_AGE_MINUTES = 60;
+const DEFAULT_CLEANUP_BATCH_SIZE = 1000;
 
 const scopeConditions = (scope: ConversationScope) => [
   eq(streamChunks.tenantId, scope.tenantId),
@@ -67,7 +68,34 @@ export const deleteStreamChunks =
 
 export const cleanupExpiredStreamChunks =
   (db: AgentsRunDatabaseClient) =>
-  async (olderThanMinutes = DEFAULT_CLEANUP_AGE_MINUTES) => {
+  async (
+    olderThanMinutes = DEFAULT_CLEANUP_AGE_MINUTES,
+    batchSize = DEFAULT_CLEANUP_BATCH_SIZE
+  ) => {
     const cutoff = sql`now() - make_interval(mins => ${olderThanMinutes})`;
-    await db.delete(streamChunks).where(sql`${streamChunks.createdAt} < ${cutoff}`);
+    let deleted: number;
+    do {
+      const batch = await db
+        .select({
+          tenantId: streamChunks.tenantId,
+          projectId: streamChunks.projectId,
+          conversationId: streamChunks.conversationId,
+          idx: streamChunks.idx,
+        })
+        .from(streamChunks)
+        .where(sql`${streamChunks.createdAt} < ${cutoff}`)
+        .limit(batchSize);
+
+      deleted = batch.length;
+      if (deleted > 0) {
+        const pks = batch.map(
+          (row) => sql`(${row.tenantId}, ${row.projectId}, ${row.conversationId}, ${row.idx})`
+        );
+        await db
+          .delete(streamChunks)
+          .where(
+            sql`(${streamChunks.tenantId}, ${streamChunks.projectId}, ${streamChunks.conversationId}, ${streamChunks.idx}) IN (${sql.join(pks, sql`, `)})`
+          );
+      }
+    } while (deleted >= batchSize);
   };
