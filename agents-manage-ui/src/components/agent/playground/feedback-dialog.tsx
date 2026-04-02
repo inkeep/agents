@@ -149,11 +149,7 @@ export const FeedbackDialog = ({
               control={form.control}
               name="feedback"
               label=""
-              placeholder={
-                type === 'positive'
-                  ? 'What went well?'
-                  : 'What could have been better?'
-              }
+              placeholder={type === 'positive' ? 'What went well?' : 'What could have been better?'}
               className="min-h-[80px]"
             />
             <div className="flex justify-end gap-2">
