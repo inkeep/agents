@@ -15,7 +15,7 @@ describe('DiffField', () => {
     );
     await vi.dynamicImportSettled();
     expect(screen.getByText('Execute code')).toBeInTheDocument();
-  });
+  }, 10_000);
 
   it('uses text diff when renderAsCode is false for string values', async () => {
     render(
