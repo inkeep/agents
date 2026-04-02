@@ -3,8 +3,6 @@ import {
   parseContextBreakdownFromSpan,
   V1_BREAKDOWN_SCHEMA,
 } from '@inkeep/agents-core/client-exports';
-import axios from 'axios';
-import axiosRetry from 'axios-retry';
 import { type NextRequest, NextResponse } from 'next/server';
 import {
   ACTIVITY_NAMES,
@@ -26,18 +24,13 @@ import {
   UNKNOWN_VALUE,
 } from '@/constants/signoz';
 import { getAgentsApiUrl } from '@/lib/api/api-config';
+import { fetchWithRetry } from '@/lib/api/fetch-with-retry';
 import {
   DEFAULT_LOOKBACK_MS,
   getConversationTimeRange,
 } from '@/lib/api/signoz-conversation-time-range';
 
 import { getLogger } from '@/lib/logger';
-
-// Configure axios retry
-axiosRetry(axios, {
-  retries: 3,
-  retryDelay: axiosRetry.exponentialDelay,
-});
 
 export const dynamic = 'force-dynamic';
 
@@ -128,13 +121,34 @@ async function signozQuery(
 
     logger.debug({ endpoint }, 'Calling agents-api for conversation traces');
 
-    const response = await axios.post(endpoint, payload, {
+    const response = await fetchWithRetry(endpoint, {
+      method: 'POST',
       headers,
+      body: JSON.stringify(payload),
+      credentials: 'include',
       timeout: 30000,
-      withCredentials: true,
+      maxAttempts: 3,
+      label: 'signoz-conversation-query',
     });
 
-    const json = response.data;
+    if (!response.ok) {
+      const statusText = response.statusText;
+      if (response.status === 401 || response.status === 403) {
+        throw new Error(`SigNoz authentication failed: ${statusText}`);
+      }
+      if (response.status === 400) {
+        throw new Error(`Invalid SigNoz query: ${statusText}`);
+      }
+      if (response.status === 429) {
+        throw new Error(`SigNoz rate limit exceeded: ${statusText}`);
+      }
+      if (response.status >= 500) {
+        throw new Error(`SigNoz server error: ${statusText}`);
+      }
+      throw new Error(`SigNoz request failed: ${statusText}`);
+    }
+
+    const json = await response.json();
     const results = json?.data?.data?.results ?? [];
     logger.debug(
       {
@@ -146,26 +160,13 @@ async function signozQuery(
   } catch (e) {
     logger.error({ error: e }, 'SigNoz query error');
 
-    // Re-throw the error with more context for proper error handling
-    if (axios.isAxiosError(e)) {
-      if (e.code === 'ECONNREFUSED' || e.code === 'ENOTFOUND' || e.code === 'ETIMEDOUT') {
-        throw new Error(`SigNoz service unavailable: ${e.message}`);
-      }
-      if (e.response?.status === 401 || e.response?.status === 403) {
-        throw new Error(`SigNoz authentication failed: ${e.response.statusText}`);
-      }
-      if (e.response?.status === 400) {
-        throw new Error(`Invalid SigNoz query: ${e.response.statusText}`);
-      }
-      if (e.response?.status === 429) {
-        throw new Error(`SigNoz rate limit exceeded: ${e.response.statusText}`);
-      }
-      if (e.response?.status && e.response.status >= 500) {
-        throw new Error(`SigNoz server error: ${e.response.statusText}`);
-      }
-      throw new Error(`SigNoz request failed: ${e.message}`);
+    if (e instanceof TypeError) {
+      throw new Error(`SigNoz service unavailable: ${e.message}`);
     }
-    throw new Error(`SigNoz query failed: ${e instanceof Error ? e.message : 'Unknown error'}`);
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      throw new Error(`SigNoz service unavailable: request timed out`);
+    }
+    throw e instanceof Error ? e : new Error(`SigNoz query failed: ${String(e)}`);
   }
 }
 

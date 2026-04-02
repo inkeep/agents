@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-ui",
-  "version": "0.64.1",
+  "version": "0.64.2",
   "license": "SEE LICENSE IN LICENSE.md",
   "main": "index.js",
   "types": "index.d.ts",
@@ -74,8 +74,6 @@
     "@tanstack/react-table": "^8.21.3",
     "@xyflow/react": "^12.10.0",
     "ai": "6.0.14",
-    "axios": "^1.11.0",
-    "axios-retry": "^4.5.0",
     "better-auth": "catalog:",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

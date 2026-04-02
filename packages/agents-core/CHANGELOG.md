@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.64.2
+
+### Patch Changes
+
+- f099221: Fix app prompt encoding errors by resolving prompt from database via appId instead of forwarding text in HTTP headers
+
 ## 0.64.1
 
 ## 0.64.0
