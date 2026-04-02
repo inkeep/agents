@@ -3,6 +3,7 @@ import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { type NextRequest, NextResponse } from 'next/server';
 import { getAgentsApiUrl } from '@/lib/api/api-config';
+import { requireApiRouteSessionOrBearer } from '@/lib/auth/api-route-auth';
 
 axiosRetry(axios, {
   retries: 3,
@@ -16,11 +17,14 @@ type RouteContext<_T> = {
 };
 
 export async function GET(req: NextRequest, context: RouteContext<'/api/traces/spans/[spanId]'>) {
+  const authResult = await requireApiRouteSessionOrBearer(req);
+  if (!authResult.ok) {
+    return authResult.response;
+  }
   const { spanId } = await context.params;
   if (!spanId) {
     return NextResponse.json({ error: 'Span ID is required' }, { status: 400 });
   }
-
   const url = new URL(req.url);
   const tenantId = url.searchParams.get('tenantId') || 'default';
   const conversationId = url.searchParams.get('conversationId');
@@ -28,8 +32,6 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/traces/s
   if (!conversationId) {
     return NextResponse.json({ error: 'conversationId query param is required' }, { status: 400 });
   }
-
-  const cookieHeader = req.headers.get('cookie');
 
   try {
     const agentsApiUrl = getAgentsApiUrl();
@@ -40,7 +42,7 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/traces/s
       {
         headers: {
           'Content-Type': 'application/json',
-          Cookie: cookieHeader,
+          ...authResult.headers,
         },
         timeout: 15000,
         withCredentials: true,
