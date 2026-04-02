@@ -865,10 +865,7 @@ export function renderPanelContent({
         <>
           <Section>
             {a.toolName && (
-              <Info
-                label="Tool name"
-                value={<Badge variant="code">{a.toolName}</Badge>}
-              />
+              <Info label="Tool name" value={<Badge variant="code">{a.toolName}</Badge>} />
             )}
             {a.toolCallId && <Info label="Tool call ID" value={a.toolCallId} />}
             {a.subAgentId && <Info label="Sub-agent" value={a.subAgentId} />}

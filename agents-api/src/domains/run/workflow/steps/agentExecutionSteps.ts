@@ -894,10 +894,7 @@ export async function executeToolStep(params: ExecuteToolStepParams): Promise<Ex
 
           try {
             await sseHelper.writeOperation(
-              errorOp(
-                `Tool execution error: ${rootCause.message}`,
-                currentSubAgentId || 'system'
-              )
+              errorOp(`Tool execution error: ${rootCause.message}`, currentSubAgentId || 'system')
             );
           } catch (streamErr) {
             logger.warn({ error: streamErr, requestId }, 'Failed to write error to SSE stream');
