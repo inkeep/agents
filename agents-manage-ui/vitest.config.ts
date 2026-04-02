@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { playwright } from '@vitest/browser-playwright';
+import svgr from 'vite-plugin-svgr';
 import { defaultExclude, defineConfig } from 'vitest/config';
 import type { ToMatchScreenshotOptions } from 'vitest/node';
 import pkgJson from './package.json' with { type: 'json' };
@@ -23,26 +24,24 @@ const resolveScreenshotPath: ToMatchScreenshotOptions['resolveScreenshotPath'] =
   ].join('/');
 };
 
+const providerOptions = process.env.PW_TEST_CONNECT_WS_ENDPOINT
+  ? {
+      connectOptions: {
+        wsEndpoint: process.env.PW_TEST_CONNECT_WS_ENDPOINT,
+        exposeNetwork: '<loopback>',
+      },
+    }
+  : {
+      launchOptions: {
+        args: ['--font-render-hinting=none'],
+      },
+    };
+
 export default defineConfig({
+  plugins: [svgr()],
   test: {
     name: pkgJson.name,
     globals: true,
-    onUnhandledError(error) {
-      const message =
-        (error as { message?: string })?.message ?? (typeof error === 'string' ? error : '');
-      if (message.includes('Closing rpc while')) {
-        return false;
-      }
-      if (message.includes('Cannot use import statement outside a module')) {
-        return false;
-      }
-      if (
-        message.includes('is not a valid name') ||
-        (error as { name?: string })?.name === 'InvalidCharacterError'
-      ) {
-        return false;
-      }
-    },
     projects: [
       {
         extends: true,
@@ -55,25 +54,12 @@ export default defineConfig({
             // viewport: { width: 2560, height: 1440 },
             enabled: true,
             headless: true,
-            provider: playwright({
-              ...(process.env.PW_TEST_CONNECT_WS_ENDPOINT
-                ? {
-                    connectOptions: {
-                      wsEndpoint: process.env.PW_TEST_CONNECT_WS_ENDPOINT,
-                      exposeNetwork: '<loopback>',
-                    },
-                  }
-                : {
-                    launchOptions: {
-                      args: ['--font-render-hinting=none'],
-                    },
-                  }),
-            }),
+            provider: playwright(providerOptions),
             instances: [{ browser: 'chromium' }],
             expect: {
               toMatchScreenshot: {
                 // Increase timeout because the default `5s` is insufficient on CI
-                timeout: 15_000,
+                timeout: 8_000,
                 resolveScreenshotPath,
                 resolveDiffPath: resolveScreenshotPath,
               },

@@ -19,7 +19,7 @@ export default function ProjectUsagePage({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/cost'>) {
   const { tenantId, projectId } = use(params);
-  const { data: capabilities, isLoading: capabilitiesLoading } = useCapabilitiesQuery();
+  const { data: capabilities, isFetching: capabilitiesLoading } = useCapabilitiesQuery();
 
   if (!capabilitiesLoading && !capabilities?.costTracking?.enabled) {
     notFound();

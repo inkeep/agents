@@ -81,7 +81,7 @@ export function MCPNode({ data, selected, ...props }: NodeProps & { data: MCPNod
   const skeletonToolData = skeletonToolLookup[id];
 
   // Lazy-load actual status for this specific tool
-  const { data: liveToolData, isLoading: isConnecting } = useMcpToolStatusQuery({
+  const { data: liveToolData, isFetching: isConnecting } = useMcpToolStatusQuery({
     tenantId,
     projectId,
     toolId: id,

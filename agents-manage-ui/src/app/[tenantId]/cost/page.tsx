@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
 import { FilterTriggerComponent } from '@/components/traces/filters/filter-trigger';
 import { Combobox } from '@/components/ui/combobox';
-import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
+import { useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { useCapabilitiesQuery } from '@/lib/query/capabilities';
 import { useProjectsQuery } from '@/lib/query/projects';
 
@@ -21,7 +21,7 @@ const TIME_RANGES = {
 
 export default function TenantUsagePage({ params }: PageProps<'/[tenantId]/cost'>) {
   const { tenantId } = use(params);
-  const { data: capabilities, isLoading: capabilitiesLoading } = useCapabilitiesQuery();
+  const { data: capabilities, isFetching: capabilitiesLoading } = useCapabilitiesQuery();
 
   if (!capabilitiesLoading && !capabilities?.costTracking?.enabled) {
     notFound();
@@ -83,8 +83,8 @@ export default function TenantUsagePage({ params }: PageProps<'/[tenantId]/cost'
               ? { from: customStartDate, to: customEndDate }
               : selectedTimeRange
           }
-          onAdd={(value: TimeRange) => setSelectedTimeRange(value)}
-          setCustomDateRange={(start: string, end: string) => setCustomDateRange(start, end)}
+          onAdd={setSelectedTimeRange}
+          setCustomDateRange={setCustomDateRange}
           options={Object.entries(TIME_RANGES).map(([value, config]) => ({
             value,
             label: config.label,

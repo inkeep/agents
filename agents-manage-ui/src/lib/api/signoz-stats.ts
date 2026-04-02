@@ -1,5 +1,3 @@
-import axios from 'axios';
-import axiosRetry from 'axios-retry';
 import { z } from 'zod';
 import {
   AI_OPERATIONS,
@@ -19,6 +17,7 @@ import {
   UNKNOWN_VALUE,
   USAGE_GENERATION_TYPES,
 } from '@/constants/signoz';
+import { fetchWithRetry } from '@/lib/api/fetch-with-retry';
 
 // ---------- String Constants for Type Safety
 
@@ -225,11 +224,6 @@ const datesRange = (startMs: number, endMs: number) => {
 
 // ---------- Client
 
-axiosRetry(axios, {
-  retries: 3,
-  retryDelay: axiosRetry.exponentialDelay,
-});
-
 const CRITICAL_ERROR_SPAN_NAMES = [
   'execution_handler.execute',
   'agent.load_tools',
@@ -262,21 +256,21 @@ class SigNozStatsAPI {
       ...(projectId && { projectId }),
     };
 
-    const response = await axios.post<T>(`/api/traces?tenantId=${this.tenantId}`, requestPayload, {
+    const response = await fetchWithRetry(`/api/traces?tenantId=${this.tenantId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestPayload),
+      credentials: 'include',
       timeout: 30000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      withCredentials: true,
-      'axios-retry': {
-        retries: 3,
-        retryDelay: axiosRetry.exponentialDelay,
-        retryCondition: (error: import('axios').AxiosError) =>
-          axiosRetry.isNetworkError(error) ||
-          (error.response !== undefined && error.response.status >= 500),
-      },
-    } as any);
-    return response.data;
+      maxAttempts: 3,
+      label: 'signoz-stats-query',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+
+    return response.json() as Promise<T>;
   }
 
   private async makePipelineRequest(
@@ -287,23 +281,21 @@ class SigNozStatsAPI {
       throw new Error('TenantId not set. Call setTenantId() before making requests.');
     }
 
-    const response = await axios.post(
-      `/api/traces?tenantId=${this.tenantId}&mode=batch`,
-      { paginationPayload, detailPayloadTemplate },
-      {
-        timeout: 60000,
-        headers: { 'Content-Type': 'application/json' },
-        withCredentials: true,
-        'axios-retry': {
-          retries: 3,
-          retryDelay: axiosRetry.exponentialDelay,
-          retryCondition: (error: import('axios').AxiosError) =>
-            axiosRetry.isNetworkError(error) ||
-            (error.response !== undefined && error.response.status >= 500),
-        },
-      } as any
-    );
-    return response.data;
+    const response = await fetchWithRetry(`/api/traces?tenantId=${this.tenantId}&mode=batch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paginationPayload, detailPayloadTemplate }),
+      credentials: 'include',
+      timeout: 60000,
+      maxAttempts: 3,
+      label: 'signoz-stats-batch-query',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+
+    return response.json();
   }
 
   // --- Helpers to read SigNoz response

@@ -126,7 +126,7 @@ function makeWebClientApp(overrides: Record<string, unknown> = {}) {
   };
 }
 
-describe('x-inkeep-app-prompt header → executionContext.metadata.appPrompt', () => {
+describe('app prompt resolution via appId', () => {
   let app: Hono;
   const originalEnv = process.env.ENVIRONMENT;
 
@@ -147,45 +147,8 @@ describe('x-inkeep-app-prompt header → executionContext.metadata.appPrompt', (
     process.env.ENVIRONMENT = originalEnv;
   });
 
-  describe('API key auth (production path)', () => {
-    it('should set metadata.appPrompt from x-inkeep-app-prompt header', async () => {
-      validateAndGetApiKeyMock.mockResolvedValueOnce(makeApiKey());
-
-      app.use('*', apiKeyAuth());
-      app.get('/', (c) => c.json((c as any).get('executionContext')));
-
-      const res = await app.request('/', {
-        headers: {
-          Authorization: 'Bearer sk_test_1234567890abcdef.verylongsecretkey',
-          'x-inkeep-app-prompt': 'Be concise and link to documentation pages.',
-        },
-      });
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.metadata.appPrompt).toBe('Be concise and link to documentation pages.');
-    });
-
-    it('should not set metadata.appPrompt when header is absent', async () => {
-      validateAndGetApiKeyMock.mockResolvedValueOnce(makeApiKey());
-
-      app.use('*', apiKeyAuth());
-      app.get('/', (c) => c.json((c as any).get('executionContext')));
-
-      const res = await app.request('/', {
-        headers: {
-          Authorization: 'Bearer sk_test_1234567890abcdef.verylongsecretkey',
-        },
-      });
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.metadata?.appPrompt).toBeUndefined();
-    });
-  });
-
-  describe('app credential auth (appPrompt from DB takes precedence)', () => {
-    it('should not override DB-sourced appPrompt with header value', async () => {
+  describe('app credential auth sets appId and appPrompt from DB', () => {
+    it('should set both metadata.appId and metadata.appPrompt', async () => {
       const appRecord = makeWebClientApp({ prompt: 'Prompt from database' });
       getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
       validateOriginMock.mockReturnValue(true);
@@ -208,17 +171,60 @@ describe('x-inkeep-app-prompt header → executionContext.metadata.appPrompt', (
           'x-inkeep-app-id': 'app-id-1',
           'x-inkeep-agent-id': 'agent-1',
           Origin: 'https://help.customer.com',
-          'x-inkeep-app-prompt': 'Header prompt that should be ignored',
         },
       });
 
       expect(res.status).toBe(200);
       const body = await res.json();
+      expect(body.metadata.appId).toBe('app-id-1');
       expect(body.metadata.appPrompt).toBe('Prompt from database');
     });
+  });
 
-    it('should use header appPrompt when app has no prompt in DB', async () => {
-      const appRecord = makeWebClientApp({ prompt: null });
+  describe('A2A forwarding: x-inkeep-app-id with sub-agent skips app credential auth', () => {
+    it('should set metadata.appId from header when sub-agent-id is present', async () => {
+      validateAndGetApiKeyMock.mockResolvedValueOnce(makeApiKey());
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => c.json((c as any).get('executionContext')));
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: 'Bearer sk_test_1234567890abcdef.verylongsecretkey',
+          'x-inkeep-app-id': 'app-id-1',
+          'x-inkeep-sub-agent-id': 'sub-agent-1',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.metadata.appId).toBe('app-id-1');
+      expect(body.metadata?.appPrompt).toBeUndefined();
+    });
+
+    it('should not set metadata.appId when headers are absent', async () => {
+      validateAndGetApiKeyMock.mockResolvedValueOnce(makeApiKey());
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => c.json((c as any).get('executionContext')));
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: 'Bearer sk_test_1234567890abcdef.verylongsecretkey',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.metadata?.appId).toBeUndefined();
+    });
+  });
+
+  describe('non-ASCII app prompt does not break headers', () => {
+    it('should handle smart quotes and unicode in app prompt via DB without header encoding issues', async () => {
+      const unicodePrompt =
+        'Be helpful and concise. Use \u2018smart quotes\u2019 and emoji \ud83d\ude80';
+      const appRecord = makeWebClientApp({ prompt: unicodePrompt });
       getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
       validateOriginMock.mockReturnValue(true);
       jwtVerifyMock.mockResolvedValueOnce({
@@ -240,13 +246,13 @@ describe('x-inkeep-app-prompt header → executionContext.metadata.appPrompt', (
           'x-inkeep-app-id': 'app-id-1',
           'x-inkeep-agent-id': 'agent-1',
           Origin: 'https://help.customer.com',
-          'x-inkeep-app-prompt': 'Forwarded from parent agent',
         },
       });
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.metadata.appPrompt).toBe('Forwarded from parent agent');
+      expect(body.metadata.appId).toBe('app-id-1');
+      expect(body.metadata.appPrompt).toBe(unicodePrompt);
     });
   });
 });
