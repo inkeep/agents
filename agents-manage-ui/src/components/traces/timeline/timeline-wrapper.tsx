@@ -8,7 +8,7 @@ import {
   RefreshCw,
   RotateCcw,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { StickToBottom } from 'use-stick-to-bottom';
 import { ConversationTracesLink } from '@/components/traces/signoz-link';
@@ -290,16 +290,13 @@ export function TimelineWrapper({
     .map((activity) => activity.id);
 
   // Memoize IDs of nodes that have children (referenced as parentSpanId by other activities)
-  const parentNodeIds = useMemo(() => {
-    const ids = new Set<string>();
-    const activityIdSet = new Set(sortedActivities.map((a) => a.id));
-    for (const activity of sortedActivities) {
-      if (activity.parentSpanId && activityIdSet.has(activity.parentSpanId)) {
-        ids.add(activity.parentSpanId);
-      }
+  const parentNodeIds = new Set<string>();
+  const activityIdSet = new Set(sortedActivities.map((a) => a.id));
+  for (const activity of sortedActivities) {
+    if (activity.parentSpanId && activityIdSet.has(activity.parentSpanId)) {
+      parentNodeIds.add(activity.parentSpanId);
     }
-    return ids;
-  }, [sortedActivities]);
+  }
 
   const toggleNodeCollapse = useCallback((nodeId: string) => {
     setCollapsedNodes((prev) => {
@@ -424,7 +421,7 @@ export function TimelineWrapper({
   };
 
   // Derive global collapsed state from both AI messages and tree nodes
-  const isGloballyCollapsed = useMemo(() => {
+  const isGloballyCollapsed = (() => {
     const hasAiMessages = aiMessageIds.length > 0;
     const hasParentNodes = parentNodeIds.size > 0;
     if (!hasAiMessages && !hasParentNodes) return false;
@@ -435,7 +432,7 @@ export function TimelineWrapper({
       }
     }
     return true;
-  }, [aiMessageIds, aiMessagesGloballyCollapsed, parentNodeIds, collapsedNodes]);
+  })();
 
   const closePanel = () => {
     setPanelVisible(false);
