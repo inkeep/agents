@@ -2,7 +2,7 @@
 
 import { AlertCircleIcon, CheckCircle2, Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { InkeepIcon } from '@/components/icons/inkeep';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -51,42 +51,39 @@ function SlackLinkForm() {
     slackTeamId?: string;
   } | null>(null);
 
-  const handleLinkWithToken = useCallback(
-    async (token: string) => {
-      if (!user?.id) {
-        setError('You must be logged in to link your Slack account.');
+  async function handleLinkWithToken(token: string) {
+    if (!user?.id) {
+      setError('You must be logged in to link your Slack account.');
+      setState('error');
+      return;
+    }
+
+    setState('linking');
+    setError(null);
+
+    try {
+      const result = await slackApi.verifyLinkToken({
+        token,
+        userId: user.id,
+        userEmail: user.email,
+      });
+
+      if (!result.success) {
+        setError(result.error || 'Failed to link account');
         setState('error');
         return;
       }
 
-      setState('linking');
-      setError(null);
-
-      try {
-        const result = await slackApi.verifyLinkToken({
-          token,
-          userId: user.id,
-          userEmail: user.email,
-        });
-
-        if (!result.success) {
-          setError(result.error || 'Failed to link account');
-          setState('error');
-          return;
-        }
-
-        setLinkResult({
-          slackUsername: result.slackUsername,
-          slackTeamId: result.slackTeamId,
-        });
-        setState('success');
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to link account');
-        setState('error');
-      }
-    },
-    [user]
-  );
+      setLinkResult({
+        slackUsername: result.slackUsername,
+        slackTeamId: result.slackTeamId,
+      });
+      setState('success');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to link account');
+      setState('error');
+    }
+  }
 
   const linkingRef = useRef(false);
   useEffect(() => {

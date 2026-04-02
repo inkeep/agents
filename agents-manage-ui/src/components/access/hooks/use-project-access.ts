@@ -5,7 +5,7 @@ import {
   OrgRoles,
   type ProjectRole,
 } from '@inkeep/agents-core/client-exports';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useAuthClient } from '@/contexts/auth-client';
 import {
@@ -98,7 +98,7 @@ export function useProjectAccess({
   const [isMutating, setIsMutating] = useState(false);
 
   // Fetch project members from API
-  const fetchProjectMembers = useCallback(async () => {
+  async function fetchProjectMembers() {
     try {
       setIsLoadingMembers(true);
       setMembersError(null);
@@ -110,10 +110,10 @@ export function useProjectAccess({
     } finally {
       setIsLoadingMembers(false);
     }
-  }, [tenantId, projectId]);
+  }
 
   // Fetch org members for enrichment and available principals list
-  const fetchOrgMembers = useCallback(async () => {
+  async function fetchOrgMembers() {
     try {
       const { data } = await authClient.organization.getFullOrganization({
         query: { organizationId: tenantId, membersLimit: DEFAULT_MEMBERSHIP_LIMIT },
@@ -135,7 +135,7 @@ export function useProjectAccess({
     } finally {
       setIsLoadingOrg(false);
     }
-  }, [authClient, tenantId]);
+  }
 
   // Initial data fetch
   useEffect(() => {
