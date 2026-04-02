@@ -43,7 +43,7 @@
     "format:check": "biome format",
     "typecheck": "next typegen && tsc --noEmit",
     "typecheck:watch": "tsc --noEmit --watch",
-    "test": "vitest --run",
+    "test": "vitest --run --project '@inkeep/agents-manage-ui' && pnpm test:visual",
     "test:visual": "PW_TEST_CONNECT_WS_ENDPOINT=ws://127.0.0.1:3100 vitest --run --project '@inkeep/agents-manage-ui/browser'",
     "test:visual:update": "pnpm test:visual --update",
     "test:coverage": "vitest --run --coverage",
