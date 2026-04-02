@@ -1,5 +1,13 @@
 # @inkeep/agents-sdk
 
+## 0.64.2
+
+### Patch Changes
+
+- b55675b: Add createDatasetRunConfig and fix triggerDatasetRun to use run configuration workflow
+- Updated dependencies [f099221]
+  - @inkeep/agents-core@0.64.2
+
 ## 0.64.1
 
 ### Patch Changes
