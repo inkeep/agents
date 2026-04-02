@@ -3,9 +3,6 @@ import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import runDbClient from '../data/db/runDbClient';
 import { env } from '../env';
-import { getLogger } from '../logger';
-
-const logger = getLogger('tenantAccess');
 
 /**
  * Middleware to enforce tenant access control.
