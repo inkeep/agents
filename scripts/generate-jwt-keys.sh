@@ -8,13 +8,29 @@
 
 set -e
 
-generate_keypair() {
-  local prefix="$1"
-  local label="$2"
-
-  local privfile
+generate_playground_keys() {
+  local privfile pubfile
   privfile=$(mktemp)
-  local pubfile
+  pubfile=$(mktemp)
+
+  openssl genrsa -out "$privfile" 2048 2>/dev/null
+  openssl rsa -in "$privfile" -pubout -out "$pubfile" 2>/dev/null
+
+  local priv_b64 pub_b64
+  priv_b64=$(base64 -i "$privfile" | tr -d '\n')
+  pub_b64=$(base64 -i "$pubfile" | tr -d '\n')
+
+  echo
+  echo "# Playground JWT Keys (base64-encoded for .env)"
+  echo "INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=$priv_b64"
+  echo "INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=$pub_b64"
+
+  rm -f "$privfile" "$pubfile"
+}
+
+generate_copilot_keys() {
+  local privfile pubfile
+  privfile=$(mktemp)
   pubfile=$(mktemp)
 
   openssl genrsa -out "$privfile" 2048 2>/dev/null
@@ -22,13 +38,14 @@ generate_keypair() {
 
   local priv_b64
   priv_b64=$(base64 -i "$privfile" | tr -d '\n')
-  local pub_b64
-  pub_b64=$(base64 -i "$pubfile" | tr -d '\n')
 
   echo
-  echo "# $label"
-  echo "${prefix}_PRIVATE_KEY=$priv_b64"
-  echo "${prefix}_PUBLIC_KEY=$pub_b64"
+  echo "# Copilot JWT Keys"
+  echo "# Private key (base64-encoded for .env)"
+  echo "INKEEP_COPILOT_JWT_PRIVATE_KEY=$priv_b64"
+  echo
+  echo "# Public key (PEM, for app record config.webClient.publicKeys)"
+  cat "$pubfile"
 
   rm -f "$privfile" "$pubfile"
 }
@@ -37,14 +54,14 @@ target="${1:-all}"
 
 case "$target" in
   playground)
-    generate_keypair "INKEEP_AGENTS_TEMP_JWT" "Playground JWT Keys"
+    generate_playground_keys
     ;;
   copilot)
-    generate_keypair "INKEEP_COPILOT_JWT" "Copilot JWT Keys"
+    generate_copilot_keys
     ;;
   all)
-    generate_keypair "INKEEP_AGENTS_TEMP_JWT" "Playground JWT Keys"
-    generate_keypair "INKEEP_COPILOT_JWT" "Copilot JWT Keys"
+    generate_playground_keys
+    generate_copilot_keys
     ;;
   *)
     echo "Usage: $0 [playground|copilot|all]"

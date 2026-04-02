@@ -86,10 +86,7 @@ export async function getCopilotTokenAction(): Promise<ActionResult<CopilotToken
 
     const privateKeyPem = Buffer.from(privateKeyB64, 'base64').toString('utf-8');
     const privateKey = await importPKCS8(privateKeyPem, 'RS256');
-
-    const publicKeyPem = process.env.INKEEP_COPILOT_JWT_PUBLIC_KEY
-      ? Buffer.from(process.env.INKEEP_COPILOT_JWT_PUBLIC_KEY, 'base64').toString('utf-8')
-      : await exportSPKI(privateKey);
+    const publicKeyPem = await exportSPKI(privateKey);
     const kid = await deriveKid(publicKeyPem);
 
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
