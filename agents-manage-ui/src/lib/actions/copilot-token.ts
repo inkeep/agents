@@ -53,7 +53,7 @@ export async function getCopilotTokenAction(): Promise<ActionResult<CopilotToken
   const copilotAppId =
     process.env.PUBLIC_INKEEP_COPILOT_APP_ID || process.env.NEXT_PUBLIC_INKEEP_COPILOT_APP_ID;
   const privateKeyB64 = process.env.INKEEP_COPILOT_JWT_PRIVATE_KEY;
-  const publicKeyPem = process.env.INKEEP_COPILOT_JWT_PUBLIC_KEY;
+  const publicKeyPem = process.env.INKEEP_COPILOT_JWT_PUBLIC_KEY?.replace(/\\n/g, '\n');
 
   if (!copilotAppId || !privateKeyB64 || !publicKeyPem) {
     return {

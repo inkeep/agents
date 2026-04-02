@@ -36,20 +36,23 @@ generate_copilot_keys() {
   openssl genrsa -out "$privfile" 2048 2>/dev/null
   openssl rsa -in "$privfile" -pubout -out "$pubfile" 2>/dev/null
 
-  local priv_b64 kid
+  local priv_b64 kid pub_escaped
   priv_b64=$(base64 -i "$privfile" | tr -d '\n')
   kid="pg-$(openssl dgst -sha256 "$pubfile" | awk '{print $2}' | cut -c1-12)"
+  pub_escaped=$(awk '{printf "%s\\n", $0}' "$pubfile" | sed 's/\\n$//')
 
   echo
   echo "# Copilot JWT Keys"
-  echo "# Private key (base64-encoded for .env)"
+  echo "# Private key (base64-encoded)"
   echo "INKEEP_COPILOT_JWT_PRIVATE_KEY=$priv_b64"
   echo
-  echo "# Public key config for app record (config.webClient.publicKeys)"
-  echo "kid: $kid"
-  echo "algorithm: RS256"
+  echo "# Public key (PEM)"
+  echo "INKEEP_COPILOT_JWT_PUBLIC_KEY=\"$pub_escaped\""
   echo
-  cat "$pubfile"
+  echo "# For app record config.webClient.publicKeys:"
+  echo "#   kid: $kid"
+  echo "#   algorithm: RS256"
+  echo "#   publicKey: (the PEM above)"
 
   rm -f "$privfile" "$pubfile"
 }
