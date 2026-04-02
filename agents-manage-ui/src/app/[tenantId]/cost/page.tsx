@@ -21,7 +21,7 @@ const TIME_RANGES = {
 
 export default function TenantUsagePage({ params }: PageProps<'/[tenantId]/cost'>) {
   const { tenantId } = use(params);
-  const { data: capabilities, isLoading: capabilitiesLoading } = useCapabilitiesQuery();
+  const { data: capabilities, isFetching: capabilitiesLoading } = useCapabilitiesQuery();
 
   if (!capabilitiesLoading && !capabilities?.costTracking?.enabled) {
     notFound();
