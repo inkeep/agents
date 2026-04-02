@@ -4,7 +4,7 @@ import type { AllowedAuthMethod } from '@inkeep/agents-core/auth/auth-types';
 import { parseAllowedAuthMethods } from '@inkeep/agents-core/auth/auth-types';
 import { DEFAULT_MEMBERSHIP_LIMIT } from '@inkeep/agents-core/client-exports';
 import { Loader2 } from 'lucide-react';
-import { use, useCallback, useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { AuthMethodConfiguration } from '@/components/settings/auth-method-configuration';
 import {

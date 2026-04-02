@@ -1,7 +1,6 @@
 'use client';
 
 import { Plus, X } from 'lucide-react';
-import { useCallback } from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { useFieldArray, useWatch } from 'react-hook-form';
 import { Button } from '@/components/ui/button';

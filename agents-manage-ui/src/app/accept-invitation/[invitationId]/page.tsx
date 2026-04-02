@@ -2,7 +2,7 @@
 
 import { Loader2, XCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { use, useCallback, useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuthClient } from '@/contexts/auth-client';

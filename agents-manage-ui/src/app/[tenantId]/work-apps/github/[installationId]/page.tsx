@@ -3,7 +3,7 @@
 import { ArrowLeft, ArrowUpRight, Building2, RefreshCw, User } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { use, useCallback, useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { DisconnectInstallationDialog } from '@/components/settings/work-app-github-disconnect-dialog';

@@ -2,7 +2,7 @@
 
 import { Github } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { use, useCallback, useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import EmptyState from '@/components/layout/empty-state';

@@ -2,7 +2,7 @@
 
 import { Coins, ExternalLink, Hash, Layers, Zap } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AreaChartCard } from '@/components/traces/charts/area-chart-card';
 import { StatCard } from '@/components/traces/charts/stat-card';
 import { Badge } from '@/components/ui/badge';
