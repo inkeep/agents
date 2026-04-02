@@ -304,12 +304,14 @@ pnpm --filter @inkeep/agents-core db:manage:sync-all-branches
    - `SYNCED` if the schema changed successfully
    - `NOOP` if the branch was already up to date
 5. Re-open the branches you care about and verify the migration still works against real data. At minimum, check the tables or code paths affected by the migration and confirm reads, writes, and merges behave as expected.
+
 #### Backfill migrations
 
 Data backfills will not be applied when merging schema changes into project branches. If your migration requires a data backfill, run it manually after merging schema changes:
 
 ```bash
 pnpm --filter @inkeep/agents-core db:manage:run-backfill-all-branches --file <path-to-backfill-sql>
+```
 
 ## AI coding assistants and coding practices
 
