@@ -73,7 +73,7 @@ export function ChatWidget({
   stopPolling,
   customHeaders,
   chatActivities,
-  setShowTraces,
+  setShowTraces: _setShowTraces,
   hasHeadersError,
 }: ChatWidgetProps) {
   'use memo';
