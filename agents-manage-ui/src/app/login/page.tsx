@@ -65,8 +65,7 @@ function LoginForm() {
     return getSafeReturnUrl(returnUrl, '/');
   };
 
-  const getFullCallbackURL = useCallback(() => {
-    if (typeof window === 'undefined') return '/';
+  function getFullCallbackURL() {
     const baseURL = window.location.origin;
     const params = new URLSearchParams();
     if (invitationId) params.set('invitation', invitationId);
@@ -74,7 +73,7 @@ function LoginForm() {
       params.set('returnUrl', returnUrl);
     const queryString = params.toString();
     return queryString ? `${baseURL}/?${queryString}` : `${baseURL}/`;
-  }, [invitationId, returnUrl]);
+  }
 
   const executeMethodSignIn = async (method: MethodOption) => {
     setError(null);

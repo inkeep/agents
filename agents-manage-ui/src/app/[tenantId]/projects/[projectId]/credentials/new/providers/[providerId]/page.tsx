@@ -246,7 +246,9 @@ function ProviderSetupPage({
     }
   }
 
-  const cancelToInterstitial = useCallback(() => setFormMode({ type: 'idle' }), []);
+  function cancelToInterstitial() {
+    setFormMode({ type: 'idle' });
+  }
 
   useEffect(() => {
     if (!canEdit || !provider || loading || hasAttempted) return;

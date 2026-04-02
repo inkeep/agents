@@ -40,7 +40,7 @@ export function DatasetRunsList({
   const [error, setError] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
-  const loadRuns = useCallback(async () => {
+  async function loadRuns() {
     try {
       setLoading(true);
       setError(null);
@@ -52,7 +52,7 @@ export function DatasetRunsList({
     } finally {
       setLoading(false);
     }
-  }, [tenantId, projectId, datasetId]);
+  }
 
   useEffect(() => {
     void refreshKey;

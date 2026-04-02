@@ -55,7 +55,7 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
   const [events, setEvents] = useState<SigNozUsageEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchData = useCallback(async () => {
+  async function fetchData() {
     setIsLoading(true);
     try {
       const client = getSigNozStatsClient(tenantId);
@@ -80,7 +80,7 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
     } finally {
       setIsLoading(false);
     }
-  }, [tenantId, projectId, startTime, endTime]);
+  }
 
   useEffect(() => {
     fetchData();

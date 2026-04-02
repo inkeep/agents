@@ -73,28 +73,29 @@ export function GenericKeyValueInput<
     return duplicates;
   })();
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>, index: number, field: 'key' | 'value') => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        if (field === 'key') {
-          const valueInput = document.querySelector<HTMLInputElement>(
-            `[data-index="${index}"][data-field="value"]`
+  function handleKeyDown(
+    e: React.KeyboardEvent<HTMLInputElement>,
+    index: number,
+    field: 'key' | 'value'
+  ) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (field === 'key') {
+        const valueInput = document.querySelector<HTMLInputElement>(
+          `[data-index="${index}"][data-field="value"]`
+        );
+        valueInput?.focus();
+      } else {
+        append({ key: '', value: '' } as never);
+        setTimeout(() => {
+          const keyInput = document.querySelector<HTMLInputElement>(
+            `[data-index="${index + 1}"][data-field="key"]`
           );
-          valueInput?.focus();
-        } else {
-          append({ key: '', value: '' } as never);
-          setTimeout(() => {
-            const keyInput = document.querySelector<HTMLInputElement>(
-              `[data-index="${index + 1}"][data-field="key"]`
-            );
-            keyInput?.focus();
-          }, 0);
-        }
+          keyInput?.focus();
+        }, 0);
       }
-    },
-    [append]
-  );
+    }
+  }
 
   return (
     <div className="grid gap-2">

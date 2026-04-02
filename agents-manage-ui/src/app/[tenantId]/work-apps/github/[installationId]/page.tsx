@@ -78,7 +78,7 @@ export default function GitHubInstallationDetailPage({
   const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
 
-  const loadInstallation = useCallback(async () => {
+  async function loadInstallation() {
     try {
       const detail = await fetchWorkAppGitHubInstallationDetail(tenantId, installationId);
       setData(detail);
@@ -88,7 +88,7 @@ export default function GitHubInstallationDetailPage({
     } finally {
       setLoading(false);
     }
-  }, [tenantId, installationId]);
+  }
 
   useEffect(() => {
     loadInstallation();

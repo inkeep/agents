@@ -44,7 +44,7 @@ export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings
     refetch: refetchSSO,
   } = useSSOProviders(isCloudDeployment ? tenantId : undefined);
 
-  const fetchOrganization = useCallback(async () => {
+  async function fetchOrganization() {
     if (!tenantId) return;
 
     try {
@@ -68,7 +68,7 @@ export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings
     } finally {
       setLoading(false);
     }
-  }, [tenantId, authClient]);
+  }
 
   useEffect(() => {
     fetchOrganization();

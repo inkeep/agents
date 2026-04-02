@@ -58,14 +58,14 @@ export function AppUpdateForm({
   const [requireAuth, setRequireAuth] = useState(webConfig?.allowAnonymous !== true);
   const [isLoadingKeys, setIsLoadingKeys] = useState(app.type === 'web_client');
 
-  const loadKeys = useCallback(async () => {
+  async function loadKeys() {
     if (app.type !== 'web_client') return;
     const result = await fetchAppAuthKeysAction(tenantId, projectId, app.id);
     if (result.success && result.data) {
       setServerKeys(result.data);
     }
     setIsLoadingKeys(false);
-  }, [tenantId, projectId, app.id, app.type]);
+  }
 
   useEffect(() => {
     loadKeys();

@@ -69,45 +69,42 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
     }
   }, [jobConfigs, tenantId, projectId]);
 
-  const formatFilters = useCallback(
-    (filters: EvaluationJobConfig['jobFilters']): string => {
-      if (!filters) return 'No filters';
-      const filterCriteria = filters as EvaluationJobFilterCriteria;
-      const parts: string[] = [];
+  function formatFilters(filters: EvaluationJobConfig['jobFilters']): string {
+    if (!filters) return 'No filters';
+    const filterCriteria = filters as EvaluationJobFilterCriteria;
+    const parts: string[] = [];
 
-      if (
-        filterCriteria.datasetRunIds &&
-        Array.isArray(filterCriteria.datasetRunIds) &&
-        filterCriteria.datasetRunIds.length > 0
-      ) {
-        const runNames = filterCriteria.datasetRunIds
-          .map((id) => datasetRunNames[id] || `Run ${id.slice(0, 8)}`)
-          .join(', ');
-        parts.push(runNames);
-      }
+    if (
+      filterCriteria.datasetRunIds &&
+      Array.isArray(filterCriteria.datasetRunIds) &&
+      filterCriteria.datasetRunIds.length > 0
+    ) {
+      const runNames = filterCriteria.datasetRunIds
+        .map((id) => datasetRunNames[id] || `Run ${id.slice(0, 8)}`)
+        .join(', ');
+      parts.push(runNames);
+    }
 
-      if (filterCriteria.dateRange?.startDate && filterCriteria.dateRange?.endDate) {
-        const startDate = new Date(filterCriteria.dateRange.startDate);
-        const endDate = new Date(filterCriteria.dateRange.endDate);
+    if (filterCriteria.dateRange?.startDate && filterCriteria.dateRange?.endDate) {
+      const startDate = new Date(filterCriteria.dateRange.startDate);
+      const endDate = new Date(filterCriteria.dateRange.endDate);
 
-        const startFormatted = startDate.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        });
-        const endFormatted = endDate.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        });
+      const startFormatted = startDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+      const endFormatted = endDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
 
-        parts.push(`${startFormatted} - ${endFormatted}`);
-      }
+      parts.push(`${startFormatted} - ${endFormatted}`);
+    }
 
-      return parts.length > 0 ? parts.join(' • ') : 'No filters';
-    },
-    [datasetRunNames]
-  );
+    return parts.length > 0 ? parts.join(' • ') : 'No filters';
+  }
 
   const columns: ColumnDef<EvaluationJobConfig>[] = [
     {

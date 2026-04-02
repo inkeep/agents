@@ -44,14 +44,14 @@ export function EvaluationRunConfigsList({
     setRunConfigs(initialRunConfigs);
   }, [initialRunConfigs]);
 
-  const refreshRunConfigs = useCallback(async () => {
+  async function refreshRunConfigs() {
     try {
       const response = await fetchEvaluationRunConfigs(tenantId, projectId);
       setRunConfigs(response.data);
     } catch (error) {
       console.error('Error refreshing run configs:', error);
     }
-  }, [tenantId, projectId]);
+  }
 
   useEffect(() => {
     if (refreshKey !== undefined && typeof refreshKey === 'number' && refreshKey > 0) {

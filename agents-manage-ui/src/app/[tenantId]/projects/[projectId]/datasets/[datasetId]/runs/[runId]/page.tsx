@@ -41,53 +41,50 @@ export default function Page({
     isRunning: boolean;
   } | null>(null);
 
-  const loadRun = useCallback(
-    async (showLoading = true) => {
-      try {
-        if (showLoading) {
-          setLoading(true);
-        }
-        setError(null);
-        const [response, itemsResponse] = await Promise.all([
-          fetchDatasetRun(tenantId, projectId, runId),
-          fetchDatasetRunItems(tenantId, projectId, runId),
-        ]);
-        setRun(response.data);
-        setInvocations(itemsResponse.data || []);
-
-        // If there's an evaluation job, fetch evaluation progress
-        if (response.data?.evaluationJobConfigId) {
-          const evalResults = await fetchEvaluationResultsByJobConfig(
-            tenantId,
-            projectId,
-            response.data.evaluationJobConfigId
-          );
-
-          const totalEvaluations = evalResults.data?.length || 0;
-          const completedEvaluations =
-            evalResults.data?.filter(
-              (result) => result.output !== null && result.output !== undefined
-            ).length || 0;
-
-          setEvaluationProgress({
-            total: totalEvaluations,
-            completed: completedEvaluations,
-            isRunning: completedEvaluations < totalEvaluations && totalEvaluations > 0,
-          });
-        } else {
-          setEvaluationProgress(null);
-        }
-      } catch (err) {
-        console.error('Error loading dataset run:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load run');
-      } finally {
-        if (showLoading) {
-          setLoading(false);
-        }
+  async function loadRun(showLoading = true) {
+    try {
+      if (showLoading) {
+        setLoading(true);
       }
-    },
-    [tenantId, projectId, runId]
-  );
+      setError(null);
+      const [response, itemsResponse] = await Promise.all([
+        fetchDatasetRun(tenantId, projectId, runId),
+        fetchDatasetRunItems(tenantId, projectId, runId),
+      ]);
+      setRun(response.data);
+      setInvocations(itemsResponse.data || []);
+
+      // If there's an evaluation job, fetch evaluation progress
+      if (response.data?.evaluationJobConfigId) {
+        const evalResults = await fetchEvaluationResultsByJobConfig(
+          tenantId,
+          projectId,
+          response.data.evaluationJobConfigId
+        );
+
+        const totalEvaluations = evalResults.data?.length || 0;
+        const completedEvaluations =
+          evalResults.data?.filter(
+            (result) => result.output !== null && result.output !== undefined
+          ).length || 0;
+
+        setEvaluationProgress({
+          total: totalEvaluations,
+          completed: completedEvaluations,
+          isRunning: completedEvaluations < totalEvaluations && totalEvaluations > 0,
+        });
+      } else {
+        setEvaluationProgress(null);
+      }
+    } catch (err) {
+      console.error('Error loading dataset run:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load run');
+    } finally {
+      if (showLoading) {
+        setLoading(false);
+      }
+    }
+  }
 
   const conversationProgress = (() => {
     if (invocations.length === 0) return { total: 0, completed: 0, failed: 0, isRunning: false };

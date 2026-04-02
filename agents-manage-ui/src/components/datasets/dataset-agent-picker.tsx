@@ -34,31 +34,28 @@ export function DatasetAgentPicker({ tenantId, projectId, datasetId }: DatasetAg
 
   const agentLookup = createLookup(agents);
 
-  const handleSelectionChange = useCallback(
-    async (newSelection: string[]) => {
-      const prev = selectedAgentIds;
-      setSelectedAgentIds(newSelection);
-      setSyncing(true);
+  async function handleSelectionChange(newSelection: string[]) {
+    const prev = selectedAgentIds;
+    setSelectedAgentIds(newSelection);
+    setSyncing(true);
 
-      try {
-        const added = newSelection.filter((id) => !prev.includes(id));
-        const removed = prev.filter((id) => !newSelection.includes(id));
+    try {
+      const added = newSelection.filter((id) => !prev.includes(id));
+      const removed = prev.filter((id) => !newSelection.includes(id));
 
-        await Promise.all([
-          ...added.map((agentId) => addDatasetAgentAction(tenantId, projectId, datasetId, agentId)),
-          ...removed.map((agentId) =>
-            removeDatasetAgentAction(tenantId, projectId, datasetId, agentId)
-          ),
-        ]);
-      } catch {
-        setSelectedAgentIds(prev);
-        toast.error('Failed to update agent associations');
-      } finally {
-        setSyncing(false);
-      }
-    },
-    [selectedAgentIds, tenantId, projectId, datasetId]
-  );
+      await Promise.all([
+        ...added.map((agentId) => addDatasetAgentAction(tenantId, projectId, datasetId, agentId)),
+        ...removed.map((agentId) =>
+          removeDatasetAgentAction(tenantId, projectId, datasetId, agentId)
+        ),
+      ]);
+    } catch {
+      setSelectedAgentIds(prev);
+      toast.error('Failed to update agent associations');
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   if (!loaded || loadingAgents) {
     return (

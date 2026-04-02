@@ -22,7 +22,7 @@ export default function WorkAppGitHubSettingsPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadInstallations = useCallback(async () => {
+  async function loadInstallations() {
     try {
       const data = await fetchWorkAppGitHubInstallations(tenantId);
       setInstallations(data);
@@ -32,7 +32,7 @@ export default function WorkAppGitHubSettingsPage({
     } finally {
       setLoading(false);
     }
-  }, [tenantId]);
+  }
 
   useEffect(() => {
     loadInstallations();
