@@ -897,7 +897,7 @@ async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
   const { apiKey, subAgentId } = reqData;
 
   // When subAgentId is set, this is an internal A2A call — skip app credential auth.
-  // The appId is forwarded for context only; the sub-agent authenticates via its own token.
+  // The sub-agent authenticates via its own service token (which carries appId in the JWT).
   if (reqData.appId && !subAgentId) {
     if (!apiKey) {
       return { authResult: null, failureMessage: 'Bearer token required for app credential auth' };
