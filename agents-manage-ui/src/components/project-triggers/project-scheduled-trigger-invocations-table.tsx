@@ -4,7 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { Ban, MoreHorizontal, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';

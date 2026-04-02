@@ -10,7 +10,7 @@ import {
   SlackIcon,
   Trash2,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import EmptyState from '@/components/layout/empty-state';
 import {
