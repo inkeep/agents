@@ -2853,6 +2853,31 @@ export const DuplicateAgentRequestSchema = z
   })
   .openapi('DuplicateAgentRequest');
 
+export const ImportAgentRequestSchema = z
+  .object({
+    sourceProjectId: ResourceIdSchema.describe('Project ID to import the agent from'),
+    sourceAgentId: ResourceIdSchema.describe('Agent ID to import from the source project'),
+    newAgentId: ResourceIdSchema.describe('ID for the imported agent'),
+    newAgentName: NameSchema.optional().describe('Optional name for the imported agent'),
+  })
+  .openapi('ImportAgentRequest');
+
+export const ImportAgentWarningSchema = z
+  .object({
+    code: z.literal('credential_missing'),
+    resourceType: z.enum(['tool', 'externalAgent']),
+    resourceId: ResourceIdSchema,
+    credentialReferenceId: ResourceIdSchema,
+  })
+  .openapi('ImportAgentWarning');
+
+export const ImportAgentResponseSchema = z
+  .object({
+    data: AgentWithinContextOfProjectSelectSchema,
+    warnings: z.array(ImportAgentWarningSchema),
+  })
+  .openapi('ImportAgentResponse');
+
 export const RelatedAgentInfoListResponse = z
   .object({
     data: z.array(RelatedAgentInfoSchema),

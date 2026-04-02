@@ -1,3 +1,4 @@
+import * as agentsCore from '@inkeep/agents-core';
 import {
   createArtifactComponent,
   createDataComponent,
@@ -7,6 +8,7 @@ import {
   createSkill,
   createTool,
   generateId,
+  getAgentById,
   listArtifactComponents,
   listDataComponents,
   listExternalAgents,
@@ -18,9 +20,11 @@ import {
   upsertFunction,
 } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
-import { describe, expect, it } from 'vitest';
+import { HTTPException } from 'hono/http-exception';
+import { describe, expect, it, vi } from 'vitest';
 import manageDbClient from '../../../../data/db/manageDbClient';
 import runDbClient from '../../../../data/db/runDbClient';
+import { importAgentHandler } from '../../../../domains/manage/routes/agent';
 import {
   createTestArtifactComponentData,
   createTestContextConfigDataFull,
@@ -1296,6 +1300,130 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
       const body = await res.json();
       expect(body.detail).toBe(`An agent with ID '${targetAgentId}' already exists`);
+    });
+  });
+
+  describe('POST /import', () => {
+    const sourceProjectId = 'source-project';
+
+    const createImportHandlerContext = (overrides?: {
+      param?: { tenantId?: string; projectId?: string };
+      body?: {
+        sourceProjectId?: string;
+        sourceAgentId?: string;
+        newAgentId?: string;
+        newAgentName?: string;
+      };
+      context?: Record<string, string | undefined>;
+    }): Parameters<typeof importAgentHandler>[0] =>
+      ({
+        req: {
+          valid: (target: 'param' | 'json') => {
+            if (target === 'param') {
+              return {
+                tenantId: overrides?.param?.tenantId ?? 'test-tenant',
+                projectId: overrides?.param?.projectId ?? projectId,
+              };
+            }
+
+            return {
+              sourceProjectId: overrides?.body?.sourceProjectId ?? sourceProjectId,
+              sourceAgentId: overrides?.body?.sourceAgentId ?? 'source-agent',
+              newAgentId: overrides?.body?.newAgentId ?? 'imported-agent',
+              newAgentName: overrides?.body?.newAgentName,
+            };
+          },
+        },
+        get: (key: string) =>
+          (
+            {
+              userId: 'test-user',
+              tenantId: 'test-tenant',
+              tenantRole: 'member',
+              ...overrides?.context,
+            } as Record<string, string | undefined>
+          )[key],
+      }) as Parameters<typeof importAgentHandler>[0];
+
+    it('should return 400 when the source and target project match', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-import-same-project');
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/import`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            sourceProjectId: projectId,
+            sourceAgentId: 'source-agent',
+            newAgentId: `imported-agent-${generateId(6)}`,
+          }),
+        }
+      );
+
+      expect(res.status).toBe(400);
+
+      const body = await res.json();
+      expect(body.detail).toContain('/duplicate');
+    });
+
+    it('should return 404 when the caller cannot view the source project', async () => {
+      const originalEnvironment = process.env.ENVIRONMENT;
+      process.env.ENVIRONMENT = 'development';
+
+      const canViewProjectSpy = vi.spyOn(agentsCore, 'canViewProject').mockResolvedValue(false);
+
+      try {
+        const context = createImportHandlerContext();
+        const error = await importAgentHandler(context).catch((caughtError) => caughtError);
+
+        expect(canViewProjectSpy).toHaveBeenCalledWith({
+          userId: 'test-user',
+          tenantId: 'test-tenant',
+          projectId: sourceProjectId,
+          orgRole: 'member',
+        });
+        expect(error).toBeInstanceOf(HTTPException);
+
+        const response = (error as HTTPException).getResponse();
+        expect(response.status).toBe(404);
+        await expect(response.json()).resolves.toMatchObject({
+          detail: 'Project not found',
+        });
+      } finally {
+        canViewProjectSpy.mockRestore();
+        process.env.ENVIRONMENT = originalEnvironment;
+      }
+    });
+
+    it('should return 500 until the import service is implemented and not create records', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-import-not-implemented');
+      const newAgentId = `imported-agent-${generateId(6)}`;
+
+      await createTestProject(manageDbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, sourceProjectId);
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/import`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            sourceProjectId,
+            sourceAgentId: 'source-agent',
+            newAgentId,
+          }),
+        }
+      );
+
+      expect(res.status).toBe(500);
+
+      const body = await res.json();
+      expect(body.detail).toBe('Import agent service not implemented');
+      expect(
+        await getAgentById(manageDbClient)({
+          scopes: { tenantId, projectId, agentId: newAgentId },
+        })
+      ).toBeNull();
     });
   });
 });

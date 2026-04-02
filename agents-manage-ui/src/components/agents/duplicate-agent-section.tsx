@@ -1,5 +1,6 @@
 'use client';
 
+import type { DuplicateAgentRequest } from '@inkeep/agents-core';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { DuplicateAgentRequestSchema } from '@inkeep/agents-core/client-exports';
 import { Loader2 } from 'lucide-react';
@@ -7,7 +8,6 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { z } from 'zod';
 import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 import { GenericInput } from '@/components/form/generic-input';
 import { Button } from '@/components/ui/button';
@@ -19,14 +19,12 @@ import { useAgentsListQuery } from '@/lib/query/agents';
 import { isRequired } from '@/lib/utils';
 
 const DuplicateAgentFormSchema = DuplicateAgentRequestSchema.extend({
-  newAgentName: z
-    .union([DuplicateAgentRequestSchema.shape.newAgentName, z.literal('')])
-    .transform((value) => (value === '' ? undefined : value)),
+  newAgentName: DuplicateAgentRequestSchema.shape.newAgentName.transform(
+    (value) => value || undefined
+  ),
 });
 
-type DuplicateAgentInput = z.input<typeof DuplicateAgentFormSchema>;
-
-const initialData: DuplicateAgentInput = {
+const initialData: DuplicateAgentRequest = {
   newAgentId: '',
   newAgentName: '',
 };
@@ -195,14 +193,14 @@ export function DuplicateAgentSection({
           name="newAgentName"
           label="New name"
           placeholder={selectedAgent ? `${selectedAgent.name} (Copy)` : 'Copied agent'}
-          description="Optional. Leave blank to use the default copied name."
+          description="Leave blank to use the default copied name."
         />
         <GenericInput
           control={form.control}
           name="newAgentId"
           label="New id"
           placeholder={selectedAgent ? `${selectedAgent.id}-copy` : 'copied-agent'}
-          description="Required. This becomes the new agent URL and identifier."
+          description="This becomes the new agent URL and identifier."
           isRequired={isRequired(DuplicateAgentFormSchema, 'newAgentId')}
         />
 

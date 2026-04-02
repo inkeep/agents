@@ -6,6 +6,7 @@ import {
   AgentResponse,
   AgentWithinContextOfProjectResponse,
   AgentWithinContextOfProjectSelectResponse,
+  canViewProject,
   commonGetErrorResponses,
   createAgent,
   createApiError,
@@ -17,6 +18,9 @@ import {
   getAgentById,
   getAgentSubAgentInfos,
   getFullAgentDefinition,
+  type ImportAgentRequest,
+  ImportAgentRequestSchema,
+  ImportAgentResponseSchema,
   listAgentsPaginated,
   PaginationQueryParamsSchema,
   RelatedAgentInfoListResponse,
@@ -24,6 +28,7 @@ import {
   TenantProjectAgentSubAgentParamsSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
+  type OrgRole,
   throwIfUniqueConstraintError,
   updateAgent,
 } from '@inkeep/agents-core';
@@ -38,6 +43,60 @@ import {
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
+
+type ImportAgentHandlerContext = {
+  req: {
+    valid(target: 'param'): { tenantId: string; projectId: string };
+    valid(target: 'json'): ImportAgentRequest;
+  };
+  get(key: 'userId' | 'tenantId' | 'tenantRole'): string | undefined;
+};
+
+export const importAgentHandler = async (c: ImportAgentHandlerContext) => {
+  const { projectId } = c.req.valid('param');
+  const body = c.req.valid('json');
+
+  if (body.sourceProjectId === projectId) {
+    throw createApiError({
+      code: 'bad_request',
+      message:
+        'Source and target project must differ. Use /duplicate to copy within the same project.',
+    });
+  }
+
+  if (process.env.ENVIRONMENT !== 'test') {
+    const userId = c.get('userId');
+    const tenantId = c.get('tenantId');
+
+    if (!userId || !tenantId) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'User or organization context not found',
+      });
+    }
+
+    if (userId !== 'system' && !userId.startsWith('apikey:')) {
+      const hasSourceProjectAccess = await canViewProject({
+        userId,
+        tenantId,
+        projectId: body.sourceProjectId,
+        orgRole: c.get('tenantRole') as OrgRole,
+      });
+
+      if (!hasSourceProjectAccess) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'Project not found',
+        });
+      }
+    }
+  }
+
+  throw createApiError({
+    code: 'internal_server_error',
+    message: 'Import agent service not implemented',
+  });
+};
 
 app.openapi(
   createProtectedRoute({
@@ -205,6 +264,47 @@ app.openapi(
 
     return c.json({ data: fullAgent });
   }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'post',
+    path: '/import',
+    summary: 'Import Agent',
+    operationId: 'import-agent',
+    tags: ['Agents'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: TenantProjectParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: ImportAgentRequestSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      201: {
+        description: 'Agent imported successfully',
+        content: {
+          'application/json': {
+            schema: ImportAgentResponseSchema,
+          },
+        },
+      },
+      409: {
+        description: 'Import conflict',
+        content: {
+          'application/json': {
+            schema: ErrorResponseSchema,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => importAgentHandler(c as ImportAgentHandlerContext)
 );
 
 app.openapi(

@@ -93,6 +93,9 @@ import type {
   DatasetSelectSchema,
   DatasetUpdateSchema,
   DuplicateAgentRequestSchema,
+  ImportAgentRequestSchema,
+  ImportAgentResponseSchema,
+  ImportAgentWarningSchema,
   EvaluationJobConfigEvaluatorRelationInsertSchema,
   EvaluationJobConfigEvaluatorRelationSelectSchema,
   EvaluationJobConfigEvaluatorRelationUpdateSchema,
@@ -671,6 +674,9 @@ export type FullAgentSubAgentSelectWithRelationIds = z.infer<
   typeof FullAgentSubAgentSelectSchemaWithRelationIds
 >;
 export type DuplicateAgentRequest = z.infer<typeof DuplicateAgentRequestSchema>;
+export type ImportAgentRequest = z.infer<typeof ImportAgentRequestSchema>;
+export type ImportAgentWarning = z.infer<typeof ImportAgentWarningSchema>;
+export type ImportAgentResponse = z.infer<typeof ImportAgentResponseSchema>;
 
 export type FullProjectDefinition = z.infer<typeof FullProjectDefinitionSchema>;
 export type FullProjectSelect = z.infer<typeof FullProjectSelectSchema>;
