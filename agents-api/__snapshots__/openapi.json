@@ -11622,62 +11622,6 @@
         }
       }
     },
-    "/manage/copilot/token": {
-      "post": {
-        "description": "Generates a short-lived JWT (1 hour) for authenticated users to access the copilot agent. The token is a minimal identity assertion; scope comes from the copilot app record.",
-        "operationId": "create-copilot-token",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "apiKey": {
-                      "description": "Temporary JWT for copilot use",
-                      "type": "string"
-                    },
-                    "appId": {
-                      "description": "App ID to include as x-inkeep-app-id header",
-                      "type": "string"
-                    },
-                    "expiresAt": {
-                      "description": "ISO 8601 timestamp when the key expires",
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "apiKey",
-                    "expiresAt",
-                    "appId"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Copilot JWT generated successfully"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Unauthorized - session required"
-          }
-        },
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ],
-        "summary": "Generate temporary JWT for copilot (chat-to-edit)",
-        "tags": [
-          "API Keys"
-        ]
-      }
-    },
     "/manage/oauth/callback": {
       "get": {
         "description": "Handles OAuth authorization codes for MCP tools and completes the authentication flow. Secured via PKCE state parameter (not HTTP authentication) since this is an external redirect from an OAuth provider.",

@@ -4,7 +4,6 @@ import type { ManageAppVariables } from '../../types/app';
 import authLookupRoutes from './routes/authLookup';
 import availableAgentsRoutes from './routes/availableAgents';
 import cliAuthRoutes from './routes/cliAuth';
-import copilotTokenRoutes from './routes/copilotToken';
 import entitlementsRoutes from './routes/entitlements';
 import githubRoutes from './routes/github';
 import crudRoutes from './routes/index';
@@ -73,9 +72,6 @@ export function createManageRoutes() {
 
   // Mount full project routes directly under tenant
   app.route('/tenants/:tenantId', projectFullRoutes);
-
-  // Mount copilot token route (session auth only, no tenant scoping needed)
-  app.route('/copilot/token', copilotTokenRoutes);
 
   // Mount OAuth routes - global OAuth callback endpoint
   app.route('/oauth', oauthRoutes);
