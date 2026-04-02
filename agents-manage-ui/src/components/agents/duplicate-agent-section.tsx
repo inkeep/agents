@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { z } from 'zod';
 import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 import { GenericInput } from '@/components/form/generic-input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -20,9 +21,11 @@ import { useAgentsListQuery } from '@/lib/query/agents';
 import { useProjectsQuery } from '@/lib/query/projects';
 import { isRequired } from '@/lib/utils';
 
-const DuplicateAgentFormSchema = DuplicateAgentRequestSchema.extend({
-  newAgentName: DuplicateAgentRequestSchema.shape.newAgentName.transform(
-    (value) => value || undefined
+const DuplicateAgentFormSchema = z.strictObject({
+  ...DuplicateAgentRequestSchema.shape,
+  newAgentName: z.preprocess(
+    (value) => value || undefined,
+    DuplicateAgentRequestSchema.shape.newAgentName
   ),
 });
 
@@ -59,7 +62,7 @@ function buildWarningSummary(warnings: ImportAgentWarning[]) {
   return parts.join(' | ');
 }
 
-function renderLabel(name: string, description?: string) {
+function renderLabel(name: string, description?: string | null) {
   return (
     <div className="min-w-0">
       <div className="truncate font-medium">{name}</div>
@@ -256,6 +259,7 @@ export function DuplicateAgentSection({
           label="New name"
           placeholder={selectedAgent ? `${selectedAgent.name} (Copy)` : 'Copied agent'}
           description="Leave blank to use the default copied name."
+          isRequired={isRequired(DuplicateAgentFormSchema, 'newAgentName')}
         />
         <GenericInput
           control={form.control}
