@@ -63,7 +63,7 @@ export default function TracesOverview({
   const [activityLoading, setActivityLoading] = useState(true);
 
   // Calculate time range based on selection
-  const { startTime, endTime } = useMemo(() => {
+  const { startTime, endTime } = (() => {
     const currentEndTime = Date.now() - 1; // Clamp to now-1ms to satisfy backend validation
 
     if (selectedTimeRange === CUSTOM) {
@@ -98,7 +98,7 @@ export default function TracesOverview({
       startTime: calculatedStart,
       endTime: currentEndTime,
     };
-  }, [selectedTimeRange, customStartDate, customEndDate]);
+  })();
   // URL state management is now handled by useUrlFilterState hook
 
   // Debounce search query to avoid too many API calls

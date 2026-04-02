@@ -18,12 +18,11 @@ export function WebhooksTabPanel({
   triggers: TriggerWithAgent[];
   agents: AgentSummary[];
 }) {
-  const [agentFilter, setAgentFilter] = useState<string>('');
+  const [agentFilter, setAgentFilter] = useState('');
 
-  const filteredTriggers = useMemo(() => {
-    if (!agentFilter) return triggers;
-    return triggers.filter((t) => t.agentId === agentFilter);
-  }, [triggers, agentFilter]);
+  const filteredTriggers = !agentFilter
+    ? triggers
+    : triggers.filter((t) => t.agentId === agentFilter);
 
   return (
     <div className="space-y-4">

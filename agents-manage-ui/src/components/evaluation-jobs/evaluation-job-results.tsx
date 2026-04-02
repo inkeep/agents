@@ -112,10 +112,7 @@ export function EvaluationJobResults({
 
   const selectedEvaluator = selectedEvaluatorId ? getEvaluatorById(selectedEvaluatorId) : undefined;
 
-  const filteredResults = useMemo(
-    () => filterEvaluationResults(results, filters, evaluators),
-    [results, filters, evaluators]
-  );
+  const filteredResults = filterEvaluationResults(results, filters, evaluators);
 
   const evaluatorOptions = evaluators.map((e) => ({ id: e.id, name: e.name }));
   const agentOptions = useMemo(() => {

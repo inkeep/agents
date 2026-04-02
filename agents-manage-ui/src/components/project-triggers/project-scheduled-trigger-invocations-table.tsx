@@ -47,7 +47,7 @@ export function ProjectScheduledTriggerInvocationsTable({
 }: ProjectScheduledTriggerInvocationsTableProps) {
   const router = useRouter();
   const [invocations, setInvocations] = useState(initialInvocations);
-  const [loadingInvocations, setLoadingInvocations] = useState<Set<string>>(new Set());
+  const [loadingInvocations, setLoadingInvocations] = useState(new Set<string>());
 
   // Filter state
   const [agentFilter, setAgentFilter] = useState('');
@@ -55,47 +55,41 @@ export function ProjectScheduledTriggerInvocationsTable({
   const [triggerFilter, setTriggerFilter] = useState('');
 
   // Derive unique agents and triggers from the data
-  const agentOptions = useMemo(() => {
-    const uniqueAgents = new Map<string, string>();
-    invocations.forEach((inv) => {
-      if (!uniqueAgents.has(inv.agentId)) {
-        uniqueAgents.set(inv.agentId, inv.agentName);
-      }
-    });
-    return [
-      { value: '', label: 'All agents' },
-      ...Array.from(uniqueAgents.entries()).map(([id, name]) => ({
-        value: id,
-        label: name,
-      })),
-    ];
-  }, [invocations]);
+  const uniqueAgents = new Map<string, string>();
+  invocations.forEach((inv) => {
+    if (!uniqueAgents.has(inv.agentId)) {
+      uniqueAgents.set(inv.agentId, inv.agentName);
+    }
+  });
+  const agentOptions = [
+    { value: '', label: 'All agents' },
+    ...Array.from(uniqueAgents.entries()).map(([id, name]) => ({
+      value: id,
+      label: name,
+    })),
+  ];
 
-  const triggerOptions = useMemo(() => {
-    const uniqueTriggers = new Map<string, string>();
-    invocations.forEach((inv) => {
-      if (!uniqueTriggers.has(inv.scheduledTriggerId)) {
-        uniqueTriggers.set(inv.scheduledTriggerId, inv.triggerName);
-      }
-    });
-    return [
-      { value: '', label: 'All triggers' },
-      ...Array.from(uniqueTriggers.entries()).map(([id, name]) => ({
-        value: id,
-        label: name,
-      })),
-    ];
-  }, [invocations]);
+  const uniqueTriggers = new Map<string, string>();
+  invocations.forEach((inv) => {
+    if (!uniqueTriggers.has(inv.scheduledTriggerId)) {
+      uniqueTriggers.set(inv.scheduledTriggerId, inv.triggerName);
+    }
+  });
+  const triggerOptions = [
+    { value: '', label: 'All triggers' },
+    ...Array.from(uniqueTriggers.entries()).map(([id, name]) => ({
+      value: id,
+      label: name,
+    })),
+  ];
 
   // Apply filters
-  const filteredInvocations = useMemo(() => {
-    return invocations.filter((inv) => {
-      if (agentFilter && inv.agentId !== agentFilter) return false;
-      if (statusFilter && inv.status !== statusFilter) return false;
-      if (triggerFilter && inv.scheduledTriggerId !== triggerFilter) return false;
-      return true;
-    });
-  }, [invocations, agentFilter, statusFilter, triggerFilter]);
+  const filteredInvocations = invocations.filter((inv) => {
+    if (agentFilter && inv.agentId !== agentFilter) return false;
+    if (statusFilter && inv.status !== statusFilter) return false;
+    if (triggerFilter && inv.scheduledTriggerId !== triggerFilter) return false;
+    return true;
+  });
 
   const hasActiveFilters = agentFilter || statusFilter || triggerFilter;
 

@@ -41,10 +41,9 @@ export function ScheduledTabPanel({
     return () => clearInterval(intervalId);
   }, [tenantId, projectId]);
 
-  const filteredTriggers = useMemo(() => {
-    if (!agentFilter) return triggers;
-    return triggers.filter((t) => t.agentId === agentFilter);
-  }, [triggers, agentFilter]);
+  const filteredTriggers = !agentFilter
+    ? triggers
+    : triggers.filter((t) => t.agentId === agentFilter);
 
   return (
     <div className="space-y-4">

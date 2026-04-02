@@ -552,76 +552,64 @@ export function TriggerForm({
   const watchedJoinSeparator = form.watch('joinSeparator');
 
   // Generate request preview based on current form values
-  const generateRequestPreview = useMemo(() => {
-    const authHeaders = watchedAuthHeaders || [];
-    const signatureVerificationEnabled = watchedSignatureVerificationEnabled;
-    const signingCredential = watchedSigningCredential;
-    const signatureKey = watchedSignatureKey;
-    const signaturePrefix = watchedSignaturePrefix || '';
-    const signatureAlgorithm = watchedSignatureAlgorithm || 'sha256';
-    const signatureEncoding = watchedSignatureEncoding || 'hex';
-    const signedComponents = watchedSignedComponents || [];
-    const joinSeparator = watchedJoinSeparator || '';
+  const authHeaders = watchedAuthHeaders || [];
+  const signatureVerificationEnabled = watchedSignatureVerificationEnabled;
+  const signingCredential = watchedSigningCredential;
+  const signatureKey = watchedSignatureKey;
+  const signaturePrefix = watchedSignaturePrefix || '';
+  const signatureAlgorithm = watchedSignatureAlgorithm || 'sha256';
+  const signatureEncoding = watchedSignatureEncoding || 'hex';
+  const signedComponents = watchedSignedComponents || [];
+  const joinSeparator = watchedJoinSeparator || '';
 
-    const lines: string[] = [];
+  const lines: string[] = [];
 
-    // HTTP method and path
-    lines.push('POST /api/v1/webhooks/trigger/{trigger-id}');
-    lines.push('Content-Type: application/json');
+  // HTTP method and path
+  lines.push('POST /api/v1/webhooks/trigger/{trigger-id}');
+  lines.push('Content-Type: application/json');
 
-    // Auth headers
-    for (const header of authHeaders) {
-      if (header.name) {
-        lines.push(`${header.name}: ••••••••`);
+  // Auth headers
+  for (const header of authHeaders) {
+    if (header.name) {
+      lines.push(`${header.name}: ••••••••`);
+    }
+  }
+
+  // Signature header if configured and enabled
+  if (signatureVerificationEnabled && signingCredential && signatureKey) {
+    lines.push(`${signatureKey}: ${signaturePrefix}<${signatureAlgorithm}-hmac>`);
+
+    // Add any timestamp headers from signed components
+    for (const comp of signedComponents) {
+      if (comp.source === 'header' && comp.key && comp.key !== signatureKey) {
+        lines.push(`${comp.key}: <timestamp-or-value>`);
       }
     }
+  }
 
-    // Signature header if configured and enabled
-    if (signatureVerificationEnabled && signingCredential && signatureKey) {
-      lines.push(`${signatureKey}: ${signaturePrefix}<${signatureAlgorithm}-hmac>`);
+  lines.push('');
+  lines.push('{');
+  lines.push('  "event": "example.event",');
+  lines.push('  "data": { ... }');
+  lines.push('}');
 
-      // Add any timestamp headers from signed components
-      for (const comp of signedComponents) {
-        if (comp.source === 'header' && comp.key && comp.key !== signatureKey) {
-          lines.push(`${comp.key}: <timestamp-or-value>`);
-        }
-      }
-    }
-
+  // Add signature computation explanation if configured and enabled
+  if (signatureVerificationEnabled && signingCredential && signedComponents.length > 0) {
     lines.push('');
-    lines.push('{');
-    lines.push('  "event": "example.event",');
-    lines.push('  "data": { ... }');
-    lines.push('}');
+    lines.push('---');
+    lines.push('Signature computed from:');
+    const componentDescriptions = signedComponents.map((comp) => {
+      if (comp.source === 'body') return '<request-body>';
+      if (comp.source === 'literal') return `"${comp.value || ''}"`;
+      if (comp.source === 'header') return `<${comp.key || 'header'}-value>`;
+      return '<component>';
+    });
+    lines.push(`  ${componentDescriptions.join(` ${joinSeparator || '+'} `)}`);
+    lines.push(`  Algorithm: HMAC-${signatureAlgorithm.toUpperCase()}`);
+    lines.push(`  Encoding: ${signatureEncoding}`);
+  }
 
-    // Add signature computation explanation if configured and enabled
-    if (signatureVerificationEnabled && signingCredential && signedComponents.length > 0) {
-      lines.push('');
-      lines.push('---');
-      lines.push('Signature computed from:');
-      const componentDescriptions = signedComponents.map((comp) => {
-        if (comp.source === 'body') return '<request-body>';
-        if (comp.source === 'literal') return `"${comp.value || ''}"`;
-        if (comp.source === 'header') return `<${comp.key || 'header'}-value>`;
-        return '<component>';
-      });
-      lines.push(`  ${componentDescriptions.join(` ${joinSeparator || '+'} `)}`);
-      lines.push(`  Algorithm: HMAC-${signatureAlgorithm.toUpperCase()}`);
-      lines.push(`  Encoding: ${signatureEncoding}`);
-    }
-
-    return lines.join('\n');
-  }, [
-    watchedAuthHeaders,
-    watchedSignatureVerificationEnabled,
-    watchedSigningCredential,
-    watchedSignatureKey,
-    watchedSignaturePrefix,
-    watchedSignatureAlgorithm,
-    watchedSignatureEncoding,
-    watchedSignedComponents,
-    watchedJoinSeparator,
-  ]);
+  const generateRequestPreview = lines.join('\n');
 
   const onSubmit = async (data: TriggerFormData) => {
     try {

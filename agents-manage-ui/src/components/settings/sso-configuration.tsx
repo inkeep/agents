@@ -202,7 +202,7 @@ export function RegisterSSOForm({
     scopes: DEFAULT_OIDC_SCOPES.join(', '),
   });
 
-  const providerId = useMemo(() => generateProviderId(organizationSlug), [organizationSlug]);
+  const providerId = generateProviderId(organizationSlug);
   const callbackUrl = buildCallbackUrl(PUBLIC_INKEEP_AGENTS_API_URL, providerId);
 
   const handleSubmit = async (e: React.FormEvent) => {

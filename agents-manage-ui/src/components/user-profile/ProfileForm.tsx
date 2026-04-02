@@ -13,18 +13,14 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ userId, initialTimezone }: ProfileFormProps) {
-  const browserTimezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
+  const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const [timezone, setTimezone] = useState(initialTimezone ?? browserTimezone);
   const [isSaving, setIsSaving] = useState(false);
 
-  const timezoneOptions = useMemo(
-    () =>
-      Intl.supportedValuesOf('timeZone').map((tz) => ({
-        value: tz,
-        label: tz,
-      })),
-    []
-  );
+  const timezoneOptions = Intl.supportedValuesOf('timeZone').map((tz) => ({
+    value: tz,
+    label: tz,
+  }));
 
   useEffect(() => {
     setTimezone(initialTimezone ?? browserTimezone);
