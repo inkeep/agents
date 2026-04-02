@@ -29,5 +29,6 @@ export interface Agent {
 // API Response Types
 export type CreateAgentResponse = SingleResponse<AgentApiInsert>;
 export type GetAgentResponse = SingleResponse<FullAgentResponse>;
+export type DuplicateAgentResponse = SingleResponse<FullAgentResponse>;
 export type UpdateFullAgentResponse = SingleResponse<FullAgentResponse>;
 export type UpdateAgentResponse = SingleResponse<AgentApiInsert>;

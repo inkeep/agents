@@ -11,6 +11,7 @@ import { cache } from 'react';
 import type {
   Agent,
   CreateAgentResponse,
+  DuplicateAgentResponse,
   FullAgentPayload,
   GetAgentResponse,
   UpdateAgentResponse,
@@ -37,6 +38,21 @@ export async function createAgent(
     {
       method: 'POST',
       body: JSON.stringify(agentData),
+    }
+  );
+}
+
+export async function duplicateAgent(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  duplicateData: DuplicateAgentRequest
+): Promise<DuplicateAgentResponse> {
+  return makeManagementApiRequest<DuplicateAgentResponse>(
+    `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/duplicate`,
+    {
+      method: 'POST',
+      body: JSON.stringify(duplicateData),
     }
   );
 }

@@ -2846,6 +2846,13 @@ export const AgentWithinContextOfProjectSelectResponse = z
   .object({ data: AgentWithinContextOfProjectSelectSchema })
   .openapi('AgentWithinContextOfProjectSelectResponse');
 
+export const DuplicateAgentRequestSchema = z
+  .object({
+    newAgentId: ResourceIdSchema.describe('ID for the duplicated agent'),
+    newAgentName: NameSchema.optional().describe('Optional name for the duplicated agent'),
+  })
+  .openapi('DuplicateAgentRequest');
+
 export const RelatedAgentInfoListResponse = z
   .object({
     data: z.array(RelatedAgentInfoSchema),
