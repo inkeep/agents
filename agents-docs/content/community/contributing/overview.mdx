@@ -280,6 +280,36 @@ The script verifies that migrations are **append-only** and **immutable**, follo
 
 If the check fails with a **"rebase and regenerate"** error, your branch has stale migrations that conflict with newer ones on `main`. To fix this, rebase your branch on `main` and regenerate your migrations with the appropriate `pnpm db:generate` command.
 
+### Testing Dolt schema migrations across branches
+
+When you change the manage-schema, you should verify that the schema change can be merged from the `main` schema branch into existing project branches containing real data.
+Doltgres is still in beta and there may be discrepancies between valid postgres and doltgres behavior. These discrepancies may cause migrations to fail when merged into project branches.
+
+#### Recommended workflow
+
+1. Start from a local database that already has projects with representative test data. 
+2. Apply the new manage migration:
+
+```bash
+pnpm db:manage:migrate
+```
+
+3. Run the branch sync script to merge the schema change from `main` into every project branch:
+
+```bash
+pnpm --filter @inkeep/agents-core db:manage:sync-all-branches
+```
+
+4. Inspect the output. Each branch should report either:
+   - `SYNCED` if the schema changed successfully
+   - `NOOP` if the branch was already up to date
+5. Re-open the branches you care about and verify the migration still works against real data. At minimum, check the tables or code paths affected by the migration and confirm reads, writes, and merges behave as expected.
+
+
+#### Backfill migrations
+
+Data backfills will not be applied when merging schema changes into project branches. You will need to run the backfill script manually after merging any schema changes.
+
 ## AI coding assistants and coding practices
 
 Many of our best coding practices for AI assistants live in `AGENTS.md`. We render it below for reference.
