@@ -24,6 +24,19 @@ const resolveScreenshotPath: ToMatchScreenshotOptions['resolveScreenshotPath'] =
   ].join('/');
 };
 
+const providerOptions = process.env.PW_TEST_CONNECT_WS_ENDPOINT
+  ? {
+      connectOptions: {
+        wsEndpoint: process.env.PW_TEST_CONNECT_WS_ENDPOINT,
+        exposeNetwork: '<loopback>',
+      },
+    }
+  : {
+      launchOptions: {
+        args: ['--font-render-hinting=none'],
+      },
+    };
+
 export default defineConfig({
   plugins: [svgr()],
   test: {
@@ -41,25 +54,10 @@ export default defineConfig({
             // viewport: { width: 2560, height: 1440 },
             enabled: true,
             headless: true,
-            provider: playwright({
-              ...(process.env.PW_TEST_CONNECT_WS_ENDPOINT
-                ? {
-                    connectOptions: {
-                      wsEndpoint: process.env.PW_TEST_CONNECT_WS_ENDPOINT,
-                      exposeNetwork: '<loopback>',
-                    },
-                  }
-                : {
-                    launchOptions: {
-                      args: ['--font-render-hinting=none'],
-                    },
-                  }),
-            }),
+            provider: playwright(providerOptions),
             instances: [{ browser: 'chromium' }],
             expect: {
               toMatchScreenshot: {
-                // Increase timeout because the default `5s` is insufficient on CI
-                timeout: 15_000,
                 resolveScreenshotPath,
                 resolveDiffPath: resolveScreenshotPath,
               },
