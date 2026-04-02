@@ -90,7 +90,11 @@ interface TimelineWrapperProps {
   tenantId?: string;
   projectId?: string;
   highlightMessageId?: string | null;
-  onLeaveFeedback?: (activityId: string, messageId?: string) => void;
+  onLeaveFeedback?: (
+    activityId: string,
+    messageId?: string,
+    type?: 'positive' | 'negative'
+  ) => void;
   onCopyFullTrace?: () => void;
   onCopySummarizedTrace?: () => void;
   isCopying?: boolean;

@@ -26,6 +26,7 @@ interface FeedbackDialogProps {
   projectId: string;
   conversationId: string;
   messageId?: string;
+  initialType?: 'positive' | 'negative';
   onNegativeFeedbackSubmit?: (feedback: string) => void;
 }
 
@@ -49,11 +50,12 @@ export const FeedbackDialog = ({
   projectId,
   conversationId,
   messageId,
+  initialType,
   onNegativeFeedbackSubmit,
 }: FeedbackDialogProps) => {
   const form = useForm<FeedbackFormData>({
     defaultValues: {
-      type: 'negative',
+      type: initialType ?? 'negative',
       scope: messageId ? 'message' : 'conversation',
       feedback: '',
     },
@@ -67,12 +69,12 @@ export const FeedbackDialog = ({
   useEffect(() => {
     if (isOpen) {
       form.reset({
-        type: 'negative',
+        type: initialType ?? 'negative',
         scope: messageId ? 'message' : 'conversation',
         feedback: '',
       });
     }
-  }, [form, isOpen, messageId]);
+  }, [form, isOpen, messageId, initialType]);
 
   const onSubmit = async ({ feedback, type, scope }: FeedbackFormData) => {
     if (scope === 'message' && !messageId) {

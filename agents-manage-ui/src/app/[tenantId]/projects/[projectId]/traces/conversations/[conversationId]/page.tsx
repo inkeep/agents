@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   Coins,
   ExternalLink as ExternalLinkIcon,
-  MessageSquare,
   Timer,
   TriangleAlert,
 } from 'lucide-react';
@@ -69,6 +68,7 @@ export default function ConversationDetail({
   const [feedbackDialog, setFeedbackDialog] = useState<{
     open: boolean;
     messageId?: string;
+    type?: 'positive' | 'negative';
   }>({ open: false });
   const { PUBLIC_SIGNOZ_URL, PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
   const isCloudDeployment = PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true';
@@ -317,10 +317,6 @@ export default function ConversationDetail({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setFeedbackDialog({ open: true })}>
-            <MessageSquare className="h-4 w-4 mr-1.5" />
-            Leave Feedback
-          </Button>
           {(conversation.agentId || conversation.agentName) && (
             <ExternalLink
               href={`/${tenantId}/projects/${projectId}/agents/${conversation.agentId}`}
@@ -562,8 +558,8 @@ export default function ConversationDetail({
             tenantId={tenantId}
             projectId={projectId}
             highlightMessageId={highlightMessageId}
-            onLeaveFeedback={(_activityId, messageId) => {
-              setFeedbackDialog({ open: true, messageId });
+            onLeaveFeedback={(_activityId, messageId, type) => {
+              setFeedbackDialog({ open: true, messageId, type: type ?? 'negative' });
             }}
             onCopyFullTrace={handleCopyFullTrace}
             onCopySummarizedTrace={handleCopySummarizedTrace}
@@ -582,6 +578,7 @@ export default function ConversationDetail({
         projectId={projectId}
         conversationId={conversationId}
         messageId={feedbackDialog.messageId}
+        initialType={feedbackDialog.type}
       />
     </div>
   );

@@ -1,24 +1,22 @@
 'use client';
 
 import {
+  ArrowUpRight,
   ChevronLeft,
   ChevronRight,
   MessageSquare,
-  Search,
   ThumbsDown,
   ThumbsUp,
   Trash2,
-  X,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
 import { DeleteFeedbackConfirmation } from '@/components/feedback/delete-feedback-confirmation';
 import EmptyState from '@/components/layout/empty-state';
+import { DatePickerWithPresets } from '@/components/traces/filters/date-picker';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -48,6 +46,8 @@ interface FeedbackTableProps {
   filters: {
     conversationId?: string;
     type?: 'positive' | 'negative';
+    startDate?: string;
+    endDate?: string;
   };
 }
 
@@ -61,36 +61,23 @@ export function FeedbackTable({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [conversationId, setConversationId] = React.useState(filters.conversationId ?? '');
   const [typeFilter, setTypeFilter] = React.useState<'positive' | 'negative' | undefined>(
     filters.type
   );
   const [deleteFeedbackId, setDeleteFeedbackId] = React.useState<string | null>(null);
 
-  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
   React.useEffect(() => {
-    setConversationId(filters.conversationId ?? '');
     setTypeFilter(filters.type);
-  }, [filters.conversationId, filters.type]);
-
-  React.useEffect(() => {
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, []);
+  }, [filters.type]);
 
   const updateQuery = React.useCallback(
-    (next: { conversationId?: string; type?: 'positive' | 'negative' | ''; page?: number }) => {
+    (next: {
+      type?: 'positive' | 'negative' | '';
+      startDate?: string;
+      endDate?: string;
+      page?: number;
+    }) => {
       const params = new URLSearchParams(searchParams.toString());
-
-      if (next.conversationId === undefined) {
-        // no-op
-      } else if (next.conversationId) {
-        params.set('conversationId', next.conversationId);
-      } else {
-        params.delete('conversationId');
-      }
 
       if (next.type === undefined) {
         // no-op
@@ -98,6 +85,22 @@ export function FeedbackTable({
         params.set('type', next.type);
       } else {
         params.delete('type');
+      }
+
+      if (next.startDate !== undefined) {
+        if (next.startDate) {
+          params.set('startDate', next.startDate);
+        } else {
+          params.delete('startDate');
+        }
+      }
+
+      if (next.endDate !== undefined) {
+        if (next.endDate) {
+          params.set('endDate', next.endDate);
+        } else {
+          params.delete('endDate');
+        }
       }
 
       if (next.page === undefined) {
@@ -113,23 +116,12 @@ export function FeedbackTable({
     [pathname, router, searchParams]
   );
 
-  const debouncedConversationFilter = React.useCallback(
-    (value: string) => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => {
-        updateQuery({ conversationId: value, page: 1 });
-      }, 300);
-    },
-    [updateQuery]
-  );
-
   const clearFilters = () => {
-    setConversationId('');
     setTypeFilter(undefined);
-    updateQuery({ conversationId: '', type: '', page: 1 });
+    updateQuery({ type: '', startDate: '', endDate: '', page: 1 });
   };
 
-  const hasActiveFilters = !!(filters.conversationId || filters.type);
+  const hasActiveFilters = !!(filters.type || filters.startDate || filters.endDate);
 
   if (!feedback.length && !hasActiveFilters) {
     return (
@@ -141,192 +133,197 @@ export function FeedbackTable({
     );
   }
 
+  const positiveCount = typeFilter === 'positive' ? pagination.total : undefined;
+  const negativeCount = typeFilter === 'negative' ? pagination.total : undefined;
+
+  const dateRangeValue =
+    filters.startDate || filters.endDate
+      ? { from: filters.startDate ?? '', to: filters.endDate ?? '' }
+      : undefined;
+
   return (
-    <Card className="shadow-none bg-background">
-      <CardHeader className="pb-3">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <CardTitle className="flex items-center gap-2 text-foreground font-medium">
-            <MessageSquare className="h-4 w-4 text-gray-400 dark:text-white/40" />
-            Feedback
-            <Badge variant="count" className="text-xs">
-              {pagination.total}
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-1">
+          <Button
+            variant={!typeFilter ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => {
+              setTypeFilter(undefined);
+              updateQuery({ type: '', page: 1 });
+            }}
+          >
+            All
+            <Badge variant="count" className="ml-1 text-xs">
+              {!typeFilter ? pagination.total : ''}
             </Badge>
-          </CardTitle>
-
-          <div className="flex flex-col gap-2 md:flex-row md:items-center">
-            <div className="flex items-center gap-1">
-              <Button
-                variant={typeFilter === 'positive' ? 'default' : 'outline'}
-                size="sm"
-                aria-pressed={typeFilter === 'positive'}
-                onClick={() => {
-                  const next = typeFilter === 'positive' ? undefined : ('positive' as const);
-                  setTypeFilter(next);
-                  updateQuery({ type: next ?? '', page: 1 });
-                }}
-              >
-                <ThumbsUp className="h-3.5 w-3.5 mr-1" />
-                Positive
-              </Button>
-              <Button
-                variant={typeFilter === 'negative' ? 'default' : 'outline'}
-                size="sm"
-                aria-pressed={typeFilter === 'negative'}
-                onClick={() => {
-                  const next = typeFilter === 'negative' ? undefined : ('negative' as const);
-                  setTypeFilter(next);
-                  updateQuery({ type: next ?? '', page: 1 });
-                }}
-              >
-                <ThumbsDown className="h-3.5 w-3.5 mr-1" />
-                Negative
-              </Button>
-            </div>
-
-            <div className="relative w-full md:w-[260px]">
-              <Search
-                className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-white/40"
-                aria-hidden="true"
-              />
-              <Input
-                aria-label="Filter by conversation ID"
-                value={conversationId}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setConversationId(v);
-                  debouncedConversationFilter(v);
-                }}
-                placeholder="Filter by conversationId"
-                className="pl-8 pr-8"
-              />
-              {conversationId ? (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-9 w-9"
-                  aria-label="Clear filter"
-                  onClick={() => {
-                    setConversationId('');
-                    debouncedConversationFilter('');
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              ) : null}
-            </div>
-
-            {(conversationId || typeFilter) && (
-              <Button variant="outline" size="sm" onClick={clearFilters}>
-                Clear
-              </Button>
+          </Button>
+          <Button
+            variant={typeFilter === 'positive' ? 'default' : 'outline'}
+            size="sm"
+            aria-pressed={typeFilter === 'positive'}
+            onClick={() => {
+              const next = typeFilter === 'positive' ? undefined : ('positive' as const);
+              setTypeFilter(next);
+              updateQuery({ type: next ?? '', page: 1 });
+            }}
+          >
+            <ThumbsUp className="h-3 w-3 mr-1" />
+            Positive
+            {positiveCount !== undefined && (
+              <Badge variant="count" className="ml-1 text-xs">
+                {positiveCount}
+              </Badge>
             )}
-          </div>
+          </Button>
+          <Button
+            variant={typeFilter === 'negative' ? 'default' : 'outline'}
+            size="sm"
+            aria-pressed={typeFilter === 'negative'}
+            onClick={() => {
+              const next = typeFilter === 'negative' ? undefined : ('negative' as const);
+              setTypeFilter(next);
+              updateQuery({ type: next ?? '', page: 1 });
+            }}
+          >
+            <ThumbsDown className="h-3 w-3 mr-1" />
+            Negative
+            {negativeCount !== undefined && (
+              <Badge variant="count" className="ml-1 text-xs">
+                {negativeCount}
+              </Badge>
+            )}
+          </Button>
         </div>
-      </CardHeader>
 
-      <CardContent className="pt-0">
-        <Table containerClassName="rounded-lg border">
-          <TableHeader>
+        <div className="flex items-center gap-2">
+          <div className="w-full sm:w-auto">
+            <DatePickerWithPresets
+              label="Date range"
+              value={dateRangeValue}
+              showCalendarDirectly
+              placeholder="Filter by date"
+              onAdd={() => {}}
+              onRemove={() => {
+                updateQuery({ startDate: '', endDate: '', page: 1 });
+              }}
+              setCustomDateRange={(start, end) => {
+                updateQuery({ startDate: start, endDate: end, page: 1 });
+              }}
+            />
+          </div>
+
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs">
+              Clear
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <Table containerClassName="rounded-lg border">
+        <TableHeader>
+          <TableRow noHover>
+            <TableHead className="w-[170px]">Created</TableHead>
+            <TableHead className="w-[90px]">Type</TableHead>
+            <TableHead>Feedback</TableHead>
+            <TableHead className="w-[100px]">View conversation</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {feedback.length === 0 && (
             <TableRow noHover>
-              <TableHead className="w-[170px]">Created</TableHead>
-              <TableHead className="w-[90px]">Type</TableHead>
-              <TableHead className="w-[120px]">Conversation</TableHead>
-              <TableHead>Feedback</TableHead>
-              <TableHead className="w-[80px]" />
+              <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                No feedback found matching your filters.
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {feedback.map((item) => {
-              const conversationHref = `/${tenantId}/projects/${projectId}/traces/conversations/${item.conversationId}`;
-              return (
-                <TableRow key={item.id}>
-                  <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
-                    {formatDateTimeTable(item.createdAt, { local: true })}
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <Badge variant={item.type === 'positive' ? 'default' : 'secondary'}>
-                      {item.type}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">
+          )}
+          {feedback.map((item) => {
+            const conversationHref = item.messageId
+              ? `/${tenantId}/projects/${projectId}/traces/conversations/${item.conversationId}?messageId=${item.messageId}`
+              : `/${tenantId}/projects/${projectId}/traces/conversations/${item.conversationId}`;
+            return (
+              <TableRow key={item.id}>
+                <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
+                  {formatDateTimeTable(item.createdAt, { local: true })}
+                </TableCell>
+                <TableCell className="whitespace-nowrap">
+                  <Badge variant={item.type === 'positive' ? 'default' : 'secondary'}>
+                    {item.type}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-sm text-foreground whitespace-normal">
+                  {item.details ? truncate(String(item.details), 240) : '-'}
+                </TableCell>
+                <TableCell className="whitespace-nowrap">
+                  <div className="flex items-center gap-1">
                     <Link
-                      href={
-                        item.messageId
-                          ? `${conversationHref}?messageId=${item.messageId}`
-                          : conversationHref
-                      }
-                      className="text-sm text-primary hover:underline"
+                      href={conversationHref}
+                      className="inline-flex items-center justify-center h-8 w-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                      aria-label={item.messageId ? 'View message' : 'View conversation'}
                     >
-                      {item.messageId ? 'View message' : 'View conversation'}
+                      <ArrowUpRight className="h-4 w-4" />
                     </Link>
-                    <div className="mt-0.5 font-mono text-[10px] text-muted-foreground/70">
-                      {item.conversationId}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm text-foreground whitespace-normal">
-                    {item.details ? truncate(String(item.details), 240) : '-'}
-                  </TableCell>
-                  <TableCell className="text-right whitespace-nowrap">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="text-muted-foreground hover:text-foreground"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
                       aria-label="Delete feedback"
                       onClick={() => setDeleteFeedbackId(item.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
 
-        {deleteFeedbackId ? (
-          <DeleteFeedbackConfirmation
-            tenantId={tenantId}
-            projectId={projectId}
-            feedbackId={deleteFeedbackId}
-            isOpen={true}
-            onOpenChange={(open) => {
-              if (!open) setDeleteFeedbackId(null);
-            }}
-            onDeleted={() => router.refresh()}
-          />
-        ) : null}
+      {deleteFeedbackId ? (
+        <DeleteFeedbackConfirmation
+          tenantId={tenantId}
+          projectId={projectId}
+          feedbackId={deleteFeedbackId}
+          isOpen={true}
+          onOpenChange={(open) => {
+            if (!open) setDeleteFeedbackId(null);
+          }}
+          onDeleted={() => router.refresh()}
+        />
+      ) : null}
 
-        <div className="flex items-center justify-between mt-4">
-          <div className="text-xs text-muted-foreground">
-            Page {pagination.page} of {pagination.pages || 1} · {pagination.total} total
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={pagination.page <= 1}
-              onClick={() => updateQuery({ page: Math.max(1, pagination.page - 1) })}
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Prev
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={
-                pagination.pages
-                  ? pagination.page >= pagination.pages
-                  : feedback.length < pagination.limit
-              }
-              onClick={() => updateQuery({ page: pagination.page + 1 })}
-            >
-              Next
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+      <div className="flex items-center justify-between">
+        <div className="text-xs text-muted-foreground">
+          Page {pagination.page} of {pagination.pages || 1} · {pagination.total} total
         </div>
-      </CardContent>
-    </Card>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={pagination.page <= 1}
+            onClick={() => updateQuery({ page: Math.max(1, pagination.page - 1) })}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Prev
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={
+              pagination.pages
+                ? pagination.page >= pagination.pages
+                : feedback.length < pagination.limit
+            }
+            onClick={() => updateQuery({ page: pagination.page + 1 })}
+          >
+            Next
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }

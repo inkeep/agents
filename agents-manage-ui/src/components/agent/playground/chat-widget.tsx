@@ -83,6 +83,7 @@ export function ChatWidget({
   const { data: dataComponents } = useDataComponentsQuery();
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [messageId, setMessageId] = useState<string | undefined>(undefined);
+  const [feedbackType, setFeedbackType] = useState<'positive' | 'negative'>('negative');
   const {
     apiKey: tempApiKey,
     appId: playgroundAppId,
@@ -258,16 +259,45 @@ export function ChatWidget({
             },
             messageActions: [
               {
-                label: 'Leave Feedback',
-                icon: { builtIn: 'LuSparkles' },
+                label: '',
+                icon: { builtIn: 'LuThumbsUp' },
                 action: {
                   type: 'invoke_message_callback',
                   callback({ messageId }) {
                     setMessageId(messageId);
+                    setFeedbackType('positive');
                     setIsFeedbackDialogOpen(true);
                   },
                 },
               },
+              {
+                label: '',
+                icon: { builtIn: 'LuThumbsDown' },
+                action: {
+                  type: 'invoke_message_callback',
+                  callback({ messageId }) {
+                    setMessageId(messageId);
+                    setFeedbackType('negative');
+                    setIsFeedbackDialogOpen(true);
+                  },
+                },
+              },
+              ...(copilotCtx.isCopilotConfigured
+                ? ([
+                    {
+                      label: 'Improve with AI',
+                      icon: { builtIn: 'LuSparkles' },
+                      action: {
+                        type: 'invoke_message_callback',
+                        callback({ messageId }: { messageId?: string }) {
+                          setMessageId(messageId);
+                          setFeedbackType('negative');
+                          setIsFeedbackDialogOpen(true);
+                        },
+                      },
+                    },
+                  ] satisfies typeof messageActions)
+                : []),
             ],
             components: new Proxy(
               {},
@@ -305,6 +335,7 @@ export function ChatWidget({
           projectId={projectId}
           conversationId={conversationId}
           messageId={messageId}
+          initialType={feedbackType}
           onNegativeFeedbackSubmit={(feedback) => {
             const { chatFunctionsRef, openCopilot, setDynamicHeaders } = copilotCtx;
             if (chatFunctionsRef?.current) {

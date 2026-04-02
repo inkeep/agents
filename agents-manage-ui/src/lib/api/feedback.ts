@@ -34,6 +34,8 @@ export async function fetchFeedback(
     conversationId?: string;
     messageId?: string;
     type?: 'positive' | 'negative';
+    startDate?: string;
+    endDate?: string;
     page?: number;
     limit?: number;
   }
@@ -42,6 +44,8 @@ export async function fetchFeedback(
   if (options?.conversationId) params.set('conversationId', options.conversationId);
   if (options?.messageId) params.set('messageId', options.messageId);
   if (options?.type) params.set('type', options.type);
+  if (options?.startDate) params.set('startDate', options.startDate);
+  if (options?.endDate) params.set('endDate', options.endDate);
   if (options?.page) params.set('page', String(options.page));
   if (options?.limit) params.set('limit', String(options.limit));
 

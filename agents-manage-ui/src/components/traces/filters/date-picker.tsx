@@ -55,6 +55,7 @@ export function DatePickerWithPresets({
   setCustomDateRange,
   showCalendarDirectly = false,
   placeholder = 'Select date range',
+  triggerClassName,
 }: DatePickerWithPresetsProps) {
   const [showCalendar, setShowCalendar] = useState(showCalendarDirectly);
   const { isOpen, onClose, onOpen } = useDisclosure();
@@ -116,7 +117,8 @@ export function DatePickerWithPresets({
             disabled={disabled}
             className={cn(
               'w-full justify-start text-left font-normal',
-              !dateComputations.dateFormattedValue && 'text-muted-foreground'
+              !dateComputations.dateFormattedValue && 'text-muted-foreground',
+              triggerClassName
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />

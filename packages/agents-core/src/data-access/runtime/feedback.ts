@@ -1,4 +1,4 @@
-import { and, count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, gte, lte } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { feedback } from '../../db/runtime/runtime-schema';
 import type {
@@ -40,6 +40,8 @@ export const listFeedback =
     conversationId?: string;
     messageId?: string;
     type?: 'positive' | 'negative';
+    startDate?: string;
+    endDate?: string;
     pagination?: PaginationConfig;
   }) => {
     const page = params.pagination?.page || 1;
@@ -58,6 +60,14 @@ export const listFeedback =
 
     if (params.type) {
       conditions.push(eq(feedback.type, params.type));
+    }
+
+    if (params.startDate) {
+      conditions.push(gte(feedback.createdAt, `${params.startDate}T00:00:00.000Z`));
+    }
+
+    if (params.endDate) {
+      conditions.push(lte(feedback.createdAt, `${params.endDate}T23:59:59.999Z`));
     }
 
     const whereClause = and(...conditions);

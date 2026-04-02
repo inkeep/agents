@@ -20,12 +20,14 @@ export default async function FeedbackPage({
   searchParams: Promise<{
     conversationId?: string;
     type?: 'positive' | 'negative';
+    startDate?: string;
+    endDate?: string;
     page?: string;
     limit?: string;
   }>;
 }) {
   const { tenantId, projectId } = await params;
-  const { conversationId, type, page, limit } = await searchParams;
+  const { conversationId, type, startDate, endDate, page, limit } = await searchParams;
 
   try {
     const pageNumber = page ? Number.parseInt(page, 10) : 1;
@@ -34,6 +36,8 @@ export default async function FeedbackPage({
     const response = await fetchFeedback(tenantId, projectId, {
       conversationId,
       type,
+      startDate,
+      endDate,
       page: Number.isFinite(pageNumber) ? pageNumber : 1,
       limit: Number.isFinite(limitNumber) ? limitNumber : 25,
     });
@@ -49,7 +53,7 @@ export default async function FeedbackPage({
           projectId={projectId}
           feedback={response.data}
           pagination={response.pagination}
-          filters={{ conversationId, type }}
+          filters={{ conversationId, type, startDate, endDate }}
         />
       </>
     );

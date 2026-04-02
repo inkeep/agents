@@ -1,5 +1,5 @@
 import { V1_BREAKDOWN_SCHEMA } from '@inkeep/agents-core/client-exports';
-import { MessageSquare } from 'lucide-react';
+import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Streamdown } from 'streamdown';
 import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
@@ -131,7 +131,11 @@ export function renderPanelContent({
     id?: string
   ) => NonNullable<ConversationDetail['allSpanAttributes']>[number] | undefined;
   spanLoading?: boolean;
-  onLeaveFeedback?: (activityId: string, messageId?: string) => void;
+  onLeaveFeedback?: (
+    activityId: string,
+    messageId?: string,
+    type?: 'positive' | 'negative'
+  ) => void;
 }) {
   if (selected.type === 'mcp_tool_error') {
     const e = selected.item;
@@ -300,14 +304,26 @@ export function renderPanelContent({
         <>
           <Section>
             {onLeaveFeedback && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onLeaveFeedback(a.id, a.messageId)}
-              >
-                <MessageSquare className="h-4 w-4 mr-1.5" />
-                Leave Feedback
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  aria-label="Positive feedback"
+                  onClick={() => onLeaveFeedback(a.id, a.messageId, 'positive')}
+                >
+                  <ThumbsUp className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  aria-label="Negative feedback"
+                  onClick={() => onLeaveFeedback(a.id, a.messageId, 'negative')}
+                >
+                  <ThumbsDown className="h-4 w-4" />
+                </Button>
+              </div>
             )}
             <Info label="Sub agent" value={a.subAgentName || 'Unknown'} />
             <AssistantMessageContent

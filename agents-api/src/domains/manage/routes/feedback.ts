@@ -43,6 +43,14 @@ app.openapi(
           .enum(['positive', 'negative'])
           .optional()
           .describe('Optionally filter by feedback type'),
+        startDate: z
+          .string()
+          .optional()
+          .describe('Filter feedback created on or after this date (YYYY-MM-DD)'),
+        endDate: z
+          .string()
+          .optional()
+          .describe('Filter feedback created on or before this date (YYYY-MM-DD)'),
       }),
     },
     responses: {
@@ -59,13 +67,23 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
-    const { conversationId, messageId, type, page = 1, limit = 10 } = c.req.valid('query');
+    const {
+      conversationId,
+      messageId,
+      type,
+      startDate,
+      endDate,
+      page = 1,
+      limit = 10,
+    } = c.req.valid('query');
 
     const result = await listFeedback(runDbClient)({
       scopes: { tenantId, projectId },
       conversationId,
       messageId,
       type,
+      startDate,
+      endDate,
       pagination: { page, limit },
     });
 

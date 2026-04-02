@@ -1,6 +1,7 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type BaseExecutionContext,
+  type CredentialStoreRegistry,
   commonCreateErrorResponses,
   commonDeleteErrorResponses,
   commonUpdateErrorResponses,
@@ -12,7 +13,6 @@ import {
   FeedbackResponse,
   generateId,
   getFeedbackById,
-  type CredentialStoreRegistry,
   updateFeedback,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
@@ -44,8 +44,7 @@ app.openapi(
     method: 'post',
     path: '/',
     summary: 'Submit Feedback',
-    description:
-      'Submit feedback for a conversation or message.',
+    description: 'Submit feedback for a conversation or message.',
     operationId: 'submit-end-user-feedback',
     tags: ['Feedback'],
     security: [{ bearerAuth: [] }],
@@ -98,8 +97,7 @@ app.openapi(
     method: 'patch',
     path: '/{id}',
     summary: 'Update Feedback',
-    description:
-      'Update an existing feedback entry.',
+    description: 'Update an existing feedback entry.',
     operationId: 'update-end-user-feedback',
     tags: ['Feedback'],
     security: [{ bearerAuth: [] }],
@@ -160,10 +158,7 @@ app.openapi(
       });
     }
 
-    logger.debug(
-      { tenantId, projectId, endUserId, feedbackId: id },
-      'End-user updated feedback'
-    );
+    logger.debug({ tenantId, projectId, endUserId, feedbackId: id }, 'End-user updated feedback');
 
     return c.json({ data: updated });
   }
@@ -174,8 +169,7 @@ app.openapi(
     method: 'delete',
     path: '/{id}',
     summary: 'Delete Feedback',
-    description:
-      'Delete a feedback entry.',
+    description: 'Delete a feedback entry.',
     operationId: 'delete-end-user-feedback',
     tags: ['Feedback'],
     security: [{ bearerAuth: [] }],
@@ -227,10 +221,7 @@ app.openapi(
       });
     }
 
-    logger.debug(
-      { tenantId, projectId, endUserId, feedbackId: id },
-      'End-user deleted feedback'
-    );
+    logger.debug({ tenantId, projectId, endUserId, feedbackId: id }, 'End-user deleted feedback');
 
     return c.json({ success: true });
   }
