@@ -2,7 +2,7 @@ import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import type { FullAgentDefinition, FullAgentSelect } from '../../types/entities';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/utility';
 import { createApiError, throwIfUniqueConstraintError } from '../../utils/error';
-import { createFullAgentServerSide, type AgentLogger } from './agentFull';
+import { type AgentLogger, createFullAgentServerSide } from './agentFull';
 import { getAgentById, getFullAgentDefinition } from './agents';
 
 type DuplicateAgentParams = {

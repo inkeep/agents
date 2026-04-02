@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import { useAgentsListQuery } from '@/lib/query/agents';
 import { useProjectsQuery } from '@/lib/query/projects';
-import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 
 interface ImportAgentSectionProps {
   tenantId: string;

@@ -2,6 +2,14 @@
 
 import { Plus } from 'lucide-react';
 import { useId, useState } from 'react';
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+  FieldTitle,
+} from '@/components/ui/field';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import {
@@ -14,14 +22,6 @@ import {
 } from '../ui/dialog';
 import { AgentForm } from './agent-form';
 import { ImportAgentSection } from './import-agent-section';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import {
-  FieldLabel,
-  Field,
-  FieldContent,
-  FieldTitle,
-  FieldDescription,
-} from '@/components/ui/field';
 
 interface NewAgentItemProps {
   tenantId: string;

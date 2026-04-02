@@ -2,10 +2,9 @@
 
 export * from '../db/manage/manage-client';
 export * from '../db/runtime/runtime-client';
-
+export * from './manage/agentDuplicate';
 // Config data access (Doltgres - versioned)
 export * from './manage/agentFull';
-export * from './manage/agentDuplicate';
 export * from './manage/agents';
 export * from './manage/artifactComponents';
 export * from './manage/audit-queries';

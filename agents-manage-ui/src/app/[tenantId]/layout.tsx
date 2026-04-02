@@ -5,8 +5,8 @@ import { SentryScopeProvider } from '@/components/sentry-scope-provider';
 import { AppSidebarProvider } from '@/components/sidebar-nav/app-sidebar-provider';
 import { Separator } from '@/components/ui/separator';
 import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
-import { cn } from '@/lib/utils';
 import { DOCS_BASE_URL } from '@/constants/theme';
+import { cn } from '@/lib/utils';
 
 function getMailUrl(tenantId: string): string {
   const params = Object.entries({
