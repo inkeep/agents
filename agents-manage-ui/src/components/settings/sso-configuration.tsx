@@ -87,7 +87,10 @@ export function useSSOProviders(organizationId: string | undefined) {
 
   useEffect(() => {
     fetchProviders();
-  }, [fetchProviders]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchProviders,
+  ]);
 
   return { providers, loading, refetch: fetchProviders };
 }

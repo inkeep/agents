@@ -58,7 +58,10 @@ export function useOrgMembers(tenantId: string, projectId?: string) {
 
   useEffect(() => {
     fetchMembers();
-  }, [fetchMembers]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchMembers,
+  ]);
 
   return { members, isLoading };
 }

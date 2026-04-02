@@ -108,7 +108,16 @@ export function AgentConfigurationCard() {
       fetchChannels();
       fetchWorkspaceSettings();
     }
-  }, [teamId, mounted, fetchAgents, fetchChannels, fetchWorkspaceSettings]);
+  }, [
+    teamId,
+    mounted,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchAgents,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchChannels,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchWorkspaceSettings,
+  ]);
 
   const handleSetDefaultAgent = async (agent: SlackAgentOption) => {
     if (!teamId) return;
