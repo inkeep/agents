@@ -67,54 +67,41 @@ export function useConversationStats(
   // Extract stable values to avoid object recreation issues
   const pageSize = options?.pagination?.pageSize || 50;
 
-  const fetchData = useCallback(
-    async (page: number) => {
-      try {
-        setLoading(true);
-        setError(null);
+  async function fetchData(page: number) {
+    try {
+      setLoading(true);
+      setError(null);
 
-        const client = getSigNozStatsClient(options?.tenantId);
-        // Use provided time range or default to all time (2020)
-        // Clamp endTime to now-1ms to satisfy backend validation (end cannot be in the future)
-        const currentEndTime = Math.min(options?.endTime || Date.now() - 1);
-        const currentStartTime = options?.startTime || new Date('2020-01-01T00:00:00Z').getTime();
+      const client = getSigNozStatsClient(options?.tenantId);
+      // Use provided time range or default to all time (2020)
+      // Clamp endTime to now-1ms to satisfy backend validation (end cannot be in the future)
+      const currentEndTime = Math.min(options?.endTime || Date.now() - 1);
+      const currentStartTime = options?.startTime || new Date('2020-01-01T00:00:00Z').getTime();
 
-        const result = await client.getConversationStats(
-          currentStartTime,
-          currentEndTime,
-          options?.filters,
-          options?.projectId,
-          { page, limit: pageSize },
-          options?.searchQuery,
-          options?.agentId,
-          options?.hasErrors
-        );
+      const result = await client.getConversationStats(
+        currentStartTime,
+        currentEndTime,
+        options?.filters,
+        options?.projectId,
+        { page, limit: pageSize },
+        options?.searchQuery,
+        options?.agentId,
+        options?.hasErrors
+      );
 
-        setStats(result.data);
-        setPaginationInfo(result.pagination);
-        if (result.aggregateStats) {
-          setAggregateStats(result.aggregateStats);
-        }
-      } catch (err) {
-        console.error('Error fetching conversation stats:', err);
-        const errorMessage =
-          err instanceof Error ? err.message : 'Failed to fetch conversation stats';
-        setError(errorMessage);
+      setStats(result.data);
+      setPaginationInfo(result.pagination);
+      if (result.aggregateStats) {
+        setAggregateStats(result.aggregateStats);
       }
-      setLoading(false);
-    },
-    [
-      options?.startTime,
-      options?.endTime,
-      options?.filters,
-      options?.projectId,
-      options?.tenantId,
-      options?.searchQuery,
-      options?.agentId,
-      options?.hasErrors,
-      pageSize,
-    ]
-  );
+    } catch (err) {
+      console.error('Error fetching conversation stats:', err);
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to fetch conversation stats';
+      setError(errorMessage);
+    }
+    setLoading(false);
+  }
 
   const refresh = useCallback(() => {
     fetchData(currentPage);
