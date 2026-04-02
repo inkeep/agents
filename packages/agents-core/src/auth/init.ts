@@ -22,9 +22,12 @@ import { loadEnvironmentFiles } from '../env';
 
 loadEnvironmentFiles();
 
+import { createAgent } from '../data-access/manage/agents';
+import { createProject, getProject } from '../data-access/manage/projects';
 import { createApp, getAppById } from '../data-access/runtime/apps';
 import { addUserToOrganization, upsertOrganization } from '../data-access/runtime/organizations';
 import { getUserByEmail } from '../data-access/runtime/users';
+import { createAgentsManageDatabaseClient } from '../db/manage/manage-client';
 import { createAgentsRunDatabaseClient } from '../db/runtime/runtime-client';
 import type { AppConfig, PublicKeyConfig } from '../types/utility';
 import { createAuth } from './auth';
@@ -236,14 +239,54 @@ async function init() {
     }
   }
 
-  // 8. Create copilot app for chat-to-edit (if configured)
+  // 8. Create copilot project, agent, and app for chat-to-edit (if configured)
   const copilotAppId = process.env.PUBLIC_INKEEP_COPILOT_APP_ID;
   const copilotPrivateKeyB64 = process.env.INKEEP_COPILOT_JWT_PRIVATE_KEY;
   const copilotKid = process.env.INKEEP_COPILOT_JWT_KID;
+  const copilotProjectId = 'chat-to-edit';
+  const copilotAgentId = 'chat-to-edit';
 
   if (copilotAppId) {
-    console.log(`\n🤖 Checking/creating copilot app: ${copilotAppId}`);
+    console.log(`\n🤖 Setting up copilot (chat-to-edit)...`);
 
+    // Create manage DB client for project/agent seeding
+    const manageDbClient = createAgentsManageDatabaseClient({});
+
+    // Create copilot project if it doesn't exist
+    const existingProject = await getProject(manageDbClient)({
+      scopes: { tenantId: TENANT_ID, projectId: copilotProjectId },
+    });
+    if (existingProject) {
+      console.log(`   ℹ️  Copilot project already exists: ${copilotProjectId}`);
+    } else {
+      await createProject(manageDbClient)({
+        tenantId: TENANT_ID,
+        id: copilotProjectId,
+        name: 'Chat to Edit',
+        description: 'Mock copilot project for local development',
+        models: { base: {} },
+      });
+      console.log(`   ✅ Copilot project created: ${copilotProjectId}`);
+    }
+
+    // Create copilot agent if it doesn't exist
+    try {
+      await createAgent(manageDbClient)({
+        tenantId: TENANT_ID,
+        projectId: copilotProjectId,
+        id: copilotAgentId,
+        name: 'Chat to Edit',
+        description: 'Mock copilot agent for local development',
+        prompt:
+          'You are a mock chat-to-edit agent. Always respond with: "This is the mock chat-to-edit experience. The real experience is on the production environment."',
+      });
+      console.log(`   ✅ Copilot agent created: ${copilotAgentId}`);
+    } catch {
+      // Agent may already exist (primary key conflict)
+      console.log(`   ℹ️  Copilot agent already exists: ${copilotAgentId}`);
+    }
+
+    // Create copilot app if it doesn't exist
     const existingCopilotApp = await getAppById(dbClient)(copilotAppId);
 
     if (existingCopilotApp) {
@@ -280,18 +323,16 @@ async function init() {
       await createApp(dbClient)({
         id: copilotAppId,
         tenantId: TENANT_ID,
-        projectId: 'chat-to-edit',
+        projectId: copilotProjectId,
         name: 'Copilot',
         description: 'Chat-to-edit copilot app',
         type: 'web_client',
-        defaultAgentId: 'agent-builder',
+        defaultAgentId: copilotAgentId,
         enabled: true,
         config: copilotConfig,
       });
 
-      console.log(
-        `   ✅ Copilot app created: ${copilotAppId} (tenant: ${TENANT_ID}, project: chat-to-edit)`
-      );
+      console.log(`   ✅ Copilot app created: ${copilotAppId}`);
     }
   }
 
