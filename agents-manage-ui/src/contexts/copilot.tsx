@@ -35,8 +35,14 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
     PUBLIC_INKEEP_COPILOT_AGENT_ID: copilotAgentId,
     PUBLIC_INKEEP_COPILOT_PROJECT_ID: copilotProjectId,
     PUBLIC_INKEEP_COPILOT_TENANT_ID: copilotTenantId,
+    PUBLIC_INKEEP_COPILOT_APP_ID: copilotAppId,
   } = useRuntimeConfig();
-  const isCopilotConfigured = !!(copilotAgentId && copilotProjectId && copilotTenantId);
+  const isCopilotConfigured = !!(
+    copilotAgentId &&
+    copilotProjectId &&
+    copilotTenantId &&
+    copilotAppId
+  );
 
   if (!isCopilotConfigured) {
     console.warn('Copilot is not configured.');
