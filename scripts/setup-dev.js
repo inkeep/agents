@@ -19,9 +19,66 @@
  */
 
 import { execSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { createHash, generateKeyPairSync } from 'node:crypto';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { styleText } from 'node:util';
 import { runSetup } from '../packages/agents-core/dist/setup/index.js';
+
+/**
+ * Generate copilot JWT keypair and write to .env if not already configured.
+ * This is monorepo-only — self-hosted/cloud setups don't get copilot auto-configured.
+ */
+function ensureCopilotKeys() {
+  const envPath = '.env';
+  if (!existsSync(envPath)) return;
+
+  const envContent = readFileSync(envPath, 'utf-8');
+
+  const hasKey =
+    envContent.includes('INKEEP_COPILOT_JWT_PRIVATE_KEY=') &&
+    !envContent.includes('# INKEEP_COPILOT_JWT_PRIVATE_KEY=') &&
+    !!envContent.match(/INKEEP_COPILOT_JWT_PRIVATE_KEY=(.+)/)?.[1]?.trim();
+
+  if (hasKey) {
+    console.log(
+      styleText('cyan', 'ℹ') + ' Copilot JWT keys already configured, skipping generation'
+    );
+    return;
+  }
+
+  const { privateKey, publicKey } = generateKeyPairSync('rsa', {
+    modulusLength: 2048,
+    privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+    publicKeyEncoding: { type: 'spki', format: 'pem' },
+  });
+
+  const privateKeyBase64 = Buffer.from(privateKey).toString('base64');
+  const kid = `pg-${createHash('sha256').update(publicKey).digest('hex').substring(0, 12)}`;
+
+  const lines = envContent.split('\n');
+  const vars = [
+    { name: 'INKEEP_COPILOT_JWT_PRIVATE_KEY', value: privateKeyBase64 },
+    { name: 'INKEEP_COPILOT_JWT_KID', value: kid },
+    { name: 'PUBLIC_INKEEP_COPILOT_APP_ID', value: 'app_copilot' },
+  ];
+
+  for (const { name, value } of vars) {
+    let found = false;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].startsWith(`# ${name}=`) || lines[i].startsWith(`${name}=`)) {
+        lines[i] = `${name}=${value}`;
+        found = true;
+      }
+    }
+    if (!found) {
+      lines.push(`${name}=${value}`);
+    }
+    process.env[name] = value;
+  }
+
+  writeFileSync(envPath, lines.join('\n'));
+  console.log(styleText('green', '✓') + ' Copilot JWT keys generated and added to .env');
+}
 
 const skipPush = process.argv.includes('--skip-push');
 const isolatedIdx = process.argv.indexOf('--isolated');
@@ -48,6 +105,8 @@ if (isolatedName) {
     console.error(`Error: ${scriptPath} not found`);
     process.exit(1);
   }
+
+  ensureCopilotKeys();
 
   console.log(styleText('bold', `\n=== Isolated Environment Setup: ${isolatedName} ===\n`));
 
@@ -131,6 +190,8 @@ if (isolatedName) {
   console.log(`  ./scripts/isolated-env.sh down ${isolatedName}\n`);
 } else {
   // Default mode: standard setup with docker-compose.dbs.yml
+  ensureCopilotKeys();
+
   await runSetup({
     dockerComposeFile: 'docker-compose.dbs.yml',
     manageMigrateCommand: 'pnpm db:manage:migrate',
