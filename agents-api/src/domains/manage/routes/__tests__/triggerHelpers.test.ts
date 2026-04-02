@@ -182,6 +182,26 @@ describe('triggerHelpers', () => {
       ).not.toThrow();
     });
 
+    it('allows non-admin to mutate trigger with only their user in runAsUserIds', () => {
+      expect(() =>
+        assertCanMutateTrigger({
+          trigger: { createdBy: 'someone-else', runAsUserIds: ['member-user'] },
+          callerId: 'member-user',
+          tenantRole: 'member' as OrgRole,
+        })
+      ).not.toThrow();
+    });
+
+    it('blocks non-admin from mutating trigger with multiple runAsUserIds', () => {
+      expect(() =>
+        assertCanMutateTrigger({
+          trigger: { createdBy: 'someone-else', runAsUserIds: ['member-user', 'another'] },
+          callerId: 'member-user',
+          tenantRole: 'member' as OrgRole,
+        })
+      ).toThrow('only modify triggers');
+    });
+
     it('blocks non-admin from mutating unrelated trigger', () => {
       expect(() =>
         assertCanMutateTrigger({

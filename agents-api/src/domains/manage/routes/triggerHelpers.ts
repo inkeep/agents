@@ -121,17 +121,26 @@ export async function validateRunAsUserId(params: {
 
 /**
  * Check if a non-admin user is allowed to mutate a trigger.
- * Admins can mutate any trigger. Non-admins can only mutate triggers they created or that run as them.
+ * Admins can mutate any trigger. Non-admins can only mutate triggers they created,
+ * that run as them, or that are solely associated to them via runAsUserIds.
  */
 export function assertCanMutateTrigger(params: {
-  trigger: { createdBy?: string | null; runAsUserId?: string | null };
+  trigger: {
+    createdBy?: string | null;
+    runAsUserId?: string | null;
+    runAsUserIds?: (string | null)[] | null;
+  };
   callerId: string;
   tenantRole: OrgRole;
 }): void {
   const { trigger, callerId, tenantRole } = params;
   const isAdmin = tenantRole === OrgRoles.OWNER || tenantRole === OrgRoles.ADMIN;
   if (isAdmin) return;
-  if (trigger.createdBy === callerId || trigger.runAsUserId === callerId) return;
+  const isOnlyRunAsUser =
+    trigger.runAsUserIds?.length === 1 && trigger.runAsUserIds[0] === callerId;
+  if (trigger.createdBy === callerId || trigger.runAsUserId === callerId || isOnlyRunAsUser) {
+    return;
+  }
   throw createApiError({
     code: 'forbidden',
     message: 'You can only modify triggers that you created or that are configured to run as you.',
