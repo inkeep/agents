@@ -2,7 +2,7 @@
 
 import { Building2, ExternalLink, Github, Loader2, RefreshCw, User } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

@@ -3,7 +3,7 @@
 import type { ColumnDef } from '@tanstack/react-table';
 import { Ban, MoreHorizontal, RotateCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

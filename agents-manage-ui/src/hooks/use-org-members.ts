@@ -1,7 +1,7 @@
 'use client';
 
 import { DEFAULT_MEMBERSHIP_LIMIT, OrgRoles } from '@inkeep/agents-core/client-exports';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthClient } from '@/contexts/auth-client';
 import { listProjectMembers } from '@/lib/api/project-members';
 
