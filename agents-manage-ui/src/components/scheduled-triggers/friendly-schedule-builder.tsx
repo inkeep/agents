@@ -90,13 +90,11 @@ const TIMEZONE_OPTIONS = (() => {
 })();
 
 function TimezoneCombobox({ value, onChange }: { value: string; onChange: (tz: string) => void }) {
-  const options = useMemo(() => {
-    const hasValue = TIMEZONE_OPTIONS.some((o) => o.value === value);
-    if (!hasValue && value) {
-      return [{ value, label: value.replace(/_/g, ' ') }, ...TIMEZONE_OPTIONS];
-    }
-    return TIMEZONE_OPTIONS;
-  }, [value]);
+  const hasValue = TIMEZONE_OPTIONS.some((o) => o.value === value);
+  const options =
+    !hasValue && value
+      ? [{ value, label: value.replace(/_/g, ' ') }, ...TIMEZONE_OPTIONS]
+      : TIMEZONE_OPTIONS;
 
   return (
     <Combobox
