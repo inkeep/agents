@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { DiffField } from '../diff-viewer';
 
 describe('DiffField', () => {
+  afterEach(cleanup);
   it('renders field label from field name', () => {
     render(
       <DiffField

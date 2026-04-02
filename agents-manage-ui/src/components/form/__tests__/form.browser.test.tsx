@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { transformToJson } from '@inkeep/agents-core/client-exports';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 // @ts-expect-error -- worker params exist in vite
 import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker.js?worker';
 // @ts-expect-error -- worker param exist in vite
@@ -131,6 +131,7 @@ describe('Form', () => {
     await act(() => {
       agentStore.setState({ jsonSchemaMode: false });
     });
+    cleanup();
   });
 
   test('should properly highlight error state', async () => {
@@ -141,7 +142,7 @@ describe('Form', () => {
     });
 
     await expect(container).toMatchScreenshot();
-  }, 20_000);
+  }, 10_000);
 
   test('should properly highlight nested error state', async () => {
     agentStore.setState({ jsonSchemaMode: true });
@@ -152,8 +153,8 @@ describe('Form', () => {
         expect(container.querySelector('[data-slot="form-message"]')).toBeInTheDocument();
         expect(container.querySelector('.monaco-editor')).toBeInTheDocument();
       },
-      { timeout: 30_000 }
+      { timeout: 10_000 }
     );
     await expect(container).toMatchScreenshot();
-  }, 30_000);
+  }, 10_000);
 });
