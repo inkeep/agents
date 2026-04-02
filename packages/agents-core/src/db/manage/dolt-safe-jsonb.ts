@@ -1,4 +1,5 @@
-import { PgJsonb } from 'drizzle-orm/pg-core';
+import type { ColumnBaseConfig, ColumnBuilderBaseConfig } from 'drizzle-orm';
+import { PgJsonb, PgJsonbBuilder } from 'drizzle-orm/pg-core';
 
 /**
  * Workaround for Doltgres JSON parser bug.
@@ -6,20 +7,13 @@ import { PgJsonb } from 'drizzle-orm/pg-core';
  * Doltgres has an off-by-one error in its JSON escape-sequence state machine:
  * after parsing `\\` (escaped backslash), the parser doesn't reset to normal
  * mode, so the next character is incorrectly treated as an escape character.
- * This causes any JSON string containing a literal backslash followed by most
- * characters (n, t, r, a-z, 0-9, etc.) to be rejected with "Bad escaped
- * character" or "Bad control character" errors.
- *
- * Regular PostgreSQL handles this correctly.  This is Doltgres-only.
  *
  * The workaround encodes literal backslash characters in string values as a
- * Unicode Private-Use-Area character (U+E000) *before* JSON.stringify, so the
- * serialised JSON never contains `\\`.  On read the placeholder is decoded back
- * to a real backslash.
+ * Unicode Private-Use-Area character (U+E000) before JSON.stringify, so the
+ * serialised JSON never contains `\\`. On read the placeholder is decoded back.
  *
- * Limitation: if user data genuinely contains U+E000 it will be round-tripped
- * as a backslash.  This character is in the PUA range and is essentially never
- * used in real-world text.
+ * Usage: import { jsonb } from './dolt-safe-jsonb' instead of from 'drizzle-orm/pg-core'.
+ * All existing .$type<T>(), .notNull(), .default() chains work unchanged.
  */
 
 const BACKSLASH_PLACEHOLDER = '\uE000';
@@ -46,17 +40,33 @@ export function decodeBackslashes(value: unknown): unknown {
   return value;
 }
 
-// Patch PgJsonb prototype to encode/decode backslashes for Doltgres compatibility.
-// This is a global patch — it affects ALL jsonb columns (both manage and runtime).
-// For runtime (regular Postgres) the encoding is harmless: U+E000 is a valid Unicode
-// character that round-trips through Postgres JSONB without issues.
-const origMapToDriverValue = PgJsonb.prototype.mapToDriverValue;
-const origMapFromDriverValue = PgJsonb.prototype.mapFromDriverValue;
+type JsonbColumnConfig = ColumnBaseConfig<'json', 'PgJsonb'>;
+type JsonbBuilderConfig = ColumnBuilderBaseConfig<'json', 'PgJsonb'>;
 
-PgJsonb.prototype.mapToDriverValue = function (value: unknown): string {
-  return origMapToDriverValue.call(this, encodeBackslashes(value));
-};
+class DoltSafeJsonb extends PgJsonb<JsonbColumnConfig> {
+  override mapToDriverValue(value: unknown): string {
+    return super.mapToDriverValue(encodeBackslashes(value));
+  }
 
-PgJsonb.prototype.mapFromDriverValue = function (value: unknown): unknown {
-  return decodeBackslashes(origMapFromDriverValue.call(this, value));
-};
+  override mapFromDriverValue(value: unknown): unknown {
+    return decodeBackslashes(super.mapFromDriverValue(value));
+  }
+}
+
+class DoltSafeJsonbBuilder extends PgJsonbBuilder<JsonbBuilderConfig> {
+  // build() is an internal Drizzle method not in the type defs
+  // @ts-expect-error -- overriding internal method to return our subclass
+  override build(table: any): any {
+    return new DoltSafeJsonb(table, this.config as any);
+  }
+}
+
+/**
+ * Drop-in replacement for drizzle-orm's `jsonb()`.
+ * Encodes backslashes on write and decodes on read to work around the Doltgres bug.
+ */
+export function jsonb(name: string) {
+  return new DoltSafeJsonbBuilder(name as any) as unknown as ReturnType<
+    typeof import('drizzle-orm/pg-core').jsonb
+  >;
+}

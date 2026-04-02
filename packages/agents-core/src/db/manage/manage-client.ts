@@ -3,7 +3,6 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import type { PgliteDatabase } from 'drizzle-orm/pglite';
 import { Pool } from 'pg';
 import { env, loadEnvironmentFiles } from '../../env';
-import './dolt-safe-jsonb';
 import * as schema from './manage-schema';
 import { createTestManageDatabaseClientNoMigrations } from './test-manage-client';
 
