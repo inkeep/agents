@@ -15,8 +15,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Form, FormControl } from '@/components/ui/form';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { createFeedbackAction } from '@/lib/actions/feedback';
 
 interface FeedbackDialogProps {
@@ -33,7 +31,6 @@ interface FeedbackDialogProps {
 const feedbackSchema = z
   .object({
     type: z.enum(['positive', 'negative']),
-    scope: z.enum(['message', 'conversation']),
     feedback: z.string().max(1000, 'Feedback must be less than 1000 characters').optional(),
   })
   .refine((data) => data.type === 'positive' || (data.feedback && data.feedback.length > 0), {
@@ -56,7 +53,6 @@ export const FeedbackDialog = ({
   const form = useForm<FeedbackFormData>({
     defaultValues: {
       type: initialType ?? 'negative',
-      scope: messageId ? 'message' : 'conversation',
       feedback: '',
     },
     resolver: zodResolver(feedbackSchema),
@@ -64,30 +60,21 @@ export const FeedbackDialog = ({
   const { isSubmitting } = form.formState;
 
   const type = form.watch('type');
-  const scope = form.watch('scope');
 
   useEffect(() => {
     if (isOpen) {
       form.reset({
         type: initialType ?? 'negative',
-        scope: messageId ? 'message' : 'conversation',
         feedback: '',
       });
     }
-  }, [form, isOpen, messageId, initialType]);
+  }, [form, isOpen, initialType]);
 
-  const onSubmit = async ({ feedback, type, scope }: FeedbackFormData) => {
-    if (scope === 'message' && !messageId) {
-      toast.error('Message feedback unavailable', {
-        description: 'No messageId was provided for this feedback action.',
-      });
-      return;
-    }
-
+  const onSubmit = async ({ feedback, type }: FeedbackFormData) => {
     try {
       const result = await createFeedbackAction(tenantId, projectId, {
         conversationId,
-        messageId: scope === 'message' ? messageId : undefined,
+        messageId,
         type,
         details: feedback || null,
       });
@@ -125,65 +112,38 @@ export const FeedbackDialog = ({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <FormFieldWrapper control={form.control} name="type" label="Sentiment">
-                {(field) => (
-                  <FormControl>
-                    <div role="group" aria-label="Sentiment" className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant={field.value === 'positive' ? 'default' : 'outline'}
-                        size="sm"
-                        aria-pressed={field.value === 'positive'}
-                        onClick={() => field.onChange('positive')}
-                        className="gap-2"
-                      >
-                        <ThumbsUp className="size-4" />
-                        <span className="sr-only">Thumbs up</span>
-                        Like
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={field.value === 'negative' ? 'default' : 'outline'}
-                        size="sm"
-                        aria-pressed={field.value === 'negative'}
-                        onClick={() => field.onChange('negative')}
-                        className="gap-2"
-                      >
-                        <ThumbsDown className="size-4" />
-                        <span className="sr-only">Thumbs down</span>
-                        Dislike
-                      </Button>
-                    </div>
-                  </FormControl>
-                )}
-              </FormFieldWrapper>
-
-              <FormFieldWrapper control={form.control} name="scope" label="Scope">
-                {(field) => (
-                  <FormControl>
-                    <RadioGroup
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      className="flex items-center gap-4"
+            <FormFieldWrapper control={form.control} name="type" label="Sentiment">
+              {(field) => (
+                <FormControl>
+                  <div role="group" aria-label="Sentiment" className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant={field.value === 'positive' ? 'default' : 'outline'}
+                      size="sm"
+                      aria-pressed={field.value === 'positive'}
+                      onClick={() => field.onChange('positive')}
+                      className="gap-2"
                     >
-                      <div className="flex items-center gap-2">
-                        <RadioGroupItem
-                          value="message"
-                          id="feedback-scope-message"
-                          disabled={!messageId}
-                        />
-                        <Label htmlFor="feedback-scope-message">This message</Label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <RadioGroupItem value="conversation" id="feedback-scope-conversation" />
-                        <Label htmlFor="feedback-scope-conversation">Entire conversation</Label>
-                      </div>
-                    </RadioGroup>
-                  </FormControl>
-                )}
-              </FormFieldWrapper>
-            </div>
+                      <ThumbsUp className="size-4" />
+                      <span className="sr-only">Thumbs up</span>
+                      Like
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={field.value === 'negative' ? 'default' : 'outline'}
+                      size="sm"
+                      aria-pressed={field.value === 'negative'}
+                      onClick={() => field.onChange('negative')}
+                      className="gap-2"
+                    >
+                      <ThumbsDown className="size-4" />
+                      <span className="sr-only">Thumbs down</span>
+                      Dislike
+                    </Button>
+                  </div>
+                </FormControl>
+              )}
+            </FormFieldWrapper>
 
             <GenericTextarea
               control={form.control}
@@ -191,12 +151,8 @@ export const FeedbackDialog = ({
               label=""
               placeholder={
                 type === 'positive'
-                  ? scope === 'conversation'
-                    ? 'What went well in this conversation?'
-                    : 'What went well in this message?'
-                  : scope === 'conversation'
-                    ? 'What could have been better in this conversation?'
-                    : 'What could have been better in this message?'
+                  ? 'What went well?'
+                  : 'What could have been better?'
               }
               className="min-h-[80px]"
             />
