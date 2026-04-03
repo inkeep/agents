@@ -180,7 +180,6 @@ function FieldError({
 }: React.ComponentProps<'div'> & {
   errors?: Array<{ message?: string } | undefined>;
 }) {
-  'use memo';
   const content = (() => {
     if (children) {
       return children;

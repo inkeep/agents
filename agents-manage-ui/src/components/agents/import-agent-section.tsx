@@ -5,7 +5,7 @@ import type { ImportAgentRequest, ImportAgentWarning } from '@inkeep/agents-core
 import { ImportAgentRequestSchema } from '@inkeep/agents-core/client-exports';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
@@ -67,7 +67,6 @@ export function ImportAgentSection({
   isOpen,
   onSuccess,
 }: ImportAgentSectionProps) {
-  'use memo';
   const router = useRouter();
   const [sourceProjectId, setSourceProjectId] = useState('');
   const [sourceAgentId, setSourceAgentId] = useState('');
@@ -87,10 +86,7 @@ export function ImportAgentSection({
     enabled: isOpen,
   });
 
-  const availableProjects = useMemo(
-    () => projects.filter((project) => project.projectId !== projectId),
-    [projectId, projects]
-  );
+  const availableProjects = projects.filter((project) => project.projectId !== projectId);
 
   const {
     data: sourceAgents,

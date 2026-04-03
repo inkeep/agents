@@ -77,7 +77,6 @@ export function DuplicateAgentSection({
   isOpen,
   onSuccess,
 }: DuplicateAgentSectionProps) {
-  'use memo';
   const router = useRouter();
   const [sourceProjectId, setSourceProjectId] = useState(projectId);
   const [sourceAgentId, setSourceAgentId] = useState('');

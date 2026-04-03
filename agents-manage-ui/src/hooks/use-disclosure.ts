@@ -3,7 +3,6 @@
 import { useState } from 'react';
 
 export function useDisclosure(initial = false) {
-  'use memo';
   const [value, setValue] = useState(initial);
 
   return {
