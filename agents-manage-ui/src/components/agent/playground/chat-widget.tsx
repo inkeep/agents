@@ -245,15 +245,6 @@ export function ChatWidget({
             baseUrl: PUBLIC_INKEEP_AGENTS_API_URL,
             ...(playgroundAppId ? { appId: playgroundAppId } : {}),
             headers: {
-              ...(playgroundAppId
-                ? {}
-                : {
-                    // 'x-inkeep-tenant-id': tenantId,
-                    // 'x-inkeep-project-id': projectId,
-                    // 'x-inkeep-agent-id': agentId || '',
-                    // Authorization: `Bearer ${tempApiKey}`,
-                    // removed because they are sent in a different context
-                  }),
               'x-emit-operations': 'true',
               ...customHeaders,
             },
