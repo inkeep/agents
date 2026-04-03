@@ -46,7 +46,6 @@ export function ProjectForm({
   readOnly = false,
   className,
 }: ProjectFormProps) {
-  'use memo';
   const form = useForm({
     resolver: zodResolver(ProjectSchema),
     defaultValues: initialData ? createDefaultValues(initialData) : defaultValues,

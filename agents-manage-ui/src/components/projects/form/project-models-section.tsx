@@ -28,7 +28,6 @@ interface ProjectModelsSectionProps {
 }
 
 function BaseModelSection({ form, disabled }: ProjectModelsSectionProps) {
-  'use memo';
   const { control } = form;
   const baseModel = useWatch({ control, name: 'models.base.model' });
   const { field: fallbackModelsField } = useController({
@@ -78,7 +77,6 @@ function BaseModelSection({ form, disabled }: ProjectModelsSectionProps) {
 }
 
 function StructuredOutputModelSection({ form, disabled }: ProjectModelsSectionProps) {
-  'use memo';
   const { control } = form;
   const structuredOutputModel = useWatch({
     control: form.control,
@@ -151,7 +149,6 @@ function StructuredOutputModelSection({ form, disabled }: ProjectModelsSectionPr
 }
 
 function SummarizerModelSection({ form, disabled }: ProjectModelsSectionProps) {
-  'use memo';
   const { control } = form;
   const summarizerModel = useWatch({ control, name: 'models.summarizer.model' });
   const { field: fallbackModelsField } = useController({
@@ -221,7 +218,6 @@ function SummarizerModelSection({ form, disabled }: ProjectModelsSectionProps) {
 }
 
 export function ProjectModelsSection({ form, disabled }: ProjectModelsSectionProps) {
-  'use memo';
   const [isOpen, setIsOpen] = useState(false);
   const { errors } = useFormState({ control: form.control });
 
