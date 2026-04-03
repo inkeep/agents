@@ -189,6 +189,7 @@ const VISIBLE_FIELDS_BY_TYPE: Record<ActivityKind, (keyof ActivityItem)[]> = {
     'streamMaxLifetimeMs',
     'streamBufferSizeBytes',
   ],
+  [ACTIVITY_TYPES.DURABLE_TOOL_EXECUTION]: ['toolName', 'toolCallId', 'toolResponseContent'],
 };
 
 /**

@@ -23,12 +23,14 @@ vi.mock('../../dolt/schema-sync', () => ({
 // Mock the MCP client — controllable per-test via mockMcpConnect
 const mockMcpConnect = vi.fn().mockResolvedValue(undefined);
 const mockMcpTools = vi.fn().mockResolvedValue({});
+const mockMcpGetInstructions = vi.fn().mockReturnValue(undefined);
+const mockMcpDisconnect = vi.fn().mockResolvedValue(undefined);
 vi.mock('../../utils/mcp-client', () => ({
   McpClient: vi.fn().mockImplementation(() => ({
     connect: mockMcpConnect,
     tools: mockMcpTools,
-    getInstructions: vi.fn().mockReturnValue(undefined),
-    disconnect: vi.fn().mockResolvedValue(undefined),
+    getInstructions: mockMcpGetInstructions,
+    disconnect: mockMcpDisconnect,
   })),
 }));
 
@@ -127,6 +129,7 @@ describe('dbResultToMcpTool - Composio "both or none" policy', () => {
       }),
     } as any;
     vi.clearAllMocks();
+    mockMcpGetInstructions.mockReturnValue(undefined);
   });
 
   it('should set status to needs_auth when Composio tool has no connectedAccountId', async () => {
@@ -286,6 +289,7 @@ describe('dbResultToMcpTool - three-tier error classification', () => {
     vi.clearAllMocks();
     mockMcpConnect.mockResolvedValue(undefined);
     mockMcpTools.mockResolvedValue({});
+    mockMcpGetInstructions.mockReturnValue(undefined);
   });
 
   it('should set status to unavailable when credential exists and server returns McpError 500', async () => {
@@ -390,5 +394,41 @@ describe('dbResultToMcpTool - three-tier error classification', () => {
 
     expect(result.status).toBe('needs_auth');
     expect(result.lastError).toContain('Authentication required');
+  });
+});
+
+describe('dbResultToMcpTool - serverInstructions passthrough', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockMcpConnect.mockResolvedValue(undefined);
+    mockMcpTools.mockResolvedValue({
+      search: {
+        description: 'Search tool',
+        inputSchema: {},
+      },
+    });
+    mockMcpGetInstructions.mockReturnValue(undefined);
+  });
+
+  it('passes server instructions through to capabilities without modification', async () => {
+    const instructions = 'Use backslash-n (\\n) for newlines in markdown content.';
+
+    mockMcpGetInstructions.mockReturnValue(instructions);
+
+    const mockReturning = vi.fn().mockResolvedValue([{}]);
+    const mockWhere = vi.fn().mockReturnValue({ returning: mockReturning });
+    const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
+    const mockUpdate = vi.fn().mockReturnValue({ set: mockSet });
+    const db = {
+      ...testManageDbClient,
+      update: mockUpdate,
+    } as any as AgentsManageDatabaseClient;
+
+    const result = await dbResultToMcpTool(makeGenericToolDbResult(), db);
+
+    expect(result.status).toBe('healthy');
+    expect(result.capabilities).toEqual({
+      serverInstructions: instructions,
+    });
   });
 });

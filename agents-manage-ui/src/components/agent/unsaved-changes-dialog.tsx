@@ -24,7 +24,6 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({
   onSubmit,
   control,
 }) => {
-  'use memo';
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const { isDirty: rhfDirtyState, isSubmitting, isValid } = useFormState({ control });
   const isDirty = dirty || rhfDirtyState;

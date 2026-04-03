@@ -2,7 +2,7 @@
 
 import { CheckCircle2, ChevronDown, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { SuiteConfigViewDialog } from '@/components/evaluation-run-configs/suite-config-view-dialog';
 import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
@@ -60,14 +60,14 @@ export function EvaluationRunConfigResults({
   const [results, setResults] = useState<EvaluationResult[]>(initialResults);
 
   // Fetch results for polling
-  const refreshResults = useCallback(async () => {
+  async function refreshResults() {
     try {
       const response = await fetchEvaluationResultsByRunConfig(tenantId, projectId, runConfig.id);
       setResults(response.data);
     } catch (error) {
       console.error('Error refreshing results:', error);
     }
-  }, [tenantId, projectId, runConfig.id]);
+  }
 
   // Always poll for new results since continuous tests can receive new evaluations at any time
   useEffect(() => {
@@ -76,7 +76,10 @@ export function EvaluationRunConfigResults({
     }, 5000); // Refresh every 5 seconds
 
     return () => clearInterval(interval);
-  }, [refreshResults]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    refreshResults,
+  ]);
 
   const evaluatorMap = new Map<string, string>();
   evaluators.forEach((evaluator) => {
@@ -103,43 +106,36 @@ export function EvaluationRunConfigResults({
 
   const runConfigSuiteConfigs = (runConfig.suiteConfigIds || [])
     .map((id) => getSuiteConfigById(id))
-    .filter((config): config is EvaluationSuiteConfig => config !== undefined);
+    .filter((config) => config !== undefined);
 
-  const filteredResults = useMemo(
-    () => filterEvaluationResults(results, filters, evaluators),
-    [results, filters, evaluators]
-  );
+  const filteredResults = filterEvaluationResults(results, filters, evaluators);
 
   const evaluatorOptions = evaluators.map((e) => ({ id: e.id, name: e.name }));
 
-  const agentOptions = useMemo(() => {
-    const uniqueAgents = new Map<string, string>();
-    results.forEach((result) => {
-      if (result.agentId && !uniqueAgents.has(result.agentId)) {
-        uniqueAgents.set(result.agentId, result.agentId);
-      }
-    });
-    return Array.from(uniqueAgents.entries()).map(([id, name]) => ({ id, name }));
-  }, [results]);
+  const uniqueAgents = new Map<string, string>();
+  for (const result of results) {
+    if (result.agentId && !uniqueAgents.has(result.agentId)) {
+      uniqueAgents.set(result.agentId, result.agentId);
+    }
+  }
+  const agentOptions = Array.from(uniqueAgents.entries()).map(([id, name]) => ({ id, name }));
 
   // Extract unique output schema keys from results for filtering dropdown
-  const availableOutputKeys = useMemo(() => {
-    const collect = (obj: unknown, prefix = ''): string[] => {
-      if (!isPlainObject(obj)) return [];
+  function collect(obj: unknown, prefix = ''): string[] {
+    if (!isPlainObject(obj)) return [];
 
-      return Object.entries(obj).flatMap(([k, v]) => {
-        const p = prefix ? `${prefix}.${k}` : k;
-        if (Array.isArray(v)) {
-          const first = v[0];
-          return isPlainObject(first) ? [p, ...collect(first, p)] : [p];
-        }
-        return isPlainObject(v) ? [p, ...collect(v, p)] : [p];
-      });
-    };
+    return Object.entries(obj).flatMap(([k, v]) => {
+      const p = prefix ? `${prefix}.${k}` : k;
+      if (Array.isArray(v)) {
+        const first = v[0];
+        return isPlainObject(first) ? [p, ...collect(first, p)] : [p];
+      }
+      return isPlainObject(v) ? [p, ...collect(v, p)] : [p];
+    });
+  }
 
-    const keys = results.flatMap((r) => collect(r.output));
-    return [...new Set(keys)].filter((key) => key.startsWith('output.')).sort();
-  }, [results]);
+  const keys = results.flatMap((r) => collect(r.output));
+  const availableOutputKeys = [...new Set(keys)].filter((key) => key.startsWith('output.')).sort();
 
   return (
     <div className="space-y-6">

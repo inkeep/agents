@@ -1,5 +1,39 @@
 # @inkeep/agents-cli
 
+## 0.64.5
+
+### Patch Changes
+
+- dee33a4: Remove manual `useMemo` and `useCallback` usages in favor of React Compiler
+- Updated dependencies [dee33a4]
+- Updated dependencies [e91d67b]
+  - @inkeep/agents-manage-ui@0.64.5
+  - @inkeep/agents-core@0.64.5
+  - @inkeep/agents-sdk@0.64.5
+
+## 0.64.4
+
+### Patch Changes
+
+- Updated dependencies [707333c]
+  - @inkeep/agents-manage-ui@0.64.4
+  - @inkeep/agents-core@0.64.4
+  - @inkeep/agents-sdk@0.64.4
+
+## 0.64.3
+
+### Patch Changes
+
+- Updated dependencies [d10ccf6]
+- Updated dependencies [63b1062]
+- Updated dependencies [7aa1fac]
+- Updated dependencies [7aa1fac]
+- Updated dependencies [4ace590]
+- Updated dependencies [ee1d23a]
+  - @inkeep/agents-manage-ui@0.64.3
+  - @inkeep/agents-core@0.64.3
+  - @inkeep/agents-sdk@0.64.3
+
 ## 0.64.2
 
 ### Patch Changes

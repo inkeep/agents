@@ -86,7 +86,7 @@ export function ProjectScheduledTriggersTable({
   projectId,
 }: ProjectScheduledTriggersTableProps) {
   const router = useRouter();
-  const [loadingTriggers, setLoadingTriggers] = useState<Set<string>>(new Set());
+  const [loadingTriggers, setLoadingTriggers] = useState(new Set<string>());
   const { members: orgMembers } = useOrgMembers(tenantId);
   const { user } = useAuthSession();
   const { isAdmin } = useIsOrgAdmin();
@@ -123,13 +123,12 @@ export function ProjectScheduledTriggersTable({
     } catch (error) {
       console.error('Failed to update scheduled trigger:', error);
       toast.error('Failed to update scheduled trigger status');
-    } finally {
-      setLoadingTriggers((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(triggerId);
-        return newSet;
-      });
     }
+    setLoadingTriggers((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(triggerId);
+      return newSet;
+    });
   };
 
   const deleteTrigger = async (triggerId: string, agentId: string, name: string) => {
@@ -178,13 +177,12 @@ export function ProjectScheduledTriggersTable({
     } catch (error) {
       console.error('Failed to run scheduled trigger:', error);
       toast.error('Failed to run scheduled trigger');
-    } finally {
-      setLoadingTriggers((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(triggerId);
-        return newSet;
-      });
     }
+    setLoadingTriggers((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(triggerId);
+      return newSet;
+    });
   };
 
   const localTz = getLocalTimezoneAbbreviation();

@@ -53,6 +53,26 @@ describe('Service Token Auth', () => {
       expect(result.valid).toBe(true);
       expect(result.payload?.initiatedBy).toEqual({ type: 'api_key', id: 'key_xyz789' });
     });
+
+    it('should round-trip appId when provided', async () => {
+      const token = await generateServiceToken({
+        ...baseParams,
+        appId: 'app-123',
+      });
+
+      const result = await verifyServiceToken(token);
+
+      expect(result.valid).toBe(true);
+      expect(result.payload?.appId).toBe('app-123');
+    });
+
+    it('should not include appId when not provided', async () => {
+      const token = await generateServiceToken(baseParams);
+      const result = await verifyServiceToken(token);
+
+      expect(result.valid).toBe(true);
+      expect(result.payload?.appId).toBeUndefined();
+    });
   });
 
   describe('validateTenantId', () => {

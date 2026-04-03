@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { throwError } from '@/lib/utils';
 
 interface UseTempApiKeyParams {
   tenantId: string;
@@ -29,7 +30,7 @@ export function useTempApiKey({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchToken = useCallback(async (): Promise<string | null> => {
+  async function fetchToken(): Promise<string | null> {
     try {
       const response = await fetch(
         `${PUBLIC_INKEEP_AGENTS_API_URL}/manage/tenants/${tenantId}/playground/token`,
@@ -47,7 +48,7 @@ export function useTempApiKey({
       );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch temporary API key');
+        throwError('Failed to fetch temporary API key');
       }
 
       const data = await response.json();
@@ -55,14 +56,14 @@ export function useTempApiKey({
       setAppId(data.appId ?? null);
       setExpiresAt(data.expiresAt);
       setError(null);
+      setIsLoading(false);
       return data.apiKey;
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Unknown error'));
-      return null;
-    } finally {
       setIsLoading(false);
+      return null;
     }
-  }, [tenantId, projectId, agentId, PUBLIC_INKEEP_AGENTS_API_URL]);
+  }
 
   // Initial fetch
   useEffect(() => {
@@ -72,7 +73,12 @@ export function useTempApiKey({
       // If not enabled or no agentId, set loading to false immediately
       setIsLoading(false);
     }
-  }, [enabled, agentId, fetchToken]);
+  }, [
+    enabled,
+    agentId,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchToken,
+  ]);
 
   // Auto-refresh before expiry
   useEffect(() => {
@@ -85,12 +91,14 @@ export function useTempApiKey({
     // Refresh 5 minutes before expiry (or immediately if already expired)
     const refreshTime = Math.max(0, timeUntilExpiry - 5 * 60 * 1000);
 
-    const timer = setTimeout(() => {
-      fetchToken();
-    }, refreshTime);
+    const timer = setTimeout(fetchToken, refreshTime);
 
     return () => clearTimeout(timer);
-  }, [expiresAt, fetchToken]);
+  }, [
+    expiresAt,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchToken,
+  ]);
 
   return { apiKey, appId, isLoading, error, refresh: fetchToken };
 }

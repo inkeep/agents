@@ -37,7 +37,9 @@ function ErrorGroup({ title, errors, onNavigate }: ErrorGroupProps) {
   const groupedErrors: Record<string, PartialProcessedAgentError[]> = {};
   for (const error of errors) {
     const key = error.nodeId ?? '';
-    groupedErrors[key] ??= [];
+    if (!groupedErrors[key]) {
+      groupedErrors[key] = [];
+    }
     groupedErrors[key].push(error);
   }
   const IconToUse = isOpen ? ChevronDown : ChevronRight;
@@ -144,7 +146,6 @@ function useWindowFocus(): boolean {
 }
 
 export function AgentErrorSummary() {
-  'use memo';
   const { setQueryState } = useSidePane();
   const nodes = useNodes();
   const { setNodes, setEdges } = useAgentActions();

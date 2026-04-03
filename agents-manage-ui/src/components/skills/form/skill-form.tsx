@@ -45,7 +45,6 @@ function formatFormData(data: SkillDetail | null): SkillInput {
 }
 
 export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
-  'use memo';
   const {
     data: { canEdit },
   } = useProjectPermissionsQuery();

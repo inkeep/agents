@@ -1,6 +1,5 @@
 import { type Edge, useNodesData, useReactFlow } from '@xyflow/react';
 import { Spline, Trash2 } from 'lucide-react';
-import { useCallback } from 'react';
 import { toast } from 'sonner';
 import { isNodeType, NodeType } from '@/components/agent/configuration/node-types';
 import { DashedSplineIcon } from '@/components/icons/dashed-spline';
@@ -132,9 +131,9 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
     data: { canEdit },
   } = useProjectPermissionsQuery();
 
-  const deleteEdge = useCallback(() => {
+  function deleteEdge() {
     deleteElements({ edges: [{ id: selectedEdge.id }] });
-  }, [selectedEdge.id]);
+  }
 
   const sourceNode = useNodesData(selectedEdge.source);
   const targetNode = useNodesData(selectedEdge.target);

@@ -60,7 +60,6 @@ type AuthClientType = ReturnType<typeof createConfiguredAuthClient>;
 const AuthClientContext = createContext<AuthClientType | null>(null);
 
 export function AuthClientProvider({ children }: { children: ReactNode }) {
-  'use memo';
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
 
   const authClient = createConfiguredAuthClient(PUBLIC_INKEEP_AGENTS_API_URL);
