@@ -47,9 +47,8 @@ export function DeleteFeedbackConfirmation({
     } catch (error) {
       console.error('Error deleting feedback:', error);
       toast.error('An unexpected error occurred');
-    } finally {
-      setIsDeleting(false);
     }
+    setIsDeleting(false);
   };
 
   return (
