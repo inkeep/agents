@@ -46,7 +46,7 @@ export function useOAuthLogin({
   // Track active OAuth attempts to prevent conflicts
   const activeAttemptsRef = useRef(new Map<string, () => void>());
 
-  const openOAuthPopupAndWait = useCallback((oauthUrl: string, toolId: string): Promise<void> => {
+  function openOAuthPopupAndWait(oauthUrl: string, toolId: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const existingCleanup = activeAttemptsRef.current.get(toolId);
       if (existingCleanup) {
@@ -120,7 +120,7 @@ export function useOAuthLogin({
         reject(errorObj);
       }
     });
-  }, []);
+  }
 
   const navigateToTool = useCallback(
     (toolId: string) => {

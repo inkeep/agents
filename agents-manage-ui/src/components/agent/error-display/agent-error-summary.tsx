@@ -37,7 +37,9 @@ function ErrorGroup({ title, errors, onNavigate }: ErrorGroupProps) {
   const groupedErrors: Record<string, PartialProcessedAgentError[]> = {};
   for (const error of errors) {
     const key = error.nodeId ?? '';
-    groupedErrors[key] ??= [];
+    if (!groupedErrors[key]) {
+      groupedErrors[key] = [];
+    }
     groupedErrors[key].push(error);
   }
   const IconToUse = isOpen ? ChevronDown : ChevronRight;

@@ -173,9 +173,8 @@ export const ToolApproval = ({ tool, approve }: ToolApprovalProps) => {
       } catch (err) {
         console.error('Failed to compute diff:', err);
         setError(err instanceof Error ? err.message : 'Failed to load entity state');
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     fetchAndComputeDiff();

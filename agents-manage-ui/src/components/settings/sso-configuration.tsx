@@ -261,9 +261,8 @@ export function RegisterSSOForm({
       onRegistered();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to register SSO provider');
-    } finally {
-      setIsSubmitting(false);
     }
+    setIsSubmitting(false);
   };
 
   return (

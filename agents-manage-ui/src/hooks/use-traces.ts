@@ -310,7 +310,7 @@ export function useStatsByProject(options?: {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
+  async function fetchData() {
     try {
       setLoading(true);
       setError(null);
@@ -332,11 +332,13 @@ export function useStatsByProject(options?: {
       setError(errorMessage);
     }
     setLoading(false);
-  }, [options?.startTime, options?.endTime, options?.projectIds, options?.tenantId]);
+  }
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+      fetchData]);
 
   return {
     data,

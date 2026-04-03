@@ -132,9 +132,9 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
     data: { canEdit },
   } = useProjectPermissionsQuery();
 
-  const deleteEdge = useCallback(() => {
+  function deleteEdge() {
     deleteElements({ edges: [{ id: selectedEdge.id }] });
-  }, [selectedEdge.id]);
+  }
 
   const sourceNode = useNodesData(selectedEdge.source);
   const targetNode = useNodesData(selectedEdge.target);
