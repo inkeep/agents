@@ -114,19 +114,15 @@ export function EvaluatorFormDialog({
   }, [isOpen, initialData, form, evaluatorId, tenantId, projectId]);
 
   const { isSubmitting } = form.formState;
+  const { control } = form;
 
   const { field: providerOptionsField } = useController({
-    control: form.control,
+    control,
     name: 'model.providerOptions',
     defaultValue: undefined,
   });
-
-  const passCriteriaValue = useWatch({ control: form.control, name: 'passCriteria' });
-
-  const { field: schemaField } = useController({
-    control: form.control,
-    name: 'schema',
-  });
+  const passCriteriaValue = useWatch({ control, name: 'passCriteria' });
+  const { field: schemaField } = useController({ control, name: 'schema' });
 
   const onInvalid = (errors: Record<string, unknown>) => {
     const errorMessages: string[] = [];
@@ -231,7 +227,7 @@ export function EvaluatorFormDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6">
             <GenericInput
-              control={form.control}
+              control={control}
               name="name"
               label="Name"
               placeholder="e.g., Quality Check Evaluator"
@@ -239,13 +235,13 @@ export function EvaluatorFormDialog({
             />
 
             <GenericTextarea
-              control={form.control}
+              control={control}
               name="description"
               label="Description"
               placeholder="Describe what this evaluator measures..."
             />
             <GenericTextarea
-              control={form.control}
+              control={control}
               name="prompt"
               label="Prompt"
               description="Instructions for the evaluator LLM on how to evaluate conversations"
@@ -254,7 +250,7 @@ export function EvaluatorFormDialog({
             />
 
             <GenericJsonSchemaEditor
-              control={form.control}
+              control={control}
               name="schema"
               label="Output Schema"
               description="JSON Schema defining the structure of the evaluation output. All properties are required for structured outputs."
@@ -265,7 +261,7 @@ export function EvaluatorFormDialog({
 
             <div className="space-y-4">
               <FormFieldWrapper
-                control={form.control}
+                control={control}
                 name="model.model"
                 label="Model"
                 description="AI model to use for the evaluator"

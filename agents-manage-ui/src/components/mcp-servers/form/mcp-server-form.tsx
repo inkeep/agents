@@ -87,8 +87,9 @@ export function MCPServerForm({
   const invalidateMcpToolCache = useMcpToolInvalidation(tenantId, projectId);
 
   const { isSubmitting } = form.formState;
-  const credentialScope = useWatch({ control: form.control, name: 'credentialScope' });
-  const toolOverrides = useWatch({ control: form.control, name: 'config.mcp.toolOverrides' }) ?? {};
+  const { control } = form;
+  const credentialScope = useWatch({ control, name: 'credentialScope' });
+  const toolOverrides = useWatch({ control, name: 'config.mcp.toolOverrides' }) ?? {};
 
   // Helper function to filter active tools against available tools
   const getActiveTools = (toolsConfig: MCPToolFormData['config']['mcp']['toolsConfig']) => {
@@ -258,14 +259,14 @@ export function MCPServerForm({
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className={cn('space-y-8', className)}>
           <GenericInput
-            control={form.control}
+            control={control}
             name="name"
             label="Name"
             placeholder="MCP server"
             isRequired
           />
           <GenericInput
-            control={form.control}
+            control={control}
             name="config.mcp.server.url"
             label="URL"
             placeholder="https://api.example.com/mcp"
@@ -273,7 +274,7 @@ export function MCPServerForm({
             disabled={tool?.isWorkApp}
           />
           <GenericSelect
-            control={form.control}
+            control={control}
             selectTriggerClassName="w-full"
             name="config.mcp.transport.type"
             label="Transport type"
@@ -287,13 +288,13 @@ export function MCPServerForm({
             ]}
           />
           <GenericInput
-            control={form.control}
+            control={control}
             name="imageUrl"
             label="Image URL (optional)"
             placeholder="https://example.com/icon.png or data:image/png;base64,..."
           />
           <GenericTextarea
-            control={form.control}
+            control={control}
             name="config.mcp.prompt"
             label="Prompt (optional)"
             placeholder={
@@ -308,7 +309,7 @@ export function MCPServerForm({
             <>
               <div className="space-y-3">
                 <GenericSelect
-                  control={form.control}
+                  control={control}
                   selectTriggerClassName="w-full"
                   name="credentialScope"
                   label="Credential Scope"
@@ -342,7 +343,7 @@ export function MCPServerForm({
               {credentialScope === CredentialScopeEnum.project && (
                 <div className="space-y-3">
                   <GenericSelect
-                    control={form.control}
+                    control={control}
                     selectTriggerClassName="w-full"
                     name="credentialReferenceId"
                     label="Credential"
@@ -391,7 +392,7 @@ export function MCPServerForm({
           {tool && (
             <>
               <ActiveToolsSelector
-                control={form.control}
+                control={control}
                 name="config.mcp.toolsConfig"
                 label="Tools"
                 availableTools={tool?.availableTools || []}

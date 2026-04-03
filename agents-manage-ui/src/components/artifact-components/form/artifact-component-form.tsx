@@ -48,7 +48,8 @@ export function ArtifactComponentForm({
     defaultValues,
     mode: 'onChange',
   });
-  const artifactName = useWatch({ control: form.control, name: 'name' });
+  const { control } = form;
+  const artifactName = useWatch({ control, name: 'name' });
 
   const { isSubmitting, isValid } = form.formState;
   const router = useRouter();
@@ -91,7 +92,7 @@ export function ArtifactComponentForm({
       <Form {...form}>
         <form onSubmit={onSubmit} className="max-w-3xl mx-auto space-y-8">
           <GenericInput
-            control={form.control}
+            control={control}
             name="name"
             label="Name"
             placeholder="Document Artifact"
@@ -99,7 +100,7 @@ export function ArtifactComponentForm({
             disabled={readOnly}
           />
           <GenericInput
-            control={form.control}
+            control={control}
             name="id"
             label="Id"
             placeholder="my-artifact"
@@ -111,7 +112,7 @@ export function ArtifactComponentForm({
             }
           />
           <GenericTextarea
-            control={form.control}
+            control={control}
             name="description"
             label="Description"
             placeholder="Structured factual information extracted from search results"
@@ -120,7 +121,7 @@ export function ArtifactComponentForm({
             isRequired={isRequired(schema, 'description')}
           />
           <GenericJsonSchemaEditor
-            control={form.control}
+            control={control}
             name="props"
             label="Properties"
             placeholder="Enter a valid JSON Schema with inPreview flags, or leave empty to save entire tool result..."
