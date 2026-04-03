@@ -111,7 +111,7 @@ const ApprovalButtons = ({
   approveLabel = 'Approve',
   approveVariant = 'default' as 'default' | 'destructive',
   rejectLabel = 'Reject',
-  approveIcon = <CheckIcon className="size-3" />,
+  approveIcon,
 }: {
   state: string;
   approve: (approved?: boolean) => Promise<void>;
@@ -126,7 +126,7 @@ const ApprovalButtons = ({
         {rejectLabel}
       </Button>
       <Button variant={approveVariant} size="xs" type="button" onClick={() => approve(true)}>
-        {approveIcon}
+        {approveIcon ?? <CheckIcon className="size-3" />}
         {approveLabel}
       </Button>
     </div>
