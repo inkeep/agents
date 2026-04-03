@@ -105,7 +105,11 @@ export function useConversationStats(
 
   const refresh = useCallback(() => {
     fetchData(currentPage);
-  }, [fetchData, currentPage]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchData,
+    currentPage,
+  ]);
 
   // Pagination controls
   const nextPage = useCallback(() => {
@@ -114,7 +118,12 @@ export function useConversationStats(
       setCurrentPage(nextPageNum);
       fetchData(nextPageNum);
     }
-  }, [currentPage, paginationInfo?.hasNextPage, fetchData]);
+  }, [
+    currentPage,
+    paginationInfo?.hasNextPage,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchData,
+  ]);
 
   const previousPage = useCallback(() => {
     if (paginationInfo?.hasPreviousPage) {
@@ -122,7 +131,12 @@ export function useConversationStats(
       setCurrentPage(prevPageNum);
       fetchData(prevPageNum);
     }
-  }, [currentPage, paginationInfo?.hasPreviousPage, fetchData]);
+  }, [
+    currentPage,
+    paginationInfo?.hasPreviousPage,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchData,
+  ]);
 
   const goToPage = useCallback(
     (page: number) => {
@@ -136,7 +150,12 @@ export function useConversationStats(
         fetchData(page);
       }
     },
-    [currentPage, paginationInfo, fetchData]
+    [
+      currentPage,
+      paginationInfo,
+      // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+      fetchData,
+    ]
   );
 
   // Reset to page 1 and fetch when filters or time range change
@@ -234,7 +253,10 @@ export function useProjectOverviewStats(options?: {
 
   useEffect(() => {
     fetchStats();
-  }, [fetchStats]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchStats,
+  ]);
 
   return {
     stats,
@@ -282,7 +304,10 @@ export function useConversationsPerDayAcrossProjects(options?: {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchData,
+  ]);
 
   return {
     data,
