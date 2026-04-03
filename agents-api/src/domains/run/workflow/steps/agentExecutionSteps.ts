@@ -595,7 +595,10 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
         if (pendingApproval.delegatedApproval) {
           const da = pendingApproval.delegatedApproval;
           try {
-            await sseHelper.writeToolInputStart({ toolCallId: da.toolCallId, toolName: da.toolName });
+            await sseHelper.writeToolInputStart({
+              toolCallId: da.toolCallId,
+              toolName: da.toolName,
+            });
             const inputText = JSON.stringify(da.args ?? {});
             for (let i = 0; i < inputText.length; i += 16) {
               await sseHelper.writeToolInputDelta({
