@@ -8,16 +8,23 @@ import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { SlackStrings } from '../../i18n';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
-import { buildToolApprovalDoneBlocks, ToolApprovalButtonValueSchema } from '../blocks';
+import { lookupAgentName } from '../agent-resolution';
+import {
+  buildToolApprovalDoneBlocks,
+  createContextBlock,
+  ToolApprovalButtonValueSchema,
+} from '../blocks';
 import { getSlackClient } from '../client';
 import { buildAgentSelectorModal, buildMessageShortcutModal, type ModalMetadata } from '../modals';
 import { findWorkspaceConnectionByTeamId } from '../nango';
 import type { InlineSelectorMetadata } from './app-mention';
 import {
+  escapeSlackMrkdwn,
   fetchAgentsForProject,
   fetchProjectsForTenant,
   findCachedUserMapping,
   getChannelAgentConfig,
+  markdownToMrkdwn,
   sendResponseUrlMessage,
 } from './utils';
 
@@ -147,6 +154,28 @@ export async function handleToolApproval(params: {
       }
 
       logger.info({ toolCallId, conversationId, approved, slackUserId }, 'Tool approval processed');
+
+      const contentType = approvalResponse.headers.get('content-type') || '';
+      logger.info(
+        {
+          contentType,
+          hasBody: !!approvalResponse.body,
+          status: approvalResponse.status,
+          approved,
+        },
+        'Approval response details'
+      );
+      if (approved && approvalResponse.body && contentType.includes('text/event-stream')) {
+        const agentName = (await lookupAgentName(tenantId, projectId, agentId)) || agentId;
+        await consumeApprovalContinuationStream({
+          response: approvalResponse,
+          slackClient,
+          channel: buttonValue.channel,
+          threadTs: buttonValue.threadTs,
+          agentName,
+        });
+      }
+
       span.end();
     } catch (error) {
       if (error instanceof Error) setSpanWithError(span, error);
@@ -424,4 +453,95 @@ export async function handleMessageShortcut(params: {
       span.end();
     }
   });
+}
+
+const CONTINUATION_TIMEOUT_MS = 120_000;
+
+async function consumeApprovalContinuationStream(params: {
+  response: Response;
+  slackClient: ReturnType<typeof getSlackClient>;
+  channel: string;
+  threadTs?: string;
+  agentName: string;
+}): Promise<void> {
+  const { response, slackClient, channel, threadTs, agentName } = params;
+  const threadParam = threadTs ? { thread_ts: threadTs } : {};
+
+  if (!response.body) return;
+
+  const thinkingMsg = await slackClient.chat
+    .postMessage({
+      channel,
+      ...threadParam,
+      text: `_${agentName} is thinking..._`,
+    })
+    .catch((e) => {
+      logger.warn({ error: e }, 'Failed to post thinking message');
+      return null;
+    });
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let fullText = '';
+
+  const timeoutId = setTimeout(() => {
+    reader.cancel().catch(() => {});
+  }, CONTINUATION_TIMEOUT_MS);
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const jsonStr = line.slice(6).trim();
+        if (!jsonStr || jsonStr === '[DONE]') continue;
+
+        try {
+          const data = JSON.parse(jsonStr);
+          if (data.type === 'text-delta' && data.delta) {
+            fullText += data.delta;
+          }
+        } catch {
+          // skip invalid JSON
+        }
+      }
+    }
+  } catch (error) {
+    logger.warn(
+      { error: error instanceof Error ? error.message : String(error) },
+      'Error reading approval continuation stream'
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (thinkingMsg?.ts) {
+    await slackClient.chat
+      .delete({ channel, ts: thinkingMsg.ts })
+      .catch((e) => logger.warn({ error: e }, 'Failed to delete thinking message'));
+  }
+
+  if (fullText.length > 0) {
+    const slackText = escapeSlackMrkdwn(markdownToMrkdwn(fullText));
+    await slackClient.chat
+      .postMessage({
+        channel,
+        ...threadParam,
+        text: slackText,
+        blocks: [
+          { type: 'section', text: { type: 'mrkdwn', text: slackText } },
+          createContextBlock({ agentName }),
+        ],
+      })
+      .catch((e) =>
+        logger.warn({ error: e, channel, threadTs }, 'Failed to post approval continuation result')
+      );
+  }
 }
