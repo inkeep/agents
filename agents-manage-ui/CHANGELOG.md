@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-ui
 
+## 0.64.4
+
+### Patch Changes
+
+- 707333c: Enable React Compiler for all components, removing annotation mode and manual memoization
+  - @inkeep/agents-core@0.64.4
+
 ## 0.64.3
 
 ### Patch Changes
