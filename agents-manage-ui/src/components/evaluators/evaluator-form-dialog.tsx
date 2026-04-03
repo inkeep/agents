@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useController, useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
@@ -91,7 +91,7 @@ export function EvaluatorFormDialog({
   });
 
   const { data: agents, isFetching: loadingAgents } = useAgentsQuery();
-  const agentLookup = useMemo(() => createLookup(agents), [agents]);
+  const agentLookup = createLookup(agents);
   const [selectedAgentIds, setSelectedAgentIds] = useState<string[]>([]);
   const [initialAgentIds, setInitialAgentIds] = useState<string[]>([]);
 

@@ -17,7 +17,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -546,78 +546,66 @@ export function TriggerForm({
   const watchedJoinSeparator = useWatch({ control, name: 'joinSeparator' });
 
   // Generate request preview based on current form values
-  const generateRequestPreview = useMemo(() => {
-    const authHeaders = watchedAuthHeaders || [];
-    const signatureVerificationEnabled = watchedSignatureVerificationEnabled;
-    const signingCredential = watchedSigningCredential;
-    const signatureKey = watchedSignatureKey;
-    const signaturePrefix = watchedSignaturePrefix || '';
-    const signatureAlgorithm = watchedSignatureAlgorithm || 'sha256';
-    const signatureEncoding = watchedSignatureEncoding || 'hex';
-    const signedComponents = watchedSignedComponents || [];
-    const joinSeparator = watchedJoinSeparator || '';
+  const authHeaders = watchedAuthHeaders || [];
+  const signatureVerificationEnabled = watchedSignatureVerificationEnabled;
+  const signingCredential = watchedSigningCredential;
+  const signatureKey = watchedSignatureKey;
+  const signaturePrefix = watchedSignaturePrefix || '';
+  const signatureAlgorithm = watchedSignatureAlgorithm || 'sha256';
+  const signatureEncoding = watchedSignatureEncoding || 'hex';
+  const signedComponents = watchedSignedComponents || [];
+  const joinSeparator = watchedJoinSeparator || '';
 
-    const lines: string[] = [];
+  const lines: string[] = [];
 
-    // HTTP method and path
-    lines.push('POST /api/v1/webhooks/trigger/{trigger-id}');
-    lines.push('Content-Type: application/json');
+  // HTTP method and path
+  lines.push('POST /api/v1/webhooks/trigger/{trigger-id}');
+  lines.push('Content-Type: application/json');
 
-    // Auth headers
-    for (const header of authHeaders) {
-      if (header.name) {
-        lines.push(`${header.name}: ••••••••`);
+  // Auth headers
+  for (const header of authHeaders) {
+    if (header.name) {
+      lines.push(`${header.name}: ••••••••`);
+    }
+  }
+
+  // Signature header if configured and enabled
+  if (signatureVerificationEnabled && signingCredential && signatureKey) {
+    lines.push(`${signatureKey}: ${signaturePrefix}<${signatureAlgorithm}-hmac>`);
+
+    // Add any timestamp headers from signed components
+    for (const comp of signedComponents) {
+      if (comp.source === 'header' && comp.key && comp.key !== signatureKey) {
+        lines.push(`${comp.key}: <timestamp-or-value>`);
       }
     }
+  }
 
-    // Signature header if configured and enabled
-    if (signatureVerificationEnabled && signingCredential && signatureKey) {
-      lines.push(`${signatureKey}: ${signaturePrefix}<${signatureAlgorithm}-hmac>`);
+  lines.push('');
+  lines.push('{');
+  lines.push('  "event": "example.event",');
+  lines.push('  "data": { ... }');
+  lines.push('}');
 
-      // Add any timestamp headers from signed components
-      for (const comp of signedComponents) {
-        if (comp.source === 'header' && comp.key && comp.key !== signatureKey) {
-          lines.push(`${comp.key}: <timestamp-or-value>`);
-        }
-      }
-    }
-
+  // Add signature computation explanation if configured and enabled
+  if (signatureVerificationEnabled && signingCredential && signedComponents.length > 0) {
     lines.push('');
-    lines.push('{');
-    lines.push('  "event": "example.event",');
-    lines.push('  "data": { ... }');
-    lines.push('}');
+    lines.push('---');
+    lines.push('Signature computed from:');
+    const componentDescriptions = signedComponents.map((comp) => {
+      if (comp.source === 'body') return '<request-body>';
+      if (comp.source === 'literal') return `"${comp.value || ''}"`;
+      if (comp.source === 'header') return `<${comp.key || 'header'}-value>`;
+      return '<component>';
+    });
+    lines.push(`  ${componentDescriptions.join(` ${joinSeparator || '+'} `)}`);
+    lines.push(`  Algorithm: HMAC-${signatureAlgorithm.toUpperCase()}`);
+    lines.push(`  Encoding: ${signatureEncoding}`);
+  }
 
-    // Add signature computation explanation if configured and enabled
-    if (signatureVerificationEnabled && signingCredential && signedComponents.length > 0) {
-      lines.push('');
-      lines.push('---');
-      lines.push('Signature computed from:');
-      const componentDescriptions = signedComponents.map((comp) => {
-        if (comp.source === 'body') return '<request-body>';
-        if (comp.source === 'literal') return `"${comp.value || ''}"`;
-        if (comp.source === 'header') return `<${comp.key || 'header'}-value>`;
-        return '<component>';
-      });
-      lines.push(`  ${componentDescriptions.join(` ${joinSeparator || '+'} `)}`);
-      lines.push(`  Algorithm: HMAC-${signatureAlgorithm.toUpperCase()}`);
-      lines.push(`  Encoding: ${signatureEncoding}`);
-    }
+  const generateRequestPreview = lines.join('\n');
 
-    return lines.join('\n');
-  }, [
-    watchedAuthHeaders,
-    watchedSignatureVerificationEnabled,
-    watchedSigningCredential,
-    watchedSignatureKey,
-    watchedSignaturePrefix,
-    watchedSignatureAlgorithm,
-    watchedSignatureEncoding,
-    watchedSignedComponents,
-    watchedJoinSeparator,
-  ]);
-
-  const onSubmit = async (data: TriggerFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     try {
       // Parse JSON fields
       let inputSchema: Record<string, unknown> | undefined;
@@ -825,11 +813,11 @@ export function TriggerForm({
       console.error(`Failed to ${mode} trigger:`, error);
       toast.error(`Failed to ${mode} trigger. Please try again.`);
     }
-  };
+  });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={onSubmit} className="space-y-6">
         {/* Basic Information */}
         <Card>
           <CardHeader>

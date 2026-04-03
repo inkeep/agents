@@ -2,7 +2,7 @@
 
 import { Github } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { use, useCallback, useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import EmptyState from '@/components/layout/empty-state';
@@ -22,7 +22,7 @@ export default function WorkAppGitHubSettingsPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadInstallations = useCallback(async () => {
+  async function loadInstallations() {
     try {
       const data = await fetchWorkAppGitHubInstallations(tenantId);
       setInstallations(data);
@@ -31,11 +31,14 @@ export default function WorkAppGitHubSettingsPage({
       setError(err instanceof Error ? err.message : 'Failed to fetch GitHub installations');
     }
     setLoading(false);
-  }, [tenantId]);
+  }
 
   useEffect(() => {
     loadInstallations();
-  }, [loadInstallations]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadInstallations,
+  ]);
 
   useEffect(() => {
     const status = searchParams.get('status');
@@ -54,7 +57,13 @@ export default function WorkAppGitHubSettingsPage({
       });
       router.replace(`/${tenantId}/work-apps/github`);
     }
-  }, [searchParams, router, tenantId, loadInstallations]);
+  }, [
+    searchParams,
+    router,
+    tenantId,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadInstallations,
+  ]);
 
   if (loading) {
     return <GitHubSettingsLoading />;

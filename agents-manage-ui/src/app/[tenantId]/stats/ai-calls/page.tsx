@@ -12,7 +12,7 @@ import {
   SparklesIcon,
 } from 'lucide-react';
 import NextLink from 'next/link';
-import { use, useEffect, useMemo, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
 import { StatCard } from '@/components/traces/charts/stat-card';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
@@ -80,7 +80,7 @@ export default function AllProjectsAICallsBreakdown({
     }
   };
 
-  const { startTime, endTime } = useMemo(() => {
+  const { startTime, endTime } = (() => {
     const currentEndTime = Date.now();
 
     if (timeRange === CUSTOM) {
@@ -108,7 +108,7 @@ export default function AllProjectsAICallsBreakdown({
       startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
       endTime: currentEndTime,
     };
-  }, [timeRange, customStartDate, customEndDate]);
+  })();
 
   // Fetch AI calls by project
   useEffect(() => {
@@ -149,13 +149,10 @@ export default function AllProjectsAICallsBreakdown({
   }, [selectedProjectId, startTime, endTime, tenantId]);
 
   // Create a map of project IDs to names
-  const projectNameMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const project of projects) {
-      map.set(project.projectId, project.name);
-    }
-    return map;
-  }, [projects]);
+  const projectNameMap = new Map<string, string>();
+  for (const project of projects) {
+    projectNameMap.set(project.projectId, project.name);
+  }
 
   const totalAICalls = projectStats.reduce((sum, item) => sum + item.totalAICalls, 0);
 
