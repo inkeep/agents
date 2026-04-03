@@ -41,9 +41,9 @@
  */
 
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createRequire } from 'node:module';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -258,9 +258,7 @@ const args = process.argv.slice(2);
 const SCAN_MODE = args.includes('--scan');
 const APPLY_MODE = args.includes('--apply');
 const DRY_RUN = !APPLY_MODE && !SCAN_MODE;
-const targetBranch = args.includes('--branch')
-  ? args[args.indexOf('--branch') + 1]
-  : null;
+const targetBranch = args.includes('--branch') ? args[args.indexOf('--branch') + 1] : null;
 
 if (SCAN_MODE && APPLY_MODE) {
   console.error('ERROR: --scan and --apply are mutually exclusive.');
@@ -319,9 +317,7 @@ async function main() {
     const totals = { needsEncoding: 0, alreadyEncoded: 0, suspicious: 0, updates: 0, errors: 0 };
 
     for (const branch of branches) {
-      const result = SCAN_MODE
-        ? await scanBranch(pool, branch)
-        : await processBranch(pool, branch);
+      const result = SCAN_MODE ? await scanBranch(pool, branch) : await processBranch(pool, branch);
       totals.needsEncoding += result.needsEncoding ?? 0;
       totals.alreadyEncoded += result.alreadyEncoded ?? 0;
       totals.suspicious += result.suspicious ?? 0;
@@ -371,7 +367,9 @@ async function scanBranch(pool, branch) {
       }
     }
   } finally {
-    try { await client.query(`SELECT DOLT_CHECKOUT('main')`); } catch {}
+    try {
+      await client.query(`SELECT DOLT_CHECKOUT('main')`);
+    } catch {}
     client.release();
   }
 
@@ -410,7 +408,9 @@ async function scanTable(client, spec, branch) {
       if (suspicious.length > 0) {
         counts.suspicious++;
         for (const finding of suspicious) {
-          console.log(`   [SUSPICIOUS] ${loc} at ${finding.path || 'root'}: ${finding.chars.join(', ')}`);
+          console.log(
+            `   [SUSPICIOUS] ${loc} at ${finding.path || 'root'}: ${finding.chars.join(', ')}`
+          );
           console.log(`               snippet: ${JSON.stringify(finding.snippet)}`);
         }
       }
@@ -462,7 +462,9 @@ async function processBranch(pool, branch) {
       console.log(`   Would update ${updates} row(s) on branch ${branch}`);
     }
   } finally {
-    try { await client.query(`SELECT DOLT_CHECKOUT('main')`); } catch {}
+    try {
+      await client.query(`SELECT DOLT_CHECKOUT('main')`);
+    } catch {}
     client.release();
   }
 
@@ -505,19 +507,14 @@ async function processTable(client, spec) {
       .map(({ column }, i) => `"${column}" = $${spec.pkColumns.length + i + 1}::jsonb`)
       .join(', ');
 
-    const whereClauses = spec.pkColumns
-      .map((pk, i) => `"${pk}" = $${i + 1}`)
-      .join(' AND ');
+    const whereClauses = spec.pkColumns.map((pk, i) => `"${pk}" = $${i + 1}`).join(' AND ');
 
     const params = [
       ...spec.pkColumns.map((pk) => row[pk]),
       ...columnsToUpdate.map(({ newValue }) => newValue),
     ];
 
-    await client.query(
-      `UPDATE "${spec.table}" SET ${setClauses} WHERE ${whereClauses}`,
-      params
-    );
+    await client.query(`UPDATE "${spec.table}" SET ${setClauses} WHERE ${whereClauses}`, params);
   }
 
   return updates;
