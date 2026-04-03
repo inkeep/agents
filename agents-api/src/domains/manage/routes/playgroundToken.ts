@@ -27,6 +27,7 @@ const PlaygroundTokenRequestSchema = z.object({
 const PlaygroundTokenResponseSchema = z.object({
   apiKey: z.string().describe('Temporary API key for playground use'),
   expiresAt: z.string().describe('ISO 8601 timestamp when the key expires'),
+  appId: z.string().describe('App ID for client authentication'),
 });
 
 app.openapi(

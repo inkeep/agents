@@ -243,7 +243,7 @@ export function ChatWidget({
             isViewOnly: hasHeadersError,
             conversationId,
             baseUrl: PUBLIC_INKEEP_AGENTS_API_URL,
-            ...(playgroundAppId ? { appId: playgroundAppId } : {}),
+            appId: playgroundAppId ?? undefined,
             headers: {
               'x-emit-operations': 'true',
               ...customHeaders,
