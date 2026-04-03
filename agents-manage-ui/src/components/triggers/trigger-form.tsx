@@ -17,7 +17,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -306,7 +306,7 @@ export function TriggerForm({
   const redirectPath = `/${tenantId}/projects/${projectId}/triggers?tab=webhooks`;
   const router = useRouter();
   const [credentials, setCredentials] = useState<SelectOption[]>([]);
-  const [loadingCredentials, setLoadingCredentials] = useState(true);
+  const [loadingCredentials, startLoadingCredentials] = useTransition();
   const [signatureKeyError, setSignatureKeyError] = useState<string | undefined>();
   const [signatureRegexError, setSignatureRegexError] = useState<string | undefined>();
   const [appliedPreset, setAppliedPreset] = useState<string | null>(null);
@@ -322,8 +322,7 @@ export function TriggerForm({
 
   // Fetch available credentials (only project-scoped credentials are allowed for triggers)
   useEffect(() => {
-    async function loadCredentials() {
-      setLoadingCredentials(true);
+    startLoadingCredentials(async () => {
       try {
         const result = await fetchCredentialsAction(tenantId, projectId);
         if (result.success && result.data) {
@@ -342,9 +341,7 @@ export function TriggerForm({
         console.error('Failed to fetch credentials:', error);
         toast.error('Failed to load credentials');
       }
-      setLoadingCredentials(false);
-    }
-    loadCredentials();
+    });
   }, [tenantId, projectId]);
 
   // Initialize form with default values or existing trigger data
