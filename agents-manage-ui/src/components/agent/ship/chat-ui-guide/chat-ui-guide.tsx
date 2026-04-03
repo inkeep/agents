@@ -1,6 +1,6 @@
 import type { InkeepAIChatSettings, InkeepBaseSettings } from '@inkeep/agents-ui/types';
 import { CodeIcon, EyeIcon } from 'lucide-react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DOCS_BASE_URL, INKEEP_BRAND_COLOR } from '@/constants/theme';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
