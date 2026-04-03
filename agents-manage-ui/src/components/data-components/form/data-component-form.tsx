@@ -51,7 +51,8 @@ export function DataComponentForm({
     defaultValues,
     mode: 'onChange',
   });
-  const componentName = useWatch({ control: form.control, name: 'name' });
+  const { control } = form;
+  const componentName = useWatch({ control, name: 'name' });
   const { isSubmitting, isValid } = form.formState;
   const router = useRouter();
 
@@ -93,7 +94,7 @@ export function DataComponentForm({
       <Form {...form}>
         <form onSubmit={onSubmit} className={cn('space-y-8', className)}>
           <GenericInput
-            control={form.control}
+            control={control}
             name="name"
             label="Name"
             placeholder="ListOrders"
@@ -112,7 +113,7 @@ export function DataComponentForm({
             disabled={readOnly}
           />
           <GenericInput
-            control={form.control}
+            control={control}
             name="id"
             label="Id"
             placeholder="my-data-component"
@@ -125,7 +126,7 @@ export function DataComponentForm({
             isRequired={isRequired(schema, 'id')}
           />
           <GenericTextarea
-            control={form.control}
+            control={control}
             name="description"
             label="Description"
             placeholder="Display a list of user orders with interactive options"
@@ -134,7 +135,7 @@ export function DataComponentForm({
             disabled={readOnly}
           />
           <GenericJsonSchemaEditor
-            control={form.control}
+            control={control}
             name="props"
             label="Properties"
             placeholder="Enter a valid JSON Schema..."
