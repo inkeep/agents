@@ -26,7 +26,7 @@ interface UseProjectAccessParams {
   projectId: string;
 }
 
-interface UseProjectAccessResult {
+export interface UseProjectAccessResult {
   // Data
   principals: AccessPrincipal[];
   availablePrincipals: AccessPrincipal[];
