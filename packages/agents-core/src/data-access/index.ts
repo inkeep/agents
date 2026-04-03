@@ -44,6 +44,7 @@ export * from './runtime/scheduledTriggerInvocations';
 export * from './runtime/scheduledTriggers';
 export * from './runtime/schedulerState';
 export * from './runtime/slack-work-app-mcp';
+export * from './runtime/streamChunks';
 export * from './runtime/tasks';
 export * from './runtime/triggerInvocations';
 export * from './runtime/userProfiles';

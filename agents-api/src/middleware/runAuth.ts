@@ -700,9 +700,11 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       } // end if (asymResult.ok)
     } // end if (hasAuthConfigured)
 
-    const pow = await verifyPoW(reqData.request, env.INKEEP_POW_HMAC_SECRET);
-    if (!pow.ok) {
-      throw new HTTPException(400, { message: getPoWErrorMessage(pow.error) });
+    if (reqData.request.method !== 'GET') {
+      const pow = await verifyPoW(reqData.request, env.INKEEP_POW_HMAC_SECRET);
+      if (!pow.ok) {
+        throw new HTTPException(400, { message: getPoWErrorMessage(pow.error) });
+      }
     }
 
     authMethod = 'app_credential_web_client';
