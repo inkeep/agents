@@ -28,6 +28,12 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
+          # Do not persist the default GITHUB_TOKEN credentials. actions/checkout
+          # sets http.https://github.com/.extraheader with an AUTHORIZATION header
+          # that overrides URL-embedded tokens. This prevents changesets/action from
+          # pushing with the App token (set via github-token input), causing GitHub
+          # to treat the push as GITHUB_TOKEN and skip triggering downstream workflows.
+          persist-credentials: false
 
       - name: Install
         uses: ./.github/composite-actions/install
