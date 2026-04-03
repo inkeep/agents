@@ -1401,11 +1401,10 @@ export function TriggerForm({
                 </div>
 
                 {/* Show deprecation warning for SHA-1 or MD5 */}
-                {(form.watch('signatureAlgorithm') === 'sha1' ||
-                  form.watch('signatureAlgorithm') === 'md5') && (
+                {(watchedSignatureAlgorithm === 'sha1' || watchedSignatureAlgorithm === 'md5') && (
                   <Alert variant="warning">
                     <AlertDescription>
-                      <strong>Warning:</strong> {form.watch('signatureAlgorithm')?.toUpperCase()} is
+                      <strong>Warning:</strong> {watchedSignatureAlgorithm.toUpperCase()} is
                       deprecated and should only be used for legacy systems. Consider upgrading to
                       SHA-256 or SHA-512 for better security.
                     </AlertDescription>
