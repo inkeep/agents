@@ -4,7 +4,7 @@ import {
   type FilePart,
   type FullExecutionContext,
   generateId,
-  getAppByIdForTenant,
+  getAppByIdForProject,
   getMcpToolById,
   type McpTool,
   type Part,
@@ -88,12 +88,15 @@ export const createTaskHandler = (
         | Record<string, string>
         | undefined;
 
-      // Resolve appPrompt from DB using tenant-scoped lookup.
+      // Resolve appPrompt from DB using project-scoped lookup.
       if (config.executionContext.metadata?.appId) {
         try {
-          const app = await getAppByIdForTenant(runDbClient)({
+          const app = await getAppByIdForProject(runDbClient)({
             id: config.executionContext.metadata.appId,
-            scopes: { tenantId: config.executionContext.tenantId },
+            scopes: {
+              tenantId: config.executionContext.tenantId,
+              projectId: config.executionContext.projectId,
+            },
           });
           if (app?.prompt) {
             config.executionContext.metadata = {

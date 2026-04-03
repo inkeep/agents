@@ -1,4 +1,4 @@
-import { getAppByIdForTenant, type Part, parseEmbeddedJson, TaskState } from '@inkeep/agents-core';
+import { getAppByIdForProject, type Part, parseEmbeddedJson, TaskState } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { A2ATask } from '../../../domains/run/a2a/types';
 import { Agent } from '../../../domains/run/agents/Agent';
@@ -95,7 +95,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
       error: vi.fn(),
       debug: vi.fn(),
     })),
-    getAppByIdForTenant: vi.fn(() => vi.fn().mockResolvedValue(null)),
+    getAppByIdForProject: vi.fn(() => vi.fn().mockResolvedValue(null)),
     generateId: vi.fn(() => 'test-id-123'),
     loadEnvironmentFiles: vi.fn(),
     TaskState: {
@@ -1082,16 +1082,16 @@ describe('generateTaskHandler', () => {
     });
   });
 
-  describe('appPrompt resolution from DB (tenant-scoped)', () => {
+  describe('appPrompt resolution from DB (project-scoped)', () => {
     const makeTask = (text: string): A2ATask => ({
       id: 'task-123',
       input: { parts: [{ kind: 'text', text }] },
       context: { conversationId: 'conv-123' },
     });
 
-    it('should resolve appPrompt from DB using tenant-scoped lookup', async () => {
+    it('should resolve appPrompt from DB using project-scoped lookup', async () => {
       const mockGetApp = vi.fn().mockResolvedValue({ prompt: 'Resolved prompt from DB' });
-      (getAppByIdForTenant as any).mockReturnValue(mockGetApp);
+      (getAppByIdForProject as any).mockReturnValue(mockGetApp);
 
       const configWithAppId: TaskHandlerConfig = {
         ...mockConfig,
@@ -1104,17 +1104,20 @@ describe('generateTaskHandler', () => {
       const handler = createTaskHandler(configWithAppId);
       await handler(makeTask('hello'));
 
-      expect(getAppByIdForTenant).toHaveBeenCalled();
+      expect(getAppByIdForProject).toHaveBeenCalled();
       expect(mockGetApp).toHaveBeenCalledWith({
         id: 'test-app-id',
-        scopes: { tenantId: mockConfig.executionContext.tenantId },
+        scopes: {
+          tenantId: mockConfig.executionContext.tenantId,
+          projectId: mockConfig.executionContext.projectId,
+        },
       });
       expect(configWithAppId.executionContext.metadata?.appPrompt).toBe('Resolved prompt from DB');
     });
 
     it('should re-resolve appPrompt from DB even when already set', async () => {
       const mockGetApp = vi.fn().mockResolvedValue({ prompt: 'Fresh prompt from DB' });
-      (getAppByIdForTenant as any).mockReturnValue(mockGetApp);
+      (getAppByIdForProject as any).mockReturnValue(mockGetApp);
 
       const configWithBoth: TaskHandlerConfig = {
         ...mockConfig,
@@ -1127,13 +1130,13 @@ describe('generateTaskHandler', () => {
       const handler = createTaskHandler(configWithBoth);
       await handler(makeTask('hello'));
 
-      expect(getAppByIdForTenant).toHaveBeenCalled();
+      expect(getAppByIdForProject).toHaveBeenCalled();
       expect(configWithBoth.executionContext.metadata?.appPrompt).toBe('Fresh prompt from DB');
     });
 
     it('should continue without appPrompt when DB lookup fails', async () => {
       const mockGetApp = vi.fn().mockRejectedValue(new Error('Connection refused'));
-      (getAppByIdForTenant as any).mockReturnValue(mockGetApp);
+      (getAppByIdForProject as any).mockReturnValue(mockGetApp);
 
       const configWithAppId: TaskHandlerConfig = {
         ...mockConfig,
@@ -1149,9 +1152,9 @@ describe('generateTaskHandler', () => {
       expect(configWithAppId.executionContext.metadata?.appPrompt).toBeUndefined();
     });
 
-    it('should continue without appPrompt when app belongs to different tenant', async () => {
+    it('should continue without appPrompt when app belongs to different tenant or project', async () => {
       const mockGetApp = vi.fn().mockResolvedValue(undefined);
-      (getAppByIdForTenant as any).mockReturnValue(mockGetApp);
+      (getAppByIdForProject as any).mockReturnValue(mockGetApp);
 
       const configWithAppId: TaskHandlerConfig = {
         ...mockConfig,
@@ -1166,7 +1169,10 @@ describe('generateTaskHandler', () => {
 
       expect(mockGetApp).toHaveBeenCalledWith({
         id: 'cross-tenant-app-id',
-        scopes: { tenantId: mockConfig.executionContext.tenantId },
+        scopes: {
+          tenantId: mockConfig.executionContext.tenantId,
+          projectId: mockConfig.executionContext.projectId,
+        },
       });
       expect(configWithAppId.executionContext.metadata?.appPrompt).toBeUndefined();
     });
