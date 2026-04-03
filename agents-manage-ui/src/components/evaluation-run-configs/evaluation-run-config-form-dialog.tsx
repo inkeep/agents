@@ -183,14 +183,14 @@ export function EvaluationRunConfigFormDialog({
     return () => abortController.abort();
   }, [evaluators, tenantId, projectId, isOpen]);
 
-  const displayEvaluators = (() => {
-    if (suiteAgentIds.length === 0) return evaluators;
-    return evaluators.filter((ev) => {
-      const scopedAgents = evaluatorAgentMap.get(ev.id);
-      if (!scopedAgents || scopedAgents.length === 0) return true;
-      return scopedAgents.some((agentId) => suiteAgentIds.includes(agentId));
-    });
-  })();
+  const displayEvaluators =
+    suiteAgentIds.length === 0
+      ? evaluators
+      : evaluators.filter((ev) => {
+          const scopedAgents = evaluatorAgentMap.get(ev.id);
+          if (!scopedAgents || scopedAgents.length === 0) return true;
+          return scopedAgents.some((agentId) => suiteAgentIds.includes(agentId));
+        });
 
   const displayEvaluatorLookup = createLookup(displayEvaluators);
 
