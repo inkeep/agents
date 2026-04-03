@@ -42,7 +42,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const require = createRequire(
-  path.resolve(__dirname, '..', 'packages', 'agents-core', 'src', 'index.ts'),
+  path.resolve(__dirname, '..', 'packages', 'agents-core', 'src', 'index.ts')
 );
 const pg = require('pg');
 const { Pool, types } = pg;
@@ -62,10 +62,7 @@ if (fs.existsSync(envPath)) {
     if (eqIdx === -1) continue;
     const key = trimmed.slice(0, eqIdx).trim();
     let val = trimmed.slice(eqIdx + 1).trim();
-    if (
-      (val.startsWith('"') && val.endsWith('"')) ||
-      (val.startsWith("'") && val.endsWith("'"))
-    ) {
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
       val = val.slice(1, -1);
     }
     if (!process.env[key]) process.env[key] = val;
@@ -262,7 +259,7 @@ async function main() {
     }
     console.log(`Unrecoverable (repair failed): ${totals.unrecoverable}`);
     console.log(`Errors: ${totals.errors}`);
-    if (DRY_RUN && (totals.repaired + totals.nulled) > 0) {
+    if (DRY_RUN && totals.repaired + totals.nulled > 0) {
       console.log(`\nRe-run with --apply to write these fixes.`);
     }
   } finally {
@@ -303,14 +300,14 @@ async function processBranch(pool, branch) {
     }
 
     // Commit changes
-    if (APPLY_MODE && (counts.repaired + counts.nulled) > 0) {
+    if (APPLY_MODE && counts.repaired + counts.nulled > 0) {
       try {
         await client.query(`SELECT DOLT_ADD('-A')`);
         await client.query(
-          `SELECT DOLT_COMMIT('-m', 'fix: repair corrupt JSONB from Doltgres backslash bug', '--author', 'migration-script <migration@inkeep.com>')`,
+          `SELECT DOLT_COMMIT('-m', 'fix: repair corrupt JSONB from Doltgres backslash bug', '--author', 'migration-script <migration@inkeep.com>')`
         );
         console.log(
-          `   Committed: ${counts.repaired} repaired, ${counts.nulled} nulled on ${branch}`,
+          `   Committed: ${counts.repaired} repaired, ${counts.nulled} nulled on ${branch}`
         );
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -357,7 +354,9 @@ async function processTable(client, spec, branch) {
           const end = Math.min(snippet.length, pos + 40);
           const before = snippet.slice(start, pos);
           const after = snippet.slice(pos, end);
-          console.log(`      Context: ...${JSON.stringify(before)}>>HERE>>${JSON.stringify(after)}...`);
+          console.log(
+            `      Context: ...${JSON.stringify(before)}>>HERE>>${JSON.stringify(after)}...`
+          );
         }
         continue;
       }
@@ -376,7 +375,7 @@ async function processTable(client, spec, branch) {
         const params = spec.pkColumns.map((pk) => row[pk]);
         await client.query(
           `UPDATE "${spec.table}" SET "${col}" = NULL WHERE ${whereClauses}`,
-          params,
+          params
         );
         console.log(`   [NULLED] ${loc}`);
       } else {
@@ -392,13 +391,11 @@ async function processTable(client, spec, branch) {
             console.log(`   [WILL REPAIR] ${loc}`);
             continue;
           }
-          const whereClauses = spec.pkColumns
-            .map((pk, i) => `"${pk}" = $${i + 1}`)
-            .join(' AND ');
+          const whereClauses = spec.pkColumns.map((pk, i) => `"${pk}" = $${i + 1}`).join(' AND ');
           const params = [...spec.pkColumns.map((pk) => row[pk]), encodedJson];
           await client.query(
             `UPDATE "${spec.table}" SET "${col}" = $${spec.pkColumns.length + 1}::jsonb WHERE ${whereClauses}`,
-            params,
+            params
           );
           console.log(`   [REPAIRED] ${loc}`);
         } else {
