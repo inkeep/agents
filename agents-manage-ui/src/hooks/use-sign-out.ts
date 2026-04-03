@@ -6,7 +6,11 @@ export function useSignOut() {
   const authClient = useAuthClient();
 
   async function signOut() {
-    await authClient.signOut();
+    try {
+      await authClient.signOut();
+    } catch (error) {
+      console.error('Sign out failed:', error);
+    }
     if (process.env.NODE_ENV === 'development') {
       document.cookie = 'dev-logged-out=1; path=/; max-age=86400; SameSite=Lax';
     }
