@@ -19,7 +19,6 @@ import { buildAgentSelectorModal, buildMessageShortcutModal, type ModalMetadata 
 import { findWorkspaceConnectionByTeamId } from '../nango';
 import type { InlineSelectorMetadata } from './app-mention';
 import {
-  escapeSlackMrkdwn,
   fetchAgentsForProject,
   fetchProjectsForTenant,
   findCachedUserMapping,
@@ -515,9 +514,18 @@ async function consumeApprovalContinuationStream(params: {
     }
   } catch (error) {
     logger.warn(
-      { error: error instanceof Error ? error.message : String(error) },
+      { error: error instanceof Error ? error.message : String(error), channel, threadTs },
       'Error reading approval continuation stream'
     );
+    if (fullText.length === 0) {
+      await slackClient.chat
+        .postMessage({
+          channel,
+          ...threadParam,
+          text: '_Something went wrong while processing the tool result. Please try again._',
+        })
+        .catch((e) => logger.warn({ error: e }, 'Failed to post continuation error message'));
+    }
   } finally {
     clearTimeout(timeoutId);
   }
@@ -529,7 +537,7 @@ async function consumeApprovalContinuationStream(params: {
   }
 
   if (fullText.length > 0) {
-    const slackText = escapeSlackMrkdwn(markdownToMrkdwn(fullText));
+    const slackText = markdownToMrkdwn(fullText);
     await slackClient.chat
       .postMessage({
         channel,
