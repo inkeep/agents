@@ -263,7 +263,7 @@ export function TimelineWrapper({
   }
 
   // Memoize sorted activities to prevent re-sorting on every render
-  const sortedActivities = [...activities].sort((a, b) => {
+  const sortedActivities = activities.toSorted((a, b) => {
     const ta = new Date(a.timestamp).getTime();
     const tb = new Date(b.timestamp).getTime();
     return ta !== tb ? ta - tb : String(a.id).localeCompare(String(b.id));

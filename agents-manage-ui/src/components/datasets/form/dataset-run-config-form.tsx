@@ -126,15 +126,13 @@ export function DatasetRunConfigForm({
     return () => abortController.abort();
   }, [evaluators, tenantId, projectId]);
 
-  const filteredEvaluators = (() => {
-    const selected = agentIds as string[];
-    if (selected.length === 0) return evaluators;
-    return evaluators.filter((ev) => {
-      const scopedAgents = evaluatorAgentMap.get(ev.id);
-      if (!scopedAgents || scopedAgents.length === 0) return true;
-      return scopedAgents.some((agentId) => selected.includes(agentId));
-    });
-  })();
+  const filteredEvaluators = agentIds?.length
+    ? evaluators.filter((ev) => {
+        const scopedAgents = evaluatorAgentMap.get(ev.id);
+        if (!scopedAgents || scopedAgents.length === 0) return true;
+        return scopedAgents.some((agentId) => agentIds.includes(agentId));
+      })
+    : evaluators;
 
   const evaluatorLookup = createLookup(filteredEvaluators);
 

@@ -67,7 +67,7 @@ function SidebarProvider({
   // We use openProp and setOpenProp for control from outside the component.
   const [_open, _setOpen] = React.useState(defaultOpen);
   const open = openProp ?? _open;
-  const setOpen = (value: boolean | ((value: boolean) => boolean)) => {
+  function setOpen(value: boolean | ((value: boolean) => boolean)) {
     const openState = typeof value === 'function' ? value(open) : value;
     if (setOpenProp) {
       setOpenProp(openState);
@@ -77,20 +77,21 @@ function SidebarProvider({
 
     // This sets the cookie to keep the sidebar state.
     document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
-  };
+  }
 
   // Helper to toggle the sidebar.
-  const toggleSidebar = () =>
-    isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open);
+  function toggleSidebar() {
+    return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open);
+  }
 
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
+    function handleKeyDown(event: KeyboardEvent) {
       if (event.key === SIDEBAR_KEYBOARD_SHORTCUT && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         toggleSidebar();
       }
-    };
+    }
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
