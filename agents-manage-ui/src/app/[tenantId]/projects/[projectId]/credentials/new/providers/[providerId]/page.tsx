@@ -166,23 +166,20 @@ function ProviderSetupPage({
     setLoading(false);
   }
 
-  const handleCreateNewIntegration = useCallback(
-    async (credentials?: Record<string, any>) => {
-      if (!canEdit || !provider) return;
+  async function handleCreateNewIntegration(credentials?: Record<string, any>) {
+    if (!canEdit || !provider) return;
 
-      const integrationKey = `${provider.name}-${tenantId}-${generateId().slice(0, 6)}`;
+    const integrationKey = `${provider.name}-${tenantId}-${generateId().slice(0, 6)}`;
 
-      await startConnectFlow(integrationKey, credentials);
+    await startConnectFlow(integrationKey, credentials);
 
-      try {
-        const result = await listNangoProviderIntegrations(provider.name, tenantId);
-        setIntegrations(result);
-      } catch (error) {
-        console.error('Failed to refresh integrations list:', error);
-      }
-    },
-    [canEdit, provider, tenantId, startConnectFlow]
-  );
+    try {
+      const result = await listNangoProviderIntegrations(provider.name, tenantId);
+      setIntegrations(result);
+    } catch (error) {
+      console.error('Failed to refresh integrations list:', error);
+    }
+  }
 
   const handleUpdateCredentials = useCallback(
     async (credentials?: Record<string, any>) => {

@@ -341,9 +341,8 @@ export function TriggerForm({
       } catch (error) {
         console.error('Failed to fetch credentials:', error);
         toast.error('Failed to load credentials');
-      } finally {
-        setLoadingCredentials(false);
       }
+      setLoadingCredentials(false);
     }
     loadCredentials();
   }, [tenantId, projectId]);
