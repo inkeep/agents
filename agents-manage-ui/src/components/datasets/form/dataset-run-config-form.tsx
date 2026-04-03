@@ -152,7 +152,7 @@ export function DatasetRunConfigForm({
     }
   }, [filteredEvaluators, selectedEvaluatorIds, form]);
 
-  const onSubmit = async (data: DatasetRunConfigFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     try {
       const selectedAgents = data.agentIds || [];
       const selectedEvalIds = data.evaluatorIds || [];
@@ -201,11 +201,11 @@ export function DatasetRunConfigForm({
       console.error('Error submitting form:', error);
       toast.error('An unexpected error occurred');
     }
-  };
+  });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={onSubmit} className="space-y-6">
         <GenericInput
           control={form.control}
           name="name"

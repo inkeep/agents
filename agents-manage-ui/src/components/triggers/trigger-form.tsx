@@ -605,7 +605,7 @@ export function TriggerForm({
 
   const generateRequestPreview = lines.join('\n');
 
-  const onSubmit = async (data: TriggerFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     try {
       // Parse JSON fields
       let inputSchema: Record<string, unknown> | undefined;
@@ -813,11 +813,11 @@ export function TriggerForm({
       console.error(`Failed to ${mode} trigger:`, error);
       toast.error(`Failed to ${mode} trigger. Please try again.`);
     }
-  };
+  });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={onSubmit} className="space-y-6">
         {/* Basic Information */}
         <Card>
           <CardHeader>
