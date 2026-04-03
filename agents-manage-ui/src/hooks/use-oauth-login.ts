@@ -294,32 +294,32 @@ export function useOAuthLogin({
               credentialScope
             )) ?? undefined;
 
-        if (composioRedirectUrl) {
-          await handleOAuthLoginWithComposio({
-            toolId,
-            mcpServerUrl,
-            toolName,
-            thirdPartyConnectAccountUrl: composioRedirectUrl,
-            credentialScope,
-          });
+          if (composioRedirectUrl) {
+            await handleOAuthLoginWithComposio({
+              toolId,
+              mcpServerUrl,
+              toolName,
+              thirdPartyConnectAccountUrl: composioRedirectUrl,
+              credentialScope,
+            });
+            return;
+          }
+        }
+
+        if (thirdPartyConnectAccountUrl) {
+          await handleOAuthLoginManually(toolId, thirdPartyConnectAccountUrl);
           return;
         }
-      }
 
-      if (thirdPartyConnectAccountUrl) {
-        await handleOAuthLoginManually(toolId, thirdPartyConnectAccountUrl);
-        return;
-      }
+        const credentialStoresStatus = await listCredentialStores(tenantId, projectId);
 
-      const credentialStoresStatus = await listCredentialStores(tenantId, projectId);
+        const isNangoReady = credentialStoresStatus.some(
+          (store) => store.type === CredentialStoreType.nango && store.available
+        );
 
-      const isNangoReady = credentialStoresStatus.some(
-        (store) => store.type === CredentialStoreType.nango && store.available
-      );
-
-      const isKeychainReady = credentialStoresStatus.some(
-        (store) => store.type === CredentialStoreType.keychain && store.available
-      );
+        const isKeychainReady = credentialStoresStatus.some(
+          (store) => store.type === CredentialStoreType.keychain && store.available
+        );
 
         if (isNangoReady) {
           await handleOAuthLoginWithNangoMCPGeneric({

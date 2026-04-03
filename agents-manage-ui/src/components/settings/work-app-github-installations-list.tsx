@@ -91,38 +91,38 @@ export function WorkAppGitHubInstallationsList({
   const [disconnecting, setDisconnecting] = useState(false);
 
   async function handleSync(installation: WorkAppGitHubInstallation) {
-      setSyncingInstallationId(installation.id);
-      try {
-        const result = await syncWorkAppGitHubRepositories(tenantId, installation.id);
-        toast.success('Repositories synced', {
-          description: `Added ${result.syncResult.added}, removed ${result.syncResult.removed}, updated ${result.syncResult.updated} repositories`,
-        });
-        onInstallationsChange?.();
-        router.refresh();
-      } catch (error) {
-        toast.error('Failed to sync repositories', {
-          description: error instanceof Error ? error.message : 'An unexpected error occurred',
-        });
-      }
-      setSyncingInstallationId(null);
+    setSyncingInstallationId(installation.id);
+    try {
+      const result = await syncWorkAppGitHubRepositories(tenantId, installation.id);
+      toast.success('Repositories synced', {
+        description: `Added ${result.syncResult.added}, removed ${result.syncResult.removed}, updated ${result.syncResult.updated} repositories`,
+      });
+      onInstallationsChange?.();
+      router.refresh();
+    } catch (error) {
+      toast.error('Failed to sync repositories', {
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+      });
     }
+    setSyncingInstallationId(null);
+  }
 
   async function handleReconnect(installation: WorkAppGitHubInstallation) {
-      setReconnectingInstallationId(installation.id);
-      try {
-        await reconnectWorkAppGitHubInstallation(tenantId, installation.id);
-        toast.success('Installation reconnected', {
-          description: `${installation.accountLogin} has been reconnected`,
-        });
-        onInstallationsChange?.();
-        router.refresh();
-      } catch (error) {
-        toast.error('Failed to reconnect installation', {
-          description: error instanceof Error ? error.message : 'An unexpected error occurred',
-        });
-      }
-      setReconnectingInstallationId(null);
+    setReconnectingInstallationId(installation.id);
+    try {
+      await reconnectWorkAppGitHubInstallation(tenantId, installation.id);
+      toast.success('Installation reconnected', {
+        description: `${installation.accountLogin} has been reconnected`,
+      });
+      onInstallationsChange?.();
+      router.refresh();
+    } catch (error) {
+      toast.error('Failed to reconnect installation', {
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+      });
     }
+    setReconnectingInstallationId(null);
+  }
 
   function openDisconnectDialog(installation: WorkAppGitHubInstallation) {
     setSelectedInstallation(installation);

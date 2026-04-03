@@ -62,30 +62,30 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
     const newEnabled = !currentEnabled;
     setLoadingTriggers((prev) => new Set(prev).add(triggerId));
 
-      try {
-        const result = await updateTriggerEnabledAction(
-          tenantId,
-          projectId,
-          agentId,
-          triggerId,
-          newEnabled
-        );
-        if (result.success) {
-          toast.success(`Trigger ${newEnabled ? 'enabled' : 'disabled'}`);
-          router.refresh();
-        } else {
-          toast.error(result.error);
-        }
-      } catch (error) {
-        console.error('Failed to update trigger:', error);
-        toast.error('Failed to update trigger status');
+    try {
+      const result = await updateTriggerEnabledAction(
+        tenantId,
+        projectId,
+        agentId,
+        triggerId,
+        newEnabled
+      );
+      if (result.success) {
+        toast.success(`Trigger ${newEnabled ? 'enabled' : 'disabled'}`);
+        router.refresh();
+      } else {
+        toast.error(result.error);
       }
-      setLoadingTriggers((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(triggerId);
-        return newSet;
-      });
+    } catch (error) {
+      console.error('Failed to update trigger:', error);
+      toast.error('Failed to update trigger status');
     }
+    setLoadingTriggers((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(triggerId);
+      return newSet;
+    });
+  }
 
   async function deleteTrigger(triggerId: string, agentId: string, name: string) {
     if (!confirm(`Are you sure you want to delete the trigger "${name}"?`)) {
