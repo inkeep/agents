@@ -26,10 +26,7 @@ import type { DatasetRunConfigInsert } from '@/lib/api/dataset-run-configs';
 import { useAgentsQuery } from '@/lib/query/agents';
 import { useEvaluatorsQuery } from '@/lib/query/evaluators';
 import { createLookup } from '@/lib/utils';
-import {
-  type DatasetRunConfigFormData,
-  datasetRunConfigSchema,
-} from './dataset-run-config-validation';
+import { datasetRunConfigSchema } from './dataset-run-config-validation';
 
 interface DatasetRunConfigFormProps {
   tenantId: string;
