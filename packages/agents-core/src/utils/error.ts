@@ -87,8 +87,10 @@ function sanitizeErrorMessage(message: string): string {
       /(?:postgresql|postgres|mysql|mongodb(?:\+srv)?|redis|rediss|amqp):\/\/[^\s,)]+/gi,
       '[REDACTED_CONNECTION]'
     )
+    .replace(/https?:\/\/[^:@\s]+:[^@\s]+@[^\s]+/gi, '[REDACTED_URL]')
+    .replace(/\[[:0-9a-fA-F]+\](:\d+)?/g, '[REDACTED_HOST]')
     .replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?\b/g, '[REDACTED_HOST]')
-    .replace(/\/(?:var|tmp|home|usr|etc|opt)\/\S+/g, '[REDACTED_PATH]')
+    .replace(/\/(?:var|tmp|home|usr|etc|opt|app|srv)\/\S+/g, '[REDACTED_PATH]')
     .replace(/\b(password|token|key|secret|auth|credential)\b/gi, '[REDACTED]');
 }
 

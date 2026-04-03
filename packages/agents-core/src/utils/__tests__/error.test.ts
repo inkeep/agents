@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { createApiError, isUniqueConstraintError, throwIfUniqueConstraintError } from '../error';
+import {
+  createApiError,
+  handleApiError,
+  isUniqueConstraintError,
+  throwIfUniqueConstraintError,
+} from '../error';
 
 describe('sanitizeErrorMessage (via createApiError)', () => {
   async function getResponseBody(
@@ -71,6 +76,42 @@ describe('sanitizeErrorMessage (via createApiError)', () => {
     expect(body.detail).toBe('Failed to fetch [REDACTED]');
   });
 
+  it('handles empty string unchanged', async () => {
+    const body = await getResponseBody('');
+    expect(body.detail).toBe('');
+  });
+
+  it('redacts bracketed IPv6 addresses with port', async () => {
+    const body = await getResponseBody('connect ECONNREFUSED [::1]:5432');
+    expect(body.detail).toBe('connect ECONNREFUSED [REDACTED_HOST]');
+    expect(body.detail).not.toContain('::1');
+  });
+
+  it('redacts bracketed IPv6 addresses without port', async () => {
+    const body = await getResponseBody('could not connect to [2001:db8::1]');
+    expect(body.detail).not.toContain('2001:db8');
+    expect(body.detail).toContain('[REDACTED_HOST]');
+  });
+
+  it('redacts HTTP URLs with embedded credentials', async () => {
+    const body = await getResponseBody(
+      'request to https://admin:s3cret@api.internal.com/endpoint failed'
+    );
+    expect(body.detail).toBe('request to [REDACTED_URL] failed');
+    expect(body.detail).not.toContain('admin');
+    expect(body.detail).not.toContain('s3cret');
+  });
+
+  it('redacts /app and /srv container paths', async () => {
+    const app = await getResponseBody('Error at /app/node_modules/pg/lib/client.js:42');
+    expect(app.detail).not.toContain('/app/node_modules');
+    expect(app.detail).toContain('[REDACTED_PATH]');
+
+    const srv = await getResponseBody('Cannot read /srv/data/config.json');
+    expect(srv.detail).not.toContain('/srv/data');
+    expect(srv.detail).toContain('[REDACTED_PATH]');
+  });
+
   it('preserves safe messages unchanged', async () => {
     const body = await getResponseBody('Failed to retrieve project');
     expect(body.detail).toBe('Failed to retrieve project');
@@ -112,6 +153,47 @@ describe('createApiError sanitization integration', () => {
     const exception = createApiError({ code: 'not_found', message });
     const body = JSON.parse(await exception.getResponse().text());
     expect(body.detail).toBe(message);
+  });
+
+  it('sanitizes before truncating long messages', async () => {
+    const longPrefix = 'a'.repeat(85);
+    const message = `${longPrefix} postgresql://user:pass@host/db extra`;
+    const exception = createApiError({ code: 'internal_server_error', message });
+    const body = JSON.parse(await exception.getResponse().text());
+
+    expect(body.error.message.length).toBeLessThanOrEqual(100);
+    expect(body.error.message).not.toContain('user');
+    expect(body.error.message).not.toContain('pass');
+    expect(body.detail).toContain('[REDACTED_CONNECTION]');
+  });
+});
+
+describe('handleApiError sanitization', () => {
+  it('sanitizes raw Error messages containing IPv4', async () => {
+    const error = new Error('connect ECONNREFUSED 10.0.0.5:5432');
+    const result = await handleApiError(error, 'req-123');
+    expect(result.detail).not.toContain('10.0.0.5');
+    expect(result.detail).toContain('[REDACTED_HOST]');
+  });
+
+  it('sanitizes connection strings in raw errors', async () => {
+    const error = new Error('postgresql://user:pass@host/db failed');
+    const result = await handleApiError(error, 'req-123');
+    expect(result.detail).not.toContain('user');
+    expect(result.detail).toContain('[REDACTED_CONNECTION]');
+  });
+
+  it('sanitizes IPv6 in raw errors', async () => {
+    const error = new Error('connect ECONNREFUSED [::1]:5432');
+    const result = await handleApiError(error, 'req-123');
+    expect(result.detail).not.toContain('::1');
+    expect(result.detail).toContain('[REDACTED_HOST]');
+  });
+
+  it('returns generic message for non-Error values', async () => {
+    const result = await handleApiError('string error', 'req-123');
+    expect(result.detail).toContain('Unknown error');
+    expect(result.status).toBe(500);
   });
 });
 
