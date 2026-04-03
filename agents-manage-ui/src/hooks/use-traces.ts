@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import {
   type AggregateStats,
   type ConversationStats,
@@ -54,7 +54,7 @@ export function useConversationStats(
   options: UseConversationStatsOptions
 ): UseConversationStatsResult {
   const [stats, setStats] = useState<ConversationStats[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, startLoading] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [paginationInfo, setPaginationInfo] = useState<
@@ -65,40 +65,40 @@ export function useConversationStats(
   // Extract stable values to avoid object recreation issues
   const pageSize = options.pagination?.pageSize || 50;
 
-  async function fetchData(page: number) {
-    try {
-      setLoading(true);
-      setError(null);
+  function fetchData(page: number) {
+    startLoading(async () => {
+      try {
+        setError(null);
 
-      const client = getSigNozStatsClient(options.tenantId);
-      // Use provided time range or default to all time (2020)
-      // Clamp endTime to now-1ms to satisfy backend validation (end cannot be in the future)
-      const currentEndTime = Math.min(options.endTime || Date.now() - 1);
-      const currentStartTime = options.startTime || new Date('2020-01-01T00:00:00Z').getTime();
+        const client = getSigNozStatsClient(options.tenantId);
+        // Use provided time range or default to all time (2020)
+        // Clamp endTime to now-1ms to satisfy backend validation (end cannot be in the future)
+        const currentEndTime = Math.min(options.endTime || Date.now() - 1);
+        const currentStartTime = options.startTime || new Date('2020-01-01T00:00:00Z').getTime();
 
-      const result = await client.getConversationStats(
-        currentStartTime,
-        currentEndTime,
-        options.filters,
-        options.projectId,
-        { page, limit: pageSize },
-        options.searchQuery,
-        options.agentId,
-        options.hasErrors
-      );
+        const result = await client.getConversationStats(
+          currentStartTime,
+          currentEndTime,
+          options.filters,
+          options.projectId,
+          { page, limit: pageSize },
+          options.searchQuery,
+          options.agentId,
+          options.hasErrors
+        );
 
-      setStats(result.data);
-      setPaginationInfo(result.pagination);
-      if (result.aggregateStats) {
-        setAggregateStats(result.aggregateStats);
+        setStats(result.data);
+        setPaginationInfo(result.pagination);
+        if (result.aggregateStats) {
+          setAggregateStats(result.aggregateStats);
+        }
+      } catch (err) {
+        console.error('Error fetching conversation stats:', err);
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to fetch conversation stats';
+        setError(errorMessage);
       }
-    } catch (err) {
-      console.error('Error fetching conversation stats:', err);
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to fetch conversation stats';
-      setError(errorMessage);
-    }
-    setLoading(false);
+    });
   }
 
   function refresh() {
@@ -194,32 +194,32 @@ export function useProjectOverviewStats(options: {
     totalAICalls: 0,
     totalMCPCalls: 0,
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, startLoading] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  async function fetchStats() {
-    try {
-      setLoading(true);
-      setError(null);
+  function fetchStats() {
+    startLoading(async () => {
+      try {
+        setError(null);
 
-      const client = getSigNozStatsClient(options.tenantId);
-      const currentEndTime = Math.min(options.endTime || Date.now() - 1);
-      const currentStartTime = options.startTime || new Date('2020-01-01T00:00:00Z').getTime();
+        const client = getSigNozStatsClient(options.tenantId);
+        const currentEndTime = Math.min(options.endTime || Date.now() - 1);
+        const currentStartTime = options.startTime || new Date('2020-01-01T00:00:00Z').getTime();
 
-      const result = await client.getProjectOverviewStats(
-        currentStartTime,
-        currentEndTime,
-        options.projectIds
-      );
+        const result = await client.getProjectOverviewStats(
+          currentStartTime,
+          currentEndTime,
+          options.projectIds
+        );
 
-      setStats(result);
-    } catch (err) {
-      console.error('Error fetching project overview stats:', err);
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to fetch project overview stats';
-      setError(errorMessage);
-    }
-    setLoading(false);
+        setStats(result);
+      } catch (err) {
+        console.error('Error fetching project overview stats:', err);
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to fetch project overview stats';
+        setError(errorMessage);
+      }
+    });
   }
 
   useEffect(() => {
@@ -245,32 +245,32 @@ export function useConversationsPerDayAcrossProjects(options: {
   tenantId?: string;
 }) {
   const [data, setData] = useState<{ date: string; count: number }[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, startLoading] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  async function fetchData() {
-    try {
-      setLoading(true);
-      setError(null);
+  function fetchData() {
+    startLoading(async () => {
+      try {
+        setError(null);
 
-      const client = getSigNozStatsClient(options.tenantId);
-      const currentEndTime = Math.min(options.endTime || Date.now() - 1);
-      const currentStartTime = options.startTime || new Date('2020-01-01T00:00:00Z').getTime();
+        const client = getSigNozStatsClient(options.tenantId);
+        const currentEndTime = Math.min(options.endTime || Date.now() - 1);
+        const currentStartTime = options.startTime || new Date('2020-01-01T00:00:00Z').getTime();
 
-      const result = await client.getConversationsPerDayAcrossProjects(
-        currentStartTime,
-        currentEndTime,
-        options.projectIds
-      );
+        const result = await client.getConversationsPerDayAcrossProjects(
+          currentStartTime,
+          currentEndTime,
+          options.projectIds
+        );
 
-      setData(result);
-    } catch (err) {
-      console.error('Error fetching conversations per day:', err);
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to fetch conversations per day';
-      setError(errorMessage);
-    }
-    setLoading(false);
+        setData(result);
+      } catch (err) {
+        console.error('Error fetching conversations per day:', err);
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to fetch conversations per day';
+        setError(errorMessage);
+      }
+    });
   }
 
   useEffect(() => {
@@ -303,31 +303,32 @@ export function useStatsByProject(options: {
       totalMCPCalls: number;
     }>
   >([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, startLoading] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  async function fetchData() {
-    try {
-      setLoading(true);
-      setError(null);
+  function fetchData() {
+    startLoading(async () => {
+      try {
+        setError(null);
 
-      const client = getSigNozStatsClient(options.tenantId);
-      const currentEndTime = Math.min(options.endTime || Date.now() - 1);
-      const currentStartTime = options.startTime || new Date('2020-01-01T00:00:00Z').getTime();
+        const client = getSigNozStatsClient(options.tenantId);
+        const currentEndTime = Math.min(options.endTime || Date.now() - 1);
+        const currentStartTime = options.startTime || new Date('2020-01-01T00:00:00Z').getTime();
 
-      const result = await client.getStatsByProject(
-        currentStartTime,
-        currentEndTime,
-        options.projectIds
-      );
+        const result = await client.getStatsByProject(
+          currentStartTime,
+          currentEndTime,
+          options.projectIds
+        );
 
-      setData(result);
-    } catch (err) {
-      console.error('Error fetching stats by project:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch stats by project';
-      setError(errorMessage);
-    }
-    setLoading(false);
+        setData(result);
+      } catch (err) {
+        console.error('Error fetching stats by project:', err);
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to fetch stats by project';
+        setError(errorMessage);
+      }
+    });
   }
 
   useEffect(() => {
