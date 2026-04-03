@@ -9,8 +9,6 @@ import {
   type SpanFilterOptions,
 } from '@/lib/api/signoz-stats';
 
-const _MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
-
 interface UseConversationStatsResult {
   stats: ConversationStats[];
   loading: boolean;

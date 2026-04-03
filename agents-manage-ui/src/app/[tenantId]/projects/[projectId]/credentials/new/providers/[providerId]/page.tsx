@@ -256,7 +256,15 @@ function ProviderSetupPage({
     if (!requiresCredentialForm(provider.auth_mode)) {
       startConnectFlow(`${provider.name}-${tenantId}`);
     }
-  }, [canEdit, provider, loading, hasAttempted, startConnectFlow, tenantId]);
+  }, [
+    canEdit,
+    provider,
+    loading,
+    hasAttempted,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    startConnectFlow,
+    tenantId,
+  ]);
 
   const backLink = `/${tenantId}/projects/${projectId}/credentials/new/providers` as const;
 

@@ -55,7 +55,10 @@ export default function NoOrganizationPage() {
 
   useEffect(() => {
     checkInvitations();
-  }, [checkInvitations]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    checkInvitations,
+  ]);
 
   if (loadingInvites) {
     return (
