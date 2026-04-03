@@ -5,7 +5,7 @@ import {
   generateIdFromName,
 } from '@inkeep/agents-core/client-exports';
 import { useRouter } from 'next/navigation';
-import { useCallback, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type {
   OAuthLoginHandler,
@@ -123,246 +123,226 @@ export function useOAuthLogin({
     });
   }
 
-  const navigateToTool = useCallback(
-    (toolId: string) => {
-      if (onFinish) {
-        onFinish(toolId);
-      } else {
-        router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${toolId}`);
-      }
-    },
-    [onFinish, router, tenantId, projectId]
-  );
+  function navigateToTool(toolId: string) {
+    if (onFinish) {
+      onFinish(toolId);
+    } else {
+      router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${toolId}`);
+    }
+  }
 
-  const handleOAuthLoginManually = useCallback(
-    async (toolId: string, thirdPartyConnectAccountUrl?: string): Promise<void> => {
-      const oauthUrl =
-        thirdPartyConnectAccountUrl ??
-        getOAuthLoginUrl({
-          PUBLIC_INKEEP_AGENTS_API_URL,
-          tenantId,
-          projectId,
-          id: toolId,
-        });
-
-      await openOAuthPopupAndWait(oauthUrl, toolId);
-      navigateToTool(toolId);
-    },
-    [openOAuthPopupAndWait, navigateToTool, PUBLIC_INKEEP_AGENTS_API_URL, tenantId, projectId]
-  );
-
-  const handleOAuthLoginWithNangoMCPGeneric = useCallback(
-    async ({
-      toolId,
-      mcpServerUrl,
-      toolName,
-      credentialScope,
-    }: {
-      toolId: string;
-      mcpServerUrl: string;
-      toolName: string;
-      credentialScope?: 'project' | 'user';
-    }): Promise<void> => {
-      const authResult = await openNangoConnectHeadless({
-        mcpServerUrl,
-        providerUniqueKey: `${generateIdFromName(toolName)}_${toolId.slice(0, 4)}`,
-        providerDisplayName: toolName,
-      });
-
-      const isUserScoped = credentialScope === 'user';
-
-      let userId: string | undefined;
-      if (isUserScoped) {
-        if (!user) {
-          throw new Error('User not found');
-        }
-        userId = user.id;
-      }
-
-      const newCredentialData = {
-        id: generateId(),
-        name: toolName,
-        type: CredentialStoreType.nango,
-        credentialStoreId: DEFAULT_NANGO_STORE_ID,
-        createdBy: user?.email ?? undefined,
-        // For user-scoped: set toolId and userId on the credential reference
-        ...(isUserScoped && {
-          toolId,
-          userId,
-        }),
-        retrievalParams: {
-          connectionId: authResult.connectionId,
-          providerConfigKey: authResult.providerConfigKey,
-          provider: 'mcp-generic',
-          authMode: 'OAUTH2',
-        },
-      };
-
-      const newCredential = await findOrCreateCredential(tenantId, projectId, newCredentialData);
-
-      // For project-scoped: update the tool's credentialReferenceId
-      // For user-scoped: don't update the tool (credential is linked via toolId + userId)
-      if (!isUserScoped) {
-        await updateMCPTool(tenantId, projectId, toolId, {
-          credentialReferenceId: newCredential.id,
-        });
-      }
-
-      // Call custom success handler or default behavior
-      if (onFinish) {
-        onFinish(toolId);
-      } else {
-        router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${toolId}`);
-      }
-    },
-    [openNangoConnectHeadless, onFinish, router, tenantId, projectId, user]
-  );
-
-  const handleOAuthLoginWithComposio = useCallback(
-    async ({
-      toolId,
-      mcpServerUrl,
-      toolName,
-      thirdPartyConnectAccountUrl,
-      credentialScope,
-    }: {
-      toolId: string;
-      mcpServerUrl: string;
-      toolName: string;
-      thirdPartyConnectAccountUrl: string;
-      credentialScope: 'project' | 'user';
-    }): Promise<void> => {
-      await openOAuthPopupAndWait(thirdPartyConnectAccountUrl, toolId);
-
-      const serverDetails = await fetchThirdPartyMCPServer(
+  async function handleOAuthLoginManually(
+    toolId: string,
+    thirdPartyConnectAccountUrl?: string
+  ): Promise<void> {
+    const oauthUrl =
+      thirdPartyConnectAccountUrl ??
+      getOAuthLoginUrl({
+        PUBLIC_INKEEP_AGENTS_API_URL,
         tenantId,
         projectId,
-        mcpServerUrl,
-        credentialScope
-      );
-      const connectedAccountId = serverDetails?.data?.connectedAccountId;
-      const authScheme = serverDetails?.data?.authScheme;
+        id: toolId,
+      });
 
-      if (!connectedAccountId) {
-        toast.error(
-          'Authentication completed but credential could not be saved. Please try again.'
-        );
-        navigateToTool(toolId);
-        return;
-      }
+    await openOAuthPopupAndWait(oauthUrl, toolId);
+    navigateToTool(toolId);
+  }
 
-      const isUserScoped = credentialScope === 'user';
-
-      let userId: string | undefined;
-      if (isUserScoped) {
-        if (!user) {
-          throw new Error('User not found');
-        }
-        userId = user.id;
-      }
-
-      const newCredentialData = {
-        id: generateId(),
-        name: toolName,
-        type: CredentialStoreType.composio,
-        credentialStoreId: DEFAULT_COMPOSIO_STORE_ID,
-        createdBy: user?.email ?? undefined,
-        ...(isUserScoped && {
-          toolId,
-          userId,
-        }),
-        retrievalParams: {
-          connectedAccountId,
-          ...(authScheme && { authScheme }),
-        },
-      };
-
-      const newCredential = await findOrCreateCredential(tenantId, projectId, newCredentialData);
-
-      if (!isUserScoped) {
-        await updateMCPTool(tenantId, projectId, toolId, {
-          credentialReferenceId: newCredential.id,
-        });
-      }
-
-      navigateToTool(toolId);
-    },
-    [openOAuthPopupAndWait, navigateToTool, tenantId, projectId, user]
-  );
-
-  const handleOAuthLogin = useCallback(
-    async ({
-      toolId,
+  async function handleOAuthLoginWithNangoMCPGeneric({
+    toolId,
+    mcpServerUrl,
+    toolName,
+    credentialScope,
+  }: {
+    toolId: string;
+    mcpServerUrl: string;
+    toolName: string;
+    credentialScope?: 'project' | 'user';
+  }): Promise<void> {
+    const authResult = await openNangoConnectHeadless({
       mcpServerUrl,
-      toolName,
-      thirdPartyConnectAccountUrl,
-      credentialScope,
-    }: OAuthLoginParams): Promise<void> => {
-      setIsConnecting(true);
-      try {
-        if (mcpServerUrl.includes('composio.dev')) {
-          const composioRedirectUrl =
-            (await getThirdPartyOAuthRedirectUrl(
-              tenantId,
-              projectId,
-              mcpServerUrl,
-              credentialScope
-            )) ?? undefined;
+      providerUniqueKey: `${generateIdFromName(toolName)}_${toolId.slice(0, 4)}`,
+      providerDisplayName: toolName,
+    });
 
-          if (composioRedirectUrl) {
-            await handleOAuthLoginWithComposio({
-              toolId,
-              mcpServerUrl,
-              toolName,
-              thirdPartyConnectAccountUrl: composioRedirectUrl,
-              credentialScope,
-            });
-            return;
-          }
-        }
+    const isUserScoped = credentialScope === 'user';
 
-        if (thirdPartyConnectAccountUrl) {
-          await handleOAuthLoginManually(toolId, thirdPartyConnectAccountUrl);
-          return;
-        }
+    let userId: string | undefined;
+    if (isUserScoped) {
+      if (!user) {
+        throw new Error('User not found');
+      }
+      userId = user.id;
+    }
 
-        const credentialStoresStatus = await listCredentialStores(tenantId, projectId);
+    const newCredentialData = {
+      id: generateId(),
+      name: toolName,
+      type: CredentialStoreType.nango,
+      credentialStoreId: DEFAULT_NANGO_STORE_ID,
+      createdBy: user?.email ?? undefined,
+      // For user-scoped: set toolId and userId on the credential reference
+      ...(isUserScoped && {
+        toolId,
+        userId,
+      }),
+      retrievalParams: {
+        connectionId: authResult.connectionId,
+        providerConfigKey: authResult.providerConfigKey,
+        provider: 'mcp-generic',
+        authMode: 'OAUTH2',
+      },
+    };
 
-        const isNangoReady = credentialStoresStatus.some(
-          (store) => store.type === CredentialStoreType.nango && store.available
-        );
+    const newCredential = await findOrCreateCredential(tenantId, projectId, newCredentialData);
 
-        const isKeychainReady = credentialStoresStatus.some(
-          (store) => store.type === CredentialStoreType.keychain && store.available
-        );
+    // For project-scoped: update the tool's credentialReferenceId
+    // For user-scoped: don't update the tool (credential is linked via toolId + userId)
+    if (!isUserScoped) {
+      await updateMCPTool(tenantId, projectId, toolId, {
+        credentialReferenceId: newCredential.id,
+      });
+    }
 
-        if (isNangoReady) {
-          await handleOAuthLoginWithNangoMCPGeneric({
+    // Call custom success handler or default behavior
+    if (onFinish) {
+      onFinish(toolId);
+    } else {
+      router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${toolId}`);
+    }
+  }
+
+  async function handleOAuthLoginWithComposio({
+    toolId,
+    mcpServerUrl,
+    toolName,
+    thirdPartyConnectAccountUrl,
+    credentialScope,
+  }: {
+    toolId: string;
+    mcpServerUrl: string;
+    toolName: string;
+    thirdPartyConnectAccountUrl: string;
+    credentialScope: 'project' | 'user';
+  }): Promise<void> {
+    await openOAuthPopupAndWait(thirdPartyConnectAccountUrl, toolId);
+
+    const serverDetails = await fetchThirdPartyMCPServer(
+      tenantId,
+      projectId,
+      mcpServerUrl,
+      credentialScope
+    );
+    const connectedAccountId = serverDetails?.data?.connectedAccountId;
+    const authScheme = serverDetails?.data?.authScheme;
+
+    if (!connectedAccountId) {
+      toast.error('Authentication completed but credential could not be saved. Please try again.');
+      navigateToTool(toolId);
+      return;
+    }
+
+    const isUserScoped = credentialScope === 'user';
+
+    let userId: string | undefined;
+    if (isUserScoped) {
+      if (!user) {
+        throw new Error('User not found');
+      }
+      userId = user.id;
+    }
+
+    const newCredentialData = {
+      id: generateId(),
+      name: toolName,
+      type: CredentialStoreType.composio,
+      credentialStoreId: DEFAULT_COMPOSIO_STORE_ID,
+      createdBy: user?.email ?? undefined,
+      ...(isUserScoped && {
+        toolId,
+        userId,
+      }),
+      retrievalParams: {
+        connectedAccountId,
+        ...(authScheme && { authScheme }),
+      },
+    };
+
+    const newCredential = await findOrCreateCredential(tenantId, projectId, newCredentialData);
+
+    if (!isUserScoped) {
+      await updateMCPTool(tenantId, projectId, toolId, {
+        credentialReferenceId: newCredential.id,
+      });
+    }
+
+    navigateToTool(toolId);
+  }
+
+  async function handleOAuthLogin({
+    toolId,
+    mcpServerUrl,
+    toolName,
+    thirdPartyConnectAccountUrl,
+    credentialScope,
+  }: OAuthLoginParams): Promise<void> {
+    setIsConnecting(true);
+    try {
+      if (mcpServerUrl.includes('composio.dev')) {
+        const composioRedirectUrl =
+          (await getThirdPartyOAuthRedirectUrl(
+            tenantId,
+            projectId,
+            mcpServerUrl,
+            credentialScope
+          )) ?? undefined;
+
+        if (composioRedirectUrl) {
+          await handleOAuthLoginWithComposio({
             toolId,
             mcpServerUrl,
             toolName,
+            thirdPartyConnectAccountUrl: composioRedirectUrl,
             credentialScope,
           });
-        } else if (isKeychainReady) {
-          await handleOAuthLoginManually(toolId);
-        } else {
-          throwError('No credential store available. Please configure Nango or Keychain.');
+          return;
         }
-      } catch (error) {
-        const errorObj = error instanceof Error ? error : new Error('OAuth login failed');
-        toast.error(errorObj.message);
-        throw errorObj;
       }
-      setIsConnecting(false);
-    },
-    [
-      tenantId,
-      projectId,
-      handleOAuthLoginWithComposio,
-      handleOAuthLoginWithNangoMCPGeneric,
-      handleOAuthLoginManually,
-    ]
-  );
+
+      if (thirdPartyConnectAccountUrl) {
+        await handleOAuthLoginManually(toolId, thirdPartyConnectAccountUrl);
+        return;
+      }
+
+      const credentialStoresStatus = await listCredentialStores(tenantId, projectId);
+
+      const isNangoReady = credentialStoresStatus.some(
+        (store) => store.type === CredentialStoreType.nango && store.available
+      );
+
+      const isKeychainReady = credentialStoresStatus.some(
+        (store) => store.type === CredentialStoreType.keychain && store.available
+      );
+
+      if (isNangoReady) {
+        await handleOAuthLoginWithNangoMCPGeneric({
+          toolId,
+          mcpServerUrl,
+          toolName,
+          credentialScope,
+        });
+      } else if (isKeychainReady) {
+        await handleOAuthLoginManually(toolId);
+      } else {
+        throwError('No credential store available. Please configure Nango or Keychain.');
+      }
+    } catch (error) {
+      const errorObj = error instanceof Error ? error : new Error('OAuth login failed');
+      toast.error(errorObj.message);
+      throw errorObj;
+    }
+    setIsConnecting(false);
+  }
 
   return {
     handleOAuthLogin,
