@@ -378,12 +378,9 @@ export function WorkspaceHero() {
       </AlertDialog>
 
       <Dialog open={showTestMessageDialog} onOpenChange={setShowTestMessageDialog}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Send className="h-5 w-5" />
-              Send Test Message
-            </DialogTitle>
+            <DialogTitle className="flex items-center gap-2">Send Test Message</DialogTitle>
             <DialogDescription>
               Send a test message to verify your Slack integration is working correctly.
             </DialogDescription>
@@ -393,7 +390,7 @@ export function WorkspaceHero() {
               Select Channel
             </label>
             <Select value={selectedChannel} onValueChange={setSelectedChannel}>
-              <SelectTrigger id="channel-select">
+              <SelectTrigger className="w-full" id="channel-select">
                 <SelectValue placeholder="Choose a channel..." />
               </SelectTrigger>
               <SelectContent>

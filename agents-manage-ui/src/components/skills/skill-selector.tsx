@@ -1,6 +1,4 @@
-import { GripVertical, MoreVertical, Pencil, Trash2 } from 'lucide-react';
-import NextLink from 'next/link';
-import { useParams } from 'next/navigation';
+import { GripVertical, MoreVertical, Trash2 } from 'lucide-react';
 import type { Checkbox as CheckboxPrimitive } from 'radix-ui';
 import { type FC, useState } from 'react';
 import type { AgentSkill } from '@/components/agent/form/validation';
@@ -52,7 +50,6 @@ export function updateSkillAlwaysLoaded(
 }
 
 export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onChange }) => {
-  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const [draggingId, setDraggingId] = useState('');
   const [dragOverId, setDragOverId] = useState('');
   const { data: availableSkills } = useSkillsQuery();
@@ -165,12 +162,6 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <NextLink href={`/${tenantId}/projects/${projectId}/skills/${skill.id}/edit`}>
-                        <Pencil />
-                        Edit
-                      </NextLink>
-                    </DropdownMenuItem>
                     <DropdownMenuItem
                       variant="destructive"
                       data-id={skill.id}
@@ -179,7 +170,7 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
                       }}
                     >
                       <Trash2 />
-                      Delete
+                      Remove
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

@@ -72,7 +72,7 @@ export function NewAppDialog({ agentOptions }: NewAppDialogProps) {
       </DropdownMenu>
 
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>
               New {APP_TYPE_OPTIONS.find((o) => o.value === selectedType)?.label}
