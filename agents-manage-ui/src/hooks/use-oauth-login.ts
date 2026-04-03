@@ -15,6 +15,7 @@ import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { listCredentialStores } from '@/lib/api/credentialStores';
 import { fetchThirdPartyMCPServer, getThirdPartyOAuthRedirectUrl } from '@/lib/api/mcp-catalog';
 import { updateMCPTool } from '@/lib/api/tools';
+import { throwError } from '@/lib/utils';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';
 import { generateId } from '@/lib/utils/id-utils';
 import { getOAuthLoginUrl } from '@/lib/utils/mcp-urls';
@@ -345,7 +346,7 @@ export function useOAuthLogin({
         } else if (isKeychainReady) {
           await handleOAuthLoginManually(toolId);
         } else {
-          throw new Error('No credential store available. Please configure Nango or Keychain.');
+          throwError('No credential store available. Please configure Nango or Keychain.');
         }
       } catch (error) {
         const errorObj = error instanceof Error ? error : new Error('OAuth login failed');

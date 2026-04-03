@@ -13,6 +13,7 @@ import { createCredentialInStore } from '@/lib/api/credentialStores';
 import { updateExternalAgent } from '@/lib/api/external-agents';
 import { updateMCPTool } from '@/lib/api/tools';
 import { useProjectPermissionsQuery } from '@/lib/query/projects';
+import { throwError } from '@/lib/utils';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';
 import { generateId } from '@/lib/utils/id-utils';
 
@@ -71,7 +72,7 @@ export default function NewCredentialForm({
           break;
         }
         default:
-          throw new Error(`Unsupported credential store type: ${data.credentialStoreType}`);
+          throwError(`Unsupported credential store type: ${data.credentialStoreType}`);
       }
 
       await createCredentialInStore({

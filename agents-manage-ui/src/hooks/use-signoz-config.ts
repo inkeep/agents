@@ -1,5 +1,6 @@
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { throwError } from '@/lib/utils';
 
 interface SignozConfigStatus {
   status: string;
@@ -19,7 +20,7 @@ export function useSignozConfig() {
         // Call Next.js route which forwards to agents-api
         const response = await fetch(`/api/traces?tenantId=${tenantId}`);
         if (!response.ok) {
-          throw new Error('Failed to check Signoz configuration');
+          throwError('Failed to check Signoz configuration');
         }
         const data: SignozConfigStatus = await response.json();
         setConfigError(data.error || null);

@@ -31,6 +31,7 @@ import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { rerunScheduledTriggerInvocationAction } from '@/lib/actions/scheduled-triggers';
 import { rerunTriggerAction } from '@/lib/actions/triggers';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
+import { throwError } from '@/lib/utils';
 import { formatDateTime, formatDuration } from '@/lib/utils/format-date';
 import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
 import {
@@ -227,7 +228,7 @@ export default function ConversationDetail({
         ]);
 
         if (traceResponse.status === 'rejected' || !traceResponse.value.ok) {
-          throw new Error('Failed to fetch conversation details');
+          throwError('Failed to fetch conversation details');
         }
         const data = await traceResponse.value.json();
         setConversation(data);

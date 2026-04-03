@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { throwError } from '@/lib/utils';
 
 interface UseTempApiKeyParams {
   tenantId: string;
@@ -47,7 +48,7 @@ export function useTempApiKey({
       );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch temporary API key');
+        throwError('Failed to fetch temporary API key');
       }
 
       const data = await response.json();

@@ -61,3 +61,11 @@ export function isRequired<T extends { _zod: { input: any } }>(
 export function serializeJson(value?: null | Record<string, unknown> | unknown[]): string {
   return value ? JSON.stringify(value, null, 2) : '';
 }
+
+/**
+ * Temporal workaround to fix react compiler error:
+ * (BuildHIR::lowerStatement) Support ThrowStatement inside of try/catch
+ */
+export function throwError(message: string): never {
+  throw new Error(message);
+}
