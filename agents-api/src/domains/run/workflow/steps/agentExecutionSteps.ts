@@ -121,10 +121,12 @@ async function buildAgentForStep(params: {
     metadata: {},
   };
 
+  const agentBaseUrl = `${executionContext.baseUrl}/run/agents`;
+
   const taskHandlerConfig = await createTaskHandlerConfig({
     executionContext,
     subAgentId: currentSubAgentId,
-    baseUrl: executionContext.baseUrl,
+    baseUrl: agentBaseUrl,
     apiKey: executionContext.apiKey,
   });
 
@@ -196,7 +198,7 @@ async function buildAgentForStep(params: {
       projectId,
       agentId,
       agentName: agentEntry.name,
-      baseUrl: executionContext.baseUrl,
+      baseUrl: agentBaseUrl,
       apiKey: executionContext.apiKey,
       userId,
       name: currentSubAgent.name,
@@ -210,7 +212,7 @@ async function buildAgentForStep(params: {
         tenantId,
         projectId,
         agentId,
-        baseUrl: executionContext.baseUrl,
+        baseUrl: agentBaseUrl,
         apiKey: executionContext.apiKey,
         name: relation.name,
         description: relation.description || undefined,
@@ -228,7 +230,7 @@ async function buildAgentForStep(params: {
               {
                 relation: r,
                 executionContext,
-                baseUrl: executionContext.baseUrl,
+                baseUrl: agentBaseUrl,
                 apiKey: executionContext.apiKey,
               },
               credentialStoreRegistry
@@ -246,7 +248,7 @@ async function buildAgentForStep(params: {
               tenantId,
               projectId,
               agentId,
-              baseUrl: executionContext.baseUrl,
+              baseUrl: agentBaseUrl,
               apiKey: executionContext.apiKey,
               name: r.name,
               description: r.description || undefined,
@@ -279,7 +281,7 @@ async function buildAgentForStep(params: {
             ref: resolvedRef,
             name: r.targetAgent.name,
             description: r.targetAgent.description || '',
-            baseUrl: executionContext.baseUrl,
+            baseUrl: agentBaseUrl,
             headers: r.headers,
             relationId: r.relationId,
           },
