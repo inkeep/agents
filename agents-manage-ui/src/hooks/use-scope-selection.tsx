@@ -69,24 +69,24 @@ export function useScopeSelection<T = void>(
   const [pendingName, setPendingName] = useState('');
   const [pendingContext, setPendingContext] = useState<T | null>(null);
 
-  const requestScopeSelection = (name: string, context: T) => {
+  function requestScopeSelection(name: string, context: T) {
     setPendingName(name);
     setPendingContext(context);
     setIsOpen(true);
-  };
+  }
 
-  const close = () => {
+  function close() {
     setIsOpen(false);
     setPendingName('');
     setPendingContext(null);
-  };
+  }
 
-  const handleConfirm = async (scope: CredentialScope) => {
+  async function handleConfirm(scope: CredentialScope) {
     if (pendingContext !== null) {
       await options.onConfirm(scope, pendingContext);
     }
     close();
-  };
+  }
 
   const ScopeDialog = (
     <ScopeSelectionDialog
