@@ -1,5 +1,16 @@
 # @inkeep/agents-api
 
+## 0.64.5
+
+### Patch Changes
+
+- e91d67b: Patched Doltgres Backslash Escaping
+- Updated dependencies [e91d67b]
+  - @inkeep/agents-core@0.64.5
+  - @inkeep/agents-work-apps@0.64.5
+  - @inkeep/agents-email@0.64.5
+  - @inkeep/agents-mcp@0.64.5
+
 ## 0.64.4
 
 ### Patch Changes
