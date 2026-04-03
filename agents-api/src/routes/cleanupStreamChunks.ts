@@ -20,7 +20,7 @@ cleanupStreamChunksHandler.openapi(
   createProtectedRoute({
     method: 'get',
     path: '/api/cron/cleanup-stream-chunks',
-    tags: ['Cron'],
+    tags: ['Workflows'],
     summary: 'Clean up expired stream chunks',
     description:
       'Called by Vercel Cron to delete stream chunks older than 5 minutes. Auth via CRON_SECRET or INKEEP_AGENTS_RUN_API_BYPASS_SECRET.',

@@ -10703,7 +10703,7 @@
         "security": [],
         "summary": "Clean up expired stream chunks",
         "tags": [
-          "Cron"
+          "Workflows"
         ]
       }
     },
