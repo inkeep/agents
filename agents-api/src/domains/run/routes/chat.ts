@@ -368,6 +368,10 @@ app.openapi(chatCompletionsRoute, async (c) => {
       }
       const userMessageId = generateId();
 
+      if (messageSpan) {
+        messageSpan.setAttribute('message.id', userMessageId);
+      }
+
       const messageContent = await buildPersistedMessageContent(userMessage, messageParts, {
         tenantId,
         projectId,
@@ -389,7 +393,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
 
       if (messageSpan) {
         messageSpan.addEvent('user.message.stored', {
-          'message.id': conversationId,
+          'message.id': userMessageId,
           'database.operation': 'insert',
         });
       }

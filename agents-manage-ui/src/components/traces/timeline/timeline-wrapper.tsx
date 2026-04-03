@@ -91,6 +91,12 @@ interface TimelineWrapperProps {
   conversationId?: string;
   tenantId?: string;
   projectId?: string;
+  highlightMessageId?: string | null;
+  onLeaveFeedback?: (
+    activityId: string,
+    messageId?: string,
+    type?: 'positive' | 'negative'
+  ) => void;
   onCopyFullTrace?: () => void;
   onCopySummarizedTrace?: () => void;
   isCopying?: boolean;
@@ -188,6 +194,8 @@ export function TimelineWrapper({
   conversationId,
   tenantId,
   projectId,
+  highlightMessageId,
+  onLeaveFeedback,
   onCopyFullTrace,
   onCopySummarizedTrace,
   isCopying = false,
@@ -400,6 +408,21 @@ export function TimelineWrapper({
       hasScrolledToErrorRef.current = undefined;
     }
   }, [conversationId]);
+
+  useEffect(() => {
+    if (!highlightMessageId || enableAutoScroll) return;
+
+    const timeoutId = setTimeout(() => {
+      const el = scrollContainerRef.current?.querySelector(
+        `[data-message-id="${highlightMessageId}"]`
+      );
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 200);
+
+    return () => clearTimeout(timeoutId);
+  }, [highlightMessageId, enableAutoScroll]);
 
   // Functions to handle expand/collapse all (memoized to prevent unnecessary re-renders)
   const expandAll = useCallback(() => {
@@ -672,6 +695,7 @@ export function TimelineWrapper({
                       });
                     }}
                     selectedActivityId={selected?.item?.id}
+                    highlightMessageId={highlightMessageId}
                     collapsedAiMessages={collapsedAiMessages}
                     onToggleAiMessageCollapse={toggleAiMessageCollapse}
                     collapsedNodes={collapsedNodes}
@@ -711,6 +735,7 @@ export function TimelineWrapper({
                     });
                   }}
                   selectedActivityId={selected?.item?.id}
+                  highlightMessageId={highlightMessageId}
                   collapsedAiMessages={collapsedAiMessages}
                   onToggleAiMessageCollapse={toggleAiMessageCollapse}
                   collapsedNodes={collapsedNodes}
@@ -735,6 +760,7 @@ export function TimelineWrapper({
               selected,
               findSpanById,
               spanLoading: lazySpanLoading,
+              onLeaveFeedback,
             })}
           </ActivityDetailsSidePane>
         </ResizablePanel>
