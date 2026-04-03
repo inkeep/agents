@@ -123,9 +123,8 @@ export function ComponentRenderGenerator({
       console.error('Failed to generate render:', error);
       toast.error('Failed to generate render');
       setIsComplete(true);
-    } finally {
-      setIsGenerating(false);
     }
+    setIsGenerating(false);
   };
 
   const handleDeletePreview = async () => {
@@ -142,18 +141,12 @@ export function ComponentRenderGenerator({
     } catch (error) {
       console.error('Error deleting render:', error);
       toast.error('Failed to delete render');
-    } finally {
-      setIsDeleting(false);
     }
+    setIsDeleting(false);
   };
 
   const hasRender = render !== null && (render.component?.trim().length ?? 0) > 0;
-
-  // Memoize to prevent infinite re-renders
-  const stringifiedData = useMemo(
-    () => (render?.mockData ? JSON.stringify(render.mockData, null, 2) : '{}'),
-    [render?.mockData]
-  );
+  const stringifiedData = render?.mockData ? JSON.stringify(render.mockData, null, 2) : '{}';
 
   const renderCode = useMemo(() => render?.component || '', [render?.component]);
   const renderData = useMemo(() => render?.mockData || {}, [render?.mockData]);
