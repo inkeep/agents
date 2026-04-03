@@ -476,8 +476,7 @@ async function processTable(client, spec, branch) {
  */
 function simpleDiff(before, after, contextLines = 2) {
   // Make control chars visible for both sides
-  const visualize = (s) =>
-    s.replace(/\t/g, '\\t').replace(/\r/g, '\\r');
+  const visualize = (s) => s.replace(/\t/g, '\\t').replace(/\r/g, '\\r');
 
   const aLines = visualize(before).split('\n');
   const bLines = visualize(after).split('\n');
