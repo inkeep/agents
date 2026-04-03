@@ -1545,7 +1545,6 @@ export function TriggerForm({
                   {/* Signed Components List */}
                   <div className="space-y-3">
                     {componentFields.map((field, index) => {
-                      // @pullfrog is it the same as field.source ?
                       const componentSource = watchedSignedComponents?.[index].source;
 
                       return (
