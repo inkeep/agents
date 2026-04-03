@@ -55,12 +55,12 @@ export function useTempApiKey({
       setAppId(data.appId ?? null);
       setExpiresAt(data.expiresAt);
       setError(null);
+      setIsLoading(false);
       return data.apiKey;
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Unknown error'));
-      return null;
-    } finally {
       setIsLoading(false);
+      return null;
     }
   }, [tenantId, projectId, agentId, PUBLIC_INKEEP_AGENTS_API_URL]);
 
@@ -85,9 +85,7 @@ export function useTempApiKey({
     // Refresh 5 minutes before expiry (or immediately if already expired)
     const refreshTime = Math.max(0, timeUntilExpiry - 5 * 60 * 1000);
 
-    const timer = setTimeout(() => {
-      fetchToken();
-    }, refreshTime);
+    const timer = setTimeout(fetchToken, refreshTime);
 
     return () => clearTimeout(timer);
   }, [expiresAt, fetchToken]);
