@@ -210,7 +210,7 @@ export function AuthKeysSection({
               Algorithm <span className="text-destructive">*</span>
             </Label>
             <Select value={algorithm} onValueChange={setAlgorithm}>
-              <SelectTrigger id="auth-algorithm">
+              <SelectTrigger id="auth-algorithm" className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
