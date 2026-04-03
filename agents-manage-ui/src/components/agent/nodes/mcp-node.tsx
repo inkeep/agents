@@ -23,7 +23,6 @@ import { Handle } from './handle';
 const TOOLS_SHOWN_LIMIT = 4;
 
 export const TruncateBadge: FC<{ children: ReactNode }> = ({ children }) => {
-  'use memo';
   return (
     <Badge
       variant="code"
@@ -42,7 +41,6 @@ const TruncateToolBadge: FC<{
   label: string;
   needsApproval?: boolean;
 }> = ({ label, needsApproval }) => {
-  'use memo';
   if (!needsApproval) {
     return <TruncateBadge>{label}</TruncateBadge>;
   }
@@ -63,8 +61,6 @@ const TruncateToolBadge: FC<{
 };
 
 export function MCPNode({ data, selected, ...props }: NodeProps & { data: MCPNodeData }) {
-  'use memo';
-
   const { control } = useFullAgentFormContext();
   const relationKey = getMcpRelationFormKey({ nodeId: props.id });
   const mcpRelation = useWatch({
@@ -81,7 +77,7 @@ export function MCPNode({ data, selected, ...props }: NodeProps & { data: MCPNod
   const skeletonToolData = skeletonToolLookup[id];
 
   // Lazy-load actual status for this specific tool
-  const { data: liveToolData, isLoading: isConnecting } = useMcpToolStatusQuery({
+  const { data: liveToolData, isFetching: isConnecting } = useMcpToolStatusQuery({
     tenantId,
     projectId,
     toolId: id,

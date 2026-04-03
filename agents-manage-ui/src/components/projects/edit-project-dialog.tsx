@@ -33,12 +33,9 @@ export function EditProjectDialog({
 
     const loadPermissions = async () => {
       setLoading(true);
-      try {
-        const { canEdit } = await fetchProjectPermissions(tenantId, projectData.id);
-        setCanEdit(canEdit);
-      } finally {
-        setLoading(false);
-      }
+      const { canEdit } = await fetchProjectPermissions(tenantId, projectData.id);
+      setCanEdit(canEdit);
+      setLoading(false);
     };
 
     loadPermissions();
@@ -56,7 +53,7 @@ export function EditProjectDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="max-w-2xl!">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{readOnly ? '' : 'Edit project'}</DialogTitle>
           <DialogDescription className="sr-only">

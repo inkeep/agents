@@ -1,5 +1,20 @@
 # @inkeep/agents-core
 
+## 0.64.4
+
+## 0.64.3
+
+### Patch Changes
+
+- 7aa1fac: Remove dead signTempToken function and rename derivePlaygroundKid to deriveKidFromPublicKey
+- 4ace590: Remove axios dependency in favor of native fetch for improved security
+
+## 0.64.2
+
+### Patch Changes
+
+- f099221: Fix app prompt encoding errors by resolving prompt from database via appId instead of forwarding text in HTTP headers
+
 ## 0.64.1
 
 ## 0.64.0

@@ -9,8 +9,6 @@ export const ExternalLink: FC<ComponentProps<'a'> & { iconClassName?: string }> 
   iconClassName,
   ...props
 }) => {
-  'use memo';
-
   return (
     <a
       href={href}

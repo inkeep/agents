@@ -1354,8 +1354,57 @@ export class EvaluationClient {
   }
 
   // ============================================================================
-  // DATASET RUNS
+  // DATASET RUN CONFIGS & RUNS
   // ============================================================================
+
+  async createDatasetRunConfig(data: {
+    name: string;
+    description?: string;
+    datasetId: string;
+    agentIds?: string[];
+    evaluatorIds?: string[];
+  }): Promise<unknown> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId, datasetId: data.datasetId },
+      'Creating dataset run config via API'
+    );
+
+    const url = this.buildUrl('dataset-run-configs');
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'POST',
+        headers: this.buildHeaders(),
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to create dataset run config: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to create dataset run config via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      const result = (await response.json()) as { data: unknown };
+      logger.info(
+        { tenantId: this.tenantId, projectId: this.projectId },
+        'Successfully created dataset run config via API'
+      );
+      return result.data;
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId },
+        'Failed to create dataset run config'
+      );
+      throw error;
+    }
+  }
 
   async listDatasetRuns(datasetId: string): Promise<unknown[]> {
     logger.info(
@@ -1439,34 +1488,31 @@ export class EvaluationClient {
   }
 
   async triggerDatasetRun(
-    datasetId: string,
-    runData: {
-      agentIds: string[];
-      evaluatorIds?: string[];
-    }
+    runConfigId: string,
+    body?: { evaluatorIds?: string[]; branchName?: string }
   ): Promise<{
-    message: string;
     datasetRunId: string;
-    datasetId: string;
+    status: 'pending';
+    totalItems: number;
   }> {
     logger.info(
       {
         tenantId: this.tenantId,
         projectId: this.projectId,
-        datasetId,
-        agentIds: runData.agentIds,
-        evaluatorIds: runData.evaluatorIds,
+        runConfigId,
+        evaluatorIds: body?.evaluatorIds,
+        branchName: body?.branchName,
       },
       'Triggering dataset run via API'
     );
 
-    const url = this.buildUrl('datasets', datasetId, 'trigger');
+    const url = this.buildUrl('dataset-run-configs', runConfigId, 'run');
 
     try {
       const response = await apiFetch(url, {
         method: 'POST',
         headers: this.buildHeaders(),
-        body: JSON.stringify(runData),
+        body: JSON.stringify(body ?? {}),
       });
 
       if (!response.ok) {
@@ -1483,15 +1529,15 @@ export class EvaluationClient {
       }
 
       const result = (await response.json()) as {
-        message: string;
         datasetRunId: string;
-        datasetId: string;
+        status: 'pending';
+        totalItems: number;
       };
       logger.info(
         {
           tenantId: this.tenantId,
           projectId: this.projectId,
-          datasetId,
+          runConfigId,
           datasetRunId: result.datasetRunId,
         },
         'Successfully triggered dataset run via API'
@@ -1499,7 +1545,7 @@ export class EvaluationClient {
       return result;
     } catch (error) {
       logger.error(
-        { error, tenantId: this.tenantId, projectId: this.projectId, datasetId },
+        { error, tenantId: this.tenantId, projectId: this.projectId, runConfigId },
         'Failed to trigger dataset run'
       );
       throw error;

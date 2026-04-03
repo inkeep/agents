@@ -34,7 +34,6 @@ interface MCPServerNodeEditorProps {
 }
 
 export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) {
-  'use memo';
   const form = useFullAgentFormContext();
   const { toolId } = selectedNode.data;
   const nodeId = selectedNode.id;
@@ -57,7 +56,7 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
   const skeletonToolLookup = createLookup(mcpTools);
 
   // Lazy-load actual tool status
-  const { data: liveToolData, isLoading: isLoadingToolStatus } = useMcpToolStatusQuery({
+  const { data: liveToolData, isFetching: isLoadingToolStatus } = useMcpToolStatusQuery({
     tenantId,
     projectId,
     toolId,

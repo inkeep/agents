@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import NextLink from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { use, useEffect, useMemo, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
 import { StatCard } from '@/components/traces/charts/stat-card';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
@@ -51,15 +51,13 @@ export default function AICallsBreakdown({
   const { tenantId, projectId } = use(params);
   const searchParams = useSearchParams();
 
-  const backLink = useMemo(() => {
-    // Preserve the current search params when going back to traces
-    const current = new URLSearchParams(searchParams.toString());
-    const queryString = current.toString();
+  // Preserve the current search params when going back to traces
+  const current = new URLSearchParams(searchParams.toString());
+  const queryString = current.toString();
 
-    return queryString
-      ? `/${tenantId}/projects/${projectId}/traces?${queryString}`
-      : `/${tenantId}/projects/${projectId}/traces`;
-  }, [projectId, tenantId, searchParams]);
+  const backLink = queryString
+    ? `/${tenantId}/projects/${projectId}/traces?${queryString}`
+    : `/${tenantId}/projects/${projectId}/traces`;
 
   // Use nuqs for type-safe query state management
   const {
@@ -103,7 +101,7 @@ export default function AICallsBreakdown({
   };
 
   // Calculate time range based on selection
-  const { startTime, endTime } = useMemo(() => {
+  const { startTime, endTime } = (() => {
     const currentEndTime = Date.now();
 
     if (timeRange === 'custom') {
@@ -136,11 +134,11 @@ export default function AICallsBreakdown({
       startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
       endTime: currentEndTime,
     };
-  }, [timeRange, customStartDate, customEndDate]);
+  })();
 
   // Fetch AI calls by agent and model
   useEffect(() => {
-    const fetchData = async () => {
+    async function fetchData() {
       try {
         setLoading(true);
         setError(null);
@@ -167,10 +165,9 @@ export default function AICallsBreakdown({
       } catch (err) {
         console.error('Error fetching AI calls data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch AI calls data');
-      } finally {
-        setLoading(false);
       }
-    };
+      setLoading(false);
+    }
 
     fetchData();
   }, [selectedAgent, selectedModel, startTime, endTime, projectId, tenantId]);

@@ -12,7 +12,6 @@ interface TriggersTabsProps {
 }
 
 export const TriggersTabs: FC<TriggersTabsProps> = ({ children }) => {
-  'use memo';
   const [activeTab, setActiveTab] = useQueryState(
     'tab',
     parseAsStringLiteral(VALID_TABS).withDefault('scheduled')

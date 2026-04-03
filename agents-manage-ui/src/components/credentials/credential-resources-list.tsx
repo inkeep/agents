@@ -107,7 +107,7 @@ export function CredentialResourcesList({
   projectId,
 }: CredentialResourcesListProps) {
   const canFetchTool = !!(toolId && tenantId && projectId);
-  const { data: fetchedTool, isLoading: isLoadingTool } = useMcpToolStatusQuery({
+  const { data: fetchedTool, isFetching: isFetchingTool } = useMcpToolStatusQuery({
     tenantId: tenantId ?? '',
     projectId: projectId ?? '',
     toolId: toolId ?? '',
@@ -124,7 +124,7 @@ export function CredentialResourcesList({
       <Label>{label}</Label>
       {hasAnyResources ? (
         <div className="space-y-4">
-          {isLoadingTool && canFetchTool && (
+          {isFetchingTool && canFetchTool && (
             <div className="text-sm text-muted-foreground p-3 py-2">Loading...</div>
           )}
           {hasTools && (

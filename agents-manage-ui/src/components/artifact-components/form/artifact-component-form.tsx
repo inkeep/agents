@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericJsonSchemaEditor } from '@/components/form/generic-json-schema-editor';
@@ -48,6 +48,8 @@ export function ArtifactComponentForm({
     defaultValues,
     mode: 'onChange',
   });
+  const { control } = form;
+  const artifactName = useWatch({ control, name: 'name' });
 
   const { isSubmitting, isValid } = form.formState;
   const router = useRouter();
@@ -90,7 +92,7 @@ export function ArtifactComponentForm({
       <Form {...form}>
         <form onSubmit={onSubmit} className="max-w-3xl mx-auto space-y-8">
           <GenericInput
-            control={form.control}
+            control={control}
             name="name"
             label="Name"
             placeholder="Document Artifact"
@@ -98,7 +100,7 @@ export function ArtifactComponentForm({
             disabled={readOnly}
           />
           <GenericInput
-            control={form.control}
+            control={control}
             name="id"
             label="Id"
             placeholder="my-artifact"
@@ -110,7 +112,7 @@ export function ArtifactComponentForm({
             }
           />
           <GenericTextarea
-            control={form.control}
+            control={control}
             name="description"
             label="Description"
             placeholder="Structured factual information extracted from search results"
@@ -119,7 +121,7 @@ export function ArtifactComponentForm({
             isRequired={isRequired(schema, 'description')}
           />
           <GenericJsonSchemaEditor
-            control={form.control}
+            control={control}
             name="props"
             label="Properties"
             placeholder="Enter a valid JSON Schema with inPreview flags, or leave empty to save entire tool result..."
@@ -135,7 +137,7 @@ export function ArtifactComponentForm({
               tenantId={tenantId}
               projectId={projectId}
               artifactComponentId={id}
-              artifactComponentName={form.watch('name')}
+              artifactComponentName={artifactName}
               existingRender={defaultValues.render}
               onRenderChanged={(render) => {
                 form.setValue('render', render);

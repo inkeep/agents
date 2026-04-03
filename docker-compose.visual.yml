@@ -1,6 +1,6 @@
 # Playwright server for consistent visual regression testing.
 # Runs the browser in a Linux container so screenshots are identical
-# regardless of host OS (macOS, Linux CI, etc).
+# regardless of host OS (macOS, Linux CI, etc.).
 #
 # Usage:
 #   docker compose -f docker-compose.visual.yml up -d
@@ -8,10 +8,7 @@
 #   docker compose -f docker-compose.visual.yml down
 services:
   playwright:
-    # Pin to amd64 so screenshots match CI (ubuntu-x86) regardless of host arch.
-    # ARM and x86 Chromium produce different subpixel rendering — see
-    # https://github.com/microsoft/playwright/issues/13873
-    platform: linux/amd64
+    platform: linux
     image: mcr.microsoft.com/playwright:v1.58.0-noble
     user: pwuser
     working_dir: /home/pwuser

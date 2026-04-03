@@ -13,7 +13,6 @@ import {
   verifyPoW,
   verifyServiceToken,
   verifySlackUserToken,
-  verifyTempToken,
   type WebClientConfig,
 } from '@inkeep/agents-core';
 import { trace } from '@opentelemetry/api';
@@ -25,7 +24,6 @@ import { getAnonJwtSecret } from '../domains/run/routes/auth';
 import { env } from '../env';
 import { getLogger } from '../logger';
 import { createBaseExecutionContext } from '../types/runExecutionContext';
-import { isCopilotAgent } from '../utils/copilot';
 
 const logger = getLogger('env-key-auth');
 
@@ -53,7 +51,6 @@ interface RequestData {
   baseUrl: string;
   runAsUserId?: string;
   appId?: string;
-  appPrompt?: string;
   origin?: string;
 }
 
@@ -82,7 +79,6 @@ function extractRequestData(c: { req: any }): RequestData {
   const subAgentId = c.req.header('x-inkeep-sub-agent-id');
   const runAsUserId = c.req.header('x-inkeep-run-as-user-id');
   const appId = c.req.header('x-inkeep-app-id');
-  const appPrompt = c.req.header('x-inkeep-app-prompt');
   const origin = c.req.header('Origin');
   const proto = c.req.header('x-forwarded-proto')?.split(',')[0].trim();
   const fwdHost = c.req.header('x-forwarded-host')?.split(',')[0].trim();
@@ -109,7 +105,6 @@ function extractRequestData(c: { req: any }): RequestData {
     baseUrl,
     runAsUserId,
     appId,
-    appPrompt,
     origin,
   };
 }
@@ -162,88 +157,6 @@ function buildExecutionContext(authResult: AuthResult, reqData: RequestData): Ba
 // ============================================================================
 // Auth Strategies
 // ============================================================================
-
-/**
- * Attempts to authenticate using a JWT temporary token
- *
- * Throws HTTPException(403) if the JWT is valid but the user lacks permission.
- * Returns null if the token is not a temp JWT (allowing fallback to other auth methods).
- */
-async function tryTempJwtAuth(apiKey: string): Promise<AuthAttempt> {
-  if (!apiKey.startsWith('eyJ')) {
-    return { authResult: null, failureMessage: 'not a JWT' };
-  }
-
-  if (!env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY) {
-    return { authResult: null, failureMessage: 'no public key configured' };
-  }
-
-  try {
-    const publicKeyPem = Buffer.from(env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY, 'base64').toString(
-      'utf-8'
-    );
-    const payload = await verifyTempToken(publicKeyPem, apiKey);
-
-    const userId = payload.sub;
-    const projectId = payload.projectId;
-    const agentId = payload.agentId;
-
-    if (!projectId || !agentId) {
-      logger.warn({ userId }, 'Missing projectId or agentId in JWT');
-      throw new HTTPException(400, {
-        message: 'Invalid token: missing projectId or agentId',
-      });
-    }
-
-    const isCopilotToken = isCopilotAgent({
-      tenantId: payload.tenantId,
-      projectId,
-      agentId,
-    });
-
-    if (isCopilotToken) {
-      logger.info({ userId, projectId, agentId }, 'Copilot bypass: skipping SpiceDB check');
-    }
-
-    if (!isCopilotToken) {
-      let canUse: boolean;
-      try {
-        canUse = await canUseProjectStrict({ userId, tenantId: payload.tenantId, projectId });
-      } catch (error) {
-        logger.error({ error, userId, projectId }, 'SpiceDB permission check failed');
-        throw new HTTPException(503, {
-          message: 'Authorization service temporarily unavailable',
-        });
-      }
-
-      if (!canUse) {
-        logger.warn({ userId, projectId }, 'User does not have use permission on project');
-        throw new HTTPException(403, {
-          message: 'Access denied: insufficient permissions',
-        });
-      }
-    }
-
-    logger.info({ projectId, agentId }, 'JWT temp token authenticated successfully');
-
-    return {
-      authResult: {
-        apiKey,
-        tenantId: payload.tenantId,
-        projectId,
-        agentId,
-        apiKeyId: 'temp-jwt',
-        metadata: { initiatedBy: payload.initiatedBy },
-      },
-    };
-  } catch (error) {
-    if (error instanceof HTTPException) {
-      throw error;
-    }
-    logger.debug({ error }, 'JWT verification failed');
-    return { authResult: null, failureMessage: 'JWT verification failed' };
-  }
-}
 
 /**
  * Authenticate using a regular API key
@@ -777,6 +690,8 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
               endUserId,
               initiatedBy: { type: 'user' as const, id: endUserId },
               authMethod,
+              appId: app.id,
+              appPrompt: app.prompt || undefined,
               ...(Object.keys(verifiedClaims).length > 0 ? { verifiedClaims } : {}),
             },
           },
@@ -848,6 +763,7 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
         endUserId,
         ...(endUserId ? { initiatedBy: { type: 'user' as const, id: endUserId } } : {}),
         authMethod,
+        appId: app.id,
         appPrompt: app.prompt || undefined,
       },
     },
@@ -897,7 +813,9 @@ function createDevContext(reqData: RequestData): AuthResult {
 async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
   const { apiKey, subAgentId } = reqData;
 
-  if (reqData.appId) {
+  // When subAgentId is set, this is an internal A2A call — skip app credential auth.
+  // The appId is forwarded for context only; the sub-agent authenticates via its own token.
+  if (reqData.appId && !subAgentId) {
     if (!apiKey) {
       return { authResult: null, failureMessage: 'Bearer token required for app credential auth' };
     }
@@ -909,12 +827,6 @@ async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
   }
 
   const failures: Array<{ strategy: string; reason: string }> = [];
-
-  const jwtAttempt = await tryTempJwtAuth(apiKey);
-  if (jwtAttempt.authResult) return jwtAttempt;
-  if (jwtAttempt.failureMessage) {
-    failures.push({ strategy: 'JWT temp token', reason: jwtAttempt.failureMessage });
-  }
 
   const bypassAttempt = tryBypassAuth(apiKey, reqData);
   if (bypassAttempt.authResult) return bypassAttempt;
@@ -972,10 +884,10 @@ async function runApiKeyAuthHandler(
     const attempt = await authenticateRequest(reqData);
 
     if (attempt.authResult) {
-      if (reqData.appPrompt && !attempt.authResult.metadata?.appPrompt) {
+      if (reqData.appId && !attempt.authResult.metadata?.appId) {
         attempt.authResult.metadata = {
           ...attempt.authResult.metadata,
-          appPrompt: reqData.appPrompt,
+          appId: reqData.appId,
         };
       }
       c.set('executionContext', buildExecutionContext(attempt.authResult, reqData));
@@ -1040,9 +952,9 @@ async function runApiKeyAuthHandler(
     'API key authenticated successfully'
   );
 
-  // Forward appPrompt from internal A2A header when not already set by auth strategy
-  if (reqData.appPrompt && !attempt.authResult.metadata?.appPrompt) {
-    attempt.authResult.metadata = { ...attempt.authResult.metadata, appPrompt: reqData.appPrompt };
+  // Forward appId from internal A2A header when not already set by auth strategy
+  if (reqData.appId && !attempt.authResult.metadata?.appId) {
+    attempt.authResult.metadata = { ...attempt.authResult.metadata, appId: reqData.appId };
   }
 
   c.set('executionContext', buildExecutionContext(attempt.authResult, reqData));
