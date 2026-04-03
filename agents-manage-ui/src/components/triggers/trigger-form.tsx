@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { useFieldArray, useForm } from 'react-hook-form';
+import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
@@ -473,25 +473,17 @@ export function TriggerForm({
     resolver: zodResolver(triggerFormSchema),
     defaultValues,
   });
-
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: 'authHeaders',
-  });
-
+  const { control } = form;
+  const { fields, append, remove } = useFieldArray({ control, name: 'authHeaders' });
   const {
     fields: componentFields,
     append: appendComponent,
     remove: removeComponent,
     move: moveComponent,
-  } = useFieldArray({
-    control: form.control,
-    name: 'signedComponents',
-  });
-
+  } = useFieldArray({ control, name: 'signedComponents' });
   const { isSubmitting } = form.formState;
-  const transformType = form.watch('transformType');
-  const signatureSource = form.watch('signatureSource');
+  const transformType = useWatch({ control, name: 'transformType' });
+  const signatureSource = useWatch({ control, name: 'signatureSource' });
 
   const resolveRunAsUserId = (value: string | undefined): string | null => {
     if (!value || value === NONE_VALUE) return null;
@@ -540,16 +532,22 @@ export function TriggerForm({
   };
 
   // Watch specific fields for request preview and conditional rendering
-  const watchedRunAsUserId = form.watch('runAsUserId');
-  const watchedAuthHeaders = form.watch('authHeaders');
-  const watchedSignatureVerificationEnabled = form.watch('signatureVerificationEnabled');
-  const watchedSigningCredential = form.watch('signingSecretCredentialReferenceId');
-  const watchedSignatureKey = form.watch('signatureKey');
-  const watchedSignaturePrefix = form.watch('signaturePrefix');
-  const watchedSignatureAlgorithm = form.watch('signatureAlgorithm');
-  const watchedSignatureEncoding = form.watch('signatureEncoding');
-  const watchedSignedComponents = form.watch('signedComponents');
-  const watchedJoinSeparator = form.watch('joinSeparator');
+  const watchedRunAsUserId = useWatch({ control, name: 'runAsUserId' });
+  const watchedAuthHeaders = useWatch({ control, name: 'authHeaders' });
+  const watchedSignatureVerificationEnabled = useWatch({
+    control,
+    name: 'signatureVerificationEnabled',
+  });
+  const watchedSigningCredential = useWatch({
+    control,
+    name: 'signingSecretCredentialReferenceId',
+  });
+  const watchedSignatureKey = useWatch({ control, name: 'signatureKey' });
+  const watchedSignaturePrefix = useWatch({ control, name: 'signaturePrefix' });
+  const watchedSignatureAlgorithm = useWatch({ control, name: 'signatureAlgorithm' });
+  const watchedSignatureEncoding = useWatch({ control, name: 'signatureEncoding' });
+  const watchedSignedComponents = useWatch({ control, name: 'signedComponents' });
+  const watchedJoinSeparator = useWatch({ control, name: 'joinSeparator' });
 
   // Generate request preview based on current form values
   const generateRequestPreview = useMemo(() => {
