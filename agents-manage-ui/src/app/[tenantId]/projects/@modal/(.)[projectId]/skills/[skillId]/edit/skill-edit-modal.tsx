@@ -23,7 +23,7 @@ export const SkillEditModal: FC = () => {
 
   return (
     <Dialog open onOpenChange={router.back}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription className="sr-only">{description}</DialogDescription>

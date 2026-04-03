@@ -2,7 +2,7 @@
 
 import { ArrowLeft, CheckCircle, Layers, Wrench } from 'lucide-react';
 import NextLink from 'next/link';
-import { use, useEffect, useMemo, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
 import { StatCard } from '@/components/traces/charts/stat-card';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
@@ -63,7 +63,7 @@ export default function AllProjectsToolCallsBreakdown({
     }
   };
 
-  const { startTime, endTime } = useMemo(() => {
+  const { startTime, endTime } = (() => {
     const currentEndTime = Date.now();
 
     if (timeRange === CUSTOM) {
@@ -91,7 +91,7 @@ export default function AllProjectsToolCallsBreakdown({
       startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
       endTime: currentEndTime,
     };
-  }, [timeRange, customStartDate, customEndDate]);
+  })();
 
   // Fetch tool calls data
   useEffect(() => {
@@ -119,22 +119,18 @@ export default function AllProjectsToolCallsBreakdown({
       } catch (err) {
         console.error('Error fetching tool calls data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch tool calls data');
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     fetchData();
   }, [selectedProjectId, startTime, endTime, tenantId]);
 
   // Create a map of project IDs to names
-  const projectNameMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const project of projects) {
-      map.set(project.projectId, project.name);
-    }
-    return map;
-  }, [projects]);
+  const projectNameMap = new Map<string, string>();
+  for (const project of projects) {
+    projectNameMap.set(project.projectId, project.name);
+  }
 
   const totalMCPCalls = projectStats.reduce((sum, item) => sum + item.totalMCPCalls, 0);
   const totalToolErrors = toolCalls.reduce((sum, item) => sum + item.errorCount, 0);

@@ -237,6 +237,34 @@ describe('resolveMessageBlobUris', () => {
     const resolved = await resolveMessageBlobUris(content);
     expect(resolved.parts).toEqual([{ kind: 'text', text: 'keep-me' }]);
   });
+
+  it('does not presign malformed blob keys', async () => {
+    const { getBlobStorageProvider } = await import('../blob-storage/index');
+    mockGetPresignedUrl.mockResolvedValue('https://bucket.s3.amazonaws.com/signed');
+    vi.mocked(getBlobStorageProvider).mockReturnValue({
+      upload: vi.fn(),
+      download: vi.fn(),
+      delete: vi.fn(),
+      getPresignedUrl: mockGetPresignedUrl,
+    });
+
+    const content: MessageContent = {
+      text: 'Hello',
+      parts: [
+        { kind: 'text', text: 'keep-me' },
+        {
+          kind: 'file',
+          data: 'blob://too-short/key',
+          metadata: { mimeType: 'image/png' },
+        },
+      ],
+    };
+
+    const resolved = await resolveMessageBlobUris(content);
+
+    expect(mockGetPresignedUrl).not.toHaveBeenCalled();
+    expect(resolved.parts).toEqual([{ kind: 'text', text: 'keep-me' }]);
+  });
 });
 
 describe('resolveMessagesListBlobUris', () => {

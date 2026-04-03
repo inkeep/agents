@@ -42,7 +42,7 @@ export function NewProjectDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {children && <DialogTrigger asChild>{children}</DialogTrigger>}
-      <DialogContent className="!max-w-2xl">
+      <DialogContent className="sm:max-w-3xl">
         <DialogTitle>Create new project</DialogTitle>
         <DialogDescription>
           Create a new project to organize your agents, tools, and resources.

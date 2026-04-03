@@ -62,9 +62,8 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
       handleClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to change password');
-    } finally {
-      setIsSubmitting(false);
     }
+    setIsSubmitting(false);
   };
 
   const handleClose = () => {

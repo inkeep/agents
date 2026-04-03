@@ -3,7 +3,6 @@ import { parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs';
 const PANE_TYPES = ['agent', 'node', 'edge'] as const;
 
 export function useSidePane() {
-  'use memo';
   const [{ pane, nodeId, edgeId }, setQueryState] = useQueryStates({
     pane: parseAsStringLiteral(PANE_TYPES),
     nodeId: parseAsString,

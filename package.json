@@ -47,6 +47,7 @@
     "version": "changeset version",
     "release": "changeset publish",
     "release-dev": "changeset version --snapshot dev && changeset publish --tag dev",
+    "generate:keys": "bash scripts/generate-jwt-keys.sh",
     "db:generate": "pnpm --filter @inkeep/agents-core db:generate",
     "db:migrate": "pnpm --filter @inkeep/agents-core db:migrate",
     "db:drop": "pnpm --filter @inkeep/agents-core db:drop",

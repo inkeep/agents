@@ -57,7 +57,6 @@ export function Combobox({
   triggerClassName,
   disabled = false,
 }: ComboboxProps) {
-  'use memo';
   const { isOpen, onClose, onToggle } = useDisclosure();
   const [value, setValue] = useState(defaultValue);
   const current = options.find((option) => option.value === value);

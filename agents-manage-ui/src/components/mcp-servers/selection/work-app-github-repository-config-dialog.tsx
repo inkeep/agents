@@ -2,7 +2,7 @@
 
 import { Building2, ExternalLink, Github, Loader2, RefreshCw, User } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -60,49 +60,48 @@ export function WorkAppGitHubRepositoryConfigDialog({
   const [installations, setInstallations] = useState<WorkAppGitHubInstallation[]>([]);
   const [projectAccess, setProjectAccess] = useState<WorkAppGitHubProjectAccess | null>(null);
 
-  const loadData = useCallback(async () => {
-    try {
-      setDialogState('loading');
-
-      const [installationsData, accessData] = await Promise.all([
-        fetchWorkAppGitHubInstallations(tenantId),
-        getProjectWorkAppGitHubAccess(tenantId, projectId),
-      ]);
-
-      setInstallations(installationsData);
-      setProjectAccess(accessData);
-
-      // Check for empty states
-      const activeInstallations = installationsData.filter((i) => i.status === 'active');
-
-      if (activeInstallations.length === 0) {
-        setDialogState('no-installations');
-        return;
-      }
-
-      // Check if project has access configured
-      // If mode is 'all' OR mode is 'selected' with repositories, project has access
-      const hasProjectAccess =
-        accessData.mode === 'all' ||
-        (accessData.mode === 'selected' && accessData.repositories.length > 0);
-
-      if (!hasProjectAccess) {
-        setDialogState('no-project-access');
-        return;
-      }
-
-      setDialogState('ready');
-    } catch (error) {
-      console.error('Failed to load GitHub data:', error);
-      setDialogState('no-installations');
-    }
-  }, [tenantId, projectId]);
-
   useEffect(() => {
+    async function loadData() {
+      try {
+        setDialogState('loading');
+
+        const [installationsData, accessData] = await Promise.all([
+          fetchWorkAppGitHubInstallations(tenantId),
+          getProjectWorkAppGitHubAccess(tenantId, projectId),
+        ]);
+
+        setInstallations(installationsData);
+        setProjectAccess(accessData);
+
+        // Check for empty states
+        const activeInstallations = installationsData.filter((i) => i.status === 'active');
+
+        if (activeInstallations.length === 0) {
+          setDialogState('no-installations');
+          return;
+        }
+
+        // Check if project has access configured
+        // If mode is 'all' OR mode is 'selected' with repositories, project has access
+        const hasProjectAccess =
+          accessData.mode === 'all' ||
+          (accessData.mode === 'selected' && accessData.repositories.length > 0);
+
+        if (!hasProjectAccess) {
+          setDialogState('no-project-access');
+          return;
+        }
+
+        setDialogState('ready');
+      } catch (error) {
+        console.error('Failed to load GitHub data:', error);
+        setDialogState('no-installations');
+      }
+    }
     if (open) {
       loadData();
     }
-  }, [open, loadData]);
+  }, [open, tenantId, projectId]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -248,14 +247,14 @@ function ReadyState({
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const [name, setName] = useState('GitHub');
   const [mode, setMode] = useState<WorkAppGitHubAccessMode>('all');
-  const [selectedRepoIds, setSelectedRepoIds] = useState<Set<string>>(new Set());
+  const [selectedRepoIds, setSelectedRepoIds] = useState(new Set<string>());
   const [installationsWithRepos, setInstallationsWithRepos] = useState<InstallationWithRepos[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setSyncing] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Get the available repositories based on project access
-  const getAvailableRepositories = useCallback((): WorkAppGitHubRepository[] => {
+  function getAvailableRepositories(): WorkAppGitHubRepository[] {
     if (!projectAccess) return [];
 
     if (projectAccess.mode === 'all') {
@@ -265,9 +264,9 @@ function ReadyState({
 
     // Return only the repositories the project has access to
     return projectAccess.repositories;
-  }, [projectAccess, installationsWithRepos]);
+  }
 
-  const loadInstallationDetails = useCallback(async () => {
+  async function loadInstallationDetails() {
     try {
       setIsLoading(true);
       const activeInstallations = installations.filter((i) => i.status === 'active');
@@ -286,14 +285,16 @@ function ReadyState({
     } catch (error) {
       console.error('Failed to load installation details:', error);
       toast.error('Failed to load repository details');
-    } finally {
-      setIsLoading(false);
     }
-  }, [tenantId, installations]);
+    setIsLoading(false);
+  }
 
   useEffect(() => {
     loadInstallationDetails();
-  }, [loadInstallationDetails]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadInstallationDetails,
+  ]);
 
   const handleSync = async (installationId: string) => {
     setSyncing(installationId);
@@ -303,9 +304,8 @@ function ReadyState({
       toast.success('Repositories synced');
     } catch {
       toast.error('Failed to sync repositories');
-    } finally {
-      setSyncing(null);
     }
+    setSyncing(null);
   };
 
   const handleRepoToggle = (repoId: string) => {
@@ -404,9 +404,8 @@ function ReadyState({
     } catch (error) {
       console.error('Failed to create GitHub MCP server:', error);
       toast.error('Failed to create GitHub MCP server. Please try again.');
-    } finally {
-      setIsSubmitting(false);
     }
+    setIsSubmitting(false);
   };
 
   return (

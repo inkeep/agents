@@ -1,7 +1,7 @@
 'use client';
 
 import { Info, Loader2, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { Streamdown } from 'streamdown';
 import { CodeEditor } from '@/components/editors/code-editor';
@@ -20,6 +20,7 @@ import { UseInYourAppModal } from '@/components/use-in-your-app-modal';
 import { DOCS_BASE_URL } from '@/constants/theme';
 import { updateDataComponent } from '@/lib/api/data-components';
 import { useProjectQuery } from '@/lib/query/projects';
+import { throwError } from '@/lib/utils';
 import { DynamicComponentRenderer } from '../../dynamic-component-renderer';
 
 interface ComponentPreviewGeneratorProps {
@@ -79,11 +80,11 @@ export function ComponentRenderGenerator({
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate render');
+        throwError('Failed to generate render');
       }
 
       if (!response.body) {
-        throw new Error('No response body');
+        throwError('No response body');
       }
 
       const reader = response.body.getReader();
@@ -131,15 +132,14 @@ export function ComponentRenderGenerator({
         onRenderChanged?.(finalRender);
         toast.success('Render generated successfully');
       } else {
-        throw new Error('No valid render generated');
+        throwError('No valid render generated');
       }
     } catch (error) {
       console.error('Failed to generate render:', error);
       toast.error('Failed to generate render');
       setIsComplete(true);
-    } finally {
-      setIsGenerating(false);
     }
+    setIsGenerating(false);
   };
 
   const handleDeletePreview = async () => {
@@ -156,36 +156,26 @@ export function ComponentRenderGenerator({
     } catch (error) {
       console.error('Error deleting render:', error);
       toast.error('Failed to delete render');
-    } finally {
-      setIsDeleting(false);
     }
+    setIsDeleting(false);
   };
 
   const hasRender = render !== null && (render.component?.trim().length ?? 0) > 0;
+  const stringifiedData = render?.mockData ? JSON.stringify(render.mockData, null, 2) : '{}';
+  const renderCode = render?.component || '';
+  const renderData = render?.mockData || {};
 
-  // Memoize to prevent infinite re-renders
-  const stringifiedData = useMemo(
-    () => (render?.mockData ? JSON.stringify(render.mockData, null, 2) : '{}'),
-    [render?.mockData]
-  );
-
-  const renderCode = useMemo(() => render?.component || '', [render?.component]);
-  const renderData = useMemo(() => render?.mockData || {}, [render?.mockData]);
-
-  const handleDataChange = useCallback(
-    (newData: string) => {
-      if (!render) return;
-      try {
-        const parsedData = JSON.parse(newData);
-        const updatedRender = { ...render, mockData: parsedData };
-        setRender(updatedRender);
-        onRenderChanged?.(updatedRender);
-      } catch {
-        // Invalid JSON, ignore
-      }
-    },
-    [render, onRenderChanged]
-  );
+  function handleDataChange(newData: string) {
+    if (!render) return;
+    try {
+      const parsedData = JSON.parse(newData);
+      const updatedRender = { ...render, mockData: parsedData };
+      setRender(updatedRender);
+      onRenderChanged?.(updatedRender);
+    } catch {
+      // Invalid JSON, ignore
+    }
+  }
 
   return (
     <div className="space-y-4">

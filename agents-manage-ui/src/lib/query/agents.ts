@@ -18,8 +18,6 @@ export function useAgentsListQuery({
   projectId?: string;
   enabled?: boolean;
 }) {
-  'use memo';
-
   return useQuery<Agent[]>({
     queryKey: agentQueryKeys.list(tenantId, projectId),
     async queryFn() {
@@ -38,7 +36,6 @@ export function useAgentsListQuery({
 }
 
 export function useAgentsQuery({ enabled = true }: { enabled?: boolean } = {}) {
-  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
   if (!tenantId || !projectId) {

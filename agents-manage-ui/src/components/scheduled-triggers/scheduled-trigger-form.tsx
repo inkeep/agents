@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { GitBranch, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
@@ -178,7 +178,12 @@ export function ScheduledTriggerForm({
   });
 
   const { isSubmitting } = form.formState;
-  const scheduleType = form.watch('scheduleType');
+  const scheduleType = useWatch({ control: form.control, name: 'scheduleType' });
+  const cronTimezone = useWatch({
+    control: form.control,
+    name: 'cronTimezone',
+    defaultValue: 'UTC',
+  });
 
   const resolveRunAsUserId = (value: string | undefined): string | null => {
     if (!value || value === NONE_VALUE) return null;
@@ -190,7 +195,7 @@ export function ScheduledTriggerForm({
     return member?.name || member?.email || userId;
   };
 
-  const onSubmit = async (data: ScheduledTriggerFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     try {
       let payload: Record<string, unknown> | null = null;
       if (data.payloadJson?.trim()) {
@@ -292,11 +297,11 @@ export function ScheduledTriggerForm({
       console.error(`Failed to ${mode} scheduled trigger:`, error);
       toast.error(`Failed to ${mode} scheduled trigger. Please try again.`);
     }
-  };
+  });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={onSubmit} className="space-y-6">
         {/* Basic Information */}
         <Card>
           <CardHeader>
@@ -529,7 +534,7 @@ export function ScheduledTriggerForm({
                       <FriendlyScheduleBuilder
                         value={field.value ?? ''}
                         onChange={field.onChange}
-                        timezone={form.watch('cronTimezone') ?? 'UTC'}
+                        timezone={cronTimezone}
                         onTimezoneChange={(tz) =>
                           form.setValue('cronTimezone', tz, { shouldDirty: true })
                         }

@@ -19,9 +19,171 @@
  */
 
 import { execSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { createHash, generateKeyPairSync } from 'node:crypto';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { styleText } from 'node:util';
 import { runSetup } from '../packages/agents-core/dist/setup/index.js';
+
+/**
+ * Generate copilot JWT keypair and write to .env if not already configured.
+ * This is monorepo-only — self-hosted/cloud setups don't get copilot auto-configured.
+ */
+function ensureCopilotKeys() {
+  const envPath = '.env';
+  if (!existsSync(envPath)) return;
+
+  const envContent = readFileSync(envPath, 'utf-8');
+
+  const hasKey =
+    envContent.includes('INKEEP_COPILOT_JWT_PRIVATE_KEY=') &&
+    !envContent.includes('# INKEEP_COPILOT_JWT_PRIVATE_KEY=') &&
+    !!envContent.match(/INKEEP_COPILOT_JWT_PRIVATE_KEY=(.+)/)?.[1]?.trim();
+
+  if (hasKey) {
+    console.log(
+      styleText('cyan', 'ℹ') + ' Copilot JWT keys already configured, skipping generation'
+    );
+    return;
+  }
+
+  const { privateKey, publicKey } = generateKeyPairSync('rsa', {
+    modulusLength: 2048,
+    privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+    publicKeyEncoding: { type: 'spki', format: 'pem' },
+  });
+
+  const privateKeyBase64 = Buffer.from(privateKey).toString('base64');
+  const kid = `pg-${createHash('sha256').update(publicKey).digest('hex').substring(0, 12)}`;
+
+  const lines = envContent.split('\n');
+  const vars = [
+    { name: 'INKEEP_COPILOT_JWT_PRIVATE_KEY', value: privateKeyBase64 },
+    { name: 'INKEEP_COPILOT_JWT_KID', value: kid },
+    { name: 'PUBLIC_INKEEP_COPILOT_APP_ID', value: 'app_copilot' },
+  ];
+
+  for (const { name, value } of vars) {
+    let found = false;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].startsWith(`# ${name}=`) || lines[i].startsWith(`${name}=`)) {
+        lines[i] = `${name}=${value}`;
+        found = true;
+      }
+    }
+    if (!found) {
+      lines.push(`${name}=${value}`);
+    }
+    process.env[name] = value;
+  }
+
+  writeFileSync(envPath, lines.join('\n'));
+  console.log(styleText('green', '✓') + ' Copilot JWT keys generated and added to .env');
+}
+
+/**
+ * Create copilot app via the manage API after the copilot project is pushed.
+ * Uses the API instead of direct DB calls. Idempotent — checks if app already exists.
+ */
+async function ensureCopilotApp(apiUrl) {
+  const appId = process.env.PUBLIC_INKEEP_COPILOT_APP_ID;
+  const privateKeyB64 = process.env.INKEEP_COPILOT_JWT_PRIVATE_KEY;
+  const kid = process.env.INKEEP_COPILOT_JWT_KID;
+  const bypassSecret = process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET;
+  const tenantId = process.env.TENANT_ID || 'default';
+  const projectId = 'copilot';
+
+  if (!appId || !privateKeyB64 || !kid || !bypassSecret) {
+    console.log(styleText('yellow', '⚠') + ' Skipping copilot app creation (missing env vars)');
+    return;
+  }
+
+  // Check if app already exists by listing apps for the copilot project
+  const headers = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${bypassSecret}`,
+  };
+
+  try {
+    const listRes = await fetch(`${apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/apps`, {
+      headers,
+    });
+
+    if (listRes.ok) {
+      const listData = await listRes.json();
+      const existing = listData?.data?.find((a) => a.id === appId);
+      if (existing) {
+        console.log(styleText('cyan', 'ℹ') + ` Copilot app already exists: ${appId}`);
+        return;
+      }
+    }
+  } catch {
+    // List failed — try creating anyway
+  }
+
+  // Derive public key from private key
+  const { createPrivateKey, createPublicKey } = await import('node:crypto');
+  const privPem = Buffer.from(privateKeyB64, 'base64').toString('utf-8');
+  const pubPem = createPublicKey(createPrivateKey(privPem)).export({
+    type: 'spki',
+    format: 'pem',
+  });
+
+  const body = {
+    name: 'Copilot',
+    description: 'Chat-to-edit copilot app for local development',
+    type: 'web_client',
+    defaultAgentId: 'chat-to-edit',
+    config: {
+      type: 'web_client',
+      webClient: {
+        allowedDomains: ['localhost', '127.0.0.1'],
+        publicKeys: [
+          {
+            kid,
+            publicKey: pubPem,
+            algorithm: 'RS256',
+            addedAt: new Date().toISOString(),
+          },
+        ],
+        allowAnonymous: false,
+      },
+    },
+  };
+
+  try {
+    const res = await fetch(`${apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/apps`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const createdId = data?.data?.app?.id;
+
+      if (createdId && createdId !== appId) {
+        // API auto-generated a different ID — update .env with the real ID
+        const envContent = readFileSync('.env', 'utf-8');
+        const updated = envContent.replace(
+          /PUBLIC_INKEEP_COPILOT_APP_ID=.*/,
+          `PUBLIC_INKEEP_COPILOT_APP_ID=${createdId}`
+        );
+        writeFileSync('.env', updated);
+        process.env.PUBLIC_INKEEP_COPILOT_APP_ID = createdId;
+        console.log(styleText('green', '✓') + ` Copilot app created: ${createdId} (updated .env)`);
+      } else {
+        console.log(styleText('green', '✓') + ` Copilot app created: ${createdId || appId}`);
+      }
+    } else {
+      const errText = await res.text().catch(() => '');
+      console.log(
+        styleText('yellow', '⚠') + ` Failed to create copilot app: ${res.status} ${errText}`
+      );
+    }
+  } catch (error) {
+    console.log(styleText('yellow', '⚠') + ` Failed to create copilot app: ${error.message}`);
+  }
+}
 
 const skipPush = process.argv.includes('--skip-push');
 const isolatedIdx = process.argv.indexOf('--isolated');
@@ -48,6 +210,8 @@ if (isolatedName) {
     console.error(`Error: ${scriptPath} not found`);
     process.exit(1);
   }
+
+  ensureCopilotKeys();
 
   console.log(styleText('bold', `\n=== Isolated Environment Setup: ${isolatedName} ===\n`));
 
@@ -131,16 +295,26 @@ if (isolatedName) {
   console.log(`  ./scripts/isolated-env.sh down ${isolatedName}\n`);
 } else {
   // Default mode: standard setup with docker-compose.dbs.yml
+  ensureCopilotKeys();
+
   await runSetup({
     dockerComposeFile: 'docker-compose.dbs.yml',
     manageMigrateCommand: 'pnpm db:manage:migrate',
     runMigrateCommand: 'pnpm db:run:migrate',
     authInitCommand: 'pnpm db:auth:init',
-    pushProject: {
-      projectPath: 'agents-cookbook/template-projects/activities-planner',
-      configPath: 'agents-cookbook/template-projects/inkeep.config.ts',
-      apiKey: process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET,
-    },
+    pushProject: [
+      {
+        projectPath: 'agents-cookbook/template-projects/activities-planner',
+        configPath: 'agents-cookbook/template-projects/inkeep.config.ts',
+        apiKey: process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET,
+      },
+      {
+        projectPath: 'agents-cookbook/template-projects/copilot',
+        configPath: 'agents-cookbook/template-projects/inkeep.config.ts',
+        apiKey: process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET,
+      },
+    ],
+    afterPush: ensureCopilotApp,
     devApiCommand: 'pnpm turbo dev --filter @inkeep/agents-api',
     apiHealthUrl: 'http://localhost:3002/health',
     isCloud: false,

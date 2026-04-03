@@ -1,7 +1,6 @@
 'use client';
 
 import { Plus, X } from 'lucide-react';
-import { useCallback, useMemo } from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { useFieldArray, useWatch } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -59,7 +58,7 @@ export function GenericKeyValueInput<
     | { key: string; value: string }[]
     | undefined;
 
-  const duplicateKeys = useMemo(() => {
+  const duplicateKeys = (() => {
     if (!watchedFields) return new Set<string>();
     const keys = watchedFields.map((f) => f.key?.trim()).filter(Boolean);
     const seen = new Set<string>();
@@ -71,30 +70,31 @@ export function GenericKeyValueInput<
       seen.add(key);
     }
     return duplicates;
-  }, [watchedFields]);
+  })();
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>, index: number, field: 'key' | 'value') => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        if (field === 'key') {
-          const valueInput = document.querySelector<HTMLInputElement>(
-            `[data-index="${index}"][data-field="value"]`
+  function handleKeyDown(
+    e: React.KeyboardEvent<HTMLInputElement>,
+    index: number,
+    field: 'key' | 'value'
+  ) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (field === 'key') {
+        const valueInput = document.querySelector<HTMLInputElement>(
+          `[data-index="${index}"][data-field="value"]`
+        );
+        valueInput?.focus();
+      } else {
+        append({ key: '', value: '' } as never);
+        setTimeout(() => {
+          const keyInput = document.querySelector<HTMLInputElement>(
+            `[data-index="${index + 1}"][data-field="key"]`
           );
-          valueInput?.focus();
-        } else {
-          append({ key: '', value: '' } as never);
-          setTimeout(() => {
-            const keyInput = document.querySelector<HTMLInputElement>(
-              `[data-index="${index + 1}"][data-field="key"]`
-            );
-            keyInput?.focus();
-          }, 0);
-        }
+          keyInput?.focus();
+        }, 0);
       }
-    },
-    [append]
-  );
+    }
+  }
 
   return (
     <div className="grid gap-2">

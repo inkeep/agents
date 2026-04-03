@@ -2,7 +2,7 @@
 
 import { Coins, ExternalLink, Hash, Layers, Zap } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AreaChartCard } from '@/components/traces/charts/area-chart-card';
 import { StatCard } from '@/components/traces/charts/stat-card';
 import { Badge } from '@/components/ui/badge';
@@ -55,62 +55,56 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
   const [events, setEvents] = useState<SigNozUsageEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const client = getSigNozStatsClient(tenantId);
-      const start = new Date(startTime).getTime();
-      const end = new Date(endTime).getTime();
+  useEffect(() => {
+    async function fetchData() {
+      setIsLoading(true);
+      try {
+        const client = getSigNozStatsClient(tenantId);
+        const start = new Date(startTime).getTime();
+        const end = new Date(endTime).getTime();
 
-      const [byModel, byAgent, byType, byProvider, eventsList] = await Promise.all([
-        client.getUsageCostSummary(start, end, 'model', projectId),
-        client.getUsageCostSummary(start, end, 'agent', projectId),
-        client.getUsageCostSummary(start, end, 'generation_type', projectId),
-        client.getUsageCostSummary(start, end, 'provider', projectId),
-        client.getUsageEventsList(start, end, projectId, undefined, 200),
-      ]);
+        const [byModel, byAgent, byType, byProvider, eventsList] = await Promise.all([
+          client.getUsageCostSummary(start, end, 'model', projectId),
+          client.getUsageCostSummary(start, end, 'agent', projectId),
+          client.getUsageCostSummary(start, end, 'generation_type', projectId),
+          client.getUsageCostSummary(start, end, 'provider', projectId),
+          client.getUsageEventsList(start, end, projectId, undefined, 200),
+        ]);
 
-      setSummaryByModel(byModel);
-      setSummaryByAgent(byAgent);
-      setSummaryByType(byType);
-      setSummaryByProvider(byProvider);
-      setEvents(eventsList);
-    } catch (error) {
-      console.error('Failed to fetch usage data:', error);
-    } finally {
+        setSummaryByModel(byModel);
+        setSummaryByAgent(byAgent);
+        setSummaryByType(byType);
+        setSummaryByProvider(byProvider);
+        setEvents(eventsList);
+      } catch (error) {
+        console.error('Failed to fetch usage data:', error);
+      }
       setIsLoading(false);
     }
+    fetchData();
   }, [tenantId, projectId, startTime, endTime]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const totals = summaryByModel.reduce(
+    (acc, row) => ({
+      totalTokens: acc.totalTokens + row.totalTokens,
+      totalInputTokens: acc.totalInputTokens + row.totalInputTokens,
+      totalOutputTokens: acc.totalOutputTokens + row.totalOutputTokens,
+      totalCost: acc.totalCost + row.totalEstimatedCostUsd,
+      totalEvents: acc.totalEvents + row.eventCount,
+    }),
+    { totalTokens: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCost: 0, totalEvents: 0 }
+  );
 
-  const totals = useMemo(() => {
-    return summaryByModel.reduce(
-      (acc, row) => ({
-        totalTokens: acc.totalTokens + row.totalTokens,
-        totalInputTokens: acc.totalInputTokens + row.totalInputTokens,
-        totalOutputTokens: acc.totalOutputTokens + row.totalOutputTokens,
-        totalCost: acc.totalCost + row.totalEstimatedCostUsd,
-        totalEvents: acc.totalEvents + row.eventCount,
-      }),
-      { totalTokens: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCost: 0, totalEvents: 0 }
-    );
-  }, [summaryByModel]);
-
-  const chartData = useMemo(() => {
-    const buckets = new Map<string, number>();
-    for (const event of events) {
-      if (!event.timestamp) continue;
-      const date = new Date(event.timestamp);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-      buckets.set(key, (buckets.get(key) ?? 0) + event.estimatedCostUsd);
-    }
-    return [...buckets.entries()]
-      .map(([date, cost]) => ({ date, cost }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-  }, [events]);
+  const buckets = new Map<string, number>();
+  for (const event of events) {
+    if (!event.timestamp) continue;
+    const date = new Date(event.timestamp);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    buckets.set(key, (buckets.get(key) ?? 0) + event.estimatedCostUsd);
+  }
+  const chartData = [...buckets.entries()]
+    .map(([date, cost]) => ({ date, cost }))
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   return (
     <>

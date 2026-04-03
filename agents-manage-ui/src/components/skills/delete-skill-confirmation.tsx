@@ -21,7 +21,6 @@ export const DeleteSkillConfirmation: FC<DeleteSkillConfirmationProps> = ({
   setIsOpen,
   redirectOnDelete = true,
 }) => {
-  'use memo';
   const router = useRouter();
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const [isSubmitting, startTransition] = useTransition();

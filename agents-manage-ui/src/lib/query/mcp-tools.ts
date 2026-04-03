@@ -2,7 +2,6 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
-import { useCallback } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { fetchMCPTools } from '@/lib/api/tools';
 import { mcpToolQueryKeys } from '@/lib/query/keys/mcp-tools';
@@ -15,7 +14,6 @@ export function useMcpToolsQuery({
   enabled?: boolean;
   skipDiscovery?: boolean;
 } = {}) {
-  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
   if (!tenantId || !projectId) {
@@ -40,25 +38,21 @@ export function useMcpToolsQuery({
  * Hook to invalidate MCP tool queries after mutations
  */
 export function useMcpToolInvalidation(tenantId: string, projectId: string) {
-  'use memo';
   const queryClient = useQueryClient();
 
-  return useCallback(
-    async (toolId?: string) => {
-      // Invalidate the list query
-      await queryClient.invalidateQueries({
-        queryKey: mcpToolQueryKeys.project(tenantId, projectId),
-      });
+  return async (toolId?: string) => {
+    // Invalidate the list query
+    await queryClient.invalidateQueries({
+      queryKey: mcpToolQueryKeys.project(tenantId, projectId),
+    });
 
-      // If a specific tool ID is provided, invalidate its status query too
-      if (toolId) {
-        await queryClient.invalidateQueries({
-          queryKey: mcpToolQueryKeys.status(tenantId, projectId, toolId),
-        });
-      }
-    },
-    [queryClient, tenantId, projectId]
-  );
+    // If a specific tool ID is provided, invalidate its status query too
+    if (toolId) {
+      await queryClient.invalidateQueries({
+        queryKey: mcpToolQueryKeys.status(tenantId, projectId, toolId),
+      });
+    }
+  };
 }
 
 /**

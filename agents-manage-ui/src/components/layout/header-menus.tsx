@@ -11,8 +11,6 @@ import { ThemeToggle } from '../theme-toggle';
 import { Skeleton } from '../ui/skeleton';
 
 export const HeaderMenus: FC = () => {
-  'use memo';
-
   const { user, isLoading } = useAuthSession();
   const { resolvedTheme } = useTheme();
   const isMounted = useIsMounted();

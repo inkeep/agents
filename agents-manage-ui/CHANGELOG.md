@@ -1,5 +1,35 @@
 # @inkeep/agents-manage-ui
 
+## 0.64.4
+
+### Patch Changes
+
+- 707333c: Enable React Compiler for all components, removing annotation mode and manual memoization
+  - @inkeep/agents-core@0.64.4
+
+## 0.64.3
+
+### Patch Changes
+
+- d10ccf6: Remove legacy auth headers from playground chat widget
+- 63b1062: Update the agents-ui package
+- 7aa1fac: Add copilot app credential auth with manage-UI-signed JWT
+- 4ace590: Remove axios dependency in favor of native fetch for improved security
+- ee1d23a: Tweak modal widths, remove edit skills button in agents view
+- Updated dependencies [7aa1fac]
+- Updated dependencies [4ace590]
+  - @inkeep/agents-core@0.64.3
+
+## 0.64.2
+
+### Patch Changes
+
+- f0081f7: fix loading `.svg` files as React components in tests
+- a41b6c7: Remove unused `ExpandablePromptEditor` component
+- 8c16740: Fix cost page loading state by using isFetching instead of isLoading to prevent premature redirects on initial load
+- Updated dependencies [f099221]
+  - @inkeep/agents-core@0.64.2
+
 ## 0.64.1
 
 ### Patch Changes

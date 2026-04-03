@@ -44,7 +44,7 @@ const NewAgentDialogContent = ({
   const [value, setValue] = useState('');
 
   return (
-    <DialogContent>
+    <DialogContent className="sm:max-w-xl">
       <DialogHeader>
         <DialogTitle>New Agent</DialogTitle>
         <DialogDescription>Create a blank agent or copy an existing one.</DialogDescription>
