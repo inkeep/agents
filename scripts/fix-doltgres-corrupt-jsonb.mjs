@@ -424,6 +424,8 @@ async function processTable(client, spec, branch) {
         counts.nulled++;
         if (DRY_RUN) {
           console.log(`   [WILL NULL] ${loc} (auto-recoverable)`);
+          const rawStr = typeof raw === 'string' ? raw : String(raw);
+          console.log(simpleDiff(rawStr, 'NULL'));
           continue;
         }
         const whereClauses = spec.pkColumns.map((pk, i) => `"${pk}" = $${i + 1}`).join(' AND ');
@@ -444,6 +446,8 @@ async function processTable(client, spec, branch) {
 
           if (DRY_RUN) {
             console.log(`   [WILL REPAIR] ${loc}`);
+            const rawStr = typeof raw === 'string' ? raw : String(raw);
+            console.log(simpleDiff(rawStr, encodedJson));
             continue;
           }
           const whereClauses = spec.pkColumns.map((pk, i) => `"${pk}" = $${i + 1}`).join(' AND ');
@@ -464,6 +468,52 @@ async function processTable(client, spec, branch) {
   }
 
   return counts;
+}
+
+/**
+ * Produce a unified-style diff between two strings.
+ * Shows only changed lines with surrounding context.
+ */
+function simpleDiff(before, after, contextLines = 2) {
+  // Make control chars visible for both sides
+  const visualize = (s) =>
+    s.replace(/\t/g, '\\t').replace(/\r/g, '\\r');
+
+  const aLines = visualize(before).split('\n');
+  const bLines = visualize(after).split('\n');
+  const lines = [];
+
+  // Find changed line indices
+  const maxLen = Math.max(aLines.length, bLines.length);
+  const changed = new Set();
+  for (let i = 0; i < maxLen; i++) {
+    if (aLines[i] !== bLines[i]) changed.add(i);
+  }
+  if (changed.size === 0) return '      (no visible difference)\n';
+
+  // Expand to include context
+  const show = new Set();
+  for (const i of changed) {
+    for (let c = Math.max(0, i - contextLines); c <= Math.min(maxLen - 1, i + contextLines); c++) {
+      show.add(c);
+    }
+  }
+
+  let lastShown = -2;
+  for (let i = 0; i < maxLen; i++) {
+    if (!show.has(i)) continue;
+    if (i > lastShown + 1) lines.push('      ...');
+    lastShown = i;
+
+    if (changed.has(i)) {
+      if (i < aLines.length) lines.push(`      - ${aLines[i]}`);
+      if (i < bLines.length) lines.push(`      + ${bLines[i]}`);
+    } else {
+      const line = i < aLines.length ? aLines[i] : bLines[i];
+      lines.push(`        ${line}`);
+    }
+  }
+  return lines.join('\n') + '\n';
 }
 
 function escapeSql(value) {
