@@ -304,7 +304,7 @@ async function main() {
                   chunks.push(`\n--- RAW CONTENT (with control chars shown as escapes) ---\n\n`);
                   // Show the raw content with control chars made visible
                   const visible = rawStr
-                    .replace(/\n/g, '\\n\n')  // show \n explicitly, then actual newline for readability
+                    .replace(/\n/g, '\\n\n') // show \n explicitly, then actual newline for readability
                     .replace(/\t/g, '\\t')
                     .replace(/\r/g, '\\r');
                   chunks.push(visible);
@@ -317,7 +317,9 @@ async function main() {
             }
           }
         } finally {
-          try { await client.query(`SELECT DOLT_CHECKOUT('main')`); } catch {}
+          try {
+            await client.query(`SELECT DOLT_CHECKOUT('main')`);
+          } catch {}
           client.release();
         }
       }
