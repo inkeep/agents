@@ -52,7 +52,7 @@ export function ConversationStatsCard({
     setLocalQuery(searchQuery);
   }, [searchQuery]);
 
-  const debouncedSearch = (query: string) => {
+  function debouncedSearch(query: string) {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(() => {
       try {
@@ -63,7 +63,7 @@ export function ConversationStatsCard({
         setSearchError('Search failed. Please try again.');
       }
     }, 300);
-  };
+  }
 
   React.useEffect(() => {
     return () => {
