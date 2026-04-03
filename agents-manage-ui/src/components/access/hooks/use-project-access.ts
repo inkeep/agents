@@ -5,7 +5,7 @@ import {
   OrgRoles,
   type ProjectRole,
 } from '@inkeep/agents-core/client-exports';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { useAuthClient } from '@/contexts/auth-client';
 import {
@@ -40,18 +40,14 @@ interface UseProjectAccessResult {
   error: string | null;
 
   // Mutations
-  addPrincipal: (principalId: string, principalType: PrincipalType, role: string) => Promise<void>;
-  removePrincipal: (
-    principalId: string,
-    principalType: PrincipalType,
-    role: string
-  ) => Promise<void>;
+  addPrincipal: (principalId: string, principalType: PrincipalType, role: string) => void;
+  removePrincipal: (principalId: string, principalType: PrincipalType, role: string) => void;
   changeRole: (
     principalId: string,
     principalType: PrincipalType,
     oldRole: string,
     newRole: string
-  ) => Promise<void>;
+  ) => void;
 
   // Refetch
   refetch: () => Promise<void>;
@@ -95,7 +91,7 @@ export function useProjectAccess({
   const [isLoadingOrg, setIsLoadingOrg] = useState(true);
 
   // Mutation state
-  const [isMutating, setIsMutating] = useState(false);
+  const [isMutating, startMutating] = useTransition();
 
   // Fetch project members from API
   const fetchProjectMembers = useCallback(async () => {
@@ -173,31 +169,34 @@ export function useProjectAccess({
   );
 
   // Mutations
-  const addPrincipal = async (principalId: string, principalType: PrincipalType, role: string) => {
+  const addPrincipal: UseProjectAccessResult['addPrincipal'] = (
+    principalId,
+    principalType,
+    role
+  ) => {
     if (principalType !== 'user') {
       throw new Error(`Adding ${principalType} to projects is not yet supported`);
     }
-
-    setIsMutating(true);
-    try {
-      await addProjectMember({
-        tenantId,
-        projectId,
-        userId: principalId,
-        role: role as ProjectRole,
-      });
-      toast.success('Member added successfully');
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to add member');
-      throw err;
-    }
-    setIsMutating(false);
+    startMutating(async () => {
+      try {
+        await addProjectMember({
+          tenantId,
+          projectId,
+          userId: principalId,
+          role: role as ProjectRole,
+        });
+        toast.success('Member added successfully');
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Failed to add member');
+        throw err;
+      }
+    });
   };
 
-  const removePrincipal = async (
-    principalId: string,
-    principalType: PrincipalType,
-    role: string
+  const removePrincipal: UseProjectAccessResult['removePrincipal'] = (
+    principalId,
+    principalType,
+    role
   ) => {
     if (principalType !== 'user') {
       throw new Error(`Removing ${principalType} from projects is not yet supported`);
@@ -207,29 +206,29 @@ export function useProjectAccess({
     const previousMembers = [...rawMembers];
     setRawMembers((prev) => prev.filter((m) => m.userId !== principalId));
 
-    setIsMutating(true);
-    try {
-      await removeProjectMember({
-        tenantId,
-        projectId,
-        userId: principalId,
-        role: role as ProjectRole,
-      });
-      toast.success('Member removed successfully');
-    } catch (err) {
-      // Revert optimistic update on error
-      setRawMembers(previousMembers);
-      toast.error(err instanceof Error ? err.message : 'Failed to remove member');
-      throw err;
-    }
-    setIsMutating(false);
+    startMutating(async () => {
+      try {
+        await removeProjectMember({
+          tenantId,
+          projectId,
+          userId: principalId,
+          role: role as ProjectRole,
+        });
+        toast.success('Member removed successfully');
+      } catch (err) {
+        // Revert optimistic update on error
+        setRawMembers(previousMembers);
+        toast.error(err instanceof Error ? err.message : 'Failed to remove member');
+        throw err;
+      }
+    });
   };
 
-  const changeRole = async (
-    principalId: string,
-    principalType: PrincipalType,
-    oldRole: string,
-    newRole: string
+  const changeRole: UseProjectAccessResult['changeRole'] = (
+    principalId,
+    principalType,
+    oldRole,
+    newRole
   ) => {
     if (oldRole === newRole) return;
 
@@ -243,23 +242,23 @@ export function useProjectAccess({
       prev.map((m) => (m.userId === principalId ? { ...m, role: newRole as ProjectRole } : m))
     );
 
-    setIsMutating(true);
-    try {
-      await updateProjectMember({
-        tenantId,
-        projectId,
-        userId: principalId,
-        role: newRole as ProjectRole,
-        previousRole: oldRole as ProjectRole,
-      });
-      toast.success('Role updated successfully');
-    } catch (err) {
-      // Revert optimistic update on error
-      setRawMembers(previousMembers);
-      toast.error(err instanceof Error ? err.message : 'Failed to update role');
-      throw err;
-    }
-    setIsMutating(false);
+    startMutating(async () => {
+      try {
+        await updateProjectMember({
+          tenantId,
+          projectId,
+          userId: principalId,
+          role: newRole as ProjectRole,
+          previousRole: oldRole as ProjectRole,
+        });
+        toast.success('Role updated successfully');
+      } catch (err) {
+        // Revert optimistic update on error
+        setRawMembers(previousMembers);
+        toast.error(err instanceof Error ? err.message : 'Failed to update role');
+        throw err;
+      }
+    });
   };
 
   return {
