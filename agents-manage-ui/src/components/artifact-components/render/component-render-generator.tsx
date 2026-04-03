@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { UseInYourAppModal } from '@/components/use-in-your-app-modal';
 import { DOCS_BASE_URL } from '@/constants/theme';
 import { updateArtifactComponent } from '@/lib/api/artifact-components';
+import { throwError } from '@/lib/utils';
 import { DynamicComponentRenderer } from '../../dynamic-component-renderer';
 
 interface ComponentPreviewGeneratorProps {
@@ -74,11 +75,11 @@ export function ComponentRenderGenerator({
       );
 
       if (!response.ok) {
-        throw new Error('Failed to generate render');
+        throwError('Failed to generate render');
       }
 
       if (!response.body) {
-        throw new Error('No response body');
+        throwError('No response body');
       }
 
       const reader = response.body.getReader();
@@ -117,7 +118,7 @@ export function ComponentRenderGenerator({
         onRenderChanged?.(lastValidObject);
         toast.success('Render generated successfully');
       } else {
-        throw new Error('No valid render generated');
+        throwError('No valid render generated');
       }
     } catch (error) {
       console.error('Failed to generate render:', error);
