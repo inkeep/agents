@@ -32,6 +32,7 @@ export type CallLlmStepParams = {
   streamNamespace?: string;
   taskId: string;
   isPostApproval?: boolean;
+  denialRedirects?: DenialRedirect[];
 };
 
 export type DelegatedApprovalContext = {
@@ -65,7 +66,11 @@ export type ExecuteToolStepParams = {
   delegatedApprovalDecision?: { approved: boolean; reason?: string };
 };
 
-export type ExecuteToolResult = { type: 'completed' } | { type: 'needs_approval' };
+export type DenialRedirect = { toolName: string; toolCallId: string; reason: string };
+
+export type ExecuteToolResult =
+  | { type: 'completed'; denial?: DenialRedirect }
+  | { type: 'needs_approval' };
 
 async function buildAgentForStep(params: {
   tenantId: string;
@@ -420,6 +425,7 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
     streamNamespace,
     taskId,
     isPostApproval,
+    denialRedirects,
   } = params;
   const {
     tenantId,
@@ -435,7 +441,15 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
   } = payload;
 
   logger.info(
-    { currentSubAgentId, isFirstMessage, workflowRunId, streamNamespace, taskId, isPostApproval },
+    {
+      currentSubAgentId,
+      isFirstMessage,
+      workflowRunId,
+      streamNamespace,
+      taskId,
+      isPostApproval,
+      denialRedirectCount: denialRedirects?.length,
+    },
     'callLlmStep starting'
   );
 
@@ -496,6 +510,10 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
   agent.setConversationId(conversationId);
   agent.setDurableWorkflowRunId(workflowRunId);
 
+  if (denialRedirects && denialRedirects.length > 0) {
+    agent.runContext.taskDenialRedirects.push(...denialRedirects);
+  }
+
   registerStreamHelper(requestId, sseHelper);
   agentSessionManager.createSession(requestId, executionContext, conversationId);
   if (emitOperations) {
@@ -522,13 +540,22 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
         await sseHelper.writeOperation(agentInitializingOp(requestId, agentId));
       }
 
-      const userParts: Part[] = isPostApproval
-        ? [
-            {
-              kind: 'text',
-              text: 'Continue the conversation. The tool results above contain the information needed to respond to the user.',
-            },
-          ]
+      let postApprovalText: string | undefined;
+      if (isPostApproval) {
+        if (denialRedirects && denialRedirects.length > 0) {
+          const sanitize = (s: string) => s.replace(/\n/g, ' ').slice(0, 200);
+          const redirectSummary = denialRedirects
+            .map((d) => `- ${d.toolName}: ${sanitize(d.reason)}`)
+            .join('\n');
+          postApprovalText = `The user denied one or more tool calls. Here is what was denied and why:\n${redirectSummary}\nThe tool results above reflect the denial. Respond to the user acknowledging their redirect.`;
+        } else {
+          postApprovalText =
+            'Continue the conversation. The tool results above contain the information needed to respond to the user.';
+        }
+      }
+
+      const userParts: Part[] = postApprovalText
+        ? [{ kind: 'text', text: postApprovalText }]
         : isFirstMessage && messageParts && messageParts.length > 0
           ? messageParts
           : [{ kind: 'text', text: userMessage }];
@@ -1007,8 +1034,11 @@ export async function executeToolStep(params: ExecuteToolStepParams): Promise<Ex
             return { type: 'needs_approval' as const };
           }
 
-          logger.info({ toolName, toolCallId }, 'executeToolStep: tool executed successfully');
-          return { type: 'completed' as const };
+          const denials = agent.getTaskDenialRedirects();
+          const denial = denials.length > 0 ? denials[denials.length - 1] : undefined;
+
+          logger.info({ toolName, toolCallId, denied: !!denial }, 'executeToolStep: tool executed');
+          return { type: 'completed' as const, denial };
         } finally {
           span.end();
         }
