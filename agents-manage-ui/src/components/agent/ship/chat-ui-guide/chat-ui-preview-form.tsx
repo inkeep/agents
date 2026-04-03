@@ -3,7 +3,7 @@ import { Controller, type UseFormReturn } from 'react-hook-form';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericSelect } from '@/components/form/generic-select';
 import { ColorPickerInput } from '@/components/ui/color-picker';
-import { Form, FormItem } from '@/components/ui/form';
+import { Form, FormField, FormItem } from '@/components/ui/form';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -31,14 +31,20 @@ export const ChatUIPreviewForm = ({ form }: ChatUIPreviewFormProps) => {
           }))}
           selectTriggerClassName="w-full"
         />
-        <FormItem className="relative">
-          <Label>Primary brand color</Label>
-          <ColorPickerInput
-            color={form.watch('baseSettings.primaryBrandColor')}
-            setColor={(color) => form.setValue('baseSettings.primaryBrandColor', color)}
-            placeholder="#000000"
-          />
-        </FormItem>
+        <FormField
+          control={form.control}
+          name="baseSettings.primaryBrandColor"
+          render={({ field }) => (
+            <FormItem className="relative">
+              <Label>Primary brand color</Label>
+              <ColorPickerInput
+                color={field.value}
+                setColor={field.onChange}
+                placeholder="#000000"
+              />
+            </FormItem>
+          )}
+        />
         <GenericInput
           control={form.control}
           name="aiChatSettings.aiAssistantAvatar"

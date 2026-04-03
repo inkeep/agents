@@ -62,7 +62,6 @@ export function EvaluationJobFormDialog({
   }, [isOpen, form]);
 
   const { isSubmitting } = form.formState;
-  const jobFilters = form.watch('jobFilters');
 
   const evaluatorLookup = useMemo(() => createLookup(evaluators), [evaluators]);
 
@@ -79,28 +78,19 @@ export function EvaluationJobFormDialog({
     if (start && end) {
       const startDate = new Date(start);
       const endDate = new Date(end);
-      form.setValue('jobFilters', {
-        ...jobFilters,
-        dateRange: {
-          startDate: startDate.toISOString().split('T')[0],
-          endDate: endDate.toISOString().split('T')[0],
-        },
+      form.setValue('jobFilters.dateRange', {
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
       });
     } else {
-      form.setValue('jobFilters', {
-        ...jobFilters,
-        dateRange: undefined,
-      });
+      form.unregister('jobFilters.dateRange');
     }
   };
 
   const handleRemoveDateRange = () => {
     setCustomStartDate('');
     setCustomEndDate('');
-    form.setValue('jobFilters', {
-      ...jobFilters,
-      dateRange: undefined,
-    });
+    form.unregister('jobFilters.dateRange');
   };
 
   const onSubmit = async (data: EvaluationJobConfigFormData) => {

@@ -73,6 +73,8 @@ function panelTitle(selected: SelectedPanel) {
       return 'Max steps reached';
     case 'stream_lifetime_exceeded':
       return 'Stream lifetime exceeded';
+    case 'durable_tool_execution':
+      return 'Durable tool execution';
     default:
       return 'Details';
   }
@@ -252,20 +254,17 @@ export function TimelineWrapper({
     if (!conversation || !tenantId || !projectId || tokenEstimates.summarized !== null) return;
 
     setIsCalculatingTokens(true);
-    try {
-      // Build actual traces (same as what gets copied)
-      const [summarizedTrace, fullTrace] = await Promise.all([
-        buildSummarizedTrace(conversation, tenantId, projectId),
-        buildFullTrace(conversation, tenantId, projectId),
-      ]);
+    // Build actual traces (same as what gets copied)
+    const [summarizedTrace, fullTrace] = await Promise.all([
+      buildSummarizedTrace(conversation, tenantId, projectId),
+      buildFullTrace(conversation, tenantId, projectId),
+    ]);
 
-      setTokenEstimates({
-        summarized: Math.ceil(JSON.stringify(summarizedTrace).length / 4),
-        full: Math.ceil(JSON.stringify(fullTrace).length / 4),
-      });
-    } finally {
-      setIsCalculatingTokens(false);
-    }
+    setTokenEstimates({
+      summarized: Math.ceil(JSON.stringify(summarizedTrace).length / 4),
+      full: Math.ceil(JSON.stringify(fullTrace).length / 4),
+    });
+    setIsCalculatingTokens(false);
   }, [conversation, tenantId, projectId, tokenEstimates.summarized]);
 
   // Memoize sorted activities to prevent re-sorting on every render

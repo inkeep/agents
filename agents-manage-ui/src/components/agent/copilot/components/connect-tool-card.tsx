@@ -10,7 +10,7 @@ import type { MCPTool } from '@/lib/types/tools';
 /**
  * Parameters for initiating OAuth login for an MCP tool
  */
-export interface OAuthLoginParams {
+interface OAuthLoginParams {
   toolId: string;
   mcpServerUrl: string;
   toolName: string;
@@ -21,7 +21,7 @@ export interface OAuthLoginParams {
 /**
  * Handler function for OAuth login
  */
-export type OAuthLoginHandler = (params: OAuthLoginParams) => Promise<void>;
+export type OAuthLoginHandler = (params: OAuthLoginParams) => void;
 
 interface ConnectToolCardProps {
   toolId: string;

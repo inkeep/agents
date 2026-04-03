@@ -1,5 +1,21 @@
 # @inkeep/agents-api
 
+## 0.64.3
+
+### Patch Changes
+
+- d85f7ca: Fix CI triggers on changeset PR by disabling checkout credential persistence
+- f0d61ab: Fix changeset bot CI trigger by passing App token as github-token input to changesets/action
+- 7aa1fac: Remove tryTempJwtAuth auth strategy and copilot tenant bypass in favor of app credential auth
+- 4ace590: Remove axios dependency in favor of native fetch for improved security
+- f5460ba: Baggage added for traces with durable execution
+- Updated dependencies [7aa1fac]
+- Updated dependencies [4ace590]
+  - @inkeep/agents-core@0.64.3
+  - @inkeep/agents-work-apps@0.64.3
+  - @inkeep/agents-email@0.64.3
+  - @inkeep/agents-mcp@0.64.3
+
 ## 0.64.2
 
 ### Patch Changes

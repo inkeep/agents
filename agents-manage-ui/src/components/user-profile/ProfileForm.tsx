@@ -38,9 +38,8 @@ export function ProfileForm({ userId, initialTimezone }: ProfileFormProps) {
       toast.success('Timezone saved');
     } catch {
       toast.error('Failed to save timezone. Please try again.');
-    } finally {
-      setIsSaving(false);
     }
+    setIsSaving(false);
   };
 
   return (

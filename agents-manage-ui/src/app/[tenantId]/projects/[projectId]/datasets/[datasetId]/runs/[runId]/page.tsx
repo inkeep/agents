@@ -80,10 +80,9 @@ export default function Page({
       } catch (err) {
         console.error('Error loading dataset run:', err);
         setError(err instanceof Error ? err.message : 'Failed to load run');
-      } finally {
-        if (showLoading) {
-          setLoading(false);
-        }
+      }
+      if (showLoading) {
+        setLoading(false);
       }
     },
     [tenantId, projectId, runId]

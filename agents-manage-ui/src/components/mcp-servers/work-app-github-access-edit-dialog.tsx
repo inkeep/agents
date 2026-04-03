@@ -99,9 +99,8 @@ export function GitHubAccessEditDialog({
     } catch (error) {
       console.error('Failed to load GitHub data:', error);
       toast.error('Failed to load GitHub access configuration');
-    } finally {
-      setIsLoading(false);
     }
+    setIsLoading(false);
   }, [tenantId, projectId, tool.id]);
 
   useEffect(() => {
@@ -129,9 +128,8 @@ export function GitHubAccessEditDialog({
       toast.success('Repositories synced');
     } catch {
       toast.error('Failed to sync repositories');
-    } finally {
-      setSyncing(null);
     }
+    setSyncing(null);
   };
 
   const handleRepoToggle = (repoId: string) => {
@@ -202,9 +200,8 @@ export function GitHubAccessEditDialog({
     } catch (error) {
       console.error('Failed to update GitHub access:', error);
       toast.error('Failed to update GitHub access. Please try again.');
-    } finally {
-      setIsSaving(false);
     }
+    setIsSaving(false);
   };
 
   const filteredInstallations = getFilteredInstallationsWithRepos();

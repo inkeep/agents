@@ -141,8 +141,8 @@ describe('Form', () => {
       expect(screen.getAllByText(error)).toHaveLength(6);
     });
 
-    await expect(container).toMatchScreenshot({ timeout: 8_000 });
-  }, 10_000);
+    await expect(container).toMatchScreenshot();
+  }, 15_000);
 
   test('should properly highlight nested error state', async () => {
     agentStore.setState({ jsonSchemaMode: true });

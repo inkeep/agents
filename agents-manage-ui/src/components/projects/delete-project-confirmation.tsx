@@ -35,17 +35,14 @@ export function DeleteProjectConfirmation({
 
   const handleDelete = async () => {
     setIsSubmitting(true);
-    try {
-      const result = await deleteProjectAction(tenantId, projectId);
-      if (result.success) {
-        setIsOpen(false);
-        toast.success('Project deleted.');
-      } else {
-        toast.error(result.error || 'Failed to delete project.');
-      }
-    } finally {
-      setIsSubmitting(false);
+    const result = await deleteProjectAction(tenantId, projectId);
+    if (result.success) {
+      setIsOpen(false);
+      toast.success('Project deleted.');
+    } else {
+      toast.error(result.error || 'Failed to delete project.');
     }
+    setIsSubmitting(false);
   };
 
   const itemName = projectName || 'this project';

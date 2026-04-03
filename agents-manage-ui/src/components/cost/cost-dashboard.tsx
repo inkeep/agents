@@ -77,9 +77,8 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
       setEvents(eventsList);
     } catch (error) {
       console.error('Failed to fetch usage data:', error);
-    } finally {
-      setIsLoading(false);
     }
+    setIsLoading(false);
   }, [tenantId, projectId, startTime, endTime]);
 
   useEffect(() => {
