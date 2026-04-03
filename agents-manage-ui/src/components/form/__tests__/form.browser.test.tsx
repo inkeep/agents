@@ -126,8 +126,7 @@ const NestedTestForm: FC = () => {
   );
 };
 
-// TODO: Re-enable when browser test stability in CI is resolved
-describe.skip('Form', () => {
+describe('Form', () => {
   afterEach(async () => {
     await act(() => {
       agentStore.setState({ jsonSchemaMode: false });
@@ -142,8 +141,8 @@ describe.skip('Form', () => {
       expect(screen.getAllByText(error)).toHaveLength(6);
     });
 
-    await expect(container).toMatchScreenshot({ timeout: 15_000 });
-  }, 30_000);
+    await expect(container).toMatchScreenshot();
+  }, 15_000);
 
   test('should properly highlight nested error state', async () => {
     agentStore.setState({ jsonSchemaMode: true });
