@@ -108,7 +108,8 @@ export async function getCopilotTokenAction(): Promise<ActionResult<CopilotToken
         cookieHeader: cookieHeader || undefined,
       },
     };
-  } catch {
+  } catch (error) {
+    console.error('Failed to generate copilot token:', error);
     return {
       success: false,
       error: 'Failed to generate copilot token',
