@@ -81,18 +81,7 @@ export const errorResponseSchema = z
 
 export type ErrorResponse = z.infer<typeof errorResponseSchema>;
 
-function sanitizeErrorMessage(message: string): string {
-  return message
-    .replace(
-      /(?:postgresql|postgres|mysql|mongodb(?:\+srv)?|redis|rediss|amqp):\/\/[^\s,)]+/gi,
-      '[REDACTED_CONNECTION]'
-    )
-    .replace(/https?:\/\/[^:@\s]+:[^@\s]+@[^\s]+/gi, '[REDACTED_URL]')
-    .replace(/\[[:0-9a-fA-F]+\](:\d+)?/g, '[REDACTED_HOST]')
-    .replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?\b/g, '[REDACTED_HOST]')
-    .replace(/\/(?:var|tmp|home|usr|etc|opt|app|srv)\/\S+/g, '[REDACTED_PATH]')
-    .replace(/\b(password|token|key|secret|auth|credential)\b/gi, '[REDACTED]');
-}
+const STATIC_500_MESSAGE = 'An internal server error occurred. Please try again later.';
 
 export function createApiError({
   code,
@@ -111,19 +100,19 @@ export function createApiError({
   const title = getTitleFromCode(code);
   const _type = `${ERROR_DOCS_BASE_URL}#${code}`;
 
-  const sanitizedMessage = status >= 500 ? sanitizeErrorMessage(message) : message;
+  const externalMessage = status >= 500 ? STATIC_500_MESSAGE : message;
 
   const problemDetails: ProblemDetails = {
     title,
     status,
-    detail: sanitizedMessage,
+    detail: externalMessage,
     code,
     ...(instance && { instance }),
     ...(requestId && { requestId }),
   };
 
   const errorMessage =
-    sanitizedMessage.length > 100 ? `${sanitizedMessage.substring(0, 97)}...` : sanitizedMessage;
+    externalMessage.length > 100 ? `${externalMessage.substring(0, 97)}...` : externalMessage;
 
   const responseBody = {
     ...problemDetails,
@@ -142,7 +131,7 @@ export function createApiError({
 
   // @ts-expect-error - The HTTPException constructor expects a ContentfulStatusCode, but we're using a number
   // This is safe because we're only using valid HTTP status codes
-  return new HTTPException(status, { message: sanitizedMessage, res });
+  return new HTTPException(status, { message, res });
 }
 
 export async function handleApiError(
@@ -184,6 +173,8 @@ export async function handleApiError(
         },
         'API server error occurred'
       );
+      responseJson.detail = STATIC_500_MESSAGE;
+      responseJson.error.message = STATIC_500_MESSAGE;
     } else {
       getLogger('core').info(
         {
@@ -214,19 +205,15 @@ export async function handleApiError(
     'Unhandled API error occurred'
   );
 
-  const sanitizedErrorMessage =
-    error instanceof Error ? sanitizeErrorMessage(error.message) : 'Unknown error';
-
   const problemDetails: ProblemDetails & { error: { code: ErrorCodes; message: string } } = {
-    // type: `${ERROR_DOCS_BASE_URL}#internal_server_error`,
     title: 'Internal Server Error',
     status: 500,
-    detail: `Server error occurred: ${sanitizedErrorMessage}`,
+    detail: STATIC_500_MESSAGE,
     code: 'internal_server_error',
     ...(requestId && { requestId }),
     error: {
       code: 'internal_server_error',
-      message: 'An internal server error occurred. Please try again later.',
+      message: STATIC_500_MESSAGE,
     },
   };
 

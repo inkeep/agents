@@ -2,4 +2,4 @@
 "@inkeep/agents-core": patch
 ---
 
-Fix error message sanitization bypass in createApiError for 500-level errors
+Return static error message for all 500-level API responses to prevent information leakage
