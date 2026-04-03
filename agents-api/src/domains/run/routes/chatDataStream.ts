@@ -39,6 +39,7 @@ import { pendingToolApprovalManager } from '../session/PendingToolApprovalManage
 import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
 import { createBufferingStreamHelper, createVercelStreamHelper } from '../stream/stream-helpers';
 import { VercelMessageSchema } from '../types/chat';
+import { getUserIdFromContext } from '../types/executionContext';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromVercelContent } from '../utils/message-parts';
 import { agentExecutionWorkflow, toolApprovalHook } from '../workflow/functions/agentExecution';
@@ -425,6 +426,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
 
       if (effectiveExecutionMode === 'durable') {
         const requestId = `chatds-${Date.now()}`;
+        const userId = getUserIdFromContext(executionContext);
         const run = await start(agentExecutionWorkflow, [
           {
             tenantId,
@@ -438,6 +440,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
             forwardedHeaders:
               Object.keys(forwardedHeaders).length > 0 ? forwardedHeaders : undefined,
             outputFormat: 'vercel',
+            userId,
           },
         ]);
         logger.info(

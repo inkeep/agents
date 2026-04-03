@@ -20,6 +20,8 @@ export type AgentExecutionStepPayload = {
   forwardedHeaders?: Record<string, string>;
   outputFormat?: 'sse' | 'vercel';
   emitOperations?: boolean;
+  /** User ID for user-scoped credential lookups (from authenticated user session) */
+  userId?: string;
 };
 
 export type CallLlmStepParams = {
@@ -61,20 +63,28 @@ async function buildAgentForStep(params: {
   currentSubAgentId: string;
   resolvedRef: ResolvedRef;
   forwardedHeaders?: Record<string, string>;
+  userId?: string;
 }): Promise<{
   agent: InstanceType<typeof import('../../agents/Agent').Agent>;
   executionContext: FullExecutionContext;
   defaultSubAgentId: string;
 }> {
-  const { tenantId, projectId, agentId, currentSubAgentId, resolvedRef, forwardedHeaders } = params;
+  const { tenantId, projectId, agentId, currentSubAgentId, resolvedRef, forwardedHeaders, userId } =
+    params;
 
-  const { getFullProjectWithRelationIds, getMcpToolById, withRef } = await import(
-    '@inkeep/agents-core'
-  );
+  const {
+    getFullProjectWithRelationIds,
+    getMcpToolById,
+    withRef,
+    CredentialStoreRegistry,
+    createDefaultCredentialStores,
+  } = await import('@inkeep/agents-core');
   const { default: manageDbPool } = await import('../../../../data/db/manageDbPool');
   const { Agent } = await import('../../agents/Agent');
   const { createTaskHandlerConfig } = await import('../../agents/generateTaskHandler');
   const { buildTransferRelationConfig } = await import('../../agents/relationTools');
+
+  const credentialStoreRegistry = new CredentialStoreRegistry(createDefaultCredentialStores());
   const {
     enhanceInternalRelation,
     enhanceTeamRelation,
@@ -157,8 +167,8 @@ async function buildAgentForStep(params: {
           const mcpTool = await getMcpToolById(db)({
             scopes: { tenantId, projectId },
             toolId: item.tool.id,
-            credentialStoreRegistry: undefined,
-            userId: undefined,
+            credentialStoreRegistry,
+            userId,
           });
           if (!mcpTool) throw new Error(`Tool not found: ${item.tool.id}`);
           if (item.relationshipId) mcpTool.relationshipId = item.relationshipId;
@@ -188,7 +198,7 @@ async function buildAgentForStep(params: {
       agentName: agentEntry.name,
       baseUrl: executionContext.baseUrl,
       apiKey: executionContext.apiKey,
-      userId: undefined,
+      userId,
       name: currentSubAgent.name,
       description: currentSubAgent.description || '',
       prompt,
@@ -221,7 +231,7 @@ async function buildAgentForStep(params: {
                 baseUrl: executionContext.baseUrl,
                 apiKey: executionContext.apiKey,
               },
-              undefined
+              credentialStoreRegistry
             )
           )
       ),
@@ -284,7 +294,7 @@ async function buildAgentForStep(params: {
       forwardedHeaders,
     },
     executionContext,
-    undefined
+    credentialStoreRegistry
   );
 
   return { agent, executionContext, defaultSubAgentId };
@@ -432,6 +442,7 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
     currentSubAgentId,
     resolvedRef: payload.resolvedRef,
     forwardedHeaders,
+    userId: payload.userId,
   });
 
   const timestamp = Math.floor(Date.now() / 1000);
@@ -788,6 +799,7 @@ export async function executeToolStep(params: ExecuteToolStepParams): Promise<Ex
     currentSubAgentId,
     resolvedRef: payload.resolvedRef,
     forwardedHeaders,
+    userId: payload.userId,
   });
 
   const timestamp = Math.floor(Date.now() / 1000);

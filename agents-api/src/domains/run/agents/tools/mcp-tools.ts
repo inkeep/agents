@@ -6,6 +6,7 @@ import { agentSessionManager } from '../../session/AgentSession';
 import type { AgentRunContext } from '../agent-types';
 import { isValidTool } from '../agent-types';
 import { enhanceToolResultWithStructureHints } from '../generation/tool-result';
+import type { McpToolSet } from '../services/AgentMcpManager';
 import { toolSessionManager } from '../services/ToolSessionManager';
 import { parseAndCheckApproval } from './tool-approval';
 import { getRelationshipIdForTool } from './tool-utils';
@@ -23,9 +24,28 @@ export async function getMcpTools(
       return tool.config?.type === 'mcp';
     }) || [];
   const { mcpManager } = ctx;
-  const toolSets = mcpManager
-    ? (await Promise.all(mcpTools.map((tool) => mcpManager.getToolSet(tool)))) || []
-    : [];
+  const toolSets: McpToolSet[] = [];
+  if (mcpManager) {
+    const results = await Promise.allSettled(mcpTools.map((tool) => mcpManager.getToolSet(tool)));
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      if (result.status === 'fulfilled') {
+        toolSets.push(result.value);
+      } else {
+        logger.warn(
+          {
+            toolName: mcpTools[i].name,
+            toolId: mcpTools[i].id,
+            tenantId: ctx.config.tenantId,
+            projectId: ctx.config.projectId,
+            agentId: ctx.config.agentId,
+            error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+          },
+          'MCP tool failed to load — skipping this tool and continuing with others'
+        );
+      }
+    }
+  }
 
   if (!sessionId) {
     const wrappedTools: ToolSet = {};
