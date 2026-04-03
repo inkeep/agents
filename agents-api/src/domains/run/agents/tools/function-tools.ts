@@ -24,6 +24,7 @@ export async function getFunctionTools(
   const functionTools: ToolSet = {};
   const project = ctx.executionContext.project;
   try {
+    const withRefStart = Date.now();
     const functionToolsForAgent = await withRef(
       manageDbPool,
       ctx.executionContext.resolvedRef,
@@ -38,6 +39,13 @@ export async function getFunctionTools(
         });
       }
     );
+    const withRefMs = Date.now() - withRefStart;
+    if (withRefMs > 5_000) {
+      logger.info(
+        { ref: ctx.executionContext.resolvedRef.name, withRefMs, subAgentId: ctx.config.id },
+        'Slow withRef in getFunctionTools'
+      );
+    }
 
     const functionToolsData = functionToolsForAgent.data ?? [];
 
