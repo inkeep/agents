@@ -30,12 +30,8 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
   const chatFunctionsRef = useRef<AIChatFunctions | null>(null);
   const [dynamicHeaders, setDynamicHeaders] = useState<CopilotContextHeaders>({});
 
-  const {
-    PUBLIC_INKEEP_COPILOT_AGENT_ID: copilotAgentId,
-    PUBLIC_INKEEP_COPILOT_PROJECT_ID: copilotProjectId,
-    PUBLIC_INKEEP_COPILOT_TENANT_ID: copilotTenantId,
-  } = useRuntimeConfig();
-  const isCopilotConfigured = !!(copilotAgentId && copilotProjectId && copilotTenantId);
+  const { PUBLIC_INKEEP_COPILOT_APP_ID: copilotAppId } = useRuntimeConfig();
+  const isCopilotConfigured = !!copilotAppId;
 
   if (!isCopilotConfigured) {
     console.warn('Copilot is not configured.');

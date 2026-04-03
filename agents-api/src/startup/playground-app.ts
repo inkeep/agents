@@ -1,4 +1,4 @@
-import { derivePlaygroundKid, getAppById, updateApp } from '@inkeep/agents-core';
+import { deriveKidFromPublicKey, getAppById, updateApp } from '@inkeep/agents-core';
 import runDbClient from '../data/db/runDbClient';
 import { env } from '../env';
 import { getLogger } from '../logger';
@@ -91,7 +91,7 @@ export async function ensurePlaygroundAppConfig(): Promise<void> {
   const publicKeyB64 = env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY;
   if (publicKeyB64) {
     const publicKeyPem = Buffer.from(publicKeyB64, 'base64').toString('utf-8');
-    const kid = await derivePlaygroundKid(publicKeyPem);
+    const kid = await deriveKidFromPublicKey(publicKeyPem);
     const existingKeys = (webClient.publicKeys ?? []) as Array<{
       kid: string;
       publicKey: string;

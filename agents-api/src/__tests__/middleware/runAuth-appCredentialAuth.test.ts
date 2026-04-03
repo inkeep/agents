@@ -53,10 +53,6 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   };
 });
 
-vi.mock('../../utils/copilot.js', () => ({
-  isCopilotAgent: vi.fn().mockReturnValue(false),
-}));
-
 import { runApiKeyAuth } from '../../middleware/runAuth';
 
 function createTestApp() {
