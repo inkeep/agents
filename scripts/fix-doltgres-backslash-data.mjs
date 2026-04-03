@@ -290,7 +290,10 @@ async function main() {
     connectionString,
     max: 2,
     connectionTimeoutMillis: 10_000,
+    idleTimeoutMillis: 5_000,
   });
+
+  pool.on('error', () => {});
 
   try {
     // List all branches

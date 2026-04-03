@@ -217,7 +217,15 @@ async function main() {
   if (targetBranch) console.log(`Target branch: ${targetBranch}`);
   console.log(`Database: ${connectionString.replace(/:[^:@]+@/, ':***@')}\n`);
 
-  const pool = new Pool({ connectionString, max: 2, connectionTimeoutMillis: 10_000 });
+  const pool = new Pool({
+    connectionString,
+    max: 2,
+    connectionTimeoutMillis: 10_000,
+    idleTimeoutMillis: 5_000,
+  });
+
+  // Prevent unhandled pool errors from crashing the process during cleanup
+  pool.on('error', () => {});
 
   try {
     const branchClient = await pool.connect();
