@@ -129,6 +129,9 @@
     ]
   },
   "pnpm": {
+    "ignoredOptionalDependencies": [
+      "@napi-rs/keyring"
+    ],
     "overrides": {
       "@hono/node-server": ">=1.19.10",
       "@modelcontextprotocol/sdk": ">=1.26.0",

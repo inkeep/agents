@@ -15,8 +15,7 @@
     "allowSyntheticDefaultImports": true,
     "paths": {
       "@inkeep/agents-core": ["./src/index.ts"],
-      "@inkeep/agents-core/*": ["./src/*"],
-      "@napi-rs/keyring": ["./src/types/@napi-rs__keyring/index.d.ts"]
+      "@inkeep/agents-core/*": ["./src/*"]
     },
     "types": ["vitest/globals"]
   },
