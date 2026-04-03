@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { MCPTransportType } from '@inkeep/agents-core/client-exports';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
@@ -69,7 +69,7 @@ export function MCPServerForm({
 }: MCPServerFormProps) {
   const router = useRouter();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleting, startDeleting] = useTransition();
 
   const form = useForm({
     resolver: zodResolver(mcpToolSchema),
@@ -238,20 +238,20 @@ export function MCPServerForm({
     }
   };
 
-  async function handleDelete() {
+  function handleDelete() {
     if (!tool) return;
 
-    setIsDeleting(true);
-    // Don't revalidate to avoid Next.js trying to refetch the deleted resource on current page
-    const result = await deleteToolAction(tenantId, projectId, tool.id, false);
-    if (result.success) {
-      setIsDeleteOpen(false);
-      toast.success('MCP server deleted.');
-      router.push(`/${tenantId}/projects/${projectId}/mcp-servers`);
-    } else {
-      toast.error(result.error || 'Failed to delete MCP server.');
-    }
-    setIsDeleting(false);
+    startDeleting(async () => {
+      // Don't revalidate to avoid Next.js trying to refetch the deleted resource on current page
+      const result = await deleteToolAction(tenantId, projectId, tool.id, false);
+      if (result.success) {
+        setIsDeleteOpen(false);
+        toast.success('MCP server deleted.');
+        router.push(`/${tenantId}/projects/${projectId}/mcp-servers`);
+      } else {
+        toast.error(result.error || 'Failed to delete MCP server.');
+      }
+    });
   }
 
   return (

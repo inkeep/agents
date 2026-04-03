@@ -51,7 +51,7 @@ const DEFAULT_AGGREGATE_STATS: AggregateStats = {
 };
 
 export function useConversationStats(
-  options?: UseConversationStatsOptions
+  options: UseConversationStatsOptions
 ): UseConversationStatsResult {
   const [stats, setStats] = useState<ConversationStats[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,28 +63,28 @@ export function useConversationStats(
   const [aggregateStats, setAggregateStats] = useState<AggregateStats>(DEFAULT_AGGREGATE_STATS);
 
   // Extract stable values to avoid object recreation issues
-  const pageSize = options?.pagination?.pageSize || 50;
+  const pageSize = options.pagination?.pageSize || 50;
 
   async function fetchData(page: number) {
     try {
       setLoading(true);
       setError(null);
 
-      const client = getSigNozStatsClient(options?.tenantId);
+      const client = getSigNozStatsClient(options.tenantId);
       // Use provided time range or default to all time (2020)
       // Clamp endTime to now-1ms to satisfy backend validation (end cannot be in the future)
-      const currentEndTime = Math.min(options?.endTime || Date.now() - 1);
-      const currentStartTime = options?.startTime || new Date('2020-01-01T00:00:00Z').getTime();
+      const currentEndTime = Math.min(options.endTime || Date.now() - 1);
+      const currentStartTime = options.startTime || new Date('2020-01-01T00:00:00Z').getTime();
 
       const result = await client.getConversationStats(
         currentStartTime,
         currentEndTime,
-        options?.filters,
-        options?.projectId,
+        options.filters,
+        options.projectId,
         { page, limit: pageSize },
-        options?.searchQuery,
-        options?.agentId,
-        options?.hasErrors
+        options.searchQuery,
+        options.agentId,
+        options.hasErrors
       );
 
       setStats(result.data);
@@ -101,60 +101,33 @@ export function useConversationStats(
     setLoading(false);
   }
 
-  const refresh = useCallback(() => {
+  function refresh() {
     fetchData(currentPage);
-  }, [
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    fetchData,
-    currentPage,
-  ]);
+  }
 
   // Pagination controls
-  const nextPage = useCallback(() => {
+  function nextPage() {
     if (paginationInfo?.hasNextPage) {
       const nextPageNum = currentPage + 1;
       setCurrentPage(nextPageNum);
       fetchData(nextPageNum);
     }
-  }, [
-    currentPage,
-    paginationInfo?.hasNextPage,
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    fetchData,
-  ]);
+  }
 
-  const previousPage = useCallback(() => {
+  function previousPage() {
     if (paginationInfo?.hasPreviousPage) {
       const prevPageNum = currentPage - 1;
       setCurrentPage(prevPageNum);
       fetchData(prevPageNum);
     }
-  }, [
-    currentPage,
-    paginationInfo?.hasPreviousPage,
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    fetchData,
-  ]);
+  }
 
-  const goToPage = useCallback(
-    (page: number) => {
-      if (
-        paginationInfo &&
-        page >= 1 &&
-        page <= paginationInfo.totalPages &&
-        page !== currentPage
-      ) {
-        setCurrentPage(page);
-        fetchData(page);
-      }
-    },
-    [
-      currentPage,
-      paginationInfo,
-      // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-      fetchData,
-    ]
-  );
+  function goToPage(page: number) {
+    if (paginationInfo && page >= 1 && page <= paginationInfo.totalPages && page !== currentPage) {
+      setCurrentPage(page);
+      fetchData(page);
+    }
+  }
 
   // Reset to page 1 and fetch when filters or time range change
   // biome-ignore lint/correctness/useExhaustiveDependencies: Intentionally tracking filter values instead of fetchData to prevent page reset on pagination clicks
@@ -162,14 +135,14 @@ export function useConversationStats(
     setCurrentPage(1);
     fetchData(1);
   }, [
-    options?.startTime,
-    options?.endTime,
-    options?.filters,
-    options?.projectId,
-    options?.tenantId,
-    options?.searchQuery,
-    options?.agentId,
-    options?.hasErrors,
+    options.startTime,
+    options.endTime,
+    options.filters,
+    options.projectId,
+    options.tenantId,
+    options.searchQuery,
+    options.agentId,
+    options.hasErrors,
     pageSize,
   ]);
 
@@ -206,7 +179,7 @@ export function useConversationStats(
 }
 
 // Hook for project overview stats (across all projects)
-export function useProjectOverviewStats(options?: {
+export function useProjectOverviewStats(options: {
   startTime?: number;
   endTime?: number;
   projectIds?: string[];
@@ -229,14 +202,14 @@ export function useProjectOverviewStats(options?: {
       setLoading(true);
       setError(null);
 
-      const client = getSigNozStatsClient(options?.tenantId);
-      const currentEndTime = Math.min(options?.endTime || Date.now() - 1);
-      const currentStartTime = options?.startTime || new Date('2020-01-01T00:00:00Z').getTime();
+      const client = getSigNozStatsClient(options.tenantId);
+      const currentEndTime = Math.min(options.endTime || Date.now() - 1);
+      const currentStartTime = options.startTime || new Date('2020-01-01T00:00:00Z').getTime();
 
       const result = await client.getProjectOverviewStats(
         currentStartTime,
         currentEndTime,
-        options?.projectIds
+        options.projectIds
       );
 
       setStats(result);
@@ -265,7 +238,7 @@ export function useProjectOverviewStats(options?: {
 }
 
 // Hook for conversations per day across projects
-export function useConversationsPerDayAcrossProjects(options?: {
+export function useConversationsPerDayAcrossProjects(options: {
   startTime?: number;
   endTime?: number;
   projectIds?: string[];
@@ -280,14 +253,14 @@ export function useConversationsPerDayAcrossProjects(options?: {
       setLoading(true);
       setError(null);
 
-      const client = getSigNozStatsClient(options?.tenantId);
-      const currentEndTime = Math.min(options?.endTime || Date.now() - 1);
-      const currentStartTime = options?.startTime || new Date('2020-01-01T00:00:00Z').getTime();
+      const client = getSigNozStatsClient(options.tenantId);
+      const currentEndTime = Math.min(options.endTime || Date.now() - 1);
+      const currentStartTime = options.startTime || new Date('2020-01-01T00:00:00Z').getTime();
 
       const result = await client.getConversationsPerDayAcrossProjects(
         currentStartTime,
         currentEndTime,
-        options?.projectIds
+        options.projectIds
       );
 
       setData(result);
@@ -316,7 +289,7 @@ export function useConversationsPerDayAcrossProjects(options?: {
 }
 
 // Hook for stats broken down by project
-export function useStatsByProject(options?: {
+export function useStatsByProject(options: {
   startTime?: number;
   endTime?: number;
   projectIds?: string[];
@@ -338,14 +311,14 @@ export function useStatsByProject(options?: {
       setLoading(true);
       setError(null);
 
-      const client = getSigNozStatsClient(options?.tenantId);
-      const currentEndTime = Math.min(options?.endTime || Date.now() - 1);
-      const currentStartTime = options?.startTime || new Date('2020-01-01T00:00:00Z').getTime();
+      const client = getSigNozStatsClient(options.tenantId);
+      const currentEndTime = Math.min(options.endTime || Date.now() - 1);
+      const currentStartTime = options.startTime || new Date('2020-01-01T00:00:00Z').getTime();
 
       const result = await client.getStatsByProject(
         currentStartTime,
         currentEndTime,
-        options?.projectIds
+        options.projectIds
       );
 
       setData(result);
