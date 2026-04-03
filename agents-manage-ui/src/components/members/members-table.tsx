@@ -157,9 +157,8 @@ export function MembersTable({
       toast.error('Failed to update role', {
         description: err instanceof Error ? err.message : 'An unexpected error occurred.',
       });
-    } finally {
-      setUpdatingMemberId(null);
     }
+    setUpdatingMemberId(null);
   };
 
   const handleProjectAccessComplete = () => {
@@ -206,9 +205,8 @@ export function MembersTable({
       toast.error('Failed to create reset link', {
         description: err instanceof Error ? err.message : 'An unexpected error occurred.',
       });
-    } finally {
-      setResettingMemberId(null);
     }
+    setResettingMemberId(null);
   };
 
   const handleRevokeInvitation = async (invitation: Invitation) => {
@@ -233,9 +231,8 @@ export function MembersTable({
       toast.error('Failed to revoke invitation', {
         description: err instanceof Error ? err.message : 'An unexpected error occurred.',
       });
-    } finally {
-      setRevokingInvitation(null);
     }
+    setRevokingInvitation(null);
   };
 
   const handleDeleteMember = async (member: Member) => {
@@ -266,9 +263,8 @@ export function MembersTable({
       toast.error('Failed to delete member', {
         description: err instanceof Error ? err.message : 'An unexpected error occurred.',
       });
-    } finally {
-      setDeletingMemberId(null);
     }
+    setDeletingMemberId(null);
   };
 
   return (

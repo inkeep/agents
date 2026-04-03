@@ -43,19 +43,18 @@ export function DatasetAgentPicker({ tenantId, projectId, datasetId }: DatasetAg
       const added = newSelection.filter((id) => !prev.includes(id));
       const removed = prev.filter((id) => !newSelection.includes(id));
 
-      await Promise.all([
-        ...added.map((agentId) => addDatasetAgentAction(tenantId, projectId, datasetId, agentId)),
-        ...removed.map((agentId) =>
-          removeDatasetAgentAction(tenantId, projectId, datasetId, agentId)
-        ),
-      ]);
-    } catch {
-      setSelectedAgentIds(prev);
-      toast.error('Failed to update agent associations');
-    } finally {
+        await Promise.all([
+          ...added.map((agentId) => addDatasetAgentAction(tenantId, projectId, datasetId, agentId)),
+          ...removed.map((agentId) =>
+            removeDatasetAgentAction(tenantId, projectId, datasetId, agentId)
+          ),
+        ]);
+      } catch {
+        setSelectedAgentIds(prev);
+        toast.error('Failed to update agent associations');
+      }
       setSyncing(false);
     }
-  }
 
   if (!loaded || loadingAgents) {
     return (

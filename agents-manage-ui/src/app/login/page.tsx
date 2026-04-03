@@ -141,9 +141,8 @@ function LoginForm() {
       }
     } catch {
       setState({ step: 'password' });
-    } finally {
-      setIsLookingUp(false);
     }
+    setIsLookingUp(false);
   };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {

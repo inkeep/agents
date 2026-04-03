@@ -26,7 +26,7 @@ export function DeleteArtifactComponentConfirmation({
     projectId: string;
   }>();
 
-  const handleDelete = async () => {
+  async function handleDelete() {
     setIsSubmitting(true);
     const result = await deleteArtifactComponentAction(tenantId, projectId, artifactComponentId);
     if (result.success) {
@@ -39,7 +39,7 @@ export function DeleteArtifactComponentConfirmation({
       toast.error(result.error);
     }
     setIsSubmitting(false);
-  };
+  }
 
   return (
     <DeleteConfirmation

@@ -17,8 +17,8 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { useFieldArray, useForm } from 'react-hook-form';
+import { useEffect, useState, useTransition } from 'react';
+import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
@@ -306,7 +306,7 @@ export function TriggerForm({
   const redirectPath = `/${tenantId}/projects/${projectId}/triggers?tab=webhooks`;
   const router = useRouter();
   const [credentials, setCredentials] = useState<SelectOption[]>([]);
-  const [loadingCredentials, setLoadingCredentials] = useState(true);
+  const [loadingCredentials, startLoadingCredentials] = useTransition();
   const [signatureKeyError, setSignatureKeyError] = useState<string | undefined>();
   const [signatureRegexError, setSignatureRegexError] = useState<string | undefined>();
   const [appliedPreset, setAppliedPreset] = useState<string | null>(null);
@@ -322,8 +322,7 @@ export function TriggerForm({
 
   // Fetch available credentials (only project-scoped credentials are allowed for triggers)
   useEffect(() => {
-    async function loadCredentials() {
-      setLoadingCredentials(true);
+    startLoadingCredentials(async () => {
       try {
         const result = await fetchCredentialsAction(tenantId, projectId);
         if (result.success && result.data) {
@@ -341,11 +340,8 @@ export function TriggerForm({
       } catch (error) {
         console.error('Failed to fetch credentials:', error);
         toast.error('Failed to load credentials');
-      } finally {
-        setLoadingCredentials(false);
       }
-    }
-    loadCredentials();
+    });
   }, [tenantId, projectId]);
 
   // Initialize form with default values or existing trigger data
@@ -473,25 +469,17 @@ export function TriggerForm({
     resolver: zodResolver(triggerFormSchema),
     defaultValues,
   });
-
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: 'authHeaders',
-  });
-
+  const { control } = form;
+  const { fields, append, remove } = useFieldArray({ control, name: 'authHeaders' });
   const {
     fields: componentFields,
     append: appendComponent,
     remove: removeComponent,
     move: moveComponent,
-  } = useFieldArray({
-    control: form.control,
-    name: 'signedComponents',
-  });
-
+  } = useFieldArray({ control, name: 'signedComponents' });
   const { isSubmitting } = form.formState;
-  const transformType = form.watch('transformType');
-  const signatureSource = form.watch('signatureSource');
+  const transformType = useWatch({ control, name: 'transformType' });
+  const signatureSource = useWatch({ control, name: 'signatureSource' });
 
   const resolveRunAsUserId = (value: string | undefined): string | null => {
     if (!value || value === NONE_VALUE) return null;
@@ -540,16 +528,22 @@ export function TriggerForm({
   };
 
   // Watch specific fields for request preview and conditional rendering
-  const watchedRunAsUserId = form.watch('runAsUserId');
-  const watchedAuthHeaders = form.watch('authHeaders');
-  const watchedSignatureVerificationEnabled = form.watch('signatureVerificationEnabled');
-  const watchedSigningCredential = form.watch('signingSecretCredentialReferenceId');
-  const watchedSignatureKey = form.watch('signatureKey');
-  const watchedSignaturePrefix = form.watch('signaturePrefix');
-  const watchedSignatureAlgorithm = form.watch('signatureAlgorithm');
-  const watchedSignatureEncoding = form.watch('signatureEncoding');
-  const watchedSignedComponents = form.watch('signedComponents');
-  const watchedJoinSeparator = form.watch('joinSeparator');
+  const watchedRunAsUserId = useWatch({ control, name: 'runAsUserId' });
+  const watchedAuthHeaders = useWatch({ control, name: 'authHeaders' });
+  const watchedSignatureVerificationEnabled = useWatch({
+    control,
+    name: 'signatureVerificationEnabled',
+  });
+  const watchedSigningCredential = useWatch({
+    control,
+    name: 'signingSecretCredentialReferenceId',
+  });
+  const watchedSignatureKey = useWatch({ control, name: 'signatureKey' });
+  const watchedSignaturePrefix = useWatch({ control, name: 'signaturePrefix' });
+  const watchedSignatureAlgorithm = useWatch({ control, name: 'signatureAlgorithm' });
+  const watchedSignatureEncoding = useWatch({ control, name: 'signatureEncoding' });
+  const watchedSignedComponents = useWatch({ control, name: 'signedComponents' });
+  const watchedJoinSeparator = useWatch({ control, name: 'joinSeparator' });
 
   // Generate request preview based on current form values
   const authHeaders = watchedAuthHeaders || [];
@@ -1391,11 +1385,10 @@ export function TriggerForm({
                 </div>
 
                 {/* Show deprecation warning for SHA-1 or MD5 */}
-                {(form.watch('signatureAlgorithm') === 'sha1' ||
-                  form.watch('signatureAlgorithm') === 'md5') && (
+                {(watchedSignatureAlgorithm === 'sha1' || watchedSignatureAlgorithm === 'md5') && (
                   <Alert variant="warning">
                     <AlertDescription>
-                      <strong>Warning:</strong> {form.watch('signatureAlgorithm')?.toUpperCase()} is
+                      <strong>Warning:</strong> {watchedSignatureAlgorithm.toUpperCase()} is
                       deprecated and should only be used for legacy systems. Consider upgrading to
                       SHA-256 or SHA-512 for better security.
                     </AlertDescription>
@@ -1537,7 +1530,7 @@ export function TriggerForm({
                   {/* Signed Components List */}
                   <div className="space-y-3">
                     {componentFields.map((field, index) => {
-                      const componentSource = form.watch(`signedComponents.${index}.source`);
+                      const componentSource = watchedSignedComponents?.[index].source;
 
                       return (
                         <div key={field.id} className="space-y-2 p-4 border rounded-lg">

@@ -57,7 +57,6 @@ const executionLimitInheritanceInfo = (
 );
 
 export const MetadataEditor: FC = () => {
-  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const baseUrl = PUBLIC_INKEEP_AGENTS_API_URL;

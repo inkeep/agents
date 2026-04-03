@@ -88,9 +88,8 @@ export function SlackAccessEditDialog({
     } catch (error) {
       console.error('Failed to load Slack data:', error);
       toast.error('Failed to load Slack access configuration');
-    } finally {
-      setIsLoading(false);
     }
+    setIsLoading(false);
   }
 
   useEffect(() => {
@@ -115,7 +114,7 @@ export function SlackAccessEditDialog({
     });
   };
 
-  const handleSave = async () => {
+  async function handleSave() {
     setIsSaving(true);
     try {
       await setSlackMcpToolAccess(tenantId, projectId, tool.id, {
@@ -129,10 +128,9 @@ export function SlackAccessEditDialog({
     } catch (error) {
       console.error('Failed to update Slack access:', error);
       toast.error('Failed to update Slack access. Please try again.');
-    } finally {
-      setIsSaving(false);
     }
-  };
+    setIsSaving(false);
+  }
 
   const isFormValid = mode === 'all' || selectedChannelIds.size > 0;
 

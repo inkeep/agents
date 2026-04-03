@@ -138,7 +138,7 @@ export default function AICallsBreakdown({
 
   // Fetch AI calls by agent and model
   useEffect(() => {
-    const fetchData = async () => {
+    async function fetchData() {
       try {
         setLoading(true);
         setError(null);
@@ -165,10 +165,9 @@ export default function AICallsBreakdown({
       } catch (err) {
         console.error('Error fetching AI calls data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch AI calls data');
-      } finally {
-        setLoading(false);
       }
-    };
+      setLoading(false);
+    }
 
     fetchData();
   }, [selectedAgent, selectedModel, startTime, endTime, projectId, tenantId]);

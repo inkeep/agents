@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
+import { throwError } from '@/lib/utils';
 
 interface UseChatActivitiesPollingOptions {
   conversationId: string;
@@ -64,7 +65,7 @@ export const useChatActivitiesPolling = ({
           // If we can't parse the error response, use the default message
         }
 
-        throw new Error(errorMessage);
+        throwError(errorMessage);
       }
 
       const data: ConversationDetail = await response.json();

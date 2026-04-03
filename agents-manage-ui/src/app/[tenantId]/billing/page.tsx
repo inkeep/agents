@@ -70,9 +70,8 @@ export default function BillingPage({ params }: PageProps<'/[tenantId]/billing'>
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load usage data');
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }
 
   useEffect(() => {

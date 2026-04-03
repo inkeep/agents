@@ -77,10 +77,9 @@ export function SpanFilters({
     } catch (error) {
       console.error('Failed to fetch span names:', error);
       setAvailableSpanNames([]);
-    } finally {
-      isFetchingRef.current = false;
-      setSpanNamesLoading(false);
     }
+    isFetchingRef.current = false;
+    setSpanNamesLoading(false);
   }
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Intentionally reset ref when filter params change to trigger re-fetch

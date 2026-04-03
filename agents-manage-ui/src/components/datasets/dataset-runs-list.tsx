@@ -49,9 +49,8 @@ export function DatasetRunsList({
     } catch (err) {
       console.error('Error loading dataset runs:', err);
       setError(err instanceof Error ? err.message : 'Failed to load runs');
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }
 
   useEffect(() => {

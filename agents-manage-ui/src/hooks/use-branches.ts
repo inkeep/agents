@@ -7,23 +7,18 @@ export function useBranches(tenantId: string, projectId: string) {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  async function load() {
-    try {
-      const data = await fetchBranches(tenantId, projectId);
-      setBranches(data);
-    } catch (err) {
-      console.error('useBranches: failed to fetch branches', err);
-    } finally {
+  useEffect(() => {
+    async function load() {
+      try {
+        const data = await fetchBranches(tenantId, projectId);
+        setBranches(data);
+      } catch (err) {
+        console.error('useBranches: failed to fetch branches', err);
+      }
       setIsLoading(false);
     }
-  }
-
-  useEffect(() => {
     load();
-  }, [
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    load,
-  ]);
+  }, [tenantId, projectId]);
 
   return { branches, isLoading };
 }

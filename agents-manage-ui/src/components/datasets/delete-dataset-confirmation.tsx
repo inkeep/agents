@@ -19,12 +19,11 @@ export function DeleteDatasetConfirmation({
   setIsOpen,
   redirectOnDelete = false,
 }: DeleteDatasetConfirmationProps) {
-  const params = useParams();
-  const router = useRouter();
-  const { tenantId, projectId } = params as {
+  const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
-  };
+  }>();
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleDelete = async () => {

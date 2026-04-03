@@ -123,11 +123,11 @@ export function EvaluationJobResults({
 
   const evaluatorOptions = evaluators.map((e) => ({ id: e.id, name: e.name }));
   const uniqueAgents = new Map<string, string>();
-  results.forEach((result) => {
+  for (const result of results) {
     if (result.agentId && !uniqueAgents.has(result.agentId)) {
       uniqueAgents.set(result.agentId, result.agentId);
     }
-  });
+  }
   const agentOptions = Array.from(uniqueAgents.entries()).map(([id, name]) => ({ id, name }));
 
   // Extract unique output schema keys from results for filtering dropdown

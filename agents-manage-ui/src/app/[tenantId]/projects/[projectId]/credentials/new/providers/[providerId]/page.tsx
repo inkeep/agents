@@ -162,9 +162,8 @@ function ProviderSetupPage({
       } else {
         toast.error('Failed to create credential. Please try again.');
       }
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }
 
   async function handleCreateNewIntegration(credentials?: Record<string, any>) {
@@ -202,23 +201,22 @@ function ProviderSetupPage({
       toast.success('App credentials updated');
       setFormMode({ type: 'idle' });
 
-      try {
-        const result = await listNangoProviderIntegrations(provider.name, tenantId);
-        setIntegrations(result);
-      } catch (refreshError) {
-        console.error('Failed to refresh integrations list:', refreshError);
+        try {
+          const result = await listNangoProviderIntegrations(provider.name, tenantId);
+          setIntegrations(result);
+        } catch (refreshError) {
+          console.error('Failed to refresh integrations list:', refreshError);
+        }
+      } catch (error) {
+        console.error('Failed to update credentials:', error);
+        if (error instanceof NangoError) {
+          toast.error('Failed to update credentials. Please try again.');
+        } else {
+          toast.error('An unexpected error occurred. Please try again.');
+        }
       }
-    } catch (error) {
-      console.error('Failed to update credentials:', error);
-      if (error instanceof NangoError) {
-        toast.error('Failed to update credentials. Please try again.');
-      } else {
-        toast.error('An unexpected error occurred. Please try again.');
-      }
-    } finally {
       setLoading(false);
     }
-  }
 
   async function handleDeleteIntegration(uniqueKey: string) {
     if (!canEdit || !provider) return;
@@ -228,23 +226,22 @@ function ProviderSetupPage({
       await deleteNangoIntegration(uniqueKey, tenantId);
       toast.success('OAuth app deleted');
 
-      try {
-        const result = await listNangoProviderIntegrations(provider.name, tenantId);
-        setIntegrations(result);
-      } catch {
-        setIntegrations([]);
+        try {
+          const result = await listNangoProviderIntegrations(provider.name, tenantId);
+          setIntegrations(result);
+        } catch {
+          setIntegrations([]);
+        }
+      } catch (error) {
+        console.error('Failed to delete OAuth app:', error);
+        if (error instanceof NangoError) {
+          toast.error('Failed to delete OAuth app. Please try again.');
+        } else {
+          toast.error('An unexpected error occurred. Please try again.');
+        }
       }
-    } catch (error) {
-      console.error('Failed to delete OAuth app:', error);
-      if (error instanceof NangoError) {
-        toast.error('Failed to delete OAuth app. Please try again.');
-      } else {
-        toast.error('An unexpected error occurred. Please try again.');
-      }
-    } finally {
       setLoading(false);
     }
-  }
 
   function cancelToInterstitial() {
     setFormMode({ type: 'idle' });

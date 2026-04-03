@@ -141,9 +141,8 @@ export default function AllProjectsAICallsBreakdown({
       } catch (err) {
         console.error('Error fetching AI calls data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch AI calls data');
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     fetchData();

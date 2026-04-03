@@ -74,9 +74,8 @@ export function AgentConfigurationCard() {
       }
     } catch (error) {
       console.error('Failed to fetch agents:', error);
-    } finally {
-      setLoadingAgents(false);
     }
+    setLoadingAgents(false);
   }
 
   async function fetchChannels() {
@@ -87,9 +86,8 @@ export function AgentConfigurationCard() {
       setChannels(result.channels);
     } catch (error) {
       console.error('Failed to fetch channels:', error);
-    } finally {
-      setLoadingChannels(false);
     }
+    setLoadingChannels(false);
   }
 
   async function fetchWorkspaceSettings() {
@@ -147,9 +145,8 @@ export function AgentConfigurationCard() {
     } catch (error) {
       console.error('Failed to save default agent:', error);
       toast.error('Failed to save default agent');
-    } finally {
-      setSavingDefault(false);
     }
+    setSavingDefault(false);
   };
 
   const handleToggleWorkspaceGrantAccess = async (grantAccess: boolean) => {
@@ -200,9 +197,8 @@ export function AgentConfigurationCard() {
       console.error('Failed to remove default agent:', error);
       setDefaultAgent(previousAgent);
       toast.error('Failed to remove default agent');
-    } finally {
-      setSavingDefault(false);
     }
+    setSavingDefault(false);
   };
 
   const handleSetChannelAgent = async (
@@ -249,9 +245,8 @@ export function AgentConfigurationCard() {
           ? `You can only configure channels you're a member of`
           : 'Failed to set channel agent';
       toast.error(errorMessage);
-    } finally {
-      setSavingChannel(null);
     }
+    setSavingChannel(null);
   };
 
   const handleResetChannelToDefault = async (channelId: string, channelName: string) => {
@@ -276,9 +271,8 @@ export function AgentConfigurationCard() {
           ? `You can only configure channels you're a member of`
           : 'Failed to reset channel to default';
       toast.error(errorMessage);
-    } finally {
-      setSavingChannel(null);
     }
+    setSavingChannel(null);
   };
 
   const handleToggleGrantAccess = async (channelId: string, grantAccess: boolean) => {
@@ -318,9 +312,8 @@ export function AgentConfigurationCard() {
     } catch (error) {
       console.error('Failed to toggle grant access:', error);
       toast.error('Failed to update access setting');
-    } finally {
-      setSavingChannel(null);
     }
+    setSavingChannel(null);
   };
 
   const handleToggleChannel = (channelId: string) => {
@@ -380,9 +373,8 @@ export function AgentConfigurationCard() {
     } catch (error) {
       console.error('Bulk update failed:', error);
       toast.error('Failed to update channels');
-    } finally {
-      setBulkSaving(false);
     }
+    setBulkSaving(false);
   };
 
   const handleBulkResetToDefault = async () => {
@@ -406,9 +398,8 @@ export function AgentConfigurationCard() {
     } catch (error) {
       console.error('Bulk reset failed:', error);
       toast.error('Failed to reset channels');
-    } finally {
-      setBulkSaving(false);
     }
+    setBulkSaving(false);
   };
 
   const cardTitle = (

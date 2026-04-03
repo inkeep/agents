@@ -28,9 +28,11 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
+  fetchWorkAppGitHubInstallationDetail,
   fetchWorkAppGitHubInstallations,
   getProjectWorkAppGitHubAccess,
   setProjectWorkAppGitHubAccess,
+  syncWorkAppGitHubRepositories,
   type WorkAppGitHubAccessMode,
   type WorkAppGitHubInstallation,
   type WorkAppGitHubProjectAccess,
@@ -70,9 +72,8 @@ export function ProjectWorkAppGitHubAccessSection({
       setHasInstallations(installations.length > 0);
     } catch (error) {
       console.error('Failed to load GitHub access config:', error);
-    } finally {
-      setIsLoading(false);
     }
+    setIsLoading(false);
   }
 
   useEffect(() => {
@@ -272,7 +273,6 @@ function ConfigureAccessDialog({
         installations
           .filter((i) => i.status === 'active')
           .map(async (installation) => {
-            const { fetchWorkAppGitHubInstallationDetail } = await import('@/lib/api/github');
             const detail = await fetchWorkAppGitHubInstallationDetail(tenantId, installation.id);
             return {
               installation,
@@ -285,9 +285,8 @@ function ConfigureAccessDialog({
     } catch (error) {
       console.error('Failed to load installations:', error);
       toast.error('Failed to load GitHub installations');
-    } finally {
-      setIsLoading(false);
     }
+    setIsLoading(false);
   }
 
   useEffect(() => {
@@ -303,15 +302,13 @@ function ConfigureAccessDialog({
   const handleSync = async (installationId: string) => {
     setSyncing(installationId);
     try {
-      const { syncWorkAppGitHubRepositories } = await import('@/lib/api/github');
       await syncWorkAppGitHubRepositories(tenantId, installationId);
       await loadInstallations();
       toast.success('Repositories synced');
     } catch {
       toast.error('Failed to sync repositories');
-    } finally {
-      setSyncing(null);
     }
+    setSyncing(null);
   };
 
   const handleRepoToggle = (repoId: string) => {
@@ -360,9 +357,8 @@ function ConfigureAccessDialog({
       toast.error('Failed to save configuration', {
         description: error instanceof Error ? error.message : 'An unexpected error occurred',
       });
-    } finally {
-      setIsSaving(false);
     }
+    setIsSaving(false);
   };
 
   const totalRepos = installationsWithRepos.reduce((acc, i) => acc + i.repositories.length, 0);

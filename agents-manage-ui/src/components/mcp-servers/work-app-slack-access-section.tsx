@@ -56,9 +56,8 @@ export function WorkAppSlackAccessSection({
     } catch (err) {
       console.error('Failed to load Slack access config:', err);
       setError('Failed to load Slack access configuration');
-    } finally {
-      setIsLoading(false);
     }
+    setIsLoading(false);
   }
 
   useEffect(() => {

@@ -68,23 +68,22 @@ export default function Page({
             (result) => result.output !== null && result.output !== undefined
           ).length || 0;
 
-        setEvaluationProgress({
-          total: totalEvaluations,
-          completed: completedEvaluations,
-          isRunning: completedEvaluations < totalEvaluations && totalEvaluations > 0,
-        });
-      } else {
-        setEvaluationProgress(null);
+          setEvaluationProgress({
+            total: totalEvaluations,
+            completed: completedEvaluations,
+            isRunning: completedEvaluations < totalEvaluations && totalEvaluations > 0,
+          });
+        } else {
+          setEvaluationProgress(null);
+        }
+      } catch (err) {
+        console.error('Error loading dataset run:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load run');
       }
-    } catch (err) {
-      console.error('Error loading dataset run:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load run');
-    } finally {
       if (showLoading) {
         setLoading(false);
       }
     }
-  }
 
   const conversationProgress = (() => {
     if (invocations.length === 0) return { total: 0, completed: 0, failed: 0, isRunning: false };

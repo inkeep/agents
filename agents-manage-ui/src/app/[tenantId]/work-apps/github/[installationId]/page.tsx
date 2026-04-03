@@ -85,9 +85,8 @@ export default function GitHubInstallationDetailPage({
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch installation details');
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }
 
   useEffect(() => {
@@ -109,9 +108,8 @@ export default function GitHubInstallationDetailPage({
       toast.error('Failed to sync repositories', {
         description: err instanceof Error ? err.message : 'An unexpected error occurred',
       });
-    } finally {
-      setSyncing(false);
     }
+    setSyncing(false);
   };
 
   const handleDisconnect = async () => {
@@ -128,10 +126,9 @@ export default function GitHubInstallationDetailPage({
       toast.error('Failed to disconnect installation', {
         description: err instanceof Error ? err.message : 'An unexpected error occurred',
       });
-    } finally {
-      setDisconnecting(false);
-      setDisconnectDialogOpen(false);
     }
+    setDisconnecting(false);
+    setDisconnectDialogOpen(false);
   };
 
   if (loading) {

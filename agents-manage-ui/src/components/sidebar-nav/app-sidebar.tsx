@@ -48,7 +48,6 @@ interface AppSidebarProps extends ComponentProps<typeof Sidebar> {
 }
 
 export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => {
-  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId?: string }>();
   const pathname = usePathname();
   const { user } = useAuthSession();

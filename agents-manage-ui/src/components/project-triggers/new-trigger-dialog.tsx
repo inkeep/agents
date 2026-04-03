@@ -45,7 +45,7 @@ export function NewTriggerDialog({
           New {triggerLabel}
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Create {triggerLabel}</DialogTitle>
           <DialogDescription>Select an agent to create a new {triggerLabel} for.</DialogDescription>

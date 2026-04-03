@@ -5,16 +5,14 @@ import {
   generateIdFromName,
 } from '@inkeep/agents-core/client-exports';
 import { useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useRef, useTransition } from 'react';
 import { toast } from 'sonner';
-import type {
-  OAuthLoginHandler,
-  OAuthLoginParams,
-} from '@/components/agent/copilot/components/connect-tool-card';
+import type { OAuthLoginHandler } from '@/components/agent/copilot/components/connect-tool-card';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { listCredentialStores } from '@/lib/api/credentialStores';
 import { fetchThirdPartyMCPServer, getThirdPartyOAuthRedirectUrl } from '@/lib/api/mcp-catalog';
 import { updateMCPTool } from '@/lib/api/tools';
+import { throwError } from '@/lib/utils';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';
 import { generateId } from '@/lib/utils/id-utils';
 import { getOAuthLoginUrl } from '@/lib/utils/mcp-urls';
@@ -41,7 +39,7 @@ export function useOAuthLogin({
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const { openNangoConnectHeadless } = useNangoConnect();
   const { user } = useAuthSession();
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [isConnecting, startConnecting] = useTransition();
 
   // Track active OAuth attempts to prevent conflicts
   const activeAttemptsRef = useRef(new Map<string, () => void>());
@@ -96,10 +94,10 @@ export function useOAuthLogin({
 
         window.addEventListener('message', handleMessage);
 
-        let checkPopupClosed: NodeJS.Timeout | null = null;
+        let checkPopupClosed: number | null = null;
         const backupTimeout = setTimeout(() => {
           if (!completed) {
-            checkPopupClosed = setInterval(() => {
+            checkPopupClosed = window.setInterval(() => {
               try {
                 if (popup.closed) {
                   completeFlow(true);
@@ -278,23 +276,23 @@ export function useOAuthLogin({
     navigateToTool(toolId);
   }
 
-  async function handleOAuthLogin({
+  const handleOAuthLogin: OAuthLoginHandler = ({
     toolId,
     mcpServerUrl,
     toolName,
     thirdPartyConnectAccountUrl,
     credentialScope,
-  }: OAuthLoginParams): Promise<void> {
-    setIsConnecting(true);
-    try {
-      if (mcpServerUrl.includes('composio.dev')) {
-        const composioRedirectUrl =
-          (await getThirdPartyOAuthRedirectUrl(
-            tenantId,
-            projectId,
-            mcpServerUrl,
-            credentialScope
-          )) ?? undefined;
+  }) => {
+    startConnecting(async () => {
+      try {
+        if (mcpServerUrl.includes('composio.dev')) {
+          const composioRedirectUrl =
+            (await getThirdPartyOAuthRedirectUrl(
+              tenantId,
+              projectId,
+              mcpServerUrl,
+              credentialScope
+            )) ?? undefined;
 
         if (composioRedirectUrl) {
           await handleOAuthLoginWithComposio({
@@ -323,29 +321,25 @@ export function useOAuthLogin({
         (store) => store.type === CredentialStoreType.keychain && store.available
       );
 
-      if (isNangoReady) {
-        await handleOAuthLoginWithNangoMCPGeneric({
-          toolId,
-          mcpServerUrl,
-          toolName,
-          credentialScope,
-        });
-      } else if (isKeychainReady) {
-        await handleOAuthLoginManually(toolId);
-      } else {
-        throw new Error('No credential store available. Please configure Nango or Keychain.');
+        if (isNangoReady) {
+          await handleOAuthLoginWithNangoMCPGeneric({
+            toolId,
+            mcpServerUrl,
+            toolName,
+            credentialScope,
+          });
+        } else if (isKeychainReady) {
+          await handleOAuthLoginManually(toolId);
+        } else {
+          throwError('No credential store available. Please configure Nango or Keychain.');
+        }
+      } catch (error) {
+        const errorObj = error instanceof Error ? error : new Error('OAuth login failed');
+        toast.error(errorObj.message);
+        throw errorObj;
       }
-    } catch (error) {
-      const errorObj = error instanceof Error ? error : new Error('OAuth login failed');
-      toast.error(errorObj.message);
-      throw errorObj;
-    } finally {
-      setIsConnecting(false);
-    }
-  }
-
-  return {
-    handleOAuthLogin,
-    isConnecting,
+    });
   };
+
+  return { handleOAuthLogin, isConnecting };
 }

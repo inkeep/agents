@@ -8,12 +8,13 @@ export function useSignOut() {
   async function signOut() {
     try {
       await authClient.signOut();
-    } finally {
-      if (process.env.NODE_ENV === 'development') {
-        document.cookie = 'dev-logged-out=1; path=/; max-age=86400; SameSite=Lax';
-      }
-      window.location.href = '/login';
+    } catch (error) {
+      console.error('Sign out failed:', error);
     }
+    if (process.env.NODE_ENV === 'development') {
+      document.cookie = 'dev-logged-out=1; path=/; max-age=86400; SameSite=Lax';
+    }
+    window.location.href = '/login';
   }
 
   return signOut;

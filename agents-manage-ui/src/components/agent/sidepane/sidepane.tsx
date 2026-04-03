@@ -43,7 +43,6 @@ export function SidePane({
   backToAgent,
   disabled = false,
 }: SidePaneProps) {
-  'use memo';
   const selectedNode = useNodesData(selectedNodeId || '');
   const { updateNode } = useReactFlow();
   const edges = useEdges();

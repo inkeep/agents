@@ -141,23 +141,22 @@ export function ProjectScheduledTriggerInvocationsTable({
         invocation.id
       );
 
-      if (result.success) {
-        toast.success('Invocation cancelled successfully');
-        router.refresh();
-      } else {
-        toast.error(result.error || 'Failed to cancel invocation');
+        if (result.success) {
+          toast.success('Invocation cancelled successfully');
+          router.refresh();
+        } else {
+          toast.error(result.error || 'Failed to cancel invocation');
+        }
+      } catch (error) {
+        console.error('Failed to cancel invocation:', error);
+        toast.error('Failed to cancel invocation');
       }
-    } catch (error) {
-      console.error('Failed to cancel invocation:', error);
-      toast.error('Failed to cancel invocation');
-    } finally {
       setLoadingInvocations((prev) => {
         const newSet = new Set(prev);
         newSet.delete(invocation.id);
         return newSet;
       });
     }
-  }
 
   async function rerunInvocation(invocation: ScheduledTriggerInvocationWithContext) {
     if (!confirm('Are you sure you want to rerun this invocation?')) {
@@ -175,23 +174,22 @@ export function ProjectScheduledTriggerInvocationsTable({
         invocation.id
       );
 
-      if (result.success) {
-        toast.success('Invocation rerun started successfully');
-        router.refresh();
-      } else {
-        toast.error(result.error || 'Failed to rerun invocation');
+        if (result.success) {
+          toast.success('Invocation rerun started successfully');
+          router.refresh();
+        } else {
+          toast.error(result.error || 'Failed to rerun invocation');
+        }
+      } catch (error) {
+        console.error('Failed to rerun invocation:', error);
+        toast.error('Failed to rerun invocation');
       }
-    } catch (error) {
-      console.error('Failed to rerun invocation:', error);
-      toast.error('Failed to rerun invocation');
-    } finally {
       setLoadingInvocations((prev) => {
         const newSet = new Set(prev);
         newSet.delete(invocation.id);
         return newSet;
       });
     }
-  }
 
   const columns: ColumnDef<ScheduledTriggerInvocationWithContext>[] = [
     {
