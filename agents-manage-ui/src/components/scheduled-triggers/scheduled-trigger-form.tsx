@@ -179,7 +179,11 @@ export function ScheduledTriggerForm({
 
   const { isSubmitting } = form.formState;
   const scheduleType = useWatch({ control: form.control, name: 'scheduleType' });
-  const cronTimezone = useWatch({ control: form.control, name: 'cronTimezone' }) ?? 'UTC';
+  const cronTimezone = useWatch({
+    control: form.control,
+    name: 'cronTimezone',
+    defaultValue: 'UTC',
+  });
 
   const resolveRunAsUserId = (value: string | undefined): string | null => {
     if (!value || value === NONE_VALUE) return null;
