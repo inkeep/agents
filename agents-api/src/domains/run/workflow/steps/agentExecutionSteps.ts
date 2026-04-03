@@ -547,12 +547,11 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
       if (!agent.runContext.pendingDurableApproval) {
         throw generateError;
       }
-      logger.info(
+      logger.warn(
         {
           requestId,
           currentSubAgentId,
-          error: generateError instanceof Error ? generateError.message : String(generateError),
-          errorName: generateError instanceof Error ? generateError.name : undefined,
+          error: generateError,
         },
         'callLlmStep: agent.generate threw during durable approval flow, continuing with pending approval'
       );
@@ -609,9 +608,6 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
           logger.error(
             { error: sseError, toolCallId: da.toolCallId, toolName: da.toolName },
             'Failed to stream delegated approval request — workflow will suspend but client may not see approval UI'
-          );
-          throw new Error(
-            `Failed to deliver delegated approval request for ${da.toolName}: ${sseError instanceof Error ? sseError.message : String(sseError)}`
           );
         }
       }

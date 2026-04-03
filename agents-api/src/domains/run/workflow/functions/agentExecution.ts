@@ -84,12 +84,15 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
           const hookToolCallId = llmResult.delegatedApproval?.toolCallId ?? toolCall.toolCallId;
           const token = `tool-approval:${payload.conversationId}:${workflowRunId}:${hookToolCallId}`;
 
-          console.info('[agentExecution] Creating tool approval hook', {
-            hookToolCallId,
-            parentToolCallId: toolCall.toolCallId,
-            isDelegated: !!llmResult.delegatedApproval,
-            workflowRunId,
-          });
+          console.info(
+            JSON.stringify({
+              msg: '[agentExecution] Creating tool approval hook',
+              hookToolCallId,
+              parentToolCallId: toolCall.toolCallId,
+              isDelegated: !!llmResult.delegatedApproval,
+              workflowRunId,
+            })
+          );
 
           // The hook suspends the workflow until an external system resumes it.
           // Unlike the in-process PendingToolApprovalManager (10-min timeout), durable

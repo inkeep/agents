@@ -617,11 +617,11 @@ export const createTaskHandler = (
     } catch (error) {
       const pendingApproval = agent?.getPendingDurableApproval();
       if (pendingApproval) {
-        logger.info(
+        logger.warn(
           {
             toolCallId: pendingApproval.toolCallId,
             toolName: pendingApproval.toolName,
-            error: error instanceof Error ? error.message : String(error),
+            error,
           },
           'Task handler caught error during durable approval flow, returning approval artifact'
         );
