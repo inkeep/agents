@@ -549,7 +549,7 @@ export async function dispatchExecution(params: {
   logger.info(
     { tenantId, projectId, agentId, triggerId, invocationId, conversationId, dispatchedAt },
     'Trigger execution dispatched and starting execution'
-  );  
+  );
   const executionPromise = executeAgentAsync({
     tenantId,
     projectId,

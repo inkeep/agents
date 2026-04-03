@@ -151,10 +151,7 @@ export async function withRef<T>(
   const connection: PoolClient = await pool.connect();
   const connectMs = Date.now() - connectStart;
   if (connectMs > 5_000) {
-    logger.info(
-      { ref: resolvedRef.name, connectMs, connectionId },
-      'Slow pool.connect in withRef'
-    );
+    logger.info({ ref: resolvedRef.name, connectMs, connectionId }, 'Slow pool.connect in withRef');
   }
 
   let tempBranch: string | null = null;
@@ -264,7 +261,12 @@ export async function withRef<T>(
       }
     } catch (cleanupError) {
       logger.info(
-        { ref: resolvedRef.name, connectionId, cleanupMs: Date.now() - cleanupStart, error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError) },
+        {
+          ref: resolvedRef.name,
+          connectionId,
+          cleanupMs: Date.now() - cleanupStart,
+          error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
+        },
         'withRef cleanup failed'
       );
       logger.error(

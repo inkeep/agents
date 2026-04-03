@@ -53,7 +53,13 @@ export const resolveRef =
     if (!branch) {
       const totalMs = Date.now() - startTime;
       logger.info(
-        { ref, branchCount: branches.length, branchQueryMs, totalMs, branchNames: branches.map((b) => b.name) },
+        {
+          ref,
+          branchCount: branches.length,
+          branchQueryMs,
+          totalMs,
+          branchNames: branches.map((b) => b.name),
+        },
         'resolveRef: branch not found in dolt_branches result'
       );
     }

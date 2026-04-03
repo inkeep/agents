@@ -74,10 +74,7 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
   const connection: PoolClient = await pool.connect();
   const connectMs = Date.now() - mwStartTime;
   if (connectMs > 5_000) {
-    logger.info(
-      { ref: resolvedRef.name, connectMs },
-      'Slow pool.connect in branchScopedDb'
-    );
+    logger.info({ ref: resolvedRef.name, connectMs }, 'Slow pool.connect in branchScopedDb');
   }
   let tempBranch: string | null = null;
 
@@ -91,10 +88,7 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
       await checkoutBranch(requestDb)({ branchName: resolvedRef.name, autoCommitPending: true });
       const checkoutMs = Date.now() - checkoutStart;
       if (checkoutMs > 5_000) {
-        logger.info(
-          { ref: resolvedRef.name, checkoutMs },
-          'Slow checkoutBranch in branchScopedDb'
-        );
+        logger.info({ ref: resolvedRef.name, checkoutMs }, 'Slow checkoutBranch in branchScopedDb');
       }
     } else {
       // For tags/commits, create temporary branch (needed for reads)
@@ -164,7 +158,11 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
       }
     } catch (cleanupError) {
       logger.info(
-        { ref: resolvedRef.name, cleanupMs: Date.now() - cleanupStart, error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError) },
+        {
+          ref: resolvedRef.name,
+          cleanupMs: Date.now() - cleanupStart,
+          error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
+        },
         'branchScopedDb cleanup failed'
       );
       logger.error({ error: cleanupError }, 'Error during connection cleanup');
