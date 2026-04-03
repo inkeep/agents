@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { MCPTransportType } from '@inkeep/agents-core/client-exports';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericSelect } from '@/components/form/generic-select';
@@ -87,6 +87,8 @@ export function MCPServerForm({
   const invalidateMcpToolCache = useMcpToolInvalidation(tenantId, projectId);
 
   const { isSubmitting } = form.formState;
+  const credentialScope = useWatch({ control: form.control, name: 'credentialScope' });
+  const toolOverrides = useWatch({ control: form.control, name: 'config.mcp.toolOverrides' }) ?? {};
 
   // Helper function to filter active tools against available tools
   const getActiveTools = (toolsConfig: MCPToolFormData['config']['mcp']['toolsConfig']) => {
@@ -340,7 +342,7 @@ export function MCPServerForm({
                 </InfoCard>
               </div>
 
-              {form.watch('credentialScope') === CredentialScopeEnum.project && (
+              {credentialScope === CredentialScopeEnum.project && (
                 <div className="space-y-3">
                   <GenericSelect
                     control={form.control}
@@ -397,10 +399,9 @@ export function MCPServerForm({
                 label="Tools"
                 availableTools={tool?.availableTools || []}
                 description="Select which tools should be enabled for this MCP server"
-                toolOverrides={form.watch('config.mcp.toolOverrides') || {}}
+                toolOverrides={toolOverrides}
                 onToolOverrideChange={(toolName, override) => {
-                  const currentOverrides = form.watch('config.mcp.toolOverrides') || {};
-                  const newOverrides = { ...currentOverrides };
+                  const newOverrides = { ...toolOverrides };
 
                   if (Object.keys(override).length === 0) {
                     // Remove override if empty
