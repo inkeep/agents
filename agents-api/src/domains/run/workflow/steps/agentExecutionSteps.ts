@@ -630,7 +630,7 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
 
         isTerminal = true;
         return {
-          type: 'tool_calls',
+          type: 'tool_calls' as const,
           toolCalls: [
             {
               toolCallId: pendingApproval.toolCallId,
