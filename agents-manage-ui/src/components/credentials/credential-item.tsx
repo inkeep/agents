@@ -41,10 +41,6 @@ function CredentialDialogMenu({ credentialId, credentialName }: CredentialDialog
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleOpenChange = (open: boolean) => {
-    setIsOpen(open);
-  };
-
   const handleDelete = async () => {
     setIsSubmitting(true);
     const result = await deleteCredentialAction(tenantId, projectId, credentialId);
@@ -58,7 +54,7 @@ function CredentialDialogMenu({ credentialId, credentialName }: CredentialDialog
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button

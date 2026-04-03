@@ -112,21 +112,16 @@ export function EvaluationJobResults({
 
   const selectedEvaluator = selectedEvaluatorId ? getEvaluatorById(selectedEvaluatorId) : undefined;
 
-  const filteredResults = useMemo(
-    () => filterEvaluationResults(results, filters, evaluators),
-    [results, filters, evaluators]
-  );
+  const filteredResults = filterEvaluationResults(results, filters, evaluators);
 
   const evaluatorOptions = evaluators.map((e) => ({ id: e.id, name: e.name }));
-  const agentOptions = useMemo(() => {
-    const uniqueAgents = new Map<string, string>();
-    results.forEach((result) => {
-      if (result.agentId && !uniqueAgents.has(result.agentId)) {
-        uniqueAgents.set(result.agentId, result.agentId);
-      }
-    });
-    return Array.from(uniqueAgents.entries()).map(([id, name]) => ({ id, name }));
-  }, [results]);
+  const uniqueAgents = new Map<string, string>();
+  for (const result of results) {
+    if (result.agentId && !uniqueAgents.has(result.agentId)) {
+      uniqueAgents.set(result.agentId, result.agentId);
+    }
+  }
+  const agentOptions = Array.from(uniqueAgents.entries()).map(([id, name]) => ({ id, name }));
 
   // Extract unique output schema keys from results for filtering dropdown
   function collect(obj: unknown, prefix = ''): string[] {

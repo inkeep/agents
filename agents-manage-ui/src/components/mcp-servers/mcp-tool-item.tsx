@@ -43,10 +43,6 @@ function MCPToolDialogMenu({ toolId, toolName, editPath }: MCPToolDialogMenuProp
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleOpenChange = (open: boolean) => {
-    setIsOpen(open);
-  };
-
   const handleDelete = async () => {
     setIsSubmitting(true);
     const result = await deleteToolAction(tenantId, projectId, toolId);
@@ -60,7 +56,7 @@ function MCPToolDialogMenu({ toolId, toolName, editPath }: MCPToolDialogMenuProp
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button

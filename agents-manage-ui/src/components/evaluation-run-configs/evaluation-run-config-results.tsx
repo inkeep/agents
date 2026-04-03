@@ -2,7 +2,7 @@
 
 import { CheckCircle2, ChevronDown, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { SuiteConfigViewDialog } from '@/components/evaluation-run-configs/suite-config-view-dialog';
 import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
@@ -105,22 +105,17 @@ export function EvaluationRunConfigResults({
     .map((id) => getSuiteConfigById(id))
     .filter((config): config is EvaluationSuiteConfig => config !== undefined);
 
-  const filteredResults = useMemo(
-    () => filterEvaluationResults(results, filters, evaluators),
-    [results, filters, evaluators]
-  );
+  const filteredResults = filterEvaluationResults(results, filters, evaluators);
 
   const evaluatorOptions = evaluators.map((e) => ({ id: e.id, name: e.name }));
 
-  const agentOptions = useMemo(() => {
-    const uniqueAgents = new Map<string, string>();
-    results.forEach((result) => {
-      if (result.agentId && !uniqueAgents.has(result.agentId)) {
-        uniqueAgents.set(result.agentId, result.agentId);
-      }
-    });
-    return Array.from(uniqueAgents.entries()).map(([id, name]) => ({ id, name }));
-  }, [results]);
+  const uniqueAgents = new Map<string, string>();
+  for (const result of results) {
+    if (result.agentId && !uniqueAgents.has(result.agentId)) {
+      uniqueAgents.set(result.agentId, result.agentId);
+    }
+  }
+  const agentOptions = Array.from(uniqueAgents.entries()).map(([id, name]) => ({ id, name }));
 
   // Extract unique output schema keys from results for filtering dropdown
   function collect(obj: unknown, prefix = ''): string[] {
