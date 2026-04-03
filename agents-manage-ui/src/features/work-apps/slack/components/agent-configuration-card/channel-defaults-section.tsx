@@ -115,6 +115,8 @@ export function ChannelDefaultsSection({
   onBulkResetToDefault,
   onClearFilters,
 }: ChannelDefaultsSectionProps) {
+  // Fix React compiler error: TanStack Table's `useReactTable()` API returns functions that cannot be memoized safely
+  'use no memo';
   const [sorting, setSorting] = useState<SortingState>([{ id: 'name', desc: false }]);
 
   const columns = useMemo<ColumnDef<Channel>[]>(

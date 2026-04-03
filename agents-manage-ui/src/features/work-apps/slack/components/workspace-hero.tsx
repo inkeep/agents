@@ -10,7 +10,7 @@ import {
   SlackIcon,
   Trash2,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import EmptyState from '@/components/layout/empty-state';
 import {
@@ -96,7 +96,7 @@ export function WorkspaceHero() {
     setMounted(true);
   }, []);
 
-  const checkHealth = useCallback(async () => {
+  async function checkHealth() {
     if (!workspace?.teamId) return;
 
     setHealth((h) => ({ ...h, checking: true }));
@@ -111,7 +111,7 @@ export function WorkspaceHero() {
     } catch {
       setHealth({ healthy: false, error: 'Failed to check health', checking: false });
     }
-  }, [workspace?.teamId]);
+  }
 
   useEffect(() => {
     if (!workspace?.teamId) return;
@@ -146,9 +146,8 @@ export function WorkspaceHero() {
         });
       } catch (error) {
         console.error('Failed to fetch stats:', error);
-      } finally {
-        setLoadingStats(false);
       }
+      setLoadingStats(false);
     };
 
     fetchStats();
@@ -168,21 +167,17 @@ export function WorkspaceHero() {
       }
     } catch {
       toast.error('Failed to send test message');
-    } finally {
-      setSendingTestMessage(false);
     }
+    setSendingTestMessage(false);
   };
 
   const handleUninstall = async () => {
     if (!workspace?.connectionId) return;
 
     setUninstalling(true);
-    try {
-      await uninstallWorkspace(workspace.connectionId);
-      setShowUninstallDialog(false);
-    } finally {
-      setUninstalling(false);
-    }
+    await uninstallWorkspace(workspace.connectionId);
+    setShowUninstallDialog(false);
+    setUninstalling(false);
   };
 
   if (!mounted || isLoading) {

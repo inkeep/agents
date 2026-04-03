@@ -15,7 +15,6 @@ export function useMcpToolsQuery({
   enabled?: boolean;
   skipDiscovery?: boolean;
 } = {}) {
-  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
   if (!tenantId || !projectId) {
@@ -40,7 +39,6 @@ export function useMcpToolsQuery({
  * Hook to invalidate MCP tool queries after mutations
  */
 export function useMcpToolInvalidation(tenantId: string, projectId: string) {
-  'use memo';
   const queryClient = useQueryClient();
 
   return useCallback(

@@ -117,7 +117,6 @@ const nonValidationErrors = new Set([
 ]);
 
 export const Agent: FC<AgentProps> = ({ agent }) => {
-  'use memo';
   const [showPlayground, setShowPlayground] = useState(false);
   const {
     isOpen: isCopilotChatOpen,

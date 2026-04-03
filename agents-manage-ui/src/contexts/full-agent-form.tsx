@@ -17,8 +17,6 @@ export const FullAgentFormProvider: FC<{
   children: ReactNode;
   defaultValues: Input;
 }> = ({ defaultValues, children }) => {
-  'use memo';
-
   const form = useForm({
     defaultValues,
     resolver,

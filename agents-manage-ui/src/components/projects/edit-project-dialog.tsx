@@ -33,12 +33,9 @@ export function EditProjectDialog({
 
     const loadPermissions = async () => {
       setLoading(true);
-      try {
-        const { canEdit } = await fetchProjectPermissions(tenantId, projectData.id);
-        setCanEdit(canEdit);
-      } finally {
-        setLoading(false);
-      }
+      const { canEdit } = await fetchProjectPermissions(tenantId, projectData.id);
+      setCanEdit(canEdit);
+      setLoading(false);
     };
 
     loadPermissions();

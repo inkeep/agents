@@ -20,7 +20,6 @@ export function useProjectsQuery({
   tenantId: string;
   enabled?: boolean;
 }) {
-  'use memo';
   return useQuery<Project[]>({
     queryKey: projectQueryKeys.list(tenantId),
     async queryFn() {
@@ -39,7 +38,6 @@ export function useProjectsQuery({
 }
 
 export function useProjectQuery({ enabled = true }: { enabled?: boolean } = {}) {
-  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
   if (!tenantId || !projectId) {
@@ -64,7 +62,6 @@ export function useProjectQuery({ enabled = true }: { enabled?: boolean } = {}) 
 }
 
 export function useProjectPermissionsQuery({ enabled = true }: { enabled?: boolean } = {}) {
-  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
   if (!tenantId || !projectId) {
@@ -85,7 +82,6 @@ export function useProjectPermissionsQuery({ enabled = true }: { enabled?: boole
 }
 
 export function useProjectsInvalidation(tenantId: string) {
-  'use memo';
   const queryClient = useQueryClient();
 
   return async () => {

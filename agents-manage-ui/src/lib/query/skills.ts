@@ -19,7 +19,6 @@ interface UpsertSkillInput {
 }
 
 export function useSkillsQuery({ enabled = true }: { enabled?: boolean } = {}) {
-  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
   if (!tenantId || !projectId) {
@@ -50,7 +49,6 @@ export function useSkillQuery({
   skillId?: string;
   enabled?: boolean;
 } = {}) {
-  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
   if (!tenantId || !projectId) {
@@ -75,7 +73,6 @@ export function useSkillQuery({
 }
 
 export function useUpsertSkillMutation() {
-  'use memo';
   const queryClient = useQueryClient();
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 

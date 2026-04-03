@@ -286,9 +286,8 @@ function ReadyState({
     } catch (error) {
       console.error('Failed to load installation details:', error);
       toast.error('Failed to load repository details');
-    } finally {
-      setIsLoading(false);
     }
+    setIsLoading(false);
   }, [tenantId, installations]);
 
   useEffect(() => {
@@ -303,9 +302,8 @@ function ReadyState({
       toast.success('Repositories synced');
     } catch {
       toast.error('Failed to sync repositories');
-    } finally {
-      setSyncing(null);
     }
+    setSyncing(null);
   };
 
   const handleRepoToggle = (repoId: string) => {
@@ -404,9 +402,8 @@ function ReadyState({
     } catch (error) {
       console.error('Failed to create GitHub MCP server:', error);
       toast.error('Failed to create GitHub MCP server. Please try again.');
-    } finally {
-      setIsSubmitting(false);
     }
+    setIsSubmitting(false);
   };
 
   return (
