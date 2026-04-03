@@ -37,7 +37,6 @@ export function GenericPromptEditor<
   readOnly?: boolean;
   uri?: ComponentProps<typeof PromptEditor>['uri'];
 }) {
-  'use memo';
   const [open, onOpenChange] = useState(false);
   const $uri = props.uri ?? `${name}.template`;
   const uri = `${open ? 'expanded-' : ''}${$uri}` as const;

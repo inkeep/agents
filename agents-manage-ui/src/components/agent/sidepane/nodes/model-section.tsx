@@ -30,7 +30,6 @@ export function ModelSection({
   projectModels,
   agentModels,
 }: ModelSectionProps) {
-  'use memo';
   const hasAdvancedOptions = models.structuredOutput?.model || models.summarizer?.model;
 
   function getInheritance(key: 'structuredOutput' | 'summarizer') {

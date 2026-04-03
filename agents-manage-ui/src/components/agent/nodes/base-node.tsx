@@ -8,7 +8,6 @@ interface BaseNodeProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 export const BaseNode: FC<BaseNodeProps> = ({ className, isSelected, children, ...props }) => {
-  'use memo';
   const { tabs, restChildren } = Children.toArray(children).reduce<{
     tabs: ReactNode[];
     restChildren: ReactNode[];

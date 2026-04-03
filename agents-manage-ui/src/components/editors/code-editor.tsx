@@ -15,7 +15,6 @@ export const CodeEditor: FC<CodeEditorProps> = ({
   uri,
   ...props
 }) => {
-  'use memo';
   const id = useId();
 
   return (

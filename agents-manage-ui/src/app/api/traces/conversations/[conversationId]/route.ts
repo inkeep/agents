@@ -3,8 +3,6 @@ import {
   parseContextBreakdownFromSpan,
   V1_BREAKDOWN_SCHEMA,
 } from '@inkeep/agents-core/client-exports';
-import axios from 'axios';
-import axiosRetry from 'axios-retry';
 import { type NextRequest, NextResponse } from 'next/server';
 import {
   ACTIVITY_NAMES,
@@ -26,18 +24,13 @@ import {
   UNKNOWN_VALUE,
 } from '@/constants/signoz';
 import { getAgentsApiUrl } from '@/lib/api/api-config';
+import { fetchWithRetry } from '@/lib/api/fetch-with-retry';
 import {
   DEFAULT_LOOKBACK_MS,
   getConversationTimeRange,
 } from '@/lib/api/signoz-conversation-time-range';
 
 import { getLogger } from '@/lib/logger';
-
-// Configure axios retry
-axiosRetry(axios, {
-  retries: 3,
-  retryDelay: axiosRetry.exponentialDelay,
-});
 
 export const dynamic = 'force-dynamic';
 
@@ -128,13 +121,34 @@ async function signozQuery(
 
     logger.debug({ endpoint }, 'Calling agents-api for conversation traces');
 
-    const response = await axios.post(endpoint, payload, {
+    const response = await fetchWithRetry(endpoint, {
+      method: 'POST',
       headers,
+      body: JSON.stringify(payload),
+      credentials: 'include',
       timeout: 30000,
-      withCredentials: true,
+      maxAttempts: 3,
+      label: 'signoz-conversation-query',
     });
 
-    const json = response.data;
+    if (!response.ok) {
+      const statusText = response.statusText;
+      if (response.status === 401 || response.status === 403) {
+        throw new Error(`SigNoz authentication failed: ${statusText}`);
+      }
+      if (response.status === 400) {
+        throw new Error(`Invalid SigNoz query: ${statusText}`);
+      }
+      if (response.status === 429) {
+        throw new Error(`SigNoz rate limit exceeded: ${statusText}`);
+      }
+      if (response.status >= 500) {
+        throw new Error(`SigNoz server error: ${statusText}`);
+      }
+      throw new Error(`SigNoz request failed: ${statusText}`);
+    }
+
+    const json = await response.json();
     const results = json?.data?.data?.results ?? [];
     logger.debug(
       {
@@ -146,26 +160,13 @@ async function signozQuery(
   } catch (e) {
     logger.error({ error: e }, 'SigNoz query error');
 
-    // Re-throw the error with more context for proper error handling
-    if (axios.isAxiosError(e)) {
-      if (e.code === 'ECONNREFUSED' || e.code === 'ENOTFOUND' || e.code === 'ETIMEDOUT') {
-        throw new Error(`SigNoz service unavailable: ${e.message}`);
-      }
-      if (e.response?.status === 401 || e.response?.status === 403) {
-        throw new Error(`SigNoz authentication failed: ${e.response.statusText}`);
-      }
-      if (e.response?.status === 400) {
-        throw new Error(`Invalid SigNoz query: ${e.response.statusText}`);
-      }
-      if (e.response?.status === 429) {
-        throw new Error(`SigNoz rate limit exceeded: ${e.response.statusText}`);
-      }
-      if (e.response?.status && e.response.status >= 500) {
-        throw new Error(`SigNoz server error: ${e.response.statusText}`);
-      }
-      throw new Error(`SigNoz request failed: ${e.message}`);
+    if (e instanceof TypeError) {
+      throw new Error(`SigNoz service unavailable: ${e.message}`);
     }
-    throw new Error(`SigNoz query failed: ${e instanceof Error ? e.message : 'Unknown error'}`);
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      throw new Error(`SigNoz service unavailable: request timed out`);
+    }
+    throw e instanceof Error ? e : new Error(`SigNoz query failed: ${String(e)}`);
   }
 }
 
@@ -484,6 +485,20 @@ function buildConversationPayloads(
         sf(SPAN_KEYS.STREAM_BUFFER_SIZE_BYTES, int64, attr),
       ]
     ),
+    buildQueryEnvelope(
+      QUERY_EXPRESSIONS.DURABLE_TOOL_EXECUTIONS,
+      `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.DURABLE_TOOL_EXECUTION}'`,
+      [
+        sf(SPAN_KEYS.SPAN_ID, str, span),
+        sf(SPAN_KEYS.TIMESTAMP, int64, span),
+        sf(SPAN_KEYS.HAS_ERROR, bool, span),
+        sf(SPAN_KEYS.TOOL_NAME, str, attr),
+        sf(SPAN_KEYS.TOOL_CALL_ID, str, attr),
+        sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
+        sf(SPAN_KEYS.TOOL_RESPONSE_CONTENT, str, attr),
+        sf(SPAN_KEYS.TOOL_RESPONSE_TIMESTAMP, str, attr),
+      ]
+    ),
   ];
 
   return [
@@ -606,6 +621,7 @@ export async function GET(
     const compressionSpans = parseList(resp, QUERY_EXPRESSIONS.COMPRESSION);
     const maxStepsReachedSpans = parseList(resp, QUERY_EXPRESSIONS.MAX_STEPS_REACHED);
     const streamLifetimeExceededSpans = parseList(resp, QUERY_EXPRESSIONS.STREAM_LIFETIME_EXCEEDED);
+    const durableToolExecutionSpans = parseList(resp, QUERY_EXPRESSIONS.DURABLE_TOOL_EXECUTIONS);
 
     logger.info(
       {
@@ -686,7 +702,8 @@ export async function GET(
         | 'tool_approval_denied'
         | 'compression'
         | 'max_steps_reached'
-        | 'stream_lifetime_exceeded';
+        | 'stream_lifetime_exceeded'
+        | 'durable_tool_execution';
       description: string;
       timestamp: string;
       parentSpanId?: string | null;
@@ -780,6 +797,9 @@ export async function GET(
       streamCleanupReason?: string;
       streamMaxLifetimeMs?: number;
       streamBufferSizeBytes?: number;
+      // durable tool execution
+      toolCallId?: string;
+      toolResponseContent?: string;
     };
 
     const activities: Activity[] = [];
@@ -1299,6 +1319,30 @@ export async function GET(
         streamCleanupReason: cleanupReason,
         streamMaxLifetimeMs: maxLifetimeMs,
         streamBufferSizeBytes: bufferSizeBytes,
+      });
+    }
+
+    for (const span of durableToolExecutionSpans) {
+      const spanId = getString(span, SPAN_KEYS.SPAN_ID, '');
+      const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
+      const toolName = getString(span, SPAN_KEYS.TOOL_NAME, '');
+      const toolCallId = getString(span, SPAN_KEYS.TOOL_CALL_ID, '');
+      const subAgentId = getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT);
+      const toolResponseContent = getString(span, SPAN_KEYS.TOOL_RESPONSE_CONTENT, '');
+
+      activities.push({
+        id: spanId,
+        type: ACTIVITY_TYPES.DURABLE_TOOL_EXECUTION,
+        description: hasError
+          ? `Durable tool execution failed: ${toolName}`
+          : `Durable tool executed: ${toolName}`,
+        timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(spanId) || undefined,
+        status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
+        subAgentId,
+        toolName: toolName || undefined,
+        toolCallId: toolCallId || undefined,
+        toolResponseContent: toolResponseContent || undefined,
       });
     }
 

@@ -97,9 +97,8 @@ export function ProjectAccessDialog({
       } catch (err) {
         console.error('Failed to fetch data:', err);
         toast.error('Failed to load data');
-      } finally {
-        if (!cancelled) setLoadingMemberships(false);
       }
+      if (!cancelled) setLoadingMemberships(false);
     };
 
     loadData();

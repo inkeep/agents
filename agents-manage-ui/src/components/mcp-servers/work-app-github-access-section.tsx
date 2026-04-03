@@ -38,9 +38,8 @@ export function WorkAppGitHubAccessSection({
     } catch (err) {
       console.error('Failed to load GitHub access config:', err);
       setError('Failed to load GitHub access configuration');
-    } finally {
-      setIsLoading(false);
     }
+    setIsLoading(false);
   }, [tenantId, projectId, tool.id]);
 
   useEffect(() => {

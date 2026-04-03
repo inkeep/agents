@@ -23,6 +23,12 @@ export async function resolveMessageBlobUris(
     content.parts.map(async (part) => {
       if (part.kind === 'file' && typeof part.data === 'string' && isBlobUri(part.data)) {
         const key = fromBlobUri(part.data);
+        const parsed = parseMediaStorageKey(key);
+
+        if (!parsed) {
+          logger.warn({ key }, 'Malformed blob storage key, filtering part out');
+          return null;
+        }
 
         if (resolvedProvider.getPresignedUrl) {
           try {
@@ -36,13 +42,8 @@ export async function resolveMessageBlobUris(
           }
         }
 
-        const parsed = parseMediaStorageKey(key);
-        if (parsed) {
-          const proxyUrl = `${apiBaseUrl}/manage/tenants/${parsed.tenantId}/projects/${parsed.projectId}/conversations/${parsed.conversationId}/media/${encodeURIComponent(parsed.tail)}`;
-          return { ...part, data: proxyUrl };
-        }
-        logger.warn({ key }, 'Malformed blob storage key, filtering part out');
-        return null;
+        const proxyUrl = `${apiBaseUrl}/manage/tenants/${parsed.tenantId}/projects/${parsed.projectId}/conversations/${parsed.conversationId}/media/${encodeURIComponent(parsed.tail)}`;
+        return { ...part, data: proxyUrl };
       }
 
       return part;

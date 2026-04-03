@@ -54,8 +54,6 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
   defaultOpen = false,
   onClose,
 }) => {
-  'use memo';
-
   const [open, setOpen] = useState(defaultOpen);
 
   const [showCustomInput, setShowCustomInput] = useState<

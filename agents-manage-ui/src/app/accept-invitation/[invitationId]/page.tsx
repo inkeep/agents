@@ -94,9 +94,8 @@ export default function AcceptInvitationPage({
         }
       } catch {
         setError('Failed to validate invitation');
-      } finally {
-        setIsLoading(false);
       }
+      setIsLoading(false);
     }
 
     if (!user && !isAuthLoading) {
@@ -125,9 +124,8 @@ export default function AcceptInvitationPage({
         }
       } catch {
         setError('Failed to load invitation');
-      } finally {
-        setIsLoading(false);
       }
+      setIsLoading(false);
     }
 
     if (user) {

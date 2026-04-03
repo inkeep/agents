@@ -88,117 +88,98 @@ function ProviderSetupPage({
     load();
   }, [canEdit, provider, tenantId]);
 
-  const handleNangoConnect = useCallback(
-    async (event: any) => {
-      if (!canEdit || !provider || event.type !== 'connect') return;
+  async function handleNangoConnect(event: any) {
+    if (!canEdit || !provider || event.type !== 'connect') return;
 
-      if (!event.payload?.connectionId || !event.payload?.providerConfigKey) {
-        console.error('Missing required connection data:', event.payload);
-        toast.error('Invalid connection data received');
-        return;
+    if (!event.payload?.connectionId || !event.payload?.providerConfigKey) {
+      console.error('Missing required connection data:', event.payload);
+      toast.error('Invalid connection data received');
+      return;
+    }
+
+    try {
+      await findOrCreateCredential(tenantId, projectId, {
+        id: generateId(),
+        name: provider.name,
+        type: CredentialStoreType.nango,
+        createdBy: user?.email ?? undefined,
+        credentialStoreId: DEFAULT_NANGO_STORE_ID,
+        retrievalParams: {
+          connectionId: event.payload.connectionId,
+          providerConfigKey: event.payload.providerConfigKey,
+          provider: provider.name,
+          authMode: provider.auth_mode,
+        },
+      });
+
+      toast.success('Credential created successfully');
+      router.push(`/${tenantId}/projects/${projectId}/credentials`);
+    } catch (credentialError) {
+      console.error('Failed to create credential record:', credentialError);
+      if (credentialError instanceof Error && credentialError.message?.includes('database')) {
+        toast.error('Failed to save credential. Please check your connection and try again.');
+      } else {
+        toast.error('Failed to save credential. Please try again.');
       }
+    }
+  }
 
-      try {
-        await findOrCreateCredential(tenantId, projectId, {
-          id: generateId(),
-          name: provider.name,
-          type: CredentialStoreType.nango,
-          createdBy: user?.email ?? undefined,
-          credentialStoreId: DEFAULT_NANGO_STORE_ID,
-          retrievalParams: {
-            connectionId: event.payload.connectionId,
-            providerConfigKey: event.payload.providerConfigKey,
-            provider: provider.name,
-            authMode: provider.auth_mode,
-          },
-        });
+  async function startConnectFlow(integrationKey: string, credentials?: Record<string, any>) {
+    if (!canEdit || !provider) return;
 
-        toast.success('Credential created successfully');
-        router.push(`/${tenantId}/projects/${projectId}/credentials`);
-      } catch (credentialError) {
-        console.error('Failed to create credential record:', credentialError);
-        if (credentialError instanceof Error && credentialError.message?.includes('database')) {
-          toast.error('Failed to save credential. Please check your connection and try again.');
+    const { data: organizationData } = await authClient.organization.getFullOrganization();
+
+    setLoading(true);
+    setHasAttempted(true);
+    try {
+      const connectToken = await createProviderConnectSession({
+        providerName: provider.name,
+        uniqueKey: integrationKey,
+        displayName: provider.name,
+        credentials: await buildCredentialsPayload(credentials, provider.auth_mode),
+        endUserId: user?.id,
+        endUserEmail: user?.email,
+        endUserDisplayName: user?.name,
+        organizationId: organizationData?.id,
+        organizationDisplayName: organizationData?.name,
+      });
+
+      openNangoConnect({
+        sessionToken: connectToken,
+        onEvent: handleNangoConnect,
+      });
+    } catch (error) {
+      console.error('Failed to create credential:', error);
+
+      if (error instanceof NangoError) {
+        if (error.operation === 'createConnectSession') {
+          toast.error('Failed to start authentication flow. Please try again.');
         } else {
-          toast.error('Failed to save credential. Please try again.');
+          toast.error('Service temporarily unavailable. Please try again later.');
         }
+      } else if (error instanceof Error && error.message?.includes('NANGO_SECRET_KEY')) {
+        toast.error('Configuration error. Please contact support.');
+      } else {
+        toast.error('Failed to create credential. Please try again.');
       }
-    },
-    [canEdit, provider, tenantId, projectId, router, user?.email]
-  );
+    }
+    setLoading(false);
+  }
 
-  const startConnectFlow = useCallback(
-    async (integrationKey: string, credentials?: Record<string, any>) => {
-      if (!canEdit || !provider) return;
+  async function handleCreateNewIntegration(credentials?: Record<string, any>) {
+    if (!canEdit || !provider) return;
 
-      const { data: organizationData } = await authClient.organization.getFullOrganization();
+    const integrationKey = `${provider.name}-${tenantId}-${generateId().slice(0, 6)}`;
 
-      setLoading(true);
-      setHasAttempted(true);
-      try {
-        const connectToken = await createProviderConnectSession({
-          providerName: provider.name,
-          uniqueKey: integrationKey,
-          displayName: provider.name,
-          credentials: await buildCredentialsPayload(credentials, provider.auth_mode),
-          endUserId: user?.id,
-          endUserEmail: user?.email,
-          endUserDisplayName: user?.name,
-          organizationId: organizationData?.id,
-          organizationDisplayName: organizationData?.name,
-        });
+    await startConnectFlow(integrationKey, credentials);
 
-        openNangoConnect({
-          sessionToken: connectToken,
-          onEvent: handleNangoConnect,
-        });
-      } catch (error) {
-        console.error('Failed to create credential:', error);
-
-        if (error instanceof NangoError) {
-          if (error.operation === 'createConnectSession') {
-            toast.error('Failed to start authentication flow. Please try again.');
-          } else {
-            toast.error('Service temporarily unavailable. Please try again later.');
-          }
-        } else if (error instanceof Error && error.message?.includes('NANGO_SECRET_KEY')) {
-          toast.error('Configuration error. Please contact support.');
-        } else {
-          toast.error('Failed to create credential. Please try again.');
-        }
-      } finally {
-        setLoading(false);
-      }
-    },
-    [
-      canEdit,
-      provider,
-      openNangoConnect,
-      handleNangoConnect,
-      user?.id,
-      user?.email,
-      user?.name,
-      authClient,
-    ]
-  );
-
-  const handleCreateNewIntegration = useCallback(
-    async (credentials?: Record<string, any>) => {
-      if (!canEdit || !provider) return;
-
-      const integrationKey = `${provider.name}-${tenantId}-${generateId().slice(0, 6)}`;
-
-      await startConnectFlow(integrationKey, credentials);
-
-      try {
-        const result = await listNangoProviderIntegrations(provider.name, tenantId);
-        setIntegrations(result);
-      } catch (error) {
-        console.error('Failed to refresh integrations list:', error);
-      }
-    },
-    [canEdit, provider, tenantId, startConnectFlow]
-  );
+    try {
+      const result = await listNangoProviderIntegrations(provider.name, tenantId);
+      setIntegrations(result);
+    } catch (error) {
+      console.error('Failed to refresh integrations list:', error);
+    }
+  }
 
   const handleUpdateCredentials = useCallback(
     async (credentials?: Record<string, any>) => {
@@ -234,9 +215,8 @@ function ProviderSetupPage({
         } else {
           toast.error('An unexpected error occurred. Please try again.');
         }
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     },
     [canEdit, provider, tenantId, formMode]
   );
@@ -263,9 +243,8 @@ function ProviderSetupPage({
         } else {
           toast.error('An unexpected error occurred. Please try again.');
         }
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     },
     [canEdit, provider, tenantId]
   );
@@ -277,7 +256,15 @@ function ProviderSetupPage({
     if (!requiresCredentialForm(provider.auth_mode)) {
       startConnectFlow(`${provider.name}-${tenantId}`);
     }
-  }, [canEdit, provider, loading, hasAttempted, startConnectFlow, tenantId]);
+  }, [
+    canEdit,
+    provider,
+    loading,
+    hasAttempted,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    startConnectFlow,
+    tenantId,
+  ]);
 
   const backLink = `/${tenantId}/projects/${projectId}/credentials/new/providers` as const;
 

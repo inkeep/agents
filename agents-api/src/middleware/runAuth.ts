@@ -13,7 +13,6 @@ import {
   verifyPoW,
   verifyServiceToken,
   verifySlackUserToken,
-  verifyTempToken,
   type WebClientConfig,
 } from '@inkeep/agents-core';
 import { trace } from '@opentelemetry/api';
@@ -25,7 +24,6 @@ import { getAnonJwtSecret } from '../domains/run/routes/auth';
 import { env } from '../env';
 import { getLogger } from '../logger';
 import { createBaseExecutionContext } from '../types/runExecutionContext';
-import { isCopilotAgent } from '../utils/copilot';
 
 const logger = getLogger('env-key-auth');
 
@@ -160,88 +158,6 @@ function buildExecutionContext(authResult: AuthResult, reqData: RequestData): Ba
 // ============================================================================
 // Auth Strategies
 // ============================================================================
-
-/**
- * Attempts to authenticate using a JWT temporary token
- *
- * Throws HTTPException(403) if the JWT is valid but the user lacks permission.
- * Returns null if the token is not a temp JWT (allowing fallback to other auth methods).
- */
-async function tryTempJwtAuth(apiKey: string): Promise<AuthAttempt> {
-  if (!apiKey.startsWith('eyJ')) {
-    return { authResult: null, failureMessage: 'not a JWT' };
-  }
-
-  if (!env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY) {
-    return { authResult: null, failureMessage: 'no public key configured' };
-  }
-
-  try {
-    const publicKeyPem = Buffer.from(env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY, 'base64').toString(
-      'utf-8'
-    );
-    const payload = await verifyTempToken(publicKeyPem, apiKey);
-
-    const userId = payload.sub;
-    const projectId = payload.projectId;
-    const agentId = payload.agentId;
-
-    if (!projectId || !agentId) {
-      logger.warn({ userId }, 'Missing projectId or agentId in JWT');
-      throw new HTTPException(400, {
-        message: 'Invalid token: missing projectId or agentId',
-      });
-    }
-
-    const isCopilotToken = isCopilotAgent({
-      tenantId: payload.tenantId,
-      projectId,
-      agentId,
-    });
-
-    if (isCopilotToken) {
-      logger.info({ userId, projectId, agentId }, 'Copilot bypass: skipping SpiceDB check');
-    }
-
-    if (!isCopilotToken) {
-      let canUse: boolean;
-      try {
-        canUse = await canUseProjectStrict({ userId, tenantId: payload.tenantId, projectId });
-      } catch (error) {
-        logger.error({ error, userId, projectId }, 'SpiceDB permission check failed');
-        throw new HTTPException(503, {
-          message: 'Authorization service temporarily unavailable',
-        });
-      }
-
-      if (!canUse) {
-        logger.warn({ userId, projectId }, 'User does not have use permission on project');
-        throw new HTTPException(403, {
-          message: 'Access denied: insufficient permissions',
-        });
-      }
-    }
-
-    logger.info({ projectId, agentId }, 'JWT temp token authenticated successfully');
-
-    return {
-      authResult: {
-        apiKey,
-        tenantId: payload.tenantId,
-        projectId,
-        agentId,
-        apiKeyId: 'temp-jwt',
-        metadata: { initiatedBy: payload.initiatedBy },
-      },
-    };
-  } catch (error) {
-    if (error instanceof HTTPException) {
-      throw error;
-    }
-    logger.debug({ error }, 'JWT verification failed');
-    return { authResult: null, failureMessage: 'JWT verification failed' };
-  }
-}
 
 /**
  * Authenticate using a regular API key
@@ -911,12 +827,6 @@ async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
   }
 
   const failures: Array<{ strategy: string; reason: string }> = [];
-
-  const jwtAttempt = await tryTempJwtAuth(apiKey);
-  if (jwtAttempt.authResult) return jwtAttempt;
-  if (jwtAttempt.failureMessage) {
-    failures.push({ strategy: 'JWT temp token', reason: jwtAttempt.failureMessage });
-  }
 
   const bypassAttempt = tryBypassAuth(apiKey, reqData);
   if (bypassAttempt.authResult) return bypassAttempt;

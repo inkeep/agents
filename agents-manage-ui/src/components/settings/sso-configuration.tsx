@@ -80,9 +80,8 @@ export function useSSOProviders(organizationId: string | undefined) {
       }
     } catch {
       setProviders([]);
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }, [authClient, organizationId]);
 
   useEffect(() => {
@@ -262,9 +261,8 @@ export function RegisterSSOForm({
       onRegistered();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to register SSO provider');
-    } finally {
-      setIsSubmitting(false);
     }
+    setIsSubmitting(false);
   };
 
   return (
@@ -521,9 +519,8 @@ export function EditSSOForm({
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update SSO provider');
-    } finally {
-      setIsSubmitting(false);
     }
+    setIsSubmitting(false);
   };
 
   return (

@@ -38,7 +38,6 @@ export const TreeNode: FC<{
   selectedNodePath: string;
   nested?: boolean;
 }> = ({ node, nested = false, selectedNodePath }) => {
-  'use memo';
   const {
     data: { canEdit },
   } = useProjectPermissionsQuery();

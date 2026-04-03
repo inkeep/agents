@@ -17,7 +17,6 @@ export const JsonSchemaEditor: FC<JsonSchemaEditorProps> = ({
   allRequired,
   ...props
 }) => {
-  'use memo';
   const isJsonSchemaModeChecked = useAgentStore((state) => state.jsonSchemaMode);
   const { setJsonSchemaMode } = useAgentActions();
   const id = useId();

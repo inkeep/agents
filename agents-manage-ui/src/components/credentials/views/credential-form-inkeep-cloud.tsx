@@ -37,7 +37,6 @@ const defaultValues: CredentialFormData = {
 };
 
 export function CredentialFormInkeepCloud({ onCreateCredential }: CredentialFormProps) {
-  'use memo';
   const [shouldLinkToServer, setShouldLinkToServer] = useState(false);
   const [shouldLinkToExternalAgent, setShouldLinkToExternalAgent] = useState(false);
 

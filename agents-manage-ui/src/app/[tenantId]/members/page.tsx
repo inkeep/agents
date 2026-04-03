@@ -65,9 +65,8 @@ export default function MembersPage({ params }: PageProps<'/[tenantId]/members'>
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch organization');
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }, [tenantId, authClient]);
 
   useEffect(() => {

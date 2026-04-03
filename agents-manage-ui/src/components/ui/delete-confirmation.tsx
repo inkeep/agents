@@ -22,18 +22,19 @@ export function DeleteConfirmation({
   itemName = 'this item',
   isSubmitting,
   onDelete,
-  customTitle = `Delete ${itemName}`,
-  customDescription = `Are you sure you want to delete ${itemName}? This action cannot be undone.`,
+  customTitle,
+  customDescription,
   children,
 }: DeleteConfirmationProps) {
   return (
     <DialogContent>
-      <DialogTitle>{customTitle}</DialogTitle>
+      <DialogTitle>{customTitle ?? `Delete ${itemName}`}</DialogTitle>
       <DialogDescription
         // respect \n in message
         className="whitespace-pre-wrap"
       >
-        {customDescription}
+        {customDescription ??
+          `Are you sure you want to delete ${itemName}? This action cannot be undone.`}
       </DialogDescription>
       {children}
       <DialogFooter>

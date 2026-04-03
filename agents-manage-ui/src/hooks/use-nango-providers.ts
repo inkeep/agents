@@ -20,9 +20,8 @@ export function useNangoProviders() {
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load providers');
         setProviders([]);
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     }
 
     loadProviders();

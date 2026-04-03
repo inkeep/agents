@@ -29,8 +29,6 @@ export function SuiteConfigViewDialog({
   isOpen,
   onOpenChange,
 }: SuiteConfigViewDialogProps) {
-  'use memo';
-
   const { data: suiteConfigData, isFetching: suiteConfigFetching } = useEvaluationSuiteConfigQuery({
     suiteConfigId,
     enabled: isOpen,
