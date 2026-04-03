@@ -111,7 +111,15 @@ export async function verifyServiceToken(token: string): Promise<VerifyServiceTo
     };
   }
 
-  const initiatedBy = payload.initiatedBy as { type: 'user' | 'api_key'; id: string } | undefined;
+  const initiatedBy =
+    payload.initiatedBy &&
+    typeof payload.initiatedBy === 'object' &&
+    'type' in payload.initiatedBy &&
+    'id' in payload.initiatedBy &&
+    (payload.initiatedBy.type === 'user' || payload.initiatedBy.type === 'api_key') &&
+    typeof payload.initiatedBy.id === 'string'
+      ? (payload.initiatedBy as { type: 'user' | 'api_key'; id: string })
+      : undefined;
   const appId = typeof payload.appId === 'string' ? payload.appId : undefined;
 
   const validPayload: ServiceTokenPayload = {
