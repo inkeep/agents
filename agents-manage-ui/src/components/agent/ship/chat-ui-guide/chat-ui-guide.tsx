@@ -36,11 +36,27 @@ export function ChatUIGuide() {
       shouldEmitDataOperations: true,
     },
   });
-  const allValues = useWatch({ control: form.control });
-  const component = allValues.component ?? ChatUIComponent.EMBEDDED_CHAT;
-  const baseSettings = allValues.baseSettings ?? { primaryBrandColor: INKEEP_BRAND_COLOR };
-  const aiChatSettings = allValues.aiChatSettings ?? { baseUrl };
-  const shouldEmitDataOperations = allValues.shouldEmitDataOperations ?? true;
+  const { control } = form;
+  const component = useWatch({
+    control,
+    name: 'component',
+    defaultValue: ChatUIComponent.EMBEDDED_CHAT,
+  });
+  const baseSettings = useWatch({
+    control,
+    name: 'baseSettings',
+    defaultValue: { primaryBrandColor: INKEEP_BRAND_COLOR },
+  });
+  const aiChatSettings = useWatch({
+    control,
+    name: 'aiChatSettings',
+    defaultValue: { baseUrl },
+  });
+  const shouldEmitDataOperations = useWatch({
+    control,
+    name: 'shouldEmitDataOperations',
+    defaultValue: true,
+  });
 
   return (
     <Tabs defaultValue="preview">
