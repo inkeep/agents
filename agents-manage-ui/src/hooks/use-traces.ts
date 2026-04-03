@@ -338,7 +338,8 @@ export function useStatsByProject(options?: {
     fetchData();
   }, [
     // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-      fetchData]);
+    fetchData,
+  ]);
 
   return {
     data,

@@ -519,9 +519,8 @@ export function EditSSOForm({
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update SSO provider');
-    } finally {
-      setIsSubmitting(false);
     }
+    setIsSubmitting(false);
   };
 
   return (
