@@ -9,7 +9,11 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { Building2, Hash, Loader2, Lock, type LucideIcon, Search, X } from 'lucide-react';
-import { useState } from 'react';
+import {
+  // biome-ignore lint/style/noRestrictedImports: TODO: refactor when memoization with useReactTable will be fixed
+  useMemo,
+  useState,
+} from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -119,71 +123,83 @@ export function ChannelDefaultsSection({
   'use no memo';
   const [sorting, setSorting] = useState<SortingState>([{ id: 'name', desc: false }]);
 
-  const columns: ColumnDef<Channel>[] = [
-    {
-      id: 'select',
-      header: () => null,
-      cell: () => null,
-      enableSorting: false,
-    },
-    {
-      accessorKey: 'name',
-      id: 'name',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Name" align="left" />,
-      cell: ({ row }) => {
-        const channel = row.original;
-        return (
-          <span className="flex min-w-0 items-center gap-2 font-medium text-sm">
-            {channel.isShared ? (
-              <Building2
-                aria-hidden="true"
-                className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
-              />
-            ) : channel.isPrivate ? (
-              <Lock aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            ) : (
-              <Hash aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            )}
-            <span className="min-w-0 truncate">{channel.name}</span>
-          </span>
-        );
+  const columns = useMemo<ColumnDef<Channel>[]>(
+    () => [
+      {
+        id: 'select',
+        header: () => null,
+        cell: () => null,
+        enableSorting: false,
       },
-    },
-    {
-      accessorFn: (row) => row.agentConfig?.grantAccessToMembers,
-      id: 'memberAccess',
-      sortUndefined: 'last',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Member Access" align="right" />
-      ),
-      cell: ({ row }) => (
-        <div className="text-right">
-          <ChannelAccessCell channel={row.original} onToggleGrantAccess={onToggleGrantAccess} />
-        </div>
-      ),
-    },
-    {
-      accessorFn: (row) =>
-        row.agentConfig
-          ? getAgentDisplayName(agents, row.agentConfig.agentId, row.agentConfig.projectId)
-          : undefined,
-      id: 'agent',
-      sortUndefined: 'last',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Agent" align="right" />,
-      cell: ({ row }) => (
-        <div className="text-right">
-          <ChannelAgentCell
-            channel={row.original}
-            agents={agents}
-            savingChannel={savingChannel}
-            hasWorkspaceDefault={hasWorkspaceDefault}
-            onSetAgent={onSetChannelAgent}
-            onResetToDefault={onResetChannelToDefault}
-          />
-        </div>
-      ),
-    },
-  ];
+      {
+        accessorKey: 'name',
+        id: 'name',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Name" align="left" />,
+        cell: ({ row }) => {
+          const channel = row.original;
+          return (
+            <span className="flex min-w-0 items-center gap-2 font-medium text-sm">
+              {channel.isShared ? (
+                <Building2
+                  aria-hidden="true"
+                  className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                />
+              ) : channel.isPrivate ? (
+                <Lock aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              ) : (
+                <Hash aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              )}
+              <span className="min-w-0 truncate">{channel.name}</span>
+            </span>
+          );
+        },
+      },
+      {
+        accessorFn: (row) => row.agentConfig?.grantAccessToMembers,
+        id: 'memberAccess',
+        sortUndefined: 'last',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Member Access" align="right" />
+        ),
+        cell: ({ row }) => (
+          <div className="text-right">
+            <ChannelAccessCell channel={row.original} onToggleGrantAccess={onToggleGrantAccess} />
+          </div>
+        ),
+      },
+      {
+        accessorFn: (row) =>
+          row.agentConfig
+            ? getAgentDisplayName(agents, row.agentConfig.agentId, row.agentConfig.projectId)
+            : undefined,
+        id: 'agent',
+        sortUndefined: 'last',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Agent" align="right" />
+        ),
+        cell: ({ row }) => (
+          <div className="text-right">
+            <ChannelAgentCell
+              channel={row.original}
+              agents={agents}
+              savingChannel={savingChannel}
+              hasWorkspaceDefault={hasWorkspaceDefault}
+              onSetAgent={onSetChannelAgent}
+              onResetToDefault={onResetChannelToDefault}
+            />
+          </div>
+        ),
+      },
+    ],
+    [
+      agents,
+      savingChannel,
+      hasWorkspaceDefault,
+      onSetChannelAgent,
+      onResetChannelToDefault,
+      onToggleGrantAccess,
+    ]
+  );
 
   const table = useReactTable({
     data: filteredChannels,
