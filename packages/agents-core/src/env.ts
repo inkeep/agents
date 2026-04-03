@@ -102,6 +102,10 @@ const envSchema = z.object({
     ),
   GITHUB_MCP_API_KEY: z.string().optional().describe('API key for the GitHub MCP'),
   SLACK_MCP_API_KEY: z.string().optional().describe('API key for the Slack MCP'),
+  PLATFORM_MCP_API_KEY: z
+    .string()
+    .optional()
+    .describe('Shared API key for platform MCP servers (feedback, conversations, etc.)'),
   SPICEDB_ENDPOINT: z.string().optional().describe('SpiceDB endpoint'),
   SPICEDB_PRESHARED_KEY: z.string().optional().describe('SpiceDB pre-shared key'),
   SPICEDB_TLS_ENABLED: z.stringbool().optional().describe('SpiceDB TLS enabled'),

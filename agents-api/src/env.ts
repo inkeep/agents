@@ -222,6 +222,10 @@ const envSchema = z
     GITHUB_APP_NAME: z.string().optional().describe('Name of the GitHub App'),
     GITHUB_MCP_API_KEY: z.string().optional().describe('API key for the GitHub MCP'),
     SLACK_MCP_API_KEY: z.string().optional().describe('API key for the Slack MCP'),
+    PLATFORM_MCP_API_KEY: z
+      .string()
+      .optional()
+      .describe('Shared API key for platform MCP servers (feedback, conversations, etc.)'),
 
     // Slack Socket Mode (local development)
     SLACK_APP_TOKEN: z

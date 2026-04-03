@@ -5,6 +5,7 @@ import {
   type FullExecutionContext,
   isGithubWorkAppTool,
   isSlackWorkAppTool,
+  isPlatformMcpUrl,
   isTrustedWorkAppMcpUrl,
   JsonTransformer,
   MCPServerType,
@@ -154,6 +155,16 @@ export class AgentMcpManager {
         'x-inkeep-tenant-id': this.config.tenantId,
         'x-inkeep-project-id': this.config.projectId,
         Authorization: `Bearer ${env.SLACK_MCP_API_KEY}`,
+      };
+    }
+
+    if (isPlatformMcpUrl(urlString, env.INKEEP_AGENTS_API_URL)) {
+      serverConfig.headers = {
+        ...serverConfig.headers,
+        'x-inkeep-tool-id': tool.id,
+        'x-inkeep-tenant-id': this.config.tenantId,
+        'x-inkeep-project-id': this.config.projectId,
+        Authorization: `Bearer ${env.PLATFORM_MCP_API_KEY}`,
       };
     }
 

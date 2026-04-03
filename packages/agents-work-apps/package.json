@@ -17,6 +17,10 @@
     "./slack": {
       "types": "./dist/slack/index.d.ts",
       "import": "./dist/slack/index.js"
+    },
+    "./feedback": {
+      "types": "./dist/feedback/index.d.ts",
+      "import": "./dist/feedback/index.js"
     }
   },
   "scripts": {

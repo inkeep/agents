@@ -32,6 +32,7 @@ import {
   detectAuthenticationRequired,
   getCredentialStoreLookupKeyFromRetrievalParams,
   isThirdPartyMCPServerAuthenticated,
+  isPlatformMcpUrl,
   isTrustedWorkAppMcpUrl,
   TRUSTED_WORK_APP_MCP_PATHS,
   toISODateString,
@@ -318,6 +319,16 @@ const discoverToolsFromServer = async (
         'x-inkeep-tenant-id': tool.tenantId,
         'x-inkeep-project-id': tool.projectId,
         Authorization: `Bearer ${env.SLACK_MCP_API_KEY}`,
+      };
+    }
+
+    if (isPlatformMcpUrl(urlString, env.INKEEP_AGENTS_API_URL)) {
+      serverConfig.headers = {
+        ...serverConfig.headers,
+        'x-inkeep-tool-id': tool.id,
+        'x-inkeep-tenant-id': tool.tenantId,
+        'x-inkeep-project-id': tool.projectId,
+        Authorization: `Bearer ${env.PLATFORM_MCP_API_KEY}`,
       };
     }
 
