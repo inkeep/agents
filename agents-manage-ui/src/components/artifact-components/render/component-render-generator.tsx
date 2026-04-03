@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { UseInYourAppModal } from '@/components/use-in-your-app-modal';
 import { DOCS_BASE_URL } from '@/constants/theme';
 import { updateArtifactComponent } from '@/lib/api/artifact-components';
+import { throwError } from '@/lib/utils';
 import { DynamicComponentRenderer } from '../../dynamic-component-renderer';
 
 interface ComponentPreviewGeneratorProps {
@@ -74,11 +75,11 @@ export function ComponentRenderGenerator({
       );
 
       if (!response.ok) {
-        throw new Error('Failed to generate render');
+        throwError('Failed to generate render');
       }
 
       if (!response.body) {
-        throw new Error('No response body');
+        throwError('No response body');
       }
 
       const reader = response.body.getReader();
@@ -117,15 +118,14 @@ export function ComponentRenderGenerator({
         onRenderChanged?.(lastValidObject);
         toast.success('Render generated successfully');
       } else {
-        throw new Error('No valid render generated');
+        throwError('No valid render generated');
       }
     } catch (error) {
       console.error('Failed to generate render:', error);
       toast.error('Failed to generate render');
       setIsComplete(true);
-    } finally {
-      setIsGenerating(false);
     }
+    setIsGenerating(false);
   };
 
   const handleDeletePreview = async () => {
@@ -142,18 +142,12 @@ export function ComponentRenderGenerator({
     } catch (error) {
       console.error('Error deleting render:', error);
       toast.error('Failed to delete render');
-    } finally {
-      setIsDeleting(false);
     }
+    setIsDeleting(false);
   };
 
   const hasRender = render !== null && (render.component?.trim().length ?? 0) > 0;
-
-  // Memoize to prevent infinite re-renders
-  const stringifiedData = useMemo(
-    () => (render?.mockData ? JSON.stringify(render.mockData, null, 2) : '{}'),
-    [render?.mockData]
-  );
+  const stringifiedData = render?.mockData ? JSON.stringify(render.mockData, null, 2) : '{}';
 
   const renderCode = useMemo(() => render?.component || '', [render?.component]);
   const renderData = useMemo(() => render?.mockData || {}, [render?.mockData]);

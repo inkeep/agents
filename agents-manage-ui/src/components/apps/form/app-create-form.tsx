@@ -155,6 +155,7 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
           placeholder="Add supplemental instructions for this app deployment..."
           description="Optional instructions that customize the agent's behavior when accessed through this app. These are added to the agent's existing instructions."
           rows={4}
+          className="max-h-96"
         />
 
         {appType === 'web_client' && (

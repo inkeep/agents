@@ -95,7 +95,6 @@ export function EvaluationRunConfigFormDialog({
   trigger,
   onSuccess,
 }: EvaluationRunConfigFormDialogProps) {
-  'use memo';
   const router = useRouter();
   const [internalIsOpen, setInternalIsOpen] = useState(false);
 

@@ -2,8 +2,6 @@ import { useEffect } from 'react';
 import { useAgentActions } from '@/features/agent/state/use-agent-store';
 
 export function useAgentShortcuts() {
-  'use memo';
-
   const { undo, redo } = useAgentActions();
 
   useEffect(() => {

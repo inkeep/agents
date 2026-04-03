@@ -18,6 +18,8 @@ export const SPAN_NAMES = {
   COMPRESSOR_SAFE_COMPRESS: 'compressor.safe_compress',
   AGENT_MAX_STEPS_REACHED: 'agent.max_steps_reached',
   STREAM_FORCE_CLEANUP: 'stream.force_cleanup',
+  DURABLE_TOOL_EXECUTION: 'durable.tool_execution',
+  EXECUTION_HANDLER_EXECUTE: 'execution_handler.execute',
 } as const;
 
 export const AI_OPERATIONS = {
@@ -82,6 +84,8 @@ export const SPAN_KEYS = {
   TOOL_NAME: 'tool.name',
   TOOL_CALL_ID: 'tool.callId',
   TOOL_APPROVAL_REASON: 'tool.approval.reason',
+  TOOL_RESPONSE_CONTENT: 'tool.response.content',
+  TOOL_RESPONSE_TIMESTAMP: 'tool.response.timestamp',
 
   // Token usage
   GEN_AI_USAGE_INPUT_TOKENS: 'gen_ai.usage.input_tokens',
@@ -212,6 +216,7 @@ export const ACTIVITY_TYPES = {
   COMPRESSION: 'compression',
   MAX_STEPS_REACHED: 'max_steps_reached',
   STREAM_LIFETIME_EXCEEDED: 'stream_lifetime_exceeded',
+  DURABLE_TOOL_EXECUTION: 'durable_tool_execution',
 } as const;
 
 /** Activity Status Values */

@@ -11,7 +11,6 @@ import { TeamAgentSelectorLoading } from './loading';
 import { TeamAgentItem } from './team-agent-item';
 
 export function TeamAgentSelector({ selectedNode }: { selectedNode: Node }) {
-  'use memo';
   const { updateNode } = useReactFlow();
   const { tenantId, projectId, agentId } = useParams<{
     tenantId: string;

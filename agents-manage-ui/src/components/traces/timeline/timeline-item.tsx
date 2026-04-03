@@ -139,7 +139,8 @@ function statusIcon(
     | 'trigger_invocation'
     | 'slack_message'
     | 'max_steps_reached'
-    | 'stream_lifetime_exceeded',
+    | 'stream_lifetime_exceeded'
+    | 'durable_tool_execution',
   status: ActivityItem['status']
 ) {
   const base: Record<string, { Icon: any; cls: string; style?: React.CSSProperties }> = {
@@ -164,6 +165,7 @@ function statusIcon(
     compression: { Icon: Archive, cls: 'text-orange-500' },
     max_steps_reached: { Icon: AlertTriangle, cls: 'text-yellow-500' },
     stream_lifetime_exceeded: { Icon: Timer, cls: 'text-red-500' },
+    durable_tool_execution: { Icon: Hammer, cls: 'text-amber-600' },
   };
 
   const map = base[type] || base.tool_call;
@@ -567,6 +569,15 @@ export function TimelineItem({
                 </div>
               </div>
             )}
+
+          {/* Durable tool execution display */}
+          {activity.type === ACTIVITY_TYPES.DURABLE_TOOL_EXECUTION && activity.toolName && (
+            <div className="mt-1">
+              <Badge variant="outline" className="text-xs font-mono">
+                {activity.toolName}
+              </Badge>
+            </div>
+          )}
 
           {/* Stream lifetime exceeded display */}
           {activity.type === ACTIVITY_TYPES.STREAM_LIFETIME_EXCEEDED &&

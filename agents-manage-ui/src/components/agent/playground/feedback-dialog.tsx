@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
@@ -25,7 +25,6 @@ interface FeedbackDialogProps {
   conversationId: string;
   messageId?: string;
   initialType?: 'positive' | 'negative';
-  onNegativeFeedbackSubmit?: (feedback: string) => void;
   onSubmitSuccess?: () => void;
 }
 
@@ -49,7 +48,6 @@ export const FeedbackDialog = ({
   conversationId,
   messageId,
   initialType,
-  onNegativeFeedbackSubmit,
   onSubmitSuccess,
 }: FeedbackDialogProps) => {
   const form = useForm<FeedbackFormData>({
@@ -61,7 +59,7 @@ export const FeedbackDialog = ({
   });
   const { isSubmitting } = form.formState;
 
-  const type = form.watch('type');
+  const type = useWatch({ control: form.control, name: 'type' });
 
   useEffect(() => {
     if (isOpen) {
@@ -99,7 +97,6 @@ export const FeedbackDialog = ({
       return;
     }
 
-    if (feedback) onNegativeFeedbackSubmit?.(feedback);
     toast.success('Feedback saved');
     onSubmitSuccess?.();
     onOpenChange(false);

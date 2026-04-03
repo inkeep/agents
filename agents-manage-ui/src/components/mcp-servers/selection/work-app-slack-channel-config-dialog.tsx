@@ -239,9 +239,8 @@ function ReadyState({ tenantId, projectId, channels, onOpenChange, onSuccess }: 
     } catch (error) {
       console.error('Failed to create Slack MCP server:', error);
       toast.error('Failed to create Slack MCP server. Please try again.');
-    } finally {
-      setIsSubmitting(false);
     }
+    setIsSubmitting(false);
   };
 
   return (

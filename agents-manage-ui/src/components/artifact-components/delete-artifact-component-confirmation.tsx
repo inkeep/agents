@@ -26,23 +26,20 @@ export function DeleteArtifactComponentConfirmation({
     projectId: string;
   }>();
 
-  const handleDelete = async () => {
+  async function handleDelete() {
     setIsSubmitting(true);
-    try {
-      const result = await deleteArtifactComponentAction(tenantId, projectId, artifactComponentId);
-      if (result.success) {
-        setIsOpen(false);
-        toast.success('Artifact deleted.');
-        if (redirectOnDelete) {
-          router.push(`/${tenantId}/projects/${projectId}/artifacts`);
-        }
-      } else {
-        toast.error(result.error);
+    const result = await deleteArtifactComponentAction(tenantId, projectId, artifactComponentId);
+    if (result.success) {
+      setIsOpen(false);
+      toast.success('Artifact deleted.');
+      if (redirectOnDelete) {
+        router.push(`/${tenantId}/projects/${projectId}/artifacts`);
       }
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      toast.error(result.error);
     }
-  };
+    setIsSubmitting(false);
+  }
 
   return (
     <DeleteConfirmation

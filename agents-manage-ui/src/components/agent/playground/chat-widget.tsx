@@ -76,8 +76,6 @@ export function ChatWidget({
   setShowTraces: _setShowTraces,
   hasHeadersError,
 }: ChatWidgetProps) {
-  'use memo';
-
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const copilotCtx = useCopilotContext();
   const { data: dataComponents } = useDataComponentsQuery();
@@ -244,16 +242,8 @@ export function ChatWidget({
             isViewOnly: hasHeadersError,
             conversationId,
             baseUrl: PUBLIC_INKEEP_AGENTS_API_URL,
-            ...(playgroundAppId ? { appId: playgroundAppId } : {}),
+            appId: playgroundAppId ?? undefined,
             headers: {
-              ...(playgroundAppId
-                ? {}
-                : {
-                    'x-inkeep-tenant-id': tenantId,
-                    'x-inkeep-project-id': projectId,
-                    'x-inkeep-agent-id': agentId || '',
-                    Authorization: `Bearer ${tempApiKey}`,
-                  }),
               'x-emit-operations': 'true',
               ...customHeaders,
             },
@@ -290,9 +280,8 @@ export function ChatWidget({
                       action: {
                         type: 'invoke_message_callback' as const,
                         callback({ messageId }: { messageId?: string }) {
-                          setMessageId(messageId);
-                          setFeedbackType('negative');
-                          setIsFeedbackDialogOpen(true);
+                          copilotCtx.openCopilot();
+                          copilotCtx.setDynamicHeaders({ conversationId, messageId });
                         },
                       },
                     },

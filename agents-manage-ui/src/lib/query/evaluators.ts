@@ -16,7 +16,6 @@ export function useEvaluatorsQuery({
   enabled?: boolean;
   agentId?: string;
 } = {}) {
-  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
   if (!tenantId || !projectId) {

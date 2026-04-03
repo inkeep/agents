@@ -61,14 +61,21 @@
           "options": {
             "paths": {
               "react": {
-                "importNames": ["useContext"],
-                "message": "Use the `use()` hook instead."
+                "importNames": ["memo"],
+                "message": "The highlighted React API is flagged.\nWe use the React Compiler, which automatically memoizes where needed.\nIn 99% of cases, manual memoization is unnecessary.\nIf you encounter a real issue, please ping Dima in Slack."
               },
               "@hono/zod-openapi": {
                 "importNames": ["createRoute"],
                 "message": "Use createProtectedRoute from @inkeep/agents-core/middleware instead. For intentionally public routes, use createProtectedRoute with noAuth() as the permission. If neither applies, add a biome-ignore comment explaining why."
               }
-            }
+            },
+            "patterns": [
+              {
+                "group": "react",
+                "importNamePattern": "useContext",
+                "message": "Use the `use()` hook instead."
+              }
+            ]
           }
         },
         "noUnusedTemplateLiteral": "off",

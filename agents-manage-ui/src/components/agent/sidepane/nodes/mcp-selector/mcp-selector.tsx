@@ -10,7 +10,6 @@ import { EmptyState } from '../empty-state';
 import { MCPServerItem } from './mcp-server-item';
 
 export function MCPSelector({ selectedNode }: { selectedNode: Node }) {
-  'use memo';
   const { updateNode } = useReactFlow();
   const form = useFullAgentFormContext();
   const { tenantId, projectId } = useParams<{

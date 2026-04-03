@@ -33,6 +33,7 @@ import { hasConversationFeedbackAction } from '@/lib/actions/feedback';
 import { rerunScheduledTriggerInvocationAction } from '@/lib/actions/scheduled-triggers';
 import { rerunTriggerAction } from '@/lib/actions/triggers';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
+import { throwError } from '@/lib/utils';
 import { formatDateTime, formatDuration } from '@/lib/utils/format-date';
 import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
 import {
@@ -93,10 +94,9 @@ export default function ConversationDetail({
       toast.error('Failed to copy trace', {
         description: err instanceof Error ? err.message : 'An unknown error occurred',
       });
-    } finally {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      setIsCopying(false);
     }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    setIsCopying(false);
   };
 
   const handleCopySummarizedTrace = async () => {
@@ -118,10 +118,9 @@ export default function ConversationDetail({
       toast.error('Failed to copy trace', {
         description: err instanceof Error ? err.message : 'An unknown error occurred',
       });
-    } finally {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      setIsCopying(false);
     }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    setIsCopying(false);
   };
 
   const handleRerunTrigger = async () => {
@@ -158,10 +157,8 @@ export default function ConversationDetail({
         toast.error('Failed to rerun scheduled trigger', {
           description: err instanceof Error ? err.message : 'An unknown error occurred',
         });
-      } finally {
-        setIsRerunning(false);
       }
-      return;
+      setIsRerunning(false);
     }
 
     const userMessageActivity = conversation.activities?.find(
@@ -219,9 +216,8 @@ export default function ConversationDetail({
       toast.error('Failed to rerun trigger', {
         description: err instanceof Error ? err.message : 'An unknown error occurred',
       });
-    } finally {
-      setIsRerunning(false);
     }
+    setIsRerunning(false);
   };
 
   useEffect(() => {
@@ -243,7 +239,7 @@ export default function ConversationDetail({
         ]);
 
         if (traceResponse.status === 'rejected' || !traceResponse.value.ok) {
-          throw new Error('Failed to fetch conversation details');
+          throwError('Failed to fetch conversation details');
         }
         const data = await traceResponse.value.json();
         setConversation(data);
@@ -261,9 +257,8 @@ export default function ConversationDetail({
         setHasFeedback(feedbackResult.status === 'fulfilled' && feedbackResult.value === true);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     if (conversationId && tenantId && projectId) fetchConversationDetail();

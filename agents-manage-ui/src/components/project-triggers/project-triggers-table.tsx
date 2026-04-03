@@ -86,13 +86,12 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
       } catch (error) {
         console.error('Failed to update trigger:', error);
         toast.error('Failed to update trigger status');
-      } finally {
-        setLoadingTriggers((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(triggerId);
-          return newSet;
-        });
       }
+      setLoadingTriggers((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(triggerId);
+        return newSet;
+      });
     },
     [tenantId, projectId, router]
   );

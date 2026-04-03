@@ -13124,6 +13124,10 @@
                       "description": "Temporary API key for playground use",
                       "type": "string"
                     },
+                    "appId": {
+                      "description": "App ID for client authentication",
+                      "type": "string"
+                    },
                     "expiresAt": {
                       "description": "ISO 8601 timestamp when the key expires",
                       "type": "string"
@@ -13131,7 +13135,8 @@
                   },
                   "required": [
                     "apiKey",
-                    "expiresAt"
+                    "expiresAt",
+                    "appId"
                   ],
                   "type": "object"
                 }

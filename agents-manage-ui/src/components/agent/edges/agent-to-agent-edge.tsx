@@ -21,7 +21,6 @@ export function AgentToAgentEdge({
   data,
   selected,
 }: AgentToAgentEdgeProps) {
-  'use memo';
   const relationships = data.relationships || {
     transferTargetToSource: false,
     transferSourceToTarget: false,

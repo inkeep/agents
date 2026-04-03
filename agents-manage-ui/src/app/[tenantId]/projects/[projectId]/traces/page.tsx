@@ -150,9 +150,8 @@ export default function TracesOverview({
       } catch (e) {
         console.error('Failed to fetch conversation activity:', e);
         setActivityData([]);
-      } finally {
-        setActivityLoading(false);
       }
+      setActivityLoading(false);
     };
     if (startTime && endTime && tenantId) {
       fetchActivity();
