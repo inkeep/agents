@@ -2,6 +2,7 @@ import type { Part, ResolvedRef } from '@inkeep/agents-core';
 import { defineHook, getWorkflowMetadata } from 'workflow';
 import {
   callLlmStep,
+  type DenialRedirect,
   executeToolStep,
   initializeTaskStep,
   markWorkflowCompleteStep,
@@ -49,6 +50,7 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
   let iterations = 0;
   let approvalRound = 0;
   let isPostApproval = false;
+  const denialRedirects: DenialRedirect[] = [];
 
   try {
     while (iterations < maxTransfers) {
@@ -63,6 +65,7 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
         streamNamespace,
         taskId,
         isPostApproval,
+        denialRedirects: denialRedirects.length > 0 ? denialRedirects : undefined,
       });
 
       if (llmResult.type === 'transfer') {
@@ -105,7 +108,7 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
             workflowRunId,
           });
 
-          await executeToolStep({
+          const toolResult = await executeToolStep({
             payload,
             currentSubAgentId,
             toolCallId: toolCall.toolCallId,
@@ -126,6 +129,10 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
                 }
               : {}),
           });
+
+          if (toolResult.type === 'completed' && toolResult.denial) {
+            denialRedirects.push(toolResult.denial);
+          }
         }
         isPostApproval = true;
         continue;
