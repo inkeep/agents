@@ -107,39 +107,38 @@ export function useProjectAccess({
     setIsLoadingMembers(false);
   }
 
-  // Fetch org members for enrichment and available principals list
-  async function fetchOrgMembers() {
-    try {
-      const { data } = await authClient.organization.getFullOrganization({
-        query: { organizationId: tenantId, membersLimit: DEFAULT_MEMBERSHIP_LIMIT },
-      });
-
-      if (data?.members) {
-        const principals: AccessPrincipal[] = data.members.map((m) =>
-          toAccessPrincipal({
-            userId: m.user.id,
-            name: m.user.name || '',
-            email: m.user.email,
-            role: m.role,
-          })
-        );
-        setOrgMembers(principals);
-      }
-    } catch {
-      // Silent fail - org members are for enrichment
-    }
-    setIsLoadingOrg(false);
-  }
-
   // Initial data fetch
   useEffect(() => {
+    // Fetch org members for enrichment and available principals list
+    async function fetchOrgMembers() {
+      try {
+        const { data } = await authClient.organization.getFullOrganization({
+          query: { organizationId: tenantId, membersLimit: DEFAULT_MEMBERSHIP_LIMIT },
+        });
+
+        if (data?.members) {
+          const principals: AccessPrincipal[] = data.members.map((m) =>
+            toAccessPrincipal({
+              userId: m.user.id,
+              name: m.user.name || '',
+              email: m.user.email,
+              role: m.role,
+            })
+          );
+          setOrgMembers(principals);
+        }
+      } catch {
+        // Silent fail - org members are for enrichment
+      }
+      setIsLoadingOrg(false);
+    }
     fetchProjectMembers();
     fetchOrgMembers();
   }, [
+    tenantId,
+    authClient,
     // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
     fetchProjectMembers,
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    fetchOrgMembers,
   ]);
 
   // Enrich raw members with org member data and convert to AccessPrincipal

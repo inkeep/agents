@@ -67,10 +67,6 @@ export function WorkAppSlackAccessSection({
     loadAccessConfig,
   ]);
 
-  const handleEditSuccess = () => {
-    loadAccessConfig();
-  };
-
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -174,7 +170,7 @@ export function WorkAppSlackAccessSection({
         projectId={projectId}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
-        onSuccess={handleEditSuccess}
+        onSuccess={loadAccessConfig}
       />
     </>
   );

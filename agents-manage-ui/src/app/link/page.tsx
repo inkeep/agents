@@ -51,54 +51,46 @@ function SlackLinkForm() {
     slackTeamId?: string;
   } | null>(null);
 
-  async function handleLinkWithToken(token: string) {
-    if (!user?.id) {
-      setError('You must be logged in to link your Slack account.');
-      setState('error');
-      return;
-    }
-
-    setState('linking');
-    setError(null);
-
-    try {
-      const result = await slackApi.verifyLinkToken({
-        token,
-        userId: user.id,
-        userEmail: user.email,
-      });
-
-      if (!result.success) {
-        setError(result.error || 'Failed to link account');
+  const linkingRef = useRef(false);
+  useEffect(() => {
+    async function handleLinkWithToken(token: string) {
+      if (!user?.id) {
+        setError('You must be logged in to link your Slack account.');
         setState('error');
         return;
       }
 
-      setLinkResult({
-        slackUsername: result.slackUsername,
-        slackTeamId: result.slackTeamId,
-      });
-      setState('success');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to link account');
-      setState('error');
-    }
-  }
+      setState('linking');
+      setError(null);
 
-  const linkingRef = useRef(false);
-  useEffect(() => {
+      try {
+        const result = await slackApi.verifyLinkToken({
+          token,
+          userId: user.id,
+          userEmail: user.email,
+        });
+
+        if (!result.success) {
+          setError(result.error || 'Failed to link account');
+          setState('error');
+          return;
+        }
+
+        setLinkResult({
+          slackUsername: result.slackUsername,
+          slackTeamId: result.slackTeamId,
+        });
+        setState('success');
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to link account');
+        setState('error');
+      }
+    }
     if (isAuthenticated && user?.id && state === 'waiting' && initialToken && !linkingRef.current) {
       linkingRef.current = true;
       handleLinkWithToken(initialToken);
     }
-  }, [
-    initialToken,
-    isAuthenticated,
-    user?.id,
-    state,
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    handleLinkWithToken,
-  ]);
+  }, [initialToken, isAuthenticated, user, state]);
 
   if (authLoading) {
     return (

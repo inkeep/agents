@@ -54,46 +54,41 @@ export function WorkAppSlackChannelConfigDialog({
   const [channels, setChannels] = useState<SlackChannelInfo[]>([]);
   const [teamId, setTeamId] = useState<string | null>(null);
 
-  async function loadData() {
-    try {
-      setDialogState('loading');
-
-      const workspaces = await slackApi.listWorkspaceInstallations();
-
-      if (workspaces.workspaces.length === 0) {
-        setDialogState('no-workspace');
-        return;
-      }
-
-      const workspace = workspaces.workspaces[0];
-      setTeamId(workspace.teamId);
-
-      const channelData = await slackApi.listChannels(workspace.teamId);
-      setChannels(
-        channelData.channels.map((ch) => ({
-          id: ch.id,
-          name: ch.name,
-          isPrivate: ch.isPrivate,
-          memberCount: ch.memberCount,
-        }))
-      );
-
-      setDialogState('ready');
-    } catch (error) {
-      console.error('Failed to load Slack data:', error);
-      setDialogState('no-workspace');
-    }
-  }
-
   useEffect(() => {
+    async function loadData() {
+      try {
+        setDialogState('loading');
+
+        const workspaces = await slackApi.listWorkspaceInstallations();
+
+        if (workspaces.workspaces.length === 0) {
+          setDialogState('no-workspace');
+          return;
+        }
+
+        const workspace = workspaces.workspaces[0];
+        setTeamId(workspace.teamId);
+
+        const channelData = await slackApi.listChannels(workspace.teamId);
+        setChannels(
+          channelData.channels.map((ch) => ({
+            id: ch.id,
+            name: ch.name,
+            isPrivate: ch.isPrivate,
+            memberCount: ch.memberCount,
+          }))
+        );
+
+        setDialogState('ready');
+      } catch (error) {
+        console.error('Failed to load Slack data:', error);
+        setDialogState('no-workspace');
+      }
+    }
     if (open) {
       loadData();
     }
-  }, [
-    open,
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    loadData,
-  ]);
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

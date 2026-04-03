@@ -60,53 +60,48 @@ export function WorkAppGitHubRepositoryConfigDialog({
   const [installations, setInstallations] = useState<WorkAppGitHubInstallation[]>([]);
   const [projectAccess, setProjectAccess] = useState<WorkAppGitHubProjectAccess | null>(null);
 
-  async function loadData() {
-    try {
-      setDialogState('loading');
-
-      const [installationsData, accessData] = await Promise.all([
-        fetchWorkAppGitHubInstallations(tenantId),
-        getProjectWorkAppGitHubAccess(tenantId, projectId),
-      ]);
-
-      setInstallations(installationsData);
-      setProjectAccess(accessData);
-
-      // Check for empty states
-      const activeInstallations = installationsData.filter((i) => i.status === 'active');
-
-      if (activeInstallations.length === 0) {
-        setDialogState('no-installations');
-        return;
-      }
-
-      // Check if project has access configured
-      // If mode is 'all' OR mode is 'selected' with repositories, project has access
-      const hasProjectAccess =
-        accessData.mode === 'all' ||
-        (accessData.mode === 'selected' && accessData.repositories.length > 0);
-
-      if (!hasProjectAccess) {
-        setDialogState('no-project-access');
-        return;
-      }
-
-      setDialogState('ready');
-    } catch (error) {
-      console.error('Failed to load GitHub data:', error);
-      setDialogState('no-installations');
-    }
-  }
-
   useEffect(() => {
+    async function loadData() {
+      try {
+        setDialogState('loading');
+
+        const [installationsData, accessData] = await Promise.all([
+          fetchWorkAppGitHubInstallations(tenantId),
+          getProjectWorkAppGitHubAccess(tenantId, projectId),
+        ]);
+
+        setInstallations(installationsData);
+        setProjectAccess(accessData);
+
+        // Check for empty states
+        const activeInstallations = installationsData.filter((i) => i.status === 'active');
+
+        if (activeInstallations.length === 0) {
+          setDialogState('no-installations');
+          return;
+        }
+
+        // Check if project has access configured
+        // If mode is 'all' OR mode is 'selected' with repositories, project has access
+        const hasProjectAccess =
+          accessData.mode === 'all' ||
+          (accessData.mode === 'selected' && accessData.repositories.length > 0);
+
+        if (!hasProjectAccess) {
+          setDialogState('no-project-access');
+          return;
+        }
+
+        setDialogState('ready');
+      } catch (error) {
+        console.error('Failed to load GitHub data:', error);
+        setDialogState('no-installations');
+      }
+    }
     if (open) {
       loadData();
     }
-  }, [
-    open,
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    loadData,
-  ]);
+  }, [open, tenantId, projectId]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

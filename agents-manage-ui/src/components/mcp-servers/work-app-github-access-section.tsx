@@ -49,11 +49,6 @@ export function WorkAppGitHubAccessSection({
     loadAccessConfig,
   ]);
 
-  const handleEditSuccess = () => {
-    // Refresh the access config after successful edit
-    loadAccessConfig();
-  };
-
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -87,17 +82,16 @@ export function WorkAppGitHubAccessSection({
   }
 
   // Group repositories by installation account
-  const repositoriesByInstallation = accessConfig.repositories.reduce(
-    (acc, repo) => {
-      const key = repo.installationAccountLogin;
-      if (!acc[key]) {
-        acc[key] = [];
-      }
-      acc[key].push(repo);
-      return acc;
-    },
-    {} as Record<string, typeof accessConfig.repositories>
-  );
+  const repositoriesByInstallation = accessConfig.repositories.reduce<
+    Record<string, typeof accessConfig.repositories>
+  >((acc, repo) => {
+    const key = repo.installationAccountLogin;
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(repo);
+    return acc;
+  }, {});
 
   return (
     <>
@@ -183,7 +177,8 @@ export function WorkAppGitHubAccessSection({
         projectId={projectId}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
-        onSuccess={handleEditSuccess}
+        // Refresh the access config after successful edit
+        onSuccess={loadAccessConfig}
       />
     </>
   );

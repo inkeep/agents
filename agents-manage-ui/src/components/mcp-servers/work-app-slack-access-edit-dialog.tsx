@@ -58,49 +58,44 @@ export function SlackAccessEditDialog({
   const [dmEnabled, setDmEnabled] = useState(false);
   const [selectedChannelIds, setSelectedChannelIds] = useState(new Set<string>());
 
-  async function loadData() {
-    try {
-      setIsLoading(true);
-
-      const [currentConfig, workspaces] = await Promise.all([
-        getSlackMcpToolAccess(tenantId, projectId, tool.id),
-        slackApi.listWorkspaceInstallations(),
-      ]);
-
-      setMode(currentConfig.channelAccessMode);
-      setDmEnabled(currentConfig.dmEnabled);
-      if (currentConfig.channelAccessMode === 'selected') {
-        setSelectedChannelIds(new Set(currentConfig.channelIds));
-      }
-
-      if (workspaces.workspaces.length > 0) {
-        const workspace = workspaces.workspaces[0];
-        const channelData = await slackApi.listChannels(workspace.teamId);
-        setChannels(
-          channelData.channels.map((ch) => ({
-            id: ch.id,
-            name: ch.name,
-            isPrivate: ch.isPrivate,
-            memberCount: ch.memberCount,
-          }))
-        );
-      }
-    } catch (error) {
-      console.error('Failed to load Slack data:', error);
-      toast.error('Failed to load Slack access configuration');
-    }
-    setIsLoading(false);
-  }
-
   useEffect(() => {
+    async function loadData() {
+      try {
+        setIsLoading(true);
+
+        const [currentConfig, workspaces] = await Promise.all([
+          getSlackMcpToolAccess(tenantId, projectId, tool.id),
+          slackApi.listWorkspaceInstallations(),
+        ]);
+
+        setMode(currentConfig.channelAccessMode);
+        setDmEnabled(currentConfig.dmEnabled);
+        if (currentConfig.channelAccessMode === 'selected') {
+          setSelectedChannelIds(new Set(currentConfig.channelIds));
+        }
+
+        if (workspaces.workspaces.length > 0) {
+          const workspace = workspaces.workspaces[0];
+          const channelData = await slackApi.listChannels(workspace.teamId);
+          setChannels(
+            channelData.channels.map((ch) => ({
+              id: ch.id,
+              name: ch.name,
+              isPrivate: ch.isPrivate,
+              memberCount: ch.memberCount,
+            }))
+          );
+        }
+      } catch (error) {
+        console.error('Failed to load Slack data:', error);
+        toast.error('Failed to load Slack access configuration');
+      }
+      setIsLoading(false);
+    }
     if (open) {
       loadData();
     }
-  }, [
-    open,
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    loadData,
-  ]);
+  }, [open, tenantId, projectId, tool.id]);
 
   const handleChannelToggle = (channelId: string) => {
     setSelectedChannelIds((prev) => {

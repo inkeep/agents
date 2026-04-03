@@ -55,38 +55,34 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
   const [events, setEvents] = useState<SigNozUsageEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  async function fetchData() {
-    setIsLoading(true);
-    try {
-      const client = getSigNozStatsClient(tenantId);
-      const start = new Date(startTime).getTime();
-      const end = new Date(endTime).getTime();
-
-      const [byModel, byAgent, byType, byProvider, eventsList] = await Promise.all([
-        client.getUsageCostSummary(start, end, 'model', projectId),
-        client.getUsageCostSummary(start, end, 'agent', projectId),
-        client.getUsageCostSummary(start, end, 'generation_type', projectId),
-        client.getUsageCostSummary(start, end, 'provider', projectId),
-        client.getUsageEventsList(start, end, projectId, undefined, 200),
-      ]);
-
-      setSummaryByModel(byModel);
-      setSummaryByAgent(byAgent);
-      setSummaryByType(byType);
-      setSummaryByProvider(byProvider);
-      setEvents(eventsList);
-    } catch (error) {
-      console.error('Failed to fetch usage data:', error);
-    }
-    setIsLoading(false);
-  }
-
   useEffect(() => {
+    async function fetchData() {
+      setIsLoading(true);
+      try {
+        const client = getSigNozStatsClient(tenantId);
+        const start = new Date(startTime).getTime();
+        const end = new Date(endTime).getTime();
+
+        const [byModel, byAgent, byType, byProvider, eventsList] = await Promise.all([
+          client.getUsageCostSummary(start, end, 'model', projectId),
+          client.getUsageCostSummary(start, end, 'agent', projectId),
+          client.getUsageCostSummary(start, end, 'generation_type', projectId),
+          client.getUsageCostSummary(start, end, 'provider', projectId),
+          client.getUsageEventsList(start, end, projectId, undefined, 200),
+        ]);
+
+        setSummaryByModel(byModel);
+        setSummaryByAgent(byAgent);
+        setSummaryByType(byType);
+        setSummaryByProvider(byProvider);
+        setEvents(eventsList);
+      } catch (error) {
+        console.error('Failed to fetch usage data:', error);
+      }
+      setIsLoading(false);
+    }
     fetchData();
-  }, [
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    fetchData,
-  ]);
+  }, [tenantId, projectId, startTime, endTime]);
 
   const totals = summaryByModel.reduce(
     (acc, row) => ({

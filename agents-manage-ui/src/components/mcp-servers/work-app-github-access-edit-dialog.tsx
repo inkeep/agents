@@ -64,54 +64,49 @@ export function GitHubAccessEditDialog({
   const [mode, setMode] = useState<WorkAppGitHubAccessMode>('all');
   const [selectedRepoIds, setSelectedRepoIds] = useState(new Set<string>());
 
-  async function loadData() {
-    try {
-      setIsLoading(true);
-
-      // Fetch all data in parallel
-      const [installationsData, accessData, currentConfig] = await Promise.all([
-        fetchWorkAppGitHubInstallations(tenantId),
-        getProjectWorkAppGitHubAccess(tenantId, projectId),
-        getMcpToolWorkAppGitHubAccess(tenantId, projectId, tool.id),
-      ]);
-
-      setInstallations(installationsData);
-      setProjectAccess(accessData);
-
-      // Pre-populate with current configuration
-      setMode(currentConfig.mode);
-      if (currentConfig.mode === 'selected') {
-        setSelectedRepoIds(new Set(currentConfig.repositories.map((r) => r.id)));
-      }
-
-      // Load repository details
-      const activeInstallations = installationsData.filter((i) => i.status === 'active');
-      const installationsDataWithRepos = await Promise.all(
-        activeInstallations.map(async (installation) => {
-          const detail = await fetchWorkAppGitHubInstallationDetail(tenantId, installation.id);
-          return {
-            installation,
-            repositories: detail.repositories,
-          };
-        })
-      );
-      setInstallationsWithRepos(installationsDataWithRepos);
-    } catch (error) {
-      console.error('Failed to load GitHub data:', error);
-      toast.error('Failed to load GitHub access configuration');
-    }
-    setIsLoading(false);
-  }
-
   useEffect(() => {
+    async function loadData() {
+      try {
+        setIsLoading(true);
+
+        // Fetch all data in parallel
+        const [installationsData, accessData, currentConfig] = await Promise.all([
+          fetchWorkAppGitHubInstallations(tenantId),
+          getProjectWorkAppGitHubAccess(tenantId, projectId),
+          getMcpToolWorkAppGitHubAccess(tenantId, projectId, tool.id),
+        ]);
+
+        setInstallations(installationsData);
+        setProjectAccess(accessData);
+
+        // Pre-populate with current configuration
+        setMode(currentConfig.mode);
+        if (currentConfig.mode === 'selected') {
+          setSelectedRepoIds(new Set(currentConfig.repositories.map((r) => r.id)));
+        }
+
+        // Load repository details
+        const activeInstallations = installationsData.filter((i) => i.status === 'active');
+        const installationsDataWithRepos = await Promise.all(
+          activeInstallations.map(async (installation) => {
+            const detail = await fetchWorkAppGitHubInstallationDetail(tenantId, installation.id);
+            return {
+              installation,
+              repositories: detail.repositories,
+            };
+          })
+        );
+        setInstallationsWithRepos(installationsDataWithRepos);
+      } catch (error) {
+        console.error('Failed to load GitHub data:', error);
+        toast.error('Failed to load GitHub access configuration');
+      }
+      setIsLoading(false);
+    }
     if (open) {
       loadData();
     }
-  }, [
-    open,
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    loadData,
-  ]);
+  }, [open, tenantId, projectId, tool.id]);
 
   const handleSync = async (installationId: string) => {
     setSyncing(installationId);

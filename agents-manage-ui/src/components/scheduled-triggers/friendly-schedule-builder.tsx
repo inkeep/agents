@@ -118,36 +118,32 @@ export function FriendlyScheduleBuilder({
 }: FriendlyScheduleBuilderProps) {
   const parsed = parseCronExpression(value);
 
-  const [frequency, setFrequency] = useState<FrequencyType>(parsed.frequency);
+  const [frequency, setFrequency] = useState(parsed.frequency);
   const [minuteInterval, setMinuteInterval] = useState(parsed.minuteInterval || '15');
   const [minute, setMinute] = useState(parsed.minute || '0');
   const [hour, setHour] = useState(parsed.hour || '9');
-  const [daysOfWeek, setDaysOfWeek] = useState<string[]>(parsed.daysOfWeek || ['1']);
+  const [daysOfWeek, setDaysOfWeek] = useState(parsed.daysOfWeek || ['1']);
   const [dayOfMonth, setDayOfMonth] = useState(parsed.dayOfMonth || '1');
   const [customCron, setCustomCron] = useState(parsed.frequency === 'custom' ? value : '');
 
-  function updateCronExpression() {
-    if (frequency === 'custom') {
-      return;
-    }
-    const newCron = generateCronExpression(frequency, {
-      minuteInterval,
-      minute,
-      hour,
-      daysOfWeek,
-      dayOfMonth,
-    });
-    if (newCron !== value) {
-      onChange(newCron);
-    }
-  }
-
   useEffect(() => {
+    function updateCronExpression() {
+      if (frequency === 'custom') {
+        return;
+      }
+      const newCron = generateCronExpression(frequency, {
+        minuteInterval,
+        minute,
+        hour,
+        daysOfWeek,
+        dayOfMonth,
+      });
+      if (newCron !== value) {
+        onChange(newCron);
+      }
+    }
     updateCronExpression();
-  }, [
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    updateCronExpression,
-  ]);
+  }, [frequency, minuteInterval, minute, hour, daysOfWeek, dayOfMonth, value, onChange]);
 
   const handleFrequencyChange = (newFrequency: FrequencyType) => {
     setFrequency(newFrequency);

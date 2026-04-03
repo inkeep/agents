@@ -58,21 +58,17 @@ export function AppUpdateForm({
   const [requireAuth, setRequireAuth] = useState(webConfig?.allowAnonymous !== true);
   const [isLoadingKeys, setIsLoadingKeys] = useState(app.type === 'web_client');
 
-  async function loadKeys() {
-    if (app.type !== 'web_client') return;
-    const result = await fetchAppAuthKeysAction(tenantId, projectId, app.id);
-    if (result.success && result.data) {
-      setServerKeys(result.data);
-    }
-    setIsLoadingKeys(false);
-  }
-
   useEffect(() => {
+    async function loadKeys() {
+      if (app.type !== 'web_client') return;
+      const result = await fetchAppAuthKeysAction(tenantId, projectId, app.id);
+      if (result.success && result.data) {
+        setServerKeys(result.data);
+      }
+      setIsLoadingKeys(false);
+    }
     loadKeys();
-  }, [
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    loadKeys,
-  ]);
+  }, [tenantId, projectId, app.type, app.id]);
 
   const form = useForm<AppUpdateFormInput>({
     resolver: zodResolver(AppUpdateFormSchema),
