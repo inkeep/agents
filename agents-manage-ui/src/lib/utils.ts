@@ -63,7 +63,7 @@ export function serializeJson(value?: null | Record<string, unknown> | unknown[]
 }
 
 /**
- * Temporal workaround to fix react compiler error:
+ * Temporary workaround to fix react compiler error:
  * (BuildHIR::lowerStatement) Support ThrowStatement inside of try/catch
  */
 export function throwError(message: string): never {
