@@ -118,6 +118,7 @@
     "@types/node": "^22",
     "@types/react": "^19.2.4",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.2.0",
     "@vitest/browser-playwright": "4.1.2",
     "@vitest/coverage-v8": "4.1.2",
     "babel-plugin-react-compiler": "0.0.0-experimental-1371fcb-20260305",

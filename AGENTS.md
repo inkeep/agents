@@ -106,6 +106,7 @@ pnpm build           # Build documentation for production
 - **Types**: Explicit types preferred, avoid `any` where possible (warning), use Zod for validation
 - **Naming**: camelCase for variables/functions, PascalCase for types/components, kebab-case for files
 - **Error Handling**: Use try-catch, validate with Zod schemas, handle errors explicitly
+- **React Compiler**: React Compiler is enabled for this repo. Do not add `memo`, `useMemo`, or `useCallback`; rely on the compiler unless a maintainer explicitly requests an exception
 - **Function Arguments**: When a function has more than 3 parameters, prefer a single object argument so that parameters are well-labeled, ordering doesn't matter, and callers can benefit from spread operators
 - **No Comments**: Do not add comments unless explicitly requested
 
