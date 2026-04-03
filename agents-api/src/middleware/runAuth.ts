@@ -115,14 +115,15 @@ function extractRequestData(c: { req: any }): RequestData {
  * Build the final execution context from auth result and request data
  */
 function buildExecutionContext(authResult: AuthResult, reqData: RequestData): BaseExecutionContext {
-  // For team delegation, use the parent agent ID from the request header (x-inkeep-agent-id)
-  // instead of the JWT's audience (which is the sub-agent being called).
-  // The parent agent ID is needed for project lookup (project.agents[agentId].subAgents[subAgentId]).
-  const agentId =
-    authResult.metadata?.teamDelegation && reqData.agentId ? reqData.agentId : authResult.agentId;
+  let agentId = authResult.agentId;
+  let subAgentId: string | undefined;
 
-  if (
-    !authResult.metadata?.teamDelegation &&
+  if (authResult.metadata?.teamDelegation) {
+    // Team delegation: JWT aud = target sub-agent, JWT sub = parent agent (originAgentId).
+    // Both values come from the cryptographically verified service token.
+    subAgentId = authResult.agentId;
+    agentId = authResult.metadata.originAgentId || authResult.agentId;
+  } else if (
     reqData.agentId &&
     reqData.agentId !== authResult.agentId &&
     authResult.apiKeyId &&
@@ -150,7 +151,7 @@ function buildExecutionContext(authResult: AuthResult, reqData: RequestData): Ba
     agentId,
     apiKeyId: authResult.apiKeyId,
     baseUrl: reqData.baseUrl,
-    subAgentId: reqData.subAgentId,
+    subAgentId,
     ref: reqData.ref,
     metadata: authResult.metadata,
   });

@@ -1148,5 +1148,27 @@ describe('generateTaskHandler', () => {
 
       expect(configWithAppId.executionContext.metadata?.appPrompt).toBeUndefined();
     });
+
+    it('should continue without appPrompt when app belongs to different tenant', async () => {
+      const mockGetApp = vi.fn().mockResolvedValue(undefined);
+      (getAppByIdForTenant as any).mockReturnValue(mockGetApp);
+
+      const configWithAppId: TaskHandlerConfig = {
+        ...mockConfig,
+        executionContext: {
+          ...mockConfig.executionContext,
+          metadata: { appId: 'cross-tenant-app-id' },
+        },
+      };
+
+      const handler = createTaskHandler(configWithAppId);
+      await handler(makeTask('hello'));
+
+      expect(mockGetApp).toHaveBeenCalledWith({
+        id: 'cross-tenant-app-id',
+        scopes: { tenantId: mockConfig.executionContext.tenantId },
+      });
+      expect(configWithAppId.executionContext.metadata?.appPrompt).toBeUndefined();
+    });
   });
 });
