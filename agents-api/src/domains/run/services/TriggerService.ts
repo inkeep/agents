@@ -546,6 +546,10 @@ export async function dispatchExecution(params: {
   // Wrap agent execution in a single promise protected by waitUntil
   // The trigger.message_received span is created inside executeAgentAsync
   const dispatchedAt = Date.now();
+  logger.info(
+    { tenantId, projectId, agentId, triggerId, invocationId, conversationId, dispatchedAt },
+    'Trigger execution dispatched and starting execution'
+  );  
   const executionPromise = executeAgentAsync({
     tenantId,
     projectId,
@@ -653,7 +657,10 @@ export async function executeAgentAsync(
     forwardedHeaders,
     invocationType = 'trigger',
   } = params;
-
+  logger.info(
+    { tenantId, projectId, agentId, triggerId, invocationId },
+    'executeAgentAsync: starting'
+  );
   let userMessage: string;
   let messageParts: Part[];
 
@@ -695,14 +702,16 @@ export async function executeAgentAsync(
   }
 
   // Load project FIRST to get agent name
+  const loadProjectStart = Date.now();
   const project = await withRef(manageDbPool, resolvedRef, async (db) => {
     return await getFullProjectWithRelationIds(db)({
       scopes: { tenantId, projectId },
     });
   });
+  const loadProjectMs = Date.now() - loadProjectStart;
 
   logger.info(
-    { tenantId, projectId, agentId, triggerId, invocationId, hasProject: !!project },
+    { tenantId, projectId, agentId, triggerId, invocationId, hasProject: !!project, loadProjectMs },
     'executeAgentAsync: project loaded'
   );
 
@@ -884,6 +893,7 @@ export async function executeAgentAsync(
 
       try {
         // Create conversation and set active agent
+        const convStart = Date.now();
         await createOrGetConversation(runDbClient)({
           id: conversationId,
           tenantId,
@@ -900,6 +910,12 @@ export async function executeAgentAsync(
           agentId,
           ref: resolvedRef,
         });
+        const convMs = Date.now() - convStart;
+
+        logger.info(
+          { invocationId, conversationId, convMs },
+          'executeAgentAsync: conversation created'
+        );
 
         if (messages && messages.length > 0) {
           for (const msg of messages) {

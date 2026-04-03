@@ -154,6 +154,16 @@ export class EvaluationService {
 
     const expectedOutputText = expectedOutput ? JSON.stringify(expectedOutput, null, 2) : undefined;
 
+    logger.info(
+      {
+        evaluatorId: evaluator.id,
+        conversationId: conversation.id,
+        hasExpectedOutput: expectedOutput != null,
+        expectedOutputLength: expectedOutputText?.length ?? 0,
+      },
+      'Building evaluation prompt'
+    );
+
     const evaluationPrompt = this.buildEvalInputEvaluationPrompt(
       evaluator.prompt,
       agentDefinitionText,
