@@ -9,11 +9,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { Building2, Hash, Loader2, Lock, type LucideIcon, Search, X } from 'lucide-react';
-import {
-  // biome-ignore lint/style/noRestrictedImports: TODO: refactor when memoization with useReactTable will be fixed
-  useMemo,
-  useState,
-} from 'react';
+import { type FC, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -68,148 +64,119 @@ function ChannelFilter({ isSelected, onClick, count, label, Icon }: ChannelFilte
   );
 }
 
-interface ChannelDefaultsSectionProps {
-  channels: Channel[];
+interface BaseProps {
   filteredChannels: Channel[];
+  selectedChannels: Set<string>;
+  bulkSaving: boolean;
+  onToggleChannel: (channelId: string) => void;
+  onSelectAll: () => void;
+  onClearSelection: () => void;
+  onBulkSetAgent: (agent: SlackAgentOption) => void;
+  onBulkResetToDefault: () => void;
+}
+
+interface ChannelDefaultsSectionProps extends BaseProps {
+  channels: Channel[];
   loadingChannels: boolean;
   channelsWithCustomAgent: Channel[];
   channelFilter: 'all' | 'private' | 'connect';
   channelSearchQuery: string;
-  selectedChannels: Set<string>;
   agents: SlackAgentOption[];
   savingChannel: string | null;
-  bulkSaving: boolean;
   isAdmin: boolean;
   hasWorkspaceDefault: boolean;
   onChannelFilterChange: (filter: 'all' | 'private' | 'connect') => void;
   onSearchQueryChange: (query: string) => void;
-  onToggleChannel: (channelId: string) => void;
-  onSelectAll: () => void;
-  onClearSelection: () => void;
   onSetChannelAgent: (channelId: string, channelName: string, agent: SlackAgentOption) => void;
   onResetChannelToDefault: (channelId: string, channelName: string) => void;
-  onBulkSetAgent: (agent: SlackAgentOption) => void;
   onToggleGrantAccess: (channelId: string, grantAccess: boolean) => void;
-  onBulkResetToDefault: () => void;
   onClearFilters: () => void;
 }
 
-export function ChannelDefaultsSection({
+export const ChannelDefaultsSection: FC<ChannelDefaultsSectionProps> = ({
   channels,
   filteredChannels,
   loadingChannels,
   channelsWithCustomAgent,
   channelFilter,
   channelSearchQuery,
-  selectedChannels,
   agents,
   savingChannel,
-  bulkSaving,
   isAdmin,
   hasWorkspaceDefault,
   onChannelFilterChange,
   onSearchQueryChange,
-  onToggleChannel,
-  onSelectAll,
-  onClearSelection,
   onSetChannelAgent,
   onResetChannelToDefault,
   onToggleGrantAccess,
-  onBulkSetAgent,
-  onBulkResetToDefault,
   onClearFilters,
-}: ChannelDefaultsSectionProps) {
-  // Fix React compiler error: TanStack Table's `useReactTable()` API returns functions that cannot be memoized safely
-  'use no memo';
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'name', desc: false }]);
-
-  const columns = useMemo<ColumnDef<Channel>[]>(
-    () => [
-      {
-        id: 'select',
-        header: () => null,
-        cell: () => null,
-        enableSorting: false,
+  ...props
+}) => {
+  const columns: ColumnDef<Channel>[] = [
+    {
+      id: 'select',
+      header: () => null,
+      cell: () => null,
+      enableSorting: false,
+    },
+    {
+      accessorKey: 'name',
+      id: 'name',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Name" align="left" />,
+      cell: ({ row }) => {
+        const channel = row.original;
+        return (
+          <span className="flex min-w-0 items-center gap-2 font-medium text-sm">
+            {channel.isShared ? (
+              <Building2
+                aria-hidden="true"
+                className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+              />
+            ) : channel.isPrivate ? (
+              <Lock aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            ) : (
+              <Hash aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            )}
+            <span className="min-w-0 truncate">{channel.name}</span>
+          </span>
+        );
       },
-      {
-        accessorKey: 'name',
-        id: 'name',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Name" align="left" />,
-        cell: ({ row }) => {
-          const channel = row.original;
-          return (
-            <span className="flex min-w-0 items-center gap-2 font-medium text-sm">
-              {channel.isShared ? (
-                <Building2
-                  aria-hidden="true"
-                  className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
-                />
-              ) : channel.isPrivate ? (
-                <Lock aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              ) : (
-                <Hash aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              )}
-              <span className="min-w-0 truncate">{channel.name}</span>
-            </span>
-          );
-        },
-      },
-      {
-        accessorFn: (row) => row.agentConfig?.grantAccessToMembers,
-        id: 'memberAccess',
-        sortUndefined: 'last',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Member Access" align="right" />
-        ),
-        cell: ({ row }) => (
-          <div className="text-right">
-            <ChannelAccessCell channel={row.original} onToggleGrantAccess={onToggleGrantAccess} />
-          </div>
-        ),
-      },
-      {
-        accessorFn: (row) =>
-          row.agentConfig
-            ? getAgentDisplayName(agents, row.agentConfig.agentId, row.agentConfig.projectId)
-            : undefined,
-        id: 'agent',
-        sortUndefined: 'last',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title="Agent" align="right" />
-        ),
-        cell: ({ row }) => (
-          <div className="text-right">
-            <ChannelAgentCell
-              channel={row.original}
-              agents={agents}
-              savingChannel={savingChannel}
-              hasWorkspaceDefault={hasWorkspaceDefault}
-              onSetAgent={onSetChannelAgent}
-              onResetToDefault={onResetChannelToDefault}
-            />
-          </div>
-        ),
-      },
-    ],
-    [
-      agents,
-      savingChannel,
-      hasWorkspaceDefault,
-      onSetChannelAgent,
-      onResetChannelToDefault,
-      onToggleGrantAccess,
-    ]
-  );
-
-  const table = useReactTable({
-    data: filteredChannels,
-    columns,
-    getRowId: (row) => row.id,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    onSortingChange: setSorting,
-    state: { sorting },
-  });
+    },
+    {
+      accessorFn: (row) => row.agentConfig?.grantAccessToMembers,
+      id: 'memberAccess',
+      sortUndefined: 'last',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Member Access" align="right" />
+      ),
+      cell: ({ row }) => (
+        <div className="text-right">
+          <ChannelAccessCell channel={row.original} onToggleGrantAccess={onToggleGrantAccess} />
+        </div>
+      ),
+    },
+    {
+      accessorFn: (row) =>
+        row.agentConfig
+          ? getAgentDisplayName(agents, row.agentConfig.agentId, row.agentConfig.projectId)
+          : undefined,
+      id: 'agent',
+      sortUndefined: 'last',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Agent" align="right" />,
+      cell: ({ row }) => (
+        <div className="text-right">
+          <ChannelAgentCell
+            channel={row.original}
+            agents={agents}
+            savingChannel={savingChannel}
+            hasWorkspaceDefault={hasWorkspaceDefault}
+            onSetAgent={onSetChannelAgent}
+            onResetToDefault={onResetChannelToDefault}
+          />
+        </div>
+      ),
+    },
+  ];
 
   return (
     <Card className="shadow-none">
@@ -301,95 +268,128 @@ export function ChannelDefaultsSection({
           </div>
         ) : (
           <div className="rounded-lg border overflow-hidden">
-            <Table
-              className="table-fixed border-collapse rounded-lg"
-              containerClassName="max-h-[500px] overflow-auto scrollbar-thin"
-            >
-              <colgroup>
-                <col className="w-10" />
-                <col style={{ width: '40%' }} />
-                <col className="w-32" />
-                <col className="w-40" />
-              </colgroup>
-              <TableHeader className="sticky text-xs top-0 z-10 [&_th]:border-b [&_th]:border-border">
-                <TableRow className="hover:bg-card bg-card shadow-[0_1px_0_0_var(--border)]">
-                  <TableHead className="w-fit">
-                    <Checkbox
-                      checked={
-                        selectedChannels.size === filteredChannels.length &&
-                        filteredChannels.length > 0
-                          ? true
-                          : selectedChannels.size > 0
-                            ? 'indeterminate'
-                            : false
-                      }
-                      onCheckedChange={onSelectAll}
-                      aria-label="Select all channels"
-                    />
-                  </TableHead>
-                  {selectedChannels.size > 0 ? (
-                    <TableHead colSpan={3} className="font-sans normal-case py-1.5">
-                      <BulkSelectAgentBar
-                        selectedCount={selectedChannels.size}
-                        agents={agents}
-                        bulkSaving={bulkSaving}
-                        hasWorkspaceDefault={hasWorkspaceDefault}
-                        onBulkSetAgent={onBulkSetAgent}
-                        onBulkResetToDefault={onBulkResetToDefault}
-                        onClearSelection={onClearSelection}
-                      />
-                    </TableHead>
-                  ) : (
-                    table
-                      .getHeaderGroups()[0]
-                      .headers.filter((h) => h.column.id !== 'select')
-                      .map((header) => (
-                        <TableHead
-                          key={header.id}
-                          className={cn(
-                            header.column.id === 'name' && 'w-fit',
-                            (header.column.id === 'memberAccess' || header.column.id === 'agent') &&
-                              'text-right'
-                          )}
-                        >
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(header.column.columnDef.header, header.getContext())}
-                        </TableHead>
-                      ))
-                  )}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={selectedChannels.has(row.original.id) ? 'selected' : ''}
-                  >
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedChannels.has(row.original.id)}
-                        onCheckedChange={() => onToggleChannel(row.original.id)}
-                        aria-label={`Select ${row.original.name}`}
-                      />
-                    </TableCell>
-                    {row.getVisibleCells().map((cell) =>
-                      cell.column.id === 'select' ? null : (
-                        <TableCell
-                          key={cell.id}
-                          className={cell.column.id !== 'name' ? 'text-right' : undefined}
-                        >
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
-                      )
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <ChannelDefaultsSectionInner
+              columns={columns}
+              filteredChannels={filteredChannels}
+              {...props}
+            />
           </div>
         )}
       </CardContent>
     </Card>
   );
-}
+};
+
+const ChannelDefaultsSectionInner: FC<BaseProps & { columns: ColumnDef<Channel>[] }> = ({
+  columns,
+  filteredChannels,
+  selectedChannels,
+  bulkSaving,
+  onToggleChannel,
+  onSelectAll,
+  onClearSelection,
+  onBulkSetAgent,
+  onBulkResetToDefault,
+}) => {
+  // Fix React compiler error: TanStack Table's `useReactTable()` API returns functions that cannot be memoized safely
+  'use no memo';
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'name', desc: false }]);
+
+  const table = useReactTable({
+    data: filteredChannels,
+    columns,
+    getRowId: (row) => row.id,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    onSortingChange: setSorting,
+    state: { sorting },
+  });
+
+  return (
+    <Table
+      className="table-fixed border-collapse rounded-lg"
+      containerClassName="max-h-[500px] overflow-auto scrollbar-thin"
+    >
+      <colgroup>
+        <col className="w-10" />
+        <col style={{ width: '40%' }} />
+        <col className="w-32" />
+        <col className="w-40" />
+      </colgroup>
+      <TableHeader className="sticky text-xs top-0 z-10 [&_th]:border-b [&_th]:border-border">
+        <TableRow className="hover:bg-card bg-card shadow-[0_1px_0_0_var(--border)]">
+          <TableHead className="w-fit">
+            <Checkbox
+              checked={
+                selectedChannels.size === filteredChannels.length && filteredChannels.length > 0
+                  ? true
+                  : selectedChannels.size > 0
+                    ? 'indeterminate'
+                    : false
+              }
+              onCheckedChange={onSelectAll}
+              aria-label="Select all channels"
+            />
+          </TableHead>
+          {selectedChannels.size > 0 ? (
+            <TableHead colSpan={3} className="font-sans normal-case py-1.5">
+              <BulkSelectAgentBar
+                selectedCount={selectedChannels.size}
+                agents={agents}
+                bulkSaving={bulkSaving}
+                hasWorkspaceDefault={hasWorkspaceDefault}
+                onBulkSetAgent={onBulkSetAgent}
+                onBulkResetToDefault={onBulkResetToDefault}
+                onClearSelection={onClearSelection}
+              />
+            </TableHead>
+          ) : (
+            table
+              .getHeaderGroups()[0]
+              .headers.filter((h) => h.column.id !== 'select')
+              .map((header) => (
+                <TableHead
+                  key={header.id}
+                  className={cn(
+                    header.column.id === 'name' && 'w-fit',
+                    (header.column.id === 'memberAccess' || header.column.id === 'agent') &&
+                      'text-right'
+                  )}
+                >
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(header.column.columnDef.header, header.getContext())}
+                </TableHead>
+              ))
+          )}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {table.getRowModel().rows.map((row) => (
+          <TableRow
+            key={row.id}
+            data-state={selectedChannels.has(row.original.id) ? 'selected' : ''}
+          >
+            <TableCell>
+              <Checkbox
+                checked={selectedChannels.has(row.original.id)}
+                onCheckedChange={() => onToggleChannel(row.original.id)}
+                aria-label={`Select ${row.original.name}`}
+              />
+            </TableCell>
+            {row.getVisibleCells().map((cell) =>
+              cell.column.id === 'select' ? null : (
+                <TableCell
+                  key={cell.id}
+                  className={cell.column.id !== 'name' ? 'text-right' : undefined}
+                >
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </TableCell>
+              )
+            )}
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+};
