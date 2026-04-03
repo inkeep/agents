@@ -90,7 +90,7 @@ function SlackLinkForm() {
       linkingRef.current = true;
       handleLinkWithToken(initialToken);
     }
-  }, [initialToken, isAuthenticated, user, state]);
+  }, [initialToken, isAuthenticated, user?.id, user?.email, state]);
 
   if (authLoading) {
     return (
