@@ -243,16 +243,8 @@ export function ChatWidget({
             isViewOnly: hasHeadersError,
             conversationId,
             baseUrl: PUBLIC_INKEEP_AGENTS_API_URL,
-            ...(playgroundAppId ? { appId: playgroundAppId } : {}),
+            appId: playgroundAppId ?? undefined,
             headers: {
-              ...(playgroundAppId
-                ? {}
-                : {
-                    'x-inkeep-tenant-id': tenantId,
-                    'x-inkeep-project-id': projectId,
-                    'x-inkeep-agent-id': agentId || '',
-                    Authorization: `Bearer ${tempApiKey}`,
-                  }),
               'x-emit-operations': 'true',
               ...customHeaders,
             },
