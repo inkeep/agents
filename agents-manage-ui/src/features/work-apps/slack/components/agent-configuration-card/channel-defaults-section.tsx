@@ -73,6 +73,8 @@ interface BaseProps {
   onClearSelection: () => void;
   onBulkSetAgent: (agent: SlackAgentOption) => void;
   onBulkResetToDefault: () => void;
+  agents: SlackAgentOption[];
+  hasWorkspaceDefault: boolean;
 }
 
 interface ChannelDefaultsSectionProps extends BaseProps {
@@ -81,10 +83,8 @@ interface ChannelDefaultsSectionProps extends BaseProps {
   channelsWithCustomAgent: Channel[];
   channelFilter: 'all' | 'private' | 'connect';
   channelSearchQuery: string;
-  agents: SlackAgentOption[];
   savingChannel: string | null;
   isAdmin: boolean;
-  hasWorkspaceDefault: boolean;
   onChannelFilterChange: (filter: 'all' | 'private' | 'connect') => void;
   onSearchQueryChange: (query: string) => void;
   onSetChannelAgent: (channelId: string, channelName: string, agent: SlackAgentOption) => void;
@@ -271,6 +271,8 @@ export const ChannelDefaultsSection: FC<ChannelDefaultsSectionProps> = ({
             <ChannelDefaultsSectionInner
               columns={columns}
               filteredChannels={filteredChannels}
+              agents={agents}
+              hasWorkspaceDefault={hasWorkspaceDefault}
               {...props}
             />
           </div>
@@ -290,6 +292,8 @@ const ChannelDefaultsSectionInner: FC<BaseProps & { columns: ColumnDef<Channel>[
   onClearSelection,
   onBulkSetAgent,
   onBulkResetToDefault,
+  agents,
+  hasWorkspaceDefault,
 }) => {
   // Fix React compiler error: TanStack Table's `useReactTable()` API returns functions that cannot be memoized safely
   'use no memo';
