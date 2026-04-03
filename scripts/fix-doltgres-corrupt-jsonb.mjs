@@ -191,10 +191,10 @@ function encodeBackslashes(value) {
 // ── CLI ──────────────────────────────────────────────────────────────────────
 
 const args = process.argv.slice(2);
-const SCAN_MODE = args.includes('--scan');
-const APPLY_MODE = args.includes('--apply');
 const DUMP_MODE = args.includes('--dump');
-const DRY_RUN = !APPLY_MODE && !SCAN_MODE && !DUMP_MODE;
+const SCAN_MODE = args.includes('--scan') || (DUMP_MODE && !args.includes('--apply'));
+const APPLY_MODE = args.includes('--apply');
+const DRY_RUN = !APPLY_MODE && !SCAN_MODE;
 const targetBranch = args.includes('--branch') ? args[args.indexOf('--branch') + 1] : null;
 const dumpFile = DUMP_MODE
   ? args.includes('--out')
@@ -202,10 +202,14 @@ const dumpFile = DUMP_MODE
     : path.resolve(__dirname, '..', 'corrupt-jsonb-dump.txt')
   : null;
 
-if ([SCAN_MODE, APPLY_MODE, DUMP_MODE].filter(Boolean).length > 1) {
-  console.error('ERROR: --scan, --apply, and --dump are mutually exclusive.');
+if (APPLY_MODE && DUMP_MODE) {
+  console.error('ERROR: --apply and --dump cannot be combined.');
   process.exit(1);
 }
+
+// Dump state (module-level so processTable can append)
+const dumpSeen = new Set();
+const dumpChunks = [];
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 
@@ -216,16 +220,15 @@ async function main() {
     process.exit(1);
   }
 
-  const modeLabel = DUMP_MODE
-    ? `DUMP (writing full content to ${dumpFile})`
-    : SCAN_MODE
-      ? 'SCAN (read-only)'
-      : APPLY_MODE
-        ? 'APPLY (writing fixes)'
-        : 'DRY RUN (use --apply to write)';
+  const modeLabel = SCAN_MODE
+    ? 'SCAN (read-only)'
+    : APPLY_MODE
+      ? 'APPLY (writing fixes)'
+      : 'DRY RUN (use --apply to write)';
 
   console.log(`\n=== Doltgres Corrupt JSONB Repair ===`);
   console.log(`Mode: ${modeLabel}`);
+  if (DUMP_MODE) console.log(`Dump: writing full content to ${dumpFile}`);
   if (targetBranch) console.log(`Target branch: ${targetBranch}`);
   console.log(`Database: ${connectionString.replace(/:[^:@]+@/, ':***@')}\n`);
 
@@ -260,97 +263,36 @@ async function main() {
     console.log(`Found ${branches.length} branch(es) to process.\n`);
 
     if (DUMP_MODE) {
-      // Dump mode: write full raw content of corrupt columns to a file.
-      // Only process the first branch that has each unique row (by PK) to avoid
-      // dumping the same inherited row 20 times.
-      const seen = new Set();
-      const chunks = [];
-      chunks.push(`Doltgres Corrupt JSONB Dump\nGenerated: ${new Date().toISOString()}\n`);
-      chunks.push(`${'='.repeat(80)}\n`);
+      dumpChunks.push(`Doltgres Corrupt JSONB Dump\nGenerated: ${new Date().toISOString()}\n`);
+      dumpChunks.push(`${'='.repeat(80)}\n`);
+    }
 
-      let totalCorrupt = 0;
+    const totals = { corrupt: 0, repaired: 0, nulled: 0, unrecoverable: 0, errors: 0 };
 
-      for (const branch of branches) {
-        const client = await pool.connect();
-        try {
-          await client.query(`SELECT DOLT_CHECKOUT('${escapeSql(branch)}')`);
-          for (const spec of TABLES) {
-            try {
-              const selectCols = [...spec.pkColumns, ...spec.jsonbColumns].join(', ');
-              const result = await client.query(`SELECT ${selectCols} FROM "${spec.table}"`);
+    for (const branch of branches) {
+      const result = await processBranch(pool, branch);
+      totals.corrupt += result.corrupt;
+      totals.repaired += result.repaired;
+      totals.nulled += result.nulled;
+      totals.unrecoverable += result.unrecoverable;
+      totals.errors += result.errors;
+    }
 
-              for (const row of result.rows) {
-                for (const col of spec.jsonbColumns) {
-                  const raw = row[col];
-                  if (raw === null || raw === undefined) continue;
-                  const parsed = tryParse(raw);
-                  if (parsed.ok) continue;
-
-                  const pkDesc = spec.pkColumns.map((pk) => `${pk}=${row[pk]}`).join(', ');
-                  const dedupeKey = `${spec.table}.${col}|${pkDesc}`;
-                  if (seen.has(dedupeKey)) continue;
-                  seen.add(dedupeKey);
-                  totalCorrupt++;
-
-                  const rawStr = typeof raw === 'string' ? raw : String(raw);
-
-                  chunks.push(`\n${'─'.repeat(80)}\n`);
-                  chunks.push(`Table:    ${spec.table}\n`);
-                  chunks.push(`Column:   ${col}\n`);
-                  chunks.push(`PK:       ${pkDesc}\n`);
-                  chunks.push(`Branch:   ${branch} (first occurrence)\n`);
-                  chunks.push(`Error:    ${parsed.error}\n`);
-                  chunks.push(`Length:   ${rawStr.length} chars\n`);
-                  chunks.push(`\n--- RAW CONTENT (with control chars shown as escapes) ---\n\n`);
-                  // Show the raw content with control chars made visible
-                  const visible = rawStr
-                    .replace(/\n/g, '\\n\n') // show \n explicitly, then actual newline for readability
-                    .replace(/\t/g, '\\t')
-                    .replace(/\r/g, '\\r');
-                  chunks.push(visible);
-                  chunks.push(`\n\n--- END RAW CONTENT ---\n`);
-                }
-              }
-            } catch (err) {
-              const msg = err instanceof Error ? err.message : String(err);
-              if (msg.includes('does not exist') || msg.includes('relation')) continue;
-            }
-          }
-        } finally {
-          try {
-            await client.query(`SELECT DOLT_CHECKOUT('main')`);
-          } catch {}
-          client.release();
-        }
-      }
-
-      fs.writeFileSync(dumpFile, chunks.join(''));
-      console.log(`Wrote ${totalCorrupt} unique corrupt column(s) to ${dumpFile}`);
-    } else {
-      // Scan / dry-run / apply mode
-      const totals = { corrupt: 0, repaired: 0, nulled: 0, unrecoverable: 0, errors: 0 };
-
-      for (const branch of branches) {
-        const result = await processBranch(pool, branch);
-        totals.corrupt += result.corrupt;
-        totals.repaired += result.repaired;
-        totals.nulled += result.nulled;
-        totals.unrecoverable += result.unrecoverable;
-        totals.errors += result.errors;
-      }
-
-      console.log(`\n=== Summary ===`);
-      console.log(`Branches processed: ${branches.length}`);
-      console.log(`Corrupt JSONB columns found: ${totals.corrupt}`);
-      if (!SCAN_MODE) {
-        console.log(`Repaired (JSON fixed + U+E000 encoded): ${totals.repaired}`);
-        console.log(`Nulled (auto-recoverable, e.g. tools.capabilities): ${totals.nulled}`);
-      }
-      console.log(`Unrecoverable (repair failed): ${totals.unrecoverable}`);
-      console.log(`Errors: ${totals.errors}`);
-      if (DRY_RUN && totals.repaired + totals.nulled > 0) {
-        console.log(`\nRe-run with --apply to write these fixes.`);
-      }
+    console.log(`\n=== Summary ===`);
+    console.log(`Branches processed: ${branches.length}`);
+    console.log(`Corrupt JSONB columns found: ${totals.corrupt}`);
+    if (!SCAN_MODE) {
+      console.log(`Repaired (JSON fixed + U+E000 encoded): ${totals.repaired}`);
+      console.log(`Nulled (auto-recoverable, e.g. tools.capabilities): ${totals.nulled}`);
+    }
+    console.log(`Unrecoverable (repair failed): ${totals.unrecoverable}`);
+    console.log(`Errors: ${totals.errors}`);
+    if (DRY_RUN && totals.repaired + totals.nulled > 0) {
+      console.log(`\nRe-run with --apply to write these fixes.`);
+    }
+    if (DUMP_MODE) {
+      fs.writeFileSync(dumpFile, dumpChunks.join(''));
+      console.log(`\nWrote ${dumpSeen.size} unique corrupt column(s) to ${dumpFile}`);
     }
   } finally {
     await pool.end();
@@ -431,6 +373,29 @@ async function processTable(client, spec, branch) {
       counts.corrupt++;
       const pkDesc = spec.pkColumns.map((pk) => `${pk}=${row[pk]}`).join(', ');
       const loc = `${spec.table}.${col} WHERE ${pkDesc}`;
+
+      // Collect dump data when --dump is active (works with --scan or alone)
+      if (DUMP_MODE) {
+        const dedupeKey = `${spec.table}.${col}|${pkDesc}`;
+        if (!dumpSeen.has(dedupeKey)) {
+          dumpSeen.add(dedupeKey);
+          const rawStr = typeof raw === 'string' ? raw : String(raw);
+          dumpChunks.push(`\n${'─'.repeat(80)}\n`);
+          dumpChunks.push(`Table:    ${spec.table}\n`);
+          dumpChunks.push(`Column:   ${col}\n`);
+          dumpChunks.push(`PK:       ${pkDesc}\n`);
+          dumpChunks.push(`Branch:   ${branch} (first occurrence)\n`);
+          dumpChunks.push(`Error:    ${parsed.error}\n`);
+          dumpChunks.push(`Length:   ${rawStr.length} chars\n`);
+          dumpChunks.push(`\n--- RAW CONTENT (with control chars shown as escapes) ---\n\n`);
+          const visible = rawStr
+            .replace(/\n/g, '\\n\n')
+            .replace(/\t/g, '\\t')
+            .replace(/\r/g, '\\r');
+          dumpChunks.push(visible);
+          dumpChunks.push(`\n\n--- END RAW CONTENT ---\n`);
+        }
+      }
 
       if (SCAN_MODE) {
         console.log(`   [CORRUPT] ${loc}`);
