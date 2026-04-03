@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.64.5
+
+### Patch Changes
+
+- e91d67b: Patched Doltgres Backslash Escaping
+
 ## 0.64.4
 
 ## 0.64.3
