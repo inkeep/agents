@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericJsonSchemaEditor } from '@/components/form/generic-json-schema-editor';
@@ -48,6 +48,7 @@ export function ArtifactComponentForm({
     defaultValues,
     mode: 'onChange',
   });
+  const artifactName = useWatch({ control: form.control, name: 'name' });
 
   const { isSubmitting, isValid } = form.formState;
   const router = useRouter();
@@ -135,7 +136,7 @@ export function ArtifactComponentForm({
               tenantId={tenantId}
               projectId={projectId}
               artifactComponentId={id}
-              artifactComponentName={form.watch('name')}
+              artifactComponentName={artifactName}
               existingRender={defaultValues.render}
               onRenderChanged={(render) => {
                 form.setValue('render', render);
