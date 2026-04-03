@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { GitBranch, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
@@ -178,7 +178,8 @@ export function ScheduledTriggerForm({
   });
 
   const { isSubmitting } = form.formState;
-  const scheduleType = form.watch('scheduleType');
+  const scheduleType = useWatch({ control: form.control, name: 'scheduleType' });
+  const cronTimezone = useWatch({ control: form.control, name: 'cronTimezone' }) ?? 'UTC';
 
   const resolveRunAsUserId = (value: string | undefined): string | null => {
     if (!value || value === NONE_VALUE) return null;
@@ -529,7 +530,7 @@ export function ScheduledTriggerForm({
                       <FriendlyScheduleBuilder
                         value={field.value ?? ''}
                         onChange={field.onChange}
-                        timezone={form.watch('cronTimezone') ?? 'UTC'}
+                        timezone={cronTimezone}
                         onTimezoneChange={(tz) =>
                           form.setValue('cronTimezone', tz, { shouldDirty: true })
                         }

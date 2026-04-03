@@ -237,24 +237,21 @@ export function MCPServerForm({
     }
   };
 
-  const handleDelete = async () => {
+  async function handleDelete() {
     if (!tool) return;
 
     setIsDeleting(true);
-    try {
-      // Don't revalidate to avoid Next.js trying to refetch the deleted resource on current page
-      const result = await deleteToolAction(tenantId, projectId, tool.id, false);
-      if (result.success) {
-        setIsDeleteOpen(false);
-        toast.success('MCP server deleted.');
-        router.push(`/${tenantId}/projects/${projectId}/mcp-servers`);
-      } else {
-        toast.error(result.error || 'Failed to delete MCP server.');
-      }
-    } finally {
-      setIsDeleting(false);
+    // Don't revalidate to avoid Next.js trying to refetch the deleted resource on current page
+    const result = await deleteToolAction(tenantId, projectId, tool.id, false);
+    if (result.success) {
+      setIsDeleteOpen(false);
+      toast.success('MCP server deleted.');
+      router.push(`/${tenantId}/projects/${projectId}/mcp-servers`);
+    } else {
+      toast.error(result.error || 'Failed to delete MCP server.');
     }
-  };
+    setIsDeleting(false);
+  }
 
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
