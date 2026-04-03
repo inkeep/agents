@@ -1,10 +1,6 @@
 name: Cypress
 
 on:
-  push:
-    branches:
-      - main
-      - master
   pull_request:
     branches: ["*"]
   merge_group:
@@ -21,7 +17,6 @@ jobs:
   # Lightweight check on a cheap runner — avoids spinning up expensive service
   # containers (Doltgres, Postgres) on ubuntu-32gb just to skip everything.
   changeset-check:
-    if: ${{ github.event_name != 'push' || github.actor != 'github-merge-queue[bot]' }}
     runs-on: ubuntu-latest
     outputs:
       is_changeset: ${{ steps.check.outputs.is_changeset }}
