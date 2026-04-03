@@ -157,9 +157,11 @@ export function ProjectForm({
         )}
 
         <div className="flex gap-3 justify-end">
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
-            Cancel
-          </Button>
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+              Cancel
+            </Button>
+          )}
           {!readOnly && (
             <Button type="submit" disabled={isSubmitting}>
               {projectId ? 'Update project' : 'Create project'}

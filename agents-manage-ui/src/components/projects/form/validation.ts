@@ -31,10 +31,9 @@ export const ProjectSchema = ProjectApiInsertSchema.extend({
         providerOptions: StringToJsonSchema.pipe(ModelsSummarizerSchema.shape.providerOptions),
       }).optional(),
     })
-    .transform(({ base, structuredOutput, summarizer, ...value }) => {
+    .transform(({ structuredOutput, summarizer, ...value }) => {
       return {
         ...value,
-        ...(base.model && { base }),
         ...(structuredOutput?.model && { structuredOutput }),
         ...(summarizer?.model && { summarizer }),
       };
