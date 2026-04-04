@@ -447,11 +447,7 @@ async function processTable(client, spec, branch) {
           if (DRY_RUN) {
             console.log(`   [WILL REPAIR] ${loc}`);
             const rawStr = typeof raw === 'string' ? raw : String(raw);
-            // Pretty-print both sides with matching structure so the diff
-            // only highlights actual content changes, not formatting noise
-            const prettyBefore = naivePrettyJson(rawStr);
-            const prettyAfter = naivePrettyJson(encodedJson);
-            console.log(simpleDiff(prettyBefore, prettyAfter));
+            console.log(inlineDiff(rawStr, repair.repaired));
             continue;
           }
           const whereClauses = spec.pkColumns.map((pk, i) => `"${pk}" = $${i + 1}`).join(' AND ');
@@ -474,152 +470,102 @@ async function processTable(client, spec, branch) {
   return counts;
 }
 
-/**
- * Naive JSON pretty-printer that works on raw (possibly invalid) JSON strings.
- * Inserts newlines after structural characters so line-based diffs are useful.
- * Does NOT parse the JSON — works purely on the string level.
- */
-function naivePrettyJson(raw) {
-  const out = [];
-  let indent = 0;
-  let inString = false;
-  let escaped = false;
-
-  for (let i = 0; i < raw.length; i++) {
-    const ch = raw[i];
-
-    if (escaped) {
-      out.push(ch);
-      escaped = false;
-      continue;
-    }
-
-    if (ch === '\\' && inString) {
-      out.push(ch);
-      escaped = true;
-      continue;
-    }
-
-    if (ch === '"') {
-      inString = !inString;
-      out.push(ch);
-      continue;
-    }
-
-    if (inString) {
-      out.push(ch);
-      continue;
-    }
-
-    if (ch === '{' || ch === '[') {
-      out.push(ch);
-      indent += 2;
-      out.push('\n' + ' '.repeat(indent));
-    } else if (ch === '}' || ch === ']') {
-      indent = Math.max(0, indent - 2);
-      out.push('\n' + ' '.repeat(indent));
-      out.push(ch);
-    } else if (ch === ',') {
-      out.push(ch);
-      out.push('\n' + ' '.repeat(indent));
-    } else if (ch === ':') {
-      out.push(': ');
-    } else if (ch !== ' ' && ch !== '\t' && ch !== '\n' && ch !== '\r') {
-      out.push(ch);
-    }
-  }
-
-  return out.join('');
-}
-
 // ANSI colors
 const RED = '\x1b[31m';
 const GREEN = '\x1b[32m';
 const DIM = '\x1b[2m';
 const RESET = '\x1b[0m';
-const BADGE_DEL = '\x1b[41m\x1b[97m'; // white on red bg
-const BADGE_ADD = '\x1b[42m\x1b[30m'; // black on green bg
-const HL_DEL = '\x1b[41m\x1b[97m'; // highlight deleted chars
-const HL_ADD = '\x1b[42m\x1b[30m'; // highlight inserted chars
+const HL_DEL = '\x1b[41m\x1b[97m'; // white on red bg
+const HL_ADD = '\x1b[42m\x1b[30m'; // black on green bg
 
 /**
- * Character-level diff: find the exact changed region within a line pair.
- * Trims common prefix/suffix, highlights only the differing middle.
+ * Focused inline diff: finds each change between two strings and shows it
+ * as a highlighted hunk with surrounding context characters.
+ * No line-level diffing — works purely on characters.
  */
-function charDiff(a, b) {
-  const maxLen = 2000;
-  const aStr = a.length > maxLen ? a.slice(0, maxLen) : a;
-  const bStr = b.length > maxLen ? b.slice(0, maxLen) : b;
+function inlineDiff(before, after, ctx = 50) {
+  const vis = (s) => s.replace(/\n/g, '\\n').replace(/\t/g, '\\t').replace(/\r/g, '\\r');
 
-  let pre = 0;
-  while (pre < aStr.length && pre < bStr.length && aStr[pre] === bStr[pre]) pre++;
-  let suf = 0;
-  while (
-    suf < aStr.length - pre &&
-    suf < bStr.length - pre &&
-    aStr[aStr.length - 1 - suf] === bStr[bStr.length - 1 - suf]
-  )
-    suf++;
+  const changes = [];
+  let ai = 0;
+  let bi = 0;
 
-  const prefix = aStr.slice(0, pre);
-  const aMid = aStr.slice(pre, aStr.length - suf);
-  const bMid = bStr.slice(pre, bStr.length - suf);
-  const suffix = aStr.slice(aStr.length - suf);
+  while (ai < before.length && bi < after.length) {
+    if (before[ai] === after[bi]) {
+      ai++;
+      bi++;
+      continue;
+    }
+    const aStart = ai;
+    const bStart = bi;
+    let found = false;
+    for (let aOff = 0; aOff < 200 && aStart + aOff <= before.length; aOff++) {
+      for (let bOff = 0; bOff < 200 && bStart + bOff <= after.length; bOff++) {
+        if (aOff === 0 && bOff === 0) continue;
+        const win = Math.min(8, before.length - (aStart + aOff), after.length - (bStart + bOff));
+        if (win < 4) continue;
+        let ok = true;
+        for (let w = 0; w < win; w++) {
+          if (before[aStart + aOff + w] !== after[bStart + bOff + w]) {
+            ok = false;
+            break;
+          }
+        }
+        if (ok) {
+          changes.push({
+            pos: aStart,
+            del: before.slice(aStart, aStart + aOff),
+            add: after.slice(bStart, bStart + bOff),
+          });
+          ai = aStart + aOff;
+          bi = bStart + bOff;
+          found = true;
+          break;
+        }
+      }
+      if (found) break;
+    }
+    if (!found) {
+      changes.push({ pos: aStart, del: before.slice(aStart), add: after.slice(bStart) });
+      ai = before.length;
+      bi = after.length;
+    }
+  }
+  if (ai < before.length) changes.push({ pos: ai, del: before.slice(ai), add: '' });
+  if (bi < after.length) changes.push({ pos: before.length, del: '', add: after.slice(bi) });
 
-  return {
-    prefix,
-    suffix,
-    delPart: aMid.length > 0 ? `${HL_DEL}${aMid}${RESET}${RED}` : '',
-    addPart: bMid.length > 0 ? `${HL_ADD}${bMid}${RESET}${GREEN}` : '',
-  };
+  if (changes.length === 0) return `      ${DIM}(no changes)${RESET}\n`;
+
+  const lines = [`      ${DIM}${changes.length} change(s):${RESET}`, ''];
+  for (let i = 0; i < changes.length; i++) {
+    const c = changes[i];
+    const pre = vis(before.slice(Math.max(0, c.pos - ctx), c.pos));
+    const post = vis(before.slice(c.pos + c.del.length, c.pos + c.del.length + ctx));
+    lines.push(`      ${DIM}Change ${i + 1} at position ${c.pos}:${RESET}`);
+    lines.push(
+      `      ${RED}  -${RESET} ${DIM}...${pre}${RESET}${HL_DEL}${vis(c.del)}${RESET}${DIM}${post}...${RESET}`
+    );
+    lines.push(
+      `      ${GREEN}  +${RESET} ${DIM}...${pre}${RESET}${HL_ADD}${vis(c.add)}${RESET}${DIM}${post}...${RESET}`
+    );
+    lines.push('');
+  }
+  return lines.join('\n');
 }
 
 /**
- * Colorized diff with character-level highlighting.
- * Within changed lines, the exact differing characters get a background color.
+ * Simple before/after diff for short values (used for NULL replacements).
  */
-function simpleDiff(before, after, contextLines = 3) {
-  const visualize = (s) => s.replace(/\t/g, '\\t').replace(/\r/g, '\\r');
-
-  const aLines = visualize(before).split('\n');
-  const bLines = visualize(after).split('\n');
-  const lines = [];
-
-  const maxLen = Math.max(aLines.length, bLines.length);
-  const changed = new Set();
-  for (let i = 0; i < maxLen; i++) {
-    if (aLines[i] !== bLines[i]) changed.add(i);
-  }
-  if (changed.size === 0) return `      ${DIM}(no visible difference)${RESET}\n`;
-
-  const show = new Set();
-  for (const i of changed) {
-    for (let c = Math.max(0, i - contextLines); c <= Math.min(maxLen - 1, i + contextLines); c++) {
-      show.add(c);
-    }
-  }
-
-  let lastShown = -2;
-  for (let i = 0; i < maxLen; i++) {
-    if (!show.has(i)) continue;
-    if (i > lastShown + 1) lines.push(`      ${DIM}...${RESET}`);
-    lastShown = i;
-
-    if (changed.has(i)) {
-      const aLine = i < aLines.length ? aLines[i] : '';
-      const bLine = i < bLines.length ? bLines[i] : '';
-      const { prefix, delPart, addPart, suffix } = charDiff(aLine, bLine);
-
-      if (i < aLines.length)
-        lines.push(`      ${BADGE_DEL} - ${RESET}${RED} ${prefix}${delPart}${suffix}${RESET}`);
-      if (i < bLines.length)
-        lines.push(`      ${BADGE_ADD} + ${RESET}${GREEN} ${prefix}${addPart}${suffix}${RESET}`);
-    } else {
-      const line = i < aLines.length ? aLines[i] : bLines[i];
-      lines.push(`      ${DIM}   ${line}${RESET}`);
-    }
-  }
-  return lines.join('\n') + '\n';
+function simpleDiff(before, after) {
+  const vis = (s) => s.replace(/\n/g, '\\n').replace(/\t/g, '\\t').replace(/\r/g, '\\r');
+  const bVis = vis(before);
+  const aVis = vis(after);
+  const snippet = bVis.length > 120 ? bVis.slice(0, 120) + '...' : bVis;
+  return [
+    `      ${RED}  -${RESET} ${DIM}${snippet}${RESET}`,
+    `      ${GREEN}  +${RESET} ${HL_ADD}${aVis}${RESET}`,
+    '',
+  ].join('\n');
 }
 
 function escapeSql(value) {
