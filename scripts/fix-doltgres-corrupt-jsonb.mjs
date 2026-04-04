@@ -477,13 +477,46 @@ const DIM = '\x1b[2m';
 const RESET = '\x1b[0m';
 const BADGE_DEL = '\x1b[41m\x1b[97m'; // white on red bg
 const BADGE_ADD = '\x1b[42m\x1b[30m'; // black on green bg
+const HL_DEL = '\x1b[41m\x1b[97m'; // highlight deleted chars
+const HL_ADD = '\x1b[42m\x1b[30m'; // highlight inserted chars
 
 /**
- * Produce a colorized unified-style diff between two strings.
- * Removed lines: red with red badge. Added lines: green with green badge.
- * Context lines: dimmed. Skipped regions: dimmed ellipsis.
+ * Character-level diff: find the exact changed region within a line pair.
+ * Trims common prefix/suffix, highlights only the differing middle.
  */
-function simpleDiff(before, after, contextLines = 2) {
+function charDiff(a, b) {
+  const maxLen = 2000;
+  const aStr = a.length > maxLen ? a.slice(0, maxLen) : a;
+  const bStr = b.length > maxLen ? b.slice(0, maxLen) : b;
+
+  let pre = 0;
+  while (pre < aStr.length && pre < bStr.length && aStr[pre] === bStr[pre]) pre++;
+  let suf = 0;
+  while (
+    suf < aStr.length - pre &&
+    suf < bStr.length - pre &&
+    aStr[aStr.length - 1 - suf] === bStr[bStr.length - 1 - suf]
+  )
+    suf++;
+
+  const prefix = aStr.slice(0, pre);
+  const aMid = aStr.slice(pre, aStr.length - suf);
+  const bMid = bStr.slice(pre, bStr.length - suf);
+  const suffix = aStr.slice(aStr.length - suf);
+
+  return {
+    prefix,
+    suffix,
+    delPart: aMid.length > 0 ? `${HL_DEL}${aMid}${RESET}${RED}` : '',
+    addPart: bMid.length > 0 ? `${HL_ADD}${bMid}${RESET}${GREEN}` : '',
+  };
+}
+
+/**
+ * Colorized diff with character-level highlighting.
+ * Within changed lines, the exact differing characters get a background color.
+ */
+function simpleDiff(before, after, contextLines = 3) {
   const visualize = (s) => s.replace(/\t/g, '\\t').replace(/\r/g, '\\r');
 
   const aLines = visualize(before).split('\n');
@@ -511,9 +544,14 @@ function simpleDiff(before, after, contextLines = 2) {
     lastShown = i;
 
     if (changed.has(i)) {
-      if (i < aLines.length) lines.push(`      ${BADGE_DEL} - ${RESET}${RED} ${aLines[i]}${RESET}`);
+      const aLine = i < aLines.length ? aLines[i] : '';
+      const bLine = i < bLines.length ? bLines[i] : '';
+      const { prefix, delPart, addPart, suffix } = charDiff(aLine, bLine);
+
+      if (i < aLines.length)
+        lines.push(`      ${BADGE_DEL} - ${RESET}${RED} ${prefix}${delPart}${suffix}${RESET}`);
       if (i < bLines.length)
-        lines.push(`      ${BADGE_ADD} + ${RESET}${GREEN} ${bLines[i]}${RESET}`);
+        lines.push(`      ${BADGE_ADD} + ${RESET}${GREEN} ${prefix}${addPart}${suffix}${RESET}`);
     } else {
       const line = i < aLines.length ? aLines[i] : bLines[i];
       lines.push(`      ${DIM}   ${line}${RESET}`);
