@@ -4,10 +4,6 @@ import { fetchWithRetry } from '@/lib/api/fetch-with-retry';
 
 export const dynamic = 'force-dynamic';
 
-type RouteContext<_T> = {
-  params: Promise<Record<string, string>>;
-};
-
 export async function GET(req: NextRequest, context: RouteContext<'/api/traces/spans/[spanId]'>) {
   const { spanId } = await context.params;
   if (!spanId) {

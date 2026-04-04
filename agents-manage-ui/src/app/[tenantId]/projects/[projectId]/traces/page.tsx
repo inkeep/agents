@@ -20,7 +20,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
-import { CURRENT_TIME, DOCS_BASE_URL } from '@/constants/theme';
+import { DOCS_BASE_URL } from '@/constants/theme';
 import { useSignozConfig } from '@/hooks/use-signoz-config';
 import { useConversationStats } from '@/hooks/use-traces';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
@@ -39,6 +39,7 @@ export default function TracesOverview({
 }: PageProps<'/[tenantId]/projects/[projectId]/traces'>) {
   const router = useRouter();
   const { tenantId, projectId } = use(params);
+  const [CURRENT_TIME] = useState(() => Date.now());
   const searchParams = useSearchParams();
   const {
     timeRange: selectedTimeRange,

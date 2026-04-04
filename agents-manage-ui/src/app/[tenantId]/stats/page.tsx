@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { CURRENT_TIME, DOCS_BASE_URL } from '@/constants/theme';
+import { DOCS_BASE_URL } from '@/constants/theme';
 import { useSignozConfig } from '@/hooks/use-signoz-config';
 import {
   useConversationsPerDayAcrossProjects,
@@ -49,6 +49,7 @@ const TIME_RANGES = {
 
 export default function ProjectsStatsPage({ params }: PageProps<'/[tenantId]/stats'>) {
   const { tenantId } = use(params);
+  const [CURRENT_TIME] = useState(() => Date.now());
   const router = useRouter();
   const {
     timeRange: selectedTimeRange,

@@ -7,7 +7,6 @@ export const SLACK_BRAND_COLOR = '#4A154B';
 export const DOCS_BASE_URL = 'https://docs.inkeep.com';
 export const TEMPLATE_LANGUAGE = 'template';
 export const VARIABLE_TOKEN = 'variable';
-export const CURRENT_TIME = Date.now();
 
 export const TEMPLATE_VARIABLE_REGEX = /\{\{(?!\{)(?<variableName>[^{}]+)}}/g;
 

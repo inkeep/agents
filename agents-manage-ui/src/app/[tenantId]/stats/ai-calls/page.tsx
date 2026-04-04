@@ -22,7 +22,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UNKNOWN_VALUE } from '@/constants/signoz';
-import { CURRENT_TIME } from '@/constants/theme';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { getSigNozStatsClient, type TokenUsageResult } from '@/lib/api/signoz-stats';
 import { useProjectsQuery } from '@/lib/query/projects';
@@ -48,7 +47,7 @@ export default function AllProjectsAICallsBreakdown({
   params,
 }: PageProps<'/[tenantId]/stats/ai-calls'>) {
   const { tenantId } = use(params);
-
+  const [CURRENT_TIME] = useState(() => Date.now());
   const backLink = `/${tenantId}/stats`;
 
   const { timeRange, customStartDate, customEndDate, setTimeRange, setCustomDateRange } =
