@@ -20,7 +20,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
-import { DOCS_BASE_URL } from '@/constants/theme';
+import { CURRENT_TIME, DOCS_BASE_URL } from '@/constants/theme';
 import { useSignozConfig } from '@/hooks/use-signoz-config';
 import { useConversationStats } from '@/hooks/use-traces';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
@@ -64,7 +64,7 @@ export default function TracesOverview({
 
   // Calculate time range based on selection
   const { startTime, endTime } = useMemo(() => {
-    const currentEndTime = Date.now() - 1; // Clamp to now-1ms to satisfy backend validation
+    const currentEndTime = CURRENT_TIME - 1; // Clamp to now-1ms to satisfy backend validation
 
     if (selectedTimeRange === CUSTOM) {
       // Use custom dates if provided

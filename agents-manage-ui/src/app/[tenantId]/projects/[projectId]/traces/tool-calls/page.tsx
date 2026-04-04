@@ -14,6 +14,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
 import { type TimeRange, useToolCallsQueryState } from '@/hooks/use-tool-calls-query-state';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
+import { CURRENT_TIME } from '@/constants/theme';
 
 const TIME_RANGES = {
   '24h': { label: 'Last 24 hours', hours: 24 },
@@ -73,7 +74,7 @@ export default function ToolCallsBreakdown({
   };
 
   const { startTime, endTime } = useMemo(() => {
-    const currentEndTime = Date.now();
+    const currentEndTime = CURRENT_TIME;
 
     if (timeRange === 'custom') {
       if (customStartDate && customEndDate) {
@@ -81,7 +82,7 @@ export default function ToolCallsBreakdown({
         const [ey, em, ed] = customEndDate.split('-').map(Number);
         const startDate = new Date(sy, (sm || 1) - 1, sd || 1, 0, 0, 0, 0);
         const endDate = new Date(ey, (em || 1) - 1, ed || 1, 23, 59, 59, 999);
-        const clampedEndMs = Math.min(endDate.getTime(), Date.now() - 1);
+        const clampedEndMs = Math.min(endDate.getTime(), CURRENT_TIME - 1);
 
         return {
           startTime: startDate.getTime(),

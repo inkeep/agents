@@ -25,6 +25,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { UNKNOWN_VALUE } from '@/constants/signoz';
 import { type TimeRange, useAICallsQueryState } from '@/hooks/use-ai-calls-query-state';
 import { getSigNozStatsClient, type TokenUsageResult } from '@/lib/api/signoz-stats';
+import { CURRENT_TIME } from '@/constants/theme';
 
 function formatTokenCount(count: number): string {
   if (count >= 1_000_000) {
@@ -104,7 +105,7 @@ export default function AICallsBreakdown({
 
   // Calculate time range based on selection
   const { startTime, endTime } = useMemo(() => {
-    const currentEndTime = Date.now();
+    const currentEndTime = CURRENT_TIME;
 
     if (timeRange === 'custom') {
       // Use custom dates if provided
@@ -116,7 +117,7 @@ export default function AICallsBreakdown({
         const endDate = new Date(ey, (em || 1) - 1, ed || 1, 23, 59, 59, 999);
 
         // Clamp end to now-1ms to satisfy backend validation (end cannot be in the future)
-        const clampedEndMs = Math.min(endDate.getTime(), Date.now() - 1);
+        const clampedEndMs = Math.min(endDate.getTime(), CURRENT_TIME - 1);
 
         return {
           startTime: startDate.getTime(),

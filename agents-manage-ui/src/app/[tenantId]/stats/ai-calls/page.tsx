@@ -25,6 +25,7 @@ import { UNKNOWN_VALUE } from '@/constants/signoz';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { getSigNozStatsClient, type TokenUsageResult } from '@/lib/api/signoz-stats';
 import { useProjectsQuery } from '@/lib/query/projects';
+import { CURRENT_TIME } from '@/constants/theme';
 
 function formatTokenCount(count: number): string {
   if (count >= 1_000_000) {
@@ -81,7 +82,7 @@ export default function AllProjectsAICallsBreakdown({
   };
 
   const { startTime, endTime } = useMemo(() => {
-    const currentEndTime = Date.now();
+    const currentEndTime = CURRENT_TIME;
 
     if (timeRange === CUSTOM) {
       if (customStartDate && customEndDate) {
@@ -89,7 +90,7 @@ export default function AllProjectsAICallsBreakdown({
         const [ey, em, ed] = customEndDate.split('-').map(Number);
         const startDate = new Date(sy, (sm || 1) - 1, sd || 1, 0, 0, 0, 0);
         const endDate = new Date(ey, (em || 1) - 1, ed || 1, 23, 59, 59, 999);
-        const clampedEndMs = Math.min(endDate.getTime(), Date.now() - 1);
+        const clampedEndMs = Math.min(endDate.getTime(), CURRENT_TIME - 1);
 
         return {
           startTime: startDate.getTime(),

@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { DOCS_BASE_URL } from '@/constants/theme';
+import { CURRENT_TIME, DOCS_BASE_URL } from '@/constants/theme';
 import { useSignozConfig } from '@/hooks/use-signoz-config';
 import {
   useConversationsPerDayAcrossProjects,
@@ -64,7 +64,7 @@ export default function ProjectsStatsPage({ params }: PageProps<'/[tenantId]/sta
 
   // Calculate time range based on selection
   const { startTime, endTime } = useMemo(() => {
-    const currentEndTime = Date.now() - 1;
+    const currentEndTime = CURRENT_TIME - 1;
 
     if (selectedTimeRange === CUSTOM) {
       if (customStartDate && customEndDate) {
