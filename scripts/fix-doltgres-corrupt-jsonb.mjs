@@ -511,8 +511,7 @@ function simpleDiff(before, after, contextLines = 2) {
     lastShown = i;
 
     if (changed.has(i)) {
-      if (i < aLines.length)
-        lines.push(`      ${BADGE_DEL} - ${RESET}${RED} ${aLines[i]}${RESET}`);
+      if (i < aLines.length) lines.push(`      ${BADGE_DEL} - ${RESET}${RED} ${aLines[i]}${RESET}`);
       if (i < bLines.length)
         lines.push(`      ${BADGE_ADD} + ${RESET}${GREEN} ${bLines[i]}${RESET}`);
     } else {
