@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-ui
 
+## 0.64.7
+
+### Patch Changes
+
+- daee0b6: Revert
+  - @inkeep/agents-core@0.64.7
+
 ## 0.64.6
 
 ### Patch Changes

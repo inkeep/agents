@@ -1,5 +1,15 @@
 # @inkeep/agents-cli
 
+## 0.64.7
+
+### Patch Changes
+
+- daee0b6: Revert
+- Updated dependencies [daee0b6]
+  - @inkeep/agents-manage-ui@0.64.7
+  - @inkeep/agents-core@0.64.7
+  - @inkeep/agents-sdk@0.64.7
+
 ## 0.64.6
 
 ### Patch Changes
