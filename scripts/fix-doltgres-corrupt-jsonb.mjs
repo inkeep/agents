@@ -484,7 +484,9 @@ const HL_ADD = '\x1b[42m\x1b[30m'; // black on green bg
  * No line-level diffing — works purely on characters.
  */
 function inlineDiff(before, after, ctx = 50) {
-  const vis = (s) => s.replace(/\n/g, '\\n').replace(/\t/g, '\\t').replace(/\r/g, '\\r');
+  // Show literal control chars as ␊ ␉ ␍ so they're visually distinct
+  // from the escape sequences \n \t \r that appear in the repaired JSON
+  const vis = (s) => s.replace(/\n/g, '␊').replace(/\t/g, '␉').replace(/\r/g, '␍');
 
   const changes = [];
   let ai = 0;
