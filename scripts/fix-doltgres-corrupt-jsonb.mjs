@@ -470,27 +470,33 @@ async function processTable(client, spec, branch) {
   return counts;
 }
 
+// ANSI colors
+const RED = '\x1b[31m';
+const GREEN = '\x1b[32m';
+const DIM = '\x1b[2m';
+const RESET = '\x1b[0m';
+const BADGE_DEL = '\x1b[41m\x1b[97m'; // white on red bg
+const BADGE_ADD = '\x1b[42m\x1b[30m'; // black on green bg
+
 /**
- * Produce a unified-style diff between two strings.
- * Shows only changed lines with surrounding context.
+ * Produce a colorized unified-style diff between two strings.
+ * Removed lines: red with red badge. Added lines: green with green badge.
+ * Context lines: dimmed. Skipped regions: dimmed ellipsis.
  */
 function simpleDiff(before, after, contextLines = 2) {
-  // Make control chars visible for both sides
   const visualize = (s) => s.replace(/\t/g, '\\t').replace(/\r/g, '\\r');
 
   const aLines = visualize(before).split('\n');
   const bLines = visualize(after).split('\n');
   const lines = [];
 
-  // Find changed line indices
   const maxLen = Math.max(aLines.length, bLines.length);
   const changed = new Set();
   for (let i = 0; i < maxLen; i++) {
     if (aLines[i] !== bLines[i]) changed.add(i);
   }
-  if (changed.size === 0) return '      (no visible difference)\n';
+  if (changed.size === 0) return `      ${DIM}(no visible difference)${RESET}\n`;
 
-  // Expand to include context
   const show = new Set();
   for (const i of changed) {
     for (let c = Math.max(0, i - contextLines); c <= Math.min(maxLen - 1, i + contextLines); c++) {
@@ -501,15 +507,17 @@ function simpleDiff(before, after, contextLines = 2) {
   let lastShown = -2;
   for (let i = 0; i < maxLen; i++) {
     if (!show.has(i)) continue;
-    if (i > lastShown + 1) lines.push('      ...');
+    if (i > lastShown + 1) lines.push(`      ${DIM}...${RESET}`);
     lastShown = i;
 
     if (changed.has(i)) {
-      if (i < aLines.length) lines.push(`      - ${aLines[i]}`);
-      if (i < bLines.length) lines.push(`      + ${bLines[i]}`);
+      if (i < aLines.length)
+        lines.push(`      ${BADGE_DEL} - ${RESET}${RED} ${aLines[i]}${RESET}`);
+      if (i < bLines.length)
+        lines.push(`      ${BADGE_ADD} + ${RESET}${GREEN} ${bLines[i]}${RESET}`);
     } else {
       const line = i < aLines.length ? aLines[i] : bLines[i];
-      lines.push(`        ${line}`);
+      lines.push(`      ${DIM}   ${line}${RESET}`);
     }
   }
   return lines.join('\n') + '\n';
