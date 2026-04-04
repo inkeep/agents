@@ -447,7 +447,11 @@ async function processTable(client, spec, branch) {
           if (DRY_RUN) {
             console.log(`   [WILL REPAIR] ${loc}`);
             const rawStr = typeof raw === 'string' ? raw : String(raw);
-            console.log(simpleDiff(rawStr, encodedJson));
+            // Pretty-print both sides with matching structure so the diff
+            // only highlights actual content changes, not formatting noise
+            const prettyBefore = naivePrettyJson(rawStr);
+            const prettyAfter = naivePrettyJson(encodedJson);
+            console.log(simpleDiff(prettyBefore, prettyAfter));
             continue;
           }
           const whereClauses = spec.pkColumns.map((pk, i) => `"${pk}" = $${i + 1}`).join(' AND ');
@@ -468,6 +472,64 @@ async function processTable(client, spec, branch) {
   }
 
   return counts;
+}
+
+/**
+ * Naive JSON pretty-printer that works on raw (possibly invalid) JSON strings.
+ * Inserts newlines after structural characters so line-based diffs are useful.
+ * Does NOT parse the JSON — works purely on the string level.
+ */
+function naivePrettyJson(raw) {
+  const out = [];
+  let indent = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i];
+
+    if (escaped) {
+      out.push(ch);
+      escaped = false;
+      continue;
+    }
+
+    if (ch === '\\' && inString) {
+      out.push(ch);
+      escaped = true;
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = !inString;
+      out.push(ch);
+      continue;
+    }
+
+    if (inString) {
+      out.push(ch);
+      continue;
+    }
+
+    if (ch === '{' || ch === '[') {
+      out.push(ch);
+      indent += 2;
+      out.push('\n' + ' '.repeat(indent));
+    } else if (ch === '}' || ch === ']') {
+      indent = Math.max(0, indent - 2);
+      out.push('\n' + ' '.repeat(indent));
+      out.push(ch);
+    } else if (ch === ',') {
+      out.push(ch);
+      out.push('\n' + ' '.repeat(indent));
+    } else if (ch === ':') {
+      out.push(': ');
+    } else if (ch !== ' ' && ch !== '\t' && ch !== '\n' && ch !== '\r') {
+      out.push(ch);
+    }
+  }
+
+  return out.join('');
 }
 
 // ANSI colors
