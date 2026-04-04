@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ExternalLink } from '@/components/ui/external-link';
 import { ResizableHandle, ResizablePanel } from '@/components/ui/resizable';
-import { DOCS_BASE_URL } from '@/constants/theme';
+import { CURRENT_TIME, DOCS_BASE_URL } from '@/constants/theme';
 import { buildFullTrace, buildSummarizedTrace } from '@/lib/utils/trace-formatter';
 
 function panelTitle(selected: SelectedPanel) {
@@ -232,7 +232,7 @@ export function TimelineWrapper({
     return (
       conversation?.toolCalls?.map((tc: ActivityItem) => ({
         ...tc, // keep saveResultSaved, saveSummaryData, etc.
-        id: tc.id ?? `tool-call-${Date.now()}`,
+        id: tc.id ?? `tool-call-${CURRENT_TIME}`,
         type: 'tool_call' as const,
         description: `Called ${tc.toolName} tool${tc.toolDescription ? ` - ${tc.toolDescription}` : ''}`,
         timestamp: new Date(tc.timestamp).toISOString(),
