@@ -2,7 +2,7 @@
 
 import { Loader2, XCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { use, useEffect, useState } from 'react';
+import { use, useCallback, useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuthClient } from '@/contexts/auth-client';
@@ -35,7 +35,8 @@ export default function AcceptInvitationPage({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  function getFullCallbackURL() {
+  const getFullCallbackURL = useCallback(() => {
+    if (typeof window === 'undefined') return '/';
     const baseURL = window.location.origin;
     const params = new URLSearchParams();
     params.set('invitation', invitationId);
@@ -43,31 +44,37 @@ export default function AcceptInvitationPage({
       params.set('returnUrl', returnUrl);
     }
     return `${baseURL}/?${params.toString()}`;
-  }
+  }, [invitationId, returnUrl]);
 
   // Redirect after successful acceptance
-  function onSuccess(orgId?: string) {
-    setSuccess(true);
-    setTimeout(() => {
-      router.push(getSafeReturnUrl(returnUrl, orgId ? `/${orgId}/projects` : '/'));
-    }, 2000);
-  }
+  const onSuccess = useCallback(
+    (orgId?: string) => {
+      setSuccess(true);
+      setTimeout(() => {
+        router.push(getSafeReturnUrl(returnUrl, orgId ? `/${orgId}/projects` : '/'));
+      }, 2000);
+    },
+    [router, returnUrl]
+  );
 
   // Accept invitation + set org active (shared by all auth flows)
-  async function acceptAndActivate(orgId?: string) {
-    const acceptResult = await authClient.organization.acceptInvitation({ invitationId });
-    if ('error' in acceptResult && acceptResult.error) {
-      throw new Error(acceptResult.error.message || 'Failed to accept invitation');
-    }
-    const resolvedOrgId =
-      orgId ??
-      (acceptResult.data as { organizationId?: string })?.organizationId ??
-      invitation?.organizationId;
-    if (resolvedOrgId) {
-      await authClient.organization.setActive({ organizationId: resolvedOrgId });
-    }
-    onSuccess(resolvedOrgId);
-  }
+  const acceptAndActivate = useCallback(
+    async (orgId?: string) => {
+      const acceptResult = await authClient.organization.acceptInvitation({ invitationId });
+      if ('error' in acceptResult && acceptResult.error) {
+        throw new Error(acceptResult.error.message || 'Failed to accept invitation');
+      }
+      const resolvedOrgId =
+        orgId ??
+        (acceptResult.data as { organizationId?: string })?.organizationId ??
+        invitation?.organizationId;
+      if (resolvedOrgId) {
+        await authClient.organization.setActive({ organizationId: resolvedOrgId });
+      }
+      onSuccess(resolvedOrgId);
+    },
+    [authClient, invitationId, invitation, onSuccess]
+  );
 
   // --- Data fetching ---
 

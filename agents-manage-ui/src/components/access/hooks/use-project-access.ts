@@ -5,7 +5,7 @@ import {
   OrgRoles,
   type ProjectRole,
 } from '@inkeep/agents-core/client-exports';
-import { useEffect, useState, useTransition } from 'react';
+import { useCallback, useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { useAuthClient } from '@/contexts/auth-client';
 import {
@@ -94,7 +94,7 @@ export function useProjectAccess({
   const [isMutating, startMutating] = useTransition();
 
   // Fetch project members from API
-  async function fetchProjectMembers() {
+  const fetchProjectMembers = useCallback(async () => {
     try {
       setIsLoadingMembers(true);
       setMembersError(null);
@@ -105,41 +105,37 @@ export function useProjectAccess({
       setMembersError(err instanceof Error ? err.message : 'Failed to load members');
     }
     setIsLoadingMembers(false);
-  }
+  }, [tenantId, projectId]);
+
+  // Fetch org members for enrichment and available principals list
+  const fetchOrgMembers = useCallback(async () => {
+    try {
+      const { data } = await authClient.organization.getFullOrganization({
+        query: { organizationId: tenantId, membersLimit: DEFAULT_MEMBERSHIP_LIMIT },
+      });
+
+      if (data?.members) {
+        const principals: AccessPrincipal[] = data.members.map((m) =>
+          toAccessPrincipal({
+            userId: m.user.id,
+            name: m.user.name || '',
+            email: m.user.email,
+            role: m.role,
+          })
+        );
+        setOrgMembers(principals);
+      }
+    } catch {
+      // Silent fail - org members are for enrichment
+    }
+    setIsLoadingOrg(false);
+  }, [authClient, tenantId]);
 
   // Initial data fetch
   useEffect(() => {
-    // Fetch org members for enrichment and available principals list
-    async function fetchOrgMembers() {
-      try {
-        const { data } = await authClient.organization.getFullOrganization({
-          query: { organizationId: tenantId, membersLimit: DEFAULT_MEMBERSHIP_LIMIT },
-        });
-
-        if (data?.members) {
-          const principals: AccessPrincipal[] = data.members.map((m) =>
-            toAccessPrincipal({
-              userId: m.user.id,
-              name: m.user.name || '',
-              email: m.user.email,
-              role: m.role,
-            })
-          );
-          setOrgMembers(principals);
-        }
-      } catch {
-        // Silent fail - org members are for enrichment
-      }
-      setIsLoadingOrg(false);
-    }
     fetchProjectMembers();
     fetchOrgMembers();
-  }, [
-    tenantId,
-    authClient,
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    fetchProjectMembers,
-  ]);
+  }, [fetchProjectMembers, fetchOrgMembers]);
 
   // Enrich raw members with org member data and convert to AccessPrincipal
   const enrichedPrincipals: AccessPrincipal[] = rawMembers.map((member) => {

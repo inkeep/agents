@@ -142,7 +142,7 @@ export function EditCredentialForm({
 
   const { isSubmitting } = form.formState;
 
-  const onSubmit = form.handleSubmit(async (formData) => {
+  const handleUpdateCredential = async (formData: EditCredentialFormData) => {
     try {
       await updateCredential(tenantId, projectId, credential.id, {
         name: formData.name.trim(),
@@ -170,7 +170,11 @@ export function EditCredentialForm({
       console.error('Failed to update credential:', err);
       toast(err instanceof Error ? err.message : 'Failed to update credential');
     }
-  });
+  };
+
+  const onSubmit = async (data: EditCredentialFormData) => {
+    await handleUpdateCredential(data);
+  };
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -191,7 +195,7 @@ export function EditCredentialForm({
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
-        <form onSubmit={onSubmit} className={cn('space-y-8', className)}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className={cn('space-y-8', className)}>
           {/* Credential Details Section */}
           <div className="space-y-8">
             <GenericInput
@@ -207,7 +211,7 @@ export function EditCredentialForm({
               <Label>Credential type</Label>
               <Input
                 type="text"
-                disabled
+                disabled={true}
                 value={credentialAuthenticationType ?? forceCredentialType ?? credential.type}
               />
               {credentialAuthenticationType === 'Bearer authentication' && (
@@ -268,7 +272,7 @@ export function EditCredentialForm({
             {credential.createdBy && (
               <div className="space-y-3">
                 <Label>Created by</Label>
-                <Input type="text" disabled value={credential.createdBy} />
+                <Input type="text" disabled={true} value={credential.createdBy} />
               </div>
             )}
 

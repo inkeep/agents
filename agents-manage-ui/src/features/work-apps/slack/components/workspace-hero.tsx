@@ -85,7 +85,7 @@ export function WorkspaceHero() {
   const [showUninstallDialog, setShowUninstallDialog] = useState(false);
   const [health, setHealth] = useState<HealthStatus>({ healthy: true, checking: false });
   const [showTestMessageDialog, setShowTestMessageDialog] = useState(false);
-  const [selectedChannel, setSelectedChannel] = useState('');
+  const [selectedChannel, setSelectedChannel] = useState<string>('');
   const [sendingTestMessage, setSendingTestMessage] = useState(false);
 
   const workspace = installedWorkspaces.data[0];

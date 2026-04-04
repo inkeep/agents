@@ -2,7 +2,7 @@
 
 import { CheckCircle2, ChevronDown, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { SuiteConfigViewDialog } from '@/components/evaluation-run-configs/suite-config-view-dialog';
 import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
@@ -60,14 +60,14 @@ export function EvaluationRunConfigResults({
   const [results, setResults] = useState<EvaluationResult[]>(initialResults);
 
   // Fetch results for polling
-  async function refreshResults() {
+  const refreshResults = useCallback(async () => {
     try {
       const response = await fetchEvaluationResultsByRunConfig(tenantId, projectId, runConfig.id);
       setResults(response.data);
     } catch (error) {
       console.error('Error refreshing results:', error);
     }
-  }
+  }, [tenantId, projectId, runConfig.id]);
 
   // Always poll for new results since continuous tests can receive new evaluations at any time
   useEffect(() => {
@@ -76,10 +76,7 @@ export function EvaluationRunConfigResults({
     }, 5000); // Refresh every 5 seconds
 
     return () => clearInterval(interval);
-  }, [
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    refreshResults,
-  ]);
+  }, [refreshResults]);
 
   const evaluatorMap = new Map<string, string>();
   evaluators.forEach((evaluator) => {
@@ -106,7 +103,7 @@ export function EvaluationRunConfigResults({
 
   const runConfigSuiteConfigs = (runConfig.suiteConfigIds || [])
     .map((id) => getSuiteConfigById(id))
-    .filter((config) => config !== undefined);
+    .filter((config): config is EvaluationSuiteConfig => config !== undefined);
 
   const filteredResults = filterEvaluationResults(results, filters, evaluators);
 

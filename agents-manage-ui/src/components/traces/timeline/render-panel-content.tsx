@@ -1,5 +1,5 @@
 import { V1_BREAKDOWN_SCHEMA } from '@inkeep/agents-core/client-exports';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Streamdown } from 'streamdown';
 import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
 import { SignozSpanLink } from '@/components/traces/signoz-link';
@@ -33,14 +33,16 @@ function formatJsonSafely(content: string): string {
 
 /** Compact context breakdown for the side panel */
 function ContextBreakdownPanel({ breakdown }: { breakdown: ContextBreakdown }) {
-  const items = V1_BREAKDOWN_SCHEMA.map((def) => ({
-    key: def.key,
-    label: def.label,
-    color: def.color,
-    value: breakdown.components[def.key] ?? 0,
-  }))
-    .filter((item) => item.value > 0)
-    .sort((a, b) => b.value - a.value);
+  const items = useMemo(() => {
+    return V1_BREAKDOWN_SCHEMA.map((def) => ({
+      key: def.key,
+      label: def.label,
+      color: def.color,
+      value: breakdown.components[def.key] ?? 0,
+    }))
+      .filter((item) => item.value > 0)
+      .sort((a, b) => b.value - a.value);
+  }, [breakdown]);
 
   if (breakdown.total === 0) return null;
 

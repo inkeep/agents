@@ -135,7 +135,7 @@ export function ProjectForm({
     isEditing: !!projectId,
   });
 
-  const onSubmit = form.handleSubmit(async (data) => {
+  const onSubmit = async (data: ProjectFormData) => {
     const serializedData = serializeData(data);
 
     try {
@@ -179,11 +179,11 @@ export function ProjectForm({
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
-  });
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className={cn('space-y-8', className)}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className={cn('space-y-8', className)}>
         <GenericInput
           control={form.control}
           name="name"

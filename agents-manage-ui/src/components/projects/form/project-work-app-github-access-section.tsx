@@ -2,7 +2,7 @@
 
 import { Building2, ChevronRight, ExternalLink, Github, RefreshCw, User } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -61,7 +61,7 @@ export function ProjectWorkAppGitHubAccessSection({
   const [hasInstallations, setHasInstallations] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  async function loadAccessConfig() {
+  const loadAccessConfig = useCallback(async () => {
     try {
       setIsLoading(true);
       const [access, installations] = await Promise.all([
@@ -74,19 +74,16 @@ export function ProjectWorkAppGitHubAccessSection({
       console.error('Failed to load GitHub access config:', error);
     }
     setIsLoading(false);
-  }
+  }, [tenantId, projectId]);
 
   useEffect(() => {
     loadAccessConfig();
-  }, [
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    loadAccessConfig,
-  ]);
+  }, [loadAccessConfig]);
 
-  function handleConfigSaved() {
+  const handleConfigSaved = useCallback(() => {
     loadAccessConfig();
     setDialogOpen(false);
-  }
+  }, [loadAccessConfig]);
 
   if (isLoading) {
     return (
@@ -256,15 +253,15 @@ function ConfigureAccessDialog({
   onSaved,
 }: ConfigureAccessDialogProps) {
   const [mode, setMode] = useState<WorkAppGitHubAccessMode>(currentConfig?.mode || 'all');
-  const [selectedRepoIds, setSelectedRepoIds] = useState(
-    new Set<string>(currentConfig?.repositories.map((r: WorkAppGitHubRepository) => r.id) || [])
+  const [selectedRepoIds, setSelectedRepoIds] = useState<Set<string>>(
+    new Set(currentConfig?.repositories.map((r: WorkAppGitHubRepository) => r.id) || [])
   );
   const [installationsWithRepos, setInstallationsWithRepos] = useState<InstallationWithRepos[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSyncing, setSyncing] = useState<string | null>(null);
 
-  async function loadInstallations() {
+  const loadInstallations = useCallback(async () => {
     try {
       setIsLoading(true);
       const installations = await fetchWorkAppGitHubInstallations(tenantId);
@@ -287,17 +284,13 @@ function ConfigureAccessDialog({
       toast.error('Failed to load GitHub installations');
     }
     setIsLoading(false);
-  }
+  }, [tenantId]);
 
   useEffect(() => {
     if (open) {
       loadInstallations();
     }
-  }, [
-    open,
-    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
-    loadInstallations,
-  ]);
+  }, [open, loadInstallations]);
 
   const handleSync = async (installationId: string) => {
     setSyncing(installationId);

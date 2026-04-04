@@ -195,7 +195,7 @@ export function ScheduledTriggerForm({
     return member?.name || member?.email || userId;
   };
 
-  const onSubmit = form.handleSubmit(async (data) => {
+  const onSubmit = async (data: ScheduledTriggerFormData) => {
     try {
       let payload: Record<string, unknown> | null = null;
       if (data.payloadJson?.trim()) {
@@ -297,11 +297,11 @@ export function ScheduledTriggerForm({
       console.error(`Failed to ${mode} scheduled trigger:`, error);
       toast.error(`Failed to ${mode} scheduled trigger. Please try again.`);
     }
-  });
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {/* Basic Information */}
         <Card>
           <CardHeader>

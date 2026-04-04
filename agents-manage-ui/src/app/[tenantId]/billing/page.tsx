@@ -5,7 +5,7 @@ import {
   QUOTA_RESOURCE_TYPES,
   SEAT_RESOURCE_TYPES,
 } from '@inkeep/agents-core/client-exports';
-import { use, useEffect, useState } from 'react';
+import { use, useCallback, useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -48,34 +48,35 @@ export default function BillingPage({ params }: PageProps<'/[tenantId]/billing'>
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchData() {
-      if (!tenantId) return;
+  const fetchData = useCallback(async () => {
+    if (!tenantId) return;
 
-      try {
-        const [entitlementsResult, orgResult] = await Promise.all([
-          fetchEntitlements(tenantId).catch(() => [] as OrgEntitlement[]),
-          authClient.organization.getFullOrganization({
-            query: { organizationId: tenantId, membersLimit: DEFAULT_MEMBERSHIP_LIMIT },
-          }),
-        ]);
+    try {
+      const [entitlementsResult, orgResult] = await Promise.all([
+        fetchEntitlements(tenantId).catch(() => [] as OrgEntitlement[]),
+        authClient.organization.getFullOrganization({
+          query: { organizationId: tenantId, membersLimit: DEFAULT_MEMBERSHIP_LIMIT },
+        }),
+      ]);
 
-        setEntitlements(entitlementsResult);
+      setEntitlements(entitlementsResult);
 
-        if (orgResult.data?.members) {
-          const serviceAccountUserId = orgResult.data.serviceAccountUserId;
-          const members = orgResult.data.members.filter((m) => m.user.id !== serviceAccountUserId);
-          const adminCount = members.filter((m) => m.role === 'admin' || m.role === 'owner').length;
-          const memberCount = members.filter((m) => m.role === 'member').length;
-          setSeatCounts({ admin: adminCount, member: memberCount });
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load usage data');
+      if (orgResult.data?.members) {
+        const serviceAccountUserId = orgResult.data.serviceAccountUserId;
+        const members = orgResult.data.members.filter((m) => m.user.id !== serviceAccountUserId);
+        const adminCount = members.filter((m) => m.role === 'admin' || m.role === 'owner').length;
+        const memberCount = members.filter((m) => m.role === 'member').length;
+        setSeatCounts({ admin: adminCount, member: memberCount });
       }
-      setLoading(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load usage data');
     }
-    fetchData();
+    setLoading(false);
   }, [tenantId, authClient]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   if (isAdminLoading || loading || isProjectsFetching) {
     return <BillingLoadingSkeleton />;

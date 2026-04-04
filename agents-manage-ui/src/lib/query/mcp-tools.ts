@@ -2,6 +2,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
+import { useCallback } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { fetchMCPTools } from '@/lib/api/tools';
 import { mcpToolQueryKeys } from '@/lib/query/keys/mcp-tools';
@@ -40,19 +41,22 @@ export function useMcpToolsQuery({
 export function useMcpToolInvalidation(tenantId: string, projectId: string) {
   const queryClient = useQueryClient();
 
-  return async (toolId?: string) => {
-    // Invalidate the list query
-    await queryClient.invalidateQueries({
-      queryKey: mcpToolQueryKeys.project(tenantId, projectId),
-    });
-
-    // If a specific tool ID is provided, invalidate its status query too
-    if (toolId) {
+  return useCallback(
+    async (toolId?: string) => {
+      // Invalidate the list query
       await queryClient.invalidateQueries({
-        queryKey: mcpToolQueryKeys.status(tenantId, projectId, toolId),
+        queryKey: mcpToolQueryKeys.project(tenantId, projectId),
       });
-    }
-  };
+
+      // If a specific tool ID is provided, invalidate its status query too
+      if (toolId) {
+        await queryClient.invalidateQueries({
+          queryKey: mcpToolQueryKeys.status(tenantId, projectId, toolId),
+        });
+      }
+    },
+    [queryClient, tenantId, projectId]
+  );
 }
 
 /**

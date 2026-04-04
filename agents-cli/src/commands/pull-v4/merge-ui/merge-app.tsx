@@ -1,6 +1,6 @@
 import type { ConflictItem, ConflictResolution } from '@inkeep/agents-core';
 import { Box, Text, useApp, useInput } from 'ink';
-import { useEffect, useReducer } from 'react';
+import { useEffect, useMemo, useReducer } from 'react';
 import { ConflictView } from './conflict-view';
 import { HelpBar } from './help-bar';
 import { ResolutionSummary } from './resolution-summary';
@@ -106,7 +106,7 @@ export function MergeApp({ conflicts }: MergeAppProps) {
   const [state, dispatch] = useReducer(mergeReducer, conflicts, createInitialState);
   const isEmpty = conflicts.length === 0;
 
-  const allChangedColumns = conflicts.map(getChangedColumns);
+  const allChangedColumns = useMemo(() => conflicts.map(getChangedColumns), [conflicts]);
 
   const currentConflict = isEmpty ? undefined : conflicts[state.currentConflictIndex];
   const isRowLevelOnly = currentConflict?.ours === null || currentConflict?.theirs === null;
