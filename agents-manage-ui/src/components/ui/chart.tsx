@@ -120,7 +120,7 @@ function ChartTooltipContent({
   }) {
   const { config } = useChart();
 
-  const tooltipLabel = (() => {
+  const tooltipLabel = React.useMemo(() => {
     if (hideLabel || !payload?.length) {
       return null;
     }
@@ -144,7 +144,7 @@ function ChartTooltipContent({
     }
 
     return <div className={cn('font-medium', labelClassName)}>{value}</div>;
-  })();
+  }, [label, labelFormatter, payload, hideLabel, labelClassName, config, labelKey]);
 
   if (!active || !payload?.length) {
     return null;
@@ -195,9 +195,8 @@ function ChartTooltipContent({
                           }[indicator]
                         )}
                         style={{
-                          // @ts-expect-error
-                          '--color-bg': indicatorColor,
-                          '--color-border': indicatorColor,
+                          ['--color-bg' as string]: indicatorColor,
+                          ['--color-border' as string]: indicatorColor,
                         }}
                       />
                     )

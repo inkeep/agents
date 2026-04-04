@@ -11,9 +11,10 @@ export function useNangoProviders() {
 
   useEffect(() => {
     async function loadProviders() {
-      setLoading(true);
-      setError(null);
       try {
+        setLoading(true);
+        setError(null);
+
         const data = await fetchNangoProviders();
         setProviders(data);
       } catch (err) {

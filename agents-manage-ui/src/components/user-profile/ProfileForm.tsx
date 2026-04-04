@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 import { Button } from '@/components/ui/button';
@@ -13,14 +13,18 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ userId, initialTimezone }: ProfileFormProps) {
-  const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const browserTimezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
   const [timezone, setTimezone] = useState(initialTimezone ?? browserTimezone);
   const [isSaving, setIsSaving] = useState(false);
 
-  const timezoneOptions = Intl.supportedValuesOf('timeZone').map((tz) => ({
-    value: tz,
-    label: tz,
-  }));
+  const timezoneOptions = useMemo(
+    () =>
+      Intl.supportedValuesOf('timeZone').map((tz) => ({
+        value: tz,
+        label: tz,
+      })),
+    []
+  );
 
   useEffect(() => {
     setTimezone(initialTimezone ?? browserTimezone);

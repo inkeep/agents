@@ -41,7 +41,7 @@ export function ConnectToolCard({
   const [status, setStatus] = useState<'idle' | 'loading' | 'connecting' | 'success' | 'error'>(
     'loading'
   );
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const [toolDetails, setToolDetails] = useState<{
     name: string;
     imageUrl?: string;

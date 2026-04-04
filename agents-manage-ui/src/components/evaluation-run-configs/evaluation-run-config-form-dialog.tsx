@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -156,7 +156,7 @@ export function EvaluationRunConfigFormDialog({
     });
   }, [isOpen, initialData, form, suiteConfigForm]);
 
-  const agentLookup = createLookup(agents);
+  const agentLookup = useMemo(() => createLookup(agents), [agents]);
 
   const suiteAgentIds = useWatch({ control: suiteConfigForm.control, name: 'agentIds' });
   const selectedEvaluatorIds = useWatch({
@@ -183,16 +183,19 @@ export function EvaluationRunConfigFormDialog({
     return () => abortController.abort();
   }, [evaluators, tenantId, projectId, isOpen]);
 
-  const displayEvaluators =
-    suiteAgentIds.length === 0
-      ? evaluators
-      : evaluators.filter((ev) => {
-          const scopedAgents = evaluatorAgentMap.get(ev.id);
-          if (!scopedAgents || scopedAgents.length === 0) return true;
-          return scopedAgents.some((agentId) => suiteAgentIds.includes(agentId));
-        });
+  const displayEvaluators = useMemo(() => {
+    if (suiteAgentIds.length === 0) return evaluators;
+    return evaluators.filter((ev) => {
+      const scopedAgents = evaluatorAgentMap.get(ev.id);
+      if (!scopedAgents || scopedAgents.length === 0) return true;
+      return scopedAgents.some((agentId) => suiteAgentIds.includes(agentId));
+    });
+  }, [evaluators, suiteAgentIds, evaluatorAgentMap]);
 
-  const displayEvaluatorLookup = createLookup(displayEvaluators);
+  const displayEvaluatorLookup = useMemo(
+    () => createLookup(displayEvaluators),
+    [displayEvaluators]
+  );
 
   useEffect(() => {
     if (!displayEvaluators.length) return;

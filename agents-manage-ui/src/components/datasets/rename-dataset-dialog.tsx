@@ -49,7 +49,7 @@ export function RenameDatasetDialog({
     },
   });
 
-  const onSubmit = form.handleSubmit(async (data) => {
+  const onSubmit = async (data: RenameFormData) => {
     setIsSubmitting(true);
     try {
       const result = await updateDatasetAction(tenantId, projectId, datasetId, {
@@ -66,7 +66,7 @@ export function RenameDatasetDialog({
       toast.error('An unexpected error occurred');
     }
     setIsSubmitting(false);
-  });
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -75,7 +75,7 @@ export function RenameDatasetDialog({
           <DialogTitle>Rename Test Suite</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={onSubmit} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <GenericInput
               control={form.control}
               name="name"

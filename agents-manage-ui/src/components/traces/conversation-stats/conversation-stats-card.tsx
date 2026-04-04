@@ -44,7 +44,7 @@ export function ConversationStatsCard({
   onSearchChange,
   totalConversations,
 }: ConversationStatsCardProps) {
-  const [localQuery, setLocalQuery] = React.useState(searchQuery);
+  const [localQuery, setLocalQuery] = React.useState<string>(searchQuery);
   const [searchError, setSearchError] = React.useState<string | null>(null);
   const debounceTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -52,18 +52,21 @@ export function ConversationStatsCard({
     setLocalQuery(searchQuery);
   }, [searchQuery]);
 
-  function debouncedSearch(query: string) {
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    debounceTimer.current = setTimeout(() => {
-      try {
-        onSearchChange?.(query);
-        setSearchError(null);
-      } catch (error) {
-        console.error('Search failed:', error);
-        setSearchError('Search failed. Please try again.');
-      }
-    }, 300);
-  }
+  const debouncedSearch = React.useCallback(
+    (query: string) => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      debounceTimer.current = setTimeout(() => {
+        try {
+          onSearchChange?.(query);
+          setSearchError(null);
+        } catch (error) {
+          console.error('Search failed:', error);
+          setSearchError('Search failed. Please try again.');
+        }
+      }, 300);
+    },
+    [onSearchChange]
+  );
 
   React.useEffect(() => {
     return () => {
