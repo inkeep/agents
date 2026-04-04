@@ -137,7 +137,7 @@ export default function AICallsBreakdown({
       startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
       endTime: currentEndTime,
     };
-  }, [timeRange, customStartDate, customEndDate]);
+  }, [timeRange, customStartDate, customEndDate, CURRENT_TIME]);
 
   // Fetch AI calls by agent and model
   useEffect(() => {

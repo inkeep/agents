@@ -230,7 +230,7 @@ export function TimelineWrapper({
     }
 
     return (
-      conversation?.toolCalls?.map((tc: ActivityItem) => ({
+      conversation?.toolCalls?.map((tc) => ({
         ...tc, // keep saveResultSaved, saveSummaryData, etc.
         id: tc.id ?? `tool-call-${tc.toolName}-${tc.timestamp}`,
         type: 'tool_call' as const,

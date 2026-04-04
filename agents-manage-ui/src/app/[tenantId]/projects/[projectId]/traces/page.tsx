@@ -99,7 +99,7 @@ export default function TracesOverview({
       startTime: calculatedStart,
       endTime: currentEndTime,
     };
-  }, [selectedTimeRange, customStartDate, customEndDate]);
+  }, [selectedTimeRange, customStartDate, customEndDate, CURRENT_TIME]);
   // URL state management is now handled by useUrlFilterState hook
 
   // Debounce search query to avoid too many API calls

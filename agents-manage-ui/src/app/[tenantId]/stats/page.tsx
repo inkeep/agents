@@ -95,7 +95,7 @@ export default function ProjectsStatsPage({ params }: PageProps<'/[tenantId]/sta
       startTime: calculatedStart,
       endTime: currentEndTime,
     };
-  }, [selectedTimeRange, customStartDate, customEndDate]);
+  }, [selectedTimeRange, customStartDate, customEndDate, CURRENT_TIME]);
 
   // Memoize projectIds to prevent new array reference on every render
   const projectIds = useMemo(

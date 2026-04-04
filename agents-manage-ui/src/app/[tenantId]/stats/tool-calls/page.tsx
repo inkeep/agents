@@ -91,7 +91,7 @@ export default function AllProjectsToolCallsBreakdown({
       startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
       endTime: currentEndTime,
     };
-  }, [timeRange, customStartDate, customEndDate]);
+  }, [timeRange, customStartDate, customEndDate, CURRENT_TIME]);
 
   // Fetch tool calls data
   useEffect(() => {
