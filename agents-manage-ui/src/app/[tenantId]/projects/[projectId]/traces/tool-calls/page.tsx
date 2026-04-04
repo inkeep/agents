@@ -12,9 +12,9 @@ import { ToolCallsByServerCard } from '@/components/traces/tool-calls/tool-calls
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
+import { CURRENT_TIME } from '@/constants/theme';
 import { type TimeRange, useToolCallsQueryState } from '@/hooks/use-tool-calls-query-state';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
-import { CURRENT_TIME } from '@/constants/theme';
 
 const TIME_RANGES = {
   '24h': { label: 'Last 24 hours', hours: 24 },

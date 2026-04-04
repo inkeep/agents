@@ -23,9 +23,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UNKNOWN_VALUE } from '@/constants/signoz';
+import { CURRENT_TIME } from '@/constants/theme';
 import { type TimeRange, useAICallsQueryState } from '@/hooks/use-ai-calls-query-state';
 import { getSigNozStatsClient, type TokenUsageResult } from '@/lib/api/signoz-stats';
-import { CURRENT_TIME } from '@/constants/theme';
 
 function formatTokenCount(count: number): string {
   if (count >= 1_000_000) {

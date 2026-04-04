@@ -12,10 +12,10 @@ import { ToolCallsByServerCard } from '@/components/traces/tool-calls/tool-calls
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
+import { CURRENT_TIME } from '@/constants/theme';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
 import { useProjectsQuery } from '@/lib/query/projects';
-import { CURRENT_TIME } from '@/constants/theme';
 
 const TIME_RANGES = {
   '24h': { label: 'Last 24 hours', hours: 24 },
