@@ -1,49 +1,44 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { FC } from 'react';
-import { afterEach, describe, expect, it } from 'vitest';
 import { useDerivedProp } from '../use-derived-prop';
+
+const serverValue = 'server value';
+const localValue = 'local draft';
 
 const HookHarness: FC<{ value: string }> = ({ value }) => {
   const [derivedValue, setDerivedValue] = useDerivedProp(value);
 
   return (
-    <>
-      <div data-testid="derived-value">{derivedValue}</div>
-      <button type="button" onClick={() => setDerivedValue('local draft')}>
-        Set local draft
-      </button>
-    </>
+    <button type="button" onClick={() => setDerivedValue(localValue)}>
+      {derivedValue}
+    </button>
   );
 };
 
 describe('useDerivedProp', () => {
-  afterEach(() => {
-    document.body.innerHTML = '';
-  });
-
   it('returns the prop value on initial render', () => {
-    render(<HookHarness value="server value" />);
+    render(<HookHarness value={serverValue} />);
 
-    expect(screen.getByTestId('derived-value')).toHaveTextContent('server value');
+    expect(screen.getByRole('button')).toHaveTextContent(serverValue);
   });
 
   it('preserves a local draft while the prop value is unchanged', () => {
-    render(<HookHarness value="server value" />);
+    render(<HookHarness value={serverValue} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Set local draft' }));
+    fireEvent.click(screen.getByRole('button'));
 
-    expect(screen.getByTestId('derived-value')).toHaveTextContent('local draft');
+    expect(screen.getByRole('button')).toHaveTextContent(localValue);
   });
 
   it('resets back to the prop value when the prop changes', () => {
-    const { rerender } = render(<HookHarness value="server value" />);
+    const { rerender } = render(<HookHarness value={serverValue} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Set local draft' }));
-    expect(screen.getByTestId('derived-value')).toHaveTextContent('local draft');
+    fireEvent.click(screen.getByRole('button'));
+    expect(screen.getByRole('button')).toHaveTextContent(localValue);
 
     rerender(<HookHarness value="updated server value" />);
 
-    expect(screen.getByTestId('derived-value')).toHaveTextContent('updated server value');
+    expect(screen.getByRole('button')).toHaveTextContent('updated server value');
   });
 });
