@@ -44,13 +44,13 @@ export function ConversationStatsCard({
   onSearchChange,
   totalConversations,
 }: ConversationStatsCardProps) {
-  const [localQuery, setLocalQuery] = React.useState<string>(searchQuery);
+  const [localQueryState, setLocalQueryState] = React.useState({
+    source: searchQuery,
+    value: searchQuery,
+  });
   const [searchError, setSearchError] = React.useState<string | null>(null);
   const debounceTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  React.useEffect(() => {
-    setLocalQuery(searchQuery);
-  }, [searchQuery]);
+  const localQuery = localQueryState.source === searchQuery ? localQueryState.value : searchQuery;
 
   const debouncedSearch = React.useCallback(
     (query: string) => {
@@ -74,8 +74,11 @@ export function ConversationStatsCard({
     };
   }, []);
 
-  const clearSearch = () => {
-    setLocalQuery('');
+  function clearSearch () {
+    setLocalQueryState({
+      source: searchQuery,
+      value: '',
+    });
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     try {
       onSearchChange?.('');
@@ -120,7 +123,10 @@ export function ConversationStatsCard({
                   value={localQuery}
                   onChange={(e) => {
                     const v = e.target.value;
-                    setLocalQuery(v);
+                    setLocalQueryState({
+                      source: searchQuery,
+                      value: v,
+                    });
                     debouncedSearch(v);
                   }}
                   aria-invalid={!!searchError}

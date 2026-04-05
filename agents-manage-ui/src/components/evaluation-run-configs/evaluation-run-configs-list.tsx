@@ -34,24 +34,31 @@ export function EvaluationRunConfigsList({
   refreshKey,
 }: EvaluationRunConfigsListProps) {
   const router = useRouter();
-  const [runConfigs, setRunConfigs] = useState<EvaluationRunConfig[]>(initialRunConfigs);
+  const [runConfigsState, setRunConfigsState] = useState<{
+    source: EvaluationRunConfig[];
+    value: EvaluationRunConfig[];
+  }>({
+    source: initialRunConfigs,
+    value: initialRunConfigs,
+  });
   const [editingRunConfig, setEditingRunConfig] = useState<EvaluationRunConfig | undefined>();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [deletingRunConfig, setDeletingRunConfig] = useState<EvaluationRunConfig | undefined>();
-
-  useEffect(() => {
-    setRunConfigs(initialRunConfigs);
-  }, [initialRunConfigs]);
+  const runConfigs =
+    runConfigsState.source === initialRunConfigs ? runConfigsState.value : initialRunConfigs;
 
   const refreshRunConfigs = useCallback(async () => {
     try {
       const response = await fetchEvaluationRunConfigs(tenantId, projectId);
-      setRunConfigs(response.data);
+      setRunConfigsState({
+        source: initialRunConfigs,
+        value: response.data,
+      });
     } catch (error) {
       console.error('Error refreshing run configs:', error);
     }
-  }, [tenantId, projectId]);
+  }, [initialRunConfigs, tenantId, projectId]);
 
   useEffect(() => {
     if (refreshKey !== undefined && typeof refreshKey === 'number' && refreshKey > 0) {

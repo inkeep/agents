@@ -46,8 +46,16 @@ export function ProjectScheduledTriggerInvocationsTable({
   projectId,
 }: ProjectScheduledTriggerInvocationsTableProps) {
   const router = useRouter();
-  const [invocations, setInvocations] = useState(initialInvocations);
-  const [loadingInvocations, setLoadingInvocations] = useState<Set<string>>(new Set());
+  const [invocationsState, setInvocationsState] = useState<{
+    source: ScheduledTriggerInvocationWithContext[];
+    value: ScheduledTriggerInvocationWithContext[];
+  }>({
+    source: initialInvocations,
+    value: initialInvocations,
+  });
+  const [loadingInvocations, setLoadingInvocations] = useState(new Set<string>());
+  const invocations =
+    invocationsState.source === initialInvocations ? invocationsState.value : initialInvocations;
 
   // Filter state
   const [agentFilter, setAgentFilter] = useState('');
@@ -117,7 +125,10 @@ export function ProjectScheduledTriggerInvocationsTable({
         const updated = await getProjectScheduledTriggerInvocationsAction(tenantId, projectId, {
           limit: 100,
         });
-        setInvocations(updated);
+        setInvocationsState({
+          source: initialInvocations,
+          value: updated,
+        });
       } catch (error) {
         console.error('Failed to poll invocations:', error);
       }
@@ -125,11 +136,7 @@ export function ProjectScheduledTriggerInvocationsTable({
 
     const intervalId = setInterval(pollInvocations, POLLING_INTERVAL_MS);
     return () => clearInterval(intervalId);
-  }, [hasTransientInvocations, tenantId, projectId]);
-
-  useEffect(() => {
-    setInvocations(initialInvocations);
-  }, [initialInvocations]);
+  }, [hasTransientInvocations, initialInvocations, tenantId, projectId]);
 
   const cancelInvocation = useCallback(
     async (invocation: ScheduledTriggerInvocationWithContext) => {

@@ -47,8 +47,16 @@ export function ScheduledTriggerInvocationsTable({
   scheduledTriggerId,
 }: ScheduledTriggerInvocationsTableProps) {
   const router = useRouter();
-  const [invocations, setInvocations] = useState(initialInvocations);
-  const [loadingInvocations, setLoadingInvocations] = useState<Set<string>>(new Set());
+  const [invocationsState, setInvocationsState] = useState<{
+    source: ScheduledTriggerInvocation[];
+    value: ScheduledTriggerInvocation[];
+  }>({
+    source: initialInvocations,
+    value: initialInvocations,
+  });
+  const [loadingInvocations, setLoadingInvocations] = useState(new Set<string>());
+  const invocations =
+    invocationsState.source === initialInvocations ? invocationsState.value : initialInvocations;
 
   const hasTransientInvocations = invocations.some(
     (inv) => inv.status === 'pending' || inv.status === 'running'
@@ -66,7 +74,10 @@ export function ScheduledTriggerInvocationsTable({
           scheduledTriggerId,
           { limit: 50 }
         );
-        setInvocations(updated);
+        setInvocationsState({
+          source: initialInvocations,
+          value: updated,
+        });
       } catch (error) {
         console.error('Failed to poll invocations:', error);
       }
@@ -74,11 +85,14 @@ export function ScheduledTriggerInvocationsTable({
 
     const intervalId = setInterval(pollInvocations, POLLING_INTERVAL_MS);
     return () => clearInterval(intervalId);
-  }, [hasTransientInvocations, tenantId, projectId, agentId, scheduledTriggerId]);
-
-  useEffect(() => {
-    setInvocations(initialInvocations);
-  }, [initialInvocations]);
+  }, [
+    hasTransientInvocations,
+    initialInvocations,
+    tenantId,
+    projectId,
+    agentId,
+    scheduledTriggerId,
+  ]);
 
   const cancelInvocation = useCallback(
     async (invocationId: string) => {

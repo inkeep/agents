@@ -2,7 +2,7 @@
 
 import { GATEWAY_ROUTABLE_PROVIDERS_SET } from '@inkeep/agents-core/client-exports';
 import { GripVertical, Plus, X } from 'lucide-react';
-import { type FC, useEffect, useRef, useState } from 'react';
+import { type FC, useState } from 'react';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { Button } from '@/components/ui/button';
@@ -360,27 +360,30 @@ export function ModelConfiguration({
 }: ModelConfigurationProps) {
   const { data: capabilities } = useCapabilitiesQuery();
   // Internal state for provider options to handle immediate updates
-  const [internalProviderOptions, setInternalProviderOptions] = useState<
-    string | Record<string, unknown> | undefined
-  >(providerOptions);
+  const [providerOptionsState, setProviderOptionsState] = useState<{
+    modelValue: string | undefined;
+    providerOptions: string | Record<string, unknown> | undefined;
+    value: string | Record<string, unknown> | undefined;
+  }>({
+    modelValue: value,
+    providerOptions,
+    value: providerOptions,
+  });
+  const internalProviderOptions =
+    providerOptionsState.modelValue === value &&
+    providerOptionsState.providerOptions === providerOptions
+      ? providerOptionsState.value
+      : providerOptions;
 
-  // Sync internal state when prop changes or when switching from inherited to explicit
-  useEffect(() => {
-    setInternalProviderOptions(providerOptions);
-  }, [providerOptions]);
-
-  // Clear internal state when model becomes explicit (value changes from undefined to defined)
-  const previousValue = useRef(value);
-  useEffect(() => {
-    const wasInherited = previousValue.current === undefined && inheritedValue !== undefined;
-    const isNowExplicit = value !== undefined;
-
-    if (wasInherited && isNowExplicit) {
-      setInternalProviderOptions(undefined);
-    }
-
-    previousValue.current = value;
-  }, [value, inheritedValue]);
+  function updateInternalProviderOptions (
+    nextValue: string | Record<string, unknown> | undefined
+  ) {
+    setProviderOptionsState({
+      modelValue: value,
+      providerOptions,
+      value: nextValue,
+    });
+  };
 
   const handleModelChange = (modelValue: string) => {
     const previousEffectiveModel = value || inheritedValue;
@@ -392,7 +395,7 @@ export function ModelConfiguration({
     // 1. Model value changes, OR
     // 2. Switching from inherited to explicit (even if same model)
     if (previousEffectiveModel !== newModel || (wasInherited && isNowExplicit)) {
-      setInternalProviderOptions(undefined);
+      updateInternalProviderOptions(undefined);
       onProviderOptionsChange?.('');
     }
 
@@ -401,20 +404,20 @@ export function ModelConfiguration({
 
   const handleProviderOptionsChange = (options: Record<string, any>) => {
     if (!options || Object.keys(options).length === 0) {
-      setInternalProviderOptions(undefined);
+      updateInternalProviderOptions(undefined);
       onProviderOptionsChange?.('');
       return;
     }
     const jsonString = JSON.stringify(options, null, 2);
-    setInternalProviderOptions(jsonString);
+    updateInternalProviderOptions(jsonString);
     onProviderOptionsChange?.(jsonString);
   };
 
   // Handle both string (from JSON editors) and object (from ModelSelector) inputs
-  const handleProviderOptionsStringChange = (value = '') => {
-    setInternalProviderOptions(value);
-    onProviderOptionsChange?.(value);
-  };
+  function handleProviderOptionsStringChange (nextValue = '') {
+    updateInternalProviderOptions(nextValue);
+    onProviderOptionsChange?.(nextValue);
+  }
 
   const getDefaultJsonPlaceholder = (model?: string) => {
     if (model?.startsWith('azure/')) {
