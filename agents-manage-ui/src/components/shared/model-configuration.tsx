@@ -373,7 +373,7 @@ export function ModelConfiguration({
       onProviderOptionsChange('');
     }
 
-    onModelChange?.(newModel || '');
+    onModelChange(newModel || '');
   };
 
   const handleProviderOptionsChange = (options: Record<string, any>) => {
