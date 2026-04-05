@@ -35,6 +35,33 @@ function stripStructureHints(value: unknown): unknown {
   return value;
 }
 
+function sanitizeBinaryPayloadsForTokenEstimation(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeBinaryPayloadsForTokenEstimation(item));
+  }
+
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  const record = value as Record<string, unknown>;
+  const sanitized: Record<string, unknown> = {};
+
+  for (const [key, nestedValue] of Object.entries(record)) {
+    sanitized[key] = sanitizeBinaryPayloadsForTokenEstimation(nestedValue);
+  }
+
+  const type = record.type;
+  if (
+    (type === 'image-data' || type === 'image' || type === 'file' || type === 'file-data') &&
+    typeof record.data === 'string'
+  ) {
+    sanitized.data = '[binary payload omitted for compression token estimation]';
+  }
+
+  return sanitized;
+}
+
 export interface CompressionConfig {
   hardLimit: number;
   safetyBuffer: number;
@@ -93,26 +120,32 @@ export abstract class BaseCompressor {
             total += this.estimateTokens(block.text || '');
           } else if (block.type === 'tool-call') {
             total += this.estimateTokens(
-              JSON.stringify({
-                toolCallId: block.toolCallId,
-                toolName: block.toolName,
-                input: block.input,
-              })
+              JSON.stringify(
+                sanitizeBinaryPayloadsForTokenEstimation({
+                  toolCallId: block.toolCallId,
+                  toolName: block.toolName,
+                  input: block.input,
+                })
+              )
             );
           } else if (block.type === 'tool-result') {
             total += this.estimateTokens(
-              JSON.stringify({
-                toolCallId: block.toolCallId,
-                toolName: block.toolName,
-                output: block.output,
-              })
+              JSON.stringify(
+                sanitizeBinaryPayloadsForTokenEstimation({
+                  toolCallId: block.toolCallId,
+                  toolName: block.toolName,
+                  output: block.output,
+                })
+              )
             );
           }
         }
       } else if (typeof msg.content === 'string') {
         total += this.estimateTokens(msg.content);
       } else if (msg.content) {
-        total += this.estimateTokens(JSON.stringify(msg.content));
+        total += this.estimateTokens(
+          JSON.stringify(sanitizeBinaryPayloadsForTokenEstimation(msg.content))
+        );
       }
       return total;
     }, 0);
@@ -143,6 +176,7 @@ export abstract class BaseCompressor {
     const toolCallIds = this.extractToolCallIds(messagesToProcess);
     const existingArtifacts = await this.findExistingArtifacts([...new Set(toolCallIds)]);
     const toolCallToArtifactMap: Record<string, CompressedArtifactInfo> = {};
+    let createdArtifacts = false;
 
     for (const message of messagesToProcess) {
       this.convertDatabaseFormatMessage(message);
@@ -152,9 +186,23 @@ export abstract class BaseCompressor {
             const artifactInfo = await this.processToolResult(block, session, existingArtifacts);
             if (artifactInfo) {
               toolCallToArtifactMap[block.toolCallId] = artifactInfo;
+              if (!existingArtifacts.has(block.toolCallId)) {
+                createdArtifacts = true;
+              }
             }
           }
         }
+      }
+    }
+
+    if (createdArtifacts) {
+      await session.waitForPendingArtifacts();
+
+      const refreshedArtifacts = await this.findExistingArtifacts(
+        Object.keys(toolCallToArtifactMap)
+      );
+      for (const [toolCallId, artifactInfo] of refreshedArtifacts.entries()) {
+        toolCallToArtifactMap[toolCallId] = artifactInfo;
       }
     }
 
@@ -167,7 +215,7 @@ export abstract class BaseCompressor {
       {
         artifactId: string;
         isOversized: boolean;
-        toolArgs?: unknown;
+        toolArgs?: Record<string, unknown>;
         toolName?: string;
         summaryData?: Record<string, any>;
         name?: string;
@@ -180,7 +228,7 @@ export abstract class BaseCompressor {
       {
         artifactId: string;
         isOversized: boolean;
-        toolArgs?: unknown;
+        toolArgs?: Record<string, unknown>;
         toolName?: string;
         summaryData?: Record<string, any>;
         name?: string;
@@ -197,21 +245,21 @@ export abstract class BaseCompressor {
       });
 
       for (const artifact of artifacts) {
-        if (artifact.toolCallId) {
-          const dataPart = artifact.parts?.find(
-            (p): p is Extract<(typeof artifact.parts)[number], { kind: 'data' }> =>
-              p.kind === 'data'
-          );
-          result.set(artifact.toolCallId, {
-            artifactId: artifact.artifactId,
-            isOversized: (artifact.metadata?.isOversized as boolean) ?? false,
-            toolArgs: artifact.metadata?.toolArgs,
-            toolName: artifact.metadata?.toolName as string | undefined,
-            summaryData: dataPart?.data?.summary ?? dataPart?.data,
-            name: artifact.name,
-            description: artifact.description,
-          });
-        }
+        const toolCallId = artifact.toolCallId;
+        if (!toolCallId || result.has(toolCallId)) continue;
+
+        const dataPart = artifact.parts?.find(
+          (p): p is Extract<(typeof artifact.parts)[number], { kind: 'data' }> => p.kind === 'data'
+        );
+        result.set(toolCallId, {
+          artifactId: artifact.artifactId,
+          isOversized: (artifact.metadata?.isOversized as boolean) ?? false,
+          toolArgs: artifact.metadata?.toolArgs,
+          toolName: artifact.metadata?.toolName as string | undefined,
+          summaryData: dataPart?.data?.summary ?? dataPart?.data,
+          name: artifact.name,
+          description: artifact.description,
+        });
       }
     } catch (error) {
       logger.warn(
@@ -259,7 +307,7 @@ export abstract class BaseCompressor {
       {
         artifactId: string;
         isOversized: boolean;
-        toolArgs?: unknown;
+        toolArgs?: Record<string, unknown>;
         toolName?: string;
         summaryData?: Record<string, any>;
         name?: string;
@@ -281,6 +329,7 @@ export abstract class BaseCompressor {
         artifactId: existing.artifactId,
         isOversized: existing.isOversized,
         toolArgs: existing.toolArgs as Record<string, unknown> | undefined,
+        toolName: existing.toolName,
         summaryData: existing.summaryData,
         name: existing.name,
         description: existing.description,
@@ -399,6 +448,7 @@ export abstract class BaseCompressor {
     return {
       artifactId,
       isOversized: artifactData.metadata.isOversized,
+      toolName: block.toolName,
       toolArgs: artifactData.metadata.toolArgs ?? undefined,
       structureInfo: artifactData.summaryData._structureInfo,
       oversizedWarning: artifactData.summaryData._oversizedWarning,
@@ -580,16 +630,16 @@ export abstract class BaseCompressor {
 
       if (!artifacts.length) return this.cumulativeSummary;
 
-      const nameMap = new Map<string, { name?: string; description?: string }>(
+      const artifactIdMap = new Map<string, { name?: string; description?: string }>(
         artifacts
-          .filter((a) => a.toolCallId && (a.name || a.description))
-          .map((a) => [a.toolCallId as string, { name: a.name, description: a.description }])
+          .filter((a) => a.artifactId && (a.name || a.description))
+          .map((a) => [a.artifactId, { name: a.name, description: a.description }])
       );
 
       const refreshed = {
         ...this.cumulativeSummary,
         related_artifacts: this.cumulativeSummary.related_artifacts.map((a) => {
-          const db = nameMap.get(a.tool_call_id);
+          const db = artifactIdMap.get(a.id);
           return db
             ? {
                 ...a,

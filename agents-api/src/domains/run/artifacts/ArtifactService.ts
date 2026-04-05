@@ -886,7 +886,6 @@ export class ArtifactService {
     metadata?: Record<string, any>;
     toolCallId?: string;
   }): Promise<void> {
-    // Use provided summaryData if available, otherwise default to artifact.data
     let summaryData = artifact.summaryData || artifact.data;
     let fullData = artifact.data;
     const { tenantId, projectId } = this.context.executionContext;

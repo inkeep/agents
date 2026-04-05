@@ -1,11 +1,12 @@
 import type { MessageContent, Part } from '@inkeep/agents-core';
 import { getLogger } from '../../../../logger';
+import { createAttachmentArtifacts } from './attachment-artifacts';
 import { downloadExternalFile } from './external-file-downloader';
 import { FileSecurityError, PdfUrlIngestionError } from './file-security-errors';
 import {
   hasFileParts,
   makeMessageContentParts,
-  type UploadContext,
+  type PersistedMessageUploadContext,
   uploadPartsFiles,
 } from './file-upload';
 import { makeSanitizedSourceUrl } from './file-url-security';
@@ -71,7 +72,7 @@ export async function inlineExternalPdfUrlParts(parts: Part[]): Promise<Part[]> 
 export async function buildPersistedMessageContent(
   text: string,
   parts: Part[],
-  ctx: UploadContext
+  ctx: PersistedMessageUploadContext
 ): Promise<MessageContent> {
   if (!hasFileParts(parts)) {
     return { text };
@@ -80,18 +81,30 @@ export async function buildPersistedMessageContent(
   try {
     const uploadedParts = await uploadPartsFiles(parts, ctx);
     const contentParts = makeMessageContentParts(uploadedParts);
+    const attachmentRefs = await createAttachmentArtifacts(uploadedParts, ctx);
+    const persistedParts = [
+      ...contentParts,
+      ...attachmentRefs.map((ref) => ({
+        kind: 'data' as const,
+        data: {
+          artifactId: ref.artifactId,
+          toolCallId: ref.toolCallId,
+        },
+      })),
+    ];
 
     logger.debug(
       {
         messageId: ctx.messageId,
         originalParts: parts.length,
-        uploadedParts: contentParts.length,
+        uploadedParts: persistedParts.length,
         fileParts: contentParts.filter((p) => p.kind === 'file').length,
+        attachmentArtifactRefs: attachmentRefs.length,
       },
       'Built persisted message content with uploaded files'
     );
 
-    return { text, parts: contentParts };
+    return { text, parts: persistedParts };
   } catch (error) {
     if (error instanceof FileSecurityError) {
       throw error;

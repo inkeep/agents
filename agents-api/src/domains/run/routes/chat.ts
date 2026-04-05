@@ -22,6 +22,7 @@ import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
+import { buildMessageAttachmentToolCallId } from '../services/blob-storage/attachment-artifacts';
 import {
   FileSecurityError,
   PdfUrlIngestionError,
@@ -368,12 +369,17 @@ app.openapi(chatCompletionsRoute, async (c) => {
         }
       }
       const userMessageId = generateId();
+      const hasAttachedFiles = messageParts.some((part) => part.kind === 'file');
+      const attachmentTaskId = hasAttachedFiles ? `message_${userMessageId}` : undefined;
 
       const messageContent = await buildPersistedMessageContent(userMessage, messageParts, {
         tenantId,
         projectId,
         conversationId,
         messageId: userMessageId,
+        taskId: `message_${userMessageId}`,
+        toolCallId: buildMessageAttachmentToolCallId(userMessageId),
+        source: 'user-message',
       });
 
       await createMessage(runDbClient)({
@@ -385,6 +391,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
           content: messageContent,
           visibility: 'user-facing',
           messageType: 'chat',
+          ...(attachmentTaskId ? { taskId: attachmentTaskId } : {}),
         },
       });
 

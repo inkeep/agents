@@ -3,6 +3,7 @@ import { trace } from '@opentelemetry/api';
 import type { ToolSet } from 'ai';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
+import { stripBinaryDataForObservability } from '../../services/blob-storage/artifact-binary-sanitizer';
 import { agentSessionManager, type ToolCallData } from '../../session/AgentSession';
 import { generateToolId } from '../../utils/agent-operations';
 import { isToolResultDenied } from '../../utils/tool-result';
@@ -105,7 +106,10 @@ export function wrapToolWithStreaming(
       const isInternalTool =
         toolName.includes('save_tool_result') || toolName.startsWith('transfer_to_');
       const isInternalToolForUi =
-        isInternalTool || toolName.startsWith('delegate_to_') || toolName === 'load_skill';
+        isInternalTool ||
+        toolName.startsWith('delegate_to_') ||
+        toolName === 'load_skill' ||
+        toolName === 'get_reference_artifact';
 
       const needsApproval = options?.needsApproval || false;
 
@@ -191,7 +195,11 @@ export function wrapToolWithStreaming(
 
         if (streamRequestId && !isInternalToolForUi && toolResultConversationId) {
           try {
+            const session = agentSessionManager.getSession(streamRequestId);
             const messageId = generateId();
+            const taskId = session
+              ? `task_${toolResultConversationId}-${session.messageId}`
+              : `tool_result_${messageId}`;
             const messageContent = await buildToolResultForConversationHistory(
               ctx,
               toolName,
@@ -199,13 +207,15 @@ export function wrapToolWithStreaming(
               result,
               effectiveToolCallId,
               toolResultConversationId,
-              messageId
+              messageId,
+              taskId
             );
             await createMessage(runDbClient)({
               scopes: { tenantId: ctx.config.tenantId, projectId: ctx.config.projectId },
               data: {
                 id: messageId,
                 conversationId: toolResultConversationId,
+                taskId,
                 role: 'assistant',
                 content: messageContent,
                 visibility: 'internal',
@@ -216,7 +226,7 @@ export function wrapToolWithStreaming(
                     toolName,
                     toolCallId: effectiveToolCallId,
                     toolArgs: args,
-                    toolOutput: result,
+                    toolOutput: stripBinaryDataForObservability(result),
                     timestamp: Date.now(),
                     delegationId: ctx.delegationId,
                     isDelegated: ctx.isDelegatedAgent,
@@ -240,7 +250,7 @@ export function wrapToolWithStreaming(
         if (streamRequestId && !isInternalToolForUi) {
           agentSessionManager.recordEvent(streamRequestId, 'tool_result', ctx.config.id, {
             toolName,
-            output: result,
+            output: stripBinaryDataForObservability(result),
             toolCallId: effectiveToolCallId,
             duration,
             relationshipId,

@@ -11,6 +11,7 @@ export interface CompressedArtifactInfo {
   isOversized: boolean;
   originalTokenSize?: number;
   contextWindowSize?: number;
+  toolName?: string;
   toolArgs?: Record<string, unknown>;
   structureInfo?: string;
   oversizedWarning?: string;

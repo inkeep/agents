@@ -67,6 +67,7 @@ describe('BaseCompressor', () => {
     // Setup mock session
     mockSession = {
       recordEvent: vi.fn(),
+      waitForPendingArtifacts: vi.fn().mockResolvedValue(undefined),
     };
     vi.mocked(agentSessionManager.getSession).mockReturnValue(mockSession);
 
@@ -176,10 +177,15 @@ describe('BaseCompressor', () => {
 
       await compressor.saveToolResultsAsArtifacts(messages);
 
-      // Should call getLedgerArtifacts with batch toolCallIds
-      expect(mockGetLedgerArtifacts).toHaveBeenCalledTimes(1);
-      const mockFn = mockGetLedgerArtifacts.mock.results[0].value;
-      expect(mockFn).toHaveBeenCalledWith({
+      // Should use batched lookups before and after async artifact processing
+      expect(mockGetLedgerArtifacts).toHaveBeenCalledTimes(2);
+      const firstMockFn = mockGetLedgerArtifacts.mock.results[0].value;
+      expect(firstMockFn).toHaveBeenCalledWith({
+        scopes: { tenantId: 'tenant-789', projectId: 'project-abc' },
+        toolCallIds: ['call-1', 'call-2', 'call-3'],
+      });
+      const secondMockFn = mockGetLedgerArtifacts.mock.results[1].value;
+      expect(secondMockFn).toHaveBeenCalledWith({
         scopes: { tenantId: 'tenant-789', projectId: 'project-abc' },
         toolCallIds: ['call-1', 'call-2', 'call-3'],
       });
@@ -337,6 +343,71 @@ describe('BaseCompressor', () => {
 
       expect(contextSize).toBeGreaterThan(0);
       expect(typeof contextSize).toBe('number');
+    });
+
+    it('should ignore inline binary base64 data when estimating compression size', () => {
+      const base64Data = 'A'.repeat(20_000);
+      const messagesWithBinary = [
+        {
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'binary-call',
+              toolName: 'read_ticket',
+              output: {
+                content: [
+                  { type: 'text', text: 'ticket attachment payload' },
+                  {
+                    type: 'file-data',
+                    mediaType: 'image/jpeg',
+                    data: base64Data,
+                    filename: 'attachment.jpg',
+                  },
+                  {
+                    type: 'image-data',
+                    data: base64Data,
+                    mediaType: 'image/jpeg',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ];
+      const messagesWithPlaceholders = [
+        {
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'binary-call',
+              toolName: 'read_ticket',
+              output: {
+                content: [
+                  { type: 'text', text: 'ticket attachment payload' },
+                  {
+                    type: 'file-data',
+                    mediaType: 'image/jpeg',
+                    data: '[binary payload omitted for compression token estimation]',
+                    filename: 'attachment.jpg',
+                  },
+                  {
+                    type: 'image-data',
+                    data: '[binary payload omitted for compression token estimation]',
+                    mediaType: 'image/jpeg',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ];
+
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
+      const binaryContextSize = compressor['calculateContextSize'](messagesWithBinary);
+      // biome-ignore lint/complexity/useLiteralKeys: accessing private property for testing
+      const placeholderContextSize = compressor['calculateContextSize'](messagesWithPlaceholders);
+
+      expect(binaryContextSize).toBe(placeholderContextSize);
     });
 
     it('should handle edge cases in context calculation', () => {
@@ -636,6 +707,42 @@ describe('BaseCompressor', () => {
   });
 
   describe('Integration Scenarios', () => {
+    it('refreshes saved artifacts after async processing', async () => {
+      const messages = [
+        {
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-after-save',
+              toolName: 'read_ticket',
+              input: { ticket_id: 6662 },
+              output: { content: [{ type: 'image', data: 'base64', mimeType: 'image/png' }] },
+            },
+          ],
+        },
+      ];
+
+      const { getLedgerArtifacts } = await import('@inkeep/agents-core');
+      const mockGetLedgerArtifacts = vi.mocked(getLedgerArtifacts);
+      mockGetLedgerArtifacts.mockReturnValueOnce(vi.fn().mockResolvedValue([])).mockReturnValueOnce(
+        vi.fn().mockResolvedValue([
+          {
+            artifactId: 'saved-artifact',
+            toolCallId: 'call-after-save',
+            name: 'Saved artifact',
+            description: 'Saved',
+            metadata: { toolName: 'read_ticket', isOversized: true, toolArgs: { ticket_id: 6662 } },
+            parts: [{ kind: 'data', data: { summary: { toolCallId: 'call-after-save' } } }],
+          },
+        ])
+      );
+
+      const result = await compressor.saveToolResultsAsArtifacts(messages);
+
+      expect(mockSession.waitForPendingArtifacts).toHaveBeenCalled();
+      expect(result['call-after-save']?.artifactId).toBe('saved-artifact');
+    });
+
     it('should handle large conversations with many tool calls efficiently', async () => {
       // Simulate a large conversation
       const messages = [];
@@ -665,8 +772,8 @@ describe('BaseCompressor', () => {
       expect(duration).toBeLessThan(1000); // Less than 1 second
       expect(Object.keys(result)).toHaveLength(100);
 
-      // Should still only make one batch query
-      expect(mockGetLedgerArtifacts).toHaveBeenCalledTimes(1);
+      // Should still avoid N+1 queries by using batched lookups only
+      expect(mockGetLedgerArtifacts).toHaveBeenCalledTimes(2);
     });
 
     it('should maintain state consistency during cleanup cycles', () => {
