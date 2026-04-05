@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, ChevronsUpDown } from 'lucide-react';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { useDisclosure } from '@/hooks/use-disclosure';
 import { cn } from '@/lib/utils';
 import { Button } from './button';
@@ -19,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from './popover';
 export type OptionType = {
   value: string;
   label: ReactNode;
+  selectedLabel?: ReactNode;
   showCheckbox?: boolean;
   searchBy?: string | null;
 };
@@ -37,6 +38,7 @@ interface ComboboxProps {
   enableSearch?: boolean;
   className?: string;
   triggerClassName?: string;
+  disabled?: boolean;
 }
 
 export function Combobox({
@@ -53,16 +55,16 @@ export function Combobox({
   enableSearch = true,
   className,
   triggerClassName,
+  disabled = false,
 }: ComboboxProps) {
   const { isOpen, onClose, onToggle } = useDisclosure();
   const [value, setValue] = useState(defaultValue);
-  const commandRef = useRef<HTMLDivElement>(null);
-  const currentLabel = options.find((option) => option.value === value)?.label;
+  const current = options.find((option) => option.value === value);
 
-  const handleChangeOnOpen = () => {
+  function handleChangeOnOpen() {
     onOpenChange?.();
     onToggle();
-  };
+  }
 
   useEffect(() => {
     if (!multipleCheckboxValues?.length) {
@@ -80,14 +82,17 @@ export function Combobox({
             className={cn('min-w-[250px] justify-between flex-nowrap', triggerClassName)}
             role="combobox"
             variant="outline"
+            disabled={disabled}
           >
-            <span className="overflow-hidden overflow-ellipsis">{currentLabel || placeholder}</span>
+            <span className="overflow-hidden overflow-ellipsis">
+              {current?.selectedLabel || current?.label || placeholder}
+            </span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
       )}
       <PopoverContent align="start" className={cn('min-w-[250px] p-0', className)}>
-        <Command ref={commandRef}>
+        <Command>
           {enableSearch && <CommandInput placeholder={searchPlaceholder} />}
           <CommandList className="scrollbar-thin scrollbar-thumb-muted-foreground/30 dark:scrollbar-thumb-muted-foreground/50 scrollbar-track-transparent">
             <CommandEmpty>{notFoundMessage}</CommandEmpty>

@@ -7,12 +7,19 @@
  * type-safe functions that can be called from React components.
  */
 
-import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
+import type {
+  AgentApiInsert,
+  DuplicateAgentRequest,
+  ImportAgentRequest,
+  ImportAgentResponse,
+} from '@inkeep/agents-core';
 import { revalidatePath } from 'next/cache';
 import {
   createAgent as apiCreateAgent,
   deleteFullAgent as apiDeleteFullAgent,
+  duplicateAgent as apiDuplicateAgent,
   getFullAgent as apiGetFullAgent,
+  importAgent as apiImportAgent,
   updateAgent as apiUpdateAgent,
   updateFullAgent as apiUpdateFullAgent,
 } from '../api/agent-full-client';
@@ -93,6 +100,71 @@ export async function updateAgentAction(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to update agent',
+      code: 'validation_error',
+    };
+  }
+}
+
+export async function duplicateAgentAction(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  duplicateData: DuplicateAgentRequest
+): Promise<ActionResult<FullAgentResponse>> {
+  try {
+    const response = await apiDuplicateAgent(tenantId, projectId, agentId, duplicateData);
+
+    revalidatePath(`/${tenantId}/projects/${projectId}/agents`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/agents/${response.data.id}`);
+
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return {
+        success: false,
+        error: error.message,
+        code: error.error.code,
+      };
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to duplicate agent',
+      code: 'validation_error',
+    };
+  }
+}
+
+export async function importAgentAction(
+  tenantId: string,
+  projectId: string,
+  importData: ImportAgentRequest
+): Promise<ActionResult<ImportAgentResponse>> {
+  try {
+    const response = await apiImportAgent(tenantId, projectId, importData);
+
+    revalidatePath(`/${tenantId}/projects/${projectId}/agents`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/agents/${response.data.id}`);
+
+    return {
+      success: true,
+      data: response,
+    };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return {
+        success: false,
+        error: error.message,
+        code: error.error.code,
+      };
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to import agent',
       code: 'validation_error',
     };
   }

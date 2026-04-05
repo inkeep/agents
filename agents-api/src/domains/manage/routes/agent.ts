@@ -5,16 +5,26 @@ import {
   AgentListResponse,
   AgentResponse,
   AgentWithinContextOfProjectResponse,
+  AgentWithinContextOfProjectSelectResponse,
+  canViewProject,
   commonGetErrorResponses,
   createAgent,
   createApiError,
+  DuplicateAgentRequestSchema,
   deleteAgent,
+  duplicateFullAgentServerSide,
   ErrorResponseSchema,
   generateId,
   getAgentById,
   getAgentSubAgentInfos,
   getFullAgentDefinition,
+  getProjectMainResolvedRef,
+  type ImportAgentRequest,
+  ImportAgentRequestSchema,
+  ImportAgentResponseSchema,
+  importFullAgentServerSide,
   listAgentsPaginated,
+  type OrgRole,
   PaginationQueryParamsSchema,
   RelatedAgentInfoListResponse,
   TenantProjectAgentParamsSchema,
@@ -23,9 +33,12 @@ import {
   TenantProjectParamsSchema,
   throwIfUniqueConstraintError,
   updateAgent,
+  withRef,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { clearWorkspaceConnectionCache } from '@inkeep/agents-work-apps/slack';
+import manageDbClient from '../../../data/db/manageDbClient';
+import manageDbPool from '../../../data/db/manageDbPool';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import {
@@ -35,6 +48,57 @@ import {
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
+
+type ImportAgentHandlerContext = {
+  req: {
+    valid(target: 'param'): { tenantId: string; projectId: string };
+    valid(target: 'json'): ImportAgentRequest;
+  };
+  get(key: 'userId' | 'tenantId' | 'tenantRole'): string | undefined;
+};
+
+export const importAgentHandler = async (c: ImportAgentHandlerContext) => {
+  const { tenantId, projectId } = c.req.valid('param');
+  const body = c.req.valid('json');
+
+  if (body.sourceProjectId === projectId) {
+    throw createApiError({
+      code: 'bad_request',
+      message:
+        'Source and target project must differ. Use /duplicate to copy within the same project.',
+    });
+  }
+
+  if (process.env.ENVIRONMENT !== 'test') {
+    const userId = c.get('userId');
+    const tenantId = c.get('tenantId');
+
+    if (!userId || !tenantId) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'User or organization context not found',
+      });
+    }
+
+    if (userId !== 'system' && !userId.startsWith('apikey:')) {
+      const hasSourceProjectAccess = await canViewProject({
+        userId,
+        tenantId,
+        projectId: body.sourceProjectId,
+        orgRole: c.get('tenantRole') as OrgRole,
+      });
+
+      if (!hasSourceProjectAccess) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'Project not found',
+        });
+      }
+    }
+  }
+
+  return { tenantId, projectId, body };
+};
 
 app.openapi(
   createProtectedRoute({
@@ -201,6 +265,126 @@ app.openapi(
     }
 
     return c.json({ data: fullAgent });
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'post',
+    path: '/import',
+    summary: 'Import Agent',
+    operationId: 'import-agent',
+    tags: ['Agents'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: TenantProjectParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: ImportAgentRequestSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      201: {
+        description: 'Agent imported successfully',
+        content: {
+          'application/json': {
+            schema: ImportAgentResponseSchema,
+          },
+        },
+      },
+      409: {
+        description: 'Import conflict',
+        content: {
+          'application/json': {
+            schema: ErrorResponseSchema,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId, body } = await importAgentHandler(c as ImportAgentHandlerContext);
+
+    const importedAgent =
+      process.env.ENVIRONMENT === 'test'
+        ? await importFullAgentServerSide(
+            db,
+            db
+          )({
+            scopes: { tenantId, projectId },
+            ...body,
+          })
+        : await withRef(
+            manageDbPool,
+            await getProjectMainResolvedRef(manageDbClient)(tenantId, body.sourceProjectId),
+            async (sourceDb) =>
+              importFullAgentServerSide(
+                db,
+                sourceDb
+              )({
+                scopes: { tenantId, projectId },
+                ...body,
+              })
+          );
+
+    return c.json(importedAgent, 201);
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'post',
+    path: '/{agentId}/duplicate',
+    summary: 'Duplicate Agent',
+    operationId: 'duplicate-agent',
+    tags: ['Agents'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: TenantProjectAgentParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: DuplicateAgentRequestSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      201: {
+        description: 'Agent duplicated successfully',
+        content: {
+          'application/json': {
+            schema: AgentWithinContextOfProjectSelectResponse,
+          },
+        },
+      },
+      409: {
+        description: 'Agent already exists',
+        content: {
+          'application/json': {
+            schema: ErrorResponseSchema,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId, agentId } = c.req.valid('param');
+    const body = c.req.valid('json');
+
+    const duplicatedAgent = await duplicateFullAgentServerSide(db)({
+      scopes: { tenantId, projectId, agentId },
+      ...body,
+    });
+
+    return c.json({ data: duplicatedAgent }, 201);
   }
 );
 
