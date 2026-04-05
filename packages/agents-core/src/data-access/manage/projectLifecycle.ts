@@ -1,7 +1,13 @@
 import { sql } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
-import { doltBranch, doltBranchExists, doltCheckout, doltDeleteBranch } from '../../dolt/branch';
+import {
+  doltBranch,
+  doltBranchExists,
+  doltCheckout,
+  doltDeleteBranch,
+  doltListBranches,
+} from '../../dolt/branch';
 import type { ProjectMetadataSelect } from '../../types/entities';
 import type { PaginationConfig, PaginationResult, ProjectModels } from '../../types/utility';
 import { getLogger } from '../../utils/logger';
@@ -99,11 +105,11 @@ export const createProjectMetadataAndBranch =
   };
 
 /**
- * Delete a project and its branch
+ * Delete a project and ALL its branches
  *
  * This utility:
- * 1. Gets the project from runtime DB to find the branch name
- * 2. Deletes the project branch from config DB (Doltgres)
+ * 1. Gets the project from runtime DB
+ * 2. Lists and deletes ALL branches matching the project prefix from config DB (Doltgres)
  * 3. Deletes the project record from runtime DB
  *
  * Note: Callers should handle cascade deletion of runtime entities (conversations, etc.)
@@ -117,9 +123,8 @@ export const deleteProjectWithBranch =
   async (params: DeleteProjectWithBranchParams): Promise<boolean> => {
     const { tenantId, projectId } = params;
 
-    logger.info({ tenantId, projectId }, 'Deleting project with branch');
+    logger.info({ tenantId, projectId }, 'Deleting project with all branches');
 
-    // 1. Get project from runtime DB to find the branch name
     const project = await getProjectMetadata(runDb)({ tenantId, projectId });
 
     if (!project) {
@@ -127,22 +132,47 @@ export const deleteProjectWithBranch =
       return false;
     }
 
-    const { mainBranchName } = project;
-
-    // 2. Checkout main branch and then delete the project branch from config DB
     try {
-      // 2.1. Checkout main branch
       await doltCheckout(configDb)({ branch: 'main' });
 
-      // 2.2. Delete the project branch
-      await doltDeleteBranch(configDb)({ name: mainBranchName, force: true });
-      logger.info({ mainBranchName }, 'Deleted project branch');
+      const allBranches = await doltListBranches(configDb)();
+      const prefix = `${tenantId}_${projectId}_`;
+      const projectBranches = allBranches.filter((b) => b.name.startsWith(prefix));
+
+      const failedBranches: string[] = [];
+      for (const branch of projectBranches) {
+        try {
+          await doltDeleteBranch(configDb)({ name: branch.name, force: true });
+          logger.debug({ branchName: branch.name }, 'Deleted project branch');
+        } catch (error) {
+          failedBranches.push(branch.name);
+          logger.error(
+            { error, branchName: branch.name },
+            'Failed to delete project branch, continuing with remaining branches'
+          );
+        }
+      }
+
+      if (failedBranches.length > 0) {
+        logger.warn(
+          {
+            tenantId,
+            projectId,
+            failedBranches,
+            successCount: projectBranches.length - failedBranches.length,
+          },
+          'Some project branches could not be deleted'
+        );
+      } else {
+        logger.info(
+          { tenantId, projectId, branchCount: projectBranches.length },
+          'Deleted all project branches'
+        );
+      }
     } catch (error) {
-      // Log but continue - the branch might not exist or might have other issues
-      // We still want to clean up the runtime record
       logger.error(
-        { error, mainBranchName },
-        'Failed to delete project branch, continuing with runtime cleanup'
+        { error, tenantId, projectId },
+        'Failed to list/delete project branches, continuing with runtime cleanup'
       );
     }
 
@@ -150,10 +180,7 @@ export const deleteProjectWithBranch =
     const deleted = await deleteProjectMetadata(runDb)({ tenantId, projectId });
 
     if (deleted) {
-      logger.info(
-        { tenantId, projectId, mainBranchName },
-        'Successfully deleted project with branch'
-      );
+      logger.info({ tenantId, projectId }, 'Successfully deleted project with all branches');
     } else {
       logger.warn({ tenantId, projectId }, 'Failed to delete project from runtime DB');
     }
