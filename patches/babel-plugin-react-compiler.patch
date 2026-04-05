@@ -3,9 +3,18 @@
 # TODO: Remove when upstream supports this config option https://github.com/vercel/next.js/issues/92365
 
 diff --git a/dist/index.js b/dist/index.js
-index d2f1a1f711a08583ebbc563027c970d3c90e3f43..7c9b98ab2c75f6cc8a1fadef034a4b831317cc42 100644
+index d2f1a1f711a08583ebbc563027c970d3c90e3f43..12010bbcb7bf4a66934baf2c45d4e6f7c6723d17 100644
 --- a/dist/index.js
 +++ b/dist/index.js
+@@ -84248,7 +84248,7 @@ var EnvironmentConfigSchema = external_exports.object({
+    * Validates that effects are not used to calculate derived data which could instead be computed
+    * during render.
+    */
+-  validateNoDerivedComputationsInEffects: external_exports.boolean().default(false),
++  validateNoDerivedComputationsInEffects: external_exports.boolean().default(true),
+   /**
+    * Experimental: Validates that effects are not used to calculate derived data which could instead be computed
+    * during render. Generates a custom error message for each type of violation.
 @@ -84284,7 +84284,7 @@ var EnvironmentConfigSchema = external_exports.object({
    /**
     * Validate against impure functions called during render
