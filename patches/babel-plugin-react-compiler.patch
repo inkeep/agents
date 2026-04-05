@@ -1,0 +1,13 @@
+diff --git a/dist/index.js b/dist/index.js
+index d2f1a1f711a08583ebbc563027c970d3c90e3f43..7c9b98ab2c75f6cc8a1fadef034a4b831317cc42 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -84284,7 +84284,7 @@ var EnvironmentConfigSchema = external_exports.object({
+   /**
+    * Validate against impure functions called during render
+    */
+-  validateNoImpureFunctionsInRender: external_exports.boolean().default(false),
++  validateNoImpureFunctionsInRender: external_exports.boolean().default(true),
+   /**
+    * Validate against passing mutable functions to hooks
+    */
