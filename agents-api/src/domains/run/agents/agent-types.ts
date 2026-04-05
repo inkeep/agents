@@ -270,5 +270,21 @@ export interface AgentRunContext {
     string,
     Array<{ approved: boolean; reason?: string; originalToolCallId?: string }>
   >;
-  pendingDurableApproval?: { toolCallId: string; toolName: string; args: unknown };
+  pendingDurableApproval?: {
+    toolCallId: string;
+    toolName: string;
+    args: unknown;
+    delegatedApproval?: {
+      toolCallId: string;
+      toolName: string;
+      args: unknown;
+      subAgentId: string;
+    };
+  };
+  delegatedToolApproval?: {
+    toolCallId: string;
+    toolName: string;
+    approved: boolean;
+    reason?: string;
+  };
 }

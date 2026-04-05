@@ -48,6 +48,7 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
   let currentSubAgentId = defaultSubAgentId;
   let iterations = 0;
   let approvalRound = 0;
+  let isPostApproval = false;
 
   try {
     while (iterations < maxTransfers) {
@@ -61,10 +62,12 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
         workflowRunId,
         streamNamespace,
         taskId,
+        isPostApproval,
       });
 
       if (llmResult.type === 'transfer') {
         currentSubAgentId = llmResult.targetSubAgentId;
+        isPostApproval = false;
         continue;
       }
 
@@ -78,7 +81,23 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
             continuationStreamNamespace: continuationNs,
           });
 
-          const token = `tool-approval:${payload.conversationId}:${workflowRunId}:${toolCall.toolCallId}`;
+          const hookToolCallId = llmResult.delegatedApproval?.toolCallId ?? toolCall.toolCallId;
+          const token = `tool-approval:${payload.conversationId}:${workflowRunId}:${hookToolCallId}`;
+
+          console.info(
+            JSON.stringify({
+              msg: '[agentExecution] Creating tool approval hook',
+              hookToolCallId,
+              parentToolCallId: toolCall.toolCallId,
+              isDelegated: !!llmResult.delegatedApproval,
+              workflowRunId,
+            })
+          );
+
+          // The hook suspends the workflow until an external system resumes it.
+          // Unlike the in-process PendingToolApprovalManager (10-min timeout), durable
+          // hooks persist across restarts. Stale suspended workflows should be cleaned
+          // up by an external job that queries workflow_executions with status='suspended'.
           const hook = toolApprovalHook.create({ token });
           const approvalResult = await hook;
           approvalRound++;
@@ -100,8 +119,18 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
             taskId,
             preApproved: approvalResult.approved,
             approvalReason: approvalResult.reason,
+            ...(llmResult.delegatedApproval
+              ? {
+                  delegatedApproval: llmResult.delegatedApproval,
+                  delegatedApprovalDecision: {
+                    approved: approvalResult.approved,
+                    reason: approvalResult.reason,
+                  },
+                }
+              : {}),
           });
         }
+        isPostApproval = true;
         continue;
       }
 

@@ -53,6 +53,41 @@ export interface TaskHandlerConfig {
   userId?: string;
 }
 
+// Returns a TaskState.Completed result with a `durable-approval-required` data artifact.
+// We use Completed (not InputRequired) because the parent agent's tool-wrapper parses
+// the artifact from the A2A response — using a different state would require changes to
+// the A2A result handling pipeline. The artifact's `type` field distinguishes it.
+function buildDurableApprovalResult(pendingApproval: {
+  toolCallId: string;
+  toolName: string;
+  args: unknown;
+}): A2ATaskResult {
+  logger.info(
+    { toolCallId: pendingApproval.toolCallId, toolName: pendingApproval.toolName },
+    'Returning durable-approval-required artifact'
+  );
+  return {
+    status: { state: TaskState.Completed },
+    artifacts: [
+      {
+        artifactId: generateId(),
+        parts: [
+          {
+            kind: 'data' as const,
+            data: {
+              type: 'durable-approval-required',
+              toolCallId: pendingApproval.toolCallId,
+              toolName: pendingApproval.toolName,
+              args: pendingApproval.args,
+            },
+          },
+        ],
+        createdAt: new Date().toISOString(),
+      },
+    ],
+  };
+}
+
 export const createTaskHandler = (
   config: TaskHandlerConfig,
   credentialStoreRegistry?: CredentialStoreRegistry
@@ -429,26 +464,7 @@ export const createTaskHandler = (
 
       const pendingApproval = agent.getPendingDurableApproval();
       if (pendingApproval) {
-        return {
-          status: { state: TaskState.Completed },
-          artifacts: [
-            {
-              artifactId: generateId(),
-              parts: [
-                {
-                  kind: 'data' as const,
-                  data: {
-                    type: 'durable-approval-required',
-                    toolCallId: pendingApproval.toolCallId,
-                    toolName: pendingApproval.toolName,
-                    args: pendingApproval.args,
-                  },
-                },
-              ],
-              createdAt: new Date().toISOString(),
-            },
-          ],
-        };
+        return buildDurableApprovalResult(pendingApproval);
       }
 
       const stepContents =
@@ -599,6 +615,19 @@ export const createTaskHandler = (
         ],
       };
     } catch (error) {
+      const pendingApproval = agent?.getPendingDurableApproval();
+      if (pendingApproval) {
+        logger.warn(
+          {
+            toolCallId: pendingApproval.toolCallId,
+            toolName: pendingApproval.toolName,
+            error,
+          },
+          'Task handler caught error during durable approval flow, returning approval artifact'
+        );
+        return buildDurableApprovalResult(pendingApproval);
+      }
+
       console.error('Task handler error:', error);
 
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
