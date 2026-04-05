@@ -288,6 +288,7 @@ export function createDelegateToAgentTool({
   metadata,
   sessionId,
   credentialStoreRegistry,
+  agentRunContext,
 }: {
   delegateConfig: DelegateRelation;
   callingAgentId: string;
@@ -296,6 +297,7 @@ export function createDelegateToAgentTool({
   metadata: DelegationMetadata;
   sessionId?: string;
   credentialStoreRegistry?: CredentialStoreRegistry;
+  agentRunContext?: import('./agent-types').AgentRunContext;
 }) {
   const { tenantId, projectId, agentId, project } = executionContext;
 
@@ -424,18 +426,40 @@ export function createDelegateToAgentTool({
         ...(isInternal || isTeam ? { fetchFn: getInProcessFetch() } : {}),
       });
 
+      const baseDelegationMeta = getDelegationMetadata({
+        isInternal,
+        callingAgentId,
+        delegationId,
+        metadata,
+      });
+
+      const delegationMeta = {
+        ...baseDelegationMeta,
+        ...(agentRunContext?.durableWorkflowRunId
+          ? { durable_workflow_run_id: agentRunContext.durableWorkflowRunId }
+          : {}),
+        ...(agentRunContext?.delegatedToolApproval
+          ? {
+              approved_tool_calls: JSON.stringify({
+                [agentRunContext.delegatedToolApproval.toolName]: [
+                  {
+                    approved: agentRunContext.delegatedToolApproval.approved,
+                    reason: agentRunContext.delegatedToolApproval.reason,
+                    originalToolCallId: agentRunContext.delegatedToolApproval.toolCallId,
+                  },
+                ],
+              }),
+            }
+          : {}),
+      };
+
       const messageToSend = {
         role: 'agent' as const,
         parts: [{ text: input.message, kind: 'text' as const }],
         messageId: generateId(),
         kind: 'message' as const,
         contextId,
-        metadata: getDelegationMetadata({
-          isInternal,
-          callingAgentId,
-          delegationId,
-          metadata,
-        }),
+        metadata: delegationMeta,
       };
       logger.info({ messageToSend }, 'messageToSend');
 

@@ -31,6 +31,14 @@ export type CallLlmStepParams = {
   workflowRunId: string;
   streamNamespace?: string;
   taskId: string;
+  isPostApproval?: boolean;
+};
+
+export type DelegatedApprovalContext = {
+  toolCallId: string;
+  toolName: string;
+  args: unknown;
+  subAgentId: string;
 };
 
 export type CallLlmResult =
@@ -39,6 +47,7 @@ export type CallLlmResult =
   | {
       type: 'tool_calls';
       toolCalls: Array<{ toolCallId: string; toolName: string; args: unknown }>;
+      delegatedApproval?: DelegatedApprovalContext;
     };
 
 export type ExecuteToolStepParams = {
@@ -52,6 +61,8 @@ export type ExecuteToolStepParams = {
   preApproved?: boolean;
   approvalReason?: string;
   taskId: string;
+  delegatedApproval?: DelegatedApprovalContext;
+  delegatedApprovalDecision?: { approved: boolean; reason?: string };
 };
 
 export type ExecuteToolResult = { type: 'completed' } | { type: 'needs_approval' };
@@ -73,11 +84,11 @@ async function buildAgentForStep(params: {
     params;
 
   const {
+    CredentialStoreRegistry,
+    createDefaultCredentialStores,
     getFullProjectWithRelationIds,
     getMcpToolById,
     withRef,
-    CredentialStoreRegistry,
-    createDefaultCredentialStores,
   } = await import('@inkeep/agents-core');
   const { default: manageDbPool } = await import('../../../../data/db/manageDbPool');
   const { Agent } = await import('../../agents/Agent');
@@ -109,11 +120,18 @@ async function buildAgentForStep(params: {
   const currentSubAgent = agentEntry.subAgents?.[currentSubAgentId];
   if (!currentSubAgent) throw new Error(`Sub-agent ${currentSubAgentId} not found`);
 
+  const apiBaseUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
+  // Durable mode bakes `/run/agents` into baseUrl because buildAgentForStep passes
+  // executionContext.baseUrl directly to AgentConfig and A2AClient configs. The non-durable
+  // executionHandler keeps the bare root and appends `/run/agents` locally, but here we
+  // set it once to avoid repeating the suffix in every config builder below.
+  const agentBaseUrl = `${apiBaseUrl}/run/agents`;
+
   const executionContext: FullExecutionContext = {
     tenantId,
     projectId,
     agentId,
-    baseUrl: env.INKEEP_AGENTS_API_URL || 'http://localhost:3002',
+    baseUrl: agentBaseUrl,
     apiKey: env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET || '',
     apiKeyId: 'durable-execution',
     resolvedRef,
@@ -394,8 +412,15 @@ export async function initializeTaskStep(params: {
 export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmResult> {
   'use step';
 
-  const { payload, currentSubAgentId, isFirstMessage, workflowRunId, streamNamespace, taskId } =
-    params;
+  const {
+    payload,
+    currentSubAgentId,
+    isFirstMessage,
+    workflowRunId,
+    streamNamespace,
+    taskId,
+    isPostApproval,
+  } = params;
   const {
     tenantId,
     projectId,
@@ -410,7 +435,7 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
   } = payload;
 
   logger.info(
-    { currentSubAgentId, isFirstMessage, workflowRunId, streamNamespace, taskId },
+    { currentSubAgentId, isFirstMessage, workflowRunId, streamNamespace, taskId, isPostApproval },
     'callLlmStep starting'
   );
 
@@ -497,8 +522,14 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
         await sseHelper.writeOperation(agentInitializingOp(requestId, agentId));
       }
 
-      const userParts: Part[] =
-        isFirstMessage && messageParts && messageParts.length > 0
+      const userParts: Part[] = isPostApproval
+        ? [
+            {
+              kind: 'text',
+              text: 'Continue the conversation. The tool results above contain the information needed to respond to the user.',
+            },
+          ]
+        : isFirstMessage && messageParts && messageParts.length > 0
           ? messageParts
           : [{ kind: 'text', text: userMessage }];
 
@@ -518,26 +549,85 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
         'callLlmStep: calling agent.generate'
       );
 
-      const response = await agent.generate(userParts, runtimeContext);
+      let response: Awaited<ReturnType<typeof agent.generate>> | undefined;
+      try {
+        response = await agent.generate(userParts, runtimeContext);
+      } catch (generateError: unknown) {
+        if (!agent.runContext.pendingDurableApproval) {
+          throw generateError;
+        }
+        logger.info(
+          {
+            requestId,
+            currentSubAgentId,
+            error: generateError instanceof Error ? generateError.message : String(generateError),
+            errorName: generateError instanceof Error ? generateError.name : undefined,
+          },
+          'callLlmStep: agent.generate threw during durable approval flow, continuing with pending approval'
+        );
+      }
 
-      logger.info(
-        {
-          requestId,
-          currentSubAgentId,
-          finishReason: response.finishReason,
-          stepCount: response.steps?.length,
-          hasText: !!response.text,
-          hasPendingApproval: !!agent.runContext.pendingDurableApproval,
-        },
-        'callLlmStep: agent.generate completed'
-      );
+      if (response) {
+        logger.info(
+          {
+            requestId,
+            currentSubAgentId,
+            finishReason: response.finishReason,
+            stepCount: response.steps?.length,
+            hasText: !!response.text,
+            hasPendingApproval: !!agent.runContext.pendingDurableApproval,
+          },
+          'callLlmStep: agent.generate completed'
+        );
+      }
 
       const pendingApproval = agent.runContext.pendingDurableApproval;
       if (pendingApproval) {
         logger.info(
-          { toolName: pendingApproval.toolName, toolCallId: pendingApproval.toolCallId },
+          {
+            toolName: pendingApproval.toolName,
+            toolCallId: pendingApproval.toolCallId,
+            isDelegated: !!pendingApproval.delegatedApproval,
+          },
           'callLlmStep: tool needs approval, suspending'
         );
+
+        if (pendingApproval.delegatedApproval) {
+          const da = pendingApproval.delegatedApproval;
+          try {
+            await sseHelper.writeToolInputStart({
+              toolCallId: da.toolCallId,
+              toolName: da.toolName,
+            });
+            const inputText = JSON.stringify(da.args ?? {});
+            for (let i = 0; i < inputText.length; i += 16) {
+              await sseHelper.writeToolInputDelta({
+                toolCallId: da.toolCallId,
+                inputTextDelta: inputText.slice(i, i + 16),
+              });
+            }
+            await sseHelper.writeToolInputAvailable({
+              toolCallId: da.toolCallId,
+              toolName: da.toolName,
+              input: (da.args ?? {}) as Record<string, unknown>,
+            });
+            await sseHelper.writeToolApprovalRequest({
+              approvalId: `aitxt-${da.toolCallId}`,
+              toolCallId: da.toolCallId,
+              toolName: da.toolName,
+              input: (da.args ?? {}) as Record<string, unknown>,
+            });
+          } catch (sseError) {
+            logger.error(
+              { error: sseError, toolCallId: da.toolCallId, toolName: da.toolName },
+              'Failed to stream delegated approval request — workflow will suspend but client may not see approval UI'
+            );
+            throw new Error(
+              `Failed to deliver delegated approval request for ${da.toolName}: ${sseError instanceof Error ? sseError.message : String(sseError)}`
+            );
+          }
+        }
+
         isTerminal = true;
         return {
           type: 'tool_calls' as const,
@@ -548,7 +638,14 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
               args: pendingApproval.args,
             },
           ],
+          ...(pendingApproval.delegatedApproval
+            ? { delegatedApproval: pendingApproval.delegatedApproval }
+            : {}),
         };
+      }
+
+      if (!response) {
+        throw new Error('agent.generate() produced no response and no pending approval was found');
       }
 
       if (hasToolCallWithPrefix('transfer_to_')(response)) {
@@ -849,6 +946,15 @@ export async function executeToolStep(params: ExecuteToolStepParams): Promise<Ex
             { approved: preApproved, reason: approvalReason, originalToolCallId: toolCallId },
           ],
         });
+      }
+
+      if (params.delegatedApproval && params.delegatedApprovalDecision) {
+        agent.runContext.delegatedToolApproval = {
+          toolCallId: params.delegatedApproval.toolCallId,
+          toolName: params.delegatedApproval.toolName,
+          approved: params.delegatedApprovalDecision.approved,
+          reason: params.delegatedApprovalDecision.reason,
+        };
       }
 
       const sessionId = requestId;

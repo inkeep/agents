@@ -107,6 +107,12 @@ export function wrapToolWithStreaming(
       const isInternalToolForUi =
         isInternalTool || toolName.startsWith('delegate_to_') || toolName === 'load_skill';
 
+      // In durable workflows, delegate_to_ tool results must be stored in
+      // conversation history so the next callLlmStep sees the delegation outcome
+      // and doesn't re-delegate in a loop.
+      const isDurableDelegation = !!ctx.durableWorkflowRunId && toolName.startsWith('delegate_to_');
+      const skipHistoryStorage = isInternalToolForUi && !isDurableDelegation;
+
       const needsApproval = options?.needsApproval || false;
 
       const preApprovedEntry = ctx.durableWorkflowRunId
@@ -183,13 +189,83 @@ export function wrapToolWithStreaming(
         const result = await originalExecute(resolvedArgs, context);
         const duration = Date.now() - startTime;
 
+        if (ctx.durableWorkflowRunId && result && typeof result === 'object') {
+          const resultObj = result as Record<string, unknown>;
+          const taskResult = resultObj?.result as Record<string, unknown> | undefined;
+
+          const findApprovalRequired = (
+            parts: Array<Record<string, unknown>> | undefined
+          ): Record<string, unknown> | undefined => {
+            if (!Array.isArray(parts)) return undefined;
+            for (const part of parts) {
+              if (part?.kind === 'data') {
+                const data = part.data as Record<string, unknown> | undefined;
+                if (data?.type === 'durable-approval-required') return data;
+              }
+            }
+            return undefined;
+          };
+
+          const findApprovalInArtifacts = (
+            artifacts: Array<Record<string, unknown>> | undefined
+          ): Record<string, unknown> | undefined => {
+            if (!Array.isArray(artifacts)) return undefined;
+            for (const artifact of artifacts) {
+              const found = findApprovalRequired(
+                artifact?.parts as Array<Record<string, unknown>> | undefined
+              );
+              if (found) return found;
+            }
+            return undefined;
+          };
+
+          const approvalData =
+            findApprovalRequired(taskResult?.parts as Array<Record<string, unknown>> | undefined) ??
+            findApprovalInArtifacts(
+              taskResult?.artifacts as Array<Record<string, unknown>> | undefined
+            );
+
+          if (approvalData) {
+            const delegatedToolCallId = approvalData.toolCallId;
+            const delegatedToolName = approvalData.toolName;
+
+            if (typeof delegatedToolCallId !== 'string' || !delegatedToolCallId) {
+              logger.error(
+                { approvalData, parentToolName: toolName },
+                'Malformed durable-approval-required artifact: invalid toolCallId'
+              );
+              return result;
+            }
+            if (typeof delegatedToolName !== 'string' || !delegatedToolName) {
+              logger.error(
+                { approvalData, parentToolName: toolName },
+                'Malformed durable-approval-required artifact: invalid toolName'
+              );
+              return result;
+            }
+
+            ctx.pendingDurableApproval = {
+              toolCallId: effectiveToolCallId,
+              toolName,
+              args: resolvedArgs,
+              delegatedApproval: {
+                toolCallId: delegatedToolCallId,
+                toolName: delegatedToolName,
+                args: approvalData.args,
+                subAgentId: toolName.replace(/^delegate_to_/, ''),
+              },
+            };
+            return result;
+          }
+        }
+
         if (ctx.pendingDurableApproval) {
           return result;
         }
 
         const toolResultConversationId = ctx.conversationId;
 
-        if (streamRequestId && !isInternalToolForUi && toolResultConversationId) {
+        if (streamRequestId && !skipHistoryStorage && toolResultConversationId) {
           try {
             const messageId = generateId();
             const messageContent = await buildToolResultForConversationHistory(
