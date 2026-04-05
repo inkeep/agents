@@ -32,7 +32,7 @@ import {
 const POLLING_INTERVAL_MS = 3000;
 
 interface ScheduledTriggerInvocationsTableProps {
-  invocations: ScheduledTriggerInvocation[];
+  initialInvocations: ScheduledTriggerInvocation[];
   tenantId: string;
   projectId: string;
   agentId: string;
@@ -40,23 +40,15 @@ interface ScheduledTriggerInvocationsTableProps {
 }
 
 export function ScheduledTriggerInvocationsTable({
-  invocations: initialInvocations,
+  initialInvocations,
   tenantId,
   projectId,
   agentId,
   scheduledTriggerId,
 }: ScheduledTriggerInvocationsTableProps) {
   const router = useRouter();
-  const [invocationsState, setInvocationsState] = useState<{
-    source: ScheduledTriggerInvocation[];
-    value: ScheduledTriggerInvocation[];
-  }>({
-    source: initialInvocations,
-    value: initialInvocations,
-  });
+  const [invocations, setInvocations] = useState(initialInvocations);
   const [loadingInvocations, setLoadingInvocations] = useState(new Set<string>());
-  const invocations =
-    invocationsState.source === initialInvocations ? invocationsState.value : initialInvocations;
 
   const hasTransientInvocations = invocations.some(
     (inv) => inv.status === 'pending' || inv.status === 'running'
@@ -74,10 +66,7 @@ export function ScheduledTriggerInvocationsTable({
           scheduledTriggerId,
           { limit: 50 }
         );
-        setInvocationsState({
-          source: initialInvocations,
-          value: updated,
-        });
+        setInvocations(updated);
       } catch (error) {
         console.error('Failed to poll invocations:', error);
       }
@@ -85,14 +74,7 @@ export function ScheduledTriggerInvocationsTable({
 
     const intervalId = setInterval(pollInvocations, POLLING_INTERVAL_MS);
     return () => clearInterval(intervalId);
-  }, [
-    hasTransientInvocations,
-    initialInvocations,
-    tenantId,
-    projectId,
-    agentId,
-    scheduledTriggerId,
-  ]);
+  }, [hasTransientInvocations, tenantId, projectId, agentId, scheduledTriggerId]);
 
   async function cancelInvocation(invocationId: string) {
     if (!confirm('Are you sure you want to cancel this invocation?')) {

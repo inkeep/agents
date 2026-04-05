@@ -23,38 +23,27 @@ import { EvaluationRunConfigFormDialog } from './evaluation-run-config-form-dial
 interface EvaluationRunConfigsListProps {
   tenantId: string;
   projectId: string;
-  runConfigs: EvaluationRunConfig[];
+  initialRunConfigs: EvaluationRunConfig[];
   refreshKey?: string | number;
 }
 
 export function EvaluationRunConfigsList({
   tenantId,
   projectId,
-  runConfigs: initialRunConfigs,
+  initialRunConfigs,
   refreshKey,
 }: EvaluationRunConfigsListProps) {
   const router = useRouter();
-  const [runConfigsState, setRunConfigsState] = useState<{
-    source: EvaluationRunConfig[];
-    value: EvaluationRunConfig[];
-  }>({
-    source: initialRunConfigs,
-    value: initialRunConfigs,
-  });
+  const [runConfigs, setRunConfigs] = useState(initialRunConfigs);
   const [editingRunConfig, setEditingRunConfig] = useState<EvaluationRunConfig | undefined>();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [deletingRunConfig, setDeletingRunConfig] = useState<EvaluationRunConfig | undefined>();
-  const runConfigs =
-    runConfigsState.source === initialRunConfigs ? runConfigsState.value : initialRunConfigs;
 
   async function refreshRunConfigs() {
     try {
       const response = await fetchEvaluationRunConfigs(tenantId, projectId);
-      setRunConfigsState({
-        source: initialRunConfigs,
-        value: response.data,
-      });
+      setRunConfigs(response.data);
     } catch (error) {
       console.error('Error refreshing run configs:', error);
     }

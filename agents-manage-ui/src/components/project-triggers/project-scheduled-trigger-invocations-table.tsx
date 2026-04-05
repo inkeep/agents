@@ -35,27 +35,19 @@ import { FilterTriggerComponent } from '../traces/filters/filter-trigger';
 const POLLING_INTERVAL_MS = 3000;
 
 interface ProjectScheduledTriggerInvocationsTableProps {
-  invocations: ScheduledTriggerInvocationWithContext[];
+  initialInvocations: ScheduledTriggerInvocationWithContext[];
   tenantId: string;
   projectId: string;
 }
 
 export function ProjectScheduledTriggerInvocationsTable({
-  invocations: initialInvocations,
+  initialInvocations,
   tenantId,
   projectId,
 }: ProjectScheduledTriggerInvocationsTableProps) {
   const router = useRouter();
-  const [invocationsState, setInvocationsState] = useState<{
-    source: ScheduledTriggerInvocationWithContext[];
-    value: ScheduledTriggerInvocationWithContext[];
-  }>({
-    source: initialInvocations,
-    value: initialInvocations,
-  });
+  const [invocations, setInvocations] = useState(initialInvocations);
   const [loadingInvocations, setLoadingInvocations] = useState(new Set<string>());
-  const invocations =
-    invocationsState.source === initialInvocations ? invocationsState.value : initialInvocations;
 
   // Filter state
   const [agentFilter, setAgentFilter] = useState('');
@@ -119,10 +111,7 @@ export function ProjectScheduledTriggerInvocationsTable({
         const updated = await getProjectScheduledTriggerInvocationsAction(tenantId, projectId, {
           limit: 100,
         });
-        setInvocationsState({
-          source: initialInvocations,
-          value: updated,
-        });
+        setInvocations(updated);
       } catch (error) {
         console.error('Failed to poll invocations:', error);
       }
@@ -130,7 +119,7 @@ export function ProjectScheduledTriggerInvocationsTable({
 
     const intervalId = setInterval(pollInvocations, POLLING_INTERVAL_MS);
     return () => clearInterval(intervalId);
-  }, [hasTransientInvocations, initialInvocations, tenantId, projectId]);
+  }, [hasTransientInvocations, tenantId, projectId]);
 
   async function cancelInvocation(invocation: ScheduledTriggerInvocationWithContext) {
     if (!confirm('Are you sure you want to cancel this invocation?')) {

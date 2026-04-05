@@ -313,9 +313,9 @@ interface ModelConfigurationProps {
   /** Whether this field is required */
   isRequired?: boolean;
   /** Called when the model value changes */
-  onModelChange?: (value: string) => void;
+  onModelChange: (value: string) => void;
   /** Called when provider options change */
-  onProviderOptionsChange?: (value: string) => void;
+  onProviderOptionsChange: (value: string) => void;
   /** Unique name prefix for the JSON editor */
   editorNamePrefix?: string;
   /** Custom placeholder for the JSON editor based on model type */
@@ -359,31 +359,6 @@ export function ModelConfiguration({
   onAllowedProvidersChange,
 }: ModelConfigurationProps) {
   const { data: capabilities } = useCapabilitiesQuery();
-  // Internal state for provider options to handle immediate updates
-  const [providerOptionsState, setProviderOptionsState] = useState<{
-    modelValue: string | undefined;
-    providerOptions: string | Record<string, unknown> | undefined;
-    value: string | Record<string, unknown> | undefined;
-  }>({
-    modelValue: value,
-    providerOptions,
-    value: providerOptions,
-  });
-  const internalProviderOptions =
-    providerOptionsState.modelValue === value &&
-    providerOptionsState.providerOptions === providerOptions
-      ? providerOptionsState.value
-      : providerOptions;
-
-  function updateInternalProviderOptions (
-    nextValue: string | Record<string, unknown> | undefined
-  ) {
-    setProviderOptionsState({
-      modelValue: value,
-      providerOptions,
-      value: nextValue,
-    });
-  };
 
   const handleModelChange = (modelValue: string) => {
     const previousEffectiveModel = value || inheritedValue;
@@ -395,28 +370,24 @@ export function ModelConfiguration({
     // 1. Model value changes, OR
     // 2. Switching from inherited to explicit (even if same model)
     if (previousEffectiveModel !== newModel || (wasInherited && isNowExplicit)) {
-      updateInternalProviderOptions(undefined);
-      onProviderOptionsChange?.('');
+      onProviderOptionsChange('');
     }
 
-    onModelChange?.(newModel || '');
+    onModelChange(newModel || '');
   };
 
   const handleProviderOptionsChange = (options: Record<string, any>) => {
     if (!options || Object.keys(options).length === 0) {
-      updateInternalProviderOptions(undefined);
-      onProviderOptionsChange?.('');
+      onProviderOptionsChange('');
       return;
     }
     const jsonString = JSON.stringify(options, null, 2);
-    updateInternalProviderOptions(jsonString);
-    onProviderOptionsChange?.(jsonString);
+    onProviderOptionsChange(jsonString);
   };
 
   // Handle both string (from JSON editors) and object (from ModelSelector) inputs
-  function handleProviderOptionsStringChange (nextValue = '') {
-    updateInternalProviderOptions(nextValue);
-    onProviderOptionsChange?.(nextValue);
+  function handleProviderOptionsStringChange(nextValue = '') {
+    onProviderOptionsChange(nextValue);
   }
 
   const getDefaultJsonPlaceholder = (model?: string) => {
@@ -427,7 +398,7 @@ export function ModelConfiguration({
   };
 
   const effectiveModel = value || inheritedValue;
-  const effectiveProviderOptions = value ? internalProviderOptions : inheritedProviderOptions;
+  const effectiveProviderOptions = value ? providerOptions : inheritedProviderOptions;
   const isUsingInheritedOptions = !value && !!inheritedValue;
 
   const modelProvider = effectiveModel?.split('/')[0] ?? '';
