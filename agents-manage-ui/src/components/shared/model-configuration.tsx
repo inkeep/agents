@@ -375,15 +375,13 @@ export function ModelConfiguration({
       ? providerOptionsState.value
       : providerOptions;
 
-  function updateInternalProviderOptions (
-    nextValue: string | Record<string, unknown> | undefined
-  ) {
+  function updateInternalProviderOptions(nextValue: string | Record<string, unknown> | undefined) {
     setProviderOptionsState({
       modelValue: value,
       providerOptions,
       value: nextValue,
     });
-  };
+  }
 
   const handleModelChange = (modelValue: string) => {
     const previousEffectiveModel = value || inheritedValue;
@@ -414,7 +412,7 @@ export function ModelConfiguration({
   };
 
   // Handle both string (from JSON editors) and object (from ModelSelector) inputs
-  function handleProviderOptionsStringChange (nextValue = '') {
+  function handleProviderOptionsStringChange(nextValue = '') {
     updateInternalProviderOptions(nextValue);
     onProviderOptionsChange?.(nextValue);
   }
