@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import {
@@ -58,18 +58,17 @@ export function AppUpdateForm({
   const [requireAuth, setRequireAuth] = useState(webConfig?.allowAnonymous !== true);
   const [isLoadingKeys, setIsLoadingKeys] = useState(app.type === 'web_client');
 
-  const loadKeys = useCallback(async () => {
-    if (app.type !== 'web_client') return;
-    const result = await fetchAppAuthKeysAction(tenantId, projectId, app.id);
-    if (result.success && result.data) {
-      setServerKeys(result.data);
-    }
-    setIsLoadingKeys(false);
-  }, [tenantId, projectId, app.id, app.type]);
-
   useEffect(() => {
+    async function loadKeys() {
+      if (app.type !== 'web_client') return;
+      const result = await fetchAppAuthKeysAction(tenantId, projectId, app.id);
+      if (result.success && result.data) {
+        setServerKeys(result.data);
+      }
+      setIsLoadingKeys(false);
+    }
     loadKeys();
-  }, [loadKeys]);
+  }, [tenantId, projectId, app.type, app.id]);
 
   const form = useForm<AppUpdateFormInput>({
     resolver: zodResolver(AppUpdateFormSchema),

@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useController, useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
@@ -26,10 +26,7 @@ import type { DatasetRunConfigInsert } from '@/lib/api/dataset-run-configs';
 import { useAgentsQuery } from '@/lib/query/agents';
 import { useEvaluatorsQuery } from '@/lib/query/evaluators';
 import { createLookup } from '@/lib/utils';
-import {
-  type DatasetRunConfigFormData,
-  datasetRunConfigSchema,
-} from './dataset-run-config-validation';
+import { datasetRunConfigSchema } from './dataset-run-config-validation';
 
 interface DatasetRunConfigFormProps {
   tenantId: string;
@@ -102,15 +99,15 @@ export function DatasetRunConfigForm({
       .catch(() => toast.error('Failed to load dataset agent scope'));
   }, [tenantId, projectId, datasetId]);
 
-  const filteredAgents = useMemo(() => {
+  const filteredAgents = (() => {
     if (!datasetScopedAgentIds) return agents;
     const allowed = new Set(datasetScopedAgentIds);
     return agents.filter((a) => allowed.has(a.id));
-  }, [agents, datasetScopedAgentIds]);
+  })();
 
-  const agentLookup = useMemo(() => createLookup(filteredAgents), [filteredAgents]);
+  const agentLookup = createLookup(filteredAgents);
 
-  const [evaluatorAgentMap, setEvaluatorAgentMap] = useState<Map<string, string[]>>(new Map());
+  const [evaluatorAgentMap, setEvaluatorAgentMap] = useState(new Map<string, string[]>());
 
   useEffect(() => {
     if (evaluators.length === 0) return;
@@ -129,17 +126,15 @@ export function DatasetRunConfigForm({
     return () => abortController.abort();
   }, [evaluators, tenantId, projectId]);
 
-  const filteredEvaluators = useMemo(() => {
-    const selected = agentIds as string[];
-    if (selected.length === 0) return evaluators;
-    return evaluators.filter((ev) => {
-      const scopedAgents = evaluatorAgentMap.get(ev.id);
-      if (!scopedAgents || scopedAgents.length === 0) return true;
-      return scopedAgents.some((agentId) => selected.includes(agentId));
-    });
-  }, [evaluators, agentIds, evaluatorAgentMap]);
+  const filteredEvaluators = agentIds?.length
+    ? evaluators.filter((ev) => {
+        const scopedAgents = evaluatorAgentMap.get(ev.id);
+        if (!scopedAgents || scopedAgents.length === 0) return true;
+        return scopedAgents.some((agentId) => agentIds.includes(agentId));
+      })
+    : evaluators;
 
-  const evaluatorLookup = useMemo(() => createLookup(filteredEvaluators), [filteredEvaluators]);
+  const evaluatorLookup = createLookup(filteredEvaluators);
 
   const selectedEvaluatorIds = useWatch({ control: form.control, name: 'evaluatorIds' });
 
@@ -152,7 +147,7 @@ export function DatasetRunConfigForm({
     }
   }, [filteredEvaluators, selectedEvaluatorIds, form]);
 
-  const onSubmit = async (data: DatasetRunConfigFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     try {
       const selectedAgents = data.agentIds || [];
       const selectedEvalIds = data.evaluatorIds || [];
@@ -201,11 +196,11 @@ export function DatasetRunConfigForm({
       console.error('Error submitting form:', error);
       toast.error('An unexpected error occurred');
     }
-  };
+  });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={onSubmit} className="space-y-6">
         <GenericInput
           control={form.control}
           name="name"

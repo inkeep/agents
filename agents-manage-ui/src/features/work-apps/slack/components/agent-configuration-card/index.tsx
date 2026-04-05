@@ -2,7 +2,7 @@
 
 import { AlertTriangle, Layers2, Loader2, RefreshCw } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -30,7 +30,7 @@ export function AgentConfigurationCard() {
   const [defaultAgent, setDefaultAgent] = useState<DefaultAgentConfig | null>(null);
   const [defaultOpen, setDefaultOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [selectedChannels, setSelectedChannels] = useState<Set<string>>(new Set());
+  const [selectedChannels, setSelectedChannels] = useState(new Set<string>());
   const [bulkSaving, setBulkSaving] = useState(false);
   const [channelFilter, setChannelFilter] = useState<'all' | 'private' | 'connect'>('all');
   const [channelSearchQuery, setChannelSearchQuery] = useState('');
@@ -64,7 +64,7 @@ export function AgentConfigurationCard() {
     setMounted(true);
   }, []);
 
-  const fetchAgents = useCallback(async () => {
+  async function fetchAgents() {
     if (!teamId) return;
     setLoadingAgents(true);
     try {
@@ -76,9 +76,9 @@ export function AgentConfigurationCard() {
       console.error('Failed to fetch agents:', error);
     }
     setLoadingAgents(false);
-  }, [tenantId, teamId]);
+  }
 
-  const fetchChannels = useCallback(async () => {
+  async function fetchChannels() {
     if (!teamId) return;
     setLoadingChannels(true);
     try {
@@ -88,9 +88,9 @@ export function AgentConfigurationCard() {
       console.error('Failed to fetch channels:', error);
     }
     setLoadingChannels(false);
-  }, [teamId]);
+  }
 
-  const fetchWorkspaceSettings = useCallback(async () => {
+  async function fetchWorkspaceSettings() {
     if (!teamId) return;
     try {
       const settings = await slackApi.getWorkspaceSettings(teamId);
@@ -98,7 +98,7 @@ export function AgentConfigurationCard() {
     } catch {
       // No saved workspace settings found
     }
-  }, [teamId]);
+  }
 
   useEffect(() => {
     if (teamId && mounted) {
@@ -106,7 +106,16 @@ export function AgentConfigurationCard() {
       fetchChannels();
       fetchWorkspaceSettings();
     }
-  }, [teamId, mounted, fetchAgents, fetchChannels, fetchWorkspaceSettings]);
+  }, [
+    teamId,
+    mounted,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchAgents,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchChannels,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchWorkspaceSettings,
+  ]);
 
   const handleSetDefaultAgent = async (agent: SlackAgentOption) => {
     if (!teamId) return;

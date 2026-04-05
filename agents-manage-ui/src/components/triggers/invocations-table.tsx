@@ -68,7 +68,7 @@ export function InvocationsTable({
 }: InvocationsTableProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [expandedRows, setExpandedRows] = useState(new Set<string>());
 
   const toggleRow = (invocationId: string) => {
     setExpandedRows((prev) => {

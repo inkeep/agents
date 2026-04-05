@@ -2,7 +2,7 @@
 
 import { ArrowLeft, ChevronRight, Clock, ExternalLink, Loader2, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { use, useCallback, useEffect, useMemo, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { DatasetItemViewDialog } from '@/components/dataset-items/dataset-item-view-dialog';
 import {
   TestCaseFilters,
@@ -41,54 +41,51 @@ export default function Page({
     isRunning: boolean;
   } | null>(null);
 
-  const loadRun = useCallback(
-    async (showLoading = true) => {
-      try {
-        if (showLoading) {
-          setLoading(true);
-        }
-        setError(null);
-        const [response, itemsResponse] = await Promise.all([
-          fetchDatasetRun(tenantId, projectId, runId),
-          fetchDatasetRunItems(tenantId, projectId, runId),
-        ]);
-        setRun(response.data);
-        setInvocations(itemsResponse.data || []);
-
-        // If there's an evaluation job, fetch evaluation progress
-        if (response.data?.evaluationJobConfigId) {
-          const evalResults = await fetchEvaluationResultsByJobConfig(
-            tenantId,
-            projectId,
-            response.data.evaluationJobConfigId
-          );
-
-          const totalEvaluations = evalResults.data?.length || 0;
-          const completedEvaluations =
-            evalResults.data?.filter(
-              (result) => result.output !== null && result.output !== undefined
-            ).length || 0;
-
-          setEvaluationProgress({
-            total: totalEvaluations,
-            completed: completedEvaluations,
-            isRunning: completedEvaluations < totalEvaluations && totalEvaluations > 0,
-          });
-        } else {
-          setEvaluationProgress(null);
-        }
-      } catch (err) {
-        console.error('Error loading dataset run:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load run');
-      }
+  async function loadRun(showLoading = true) {
+    try {
       if (showLoading) {
-        setLoading(false);
+        setLoading(true);
       }
-    },
-    [tenantId, projectId, runId]
-  );
+      setError(null);
+      const [response, itemsResponse] = await Promise.all([
+        fetchDatasetRun(tenantId, projectId, runId),
+        fetchDatasetRunItems(tenantId, projectId, runId),
+      ]);
+      setRun(response.data);
+      setInvocations(itemsResponse.data || []);
 
-  const conversationProgress = useMemo(() => {
+      // If there's an evaluation job, fetch evaluation progress
+      if (response.data?.evaluationJobConfigId) {
+        const evalResults = await fetchEvaluationResultsByJobConfig(
+          tenantId,
+          projectId,
+          response.data.evaluationJobConfigId
+        );
+
+        const totalEvaluations = evalResults.data?.length || 0;
+        const completedEvaluations =
+          evalResults.data?.filter(
+            (result) => result.output !== null && result.output !== undefined
+          ).length || 0;
+
+        setEvaluationProgress({
+          total: totalEvaluations,
+          completed: completedEvaluations,
+          isRunning: completedEvaluations < totalEvaluations && totalEvaluations > 0,
+        });
+      } else {
+        setEvaluationProgress(null);
+      }
+    } catch (err) {
+      console.error('Error loading dataset run:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load run');
+    }
+    if (showLoading) {
+      setLoading(false);
+    }
+  }
+
+  const conversationProgress = (() => {
     if (invocations.length === 0) return { total: 0, completed: 0, failed: 0, isRunning: false };
     const total = invocations.length;
     const completed = invocations.filter((inv) => inv.status === 'completed').length;
@@ -97,7 +94,7 @@ export default function Page({
     ).length;
     const settled = completed + failed;
     return { total, completed, failed, isRunning: settled < total && total > 0 };
-  }, [invocations]);
+  })();
 
   // Overall progress - run is complete only when both conversations AND evaluations are done
   const isRunInProgress =
@@ -106,7 +103,10 @@ export default function Page({
   // Initial load
   useEffect(() => {
     loadRun();
-  }, [loadRun]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadRun,
+  ]);
 
   // Auto-refresh when run is in progress
   useEffect(() => {
@@ -117,19 +117,20 @@ export default function Page({
     }, 3000); // Refresh every 3 seconds
 
     return () => clearInterval(interval);
-  }, [isRunInProgress, loadRun]);
+  }, [
+    isRunInProgress,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadRun,
+  ]);
 
-  const invocationByItemId = useMemo(() => {
-    const map = new Map<string, DatasetRunInvocation>();
-    for (const inv of invocations) {
-      if (inv.datasetItemId) {
-        map.set(inv.datasetItemId, inv);
-      }
+  const invocationByItemId = new Map<string, DatasetRunInvocation>();
+  for (const inv of invocations) {
+    if (inv.datasetItemId) {
+      invocationByItemId.set(inv.datasetItemId, inv);
     }
-    return map;
-  }, [invocations]);
+  }
 
-  const uniqueAgents = useMemo(() => {
+  const uniqueAgents = (() => {
     if (!run?.items) return [];
     const agentIds = new Set<string>();
     run.items.forEach((item) => {
@@ -140,12 +141,10 @@ export default function Page({
       });
     });
     return Array.from(agentIds).map((id) => ({ id, name: id }));
-  }, [run]);
+  })();
 
-  const filteredItems = useMemo(() => {
-    if (!run?.items) return [];
-
-    return run.items
+  const filteredItems =
+    run?.items
       .map((item) => {
         const getInputText = (): string => {
           const input = item.input;
@@ -202,8 +201,7 @@ export default function Page({
           conversations,
         };
       })
-      .filter((item): item is NonNullable<typeof item> => item !== null);
-  }, [run, filters]);
+      .filter((item) => item !== null) ?? [];
 
   if (loading) {
     return (
