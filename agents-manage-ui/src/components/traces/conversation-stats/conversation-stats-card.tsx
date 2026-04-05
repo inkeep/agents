@@ -41,11 +41,11 @@ export function ConversationStatsCard({
   projectId,
   selectedTimeRange,
   pagination,
-  searchQuery = '',
+  searchQuery: initialSearchQuery = '',
   onSearchChange,
   totalConversations,
 }: ConversationStatsCardProps) {
-  const [localQuery, setLocalQuery] = useDerivedProp(searchQuery);
+  const [searchQuery, setSearchQuery] = useDerivedProp(initialSearchQuery);
   const [searchError, setSearchError] = React.useState<string | null>(null);
   const debounceTimer = React.useRef<number | null>(null);
 
@@ -69,7 +69,7 @@ export function ConversationStatsCard({
   }, []);
 
   function clearSearch() {
-    setLocalQuery('');
+    setSearchQuery('');
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     try {
       onSearchChange?.('');
@@ -111,10 +111,10 @@ export function ConversationStatsCard({
               <InputGroup>
                 <InputGroupInput
                   placeholder="Search conversations..."
-                  value={localQuery}
+                  value={searchQuery}
                   onChange={(e) => {
                     const v = e.target.value;
-                    setLocalQuery(v);
+                    setSearchQuery(v);
                     debouncedSearch(v);
                   }}
                   aria-invalid={!!searchError}
@@ -122,7 +122,7 @@ export function ConversationStatsCard({
                 <InputGroupAddon>
                   <Search />
                 </InputGroupAddon>
-                {localQuery && (
+                {searchQuery && (
                   <InputGroupAddon align="inline-end">
                     <Button
                       variant="ghost"
@@ -160,15 +160,15 @@ export function ConversationStatsCard({
         ) : (
           <EmptyState
             title={
-              localQuery
+              searchQuery
                 ? 'No conversations found.'
                 : selectedTimeRange === '24h'
                   ? 'No conversation statistics found.'
                   : `No data for ${selectedTimeRange === '7d' ? '7 days' : selectedTimeRange === '15d' ? '15 days' : 'this time range'}.`
             }
             description={
-              localQuery
-                ? `No conversations match "${localQuery}". Try a different search term.`
+              searchQuery
+                ? `No conversations match "${searchQuery}". Try a different search term.`
                 : selectedTimeRange === '24h'
                   ? 'Tool calls will appear here when conversations use tools.'
                   : `Try selecting a shorter time range (like 24 hours) as data may only be retained for a few days.`
@@ -177,7 +177,7 @@ export function ConversationStatsCard({
         )}
 
         {/* Pagination Controls */}
-        {pagination && pagination.totalPages > 1 && !searchQuery && (
+        {pagination && pagination.totalPages > 1 && !initialSearchQuery && (
           <div className="flex items-center justify-between pt-4 px-6 border-t border-border">
             <div className="text-sm text-muted-foreground">
               Page {pagination.page} of {pagination.totalPages}
