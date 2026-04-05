@@ -10,7 +10,6 @@ import { Command, CommandEmpty, CommandItem, CommandList } from '@/components/ui
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { useDerivedProp } from '@/hooks/use-derived-prop';
 import { useCapabilitiesQuery } from '@/lib/query/capabilities';
 import { azureModelProviderOptionsTemplate, providerOptionsTemplate } from '@/lib/templates';
 import { cn } from '@/lib/utils';
@@ -314,9 +313,9 @@ interface ModelConfigurationProps {
   /** Whether this field is required */
   isRequired?: boolean;
   /** Called when the model value changes */
-  onModelChange?: (value: string) => void;
+  onModelChange: (value: string) => void;
   /** Called when provider options change */
-  onProviderOptionsChange?: (value: string) => void;
+  onProviderOptionsChange: (value: string) => void;
   /** Unique name prefix for the JSON editor */
   editorNamePrefix?: string;
   /** Custom placeholder for the JSON editor based on model type */
@@ -360,9 +359,6 @@ export function ModelConfiguration({
   onAllowedProvidersChange,
 }: ModelConfigurationProps) {
   const { data: capabilities } = useCapabilitiesQuery();
-  const [internalProviderOptions, setInternalProviderOptions] = useDerivedProp(providerOptions, {
-    resetSource: value,
-  });
 
   const handleModelChange = (modelValue: string) => {
     const previousEffectiveModel = value || inheritedValue;
@@ -374,8 +370,7 @@ export function ModelConfiguration({
     // 1. Model value changes, OR
     // 2. Switching from inherited to explicit (even if same model)
     if (previousEffectiveModel !== newModel || (wasInherited && isNowExplicit)) {
-      setInternalProviderOptions(undefined);
-      onProviderOptionsChange?.('');
+      onProviderOptionsChange('');
     }
 
     onModelChange?.(newModel || '');
@@ -383,19 +378,16 @@ export function ModelConfiguration({
 
   const handleProviderOptionsChange = (options: Record<string, any>) => {
     if (!options || Object.keys(options).length === 0) {
-      setInternalProviderOptions(undefined);
-      onProviderOptionsChange?.('');
+      onProviderOptionsChange('');
       return;
     }
     const jsonString = JSON.stringify(options, null, 2);
-    setInternalProviderOptions(jsonString);
-    onProviderOptionsChange?.(jsonString);
+    onProviderOptionsChange(jsonString);
   };
 
   // Handle both string (from JSON editors) and object (from ModelSelector) inputs
   function handleProviderOptionsStringChange(nextValue = '') {
-    setInternalProviderOptions(nextValue);
-    onProviderOptionsChange?.(nextValue);
+    onProviderOptionsChange(nextValue);
   }
 
   const getDefaultJsonPlaceholder = (model?: string) => {
@@ -406,7 +398,7 @@ export function ModelConfiguration({
   };
 
   const effectiveModel = value || inheritedValue;
-  const effectiveProviderOptions = value ? internalProviderOptions : inheritedProviderOptions;
+  const effectiveProviderOptions = value ? providerOptions : inheritedProviderOptions;
   const isUsingInheritedOptions = !value && !!inheritedValue;
 
   const modelProvider = effectiveModel?.split('/')[0] ?? '';
