@@ -393,7 +393,7 @@ export function ModelConfiguration({
     onProviderOptionsChange?.(jsonString);
   };
 
-    // Handle both string (from JSON editors) and object (from ModelSelector) inputs
+  // Handle both string (from JSON editors) and object (from ModelSelector) inputs
   function handleProviderOptionsStringChange(nextValue = '') {
     setInternalProviderOptions(nextValue);
     onProviderOptionsChange?.(nextValue);
