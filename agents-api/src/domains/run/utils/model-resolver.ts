@@ -5,6 +5,10 @@ import type {
   Models,
 } from '@inkeep/agents-core';
 
+export function firstWithModel(...ms: (ModelSettings | null | undefined)[]): ModelSettings {
+  return ms.find((m) => m?.model) as ModelSettings;
+}
+
 function inheritGatewayFields(
   child: ModelSettings,
   ...parents: (ModelSettings | undefined)[]
@@ -63,9 +67,16 @@ async function resolveModelConfig(
   if (project?.models?.base?.model) {
     return {
       base: project.models.base,
-      structuredOutput:
-        subAgent.models?.structuredOutput || project.models.structuredOutput || project.models.base,
-      summarizer: subAgent.models?.summarizer || project.models.summarizer || project.models.base,
+      structuredOutput: firstWithModel(
+        subAgent.models?.structuredOutput,
+        project.models.structuredOutput,
+        project.models.base
+      ),
+      summarizer: firstWithModel(
+        subAgent.models?.summarizer,
+        project.models.summarizer,
+        project.models.base
+      ),
     };
   }
 
