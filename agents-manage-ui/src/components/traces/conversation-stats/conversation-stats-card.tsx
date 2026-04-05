@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
+import { useDerivedProp } from '@/hooks/use-derived-prop';
 import type { ConversationStats } from '@/lib/api/signoz-stats';
 import EmptyState from '../../layout/empty-state';
 import { ConversationListItem } from './conversation-list-item';
@@ -40,10 +41,11 @@ export function ConversationStatsCard({
   projectId,
   selectedTimeRange,
   pagination,
-  searchQuery = '',
+  searchQuery: initialSearchQuery = '',
   onSearchChange,
   totalConversations,
 }: ConversationStatsCardProps) {
+  const [searchQuery, setSearchQuery] = useDerivedProp(initialSearchQuery);
   const [searchError, setSearchError] = React.useState<string | null>(null);
   const debounceTimer = React.useRef<number | null>(null);
 
@@ -51,7 +53,7 @@ export function ConversationStatsCard({
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = window.setTimeout(() => {
       try {
-        onSearchChange?.(query);
+        onSearchChange(query);
         setSearchError(null);
       } catch (error) {
         console.error('Search failed:', error);
@@ -67,10 +69,10 @@ export function ConversationStatsCard({
   }, []);
 
   function clearSearch() {
-    onSearchChange('');
+    setSearchQuery('');
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     try {
-      onSearchChange?.('');
+      onSearchChange('');
       setSearchError(null);
     } catch (error) {
       console.error('Search failed:', error);
@@ -112,7 +114,7 @@ export function ConversationStatsCard({
                   value={searchQuery}
                   onChange={(e) => {
                     const v = e.target.value;
-                    onSearchChange(v);
+                    setSearchQuery(v);
                     debouncedSearch(v);
                   }}
                   aria-invalid={!!searchError}
@@ -175,7 +177,7 @@ export function ConversationStatsCard({
         )}
 
         {/* Pagination Controls */}
-        {pagination && pagination.totalPages > 1 && !searchQuery && (
+        {pagination && pagination.totalPages > 1 && !initialSearchQuery && (
           <div className="flex items-center justify-between pt-4 px-6 border-t border-border">
             <div className="text-sm text-muted-foreground">
               Page {pagination.page} of {pagination.totalPages}
