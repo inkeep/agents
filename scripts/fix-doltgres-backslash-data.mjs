@@ -2,42 +2,57 @@
 /**
  * fix-doltgres-backslash-data.mjs
  *
- * Migrates existing JSONB data in the Doltgres manage database to use the
- * U+E000 backslash encoding introduced by dolt-safe-jsonb.ts.
+ * Re-encodes existing JSONB data in the Doltgres manage database to use the
+ * U+E000 backslash encoding introduced by dolt-safe-jsonb.ts (PR #2981).
+ *
+ * NOTE: In practice, the production scan found 0 rows needing encoding.
+ * The actual corruption (invalid JSON from Doltgres) is handled by the
+ * companion script: fix-doltgres-corrupt-jsonb.mjs
  *
  * Background:
- *   Doltgres has a JSON parser bug where backslash escape sequences are
- *   mishandled. The application now encodes backslashes as U+E000 on write
- *   and decodes on read. However, data written before that fix still contains
- *   raw backslashes (or Doltgres-corrupted versions of them). This script
- *   re-encodes all existing JSONB values so they are consistent with the new
- *   read pipeline.
+ *   Doltgres has a JSON parser bug where `\\` escape sequences are mishandled.
+ *   The application now encodes backslashes as U+E000 on write and decodes on
+ *   read. This script scans all 19 manage-schema tables with JSONB columns
+ *   across all Doltgres branches to find rows that still have raw backslashes
+ *   and re-encodes them.
  *
- * Modes:
- *   --scan    Read-only audit. Reports rows with raw backslashes, already-encoded
- *             U+E000 placeholders, or suspicious control characters that suggest
- *             Doltgres corruption. No writes.
+ * Prerequisites:
+ *   - Node.js 18+
+ *   - pnpm install (so pg is available via agents-core)
+ *   - INKEEP_AGENTS_MANAGE_DATABASE_URL set to the Doltgres connection string
+ *     (reads from .env at repo root if present, or pass as env var)
  *
- *   (default) Dry run. Shows which rows would be updated (backslash → U+E000
- *             encoding) without writing.
+ * ═══════════════════════════════════════════════════════════════════════════
+ * EXAMPLE COMMANDS
+ * ═══════════════════════════════════════════════════════════════════════════
  *
- *   --apply   Write mode. Encodes backslashes as U+E000 and commits on each branch.
+ * # ── Scan — audit all branches for rows with raw backslashes (read-only) ─
+ * INKEEP_AGENTS_MANAGE_DATABASE_URL=<url> node scripts/fix-doltgres-backslash-data.mjs --scan
  *
- * Usage:
- *   # Scan only — find broken/suspect instances (no writes)
- *   node scripts/fix-doltgres-backslash-data.mjs --scan
+ * # Reports three categories:
+ * #   [NEEDS ENCODING]  — rows with raw backslashes that need U+E000 encoding
+ * #   [ALREADY ENCODED] — rows already using U+E000 (written after the fix)
+ * #   [SUSPICIOUS]      — rows with control chars suggesting Doltgres corruption
  *
- *   # Dry run — shows what would change without writing
- *   node scripts/fix-doltgres-backslash-data.mjs
+ * # ── Dry run — show what would be updated (no writes) ───────────────────
+ * INKEEP_AGENTS_MANAGE_DATABASE_URL=<url> node scripts/fix-doltgres-backslash-data.mjs
  *
- *   # Apply changes
- *   node scripts/fix-doltgres-backslash-data.mjs --apply
+ * # ── Apply — encode backslashes and commit on each branch ───────────────
+ * INKEEP_AGENTS_MANAGE_DATABASE_URL=<url> node scripts/fix-doltgres-backslash-data.mjs --apply
  *
- *   # Target a specific branch
- *   node scripts/fix-doltgres-backslash-data.mjs --scan --branch tenant1_project1_main
+ * # ── Target a single branch ─────────────────────────────────────────────
+ * INKEEP_AGENTS_MANAGE_DATABASE_URL=<url> node scripts/fix-doltgres-backslash-data.mjs --scan --branch default_andrew-test_main
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Flags:
+ *   --scan           Read-only audit of all JSONB columns
+ *   --apply          Write mode — encodes backslashes as U+E000 and commits
+ *   --branch <name>  Target a single branch (works with any mode)
+ *   (no flags)       Dry run — shows what would change without writing
  *
  * Environment:
- *   INKEEP_AGENTS_MANAGE_DATABASE_URL — Doltgres connection string (reads from .env)
+ *   INKEEP_AGENTS_MANAGE_DATABASE_URL — Doltgres connection string
  */
 
 import fs from 'node:fs';

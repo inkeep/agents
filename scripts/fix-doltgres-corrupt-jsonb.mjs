@@ -6,33 +6,69 @@
  * parser. These rows contain invalid JSON that throws "Bad escaped character"
  * when read by the pg driver.
  *
- * Two repair strategies:
- *   - tools.capabilities → NULL (auto-rediscovered on next MCP health check)
- *   - data_components.props/render → attempt JSON repair (user-authored data)
+ * Background:
+ *   Doltgres has a bug where `\\` in JSON strings doesn't reset the parser
+ *   state, so the next character is misinterpreted as an escape char. This
+ *   turns `\\n` (backslash + n) into `\` + literal newline, corrupting the
+ *   stored JSON. PR #2981 (dolt-safe-jsonb.ts) fixes new writes by encoding
+ *   backslashes as U+E000. This script fixes existing corrupted data.
+ *
+ * Repair strategies:
+ *   - tools.capabilities     → NULL (auto-rediscovered on next MCP health check)
+ *   - tools.config/headers   → attempt JSON repair + U+E000 encoding
+ *   - data_components.props  → attempt JSON repair + U+E000 encoding
+ *   - data_components.render → attempt JSON repair + U+E000 encoding
+ *
+ *   The repair recovers the original value from the corruption, then encodes
+ *   it through the same encodeBackslashes pipeline that new writes use.
+ *   The end result is identical to what dolt-safe-jsonb.ts would produce.
  *
  * How it works:
- *   1. Overrides the pg JSONB type parser to return raw strings (no JSON.parse)
- *   2. For each branch, reads all rows from affected tables
- *   3. Tries JSON.parse on each JSONB column to find broken ones
- *   4. Applies the repair strategy per table
- *   5. Commits on the branch
+ *   1. Overrides the pg JSONB type parser to return raw strings (skips JSON.parse)
+ *   2. Lists all Doltgres branches (or targets a specific one with --branch)
+ *   3. For each branch, checks out and reads all rows from affected tables
+ *   4. Tries JSON.parse on each JSONB column — if it fails, the row is corrupt
+ *   5. Applies the repair strategy (NULL or JSON fix + U+E000 encode)
+ *   6. Commits changes on the branch with author "migration-script"
+ *   7. Returns to main and releases the connection
  *
- * Usage:
- *   # Scan — find corrupt rows (no writes)
- *   node scripts/fix-doltgres-corrupt-jsonb.mjs --scan
+ * Prerequisites:
+ *   - Node.js 18+
+ *   - pnpm install (so pg is available via agents-core)
+ *   - INKEEP_AGENTS_MANAGE_DATABASE_URL set to the Doltgres connection string
+ *     (reads from .env at repo root if present, or pass as env var)
  *
- *   # Dry run (default) — show what would be fixed
- *   node scripts/fix-doltgres-corrupt-jsonb.mjs
+ * ═══════════════════════════════════════════════════════════════════════════
+ * EXAMPLE COMMANDS
+ * ═══════════════════════════════════════════════════════════════════════════
  *
- *   # Dump — write full raw content of each corrupt column to a file for review
- *   node scripts/fix-doltgres-corrupt-jsonb.mjs --dump
- *   node scripts/fix-doltgres-corrupt-jsonb.mjs --dump --out /tmp/corrupt.txt
+ * # ── Step 1: Scan — find corrupt rows across all branches (read-only) ──
+ * INKEEP_AGENTS_MANAGE_DATABASE_URL=<url> node scripts/fix-doltgres-corrupt-jsonb.mjs --scan
  *
- *   # Apply fixes
- *   node scripts/fix-doltgres-corrupt-jsonb.mjs --apply
+ * # ── Step 2: Dump — write full raw content of corrupt columns to a file ─
+ * INKEEP_AGENTS_MANAGE_DATABASE_URL=<url> node scripts/fix-doltgres-corrupt-jsonb.mjs --dump
+ * INKEEP_AGENTS_MANAGE_DATABASE_URL=<url> node scripts/fix-doltgres-corrupt-jsonb.mjs --dump --out /tmp/corrupt.txt
+ * # --dump can combine with --scan: --scan --dump
  *
- *   # Target a specific branch
- *   node scripts/fix-doltgres-corrupt-jsonb.mjs --scan --branch default_bryan_main
+ * # ── Step 3: Dry run — preview repairs with colorized diffs (no writes) ─
+ * INKEEP_AGENTS_MANAGE_DATABASE_URL=<url> node scripts/fix-doltgres-corrupt-jsonb.mjs
+ * # Shows each change as: ␊ (literal newline, corrupt) → \\n (escape sequence, fixed)
+ *
+ * # ── Step 4: Test on a single branch first ──────────────────────────────
+ * INKEEP_AGENTS_MANAGE_DATABASE_URL=<url> node scripts/fix-doltgres-corrupt-jsonb.mjs --apply --branch default_andrew-test_main
+ *
+ * # ── Step 5: Apply to all branches ──────────────────────────────────────
+ * INKEEP_AGENTS_MANAGE_DATABASE_URL=<url> node scripts/fix-doltgres-corrupt-jsonb.mjs --apply
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Flags:
+ *   --scan              Read-only audit, prints corrupt rows to console
+ *   --dump              Write full raw content of corrupt columns to file
+ *   --dump --out <path> Custom dump file path (default: corrupt-jsonb-dump.txt)
+ *   --apply             Write fixes and commit on each branch
+ *   --branch <name>     Target a single branch (works with any mode)
+ *   (no flags)          Dry run — shows what would change with colorized diffs
  *
  * Environment:
  *   INKEEP_AGENTS_MANAGE_DATABASE_URL — Doltgres connection string
