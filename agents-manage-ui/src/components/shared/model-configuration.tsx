@@ -10,6 +10,7 @@ import { Command, CommandEmpty, CommandItem, CommandList } from '@/components/ui
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useDerivedProp } from '@/hooks/use-derived-prop';
 import { useCapabilitiesQuery } from '@/lib/query/capabilities';
 import { azureModelProviderOptionsTemplate, providerOptionsTemplate } from '@/lib/templates';
 import { cn } from '@/lib/utils';
@@ -359,29 +360,10 @@ export function ModelConfiguration({
   onAllowedProvidersChange,
 }: ModelConfigurationProps) {
   const { data: capabilities } = useCapabilitiesQuery();
-  // Internal state for provider options to handle immediate updates
-  const [providerOptionsState, setProviderOptionsState] = useState<{
-    modelValue: string | undefined;
-    providerOptions: string | Record<string, unknown> | undefined;
-    value: string | Record<string, unknown> | undefined;
-  }>({
-    modelValue: value,
+  const [internalProviderOptions, setInternalProviderOptions] = useDerivedProp(
     providerOptions,
-    value: providerOptions,
-  });
-  const internalProviderOptions =
-    providerOptionsState.modelValue === value &&
-    providerOptionsState.providerOptions === providerOptions
-      ? providerOptionsState.value
-      : providerOptions;
-
-  function updateInternalProviderOptions(nextValue: string | Record<string, unknown> | undefined) {
-    setProviderOptionsState({
-      modelValue: value,
-      providerOptions,
-      value: nextValue,
-    });
-  }
+    value
+  );
 
   const handleModelChange = (modelValue: string) => {
     const previousEffectiveModel = value || inheritedValue;
@@ -393,7 +375,7 @@ export function ModelConfiguration({
     // 1. Model value changes, OR
     // 2. Switching from inherited to explicit (even if same model)
     if (previousEffectiveModel !== newModel || (wasInherited && isNowExplicit)) {
-      updateInternalProviderOptions(undefined);
+      setInternalProviderOptions(undefined);
       onProviderOptionsChange?.('');
     }
 
@@ -402,18 +384,18 @@ export function ModelConfiguration({
 
   const handleProviderOptionsChange = (options: Record<string, any>) => {
     if (!options || Object.keys(options).length === 0) {
-      updateInternalProviderOptions(undefined);
+      setInternalProviderOptions(undefined);
       onProviderOptionsChange?.('');
       return;
     }
     const jsonString = JSON.stringify(options, null, 2);
-    updateInternalProviderOptions(jsonString);
+    setInternalProviderOptions(jsonString);
     onProviderOptionsChange?.(jsonString);
   };
 
-  // Handle both string (from JSON editors) and object (from ModelSelector) inputs
+    // Handle both string (from JSON editors) and object (from ModelSelector) inputs
   function handleProviderOptionsStringChange(nextValue = '') {
-    updateInternalProviderOptions(nextValue);
+    setInternalProviderOptions(nextValue);
     onProviderOptionsChange?.(nextValue);
   }
 

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
+import { useDerivedProp } from '@/hooks/use-derived-prop';
 import type { ConversationStats } from '@/lib/api/signoz-stats';
 import EmptyState from '../../layout/empty-state';
 import { ConversationListItem } from './conversation-list-item';
@@ -44,17 +45,13 @@ export function ConversationStatsCard({
   onSearchChange,
   totalConversations,
 }: ConversationStatsCardProps) {
-  const [localQueryState, setLocalQueryState] = React.useState({
-    source: searchQuery,
-    value: searchQuery,
-  });
+  const [localQuery, setLocalQuery] = useDerivedProp(searchQuery);
   const [searchError, setSearchError] = React.useState<string | null>(null);
-  const debounceTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  const localQuery = localQueryState.source === searchQuery ? localQueryState.value : searchQuery;
+  const debounceTimer = React.useRef<number | null>(null);
 
   function debouncedSearch(query: string) {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    debounceTimer.current = setTimeout(() => {
+    debounceTimer.current = window.setTimeout(() => {
       try {
         onSearchChange?.(query);
         setSearchError(null);
@@ -72,10 +69,7 @@ export function ConversationStatsCard({
   }, []);
 
   function clearSearch() {
-    setLocalQueryState({
-      source: searchQuery,
-      value: '',
-    });
+    setLocalQuery('');
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     try {
       onSearchChange?.('');
@@ -120,10 +114,7 @@ export function ConversationStatsCard({
                   value={localQuery}
                   onChange={(e) => {
                     const v = e.target.value;
-                    setLocalQueryState({
-                      source: searchQuery,
-                      value: v,
-                    });
+                    setLocalQuery(v);
                     debouncedSearch(v);
                   }}
                   aria-invalid={!!searchError}

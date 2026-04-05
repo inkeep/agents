@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ExternalLink } from '@/components/ui/external-link';
+import { useDerivedProp } from '@/hooks/use-derived-prop';
 import {
   cancelScheduledTriggerInvocationAction,
   getScheduledTriggerInvocationsAction,
@@ -47,16 +48,8 @@ export function ScheduledTriggerInvocationsTable({
   scheduledTriggerId,
 }: ScheduledTriggerInvocationsTableProps) {
   const router = useRouter();
-  const [invocationsState, setInvocationsState] = useState<{
-    source: ScheduledTriggerInvocation[];
-    value: ScheduledTriggerInvocation[];
-  }>({
-    source: initialInvocations,
-    value: initialInvocations,
-  });
+  const [invocations, setInvocations] = useDerivedProp(initialInvocations);
   const [loadingInvocations, setLoadingInvocations] = useState(new Set<string>());
-  const invocations =
-    invocationsState.source === initialInvocations ? invocationsState.value : initialInvocations;
 
   const hasTransientInvocations = invocations.some(
     (inv) => inv.status === 'pending' || inv.status === 'running'
@@ -74,10 +67,7 @@ export function ScheduledTriggerInvocationsTable({
           scheduledTriggerId,
           { limit: 50 }
         );
-        setInvocationsState({
-          source: initialInvocations,
-          value: updated,
-        });
+        setInvocations(updated);
       } catch (error) {
         console.error('Failed to poll invocations:', error);
       }
@@ -85,14 +75,7 @@ export function ScheduledTriggerInvocationsTable({
 
     const intervalId = setInterval(pollInvocations, POLLING_INTERVAL_MS);
     return () => clearInterval(intervalId);
-  }, [
-    hasTransientInvocations,
-    initialInvocations,
-    tenantId,
-    projectId,
-    agentId,
-    scheduledTriggerId,
-  ]);
+  }, [hasTransientInvocations, setInvocations, tenantId, projectId, agentId, scheduledTriggerId]);
 
   async function cancelInvocation(invocationId: string) {
     if (!confirm('Are you sure you want to cancel this invocation?')) {

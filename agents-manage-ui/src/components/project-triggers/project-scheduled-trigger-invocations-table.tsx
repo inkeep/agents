@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ExternalLink } from '@/components/ui/external-link';
+import { useDerivedProp } from '@/hooks/use-derived-prop';
 import { getProjectScheduledTriggerInvocationsAction } from '@/lib/actions/project-triggers';
 import {
   cancelScheduledTriggerInvocationAction,
@@ -46,16 +47,8 @@ export function ProjectScheduledTriggerInvocationsTable({
   projectId,
 }: ProjectScheduledTriggerInvocationsTableProps) {
   const router = useRouter();
-  const [invocationsState, setInvocationsState] = useState<{
-    source: ScheduledTriggerInvocationWithContext[];
-    value: ScheduledTriggerInvocationWithContext[];
-  }>({
-    source: initialInvocations,
-    value: initialInvocations,
-  });
+  const [invocations, setInvocations] = useDerivedProp(initialInvocations);
   const [loadingInvocations, setLoadingInvocations] = useState(new Set<string>());
-  const invocations =
-    invocationsState.source === initialInvocations ? invocationsState.value : initialInvocations;
 
   // Filter state
   const [agentFilter, setAgentFilter] = useState('');
@@ -119,10 +112,7 @@ export function ProjectScheduledTriggerInvocationsTable({
         const updated = await getProjectScheduledTriggerInvocationsAction(tenantId, projectId, {
           limit: 100,
         });
-        setInvocationsState({
-          source: initialInvocations,
-          value: updated,
-        });
+        setInvocations(updated);
       } catch (error) {
         console.error('Failed to poll invocations:', error);
       }
@@ -130,7 +120,7 @@ export function ProjectScheduledTriggerInvocationsTable({
 
     const intervalId = setInterval(pollInvocations, POLLING_INTERVAL_MS);
     return () => clearInterval(intervalId);
-  }, [hasTransientInvocations, initialInvocations, tenantId, projectId]);
+  }, [hasTransientInvocations, setInvocations, tenantId, projectId]);
 
   async function cancelInvocation(invocation: ScheduledTriggerInvocationWithContext) {
     if (!confirm('Are you sure you want to cancel this invocation?')) {

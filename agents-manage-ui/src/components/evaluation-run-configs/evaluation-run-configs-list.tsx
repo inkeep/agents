@@ -14,6 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useDerivedProp } from '@/hooks/use-derived-prop';
 import type { EvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
 import { fetchEvaluationRunConfigs } from '@/lib/api/evaluation-run-configs';
 import { formatDate } from '@/lib/utils/format-date';
@@ -34,27 +35,16 @@ export function EvaluationRunConfigsList({
   refreshKey,
 }: EvaluationRunConfigsListProps) {
   const router = useRouter();
-  const [runConfigsState, setRunConfigsState] = useState<{
-    source: EvaluationRunConfig[];
-    value: EvaluationRunConfig[];
-  }>({
-    source: initialRunConfigs,
-    value: initialRunConfigs,
-  });
+  const [runConfigs, setRunConfigs] = useDerivedProp(initialRunConfigs);
   const [editingRunConfig, setEditingRunConfig] = useState<EvaluationRunConfig | undefined>();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [deletingRunConfig, setDeletingRunConfig] = useState<EvaluationRunConfig | undefined>();
-  const runConfigs =
-    runConfigsState.source === initialRunConfigs ? runConfigsState.value : initialRunConfigs;
 
   async function refreshRunConfigs() {
     try {
       const response = await fetchEvaluationRunConfigs(tenantId, projectId);
-      setRunConfigsState({
-        source: initialRunConfigs,
-        value: response.data,
-      });
+      setRunConfigs(response.data);
     } catch (error) {
       console.error('Error refreshing run configs:', error);
     }
