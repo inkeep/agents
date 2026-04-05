@@ -49,6 +49,7 @@ export default function AICallsBreakdown({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/traces/ai-calls'>) {
   const { tenantId, projectId } = use(params);
+  const [CURRENT_TIME] = useState(() => Date.now());
   const searchParams = useSearchParams();
 
   const backLink = useMemo(() => {
@@ -104,7 +105,7 @@ export default function AICallsBreakdown({
 
   // Calculate time range based on selection
   const { startTime, endTime } = useMemo(() => {
-    const currentEndTime = Date.now();
+    const currentEndTime = CURRENT_TIME;
 
     if (timeRange === 'custom') {
       // Use custom dates if provided
@@ -116,7 +117,7 @@ export default function AICallsBreakdown({
         const endDate = new Date(ey, (em || 1) - 1, ed || 1, 23, 59, 59, 999);
 
         // Clamp end to now-1ms to satisfy backend validation (end cannot be in the future)
-        const clampedEndMs = Math.min(endDate.getTime(), Date.now() - 1);
+        const clampedEndMs = Math.min(endDate.getTime(), CURRENT_TIME - 1);
 
         return {
           startTime: startDate.getTime(),
@@ -136,7 +137,7 @@ export default function AICallsBreakdown({
       startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
       endTime: currentEndTime,
     };
-  }, [timeRange, customStartDate, customEndDate]);
+  }, [timeRange, customStartDate, customEndDate, CURRENT_TIME]);
 
   // Fetch AI calls by agent and model
   useEffect(() => {

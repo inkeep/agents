@@ -39,6 +39,7 @@ export default function TracesOverview({
 }: PageProps<'/[tenantId]/projects/[projectId]/traces'>) {
   const router = useRouter();
   const { tenantId, projectId } = use(params);
+  const [CURRENT_TIME] = useState(() => Date.now());
   const searchParams = useSearchParams();
   const {
     timeRange: selectedTimeRange,
@@ -64,7 +65,7 @@ export default function TracesOverview({
 
   // Calculate time range based on selection
   const { startTime, endTime } = useMemo(() => {
-    const currentEndTime = Date.now() - 1; // Clamp to now-1ms to satisfy backend validation
+    const currentEndTime = CURRENT_TIME - 1; // Clamp to now-1ms to satisfy backend validation
 
     if (selectedTimeRange === CUSTOM) {
       // Use custom dates if provided
@@ -98,7 +99,7 @@ export default function TracesOverview({
       startTime: calculatedStart,
       endTime: currentEndTime,
     };
-  }, [selectedTimeRange, customStartDate, customEndDate]);
+  }, [selectedTimeRange, customStartDate, customEndDate, CURRENT_TIME]);
   // URL state management is now handled by useUrlFilterState hook
 
   // Debounce search query to avoid too many API calls

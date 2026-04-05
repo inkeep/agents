@@ -49,6 +49,7 @@ const TIME_RANGES = {
 
 export default function ProjectsStatsPage({ params }: PageProps<'/[tenantId]/stats'>) {
   const { tenantId } = use(params);
+  const [CURRENT_TIME] = useState(() => Date.now());
   const router = useRouter();
   const {
     timeRange: selectedTimeRange,
@@ -64,7 +65,7 @@ export default function ProjectsStatsPage({ params }: PageProps<'/[tenantId]/sta
 
   // Calculate time range based on selection
   const { startTime, endTime } = useMemo(() => {
-    const currentEndTime = Date.now() - 1;
+    const currentEndTime = CURRENT_TIME - 1;
 
     if (selectedTimeRange === CUSTOM) {
       if (customStartDate && customEndDate) {
@@ -94,7 +95,7 @@ export default function ProjectsStatsPage({ params }: PageProps<'/[tenantId]/sta
       startTime: calculatedStart,
       endTime: currentEndTime,
     };
-  }, [selectedTimeRange, customStartDate, customEndDate]);
+  }, [selectedTimeRange, customStartDate, customEndDate, CURRENT_TIME]);
 
   // Memoize projectIds to prevent new array reference on every render
   const projectIds = useMemo(
