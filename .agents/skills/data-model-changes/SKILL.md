@@ -1,6 +1,6 @@
 ---
 name: data-model-changes
-description: "Guide for making changes to the database schema, validation, types, and data access layer. Use when adding tables, columns, relations, or modifying the data model. Triggers on: add table, add column, modify schema, database change, data model, new entity, schema migration."
+description: "Guide for making changes to the database schema, validation, types, and data access layer. Includes Doltgres DDL compatibility constraints for schemas targeting Doltgres (manage database). Use when adding tables, columns, relations, or modifying the data model. Triggers on: add table, add column, modify schema, database change, data model, new entity, schema migration, manage-schema.ts, runtime-schema.ts, Doltgres, Doltgres compatibility, Doltgres migration, manage database, manage DB, drizzle migration, migration failure, migration error, pgEnum, enum type, DROP TABLE, CASCADE, ALTER TYPE, drizzle-kit generate, pnpm db:generate."
 ---
 
 # Data Model Change Guide
@@ -22,6 +22,41 @@ The framework uses **two separate PostgreSQL databases**:
 
 - **Manage DB**: Configuration that changes infrequently (agent definitions, tool configs). Supports Dolt versioning.
 - **Runtime DB**: High-frequency transactional data (conversations, messages). No cross-DB foreign keys to manage tables.
+
+---
+
+## Doltgres DDL Constraints
+
+*Last confirmed on Doltgres v0.55.5 (pinned in `docker-compose.yml`; note that `docker-compose.dbs.yml` and `docker-compose.isolated.yml` use `:latest`) + drizzle-kit 0.31.8 (resolved from `^0.31.6` in `packages/agents-core/package.json`). Re-verify if either version changes.*
+
+drizzle-kit generates standard PostgreSQL SQL that may be incompatible with Doltgres. These constraints apply to Doltgres-targeted schemas (in this codebase: `manage-schema.ts` and `drizzle/manage/`). Standard PostgreSQL schemas (`runtime-schema.ts`) are unconstrained.
+
+| Don't use in Doltgres-targeted schemas | Why (Doltgres error) | Use instead |
+|---|---|---|
+| `pgEnum()` | `ALTER TYPE is not yet supported` — values can never be changed once created. All ALTER TYPE operations fail (ADD VALUE, DROP VALUE, RENAME, SET SCHEMA). | `varchar` + Zod validation (see example below) |
+| `pgSchema()` | `ALTER TABLE SET SCHEMA is not yet supported` — objects can never be moved between schemas. `DROP SCHEMA CASCADE` also fails. | Stay in `public` schema. Use table name prefixes for grouping (e.g., `eval_`, `config_`). |
+| `serial()` / `pgSequence()` | Column creation works, but the implicit sequence can never be tuned — `INCREMENT BY is not yet supported` (and RESTART, MINVALUE, MAXVALUE, CACHE, CYCLE). Only OWNED BY works. | Application-generated varchar IDs (nanoid) |
+| ``index().where(sql`...`)`` | `WHERE is not yet supported` | Full btree index; filter at query time |
+| `index().concurrently()` | `concurrent index creation is not yet supported` | Plain `CREATE INDEX` — config data has low write volume, the brief lock is fine |
+| `index().using('gin'/'gist'/'hash')` | `index method X is not yet supported` — only btree indexes work | btree on scalar columns; filter JSONB in application code |
+| ``index().on(sql`lower(...)`)`` | `expression index attribute is not yet supported` | Normalize the value at write time in the data access function; index the stored column directly |
+| `col.desc()` on index | drizzle-kit silently couples `.desc()` with NULLS LAST in its output → `NULLS LAST for indexes is not yet supported`. The error mentions NULLS LAST even though you only wrote `.desc()`. | Omit `.desc()`; handle ordering in `ORDER BY` clauses |
+
+### Instead of pgEnum: varchar + Zod validation
+
+The manage schema already follows this pattern — for example:
+
+```typescript
+// In manage-schema.ts:
+credentialScope: varchar('credential_scope', { length: 50 }).notNull().default('project'), // 'project' | 'user'
+
+// Validated at the application layer via Zod:
+const CredentialScopeEnum = z.enum(['project', 'user']);
+```
+
+Adding a new allowed value is a code change (update the Zod enum), not a migration — no DDL needed.
+
+If you inherited an existing `pgEnum` column, escape it with a multi-step data migration: (1) add a varchar column, (2) backfill from the enum column via `::text` cast, (3) set NOT NULL on the new column, (4) set the default value, (5) drop the old enum column, (6) rename the new column, (7) drop the unused enum type. Each step works individually on Doltgres (E2E verified).
 
 ---
 
@@ -341,16 +376,43 @@ Location: `packages/agents-core/src/data-access/index.ts`
 export * from './manage/myNewTable';
 ```
 
-### Step 7: Generate and Apply Migration
+### Step 7: Generate, Review, and Apply Migration
 
 ```bash
-# Generate migration SQL
 pnpm db:generate
+```
 
-# Review generated SQL in drizzle/manage/ or drizzle/runtime/
-# Make minor edits if needed (ONLY to newly generated files)
+**For Doltgres-targeted migrations (`drizzle/manage/`) — review generated SQL before applying:**
 
-# Apply migration
+| Pattern in generated SQL | Doltgres error | How to fix |
+|---|---|---|
+| `DROP TABLE ... CASCADE` | `CASCADE is not yet supported` | Remove `CASCADE`. Drop dependent objects (child tables, FKs) explicitly in FK-dependency order before the parent table. |
+| `ALTER COLUMN ... SET DATA TYPE ... USING` | `ALTER TABLE with USING is not supported yet` | Replace with multi-step: (1) add new column with target type, (2) `UPDATE` to backfill with cast, (3) drop old column, (4) rename new column. |
+
+drizzle-kit 0.31.x hardcodes `CASCADE` on every `DROP TABLE` — there is no configuration to disable it. You must edit the generated SQL manually (precedent: [PR #2929](https://github.com/inkeep/agents/pull/2929)).
+
+Note: `DROP INDEX` is broken on Doltgres 0.55.5 (returns `table not found` regardless). If a migration drops a table and its indexes, remove the `DROP INDEX` statements — `DROP TABLE` implicitly removes associated indexes.
+
+**Quick review** (run against newly generated manage migration):
+
+```bash
+NEW_MIGRATION=$(ls -t packages/agents-core/drizzle/manage/*.sql | head -1)
+
+# Tier 1 — blockers (must fix before applying):
+grep -n -i 'DROP.*CASCADE\|ALTER TYPE\|CONCURRENTLY\|USING gin\|USING gist\|USING hash\|USING brin\|SET SCHEMA\|ADD VALUE\|NULLS' "$NEW_MIGRATION"
+
+# Tier 2 — needs review (may be fine, verify):
+grep -n 'ON CONFLICT\|SET DATA TYPE' "$NEW_MIGRATION"
+grep -n 'CREATE.*INDEX.*WHERE' "$NEW_MIGRATION"
+```
+
+Tier 1 matches must be fixed. Tier 2: `SET DATA TYPE` is safe for simple widening (e.g., `varchar(64)` → `varchar(256)`) but dangerous with USING; `ON CONFLICT DO NOTHING` works but `DO UPDATE` may not.
+
+drizzle-kit v1 beta reportedly removes CASCADE hardcoding (PR #4439). This repo uses stable 0.31.8.
+
+**For all migrations** (manage and runtime): review the generated SQL in `drizzle/manage/` or `drizzle/runtime/`. Make minor edits if needed (ONLY to newly generated files, NEVER to previously applied migrations).
+
+```bash
 pnpm db:migrate
 ```
 
@@ -418,11 +480,15 @@ registerFieldSchemas(existingSchema, {
 });
 ```
 
-### Step 3: Generate and Apply Migration
+### Step 3: Generate, Review, and Apply Migration
 
 ```bash
 pnpm db:generate
-# Review the generated migration SQL
+```
+
+**For Doltgres-targeted migrations (`drizzle/manage/`):** Review the generated SQL for Doltgres-incompatible patterns before applying (see the review table and grep checklist in "Adding a New Table" → Step 7).
+
+```bash
 pnpm db:migrate
 ```
 
@@ -522,3 +588,8 @@ Before completing any data model change, verify:
 - [ ] If manage schema changed: tested `pnpm --filter @inkeep/agents-core db:manage:sync-all-branches` against existing branch data
 - [ ] Changeset created
 - [ ] Tests written for new data access functions
+- [ ] **Doltgres schemas only:** No `pgEnum()` used (use varchar + Zod instead)
+- [ ] **Doltgres schemas only:** No `pgSchema()` used (everything in `public`)
+- [ ] **Doltgres schemas only:** No `serial()` / `pgSequence()` used (use application-generated varchar IDs)
+- [ ] **Doltgres schemas only:** Generated migration SQL reviewed for incompatible patterns (see Step 7 review checklist)
+- [ ] **Doltgres schemas only:** Indexes use basic btree only (no `.concurrently()`, `.where()`, `.using('gin')`, `.desc()`, expressions)
