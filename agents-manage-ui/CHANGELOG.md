@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-ui
 
+## 0.64.11
+
+### Patch Changes
+
+- 27f2620: Enable `validateNoDerivedComputationsInEffects` in React Compiler
+  - @inkeep/agents-core@0.64.11
+
 ## 0.64.10
 
 ### Patch Changes
