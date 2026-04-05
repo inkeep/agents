@@ -1,5 +1,19 @@
 # @inkeep/agents-manage-ui
 
+## 0.64.10
+
+### Patch Changes
+
+- 4082cfd: Revert of [#3012](https://github.com/inkeep/agents/pull/3012)
+  - @inkeep/agents-core@0.64.10
+
+## 0.64.9
+
+### Patch Changes
+
+- fa20781: Enable `validateNoImpureFunctionsInRender` in React Compiler via pnpm patch and fix impure `Math.random()` call in SidebarMenuSkeleton
+  - @inkeep/agents-core@0.64.9
+
 ## 0.64.8
 
 ### Patch Changes
