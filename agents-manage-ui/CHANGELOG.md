@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-ui
 
+## 0.64.8
+
+### Patch Changes
+
+- 701e8c9: fix `Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render.
+  - @inkeep/agents-core@0.64.8
+
 ## 0.64.7
 
 ### Patch Changes
