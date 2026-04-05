@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
-import { useDerivedProp } from '@/hooks/use-derived-prop';
 import type { ConversationStats } from '@/lib/api/signoz-stats';
 import EmptyState from '../../layout/empty-state';
 import { ConversationListItem } from './conversation-list-item';
@@ -29,8 +28,8 @@ interface ConversationStatsCardProps {
     previousPage: () => void;
     goToPage: (page: number) => void;
   };
-  searchQuery?: string;
-  onSearchChange?: (query: string) => void;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
   totalConversations?: number;
 }
 
@@ -41,11 +40,10 @@ export function ConversationStatsCard({
   projectId,
   selectedTimeRange,
   pagination,
-  searchQuery: initialSearchQuery = '',
+  searchQuery = '',
   onSearchChange,
   totalConversations,
 }: ConversationStatsCardProps) {
-  const [searchQuery, setSearchQuery] = useDerivedProp(initialSearchQuery);
   const [searchError, setSearchError] = React.useState<string | null>(null);
   const debounceTimer = React.useRef<number | null>(null);
 
@@ -69,7 +67,7 @@ export function ConversationStatsCard({
   }, []);
 
   function clearSearch() {
-    setSearchQuery('');
+    onSearchChange('');
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     try {
       onSearchChange?.('');
@@ -114,7 +112,7 @@ export function ConversationStatsCard({
                   value={searchQuery}
                   onChange={(e) => {
                     const v = e.target.value;
-                    setSearchQuery(v);
+                    onSearchChange(v);
                     debouncedSearch(v);
                   }}
                   aria-invalid={!!searchError}
@@ -177,7 +175,7 @@ export function ConversationStatsCard({
         )}
 
         {/* Pagination Controls */}
-        {pagination && pagination.totalPages > 1 && !initialSearchQuery && (
+        {pagination && pagination.totalPages > 1 && !searchQuery && (
           <div className="flex items-center justify-between pt-4 px-6 border-t border-border">
             <div className="text-sm text-muted-foreground">
               Page {pagination.page} of {pagination.totalPages}

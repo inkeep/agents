@@ -17,7 +17,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ExternalLink } from '@/components/ui/external-link';
-import { useDerivedProp } from '@/hooks/use-derived-prop';
 import { getProjectScheduledTriggerInvocationsAction } from '@/lib/actions/project-triggers';
 import {
   cancelScheduledTriggerInvocationAction,
@@ -36,18 +35,18 @@ import { FilterTriggerComponent } from '../traces/filters/filter-trigger';
 const POLLING_INTERVAL_MS = 3000;
 
 interface ProjectScheduledTriggerInvocationsTableProps {
-  invocations: ScheduledTriggerInvocationWithContext[];
+  initialInvocations: ScheduledTriggerInvocationWithContext[];
   tenantId: string;
   projectId: string;
 }
 
 export function ProjectScheduledTriggerInvocationsTable({
-  invocations: initialInvocations,
+  initialInvocations,
   tenantId,
   projectId,
 }: ProjectScheduledTriggerInvocationsTableProps) {
   const router = useRouter();
-  const [invocations, setInvocations] = useDerivedProp(initialInvocations);
+  const [invocations, setInvocations] = useState(initialInvocations);
   const [loadingInvocations, setLoadingInvocations] = useState(new Set<string>());
 
   // Filter state
@@ -120,7 +119,7 @@ export function ProjectScheduledTriggerInvocationsTable({
 
     const intervalId = setInterval(pollInvocations, POLLING_INTERVAL_MS);
     return () => clearInterval(intervalId);
-  }, [hasTransientInvocations, setInvocations, tenantId, projectId]);
+  }, [hasTransientInvocations, tenantId, projectId]);
 
   async function cancelInvocation(invocation: ScheduledTriggerInvocationWithContext) {
     if (!confirm('Are you sure you want to cancel this invocation?')) {

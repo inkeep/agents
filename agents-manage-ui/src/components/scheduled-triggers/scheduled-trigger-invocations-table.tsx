@@ -16,7 +16,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ExternalLink } from '@/components/ui/external-link';
-import { useDerivedProp } from '@/hooks/use-derived-prop';
 import {
   cancelScheduledTriggerInvocationAction,
   getScheduledTriggerInvocationsAction,
@@ -33,7 +32,7 @@ import {
 const POLLING_INTERVAL_MS = 3000;
 
 interface ScheduledTriggerInvocationsTableProps {
-  invocations: ScheduledTriggerInvocation[];
+  initialInvocations: ScheduledTriggerInvocation[];
   tenantId: string;
   projectId: string;
   agentId: string;
@@ -41,14 +40,14 @@ interface ScheduledTriggerInvocationsTableProps {
 }
 
 export function ScheduledTriggerInvocationsTable({
-  invocations: initialInvocations,
+  initialInvocations,
   tenantId,
   projectId,
   agentId,
   scheduledTriggerId,
 }: ScheduledTriggerInvocationsTableProps) {
   const router = useRouter();
-  const [invocations, setInvocations] = useDerivedProp(initialInvocations);
+  const [invocations, setInvocations] = useState(initialInvocations);
   const [loadingInvocations, setLoadingInvocations] = useState(new Set<string>());
 
   const hasTransientInvocations = invocations.some(
@@ -75,7 +74,7 @@ export function ScheduledTriggerInvocationsTable({
 
     const intervalId = setInterval(pollInvocations, POLLING_INTERVAL_MS);
     return () => clearInterval(intervalId);
-  }, [hasTransientInvocations, setInvocations, tenantId, projectId, agentId, scheduledTriggerId]);
+  }, [hasTransientInvocations, tenantId, projectId, agentId, scheduledTriggerId]);
 
   async function cancelInvocation(invocationId: string) {
     if (!confirm('Are you sure you want to cancel this invocation?')) {
