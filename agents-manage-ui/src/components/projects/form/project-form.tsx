@@ -11,102 +11,29 @@ import { Form } from '@/components/ui/form';
 import { Separator } from '@/components/ui/separator';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { createProjectAction, updateProjectAction } from '@/lib/actions/projects';
-import { cn } from '@/lib/utils';
+import { cn, isRequired } from '@/lib/utils';
 import { defaultValues } from './form-configuration';
 import { ProjectModelsSection } from './project-models-section';
 import { ProjectStopWhenSection } from './project-stopwhen-section';
 import { ProjectWorkAppGitHubAccessSection } from './project-work-app-github-access-section';
-import { type ProjectFormData, projectSchema } from './validation';
+import { type ProjectInput, ProjectSchema } from './validation';
 
 interface ProjectFormProps {
   tenantId: string;
   projectId?: string;
   onSuccess?: (projectId: string) => void;
   onCancel?: () => void;
-  initialData?: ProjectFormData;
+  initialData?: ProjectInput;
   readOnly?: boolean;
   className?: string;
 }
 
-const serializeData = (data: ProjectFormData) => {
-  const cleanProviderOptions = (options: any) => {
-    if (!options || (typeof options === 'object' && Object.keys(options).length === 0)) {
-      return undefined;
-    }
-    return options;
-  };
-
-  const cleanStopWhen = (stopWhen: any) => {
-    // If stopWhen is null, undefined, or empty object, return empty object (undefined will not update the field)
-    if (!stopWhen || (typeof stopWhen === 'object' && Object.keys(stopWhen).length === 0)) {
-      return {};
-    }
-
-    // Clean the individual properties - remove null/undefined values
-    const cleaned: any = {};
-    if (stopWhen.transferCountIs !== null && stopWhen.transferCountIs !== undefined) {
-      cleaned.transferCountIs = stopWhen.transferCountIs;
-    }
-    if (stopWhen.stepCountIs !== null && stopWhen.stepCountIs !== undefined) {
-      cleaned.stepCountIs = stopWhen.stepCountIs;
-    }
-
-    if (Object.keys(cleaned).length === 0) {
-      return {};
-    }
-
-    return cleaned;
-  };
-
-  return {
-    ...data,
-    models: {
-      ...data.models,
-      base: {
-        model: data.models.base.model,
-        providerOptions: cleanProviderOptions(data.models.base.providerOptions),
-        ...(data.models.base.fallbackModels?.length && {
-          fallbackModels: data.models.base.fallbackModels.filter(Boolean),
-        }),
-        ...(data.models.base.allowedProviders?.length && {
-          allowedProviders: data.models.base.allowedProviders.filter(Boolean),
-        }),
-      },
-      structuredOutput: data.models?.structuredOutput?.model
-        ? {
-            model: data.models.structuredOutput.model,
-            providerOptions: cleanProviderOptions(data.models.structuredOutput.providerOptions),
-            ...(data.models.structuredOutput.fallbackModels?.length && {
-              fallbackModels: data.models.structuredOutput.fallbackModels.filter(Boolean),
-            }),
-            ...(data.models.structuredOutput.allowedProviders?.length && {
-              allowedProviders: data.models.structuredOutput.allowedProviders.filter(Boolean),
-            }),
-          }
-        : undefined,
-      summarizer: data.models?.summarizer?.model
-        ? {
-            model: data.models.summarizer.model,
-            providerOptions: cleanProviderOptions(data.models.summarizer.providerOptions),
-            ...(data.models.summarizer.fallbackModels?.length && {
-              fallbackModels: data.models.summarizer.fallbackModels.filter(Boolean),
-            }),
-            ...(data.models.summarizer.allowedProviders?.length && {
-              allowedProviders: data.models.summarizer.allowedProviders.filter(Boolean),
-            }),
-          }
-        : undefined,
-    },
-    stopWhen: cleanStopWhen(data.stopWhen),
-  };
-};
-
-const createDefaultValues = (initialData?: ProjectFormData) => {
+const createDefaultValues = (initialData?: ProjectInput) => {
   return {
     ...initialData,
     // Handle null values from database - if an object field is null, validation will fail so we need to set it to an empty object
     stopWhen: initialData?.stopWhen || {},
-    models: initialData?.models || { base: { model: '', providerOptions: null } },
+    models: initialData?.models || { base: { model: '' } },
   };
 };
 
@@ -119,9 +46,10 @@ export function ProjectForm({
   readOnly = false,
   className,
 }: ProjectFormProps) {
-  const form = useForm<ProjectFormData>({
-    resolver: zodResolver(projectSchema),
-    defaultValues: initialData ? createDefaultValues(initialData) : { ...defaultValues },
+  const form = useForm({
+    resolver: zodResolver(ProjectSchema),
+    defaultValues: initialData ? createDefaultValues(initialData) : defaultValues,
+    mode: 'onChange',
   });
 
   const { isSubmitting } = form.formState;
@@ -136,21 +64,17 @@ export function ProjectForm({
   });
 
   const onSubmit = form.handleSubmit(async (data) => {
-    const serializedData = serializeData(data);
-
     try {
       if (projectId) {
-        const res = await updateProjectAction(tenantId, projectId, serializedData);
+        const res = await updateProjectAction(tenantId, projectId, data);
         if (!res.success) {
           toast.error(res.error || 'Failed to update project');
           return;
         }
         toast.success('Project updated successfully');
-        if (onSuccess) {
-          onSuccess(data.id);
-        }
+        onSuccess?.(data.id);
       } else {
-        const res = await createProjectAction(tenantId, serializedData);
+        const res = await createProjectAction(tenantId, data);
         if (!res.success) {
           const isEntitlementError = res.code === 'payment_required';
           toast.error(res.error || 'Failed to create project', {
@@ -179,7 +103,7 @@ export function ProjectForm({
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
-  });
+  }, console.error);
 
   return (
     <Form {...form}>
@@ -190,7 +114,7 @@ export function ProjectForm({
           label="Name"
           placeholder="My Project"
           description="A friendly name for your project"
-          isRequired
+          isRequired={isRequired(ProjectSchema, 'name')}
           disabled={readOnly}
         />
         <GenericInput
@@ -200,20 +124,20 @@ export function ProjectForm({
           placeholder="my-project"
           description="Choose a unique identifier for this project. This cannot be changed later."
           disabled={!!projectId || readOnly}
-          isRequired
+          isRequired={isRequired(ProjectSchema, 'id')}
         />
         <GenericTextarea
           control={form.control}
           name="description"
           label="Description"
           placeholder="Describe what this project is for..."
-          className="min-h-[100px]"
           disabled={readOnly}
+          isRequired={isRequired(ProjectSchema, 'description')}
         />
 
         <Separator />
 
-        <ProjectModelsSection control={form.control} disabled={readOnly} />
+        <ProjectModelsSection form={form} disabled={readOnly} />
 
         <Separator />
 
@@ -231,25 +155,18 @@ export function ProjectForm({
           </>
         )}
 
-        {!readOnly && (
-          <div className={`flex gap-3 ${onCancel ? 'justify-end' : 'justify-start'}`}>
-            {onCancel && (
-              <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
-                Cancel
-              </Button>
-            )}
+        <div className="flex gap-3 justify-end">
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+              Cancel
+            </Button>
+          )}
+          {!readOnly && (
             <Button type="submit" disabled={isSubmitting}>
               {projectId ? 'Update project' : 'Create project'}
             </Button>
-          </div>
-        )}
-        {readOnly && onCancel && (
-          <div className="flex justify-end">
-            <Button type="button" variant="outline" onClick={onCancel}>
-              Close
-            </Button>
-          </div>
-        )}
+          )}
+        </div>
       </form>
     </Form>
   );

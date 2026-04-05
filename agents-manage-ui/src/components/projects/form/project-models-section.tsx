@@ -1,39 +1,35 @@
 'use client';
 
-import { ChevronRight, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { type Control, useController, useFormState, useWatch } from 'react-hook-form';
+import { type UseFormReturn, useController, useFormState, useWatch } from 'react-hook-form';
+import { CollapsibleSettings } from '@/components/agent/sidepane/collapsible-settings';
+import { SectionHeader } from '@/components/agent/sidepane/section';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
+import {
+  type ProjectInput,
+  type ProjectOutput,
+  ProjectSchema,
+} from '@/components/projects/form/validation';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
-import { Button } from '@/components/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { InfoCard } from '@/components/ui/info-card';
-import { Label } from '@/components/ui/label';
 import {
   azureModelProviderOptionsTemplate,
   azureModelSummarizerProviderOptionsTemplate,
   structuredOutputModelProviderOptionsTemplate,
   summarizerModelProviderOptionsTemplate,
 } from '@/lib/templates';
+import { isRequired } from '@/lib/utils';
 import { ModelInheritanceInfo } from './model-inheritance-info';
-import type { ProjectFormData } from './validation';
 
 interface ProjectModelsSectionProps {
-  control: Control<ProjectFormData>;
+  form: UseFormReturn<ProjectInput, unknown, ProjectOutput>;
   disabled?: boolean;
 }
 
-function BaseModelSection({
-  control,
-  disabled,
-}: {
-  control: Control<ProjectFormData>;
-  disabled?: boolean;
-}) {
-  const { field: providerOptionsField } = useController({
-    control,
-    name: 'models.base.providerOptions',
-  });
+function BaseModelSection({ form, disabled }: ProjectModelsSectionProps) {
+  const { control } = form;
+  const baseModel = useWatch({ control, name: 'models.base.model' });
   const { field: fallbackModelsField } = useController({
     control,
     name: 'models.base.fallbackModels',
@@ -42,39 +38,27 @@ function BaseModelSection({
     control,
     name: 'models.base.allowedProviders',
   });
-
   return (
     <div className="space-y-4">
       <FormFieldWrapper
-        control={control}
-        name="models.base.model"
-        label="Base model"
+        label=""
+        control={form.control}
+        // Show validation errors of provider options editor
+        name="models.base.providerOptions"
         description="Primary model for general agent responses"
-        isRequired
       >
         {(field) => (
           <ModelConfiguration
-            value={field.value || ''}
-            providerOptions={
-              providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
-            }
-            label=""
+            value={baseModel}
+            providerOptions={field.value}
+            label="Base model"
+            isRequired={isRequired(ProjectSchema, 'models.base.model')}
             placeholder="Select base model"
             canClear={false}
-            isRequired={true}
-            onModelChange={field.onChange}
-            onProviderOptionsChange={(value) => {
-              if (!value?.trim()) {
-                providerOptionsField.onChange(undefined);
-                return;
-              }
-              try {
-                const parsed = JSON.parse(value);
-                providerOptionsField.onChange(parsed);
-              } catch {
-                // Invalid JSON - don't update the field value
-              }
+            onModelChange={(value) => {
+              form.setValue('models.base.model', value, { shouldDirty: true });
             }}
+            onProviderOptionsChange={field.onChange}
             editorNamePrefix="project-base"
             disabled={disabled}
             fallbackModels={fallbackModelsField.value ?? undefined}
@@ -92,16 +76,11 @@ function BaseModelSection({
   );
 }
 
-function StructuredOutputModelSection({
-  control,
-  disabled,
-}: {
-  control: Control<ProjectFormData>;
-  disabled?: boolean;
-}) {
-  const { field: providerOptionsField } = useController({
-    control,
-    name: 'models.structuredOutput.providerOptions',
+function StructuredOutputModelSection({ form, disabled }: ProjectModelsSectionProps) {
+  const { control } = form;
+  const structuredOutputModel = useWatch({
+    control: form.control,
+    name: 'models.structuredOutput.model',
   });
   const { field: fallbackModelsField } = useController({
     control,
@@ -111,82 +90,67 @@ function StructuredOutputModelSection({
     control,
     name: 'models.structuredOutput.allowedProviders',
   });
-
   const baseModel = useWatch({ control, name: 'models.base.model' });
-  const baseProviderOptions = useWatch({ control, name: 'models.base.providerOptions' });
+  const baseProviderOptions = useWatch({
+    control,
+    name: 'models.base.providerOptions',
+  });
   const baseFallbackModels = useWatch({ control, name: 'models.base.fallbackModels' });
   const baseAllowedProviders = useWatch({ control, name: 'models.base.allowedProviders' });
 
   return (
-    <div className="space-y-4">
-      <FormFieldWrapper
-        control={control}
-        name="models.structuredOutput.model"
-        label="Structured output model"
-        description="Model for structured outputs and components (defaults to base model)"
-      >
-        {(field) => (
-          <ModelConfiguration
-            value={field.value || ''}
-            providerOptions={
-              providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
+    <FormFieldWrapper
+      label=""
+      control={control}
+      // Show validation errors of provider options editor
+      name="models.structuredOutput.providerOptions"
+      description="Model for structured outputs and components (defaults to base model)"
+    >
+      {(field) => (
+        <ModelConfiguration
+          value={structuredOutputModel || ''}
+          providerOptions={field.value}
+          label="Structured output model"
+          isRequired={isRequired(ProjectSchema, 'models.structuredOutput.model')}
+          placeholder="Select structured output model (optional)"
+          inheritedValue={baseModel}
+          inheritedProviderOptions={baseProviderOptions}
+          canClear={!disabled}
+          onModelChange={(value) => {
+            if (value) {
+              form.setValue('models.structuredOutput.model', value, { shouldDirty: true });
+            } else {
+              form.unregister('models.structuredOutput');
             }
-            label=""
-            placeholder="Select structured output model (optional)"
-            inheritedValue={baseModel}
-            inheritedProviderOptions={
-              baseProviderOptions ? JSON.stringify(baseProviderOptions, null, 2) : undefined
+          }}
+          onProviderOptionsChange={field.onChange}
+          editorNamePrefix="project-structured"
+          getJsonPlaceholder={(model) => {
+            if (model?.startsWith('azure/')) {
+              return azureModelProviderOptionsTemplate;
             }
-            canClear={!disabled}
-            onModelChange={field.onChange}
-            onProviderOptionsChange={(value) => {
-              if (!value?.trim()) {
-                providerOptionsField.onChange(undefined);
-                return;
-              }
-              try {
-                const parsed = JSON.parse(value);
-                providerOptionsField.onChange(parsed);
-              } catch {
-                // Invalid JSON - don't update the field value
-              }
-            }}
-            editorNamePrefix="project-structured"
-            getJsonPlaceholder={(model) => {
-              if (model?.startsWith('azure/')) {
-                return azureModelProviderOptionsTemplate;
-              }
-              return structuredOutputModelProviderOptionsTemplate;
-            }}
-            disabled={disabled}
-            fallbackModels={fallbackModelsField.value ?? undefined}
-            inheritedFallbackModels={baseFallbackModels ?? undefined}
-            onFallbackModelsChange={(models) => {
-              fallbackModelsField.onChange(models.length ? models : undefined);
-            }}
-            allowedProviders={allowedProvidersField.value ?? undefined}
-            inheritedAllowedProviders={baseAllowedProviders ?? undefined}
-            onAllowedProvidersChange={(providers) => {
-              allowedProvidersField.onChange(providers.length ? providers : undefined);
-            }}
-          />
-        )}
-      </FormFieldWrapper>
-    </div>
+            return structuredOutputModelProviderOptionsTemplate;
+          }}
+          disabled={disabled}
+          fallbackModels={fallbackModelsField.value ?? undefined}
+          inheritedFallbackModels={baseFallbackModels ?? undefined}
+          onFallbackModelsChange={(models) => {
+            fallbackModelsField.onChange(models.length ? models : undefined);
+          }}
+          allowedProviders={allowedProvidersField.value ?? undefined}
+          inheritedAllowedProviders={baseAllowedProviders ?? undefined}
+          onAllowedProvidersChange={(providers) => {
+            allowedProvidersField.onChange(providers.length ? providers : undefined);
+          }}
+        />
+      )}
+    </FormFieldWrapper>
   );
 }
 
-function SummarizerModelSection({
-  control,
-  disabled,
-}: {
-  control: Control<ProjectFormData>;
-  disabled?: boolean;
-}) {
-  const { field: providerOptionsField } = useController({
-    control,
-    name: 'models.summarizer.providerOptions',
-  });
+function SummarizerModelSection({ form, disabled }: ProjectModelsSectionProps) {
+  const { control } = form;
+  const summarizerModel = useWatch({ control, name: 'models.summarizer.model' });
   const { field: fallbackModelsField } = useController({
     control,
     name: 'models.summarizer.fallbackModels',
@@ -195,74 +159,67 @@ function SummarizerModelSection({
     control,
     name: 'models.summarizer.allowedProviders',
   });
-
   const baseModel = useWatch({ control, name: 'models.base.model' });
-  const baseProviderOptions = useWatch({ control, name: 'models.base.providerOptions' });
+  const baseProviderOptions = useWatch({
+    control,
+    name: 'models.base.providerOptions',
+  });
   const baseFallbackModels = useWatch({ control, name: 'models.base.fallbackModels' });
   const baseAllowedProviders = useWatch({ control, name: 'models.base.allowedProviders' });
 
   return (
-    <div className="space-y-4">
-      <FormFieldWrapper
-        control={control}
-        name="models.summarizer.model"
-        label="Summarizer model"
-        description="Model for summarization tasks (defaults to base model)"
-      >
-        {(field) => (
-          <ModelConfiguration
-            value={field.value || ''}
-            providerOptions={
-              providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
+    <FormFieldWrapper
+      label=""
+      control={control}
+      // Show validation errors of provider options editor
+      name="models.summarizer.providerOptions"
+      description="Model for summarization tasks (defaults to base model)"
+    >
+      {(field) => (
+        <ModelConfiguration
+          value={summarizerModel ?? ''}
+          providerOptions={field.value}
+          isRequired={isRequired(ProjectSchema, 'models.summarizer.model')}
+          label="Summarizer model"
+          placeholder="Select summarizer model (optional)"
+          inheritedValue={baseModel}
+          inheritedProviderOptions={baseProviderOptions}
+          canClear
+          onModelChange={(value) => {
+            if (value) {
+              form.setValue('models.summarizer.model', value, { shouldDirty: true });
+            } else {
+              form.unregister('models.summarizer');
             }
-            label=""
-            placeholder="Select summarizer model (optional)"
-            inheritedValue={baseModel}
-            inheritedProviderOptions={
-              baseProviderOptions ? JSON.stringify(baseProviderOptions, null, 2) : undefined
+          }}
+          onProviderOptionsChange={field.onChange}
+          editorNamePrefix="project-summarizer"
+          getJsonPlaceholder={(model) => {
+            if (model?.startsWith('azure/')) {
+              return azureModelSummarizerProviderOptionsTemplate;
             }
-            canClear={true}
-            onModelChange={field.onChange}
-            onProviderOptionsChange={(value) => {
-              if (!value?.trim()) {
-                providerOptionsField.onChange(undefined);
-                return;
-              }
-              try {
-                const parsed = JSON.parse(value);
-                providerOptionsField.onChange(parsed);
-              } catch {
-                // Invalid JSON - don't update the field value
-              }
-            }}
-            editorNamePrefix="project-summarizer"
-            getJsonPlaceholder={(model) => {
-              if (model?.startsWith('azure/')) {
-                return azureModelSummarizerProviderOptionsTemplate;
-              }
-              return summarizerModelProviderOptionsTemplate;
-            }}
-            disabled={disabled}
-            fallbackModels={fallbackModelsField.value ?? undefined}
-            inheritedFallbackModels={baseFallbackModels ?? undefined}
-            onFallbackModelsChange={(models) => {
-              fallbackModelsField.onChange(models.length ? models : undefined);
-            }}
-            allowedProviders={allowedProvidersField.value ?? undefined}
-            inheritedAllowedProviders={baseAllowedProviders ?? undefined}
-            onAllowedProvidersChange={(providers) => {
-              allowedProvidersField.onChange(providers.length ? providers : undefined);
-            }}
-          />
-        )}
-      </FormFieldWrapper>
-    </div>
+            return summarizerModelProviderOptionsTemplate;
+          }}
+          disabled={disabled}
+          fallbackModels={fallbackModelsField.value ?? undefined}
+          inheritedFallbackModels={baseFallbackModels ?? undefined}
+          onFallbackModelsChange={(models) => {
+            fallbackModelsField.onChange(models.length ? models : undefined);
+          }}
+          allowedProviders={allowedProvidersField.value ?? undefined}
+          inheritedAllowedProviders={baseAllowedProviders ?? undefined}
+          onAllowedProvidersChange={(providers) => {
+            allowedProvidersField.onChange(providers.length ? providers : undefined);
+          }}
+        />
+      )}
+    </FormFieldWrapper>
   );
 }
 
-export function ProjectModelsSection({ control, disabled }: ProjectModelsSectionProps) {
+export function ProjectModelsSection({ form, disabled }: ProjectModelsSectionProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const { errors } = useFormState({ control });
+  const { errors } = useFormState({ control: form.control });
 
   const hasModelsErrors = !!(
     errors.models?.base?.model ||
@@ -282,43 +239,21 @@ export function ProjectModelsSection({ control, disabled }: ProjectModelsSection
 
   return (
     <div className="space-y-4">
-      <div>
-        <Label className="text-sm font-medium">Default models</Label>
-        <p className="text-sm text-muted-foreground mt-1">
-          Set default models that will be inherited by agents and sub agents in this project.
-        </p>
-      </div>
-
-      <Collapsible
-        open={isOpen}
-        onOpenChange={setIsOpen}
-        className="border rounded-md bg-background"
-      >
-        <CollapsibleTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="flex items-center justify-start gap-2 w-full group p-0 h-auto hover:!bg-transparent transition-colors py-2 px-4"
-          >
-            <ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-90" />
-            Configure default models
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-6 mt-4 data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=open]:animate-[collapsible-down_200ms_ease-out] overflow-hidden px-4 pb-6">
-          {/* Base Model */}
-          <BaseModelSection control={control} disabled={disabled} />
-
-          {/* Structured Output Model */}
-          <StructuredOutputModelSection control={control} disabled={disabled} />
-
-          {/* Summarizer Model */}
-          <SummarizerModelSection control={control} disabled={disabled} />
-          <InfoCard title="How model inheritance works:" Icon={Info}>
-            <ModelInheritanceInfo />
-          </InfoCard>
-        </CollapsibleContent>
-      </Collapsible>
+      <SectionHeader
+        title="Default models"
+        description="Set default models that will be inherited by agents and sub agents in this project."
+      />
+      <CollapsibleSettings open={isOpen} onOpenChange={setIsOpen} title="Configure default models">
+        {/* Base Model */}
+        <BaseModelSection form={form} disabled={disabled} />
+        {/* Structured Output Model */}
+        <StructuredOutputModelSection form={form} disabled={disabled} />
+        {/* Summarizer Model */}
+        <SummarizerModelSection form={form} disabled={disabled} />
+        <InfoCard title="How model inheritance works:" Icon={Info}>
+          <ModelInheritanceInfo />
+        </InfoCard>
+      </CollapsibleSettings>
     </div>
   );
 }
