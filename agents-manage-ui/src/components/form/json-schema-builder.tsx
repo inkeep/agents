@@ -1,6 +1,6 @@
 import { Info, PlusIcon, TrashIcon, X } from 'lucide-react';
 import type { ComponentProps, Dispatch, FC, ReactNode } from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -18,7 +18,6 @@ import {
   type FieldObject,
   fieldsToJsonSchema,
   findFieldById,
-  type JsonSchemaStateData,
   Types,
   type TypeValues,
   useJsonSchemaActions,
@@ -60,16 +59,12 @@ interface PropertyProps {
 }
 
 const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
-  const selector = useMemo(
-    () => (state: JsonSchemaStateData) => ({
-      field: findFieldById(state.fields, fieldId),
-      hasInPreview: state.hasInPreview,
-      allRequired: state.allRequired,
-      readOnly: state.readOnly,
-    }),
-    [fieldId]
-  );
-  const { field, hasInPreview, allRequired, readOnly } = useJsonSchemaStore(selector);
+  const { field, hasInPreview, allRequired, readOnly } = useJsonSchemaStore((state) => ({
+    field: findFieldById(state.fields, fieldId),
+    hasInPreview: state.hasInPreview,
+    allRequired: state.allRequired,
+    readOnly: state.readOnly,
+  }));
 
   const { updateField, changeType, addChild, removeField, updateEnumValues } =
     useJsonSchemaActions();
@@ -358,35 +353,26 @@ const TagsInput: FC<{
 }> = ({ value, onChange, readOnly }) => {
   const [input, setInput] = useState('');
 
-  const addTag = useCallback(
-    (tag: string) => {
-      const trimmed = tag.trim();
-      if (trimmed && !value.includes(trimmed)) {
-        onChange([...value, trimmed]);
-      }
-    },
-    [onChange, value]
-  );
+  function addTag(tag: string) {
+    const trimmed = tag.trim();
+    if (trimmed && !value.includes(trimmed)) {
+      onChange([...value, trimmed]);
+    }
+  }
 
-  const removeTag = useCallback(
-    (tag: string) => {
-      onChange(value.filter((t) => t !== tag));
-    },
-    [onChange, value]
-  );
+  function removeTag(tag: string) {
+    onChange(value.filter((t) => t !== tag));
+  }
 
-  const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLInputElement>) => {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        addTag(input);
-        setInput('');
-      } else if (event.key === 'Backspace' && !input && value.length > 0) {
-        removeTag(value[value.length - 1]);
-      }
-    },
-    [addTag, input, removeTag, value]
-  );
+  function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      addTag(input);
+      setInput('');
+    } else if (event.key === 'Backspace' && !input && value.length > 0) {
+      removeTag(value[value.length - 1]);
+    }
+  }
 
   return (
     <>

@@ -52,21 +52,18 @@ export function ConversationStatsCard({
   const debounceTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const localQuery = localQueryState.source === searchQuery ? localQueryState.value : searchQuery;
 
-  const debouncedSearch = React.useCallback(
-    (query: string) => {
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
-      debounceTimer.current = setTimeout(() => {
-        try {
-          onSearchChange?.(query);
-          setSearchError(null);
-        } catch (error) {
-          console.error('Search failed:', error);
-          setSearchError('Search failed. Please try again.');
-        }
-      }, 300);
-    },
-    [onSearchChange]
-  );
+  function debouncedSearch(query: string) {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      try {
+        onSearchChange?.(query);
+        setSearchError(null);
+      } catch (error) {
+        console.error('Search failed:', error);
+        setSearchError('Search failed. Please try again.');
+      }
+    }, 300);
+  }
 
   React.useEffect(() => {
     return () => {
@@ -74,7 +71,7 @@ export function ConversationStatsCard({
     };
   }, []);
 
-  function clearSearch () {
+  function clearSearch() {
     setLocalQueryState({
       source: searchQuery,
       value: '',
@@ -87,7 +84,7 @@ export function ConversationStatsCard({
       console.error('Search failed:', error);
       setSearchError('Search failed. Please try again.');
     }
-  };
+  }
 
   if (error) {
     return (

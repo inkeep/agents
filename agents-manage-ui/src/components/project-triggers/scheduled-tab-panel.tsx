@@ -2,7 +2,7 @@
 
 import { History } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import { getProjectScheduledTriggersAction } from '@/lib/actions/project-triggers';
@@ -41,10 +41,9 @@ export function ScheduledTabPanel({
     return () => clearInterval(intervalId);
   }, [tenantId, projectId]);
 
-  const filteredTriggers = useMemo(() => {
-    if (!agentFilter) return triggers;
-    return triggers.filter((t) => t.agentId === agentFilter);
-  }, [triggers, agentFilter]);
+  const filteredTriggers = !agentFilter
+    ? triggers
+    : triggers.filter((t) => t.agentId === agentFilter);
 
   return (
     <div className="space-y-4">

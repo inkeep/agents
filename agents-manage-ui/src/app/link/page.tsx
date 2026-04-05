@@ -2,7 +2,7 @@
 
 import { AlertCircleIcon, CheckCircle2, Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { InkeepIcon } from '@/components/icons/inkeep';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -51,8 +51,9 @@ function SlackLinkForm() {
     slackTeamId?: string;
   } | null>(null);
 
-  const handleLinkWithToken = useCallback(
-    async (token: string) => {
+  const linkingRef = useRef(false);
+  useEffect(() => {
+    async function handleLinkWithToken(token: string) {
       if (!user?.id) {
         setError('You must be logged in to link your Slack account.');
         setState('error');
@@ -84,17 +85,12 @@ function SlackLinkForm() {
         setError(err instanceof Error ? err.message : 'Failed to link account');
         setState('error');
       }
-    },
-    [user]
-  );
-
-  const linkingRef = useRef(false);
-  useEffect(() => {
+    }
     if (isAuthenticated && user?.id && state === 'waiting' && initialToken && !linkingRef.current) {
       linkingRef.current = true;
       handleLinkWithToken(initialToken);
     }
-  }, [initialToken, isAuthenticated, user?.id, state, handleLinkWithToken]);
+  }, [initialToken, isAuthenticated, user?.id, user?.email, state]);
 
   if (authLoading) {
     return (

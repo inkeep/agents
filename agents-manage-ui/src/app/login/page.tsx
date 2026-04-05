@@ -5,7 +5,7 @@ import { authLookupResponseSchema } from '@inkeep/agents-core/auth/auth-types';
 import { AlertCircleIcon, ArrowLeft, Globe, Loader2, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { GoogleColorIcon } from '@/components/icons/google';
 import { InkeepIcon } from '@/components/icons/inkeep';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -65,8 +65,7 @@ function LoginForm() {
     return getSafeReturnUrl(returnUrl, '/');
   };
 
-  const getFullCallbackURL = useCallback(() => {
-    if (typeof window === 'undefined') return '/';
+  function getFullCallbackURL() {
     const baseURL = window.location.origin;
     const params = new URLSearchParams();
     if (invitationId) params.set('invitation', invitationId);
@@ -74,7 +73,7 @@ function LoginForm() {
       params.set('returnUrl', returnUrl);
     const queryString = params.toString();
     return queryString ? `${baseURL}/?${queryString}` : `${baseURL}/`;
-  }, [invitationId, returnUrl]);
+  }
 
   const executeMethodSignIn = async (method: MethodOption) => {
     setError(null);

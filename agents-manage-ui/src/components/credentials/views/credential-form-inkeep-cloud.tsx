@@ -75,7 +75,7 @@ export function CredentialFormInkeepCloud({ onCreateCredential }: CredentialForm
     setShouldLinkToExternalAgent(checked === true);
   };
 
-  const onSubmit = async (data: CredentialFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     const isInvalidServerSelection =
       shouldLinkToServer && (data.selectedTool === 'loading' || data.selectedTool === 'error');
     const isInvalidExternalAgentSelection =
@@ -104,7 +104,7 @@ export function CredentialFormInkeepCloud({ onCreateCredential }: CredentialForm
       console.error('Failed to create credential:', err);
       toast(err instanceof Error ? err.message : 'Failed to create credential');
     }
-  };
+  });
 
   const serverOptions = [
     ...(toolsLoading
@@ -140,7 +140,7 @@ export function CredentialFormInkeepCloud({ onCreateCredential }: CredentialForm
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={onSubmit} className="space-y-8">
         {/* Credential Details Section */}
         <div className="space-y-8">
           <GenericInput
