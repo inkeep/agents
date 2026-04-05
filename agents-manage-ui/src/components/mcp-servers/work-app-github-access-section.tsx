@@ -2,7 +2,7 @@
 
 import { Building2, Github, Settings, User } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,7 +29,7 @@ export function WorkAppGitHubAccessSection({
   const [error, setError] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-  const loadAccessConfig = useCallback(async () => {
+  async function loadAccessConfig() {
     try {
       setIsLoading(true);
       setError(null);
@@ -40,16 +40,14 @@ export function WorkAppGitHubAccessSection({
       setError('Failed to load GitHub access configuration');
     }
     setIsLoading(false);
-  }, [tenantId, projectId, tool.id]);
+  }
 
   useEffect(() => {
     loadAccessConfig();
-  }, [loadAccessConfig]);
-
-  const handleEditSuccess = () => {
-    // Refresh the access config after successful edit
-    loadAccessConfig();
-  };
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadAccessConfig,
+  ]);
 
   if (isLoading) {
     return (
@@ -84,17 +82,16 @@ export function WorkAppGitHubAccessSection({
   }
 
   // Group repositories by installation account
-  const repositoriesByInstallation = accessConfig.repositories.reduce(
-    (acc, repo) => {
-      const key = repo.installationAccountLogin;
-      if (!acc[key]) {
-        acc[key] = [];
-      }
-      acc[key].push(repo);
-      return acc;
-    },
-    {} as Record<string, typeof accessConfig.repositories>
-  );
+  const repositoriesByInstallation = accessConfig.repositories.reduce<
+    Record<string, typeof accessConfig.repositories>
+  >((acc, repo) => {
+    const key = repo.installationAccountLogin;
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(repo);
+    return acc;
+  }, {});
 
   return (
     <>
@@ -180,7 +177,8 @@ export function WorkAppGitHubAccessSection({
         projectId={projectId}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
-        onSuccess={handleEditSuccess}
+        // Refresh the access config after successful edit
+        onSuccess={loadAccessConfig}
       />
     </>
   );

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import NextLink from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { use, useEffect, useMemo, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
 import { StatCard } from '@/components/traces/charts/stat-card';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
@@ -52,15 +52,13 @@ export default function AICallsBreakdown({
   const [CURRENT_TIME] = useState(() => Date.now());
   const searchParams = useSearchParams();
 
-  const backLink = useMemo(() => {
-    // Preserve the current search params when going back to traces
-    const current = new URLSearchParams(searchParams.toString());
-    const queryString = current.toString();
+  // Preserve the current search params when going back to traces
+  const current = new URLSearchParams(searchParams.toString());
+  const queryString = current.toString();
 
-    return queryString
-      ? `/${tenantId}/projects/${projectId}/traces?${queryString}`
-      : `/${tenantId}/projects/${projectId}/traces`;
-  }, [projectId, tenantId, searchParams]);
+  const backLink = queryString
+    ? `/${tenantId}/projects/${projectId}/traces?${queryString}`
+    : `/${tenantId}/projects/${projectId}/traces`;
 
   // Use nuqs for type-safe query state management
   const {
@@ -104,7 +102,7 @@ export default function AICallsBreakdown({
   };
 
   // Calculate time range based on selection
-  const { startTime, endTime } = useMemo(() => {
+  const { startTime, endTime } = (() => {
     const currentEndTime = CURRENT_TIME;
 
     if (timeRange === 'custom') {
@@ -137,7 +135,7 @@ export default function AICallsBreakdown({
       startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
       endTime: currentEndTime,
     };
-  }, [timeRange, customStartDate, customEndDate, CURRENT_TIME]);
+  })();
 
   // Fetch AI calls by agent and model
   useEffect(() => {

@@ -90,7 +90,7 @@ export function DatasetItemFormDialog({
     }
   };
 
-  const onSubmit = async (data: DatasetItemFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     const isValid = await form.trigger();
     if (!isValid) {
       const firstError = Object.keys(form.formState.errors)[0];
@@ -150,7 +150,7 @@ export function DatasetItemFormDialog({
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
-  };
+  });
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -164,7 +164,7 @@ export function DatasetItemFormDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={onSubmit} className="space-y-6">
             <FormField
               control={form.control}
               name="input"
