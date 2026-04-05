@@ -360,10 +360,9 @@ export function ModelConfiguration({
   onAllowedProvidersChange,
 }: ModelConfigurationProps) {
   const { data: capabilities } = useCapabilitiesQuery();
-  const [internalProviderOptions, setInternalProviderOptions] = useDerivedProp(
-    providerOptions,
-    value
-  );
+  const [internalProviderOptions, setInternalProviderOptions] = useDerivedProp(providerOptions, {
+    resetSource: value,
+  });
 
   const handleModelChange = (modelValue: string) => {
     const previousEffectiveModel = value || inheritedValue;
