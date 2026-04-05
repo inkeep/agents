@@ -23,26 +23,22 @@ import { EvaluationRunConfigFormDialog } from './evaluation-run-config-form-dial
 interface EvaluationRunConfigsListProps {
   tenantId: string;
   projectId: string;
-  runConfigs: EvaluationRunConfig[];
+  initialRunConfigs: EvaluationRunConfig[];
   refreshKey?: string | number;
 }
 
 export function EvaluationRunConfigsList({
   tenantId,
   projectId,
-  runConfigs: initialRunConfigs,
+  initialRunConfigs,
   refreshKey,
 }: EvaluationRunConfigsListProps) {
   const router = useRouter();
-  const [runConfigs, setRunConfigs] = useState<EvaluationRunConfig[]>(initialRunConfigs);
+  const [runConfigs, setRunConfigs] = useState(initialRunConfigs);
   const [editingRunConfig, setEditingRunConfig] = useState<EvaluationRunConfig | undefined>();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [deletingRunConfig, setDeletingRunConfig] = useState<EvaluationRunConfig | undefined>();
-
-  useEffect(() => {
-    setRunConfigs(initialRunConfigs);
-  }, [initialRunConfigs]);
 
   async function refreshRunConfigs() {
     try {

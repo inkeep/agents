@@ -35,13 +35,13 @@ import { FilterTriggerComponent } from '../traces/filters/filter-trigger';
 const POLLING_INTERVAL_MS = 3000;
 
 interface ProjectScheduledTriggerInvocationsTableProps {
-  invocations: ScheduledTriggerInvocationWithContext[];
+  initialInvocations: ScheduledTriggerInvocationWithContext[];
   tenantId: string;
   projectId: string;
 }
 
 export function ProjectScheduledTriggerInvocationsTable({
-  invocations: initialInvocations,
+  initialInvocations,
   tenantId,
   projectId,
 }: ProjectScheduledTriggerInvocationsTableProps) {
@@ -120,10 +120,6 @@ export function ProjectScheduledTriggerInvocationsTable({
     const intervalId = setInterval(pollInvocations, POLLING_INTERVAL_MS);
     return () => clearInterval(intervalId);
   }, [hasTransientInvocations, tenantId, projectId]);
-
-  useEffect(() => {
-    setInvocations(initialInvocations);
-  }, [initialInvocations]);
 
   async function cancelInvocation(invocation: ScheduledTriggerInvocationWithContext) {
     if (!confirm('Are you sure you want to cancel this invocation?')) {

@@ -32,7 +32,7 @@ import {
 const POLLING_INTERVAL_MS = 3000;
 
 interface ScheduledTriggerInvocationsTableProps {
-  invocations: ScheduledTriggerInvocation[];
+  initialInvocations: ScheduledTriggerInvocation[];
   tenantId: string;
   projectId: string;
   agentId: string;
@@ -40,7 +40,7 @@ interface ScheduledTriggerInvocationsTableProps {
 }
 
 export function ScheduledTriggerInvocationsTable({
-  invocations: initialInvocations,
+  initialInvocations,
   tenantId,
   projectId,
   agentId,
@@ -75,10 +75,6 @@ export function ScheduledTriggerInvocationsTable({
     const intervalId = setInterval(pollInvocations, POLLING_INTERVAL_MS);
     return () => clearInterval(intervalId);
   }, [hasTransientInvocations, tenantId, projectId, agentId, scheduledTriggerId]);
-
-  useEffect(() => {
-    setInvocations(initialInvocations);
-  }, [initialInvocations]);
 
   async function cancelInvocation(invocationId: string) {
     if (!confirm('Are you sure you want to cancel this invocation?')) {
