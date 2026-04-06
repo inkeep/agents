@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react';
 import type { AgentModels } from '@/components/agent/configuration/agent-types';
 import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
@@ -13,7 +14,6 @@ import {
 } from '@/lib/templates';
 import { CollapsibleSettings } from '../collapsible-settings';
 import { SectionHeader } from '../section';
-import type { ComponentProps } from 'react';
 
 interface ModelSectionProps {
   models: AgentModels;

@@ -69,7 +69,10 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
     setHasOpenModelConfig(showCustomInput !== null);
   }, [showCustomInput]);
 
-  const selectedModel = (() => {
+  const selectedModel = ((): null | {
+    label: string;
+    prefix?: string;
+  } => {
     for (const models of Object.values(modelOptions)) {
       const model = models.find((m) => m.value === value);
       if (model) return model;
@@ -80,34 +83,34 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
     // Handle custom models with prefix display
     if (value.startsWith('openrouter/')) {
       const modelName = value.replace('openrouter/', '');
-      return { value, label: modelName, prefix: 'openrouter/' };
+      return { label: modelName, prefix: 'openrouter/' };
     }
     if (value.startsWith('gateway/')) {
       const modelName = value.replace('gateway/', '');
-      return { value, label: modelName, prefix: 'gateway/' };
+      return { label: modelName, prefix: 'gateway/' };
     }
     if (value.startsWith('nim/')) {
       const modelName = value.replace('nim/', '');
-      return { value, label: modelName, prefix: 'nim/' };
+      return { label: modelName, prefix: 'nim/' };
     }
     if (value.startsWith('custom/')) {
       const modelName = value.replace('custom/', '');
-      return { value, label: modelName, prefix: 'custom/' };
+      return { label: modelName, prefix: 'custom/' };
     }
     if (value.startsWith('azure/')) {
       const modelName = value.replace('azure/', '');
-      return { value, label: modelName, prefix: 'azure/' };
+      return { label: modelName, prefix: 'azure/' };
     }
-    return { value, label: `${value} (custom)` };
+    return { label: `${value} (custom)` };
   })();
 
-  const inheritedModel = (() => {
+  const inheritedModel = ((): null | { label: string } => {
     if (!inheritedValue) return null;
     for (const models of Object.values(modelOptions)) {
       const model = models.find((m) => m.value === inheritedValue);
       if (model) return model;
     }
-    return { value: inheritedValue, label: inheritedValue };
+    return { label: inheritedValue };
   })();
 
   return (
@@ -121,8 +124,8 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
             ? undefined
             : (nextOpen) => {
                 setOpen(nextOpen);
-                if (!nextOpen && !value && onClose) {
-                  onClose();
+                if (!nextOpen && !value) {
+                  onClose?.();
                 }
               }
         }
