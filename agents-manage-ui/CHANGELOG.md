@@ -1,5 +1,16 @@
 # @inkeep/agents-manage-ui
 
+## 0.65.1
+
+### Patch Changes
+
+- 16fb544: Batch useWatch calls to reduce React Hook Form subscriptions and re-renders
+- 4077b67: Update agents-ui and agents-ui-cloud versions to 0.15.29
+- dbee04b: Add feedback CRUD API, database table, and Manage UI for collecting user feedback on conversations and messages
+- Updated dependencies [3735393]
+- Updated dependencies [dbee04b]
+  - @inkeep/agents-core@0.65.1
+
 ## 0.65.0
 
 ### Patch Changes
