@@ -104,7 +104,7 @@ function TickStatusSummary({ summary }: { summary: TickGroup['summary'] }) {
 }
 
 interface ScheduledTriggerInvocationsTableProps {
-  invocations: ScheduledTriggerInvocation[];
+  initialInvocations: ScheduledTriggerInvocation[];
   tenantId: string;
   projectId: string;
   agentId: string;
@@ -112,7 +112,7 @@ interface ScheduledTriggerInvocationsTableProps {
 }
 
 export function ScheduledTriggerInvocationsTable({
-  invocations: initialInvocations,
+  initialInvocations,
   tenantId,
   projectId,
   agentId,
