@@ -3,7 +3,7 @@
 import { GATEWAY_ROUTABLE_PROVIDERS_SET } from '@inkeep/agents-core/client-exports';
 import { GripVertical, Plus, X } from 'lucide-react';
 import { type FC, useState } from 'react';
-import { type Control, useController } from 'react-hook-form';
+import { type Control, type FieldValues, type Path, useController } from 'react-hook-form';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { Button } from '@/components/ui/button';
@@ -294,7 +294,10 @@ const FallbackModelsSection: FC<{
   );
 };
 
-interface ModelConfigurationProps {
+interface ModelConfigurationProps<
+  TFieldValues extends FieldValues,
+  TTransformedValues extends FieldValues | undefined = undefined,
+> {
   /** Inherited/default model value to show when no value is set */
   inheritedValue?: string;
   /** Inherited provider options to show when no value is set */
@@ -320,25 +323,14 @@ interface ModelConfigurationProps {
   /** Inherited allowed providers to show when no value is set */
   inheritedAllowedProviders?: string[];
 
-  control: Control<{
-    models: Record<
-      string,
-      {
-        /** Current model value */
-        model: string;
-        /** Provider options value */
-        providerOptions: string;
-        /** Ordered list of fallback models */
-        fallbackModels: string[];
-        /** Ordered list of allowed providers */
-        allowedProviders: string[];
-      }
-    >;
-  }>;
-  prefix: `models.${string}`;
+  control: Control<TFieldValues, unknown, TTransformedValues>;
+  name: string;
 }
 
-export function ModelConfiguration({
+export function ModelConfiguration<
+  TFieldValues extends FieldValues,
+  TTransformedValues extends FieldValues | undefined = undefined,
+>({
   inheritedValue,
   inheritedProviderOptions,
   label,
@@ -352,27 +344,27 @@ export function ModelConfiguration({
   inheritedFallbackModels,
   inheritedAllowedProviders,
   control,
-  prefix,
-}: ModelConfigurationProps) {
+  name,
+}: ModelConfigurationProps<TFieldValues, TTransformedValues>) {
   const { data: capabilities } = useCapabilitiesQuery();
 
   const { field: modelField } = useController({
     control,
-    name: `${prefix}.model`,
+    name: `${name}.model` as Path<TFieldValues>,
   });
   const value = modelField.value;
   const onModelChange = modelField.onChange;
 
   const { field: providerOptionsField } = useController({
     control,
-    name: `${prefix}.providerOptions`,
+    name: `${name}.providerOptions` as Path<TFieldValues>,
   });
   const providerOptions = providerOptionsField.value;
   const onProviderOptionsChange = providerOptionsField.onChange;
 
   const { field: fallbackModelsField } = useController({
     control,
-    name: `${prefix}.fallbackModels`,
+    name: `${name}.fallbackModels` as Path<TFieldValues>,
   });
   const fallbackModels = fallbackModelsField.value;
   function onFallbackModelsChange(models: string[]) {
@@ -381,7 +373,7 @@ export function ModelConfiguration({
 
   const { field: allowedProvidersField } = useController({
     control,
-    name: `${prefix}.allowedProviders`,
+    name: `${name}.allowedProviders` as Path<TFieldValues>,
   });
   const allowedProviders = allowedProvidersField.value;
   function onAllowedProvidersChange(providers: string[]) {

@@ -123,7 +123,7 @@ export const MetadataEditor: FC = () => {
         />
         <ModelConfiguration
           control={form.control}
-          prefix="models.base"
+          name="models.base"
           inheritedValue={project?.models.base?.model}
           inheritedProviderOptions={project?.models.base?.providerOptions}
           label={
@@ -151,7 +151,7 @@ export const MetadataEditor: FC = () => {
         >
           <ModelConfiguration
             control={form.control}
-            prefix="models.structuredOutput"
+            name="models.structuredOutput"
             inheritedValue={
               project?.models.structuredOutput?.model ||
               models.base.model ||
@@ -200,7 +200,7 @@ export const MetadataEditor: FC = () => {
 
           <ModelConfiguration
             control={form.control}
-            prefix="models.summarizer"
+            name="models.summarizer"
             inheritedValue={
               project?.models.summarizer?.model || models.base.model || project?.models.base?.model
             }
