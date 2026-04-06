@@ -30,13 +30,13 @@ Scheduled triggers run agents automatically on a recurring schedule (cron) or at
   <Step>
     ### Set the execution identity
 
-    In the **Execution Identity** section, choose which user identity the trigger runs as. This determines whose credentials and permissions are used during execution.
+    In the **Execution Identity** section, choose which user identities the trigger runs as. This determines whose credentials and permissions are used during execution.
 
     - **None** — the trigger runs without a user identity (tools requiring user-scoped credentials are skipped)
-    - **Specific user** — the trigger uses that user's connected credentials (e.g., OAuth tokens for GitHub, Slack, or Jira)
+    - **Specific user(s)** — the trigger uses the selected user's connected credentials (e.g., OAuth tokens for GitHub, Slack, or Jira). When multiple users are selected, the trigger produces one independent execution per user at each scheduled tick.
 
     <Note>
-    Non-admin users can only assign triggers to themselves. Org admins can select any user in the organization — and when creating a trigger, admins can select multiple users to bulk-create one trigger per user.
+    Non-admin users can only assign triggers to themselves. Org admins can select any user in the organization — and when creating a trigger, admins can select multiple users to create a single trigger that runs once per selected user.
     </Note>
   </Step>
   <Step>
@@ -96,6 +96,8 @@ Scheduled triggers run agents automatically on a recurring schedule (cron) or at
     | **Timeout** | 30–780 seconds | 780 | Execution timeout per attempt |
 
     Each retry creates a new conversation with the agent. All conversation IDs are tracked on the invocation record.
+
+    You can also configure a **Dispatch Delay** (in the advanced settings) to stagger executions across users. This adds a delay between each user's execution to avoid hitting MCP tool rate limits. For example, a 1-second dispatch delay with 5 users staggers their executions over 4 seconds. The default is 0 (no delay).
   </Step>
   <Step>
     ### Save
@@ -106,11 +108,11 @@ Scheduled triggers run agents automatically on a recurring schedule (cron) or at
 
 ## Manage scheduled triggers
 
-The **Scheduled** tab shows all triggers in your project with their agent, schedule, status, last run, and next run. Each trigger has a dropdown menu with the following actions:
+The **Scheduled** tab shows all triggers in your project with their agent, schedule, status, last run, and next run. Multi-user triggers display a user count badge. Each trigger has a dropdown menu with the following actions:
 
 | Action | Description |
 | --- | --- |
-| **Run Now** | Execute the trigger immediately, regardless of its schedule. Creates a new invocation and runs it with the trigger's configured payload, message template, and retry settings. |
+| **Run Now** | Execute the trigger immediately, regardless of its schedule. For multi-user triggers, this creates one invocation per associated user. You can optionally target a single user. |
 | **View Invocations** | See all past and pending executions for this trigger |
 | **Edit** | Update the trigger's name, schedule, template, payload, retry settings, or execution identity |
 | **Duplicate** | Create a new trigger pre-filled with the same configuration |
@@ -122,7 +124,7 @@ You can also toggle the **Enabled** switch directly in the table to pause or res
 
 View invocations for a single trigger via **View Invocations** in the dropdown, or view all invocations across the project by clicking **All Invocations**.
 
-Each invocation shows its status, scheduled time, start time, duration, attempt number, and a link to the conversation trace.
+Each invocation shows its status, scheduled time, start time, duration, attempt number, the executing user, and a link to the conversation trace. For multi-user triggers, each scheduled tick produces one invocation per user. You can filter invocations by user to see per-user execution history.
 
 ### Invocation actions
 
