@@ -28,7 +28,6 @@ const ProjectResourceIdSchema = z
     message:
       'Project ID must start and end with lowercase alphanumeric characters, and may contain hyphens',
   })
-  .refine((value) => value !== 'new', 'Must not use a reserved name "new"')
   .openapi('ProjectResourceId', {
     description: 'Project identifier (lowercase alphanumeric and hyphens only)',
     example: 'my-project-123',
