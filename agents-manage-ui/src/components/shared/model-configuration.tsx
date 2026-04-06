@@ -3,7 +3,7 @@
 import { GATEWAY_ROUTABLE_PROVIDERS_SET } from '@inkeep/agents-core/client-exports';
 import { GripVertical, Plus, X } from 'lucide-react';
 import { type FC, useState } from 'react';
-import type { Control } from 'react-hook-form';
+import { type Control, useController } from 'react-hook-form';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { Button } from '@/components/ui/button';
@@ -321,15 +321,21 @@ interface ModelConfigurationProps {
   inheritedAllowedProviders?: string[];
 
   control: Control<{
-    /** Current model value */
-    model: string;
-    /** Provider options value */
-    providerOptions: string;
-    /** Ordered list of fallback models */
-    fallbackModels: string[];
-    /** Ordered list of allowed providers */
-    allowedProviders: string[];
+    models: Record<
+      string,
+      {
+        /** Current model value */
+        model: string;
+        /** Provider options value */
+        providerOptions: string;
+        /** Ordered list of fallback models */
+        fallbackModels: string[];
+        /** Ordered list of allowed providers */
+        allowedProviders: string[];
+      }
+    >;
   }>;
+  prefix: `models.${string}`;
 }
 
 export function ModelConfiguration({
@@ -346,8 +352,20 @@ export function ModelConfiguration({
   inheritedFallbackModels,
   inheritedAllowedProviders,
   control,
+  prefix,
 }: ModelConfigurationProps) {
   const { data: capabilities } = useCapabilitiesQuery();
+
+  const { field: modelField } = useController({
+    control,
+    name: `${prefix}.model`,
+  });
+  const value = modelField.value;
+  const { field: providerOptionsField } = useController({
+    control,
+    name: `${prefix}.providerOptions`,
+  });
+  const providerOptions = providerOptionsField.value;
 
   const handleModelChange = (modelValue: string) => {
     const previousEffectiveModel = value || inheritedValue;
