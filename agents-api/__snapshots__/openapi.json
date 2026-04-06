@@ -6680,8 +6680,7 @@
             "type": "string"
           },
           "id": {
-            "maxLength": 256,
-            "type": "string"
+            "$ref": "#/components/schemas/ProjectResourceId"
           },
           "models": {
             "$ref": "#/components/schemas/ProjectModel"
@@ -6703,7 +6702,10 @@
       },
       "ProjectIdPathParam": {
         "description": "Project identifier",
-        "example": "project_456",
+        "example": "project-456",
+        "maxLength": 255,
+        "minLength": 1,
+        "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
         "type": "string"
       },
       "ProjectListResponse": {
@@ -6741,6 +6743,14 @@
           "base"
         ],
         "type": "object"
+      },
+      "ProjectResourceId": {
+        "description": "Project identifier (lowercase alphanumeric and hyphens only)",
+        "example": "my-project-123",
+        "maxLength": 255,
+        "minLength": 1,
+        "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+        "type": "string"
       },
       "ProjectResponse": {
         "properties": {
@@ -44167,7 +44177,7 @@
             "required": false,
             "schema": {
               "description": "Project identifier",
-              "example": "project_456",
+              "example": "project-456",
               "type": "string"
             }
           },
@@ -46219,7 +46229,7 @@
             "required": false,
             "schema": {
               "description": "Project identifier",
-              "example": "project_456",
+              "example": "project-456",
               "type": "string"
             }
           },
