@@ -375,14 +375,18 @@ export function ModelConfiguration({
     name: `${prefix}.fallbackModels`,
   });
   const fallbackModels = fallbackModelsField.value;
-  const onFallbackModelsChange = fallbackModelsField.onChange;
+  function onFallbackModelsChange(models: string[]) {
+    fallbackModelsField.onChange(models.length ? models : undefined);
+  }
 
   const { field: allowedProvidersField } = useController({
     control,
     name: `${prefix}.allowedProviders`,
   });
   const allowedProviders = allowedProvidersField.value;
-  const onAllowedProvidersChange = allowedProvidersField.onChange;
+  function onAllowedProvidersChange(providers: string[]) {
+    allowedProvidersField.onChange(providers.length ? providers : undefined);
+  }
 
   const handleModelChange = (modelValue: string) => {
     const previousEffectiveModel = value || inheritedValue;
