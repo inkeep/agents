@@ -6703,7 +6703,7 @@
       },
       "ProjectIdPathParam": {
         "description": "Project identifier",
-        "example": "project_456",
+        "example": "project-456",
         "type": "string"
       },
       "ProjectListResponse": {
@@ -44167,7 +44167,7 @@
             "required": false,
             "schema": {
               "description": "Project identifier",
-              "example": "project_456",
+              "example": "project-456",
               "type": "string"
             }
           },
@@ -46219,7 +46219,7 @@
             "required": false,
             "schema": {
               "description": "Project identifier",
-              "example": "project_456",
+              "example": "project-456",
               "type": "string"
             }
           },
