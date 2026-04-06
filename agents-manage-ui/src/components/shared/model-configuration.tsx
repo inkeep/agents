@@ -357,7 +357,6 @@ interface ModelConfigurationProps<
   inherited?: ModelConfigurationInheritedValues;
   /** Whether the component is disabled/read-only */
   disabled?: boolean;
-
   control: Control<TFieldValues, unknown, TTransformedValues>;
   name: string;
 }
@@ -466,59 +465,59 @@ export function ModelConfiguration<
         )}
       </div>
 
-      {effectiveModel?.startsWith('azure/') && (
-        <AzureConfigurationSection
-          providerOptions={effectiveProviderOptions}
-          onProviderOptionsChange={handleProviderOptionsStringChange}
-          disabled={disabled || isUsingInheritedOptions}
-        />
-      )}
-
       {effectiveModel && (
-        <div className="space-y-2">
-          <FieldLabel
-            id={providerOptionsId}
-            label={
-              isUsingInheritedOptions ? (
-                <span className="text-muted-foreground italic">
-                  Provider options <span className="text-xs">(inherited)</span>
-                </span>
-              ) : (
-                'Provider options'
-              )
-            }
-          />
-          <StandaloneJsonEditor
-            name={providerOptionsId}
-            onChange={handleProviderOptionsStringChange}
-            value={
-              typeof effectiveProviderOptions === 'string'
-                ? effectiveProviderOptions
-                : effectiveProviderOptions
-                  ? JSON.stringify(effectiveProviderOptions, null, 2)
-                  : ''
-            }
-            placeholder={jsonPlaceholder}
-            customTemplate={jsonPlaceholder}
-            readOnly={disabled || isUsingInheritedOptions}
-          />
-        </div>
-      )}
-
-      {capabilities?.modelFallback?.enabled && effectiveModel && isGatewayRoutable && (
         <>
-          <AllowedProvidersSection
-            allowedProviders={allowedProviders}
-            inheritedAllowedProviders={inherited?.allowedProviders}
-            onAllowedProvidersChange={onAllowedProvidersChange}
-            disabled={disabled}
-          />
-          <FallbackModelsSection
-            fallbackModels={fallbackModels}
-            inheritedFallbackModels={inherited?.fallbackModels}
-            onFallbackModelsChange={onFallbackModelsChange}
-            disabled={disabled}
-          />
+          {effectiveModel.startsWith('azure/') && (
+            <AzureConfigurationSection
+              providerOptions={effectiveProviderOptions}
+              onProviderOptionsChange={handleProviderOptionsStringChange}
+              disabled={disabled || isUsingInheritedOptions}
+            />
+          )}
+          <div className="space-y-2">
+            <FieldLabel
+              id={providerOptionsId}
+              label={
+                isUsingInheritedOptions ? (
+                  <span className="text-muted-foreground italic">
+                    Provider options <span className="text-xs">(inherited)</span>
+                  </span>
+                ) : (
+                  'Provider options'
+                )
+              }
+            />
+            <StandaloneJsonEditor
+              name={providerOptionsId}
+              onChange={handleProviderOptionsStringChange}
+              value={
+                typeof effectiveProviderOptions === 'string'
+                  ? effectiveProviderOptions
+                  : effectiveProviderOptions
+                    ? JSON.stringify(effectiveProviderOptions, null, 2)
+                    : ''
+              }
+              placeholder={jsonPlaceholder}
+              customTemplate={jsonPlaceholder}
+              readOnly={disabled || isUsingInheritedOptions}
+            />
+          </div>
+          {capabilities?.modelFallback?.enabled && isGatewayRoutable && (
+            <>
+              <AllowedProvidersSection
+                allowedProviders={allowedProviders}
+                inheritedAllowedProviders={inherited?.allowedProviders}
+                onAllowedProvidersChange={onAllowedProvidersChange}
+                disabled={disabled}
+              />
+              <FallbackModelsSection
+                fallbackModels={fallbackModels}
+                inheritedFallbackModels={inherited?.fallbackModels}
+                onFallbackModelsChange={onFallbackModelsChange}
+                disabled={disabled}
+              />
+            </>
+          )}
         </>
       )}
     </div>
