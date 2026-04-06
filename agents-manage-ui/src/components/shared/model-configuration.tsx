@@ -380,7 +380,7 @@ export function ModelConfiguration<
     allowedProvidersField.onChange(providers.length ? providers : undefined);
   }
 
-  const handleModelChange = (modelValue: string) => {
+  function handleModelChange(modelValue: string) {
     const previousEffectiveModel = value || inheritedValue;
     const newModel = modelValue || undefined;
     const wasInherited = !value && !!inheritedValue;
@@ -394,16 +394,16 @@ export function ModelConfiguration<
     }
 
     onModelChange(newModel || '');
-  };
+  }
 
-  const handleProviderOptionsChange = (options: Record<string, any>) => {
+  function handleProviderOptionsChange(options: Record<string, any>) {
     if (!options || Object.keys(options).length === 0) {
       onProviderOptionsChange('');
       return;
     }
     const jsonString = JSON.stringify(options, null, 2);
     onProviderOptionsChange(jsonString);
-  };
+  }
 
   // Handle both string (from JSON editors) and object (from ModelSelector) inputs
   function handleProviderOptionsStringChange(nextValue = '') {
