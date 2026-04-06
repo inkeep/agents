@@ -1,15 +1,16 @@
 import { z } from 'zod';
+import { StringToJsonSchema } from '@/lib/validation';
 
 const modelSettingsSchema = z.object({
   model: z.string().optional(), // Allow empty model - system will fall back to defaults
-  providerOptions: z.record(z.string(), z.any()).optional().nullable(),
+  providerOptions: StringToJsonSchema.pipe(z.record(z.string(), z.any())).optional(),
   fallbackModels: z.array(z.string()).optional().nullable(),
   allowedProviders: z.array(z.string()).optional().nullable(),
 });
 
 const baseModelSettingsSchema = z.object({
   model: z.string().min(1, 'Base model is required'),
-  providerOptions: z.record(z.string(), z.any()).optional().nullable(),
+  providerOptions: StringToJsonSchema.pipe(z.record(z.string(), z.any())).optional(),
   fallbackModels: z.array(z.string()).optional().nullable(),
   allowedProviders: z.array(z.string()).optional().nullable(),
 });
@@ -53,4 +54,5 @@ export const projectSchema = z.object({
   stopWhen: projectStopWhenSchema,
 });
 
-export type ProjectFormData = z.infer<typeof projectSchema>;
+export type ProjectFormInputValues = z.input<typeof projectSchema>;
+export type ProjectFormData = z.output<typeof projectSchema>;
