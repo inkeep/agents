@@ -1,9 +1,8 @@
 import { type Node, useNodes } from '@xyflow/react';
-import { useFormState, useWatch } from 'react-hook-form';
+import { useFormState } from 'react-hook-form';
 import { isNodeType, NodeType } from '@/components/agent/configuration/node-types';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { findFunctionToolIdsForFunctionId, getNodeGraphKey } from '@/features/agent/domain';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
 
 type ErrorGroup = Record<string, Record<string, unknown> | undefined>;
 type GraphKeyEntry = [string, string];
@@ -45,7 +44,7 @@ function useErrors(control: ReturnType<typeof useFullAgentFormContext>['control'
 }
 
 export function useGroupedAgentErrors() {
-  const { control } = useFullAgentFormContext();
+  const form = useFullAgentFormContext();
   const nodes = useNodes();
   const {
     subAgents,
@@ -57,9 +56,8 @@ export function useGroupedAgentErrors() {
     mcpRelations,
     defaultSubAgentNodeId,
     agentSettings,
-  } = useErrors(control);
+  } = useErrors(form.control);
 
-  const functionToolFormData = useWatch({ control, name: 'functionTools' });
   const nodeGraphKeysByNodeId = new Map(nodes.flatMap((node) => getGraphKeyEntries(node.id, node)));
   const functionToolGraphKeysByToolId = new Map(
     nodes.flatMap((node) =>
@@ -88,7 +86,7 @@ export function useGroupedAgentErrors() {
 
   const functionErrorsByToolId = Object.fromEntries(
     Object.entries(functions).flatMap(([functionId, value]) => {
-      const toolIds = findFunctionToolIdsForFunctionId(functionId, functionToolFormData);
+      const toolIds = findFunctionToolIdsForFunctionId(functionId, form.getValues('functionTools'));
 
       return toolIds.map((toolId) => [functionToolGraphKeysByToolId.get(toolId) ?? '', value]);
     })
