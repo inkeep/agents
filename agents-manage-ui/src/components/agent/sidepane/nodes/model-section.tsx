@@ -1,5 +1,9 @@
-import type { ComponentProps } from 'react';
+import { useWatch, type Control } from 'react-hook-form';
 import type { AgentModels } from '@/components/agent/configuration/agent-types';
+import type {
+  FullAgentFormInputValues,
+  FullAgentFormValues,
+} from '@/components/agent/form/validation';
 import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
 import {
@@ -16,13 +20,14 @@ import { CollapsibleSettings } from '../collapsible-settings';
 import { SectionHeader } from '../section';
 
 interface ModelSectionProps {
-  models: AgentModels;
-  control: ComponentProps<typeof ModelConfiguration>['control'];
+  control: Control<FullAgentFormInputValues, unknown, FullAgentFormValues>;
+  basePath: 'models' | `subAgents.${string}.models`;
   projectModels?: any;
   agentModels?: any;
 }
 
-export function ModelSection({ models, projectModels, agentModels, control }: ModelSectionProps) {
+export function ModelSection({ projectModels, agentModels, control, basePath }: ModelSectionProps) {
+  const models = useWatch({ control, name: basePath }) as AgentModels;
   const hasAdvancedOptions = models.structuredOutput?.model || models.summarizer?.model;
 
   function getInheritance(key: 'structuredOutput' | 'summarizer') {
@@ -92,7 +97,7 @@ export function ModelSection({ models, projectModels, agentModels, control }: Mo
       />
       <ModelConfiguration
         control={control}
-        prefix="models.base"
+        name={`${basePath}.base`}
         inheritedValue={agentModels?.base?.model || projectModels?.base?.model}
         inheritedProviderOptions={
           agentModels?.base?.model
@@ -126,7 +131,7 @@ export function ModelSection({ models, projectModels, agentModels, control }: Mo
       <CollapsibleSettings defaultOpen={!!hasAdvancedOptions} title="Advanced Model Options">
         <ModelConfiguration
           control={control}
-          prefix="models.structuredOutput"
+          name={`${basePath}.structuredOutput`}
           inheritedValue={structuredOutputInheritance.model}
           inheritedProviderOptions={structuredOutputInheritance.options}
           label={
@@ -157,7 +162,7 @@ export function ModelSection({ models, projectModels, agentModels, control }: Mo
 
         <ModelConfiguration
           control={control}
-          prefix="models.summarizer"
+          name={`${basePath}.summarizer`}
           inheritedValue={summarizerInheritance.model}
           inheritedProviderOptions={summarizerInheritance.options}
           label={
