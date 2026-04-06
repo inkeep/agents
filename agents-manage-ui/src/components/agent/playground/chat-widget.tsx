@@ -240,7 +240,7 @@ export function ChatWidget({
             },
             isChatHistoryButtonVisible: false,
             isViewOnly: hasHeadersError,
-            conversationId,
+            conversationIdOverride: conversationId,
             baseUrl: PUBLIC_INKEEP_AGENTS_API_URL,
             appId: playgroundAppId ?? undefined,
             headers: {

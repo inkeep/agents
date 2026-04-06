@@ -416,11 +416,11 @@ importers:
         specifier: workspace:*
         version: link:../packages/agents-core
       '@inkeep/agents-ui':
-        specifier: ^0.15.27
-        version: 0.15.27(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: ^0.15.29
+        version: 0.15.29(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@inkeep/agents-ui-cloud':
-        specifier: ^0.15.27
-        version: 0.15.27(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: ^0.15.29
+        version: 0.15.29(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@inkeep/docskit':
         specifier: ^0.0.8
         version: 0.0.8(@svta/cml-cta@1.0.1(@svta/cml-structured-field-values@1.0.1(@svta/cml-utils@1.0.1))(@svta/cml-utils@1.0.1))(@svta/cml-structured-field-values@1.0.1(@svta/cml-utils@1.0.1))(@svta/cml-utils@1.0.1)(next@16.2.2(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0(patch_hash=fb57ddbf6d253ca059e800cec47d55e177a15be89f100146c8ed5e4ba56697ed))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react-router@7.13.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@7.3.1(@types/node@24.0.7)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))
@@ -576,8 +576,8 @@ importers:
         specifier: workspace:^
         version: link:../packages/agents-core
       '@inkeep/agents-ui':
-        specifier: ^0.15.27
-        version: 0.15.27(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: ^0.15.29
+        version: 0.15.29(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@nangohq/frontend':
         specifier: ^0.69.41
         version: 0.69.41
@@ -815,8 +815,8 @@ importers:
   agents-ui-demo:
     dependencies:
       '@inkeep/agents-ui':
-        specifier: ^0.15.27
-        version: 0.15.27(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: ^0.15.29
+        version: 0.15.29(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react:
         specifier: ^19.1.1
         version: 19.2.4
@@ -3334,11 +3334,14 @@ packages:
   '@inkeep/agents-manage-ui@0.41.1':
     resolution: {integrity: sha512-30g1KSk2zt+qOY+pWmjEohoSJLObCLG6sWheEOUuM0vED9xzLNd+gF/Np7dmrWSTtacDnAR23ARgMHlzeIWPhw==}
 
-  '@inkeep/agents-ui-cloud@0.15.27':
-    resolution: {integrity: sha512-vxAsKs5NGJJsqyd9I7bXh+PJhC8m2mLZa6/uwv+DgkYd4/gvjkfyhlGvN1YAkhiWcnOQCH9xjJk3x1HRvFAyng==}
+  '@inkeep/agents-ui-cloud@0.15.29':
+    resolution: {integrity: sha512-NXP6Gpt07TTTI4kY9CMdnvwrrafoefLDBdi2coeNZ5B8i9G2CWmPVYKA4xq4q/FoiqGgqlb7rYKlOhqAO6jWBA==}
 
   '@inkeep/agents-ui@0.15.27':
     resolution: {integrity: sha512-LyGcLmIsxe8gEGYpgMkyBcNzipeUFpxNEww89iAbr3AkiI5ebAwsGw641guFEE/kv3zTDOdhw8yDuccXX9M9GA==}
+
+  '@inkeep/agents-ui@0.15.29':
+    resolution: {integrity: sha512-Q6m8ITNOtVsKbLXdw5ZqkgwgicxTXeG1nS50XnG1vb/X/2Ww6yZU8m6QFirC5f0t8sAtFwXfoLyEnN+3s146hQ==}
 
   '@inkeep/docskit@0.0.8':
     resolution: {integrity: sha512-TADEWay7CTZNQS+Fjy4qQH2QcYkUB2USmfrAUDt2TmW827T2a7Zy2lyYaJx3wFYfGGN34djY2s1PxEZkWeGYrw==}
@@ -18688,9 +18691,9 @@ snapshots:
       - webpack
       - ws
 
-  '@inkeep/agents-ui-cloud@0.15.27(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+  '@inkeep/agents-ui-cloud@0.15.29(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
-      '@inkeep/agents-ui': 0.15.27(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@inkeep/agents-ui': 0.15.29(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@radix-ui/react-use-controllable-state': 1.2.2(@types/react@19.2.7)(react@19.2.4)
       lucide-react: 0.503.0(react@19.2.4)
     transitivePeerDependencies:
@@ -18770,7 +18773,7 @@ snapshots:
       - react-dom
       - supports-color
 
-  '@inkeep/agents-ui@0.15.27(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+  '@inkeep/agents-ui@0.15.29(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
       '@ai-sdk/openai': 3.0.14(zod@4.3.6)
       '@ai-sdk/react': 3.0.46(react@19.2.4)(zod@4.3.6)
