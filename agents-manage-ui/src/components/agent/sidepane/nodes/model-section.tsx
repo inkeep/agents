@@ -16,14 +16,15 @@ import {
   structuredOutputModelProviderOptionsTemplate,
   summarizerModelProviderOptionsTemplate,
 } from '@/lib/templates';
+import type { ProjectModels } from '@/lib/types/project';
 import { CollapsibleSettings } from '../collapsible-settings';
 import { SectionHeader } from '../section';
 
 interface ModelSectionProps {
   control: Control<FullAgentFormInputValues, unknown, FullAgentFormValues>;
   basePath: 'models' | `subAgents.${string}.models`;
-  projectModels?: any;
-  agentModels?: any;
+  projectModels?: ProjectModels;
+  agentModels?: AgentModels;
 }
 
 export function ModelSection({ projectModels, agentModels, control, basePath }: ModelSectionProps) {

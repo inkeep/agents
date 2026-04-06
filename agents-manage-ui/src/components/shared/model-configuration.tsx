@@ -3,7 +3,7 @@
 import { GATEWAY_ROUTABLE_PROVIDERS_SET } from '@inkeep/agents-core/client-exports';
 import { GripVertical, Plus, X } from 'lucide-react';
 import { type FC, useState } from 'react';
-import { type Control, type FieldValues, type Path, useController } from 'react-hook-form';
+import { type Control, type FieldPath, type FieldValues, useController } from 'react-hook-form';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { Button } from '@/components/ui/button';
@@ -324,7 +324,7 @@ interface ModelConfigurationProps<
   inheritedAllowedProviders?: string[];
 
   control: Control<TFieldValues, unknown, TTransformedValues>;
-  name: Path<TFieldValues>;
+  name: FieldPath<TFieldValues>;
 }
 
 export function ModelConfiguration<
@@ -350,21 +350,21 @@ export function ModelConfiguration<
 
   const { field: modelField } = useController({
     control,
-    name: `${name}.model` as Path<TFieldValues>,
+    name: `${name}.model` as FieldPath<TFieldValues>,
   });
   const value = modelField.value;
   const onModelChange = modelField.onChange;
 
   const { field: providerOptionsField } = useController({
     control,
-    name: `${name}.providerOptions` as Path<TFieldValues>,
+    name: `${name}.providerOptions` as FieldPath<TFieldValues>,
   });
   const providerOptions = providerOptionsField.value;
   const onProviderOptionsChange = providerOptionsField.onChange;
 
   const { field: fallbackModelsField } = useController({
     control,
-    name: `${name}.fallbackModels` as Path<TFieldValues>,
+    name: `${name}.fallbackModels` as FieldPath<TFieldValues>,
   });
   const fallbackModels = fallbackModelsField.value;
   function onFallbackModelsChange(models: string[]) {
@@ -373,7 +373,7 @@ export function ModelConfiguration<
 
   const { field: allowedProvidersField } = useController({
     control,
-    name: `${name}.allowedProviders` as Path<TFieldValues>,
+    name: `${name}.allowedProviders` as FieldPath<TFieldValues>,
   });
   const allowedProviders = allowedProvidersField.value;
   function onAllowedProvidersChange(providers: string[]) {
