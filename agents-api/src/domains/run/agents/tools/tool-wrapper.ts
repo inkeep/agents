@@ -126,7 +126,8 @@ export function wrapToolWithStreaming(
       // In durable workflows, delegate_to_ tool results must be stored in
       // conversation history so the next callLlmStep sees the delegation outcome
       // and doesn't re-delegate in a loop.
-      const isDurableDelegation = !!ctx.durableWorkflowRunId && toolName.startsWith(DELEGATE_TOOL_PREFIX);
+      const isDurableDelegation =
+        !!ctx.durableWorkflowRunId && toolName.startsWith(DELEGATE_TOOL_PREFIX);
       const skipHistoryStorage = isInternalToolForUi && !isDurableDelegation;
 
       const needsApproval = options?.needsApproval || false;
