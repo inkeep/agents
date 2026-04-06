@@ -3,6 +3,7 @@
 import { Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { type Control, useFormState, useWatch } from 'react-hook-form';
+import { CollapsibleSettings } from '@/components/agent/sidepane/collapsible-settings';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
 import { InfoCard } from '@/components/ui/info-card';
 import { Label } from '@/components/ui/label';
@@ -14,7 +15,6 @@ import {
 } from '@/lib/templates';
 import { ModelInheritanceInfo } from './model-inheritance-info';
 import type { ProjectFormData, ProjectFormInputValues } from './validation';
-import { CollapsibleSettings } from '@/components/agent/sidepane/collapsible-settings';
 
 type ProjectFormControl = Control<ProjectFormInputValues, unknown, ProjectFormData>;
 

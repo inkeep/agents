@@ -1,7 +1,7 @@
 import { ChevronRight } from 'lucide-react';
+import type { ComponentProps, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import type { ComponentProps, ReactNode } from 'react';
 
 interface CollapsibleSettingsProps extends Omit<ComponentProps<typeof Collapsible>, 'title'> {
   title: ReactNode;

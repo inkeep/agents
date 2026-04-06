@@ -1,4 +1,4 @@
-import { useWatch, type Control } from 'react-hook-form';
+import { type Control, useWatch } from 'react-hook-form';
 import type { AgentModels } from '@/components/agent/configuration/agent-types';
 import type {
   FullAgentFormInputValues,
