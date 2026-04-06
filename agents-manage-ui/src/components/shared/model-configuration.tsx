@@ -324,7 +324,7 @@ interface ModelConfigurationProps<
   inheritedAllowedProviders?: string[];
 
   control: Control<TFieldValues, unknown, TTransformedValues>;
-  name: string;
+  name: Path<TFieldValues>;
 }
 
 export function ModelConfiguration<
