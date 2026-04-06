@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+import react from '@vitejs/plugin-react';
 import { playwright } from '@vitest/browser-playwright';
 import svgr from 'vite-plugin-svgr';
 import { defaultExclude, defineConfig } from 'vitest/config';
@@ -38,7 +39,15 @@ const providerOptions = process.env.PW_TEST_CONNECT_WS_ENDPOINT
     };
 
 export default defineConfig({
-  plugins: [svgr()],
+  plugins: [
+    svgr(),
+    // Compile components using the React Compiler to mirror Next.js behavior
+    react({
+      babel: {
+        plugins: ['babel-plugin-react-compiler'],
+      },
+    }),
+  ],
   test: {
     name: pkgJson.name,
     globals: true,
@@ -59,7 +68,7 @@ export default defineConfig({
             expect: {
               toMatchScreenshot: {
                 // Increase timeout because the default `5s` is insufficient on CI
-                timeout: 8_000,
+                timeout: 15_000,
                 resolveScreenshotPath,
                 resolveDiffPath: resolveScreenshotPath,
               },

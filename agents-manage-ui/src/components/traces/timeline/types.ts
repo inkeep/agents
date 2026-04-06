@@ -10,7 +10,8 @@ export type PanelType =
   | 'tool_approval_denied'
   | 'trigger_invocation'
   | 'max_steps_reached'
-  | 'stream_lifetime_exceeded';
+  | 'stream_lifetime_exceeded'
+  | 'durable_tool_execution';
 
 type MCPError = NonNullable<ConversationDetail['mcpToolErrors']>[number];
 
@@ -34,6 +35,7 @@ export const ACTIVITY_TYPES = {
   COMPRESSION: 'compression',
   MAX_STEPS_REACHED: 'max_steps_reached',
   STREAM_LIFETIME_EXCEEDED: 'stream_lifetime_exceeded',
+  DURABLE_TOOL_EXECUTION: 'durable_tool_execution',
 } as const;
 
 export type ActivityKind = (typeof ACTIVITY_TYPES)[keyof typeof ACTIVITY_TYPES];
@@ -152,6 +154,8 @@ export interface ActivityItem {
   streamCleanupReason?: string;
   streamMaxLifetimeMs?: number;
   streamBufferSizeBytes?: number;
+  toolCallId?: string;
+  toolResponseContent?: string;
 }
 
 interface ToolCall {

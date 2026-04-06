@@ -1,5 +1,94 @@
 # @inkeep/agents-api
 
+## 0.64.10
+
+### Patch Changes
+
+- @inkeep/agents-core@0.64.10
+- @inkeep/agents-email@0.64.10
+- @inkeep/agents-mcp@0.64.10
+- @inkeep/agents-work-apps@0.64.10
+
+## 0.64.9
+
+### Patch Changes
+
+- @inkeep/agents-core@0.64.9
+- @inkeep/agents-email@0.64.9
+- @inkeep/agents-mcp@0.64.9
+- @inkeep/agents-work-apps@0.64.9
+
+## 0.64.8
+
+### Patch Changes
+
+- @inkeep/agents-core@0.64.8
+- @inkeep/agents-email@0.64.8
+- @inkeep/agents-mcp@0.64.8
+- @inkeep/agents-work-apps@0.64.8
+
+## 0.64.7
+
+### Patch Changes
+
+- @inkeep/agents-core@0.64.7
+- @inkeep/agents-email@0.64.7
+- @inkeep/agents-mcp@0.64.7
+- @inkeep/agents-work-apps@0.64.7
+
+## 0.64.6
+
+### Patch Changes
+
+- 09c6eb0: Add stream resumption for interrupted conversations with Postgres-backed chunk buffering
+- 528f69c: logging for for Doltgres database operations"
+- 6fddd34: Bugfix App Prompt Security Vulerability
+- cc56dda: Fix durable workflow not resolving user-scoped MCP credentials and improve MCP tool loading resilience
+- Updated dependencies [09c6eb0]
+- Updated dependencies [3237c45]
+- Updated dependencies [528f69c]
+- Updated dependencies [6fddd34]
+  - @inkeep/agents-core@0.64.6
+  - @inkeep/agents-work-apps@0.64.6
+  - @inkeep/agents-email@0.64.6
+  - @inkeep/agents-mcp@0.64.6
+
+## 0.64.5
+
+### Patch Changes
+
+- e91d67b: Patched Doltgres Backslash Escaping
+- Updated dependencies [e91d67b]
+  - @inkeep/agents-core@0.64.5
+  - @inkeep/agents-work-apps@0.64.5
+  - @inkeep/agents-email@0.64.5
+  - @inkeep/agents-mcp@0.64.5
+
+## 0.64.4
+
+### Patch Changes
+
+- @inkeep/agents-core@0.64.4
+- @inkeep/agents-email@0.64.4
+- @inkeep/agents-mcp@0.64.4
+- @inkeep/agents-work-apps@0.64.4
+
+## 0.64.3
+
+### Patch Changes
+
+- d85f7ca: Fix CI triggers on changeset PR by disabling checkout credential persistence
+- f0d61ab: Fix changeset bot CI trigger by passing App token as github-token input to changesets/action
+- 7aa1fac: Remove tryTempJwtAuth auth strategy and copilot tenant bypass in favor of app credential auth
+- 4ace590: Remove axios dependency in favor of native fetch for improved security
+- f5460ba: Baggage added for traces with durable execution
+- Updated dependencies [7aa1fac]
+- Updated dependencies [4ace590]
+  - @inkeep/agents-core@0.64.3
+  - @inkeep/agents-work-apps@0.64.3
+  - @inkeep/agents-email@0.64.3
+  - @inkeep/agents-mcp@0.64.3
+
 ## 0.64.2
 
 ### Patch Changes

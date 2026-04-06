@@ -147,8 +147,8 @@ describe('app prompt resolution via appId', () => {
     process.env.ENVIRONMENT = originalEnv;
   });
 
-  describe('app credential auth sets appId and appPrompt from DB', () => {
-    it('should set both metadata.appId and metadata.appPrompt', async () => {
+  describe('app credential auth sets appId from DB (appPrompt resolved later in handler)', () => {
+    it('should set metadata.appId but not metadata.appPrompt at auth time', async () => {
       const appRecord = makeWebClientApp({ prompt: 'Prompt from database' });
       getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
       validateOriginMock.mockReturnValue(true);
@@ -177,12 +177,46 @@ describe('app prompt resolution via appId', () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.metadata.appId).toBe('app-id-1');
-      expect(body.metadata.appPrompt).toBe('Prompt from database');
+      expect(body.metadata.appPrompt).toBeUndefined();
     });
   });
 
-  describe('A2A forwarding: x-inkeep-app-id with sub-agent skips app credential auth', () => {
-    it('should set metadata.appId from header when sub-agent-id is present', async () => {
+  describe('A2A forwarding: appId comes from verified service token JWT, not headers', () => {
+    it('should set metadata.appId from service token JWT when teamDelegation', async () => {
+      verifyServiceTokenMock.mockResolvedValueOnce({
+        valid: true,
+        payload: {
+          iss: 'inkeep-agents',
+          sub: 'parent-agent',
+          aud: 'sub-agent-1',
+          tenantId: 'tenant_123',
+          projectId: 'project_123',
+          initiatedBy: { type: 'user', id: 'user_123' },
+          appId: 'app-from-jwt',
+          iat: Math.floor(Date.now() / 1000),
+          exp: Math.floor(Date.now() / 1000) + 3600,
+        },
+      });
+      validateTargetAgentMock.mockReturnValue(true);
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => c.json((c as any).get('executionContext')));
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: 'Bearer eyJhbGciOiJIUzI1NiJ9.valid-service-token',
+          'x-inkeep-sub-agent-id': 'sub-agent-1',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.metadata.appId).toBe('app-from-jwt');
+      expect(body.metadata.teamDelegation).toBe(true);
+      expect(body.metadata?.appPrompt).toBeUndefined();
+    });
+
+    it('should NOT forward x-inkeep-app-id header for regular API key auth', async () => {
       validateAndGetApiKeyMock.mockResolvedValueOnce(makeApiKey());
 
       app.use('*', apiKeyAuth());
@@ -191,15 +225,14 @@ describe('app prompt resolution via appId', () => {
       const res = await app.request('/', {
         headers: {
           Authorization: 'Bearer sk_test_1234567890abcdef.verylongsecretkey',
-          'x-inkeep-app-id': 'app-id-1',
+          'x-inkeep-app-id': 'attacker-supplied-app-id',
           'x-inkeep-sub-agent-id': 'sub-agent-1',
         },
       });
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.metadata.appId).toBe('app-id-1');
-      expect(body.metadata?.appPrompt).toBeUndefined();
+      expect(body.metadata?.appId).toBeUndefined();
     });
 
     it('should not set metadata.appId when headers are absent', async () => {
@@ -220,8 +253,8 @@ describe('app prompt resolution via appId', () => {
     });
   });
 
-  describe('non-ASCII app prompt does not break headers', () => {
-    it('should handle smart quotes and unicode in app prompt via DB without header encoding issues', async () => {
+  describe('non-ASCII app prompt does not break auth (prompt resolved in handler, not auth)', () => {
+    it('should set appId without appPrompt even when app has unicode prompt', async () => {
       const unicodePrompt =
         'Be helpful and concise. Use \u2018smart quotes\u2019 and emoji \ud83d\ude80';
       const appRecord = makeWebClientApp({ prompt: unicodePrompt });
@@ -252,7 +285,7 @@ describe('app prompt resolution via appId', () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.metadata.appId).toBe('app-id-1');
-      expect(body.metadata.appPrompt).toBe(unicodePrompt);
+      expect(body.metadata.appPrompt).toBeUndefined();
     });
   });
 });

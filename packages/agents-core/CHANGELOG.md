@@ -1,5 +1,37 @@
 # @inkeep/agents-core
 
+## 0.64.10
+
+## 0.64.9
+
+## 0.64.8
+
+## 0.64.7
+
+## 0.64.6
+
+### Patch Changes
+
+- 09c6eb0: Add stream resumption for interrupted conversations with Postgres-backed chunk buffering
+- 3237c45: Fix release workflow npm bootstrap for OIDC publishing
+- 528f69c: logging for for Doltgres database operations"
+- 6fddd34: Bugfix App Prompt Security Vulerability
+
+## 0.64.5
+
+### Patch Changes
+
+- e91d67b: Patched Doltgres Backslash Escaping
+
+## 0.64.4
+
+## 0.64.3
+
+### Patch Changes
+
+- 7aa1fac: Remove dead signTempToken function and rename derivePlaygroundKid to deriveKidFromPublicKey
+- 4ace590: Remove axios dependency in favor of native fetch for improved security
+
 ## 0.64.2
 
 ### Patch Changes

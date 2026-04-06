@@ -17,7 +17,6 @@ import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from '
 import { Handle } from './handle';
 
 export function FunctionToolNode({ data, selected }: NodeProps & { data: FunctionToolNodeData }) {
-  'use memo';
   const { control } = useFullAgentFormContext();
   const id = data.toolId;
   const status = getNodeStatus(data);

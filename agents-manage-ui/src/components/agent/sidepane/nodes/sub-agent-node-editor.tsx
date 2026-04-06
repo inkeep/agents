@@ -59,7 +59,6 @@ interface SubAgentNodeEditorProps {
 }
 
 export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }) => {
-  'use memo';
   const form = useFullAgentFormContext();
   const nodeId = selectedNode.id;
   const subAgent = useWatch({ control: form.control, name: `subAgents.${nodeId}` });

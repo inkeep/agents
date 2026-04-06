@@ -36,7 +36,6 @@ export function GenericCodeEditor<
   uri?: ComponentProps<typeof CodeEditor>['uri'];
   actions?: ReactNode;
 }) {
-  'use memo';
   const [open, onOpenChange] = useState(false);
   const $uri = props.uri ?? `${name}.js`;
   const uri = `${open ? 'expanded-' : ''}${$uri}` as const;

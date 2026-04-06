@@ -5,7 +5,6 @@ import { useMonacoActions, useMonacoStore } from '@/features/agent/state/use-mon
 import { cn } from '@/lib/utils';
 
 export const AddVariableAction: FC<{ uri: string; className?: string }> = ({ uri, className }) => {
-  'use memo';
   const monaco = useMonacoStore((state) => state.monaco);
   const { getEditorByUri } = useMonacoActions();
 

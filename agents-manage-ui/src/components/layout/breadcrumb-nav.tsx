@@ -9,8 +9,6 @@ const BreadcrumbNavItem: FC<{
   /** @default "/"  */
   separator?: '›' | '/' | string;
 }> = ({ href, isLast, children, separator = '/' }) => {
-  'use memo';
-
   return (
     <li
       aria-current={isLast ? 'page' : undefined}
@@ -40,7 +38,6 @@ const BreadcrumbNav$: FC<{ children: ReactNode; className?: string }> = ({
   children,
   className,
 }) => {
-  'use memo';
   return (
     <nav aria-label="Breadcrumb">
       <ol

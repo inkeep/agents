@@ -229,8 +229,20 @@ async function resolveProjectRef(
 
   let refResult: Awaited<ReturnType<ReturnType<typeof resolveRef>>> = null;
   try {
+    const resolveStart = Date.now();
     refResult = await resolveRef(db)(projectMain);
+    const resolveMs = Date.now() - resolveStart;
+    if (resolveMs > 5_000) {
+      logger.info(
+        { projectMain, resolveMs, found: !!refResult },
+        'Slow resolveRef in ref middleware'
+      );
+    }
   } catch (error) {
+    logger.info(
+      { projectMain, error: error instanceof Error ? error.message : String(error) },
+      'resolveRef threw in ref middleware'
+    );
     logger.warn({ error, projectMain }, 'Failed to resolve project main branch');
     refResult = null;
   }

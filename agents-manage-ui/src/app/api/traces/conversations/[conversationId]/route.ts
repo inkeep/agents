@@ -485,6 +485,20 @@ function buildConversationPayloads(
         sf(SPAN_KEYS.STREAM_BUFFER_SIZE_BYTES, int64, attr),
       ]
     ),
+    buildQueryEnvelope(
+      QUERY_EXPRESSIONS.DURABLE_TOOL_EXECUTIONS,
+      `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.DURABLE_TOOL_EXECUTION}'`,
+      [
+        sf(SPAN_KEYS.SPAN_ID, str, span),
+        sf(SPAN_KEYS.TIMESTAMP, int64, span),
+        sf(SPAN_KEYS.HAS_ERROR, bool, span),
+        sf(SPAN_KEYS.TOOL_NAME, str, attr),
+        sf(SPAN_KEYS.TOOL_CALL_ID, str, attr),
+        sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
+        sf(SPAN_KEYS.TOOL_RESPONSE_CONTENT, str, attr),
+        sf(SPAN_KEYS.TOOL_RESPONSE_TIMESTAMP, str, attr),
+      ]
+    ),
   ];
 
   return [
@@ -493,12 +507,6 @@ function buildConversationPayloads(
     wrapQueries(eventQueries, start, end, projectId),
   ];
 }
-
-// ---------- Main handler
-
-type RouteContext<_T> = {
-  params: Promise<Record<string, string>>;
-};
 
 export async function GET(
   req: NextRequest,
@@ -607,6 +615,7 @@ export async function GET(
     const compressionSpans = parseList(resp, QUERY_EXPRESSIONS.COMPRESSION);
     const maxStepsReachedSpans = parseList(resp, QUERY_EXPRESSIONS.MAX_STEPS_REACHED);
     const streamLifetimeExceededSpans = parseList(resp, QUERY_EXPRESSIONS.STREAM_LIFETIME_EXCEEDED);
+    const durableToolExecutionSpans = parseList(resp, QUERY_EXPRESSIONS.DURABLE_TOOL_EXECUTIONS);
 
     logger.info(
       {
@@ -687,7 +696,8 @@ export async function GET(
         | 'tool_approval_denied'
         | 'compression'
         | 'max_steps_reached'
-        | 'stream_lifetime_exceeded';
+        | 'stream_lifetime_exceeded'
+        | 'durable_tool_execution';
       description: string;
       timestamp: string;
       parentSpanId?: string | null;
@@ -781,6 +791,9 @@ export async function GET(
       streamCleanupReason?: string;
       streamMaxLifetimeMs?: number;
       streamBufferSizeBytes?: number;
+      // durable tool execution
+      toolCallId?: string;
+      toolResponseContent?: string;
     };
 
     const activities: Activity[] = [];
@@ -1300,6 +1313,30 @@ export async function GET(
         streamCleanupReason: cleanupReason,
         streamMaxLifetimeMs: maxLifetimeMs,
         streamBufferSizeBytes: bufferSizeBytes,
+      });
+    }
+
+    for (const span of durableToolExecutionSpans) {
+      const spanId = getString(span, SPAN_KEYS.SPAN_ID, '');
+      const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
+      const toolName = getString(span, SPAN_KEYS.TOOL_NAME, '');
+      const toolCallId = getString(span, SPAN_KEYS.TOOL_CALL_ID, '');
+      const subAgentId = getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT);
+      const toolResponseContent = getString(span, SPAN_KEYS.TOOL_RESPONSE_CONTENT, '');
+
+      activities.push({
+        id: spanId,
+        type: ACTIVITY_TYPES.DURABLE_TOOL_EXECUTION,
+        description: hasError
+          ? `Durable tool execution failed: ${toolName}`
+          : `Durable tool executed: ${toolName}`,
+        timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(spanId) || undefined,
+        status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
+        subAgentId,
+        toolName: toolName || undefined,
+        toolCallId: toolCallId || undefined,
+        toolResponseContent: toolResponseContent || undefined,
       });
     }
 

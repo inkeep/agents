@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericJsonSchemaEditor } from '@/components/form/generic-json-schema-editor';
@@ -149,11 +149,12 @@ export function ToolOverrideDialog({
     onSave(newOverride);
     onOpenChange(false);
   };
+  const { control } = form;
+  const displayName = useWatch({ control, name: 'displayName' });
+  const description = useWatch({ control, name: 'description' });
+  const schema = useWatch({ control, name: 'schema' });
 
-  const hasChanges =
-    form.watch('displayName')?.trim() ||
-    form.watch('description')?.trim() ||
-    form.watch('schema')?.trim();
+  const hasChanges = displayName?.trim() || description?.trim() || schema?.trim();
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -174,14 +175,14 @@ export function ToolOverrideDialog({
             className="space-y-8"
           >
             <GenericInput
-              control={form.control}
+              control={control}
               name="displayName"
               label="Display Name"
               placeholder={originalTool?.name || toolName}
               description="Override the tool name shown to the agent"
             />
             <GenericTextarea
-              control={form.control}
+              control={control}
               name="description"
               label="Description"
               description="Override the tool description shown to the agent"
@@ -189,7 +190,7 @@ export function ToolOverrideDialog({
             />
 
             <GenericJsonSchemaEditor
-              control={form.control}
+              control={control}
               name="schema"
               label="Schema Override"
               description="Define simplified input parameters for the tool"

@@ -49,9 +49,7 @@ const ListSection: FC<{
 };
 
 export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNodeData }) {
-  'use memo';
   const status = getNodeStatus(data);
-
   const { control } = useFullAgentFormContext();
   const formKey = `subAgents.${id}` as const;
   const subAgent = useWatch({ control, name: formKey });
