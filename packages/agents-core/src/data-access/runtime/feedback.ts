@@ -89,8 +89,8 @@ export const listFeedback =
           and(
             eq(feedback.tenantId, conversations.tenantId),
             eq(feedback.projectId, conversations.projectId),
-            eq(feedback.conversationId, conversations.id),
-          ),
+            eq(feedback.conversationId, conversations.id)
+          )
         )
         .where(whereClause)
         .limit(limit)

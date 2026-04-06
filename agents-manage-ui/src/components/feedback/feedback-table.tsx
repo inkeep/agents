@@ -132,7 +132,12 @@ export function FeedbackTable({
     updateQuery({ type: '', agentId: '', startDate: '', endDate: '', page: 1 });
   };
 
-  const hasActiveFilters = !!(filters.type || filters.agentId || filters.startDate || filters.endDate);
+  const hasActiveFilters = !!(
+    filters.type ||
+    filters.agentId ||
+    filters.startDate ||
+    filters.endDate
+  );
 
   if (!feedback.length && !hasActiveFilters) {
     return (
@@ -265,7 +270,10 @@ export function FeedbackTable({
                 <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
                   {formatDateTimeTable(item.createdAt, { local: true })}
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground truncate max-w-[130px]" title={item.agentId ?? undefined}>
+                <TableCell
+                  className="text-sm text-muted-foreground truncate max-w-[130px]"
+                  title={item.agentId ?? undefined}
+                >
                   {item.agentId ? (
                     <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{item.agentId}</code>
                   ) : (
