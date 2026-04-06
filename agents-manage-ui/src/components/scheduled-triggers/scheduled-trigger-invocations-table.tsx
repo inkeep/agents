@@ -125,7 +125,7 @@ export function ScheduledTriggerInvocationsTable({
   const { members: orgMembers } = useOrgMembers(tenantId);
 
   const hasTransientInvocations = invocations.some(
-    (inv) => inv.status === 'pending' || inv.status === 'running',
+    (inv) => inv.status === 'pending' || inv.status === 'running'
   );
 
   useEffect(() => {
@@ -138,7 +138,7 @@ export function ScheduledTriggerInvocationsTable({
           projectId,
           agentId,
           scheduledTriggerId,
-          { limit: 50 },
+          { limit: 50 }
         );
         setInvocations(updated);
       } catch (error) {
@@ -188,7 +188,7 @@ export function ScheduledTriggerInvocationsTable({
         projectId,
         agentId,
         scheduledTriggerId,
-        invocationId,
+        invocationId
       );
 
       if (result.success) {
@@ -222,7 +222,7 @@ export function ScheduledTriggerInvocationsTable({
         projectId,
         agentId,
         scheduledTriggerId,
-        invocationId,
+        invocationId
       );
 
       if (result.success) {
@@ -303,8 +303,7 @@ export function ScheduledTriggerInvocationsTable({
               {tickGroups.length === 0 && (
                 <tr>
                   <td colSpan={5} className="h-24 text-center text-muted-foreground">
-                    No invocations yet. The scheduled trigger will create invocations when it
-                    runs.
+                    No invocations yet. The scheduled trigger will create invocations when it runs.
                   </td>
                 </tr>
               )}
@@ -327,7 +326,7 @@ export function ScheduledTriggerInvocationsTable({
                       earliestStartedAt !== undefined && latestCompletedAt !== undefined
                         ? formatInvocationDuration(
                             new Date(earliestStartedAt).toISOString(),
-                            new Date(latestCompletedAt).toISOString(),
+                            new Date(latestCompletedAt).toISOString()
                           )
                         : '—'
                     }
@@ -492,7 +491,7 @@ function TickGroupRows({
             <td className="p-4 align-middle pl-8">
               <div className="text-sm font-medium">
                 {getUserDisplayName(
-                  (inv as ScheduledTriggerInvocation & { runAsUserId?: string }).runAsUserId,
+                  (inv as ScheduledTriggerInvocation & { runAsUserId?: string }).runAsUserId
                 )}
               </div>
             </td>
