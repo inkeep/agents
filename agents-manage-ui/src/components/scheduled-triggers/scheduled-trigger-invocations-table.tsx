@@ -120,6 +120,12 @@ export function ScheduledTriggerInvocationsTable({
 }: ScheduledTriggerInvocationsTableProps) {
   const router = useRouter();
   const [invocations, setInvocations] = useState(initialInvocations);
+  const [prevInitialInvocations, setPrevInitialInvocations] = useState(initialInvocations);
+  if (prevInitialInvocations !== initialInvocations) {
+    setPrevInitialInvocations(initialInvocations);
+    setInvocations(initialInvocations);
+  }
+
   const [loadingInvocations, setLoadingInvocations] = useState<Set<string>>(new Set());
   const [expandedTicks, setExpandedTicks] = useState<Set<string>>(new Set());
   const { members: orgMembers } = useOrgMembers(tenantId);
@@ -149,10 +155,6 @@ export function ScheduledTriggerInvocationsTable({
     const intervalId = setInterval(pollInvocations, POLLING_INTERVAL_MS);
     return () => clearInterval(intervalId);
   }, [hasTransientInvocations, tenantId, projectId, agentId, scheduledTriggerId]);
-
-  useEffect(() => {
-    setInvocations(initialInvocations);
-  }, [initialInvocations]);
 
   const tickGroups = groupByTick(invocations);
   const isMultiUser = tickGroups.some((g) => g.invocations.length > 1);
