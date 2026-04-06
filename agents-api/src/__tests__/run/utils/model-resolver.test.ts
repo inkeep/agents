@@ -1,6 +1,12 @@
 import type { Models } from '@inkeep/agents-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { resolveModelConfig } from '../../../domains/run/utils/model-resolver';
+import { firstWithModel, resolveModelConfig } from '../../../domains/run/utils/model-resolver';
+
+describe('firstWithModel', () => {
+  it('returns undefined when no candidate has a model', () => {
+    expect(firstWithModel(undefined, null, {} as any)).toBeUndefined();
+  });
+});
 
 function createExecutionContext(params: {
   tenantId?: string;
@@ -143,6 +149,28 @@ describe('resolveModelConfig', () => {
         summarizer: { model: 'claude-3.5-haiku' },
       });
     });
+
+    it('falls back to base when specific sub-agent models are empty objects', async () => {
+      const subAgent = {
+        ...baseAgent,
+        models: {
+          base: { model: 'gpt-4' },
+          structuredOutput: {},
+          summarizer: {},
+        },
+      } as any;
+
+      const result = await resolveModelConfig(
+        createExecutionContext({ agentId: mockAgentId }),
+        subAgent
+      );
+
+      expect(result).toEqual({
+        base: { model: 'gpt-4' },
+        structuredOutput: { model: 'gpt-4' },
+        summarizer: { model: 'gpt-4' },
+      });
+    });
   });
 
   describe('when agent does not have base model defined', () => {
@@ -197,6 +225,35 @@ describe('resolveModelConfig', () => {
         base: { model: 'claude-3-sonnet' },
         structuredOutput: { model: 'gpt-4-turbo' }, // Agent-specific takes precedence
         summarizer: { model: 'claude-3-opus' }, // Falls back to agent
+      });
+    });
+
+    it('falls back past empty sub-agent model objects to agent-specific models', async () => {
+      const subAgent = {
+        ...baseAgent,
+        models: {
+          base: undefined,
+          structuredOutput: {},
+          summarizer: {},
+        },
+      } as any;
+
+      const result = await resolveModelConfig(
+        createExecutionContext({
+          agentId: mockAgentId,
+          agentModels: {
+            base: { model: 'claude-3-sonnet' },
+            structuredOutput: { model: 'claude-3.5-haiku' },
+            summarizer: { model: 'claude-3-opus' },
+          },
+        }),
+        subAgent
+      );
+
+      expect(result).toEqual({
+        base: { model: 'claude-3-sonnet' },
+        structuredOutput: { model: 'claude-3.5-haiku' },
+        summarizer: { model: 'claude-3-opus' },
       });
     });
 

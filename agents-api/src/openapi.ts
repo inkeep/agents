@@ -23,6 +23,7 @@ export const TagToDescription = {
   Evaluations: 'Operations for managing evaluations',
   Executions: 'Durable agent execution endpoints',
   'External Agents': 'Operations for managing external agents',
+  Feedback: 'Operations for managing feedback',
   'Function Tools': 'Operations for managing function tools',
   Functions: 'Operations for managing functions',
   GitHub: 'GitHub App integration endpoints',
