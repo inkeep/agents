@@ -288,9 +288,7 @@ describe('Ref Scope Module', () => {
 
         expect(result).toBe('result');
         expect(mockedDoltStatus).toHaveBeenCalled();
-        expect(commitFn).toHaveBeenCalledWith(
-          expect.objectContaining({ message: 'test commit' })
-        );
+        expect(commitFn).toHaveBeenCalledWith(expect.objectContaining({ message: 'test commit' }));
       });
 
       it('should skip commit when there are no uncommitted changes', async () => {
