@@ -25,13 +25,7 @@ import { DOCS_BASE_URL } from '@/constants/theme';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useProjectPermissionsQuery, useProjectQuery } from '@/lib/query/projects';
-import {
-  azureModelProviderOptionsTemplate,
-  azureModelSummarizerProviderOptionsTemplate,
-  statusUpdatesComponentsTemplate,
-  structuredOutputModelProviderOptionsTemplate,
-  summarizerModelProviderOptionsTemplate,
-} from '@/lib/templates';
+import { statusUpdatesComponentsTemplate } from '@/lib/templates';
 import { isRequired } from '@/lib/utils';
 import { GenericPromptEditor } from '../../../form/generic-prompt-editor';
 import { CollapsibleSettings } from '../collapsible-settings';
@@ -72,6 +66,45 @@ export const MetadataEditor: FC = () => {
   const timeInSeconds = useWatch({ control: form.control, name: 'statusUpdates.timeInSeconds' });
   const transferCountIs = useWatch({ control: form.control, name: 'stopWhen.transferCountIs' });
   const models = useWatch({ control: form.control, name: 'models' });
+  const baseInherited = {
+    model: project?.models.base?.model,
+    providerOptions: project?.models.base?.providerOptions,
+    fallbackModels: project?.models.base?.fallbackModels ?? undefined,
+    allowedProviders: project?.models.base?.allowedProviders ?? undefined,
+  };
+  const structuredOutputInherited = {
+    model:
+      project?.models.structuredOutput?.model || models.base.model || project?.models.base?.model,
+    providerOptions: project?.models.structuredOutput?.model
+      ? project?.models.structuredOutput?.providerOptions
+      : undefined,
+    fallbackModels:
+      project?.models.structuredOutput?.fallbackModels ??
+      models.base.fallbackModels ??
+      project?.models.base?.fallbackModels ??
+      undefined,
+    allowedProviders:
+      project?.models.structuredOutput?.allowedProviders ??
+      models.base.allowedProviders ??
+      project?.models.base?.allowedProviders ??
+      undefined,
+  };
+  const summarizerInherited = {
+    model: project?.models.summarizer?.model || models.base.model || project?.models.base?.model,
+    providerOptions: project?.models.summarizer?.model
+      ? project?.models.summarizer?.providerOptions
+      : undefined,
+    fallbackModels:
+      project?.models.summarizer?.fallbackModels ??
+      models.base.fallbackModels ??
+      project?.models.base?.fallbackModels ??
+      undefined,
+    allowedProviders:
+      project?.models.summarizer?.allowedProviders ??
+      models.base.allowedProviders ??
+      project?.models.base?.allowedProviders ??
+      undefined,
+  };
 
   return (
     <div className="space-y-8">
@@ -124,8 +157,7 @@ export const MetadataEditor: FC = () => {
         <ModelConfiguration
           control={form.control}
           name="models.base"
-          inheritedValue={project?.models.base?.model}
-          inheritedProviderOptions={project?.models.base?.providerOptions}
+          inherited={baseInherited}
           label={
             <div className="flex items-center gap-2">
               Base model
@@ -139,10 +171,6 @@ export const MetadataEditor: FC = () => {
               />
             </div>
           }
-          description="Primary model for general agent responses"
-          editorNamePrefix="agent-base"
-          inheritedFallbackModels={project?.models.base?.fallbackModels ?? undefined}
-          inheritedAllowedProviders={project?.models.base?.allowedProviders ?? undefined}
         />
 
         <CollapsibleSettings
@@ -152,16 +180,7 @@ export const MetadataEditor: FC = () => {
           <ModelConfiguration
             control={form.control}
             name="models.structuredOutput"
-            inheritedValue={
-              project?.models.structuredOutput?.model ||
-              models.base.model ||
-              project?.models.base?.model
-            }
-            inheritedProviderOptions={
-              project?.models.structuredOutput?.model
-                ? project?.models.structuredOutput?.providerOptions
-                : undefined
-            }
+            inherited={structuredOutputInherited}
             label={
               <div className="flex items-center gap-2">
                 Structured output model
@@ -175,40 +194,12 @@ export const MetadataEditor: FC = () => {
                 />
               </div>
             }
-            description="Model for structured outputs and components (defaults to base model)"
-            canClear
-            editorNamePrefix="agent-structured"
-            getJsonPlaceholder={(model) => {
-              if (model?.startsWith('azure/')) {
-                return azureModelProviderOptionsTemplate;
-              }
-              return structuredOutputModelProviderOptionsTemplate;
-            }}
-            inheritedFallbackModels={
-              project?.models.structuredOutput?.fallbackModels ??
-              models.base.fallbackModels ??
-              project?.models.base?.fallbackModels ??
-              undefined
-            }
-            inheritedAllowedProviders={
-              project?.models.structuredOutput?.allowedProviders ??
-              models.base.allowedProviders ??
-              project?.models.base?.allowedProviders ??
-              undefined
-            }
           />
 
           <ModelConfiguration
             control={form.control}
             name="models.summarizer"
-            inheritedValue={
-              project?.models.summarizer?.model || models.base.model || project?.models.base?.model
-            }
-            inheritedProviderOptions={
-              project?.models.summarizer?.model
-                ? project?.models.summarizer?.providerOptions
-                : undefined
-            }
+            inherited={summarizerInherited}
             label={
               <div className="flex items-center gap-2">
                 Summarizer model
@@ -221,27 +212,6 @@ export const MetadataEditor: FC = () => {
                   size="sm"
                 />
               </div>
-            }
-            description="Model for summarization tasks (defaults to base model)"
-            canClear
-            editorNamePrefix="agent-summarizer"
-            getJsonPlaceholder={(model) => {
-              if (model?.startsWith('azure/')) {
-                return azureModelSummarizerProviderOptionsTemplate;
-              }
-              return summarizerModelProviderOptionsTemplate;
-            }}
-            inheritedFallbackModels={
-              project?.models.summarizer?.fallbackModels ??
-              models.base.fallbackModels ??
-              project?.models.base?.fallbackModels ??
-              undefined
-            }
-            inheritedAllowedProviders={
-              project?.models.summarizer?.allowedProviders ??
-              models.base.allowedProviders ??
-              project?.models.base?.allowedProviders ??
-              undefined
             }
           />
         </CollapsibleSettings>
