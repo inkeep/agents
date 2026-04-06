@@ -2,7 +2,7 @@
 
 import { GATEWAY_ROUTABLE_PROVIDERS_SET } from '@inkeep/agents-core/client-exports';
 import { GripVertical, Plus, X } from 'lucide-react';
-import { type FC, useState } from 'react';
+import { type FC, useId, useState } from 'react';
 import { type Control, type FieldValues, type Path, useController } from 'react-hook-form';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
@@ -94,18 +94,11 @@ function getJsonPlaceholder({ model, slot }: { model?: string; slot: ModelConfig
 }
 
 const AllowedProvidersSection: FC<{
-  idPrefix: string;
   allowedProviders?: string[];
   inheritedAllowedProviders?: string[];
   onAllowedProvidersChange: (providers: string[]) => void;
   disabled: boolean;
-}> = ({
-  idPrefix,
-  allowedProviders,
-  inheritedAllowedProviders,
-  onAllowedProvidersChange,
-  disabled,
-}) => {
+}> = ({ allowedProviders, inheritedAllowedProviders, onAllowedProvidersChange, disabled }) => {
   const [addOpen, setAddOpen] = useState(false);
   const [draggingId, setDraggingId] = useState('');
   const [dragOverId, setDragOverId] = useState('');
@@ -129,6 +122,9 @@ const AllowedProvidersSection: FC<{
     onAllowedProvidersChange(list);
   }
 
+  const allProvidersId = useId();
+  const specificProvidersId = useId();
+
   return (
     <div className="space-y-3">
       <FieldLabel
@@ -148,20 +144,14 @@ const AllowedProvidersSection: FC<{
         disabled={disabled || isInherited}
       >
         <div className="flex items-center gap-2">
-          <RadioGroupItem value="all" id={`${idPrefix}-providers-all`} />
-          <Label
-            htmlFor={`${idPrefix}-providers-all`}
-            className="text-sm font-normal cursor-pointer"
-          >
+          <RadioGroupItem value="all" id={allProvidersId} />
+          <Label htmlFor={allProvidersId} className="text-sm font-normal cursor-pointer">
             All providers
           </Label>
         </div>
         <div className="flex items-center gap-2">
-          <RadioGroupItem value="specific" id={`${idPrefix}-providers-specific`} />
-          <Label
-            htmlFor={`${idPrefix}-providers-specific`}
-            className="text-sm font-normal cursor-pointer"
-          >
+          <RadioGroupItem value="specific" id={specificProvidersId} />
+          <Label htmlFor={specificProvidersId} className="text-sm font-normal cursor-pointer">
             Specific providers
           </Label>
         </div>
@@ -260,12 +250,11 @@ const AllowedProvidersSection: FC<{
 };
 
 const FallbackModelsSection: FC<{
-  idPrefix: string;
   fallbackModels?: string[];
   inheritedFallbackModels?: string[];
   onFallbackModelsChange: (models: string[]) => void;
   disabled: boolean;
-}> = ({ idPrefix, fallbackModels, inheritedFallbackModels, onFallbackModelsChange, disabled }) => {
+}> = ({ fallbackModels, inheritedFallbackModels, onFallbackModelsChange, disabled }) => {
   const [showPendingSelector, setShowPendingSelector] = useState(false);
   const savedModels = fallbackModels ?? inheritedFallbackModels ?? [];
   const isInherited = !fallbackModels && !!inheritedFallbackModels;
@@ -273,12 +262,11 @@ const FallbackModelsSection: FC<{
   return (
     <div className="space-y-2">
       <FieldLabel
-        id={`${idPrefix}-fallback-models`}
         label="Fallback models"
         tooltip="Ordered list of models to try if the primary model fails. Requires AI Gateway."
       />
       {savedModels.map((model, index) => (
-        <div key={`${idPrefix}-fallback-${model}-${index}`} className="flex items-center gap-2">
+        <div key={model} className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground w-4 shrink-0">{index + 1}.</span>
           <div className="flex-1">
             <ModelSelector
@@ -524,23 +512,20 @@ export function ModelConfiguration<
       )}
 
       {capabilities?.modelFallback?.enabled && effectiveModel && isGatewayRoutable && (
-        <AllowedProvidersSection
-          idPrefix={idPrefix}
-          allowedProviders={allowedProviders}
-          inheritedAllowedProviders={inherited?.allowedProviders}
-          onAllowedProvidersChange={onAllowedProvidersChange}
-          disabled={disabled}
-        />
-      )}
-
-      {capabilities?.modelFallback?.enabled && effectiveModel && isGatewayRoutable && (
-        <FallbackModelsSection
-          idPrefix={idPrefix}
-          fallbackModels={fallbackModels}
-          inheritedFallbackModels={inherited?.fallbackModels}
-          onFallbackModelsChange={onFallbackModelsChange}
-          disabled={disabled}
-        />
+        <>
+          <AllowedProvidersSection
+            allowedProviders={allowedProviders}
+            inheritedAllowedProviders={inherited?.allowedProviders}
+            onAllowedProvidersChange={onAllowedProvidersChange}
+            disabled={disabled}
+          />
+          <FallbackModelsSection
+            fallbackModels={fallbackModels}
+            inheritedFallbackModels={inherited?.fallbackModels}
+            onFallbackModelsChange={onFallbackModelsChange}
+            disabled={disabled}
+          />
+        </>
       )}
     </div>
   );
