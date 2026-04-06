@@ -14,11 +14,19 @@ const baseModelSettingsSchema = z.object({
   allowedProviders: z.array(z.string()).optional().nullable(),
 });
 
-const projectModelsSchema = z.object({
-  base: baseModelSettingsSchema,
-  structuredOutput: modelSettingsSchema.optional(),
-  summarizer: modelSettingsSchema.optional(),
-});
+const projectModelsSchema = z
+  .object({
+    base: baseModelSettingsSchema,
+    structuredOutput: modelSettingsSchema.optional(),
+    summarizer: modelSettingsSchema.optional(),
+  })
+  .transform(({ base, structuredOutput, summarizer }) => {
+    return {
+      base,
+      ...(structuredOutput?.model && { structuredOutput }),
+      ...(summarizer?.model && { summarizer }),
+    };
+  });
 
 // Use the shared StopWhen schema with optional and nullable modifiers
 const projectStopWhenSchema = z
