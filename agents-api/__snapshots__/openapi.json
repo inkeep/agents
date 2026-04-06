@@ -4678,7 +4678,20 @@
         "properties": {
           "data": {
             "items": {
-              "$ref": "#/components/schemas/Feedback"
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Feedback"
+                },
+                {
+                  "properties": {
+                    "agentId": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
