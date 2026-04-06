@@ -412,6 +412,7 @@ export function MCPServerForm({
 
                   form.setValue('config.mcp.toolOverrides', newOverrides, {
                     shouldDirty: true,
+                    shouldValidate: true,
                   });
                 }}
               />
