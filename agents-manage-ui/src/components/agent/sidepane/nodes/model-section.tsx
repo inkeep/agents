@@ -13,23 +13,16 @@ import {
 } from '@/lib/templates';
 import { CollapsibleSettings } from '../collapsible-settings';
 import { SectionHeader } from '../section';
+import type { ComponentProps } from 'react';
 
 interface ModelSectionProps {
   models: AgentModels;
-  updatePath: (
-    path: `models.${'base' | 'structuredOutput' | 'summarizer'}.${'model' | 'providerOptions' | 'fallbackModels' | 'allowedProviders'}`,
-    value: string | string[] | undefined
-  ) => void;
+  control: ComponentProps<typeof ModelConfiguration>['control'];
   projectModels?: any;
   agentModels?: any;
 }
 
-export function ModelSection({
-  models,
-  updatePath,
-  projectModels,
-  agentModels,
-}: ModelSectionProps) {
+export function ModelSection({ models, projectModels, agentModels, control }: ModelSectionProps) {
   const hasAdvancedOptions = models.structuredOutput?.model || models.summarizer?.model;
 
   function getInheritance(key: 'structuredOutput' | 'summarizer') {
@@ -98,8 +91,8 @@ export function ModelSection({
         }
       />
       <ModelConfiguration
-        value={models?.base?.model}
-        providerOptions={models?.base?.providerOptions}
+        control={control}
+        prefix="models.base"
         inheritedValue={agentModels?.base?.model || projectModels?.base?.model}
         inheritedProviderOptions={
           agentModels?.base?.model
@@ -121,33 +114,19 @@ export function ModelSection({
           </div>
         }
         description="Primary model for general sub agent responses"
-        onModelChange={(value) => {
-          updatePath('models.base.model', value);
-        }}
-        onProviderOptionsChange={(options) => {
-          updatePath('models.base.providerOptions', options);
-        }}
         editorNamePrefix="base"
-        fallbackModels={models?.base?.fallbackModels}
         inheritedFallbackModels={
           agentModels?.base?.fallbackModels || projectModels?.base?.fallbackModels
         }
-        onFallbackModelsChange={(models) =>
-          updatePath('models.base.fallbackModels', models.length ? models : undefined)
-        }
-        allowedProviders={models?.base?.allowedProviders}
         inheritedAllowedProviders={
           agentModels?.base?.allowedProviders || projectModels?.base?.allowedProviders
-        }
-        onAllowedProvidersChange={(providers) =>
-          updatePath('models.base.allowedProviders', providers.length ? providers : undefined)
         }
       />
 
       <CollapsibleSettings defaultOpen={!!hasAdvancedOptions} title="Advanced Model Options">
         <ModelConfiguration
-          value={models?.structuredOutput?.model}
-          providerOptions={models?.structuredOutput?.providerOptions}
+          control={control}
+          prefix="models.structuredOutput"
           inheritedValue={structuredOutputInheritance.model}
           inheritedProviderOptions={structuredOutputInheritance.options}
           label={
@@ -165,12 +144,6 @@ export function ModelSection({
             </div>
           }
           description="The model used for structured output and components (defaults to base model)"
-          onModelChange={(value) => {
-            updatePath('models.structuredOutput.model', value);
-          }}
-          onProviderOptionsChange={(options) => {
-            updatePath('models.structuredOutput.providerOptions', options);
-          }}
           editorNamePrefix="structured"
           getJsonPlaceholder={(model) => {
             if (model?.startsWith('azure/')) {
@@ -178,24 +151,13 @@ export function ModelSection({
             }
             return structuredOutputModelProviderOptionsTemplate;
           }}
-          fallbackModels={models?.structuredOutput?.fallbackModels}
           inheritedFallbackModels={structuredOutputInheritance.fallbackModels}
-          onFallbackModelsChange={(models) =>
-            updatePath('models.structuredOutput.fallbackModels', models.length ? models : undefined)
-          }
-          allowedProviders={models?.structuredOutput?.allowedProviders}
           inheritedAllowedProviders={structuredOutputInheritance.allowedProviders}
-          onAllowedProvidersChange={(providers) =>
-            updatePath(
-              'models.structuredOutput.allowedProviders',
-              providers.length ? providers : undefined
-            )
-          }
         />
 
         <ModelConfiguration
-          value={models?.summarizer?.model}
-          providerOptions={models?.summarizer?.providerOptions}
+          control={control}
+          prefix="models.summarizer"
           inheritedValue={summarizerInheritance.model}
           inheritedProviderOptions={summarizerInheritance.options}
           label={
@@ -213,12 +175,6 @@ export function ModelSection({
             </div>
           }
           description="The model used for summarization tasks (defaults to base model)"
-          onModelChange={(value) => {
-            updatePath('models.summarizer.model', value);
-          }}
-          onProviderOptionsChange={(options) => {
-            updatePath('models.summarizer.providerOptions', options);
-          }}
           editorNamePrefix="summarizer"
           getJsonPlaceholder={(model) => {
             if (model?.startsWith('azure/')) {
@@ -226,19 +182,8 @@ export function ModelSection({
             }
             return summarizerModelProviderOptionsTemplate;
           }}
-          fallbackModels={models?.summarizer?.fallbackModels}
           inheritedFallbackModels={summarizerInheritance.fallbackModels}
-          onFallbackModelsChange={(models) =>
-            updatePath('models.summarizer.fallbackModels', models.length ? models : undefined)
-          }
-          allowedProviders={models?.summarizer?.allowedProviders}
           inheritedAllowedProviders={summarizerInheritance.allowedProviders}
-          onAllowedProvidersChange={(providers) =>
-            updatePath(
-              'models.summarizer.allowedProviders',
-              providers.length ? providers : undefined
-            )
-          }
         />
       </CollapsibleSettings>
     </div>

@@ -497,31 +497,25 @@ export function ModelConfiguration({
       )}
 
       {/* Allowed Providers */}
-      {capabilities?.modelFallback?.enabled &&
-        effectiveModel &&
-        isGatewayRoutable &&
-        onAllowedProvidersChange && (
-          <AllowedProvidersSection
-            allowedProviders={allowedProviders}
-            inheritedAllowedProviders={inheritedAllowedProviders}
-            onAllowedProvidersChange={onAllowedProvidersChange}
-            disabled={disabled}
-          />
-        )}
+      {capabilities?.modelFallback?.enabled && effectiveModel && isGatewayRoutable && (
+        <AllowedProvidersSection
+          allowedProviders={allowedProviders}
+          inheritedAllowedProviders={inheritedAllowedProviders}
+          onAllowedProvidersChange={onAllowedProvidersChange}
+          disabled={disabled}
+        />
+      )}
 
       {/* Fallback Models */}
-      {capabilities?.modelFallback?.enabled &&
-        effectiveModel &&
-        isGatewayRoutable &&
-        onFallbackModelsChange && (
-          <FallbackModelsSection
-            editorNamePrefix={editorNamePrefix}
-            fallbackModels={fallbackModels}
-            inheritedFallbackModels={inheritedFallbackModels}
-            onFallbackModelsChange={onFallbackModelsChange}
-            disabled={disabled}
-          />
-        )}
+      {capabilities?.modelFallback?.enabled && effectiveModel && isGatewayRoutable && (
+        <FallbackModelsSection
+          editorNamePrefix={editorNamePrefix}
+          fallbackModels={fallbackModels}
+          inheritedFallbackModels={inheritedFallbackModels}
+          onFallbackModelsChange={onFallbackModelsChange}
+          disabled={disabled}
+        />
+      )}
     </div>
   );
 }
