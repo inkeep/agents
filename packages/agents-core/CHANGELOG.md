@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.65.1
+
+### Patch Changes
+
+- 3735393: fix so project deletion cant delete other projects' branches
+- dbee04b: Add feedback CRUD API, database table, and Manage UI for collecting user feedback on conversations and messages
+
 ## 0.65.0
 
 ### Minor Changes
