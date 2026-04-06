@@ -18,5 +18,5 @@ Phase 1 ($jq in refs) has zero token cost. Phase 2 injection strategy TBD pendin
 ## Challenge 6: Enhance resolveArgs with $jq instead — ACCEPTED AS PHASE 1
 This became the Phase 1 design. Smallest change, highest value, zero token cost, no new dependency beyond a jq library.
 
-## Challenge 7: JMESPath extract tool first — DISMISSED
-JMESPath is demonstrably error-prone for LLMs (sanitizeJMESPathSelector, forbidden-pattern guidance). jq has better LLM training data. Using jq even in Phase 1.
+## Challenge 7: JMESPath extract tool first — ACCEPTED AS PHASE 1
+Initially dismissed due to LLM reliability concerns with JMESPath. Later accepted when the zero-dependency argument won out: existing `jmespath` library + `sanitizeJMESPathSelector()` + `_structureHints` generating ready-to-use selectors mitigate the reliability concern. `$select` key is language-agnostic, allowing upgrade to jq later without API change.
