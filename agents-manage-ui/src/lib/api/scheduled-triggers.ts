@@ -265,27 +265,6 @@ export async function setScheduledTriggerUsers(
 }
 
 /**
- * Add a single user to a scheduled trigger
- */
-export async function addScheduledTriggerUser(
-  tenantId: string,
-  projectId: string,
-  agentId: string,
-  scheduledTriggerId: string,
-  userId: string
-): Promise<string[]> {
-  const response = await makeManagementApiRequest<{ data: string[] }>(
-    `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers/${scheduledTriggerId}/users`,
-    {
-      method: 'POST',
-      body: JSON.stringify({ userId }),
-    }
-  );
-
-  return response.data;
-}
-
-/**
  * Remove a single user from a scheduled trigger
  */
 export async function removeScheduledTriggerUser(
