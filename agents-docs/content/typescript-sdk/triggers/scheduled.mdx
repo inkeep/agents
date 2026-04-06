@@ -53,6 +53,8 @@ const oneTimeTask = scheduledTrigger({
 | `retryDelaySeconds` | `number` | No | `60` | Seconds between retries (10–3600) |
 | `timeoutSeconds` | `number` | No | `780` | Execution timeout in seconds (30–780) |
 | `runAsUserId` | `string` | No | — | User ID whose identity and credentials are used during execution |
+| `runAsUserIds` | `string[]` | No | — | Array of user IDs to run this trigger as. Creates one execution per user per tick. Mutually exclusive with `runAsUserId`. |
+| `dispatchDelayMs` | `number` | No | `0` | Milliseconds between dispatching each user's execution (0–5000). Only applies to multi-user triggers. |
 | `createdBy` | `string` | — | — | Read-only. User ID of the trigger creator, set automatically on creation. |
 
 <Note>
@@ -95,6 +97,28 @@ const userScopedReport = scheduledTrigger({
 When `runAsUserId` is set, agents automatically use that user's profile timezone for time-aware responses. Note that `cronTimezone` is still used for schedule calculation.
 
 See [Scheduled Triggers](/visual-builder/triggers/scheduled) for details on permissions, admin delegation, and runtime behavior.
+
+## Multi-User Execution
+
+Use `runAsUserIds` to create a single trigger that fans out one execution per user per tick. This is useful when multiple team members need the same scheduled workflow run under their own identity and credentials.
+
+The optional `dispatchDelayMs` setting staggers the dispatched executions to avoid rate limits on downstream services.
+
+```typescript
+import { scheduledTrigger } from "@inkeep/agents-sdk";
+
+const teamReport = scheduledTrigger({
+  name: "Team Daily Report",
+  cronExpression: "0 9 * * MON-FRI",
+  messageTemplate: "Generate my daily status report",
+  runAsUserIds: ["user_abc123", "user_def456", "user_ghi789"],
+  dispatchDelayMs: 1000, // 1 second delay between each user
+});
+```
+
+<Note>
+`runAsUserId` and `runAsUserIds` are mutually exclusive. Use `runAsUserId` for single-user triggers and `runAsUserIds` for multi-user triggers.
+</Note>
 
 ## Complete Example
 
