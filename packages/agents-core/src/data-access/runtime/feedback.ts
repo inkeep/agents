@@ -1,6 +1,6 @@
-import { and, count, desc, eq, gte, lte } from 'drizzle-orm';
+import { and, count, desc, eq, getTableColumns, gte, lte } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
-import { feedback } from '../../db/runtime/runtime-schema';
+import { conversations, feedback } from '../../db/runtime/runtime-schema';
 import type {
   FeedbackInsert,
   FeedbackUpdate,
@@ -39,6 +39,7 @@ export const listFeedback =
     scopes: ProjectScopeConfig;
     conversationId?: string;
     messageId?: string;
+    agentId?: string;
     type?: 'positive' | 'negative';
     startDate?: string;
     endDate?: string;
@@ -70,12 +71,27 @@ export const listFeedback =
       conditions.push(lte(feedback.createdAt, `${params.endDate}T23:59:59.999Z`));
     }
 
+    if (params.agentId) {
+      conditions.push(eq(conversations.agentId, params.agentId));
+    }
+
     const whereClause = and(...conditions);
 
     const [items, total] = await Promise.all([
       db
-        .select()
+        .select({
+          ...getTableColumns(feedback),
+          agentId: conversations.agentId,
+        })
         .from(feedback)
+        .leftJoin(
+          conversations,
+          and(
+            eq(feedback.tenantId, conversations.tenantId),
+            eq(feedback.projectId, conversations.projectId),
+            eq(feedback.conversationId, conversations.id),
+          ),
+        )
         .where(whereClause)
         .limit(limit)
         .offset(offset)

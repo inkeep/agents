@@ -39,6 +39,7 @@ app.openapi(
       query: PaginationQueryParamsSchema.extend({
         conversationId: z.string().optional().describe('Optionally filter by conversation ID'),
         messageId: z.string().optional().describe('Optionally filter by message ID'),
+        agentId: z.string().optional().describe('Optionally filter by agent ID'),
         type: z
           .enum(['positive', 'negative'])
           .optional()
@@ -70,6 +71,7 @@ app.openapi(
     const {
       conversationId,
       messageId,
+      agentId,
       type,
       startDate,
       endDate,
@@ -81,6 +83,7 @@ app.openapi(
       scopes: { tenantId, projectId },
       conversationId,
       messageId,
+      agentId,
       type,
       startDate,
       endDate,

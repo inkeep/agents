@@ -14,6 +14,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
 import { DeleteFeedbackConfirmation } from '@/components/feedback/delete-feedback-confirmation';
 import EmptyState from '@/components/layout/empty-state';
+import { AgentFilter } from '@/components/traces/filters/agent-filter';
 import { DatePickerWithPresets } from '@/components/traces/filters/date-picker';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -45,6 +46,7 @@ interface FeedbackTableProps {
   };
   filters: {
     conversationId?: string;
+    agentId?: string;
     type?: 'positive' | 'negative';
     startDate?: string;
     endDate?: string;
@@ -73,6 +75,7 @@ export function FeedbackTable({
   const updateQuery = React.useCallback(
     (next: {
       type?: 'positive' | 'negative' | '';
+      agentId?: string;
       startDate?: string;
       endDate?: string;
       page?: number;
@@ -85,6 +88,14 @@ export function FeedbackTable({
         params.set('type', next.type);
       } else {
         params.delete('type');
+      }
+
+      if (next.agentId !== undefined) {
+        if (next.agentId) {
+          params.set('agentId', next.agentId);
+        } else {
+          params.delete('agentId');
+        }
       }
 
       if (next.startDate !== undefined) {
@@ -118,10 +129,10 @@ export function FeedbackTable({
 
   const clearFilters = () => {
     setTypeFilter(undefined);
-    updateQuery({ type: '', startDate: '', endDate: '', page: 1 });
+    updateQuery({ type: '', agentId: '', startDate: '', endDate: '', page: 1 });
   };
 
-  const hasActiveFilters = !!(filters.type || filters.startDate || filters.endDate);
+  const hasActiveFilters = !!(filters.type || filters.agentId || filters.startDate || filters.endDate);
 
   if (!feedback.length && !hasActiveFilters) {
     return (
@@ -197,6 +208,12 @@ export function FeedbackTable({
         </div>
 
         <div className="flex items-center gap-2">
+          <AgentFilter
+            selectedValue={filters.agentId}
+            onSelect={(value) => {
+              updateQuery({ agentId: value ?? '', page: 1 });
+            }}
+          />
           <div className="w-full sm:w-auto">
             <DatePickerWithPresets
               label="Date range"
@@ -225,6 +242,7 @@ export function FeedbackTable({
         <TableHeader>
           <TableRow noHover>
             <TableHead className="w-[170px]">Created</TableHead>
+            <TableHead className="w-[130px]">Agent</TableHead>
             <TableHead className="w-[90px]">Type</TableHead>
             <TableHead>Feedback</TableHead>
             <TableHead className="w-[140px] text-right">View conversation</TableHead>
@@ -233,7 +251,7 @@ export function FeedbackTable({
         <TableBody>
           {feedback.length === 0 && (
             <TableRow noHover>
-              <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+              <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                 No feedback found matching your filters.
               </TableCell>
             </TableRow>
@@ -246,6 +264,13 @@ export function FeedbackTable({
               <TableRow key={item.id}>
                 <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
                   {formatDateTimeTable(item.createdAt, { local: true })}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground truncate max-w-[130px]" title={item.agentId ?? undefined}>
+                  {item.agentId ? (
+                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{item.agentId}</code>
+                  ) : (
+                    <span className="text-muted-foreground/50">-</span>
+                  )}
                 </TableCell>
                 <TableCell className="whitespace-nowrap">
                   <Badge variant={item.type === 'positive' ? 'default' : 'secondary'}>

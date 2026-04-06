@@ -1,13 +1,14 @@
 import type {
   FeedbackApiInsertSchema,
-  FeedbackApiSelectSchema,
   FeedbackListResponse as FeedbackListResponseSchema,
 } from '@inkeep/agents-core/client-exports';
 import type { z } from 'zod';
 import type { SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 
-export type Feedback = z.infer<typeof FeedbackApiSelectSchema>;
+export type Feedback = z.infer<typeof FeedbackListResponseSchema>['data'][number] & {
+  agentId?: string | null;
+};
 export type FeedbackCreate = z.infer<typeof FeedbackApiInsertSchema>;
 export type FeedbackListResponse = z.infer<typeof FeedbackListResponseSchema>;
 
@@ -33,6 +34,7 @@ export async function fetchFeedback(
   options?: {
     conversationId?: string;
     messageId?: string;
+    agentId?: string;
     type?: 'positive' | 'negative';
     startDate?: string;
     endDate?: string;
@@ -43,6 +45,7 @@ export async function fetchFeedback(
   const params = new URLSearchParams();
   if (options?.conversationId) params.set('conversationId', options.conversationId);
   if (options?.messageId) params.set('messageId', options.messageId);
+  if (options?.agentId) params.set('agentId', options.agentId);
   if (options?.type) params.set('type', options.type);
   if (options?.startDate) params.set('startDate', options.startDate);
   if (options?.endDate) params.set('endDate', options.endDate);
