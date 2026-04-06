@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.65.0
+
+### Patch Changes
+
+- 27f2620: Enable `validateNoDerivedComputationsInEffects` in React Compiler
+- b43f5e1: sort trigger invocations by started at time
+- Updated dependencies [e332202]
+  - @inkeep/agents-core@0.65.0
+
 ## 0.64.10
 
 ### Patch Changes

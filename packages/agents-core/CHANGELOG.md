@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.65.0
+
+### Minor Changes
+
+- e332202: Add multi-user scheduled trigger support with per-user dispatch, sub-resource endpoints, and dispatch delay
+
 ## 0.64.10
 
 ## 0.64.9
