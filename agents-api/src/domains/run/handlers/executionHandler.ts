@@ -131,7 +131,11 @@ export class ExecutionHandler {
           baseModel = resolvedModels.base;
         } else {
           // Fallback when no defaultSubAgentId — walk the full chain
-          summarizerModel = firstWithModel(agent.models?.summarizer, project.models?.summarizer);
+          summarizerModel = firstWithModel(
+            agent.models?.summarizer,
+            project.models?.summarizer,
+            project.models?.base
+          );
           baseModel = firstWithModel(agent.models?.base, project.models?.base);
         }
       } catch (modelError) {
@@ -142,7 +146,11 @@ export class ExecutionHandler {
           },
           'Failed to resolve models, using agent-level config'
         );
-        summarizerModel = firstWithModel(agent.models?.summarizer, project.models?.summarizer);
+        summarizerModel = firstWithModel(
+          agent.models?.summarizer,
+          project.models?.summarizer,
+          project.models?.base
+        );
         baseModel = firstWithModel(agent.models?.base, project.models?.base);
       }
 

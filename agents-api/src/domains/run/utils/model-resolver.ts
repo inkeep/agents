@@ -5,8 +5,10 @@ import type {
   Models,
 } from '@inkeep/agents-core';
 
-export function firstWithModel(...ms: (ModelSettings | null | undefined)[]): ModelSettings {
-  return ms.find((m) => m?.model) as ModelSettings;
+export function firstWithModel(
+  ...ms: (ModelSettings | null | undefined)[]
+): ModelSettings | undefined {
+  return ms.find((m) => m?.model);
 }
 
 function inheritGatewayFields(
@@ -49,8 +51,8 @@ async function resolveModelConfig(
     );
     return {
       base,
-      structuredOutput: subAgent.models.structuredOutput || base,
-      summarizer: subAgent.models.summarizer || base,
+      structuredOutput: firstWithModel(subAgent.models.structuredOutput, base) ?? base,
+      summarizer: firstWithModel(subAgent.models.summarizer, base) ?? base,
     };
   }
 
@@ -59,8 +61,11 @@ async function resolveModelConfig(
     const base = inheritGatewayFields(agent.models.base, project?.models?.base);
     return {
       base,
-      structuredOutput: subAgent.models?.structuredOutput || agent.models.structuredOutput || base,
-      summarizer: subAgent.models?.summarizer || agent.models.summarizer || base,
+      structuredOutput:
+        firstWithModel(subAgent.models?.structuredOutput, agent.models.structuredOutput, base) ??
+        base,
+      summarizer:
+        firstWithModel(subAgent.models?.summarizer, agent.models.summarizer, base) ?? base,
     };
   }
 
