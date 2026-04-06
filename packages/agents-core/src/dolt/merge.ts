@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
-import { createApiError } from '../utils/error';
+import { createApiError, getDatabaseErrorLogContext } from '../utils/error';
 import { getLogger } from '../utils/logger';
 import type { ConflictResolution } from '../validation/dolt-schemas';
 import { doltCheckout } from './branch';
@@ -146,15 +146,10 @@ export const doltMerge =
         result = await db.execute(sql.raw(`SELECT DOLT_MERGE(${args.join(', ')})`));
         logger.info({ result }, 'DOLT_MERGE result');
       } catch (error: any) {
-        const cause = error?.cause;
         logger.error(
           {
-            message: error?.message,
-            code: cause?.code,
-            severity: cause?.severity,
-            detail: cause?.detail,
-            hint: cause?.hint,
-            query: error?.query,
+            error,
+            ...getDatabaseErrorLogContext(error),
             fromBranch: params.fromBranch,
             toBranch: params.toBranch,
           },

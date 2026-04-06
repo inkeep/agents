@@ -51,6 +51,8 @@ export class PinoLogger {
       name: this.name,
       level: process.env.LOG_LEVEL || (process.env.ENVIRONMENT === 'test' ? 'silent' : 'info'),
       serializers: {
+        err: pino.stdSerializers.err,
+        error: pino.stdSerializers.err,
         obj: (value: any) => ({ ...value }),
       },
       redact: [

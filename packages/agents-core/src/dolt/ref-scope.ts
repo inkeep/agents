@@ -4,6 +4,7 @@ import type { Pool, PoolClient } from 'pg';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import * as schema from '../db/manage/manage-schema';
 import { generateId } from '../utils/conversations';
+import { getDatabaseErrorLogContext } from '../utils/error';
 import { getLogger } from '../utils/logger';
 import type { ResolvedRef } from '../validation/dolt-schemas';
 import { checkoutBranch } from './branches-api';
@@ -208,11 +209,16 @@ export async function withRef<T>(
           logger.info({ branch: resolvedRef.name, connectionId }, 'Successfully committed changes');
         }
       } catch (commitError) {
-        // Log but don't fail - the operation already succeeded
         logger.error(
-          { error: commitError, branch: resolvedRef.name, connectionId },
-          'Failed to auto-commit changes'
+          {
+            error: commitError,
+            ...getDatabaseErrorLogContext(commitError),
+            branch: resolvedRef.name,
+            connectionId,
+          },
+          'Failed to auto-commit changes — uncommitted writes will be lost on connection release'
         );
+        throw commitError;
       }
     }
 
@@ -238,14 +244,25 @@ export async function withRef<T>(
         }
       } catch (resetError) {
         logger.error(
-          { error: resetError, branch: resolvedRef.name, connectionId },
+          {
+            error: resetError,
+            ...getDatabaseErrorLogContext(resetError),
+            branch: resolvedRef.name,
+            connectionId,
+          },
           'Failed to reset changes after error'
         );
       }
     }
 
     logger.error(
-      { ref: resolvedRef.name, duration: Date.now() - startTime, connectionId, error },
+      {
+        ref: resolvedRef.name,
+        duration: Date.now() - startTime,
+        connectionId,
+        error,
+        ...getDatabaseErrorLogContext(error),
+      },
       'Ref scope failed'
     );
     throw error;
@@ -270,7 +287,12 @@ export async function withRef<T>(
         'withRef cleanup failed'
       );
       logger.error(
-        { error: cleanupError, tempBranch, connectionId },
+        {
+          error: cleanupError,
+          ...getDatabaseErrorLogContext(cleanupError),
+          tempBranch,
+          connectionId,
+        },
         'Error during ref scope cleanup'
       );
     } finally {
