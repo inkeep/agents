@@ -46,6 +46,7 @@ import {
   datasetRunConversationRelations,
   evaluationResult,
   evaluationRun,
+  feedback,
   ledgerArtifacts,
   messages,
   projectMetadata,
@@ -1219,6 +1220,24 @@ export const MessageApiInsertSchema =
   createApiInsertSchema(MessageInsertSchema).openapi('MessageCreate');
 export const MessageApiUpdateSchema =
   createApiUpdateSchema(MessageUpdateSchema).openapi('MessageUpdate');
+
+export const FeedbackSelectSchema = createSelectSchema(feedback);
+export const FeedbackInsertSchema = createInsertSchema(feedback).extend({
+  id: ResourceIdSchema,
+  conversationId: ResourceIdSchema,
+  messageId: ResourceIdSchema.optional(),
+  type: z.enum(['positive', 'negative']),
+  details: z.string().nullable().optional(),
+});
+export const FeedbackUpdateSchema = FeedbackInsertSchema.partial();
+
+export const FeedbackApiSelectSchema = createApiSchema(FeedbackSelectSchema).openapi('Feedback');
+export const FeedbackApiInsertSchema = createApiInsertSchema(FeedbackInsertSchema)
+  .extend({ id: ResourceIdSchema.optional() })
+  .openapi('FeedbackCreate');
+export const FeedbackApiUpdateSchema = createApiUpdateSchema(FeedbackUpdateSchema)
+  .omit({ conversationId: true, messageId: true, id: true })
+  .openapi('FeedbackUpdate');
 
 export const ContextCacheSelectSchema = createSelectSchema(contextCache).extend({
   ref: ResolvedRefSchema.nullable().optional(),
@@ -2707,6 +2726,9 @@ export const TriggerResponse = z
 export const TriggerInvocationResponse = z
   .object({ data: TriggerInvocationApiSelectSchema })
   .openapi('TriggerInvocationResponse');
+export const FeedbackResponse = z
+  .object({ data: FeedbackApiSelectSchema })
+  .openapi('FeedbackResponse');
 
 export const ProjectListResponse = z
   .object({
@@ -2775,6 +2797,17 @@ export const SubAgentFunctionToolRelationListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('SubAgentFunctionToolRelationListResponse');
+
+const FeedbackListItemSchema = FeedbackApiSelectSchema.extend({
+  agentId: z.string().nullable().optional(),
+});
+
+export const FeedbackListResponse = z
+  .object({
+    data: z.array(FeedbackListItemSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('FeedbackListResponse');
 
 export const DataComponentListResponse = z
   .object({
