@@ -3,6 +3,7 @@ import { z } from '@hono/zod-openapi';
 const MIN_ID_LENGTH = 1;
 const MAX_ID_LENGTH = 255;
 const URL_SAFE_ID_PATTERN = /^[a-zA-Z0-9\-_.]+$/;
+const PROJECT_ID_PATTERN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
 
 const ResourceIdSchema = z
   .string()
@@ -16,6 +17,21 @@ const ResourceIdSchema = z
   .openapi('ResourceId', {
     description: 'Resource identifier',
     example: 'resource_789',
+  });
+
+const ProjectResourceIdSchema = z
+  .string()
+  .trim()
+  .nonempty('Id is required')
+  .max(MAX_ID_LENGTH)
+  .regex(PROJECT_ID_PATTERN, {
+    message:
+      'Project ID must start and end with lowercase alphanumeric characters, and may contain hyphens',
+  })
+  .refine((value) => value !== 'new', 'Must not use a reserved name "new"')
+  .openapi('ProjectResourceId', {
+    description: 'Project identifier (lowercase alphanumeric and hyphens only)',
+    example: 'my-project-123',
   });
 
 const StringRecordSchema = z
@@ -144,8 +160,10 @@ export {
   PaginationSchema,
   StringRecordSchema,
   ResourceIdSchema,
+  ProjectResourceIdSchema,
   createAgentScopedApiInsertSchema,
   URL_SAFE_ID_PATTERN,
+  PROJECT_ID_PATTERN,
   MIN_ID_LENGTH,
   MAX_ID_LENGTH,
 };
