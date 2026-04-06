@@ -6,11 +6,16 @@ import {
   grantProjectAccess,
   listProjectMembers,
   ProjectRoles,
+  removeUserFromProjectScheduledTriggers,
   revokeProjectAccess,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
+import runDbClient from '../../../data/db/runDbClient';
+import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
+
+const logger = getLogger('projectMembers');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
@@ -250,6 +255,19 @@ app.openapi(
       userId,
       role,
     });
+
+    try {
+      await removeUserFromProjectScheduledTriggers(runDbClient)({
+        tenantId,
+        projectId,
+        userId,
+      });
+    } catch (err) {
+      logger.error(
+        { tenantId, projectId, userId, error: err },
+        'Failed to clean up user from scheduled triggers after project removal'
+      );
+    }
 
     return c.body(null, 204);
   }

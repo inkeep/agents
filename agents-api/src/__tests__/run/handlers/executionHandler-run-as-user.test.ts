@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { a2aClientConstructorMock, mockSendMessage } = vi.hoisted(() => ({
-  mockSendMessage: vi.fn(),
-  a2aClientConstructorMock: vi.fn(),
-}));
+const { a2aClientConstructorMock, initializeStatusUpdatesMock, mockSendMessage } = vi.hoisted(
+  () => ({
+    mockSendMessage: vi.fn(),
+    a2aClientConstructorMock: vi.fn(),
+    initializeStatusUpdatesMock: vi.fn(),
+  })
+);
 
 vi.mock('@inkeep/agents-core', () => ({
   AGENT_EXECUTION_TRANSFER_COUNT_DEFAULT: 10,
@@ -57,6 +60,7 @@ vi.mock('../../../domains/run/session/AgentSession.js', () => ({
   agentSessionManager: {
     createSession: vi.fn(),
     enableEmitOperations: vi.fn(),
+    initializeStatusUpdates: initializeStatusUpdatesMock,
     recordEvent: vi.fn(),
     getSession: vi.fn().mockReturnValue(undefined),
     endSession: vi.fn().mockResolvedValue(undefined),
@@ -68,6 +72,9 @@ vi.mock('../../../domains/run/utils/agent-operations.js', () => ({
   errorOp: vi.fn(),
 }));
 vi.mock('../../../domains/run/utils/model-resolver.js', () => ({
+  firstWithModel: vi.fn((...ms: Array<{ model?: string } | null | undefined>) =>
+    ms.find((m) => m?.model)
+  ),
   resolveModelConfig: vi.fn().mockResolvedValue({}),
 }));
 vi.mock('../../../domains/run/stream/stream-helpers.js', () => ({
@@ -125,6 +132,46 @@ function createExecutionContext(initiatedBy?: { type: string; id: string }) {
             'sub-1': { id: 'sub-1', name: 'Sub 1' },
           },
           stopWhen: { transferCountIs: 1 },
+        },
+      },
+      tools: {},
+      functions: {},
+      dataComponents: {},
+      artifactComponents: {},
+      externalAgents: {},
+      credentialReferences: {},
+      statusUpdates: null,
+    },
+  };
+}
+
+function createExecutionContextWithoutDefaultSubAgent() {
+  return {
+    tenantId: 'test-tenant',
+    projectId: 'test-project',
+    agentId: 'test-agent',
+    apiKey: 'sk_test_key_1234567890123456',
+    apiKeyId: 'key-123',
+    baseUrl: 'http://localhost:3000',
+    resolvedRef: { type: 'branch', name: 'main', hash: 'test-hash' },
+    project: {
+      id: 'test-project',
+      tenantId: 'test-tenant',
+      name: 'Test Project',
+      models: {
+        base: { model: 'project-base-model' },
+      },
+      agents: {
+        'test-agent': {
+          id: 'test-agent',
+          name: 'Test Agent',
+          defaultSubAgentId: null,
+          models: {},
+          subAgents: {
+            'sub-1': { id: 'sub-1', name: 'Sub 1' },
+          },
+          stopWhen: { transferCountIs: 1 },
+          statusUpdates: null,
         },
       },
       tools: {},
@@ -198,6 +245,24 @@ describe('ExecutionHandler - x-inkeep-run-as-user-id forwarding', () => {
     await execute(undefined);
     const headers = getA2AClientHeaders();
     expect(headers?.['x-inkeep-run-as-user-id']).toBeUndefined();
+  });
+
+  it('uses project base model for status updates when no default sub-agent is configured', async () => {
+    await handler.execute({
+      executionContext: createExecutionContextWithoutDefaultSubAgent() as any,
+      conversationId: 'conv-123',
+      userMessage: 'hello',
+      initialAgentId: 'sub-1',
+      requestId: 'req-123',
+      sseHelper: createMockStreamHelper() as any,
+    });
+
+    expect(initializeStatusUpdatesMock).toHaveBeenCalledWith(
+      'req-123',
+      { enabled: false },
+      { model: 'project-base-model' },
+      { model: 'project-base-model' }
+    );
   });
 });
 

@@ -35,13 +35,13 @@ import { FilterTriggerComponent } from '../traces/filters/filter-trigger';
 const POLLING_INTERVAL_MS = 3000;
 
 interface ProjectScheduledTriggerInvocationsTableProps {
-  invocations: ScheduledTriggerInvocationWithContext[];
+  initialInvocations: ScheduledTriggerInvocationWithContext[];
   tenantId: string;
   projectId: string;
 }
 
 export function ProjectScheduledTriggerInvocationsTable({
-  invocations: initialInvocations,
+  initialInvocations,
   tenantId,
   projectId,
 }: ProjectScheduledTriggerInvocationsTableProps) {
@@ -120,10 +120,6 @@ export function ProjectScheduledTriggerInvocationsTable({
     const intervalId = setInterval(pollInvocations, POLLING_INTERVAL_MS);
     return () => clearInterval(intervalId);
   }, [hasTransientInvocations, tenantId, projectId]);
-
-  useEffect(() => {
-    setInvocations(initialInvocations);
-  }, [initialInvocations]);
 
   async function cancelInvocation(invocation: ScheduledTriggerInvocationWithContext) {
     if (!confirm('Are you sure you want to cancel this invocation?')) {
@@ -228,6 +224,18 @@ export function ProjectScheduledTriggerInvocationsTable({
       cell: ({ row }) => (
         <div className="font-mono text-sm">
           {formatInvocationDateTime(row.original.scheduledFor)}
+        </div>
+      ),
+    },
+    {
+      id: 'startedAt',
+      accessorFn: (row) => (row.startedAt ? new Date(row.startedAt) : undefined),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Started At" />,
+      sortingFn: 'datetime',
+      sortUndefined: 'last',
+      cell: ({ row }) => (
+        <div className="text-sm text-muted-foreground">
+          {formatInvocationDateTime(row.original.startedAt)}
         </div>
       ),
     },
@@ -381,7 +389,7 @@ export function ProjectScheduledTriggerInvocationsTable({
         <DataTable
           columns={columns}
           data={filteredInvocations}
-          defaultSort={[{ id: 'scheduledFor', desc: true }]}
+          defaultSort={[{ id: 'startedAt', desc: true }]}
           getRowId={(row) => row.id}
           emptyState={
             <div className="flex flex-col items-center gap-2">

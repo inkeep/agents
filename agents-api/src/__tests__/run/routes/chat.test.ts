@@ -176,6 +176,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
 vi.mock('@opentelemetry/api', () => ({
   trace: {
     getActiveSpan: vi.fn().mockReturnValue({
+      setAttribute: vi.fn(),
       setAttributes: vi.fn(),
       addEvent: vi.fn(),
     }),

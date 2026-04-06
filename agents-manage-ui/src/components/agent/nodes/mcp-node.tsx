@@ -63,12 +63,11 @@ const TruncateToolBadge: FC<{
 export function MCPNode({ data, selected, ...props }: NodeProps & { data: MCPNodeData }) {
   const { control } = useFullAgentFormContext();
   const relationKey = getMcpRelationFormKey({ nodeId: props.id });
-  const mcpRelation = useWatch({
-    control,
-    name: `mcpRelations.${relationKey}`,
-  });
   const id = data.toolId;
-  const tool = useWatch({ control, name: `tools.${id}` });
+  const [mcpRelation, tool] = useWatch({
+    control,
+    name: [`mcpRelations.${relationKey}`, `tools.${id}`],
+  });
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { data: mcpTools } = useMcpToolsQuery({ skipDiscovery: true });
   const skeletonToolLookup = createLookup(mcpTools);

@@ -27,6 +27,7 @@ export default function ToolCallsBreakdown({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/traces/tool-calls'>) {
   const { tenantId, projectId } = use(params);
+  const [CURRENT_TIME] = useState(() => Date.now());
   const searchParams = useSearchParams();
 
   const current = new URLSearchParams(searchParams.toString());
@@ -71,7 +72,7 @@ export default function ToolCallsBreakdown({
   };
 
   const { startTime, endTime } = (() => {
-    const currentEndTime = Date.now();
+    const currentEndTime = CURRENT_TIME;
 
     if (timeRange === 'custom') {
       if (customStartDate && customEndDate) {
@@ -79,7 +80,7 @@ export default function ToolCallsBreakdown({
         const [ey, em, ed] = customEndDate.split('-').map(Number);
         const startDate = new Date(sy, (sm || 1) - 1, sd || 1, 0, 0, 0, 0);
         const endDate = new Date(ey, (em || 1) - 1, ed || 1, 23, 59, 59, 999);
-        const clampedEndMs = Math.min(endDate.getTime(), Date.now() - 1);
+        const clampedEndMs = Math.min(endDate.getTime(), CURRENT_TIME - 1);
 
         return {
           startTime: startDate.getTime(),
