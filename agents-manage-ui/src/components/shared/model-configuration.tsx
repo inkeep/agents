@@ -361,11 +361,28 @@ export function ModelConfiguration({
     name: `${prefix}.model`,
   });
   const value = modelField.value;
+  const onModelChange = modelField.onChange;
+
   const { field: providerOptionsField } = useController({
     control,
     name: `${prefix}.providerOptions`,
   });
   const providerOptions = providerOptionsField.value;
+  const onProviderOptionsChange = providerOptionsField.onChange;
+
+  const { field: fallbackModelsField } = useController({
+    control,
+    name: `${prefix}.fallbackModels`,
+  });
+  const fallbackModels = fallbackModelsField.value;
+  const onFallbackModelsChange = fallbackModelsField.onChange;
+
+  const { field: allowedProvidersField } = useController({
+    control,
+    name: `${prefix}.allowedProviders`,
+  });
+  const allowedProviders = allowedProvidersField.value;
+  const onAllowedProvidersChange = allowedProvidersField.onChange;
 
   const handleModelChange = (modelValue: string) => {
     const previousEffectiveModel = value || inheritedValue;
