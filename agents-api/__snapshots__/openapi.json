@@ -48043,6 +48043,10 @@
       "name": "External Agents"
     },
     {
+      "description": "Operations for managing feedback",
+      "name": "Feedback"
+    },
+    {
       "description": "Operations for managing function tools",
       "name": "Function Tools"
     },
