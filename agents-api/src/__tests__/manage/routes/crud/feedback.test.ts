@@ -30,7 +30,6 @@ describe('Feedback CRUD Routes - Integration Tests', () => {
     const createData = {
       id: `feedback_${generateId(10)}`,
       conversationId,
-      messageId: `msg_${generateId(10)}`,
       type: 'negative',
       details: 'Improve the response clarity.',
     };
@@ -59,7 +58,6 @@ describe('Feedback CRUD Routes - Integration Tests', () => {
     expect(listBody.data[0]).toMatchObject({
       id: createData.id,
       conversationId,
-      messageId: createData.messageId,
       type: 'negative',
       details: createData.details,
     });
@@ -76,7 +74,6 @@ describe('Feedback CRUD Routes - Integration Tests', () => {
     const createData = {
       id: `feedback_${generateId(10)}`,
       conversationId,
-      messageId: `msg_${generateId(10)}`,
       type: 'positive',
       details: 'Great answer!',
     };
@@ -99,7 +96,6 @@ describe('Feedback CRUD Routes - Integration Tests', () => {
     expect(getBody.data).toMatchObject({
       id: createData.id,
       conversationId,
-      messageId: createData.messageId,
       type: 'positive',
       details: 'Great answer!',
     });
@@ -228,7 +224,6 @@ describe('Feedback CRUD Routes - Integration Tests', () => {
     const createData = {
       id: `feedback_${generateId(10)}`,
       conversationId,
-      messageId: `msg_${generateId(10)}`,
       type: 'negative',
       details: 'Delete me.',
     };
