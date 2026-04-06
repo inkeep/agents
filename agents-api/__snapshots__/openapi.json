@@ -4674,27 +4674,11 @@
         ],
         "type": "object"
       },
-      "FeedbackListItem": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/Feedback"
-          },
-          {
-            "properties": {
-              "agentId": {
-                "nullable": true,
-                "type": "string"
-              }
-            },
-            "type": "object"
-          }
-        ]
-      },
       "FeedbackListResponse": {
         "properties": {
           "data": {
             "items": {
-              "$ref": "#/components/schemas/FeedbackListItem"
+              "$ref": "#/components/schemas/Feedback"
             },
             "type": "array"
           },

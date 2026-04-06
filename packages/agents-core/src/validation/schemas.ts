@@ -2798,13 +2798,9 @@ export const SubAgentFunctionToolRelationListResponse = z
   })
   .openapi('SubAgentFunctionToolRelationListResponse');
 
-export const FeedbackListItemSchema = FeedbackApiSelectSchema.extend({
-  agentId: z.string().nullable().optional(),
-}).openapi('FeedbackListItem');
-
 export const FeedbackListResponse = z
   .object({
-    data: z.array(FeedbackListItemSchema),
+    data: z.array(FeedbackApiSelectSchema),
     pagination: PaginationSchema,
   })
   .openapi('FeedbackListResponse');
