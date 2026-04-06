@@ -3,14 +3,14 @@ import { StringToJsonSchema } from '@/lib/validation';
 
 const modelSettingsSchema = z.object({
   model: z.string().optional(), // Allow empty model - system will fall back to defaults
-  providerOptions: StringToJsonSchema.pipe(z.record(z.string(), z.any())).optional(),
+  providerOptions: StringToJsonSchema.pipe(z.record(z.string(), z.any()).optional()),
   fallbackModels: z.array(z.string()).optional().nullable(),
   allowedProviders: z.array(z.string()).optional().nullable(),
 });
 
 const baseModelSettingsSchema = z.object({
   model: z.string().min(1, 'Base model is required'),
-  providerOptions: StringToJsonSchema.pipe(z.record(z.string(), z.any())).optional(),
+  providerOptions: StringToJsonSchema.pipe(z.record(z.string(), z.any()).optional()),
   fallbackModels: z.array(z.string()).optional().nullable(),
   allowedProviders: z.array(z.string()).optional().nullable(),
 });
