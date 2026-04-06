@@ -125,7 +125,7 @@ async function buildAgentForStep(params: {
   const currentSubAgent = agentEntry.subAgents?.[currentSubAgentId];
   if (!currentSubAgent) throw new Error(`Sub-agent ${currentSubAgentId} not found`);
 
-  const apiBaseUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
+  const apiBaseUrl = env.INKEEP_AGENTS_API_URL;
   // Durable mode bakes `/run/agents` into baseUrl because buildAgentForStep passes
   // executionContext.baseUrl directly to AgentConfig and A2AClient configs. The non-durable
   // executionHandler keeps the bare root and appends `/run/agents` locally, but here we

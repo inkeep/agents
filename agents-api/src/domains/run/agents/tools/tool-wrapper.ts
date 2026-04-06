@@ -11,6 +11,22 @@ import { buildToolResultForConversationHistory } from '../generation/tool-result
 import { buildToolResultForModelInput } from '../generation/tool-result-for-model-input';
 import { getRelationshipIdForTool } from './tool-utils';
 
+const DELEGATE_TOOL_PREFIX = 'delegate_to_';
+const TRANSFER_TOOL_PREFIX = 'transfer_to_';
+
+interface DurableApprovalData {
+  type: string;
+  toolCallId: string;
+  toolName: string;
+  args: unknown;
+  delegatedApproval?: {
+    toolCallId: string;
+    toolName: string;
+    args: unknown;
+    subAgentId: string;
+  };
+}
+
 const logger = getLogger('Agent');
 
 function chunkString(s: string, size = 16): string[] {
@@ -103,14 +119,14 @@ export function wrapToolWithStreaming(
       }
 
       const isInternalTool =
-        toolName.includes('save_tool_result') || toolName.startsWith('transfer_to_');
+        toolName.includes('save_tool_result') || toolName.startsWith(TRANSFER_TOOL_PREFIX);
       const isInternalToolForUi =
-        isInternalTool || toolName.startsWith('delegate_to_') || toolName === 'load_skill';
+        isInternalTool || toolName.startsWith(DELEGATE_TOOL_PREFIX) || toolName === 'load_skill';
 
       // In durable workflows, delegate_to_ tool results must be stored in
       // conversation history so the next callLlmStep sees the delegation outcome
       // and doesn't re-delegate in a loop.
-      const isDurableDelegation = !!ctx.durableWorkflowRunId && toolName.startsWith('delegate_to_');
+      const isDurableDelegation = !!ctx.durableWorkflowRunId && toolName.startsWith(DELEGATE_TOOL_PREFIX);
       const skipHistoryStorage = isInternalToolForUi && !isDurableDelegation;
 
       const needsApproval = options?.needsApproval || false;
@@ -219,13 +235,14 @@ export function wrapToolWithStreaming(
             return undefined;
           };
 
-          const approvalData =
+          const approvalDataRaw =
             findApprovalRequired(taskResult?.parts as Array<Record<string, unknown>> | undefined) ??
             findApprovalInArtifacts(
               taskResult?.artifacts as Array<Record<string, unknown>> | undefined
             );
 
-          if (approvalData) {
+          if (approvalDataRaw) {
+            const approvalData = approvalDataRaw as unknown as DurableApprovalData;
             const delegatedToolCallId = approvalData.toolCallId;
             const delegatedToolName = approvalData.toolName;
 
@@ -252,7 +269,7 @@ export function wrapToolWithStreaming(
                 toolCallId: delegatedToolCallId,
                 toolName: delegatedToolName,
                 args: approvalData.args,
-                subAgentId: toolName.replace(/^delegate_to_/, ''),
+                subAgentId: toolName.replace(DELEGATE_TOOL_PREFIX, ''),
               },
             };
             return result;

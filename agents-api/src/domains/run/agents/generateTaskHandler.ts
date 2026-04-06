@@ -30,6 +30,7 @@ import {
   getToolsForSubAgent,
 } from '../utils/project';
 import { Agent } from './Agent';
+import type { PendingDurableApproval } from './agent-types';
 import { buildTransferRelationConfig } from './relationTools';
 import { toolSessionManager } from './services/ToolSessionManager';
 
@@ -57,11 +58,7 @@ export interface TaskHandlerConfig {
 // We use Completed (not InputRequired) because the parent agent's tool-wrapper parses
 // the artifact from the A2A response — using a different state would require changes to
 // the A2A result handling pipeline. The artifact's `type` field distinguishes it.
-function buildDurableApprovalResult(pendingApproval: {
-  toolCallId: string;
-  toolName: string;
-  args: unknown;
-}): A2ATaskResult {
+function buildDurableApprovalResult(pendingApproval: PendingDurableApproval): A2ATaskResult {
   logger.info(
     { toolCallId: pendingApproval.toolCallId, toolName: pendingApproval.toolName },
     'Returning durable-approval-required artifact'
