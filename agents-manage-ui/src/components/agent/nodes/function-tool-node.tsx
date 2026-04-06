@@ -22,7 +22,7 @@ export function FunctionToolNode({ data, selected }: NodeProps & { data: Functio
   const status = getNodeStatus(data);
 
   const functionTool = useWatch({ control, name: `functionTools.${id}` });
-  const functionId = useWatch({ control, name: `functionTools.${id}.functionId` }) as string;
+  const functionId = functionTool?.functionId ?? '';
   const processedErrors = [
     ...useProcessedErrors('functionTools', id),
     ...useProcessedErrors('functions', functionId),

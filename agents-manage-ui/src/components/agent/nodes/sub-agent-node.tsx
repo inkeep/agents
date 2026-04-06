@@ -52,10 +52,11 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const status = getNodeStatus(data);
   const { control } = useFullAgentFormContext();
   const formKey = `subAgents.${id}` as const;
-  const subAgent = useWatch({ control, name: formKey });
+  const [subAgent, defaultSubAgentNodeId, agentModel] = useWatch({
+    control,
+    name: [formKey, 'defaultSubAgentNodeId', 'models'],
+  });
   const processedErrors = useProcessedErrors('subAgents', id);
-  const defaultSubAgentNodeId = useWatch({ control, name: 'defaultSubAgentNodeId' });
-  const agentModel = useWatch({ control, name: 'models' });
   const { data: project } = useProjectQuery();
   const { data: artifactComponents } = useArtifactComponentsQuery();
   const { data: dataComponents } = useDataComponentsQuery();

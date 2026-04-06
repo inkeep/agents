@@ -46,8 +46,10 @@ export function CredentialForm({ onCreateCredential }: CredentialFormProps) {
     resolver: zodResolver(credentialFormSchema),
     defaultValues: defaultValues,
   });
-  const credentialStoreId = useWatch({ control: form.control, name: 'credentialStoreId' });
-  const credentialStoreType = useWatch({ control: form.control, name: 'credentialStoreType' });
+  const [credentialStoreId, credentialStoreType] = useWatch({
+    control: form.control,
+    name: ['credentialStoreId', 'credentialStoreType'],
+  });
 
   const { isSubmitting } = form.formState;
   const { data: externalAgents, isFetching: externalAgentsLoading } = useExternalAgentsQuery();
