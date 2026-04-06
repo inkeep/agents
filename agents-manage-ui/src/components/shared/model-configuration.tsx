@@ -3,6 +3,7 @@
 import { GATEWAY_ROUTABLE_PROVIDERS_SET } from '@inkeep/agents-core/client-exports';
 import { GripVertical, Plus, X } from 'lucide-react';
 import { type FC, useState } from 'react';
+import type { Control } from 'react-hook-form';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { Button } from '@/components/ui/button';
@@ -294,10 +295,6 @@ const FallbackModelsSection: FC<{
 };
 
 interface ModelConfigurationProps {
-  /** Current model value */
-  value?: string;
-  /** Provider options value (JSON string or object) */
-  providerOptions?: string | Record<string, unknown>;
   /** Inherited/default model value to show when no value is set */
   inheritedValue?: string;
   /** Inherited provider options to show when no value is set */
@@ -312,33 +309,30 @@ interface ModelConfigurationProps {
   canClear?: boolean;
   /** Whether this field is required */
   isRequired?: boolean;
-  /** Called when the model value changes */
-  onModelChange: (value: string) => void;
-  /** Called when provider options change */
-  onProviderOptionsChange: (value: string) => void;
   /** Unique name prefix for the JSON editor */
   editorNamePrefix?: string;
   /** Custom placeholder for the JSON editor based on model type */
   getJsonPlaceholder?: (model?: string) => string;
   /** Whether the component is disabled/read-only */
   disabled?: boolean;
-  /** Ordered list of fallback models */
-  fallbackModels?: string[];
   /** Inherited fallback models to show when no value is set */
   inheritedFallbackModels?: string[];
-  /** Called when fallback models change */
-  onFallbackModelsChange?: (models: string[]) => void;
-  /** Ordered list of allowed providers */
-  allowedProviders?: string[];
   /** Inherited allowed providers to show when no value is set */
   inheritedAllowedProviders?: string[];
-  /** Called when allowed providers change */
-  onAllowedProvidersChange?: (providers: string[]) => void;
+
+  control: Control<{
+    /** Current model value */
+    model: string;
+    /** Provider options value */
+    providerOptions: string;
+    /** Ordered list of fallback models */
+    fallbackModels: string[];
+    /** Ordered list of allowed providers */
+    allowedProviders: string[];
+  }>;
 }
 
 export function ModelConfiguration({
-  value,
-  providerOptions,
   inheritedValue,
   inheritedProviderOptions,
   label,
@@ -346,17 +340,12 @@ export function ModelConfiguration({
   placeholder = 'Select a model...',
   canClear = true,
   isRequired = false,
-  onModelChange,
-  onProviderOptionsChange,
   editorNamePrefix = 'model',
   getJsonPlaceholder,
   disabled = false,
-  fallbackModels,
   inheritedFallbackModels,
-  onFallbackModelsChange,
-  allowedProviders,
   inheritedAllowedProviders,
-  onAllowedProvidersChange,
+  control,
 }: ModelConfigurationProps) {
   const { data: capabilities } = useCapabilitiesQuery();
 
