@@ -1,4 +1,4 @@
-import { and, count, desc, eq, getTableColumns, gte, lte } from 'drizzle-orm';
+import { and, count, desc, eq, gte, lte } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { conversations, feedback } from '../../db/runtime/runtime-schema';
 import type {
@@ -12,9 +12,21 @@ import { projectScopedWhere } from '../manage/scope-helpers';
 export const getFeedbackById =
   (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; feedbackId: string }) => {
-    return db.query.feedback.findFirst({
-      where: and(projectScopedWhere(feedback, params.scopes), eq(feedback.id, params.feedbackId)),
-    });
+    const [result] = await db
+      .select({
+        id: feedback.id,
+        conversationId: feedback.conversationId,
+        messageId: feedback.messageId,
+        type: feedback.type,
+        details: feedback.details,
+        createdAt: feedback.createdAt,
+        updatedAt: feedback.updatedAt,
+      })
+      .from(feedback)
+      .where(and(projectScopedWhere(feedback, params.scopes), eq(feedback.id, params.feedbackId)))
+      .limit(1);
+
+    return result;
   };
 
 export const listFeedbackByConversation =
@@ -77,26 +89,36 @@ export const listFeedback =
 
     const whereClause = and(...conditions);
 
+    const conversationsJoin = [
+      eq(feedback.tenantId, conversations.tenantId),
+      eq(feedback.projectId, conversations.projectId),
+      eq(feedback.conversationId, conversations.id),
+    ] as const;
+
+    const countQuery = db.select({ count: count() }).from(feedback);
+    if (params.agentId) {
+      countQuery.leftJoin(conversations, and(...conversationsJoin));
+    }
+
     const [items, total] = await Promise.all([
       db
         .select({
-          ...getTableColumns(feedback),
+          id: feedback.id,
+          conversationId: feedback.conversationId,
+          messageId: feedback.messageId,
+          type: feedback.type,
+          details: feedback.details,
+          createdAt: feedback.createdAt,
+          updatedAt: feedback.updatedAt,
           agentId: conversations.agentId,
         })
         .from(feedback)
-        .leftJoin(
-          conversations,
-          and(
-            eq(feedback.tenantId, conversations.tenantId),
-            eq(feedback.projectId, conversations.projectId),
-            eq(feedback.conversationId, conversations.id)
-          )
-        )
+        .leftJoin(conversations, and(...conversationsJoin))
         .where(whereClause)
         .limit(limit)
         .offset(offset)
         .orderBy(desc(feedback.createdAt)),
-      db.select({ count: count() }).from(feedback).where(whereClause),
+      countQuery.where(whereClause),
     ]);
 
     return {
