@@ -382,6 +382,7 @@ export function createDelegateToAgentTool({
           originAgentId: agentId,
           targetAgentId: delegateConfig.config.id,
           initiatedBy: executionContext.metadata?.initiatedBy,
+          appId: executionContext.metadata?.appId,
         })}`;
       } else {
         // Always generate a service token for internal A2A self-calls.
@@ -395,6 +396,7 @@ export function createDelegateToAgentTool({
           originAgentId: agentId,
           targetAgentId: delegateConfig.config.id,
           initiatedBy: executionContext.metadata?.initiatedBy,
+          appId: executionContext.metadata?.appId,
         });
 
         resolvedHeaders = {

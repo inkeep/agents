@@ -113,14 +113,15 @@ function extractRequestData(c: { req: any }): RequestData {
  * Build the final execution context from auth result and request data
  */
 function buildExecutionContext(authResult: AuthResult, reqData: RequestData): BaseExecutionContext {
-  // For team delegation, use the parent agent ID from the request header (x-inkeep-agent-id)
-  // instead of the JWT's audience (which is the sub-agent being called).
-  // The parent agent ID is needed for project lookup (project.agents[agentId].subAgents[subAgentId]).
-  const agentId =
-    authResult.metadata?.teamDelegation && reqData.agentId ? reqData.agentId : authResult.agentId;
+  let agentId = authResult.agentId;
+  let subAgentId: string | undefined;
 
-  if (
-    !authResult.metadata?.teamDelegation &&
+  if (authResult.metadata?.teamDelegation) {
+    // Team delegation: JWT aud = target sub-agent, JWT sub = parent agent (originAgentId).
+    // Both values come from the cryptographically verified service token.
+    subAgentId = authResult.agentId;
+    agentId = authResult.metadata.originAgentId || authResult.agentId;
+  } else if (
     reqData.agentId &&
     reqData.agentId !== authResult.agentId &&
     authResult.apiKeyId &&
@@ -148,7 +149,7 @@ function buildExecutionContext(authResult: AuthResult, reqData: RequestData): Ba
     agentId,
     apiKeyId: authResult.apiKeyId,
     baseUrl: reqData.baseUrl,
-    subAgentId: reqData.subAgentId,
+    subAgentId,
     ref: reqData.ref,
     metadata: authResult.metadata,
   });
@@ -361,6 +362,7 @@ async function tryTeamAgentAuth(token: string, expectedSubAgentId?: string): Pro
         teamDelegation: true,
         originAgentId: payload.sub,
         ...(payload.initiatedBy ? { initiatedBy: payload.initiatedBy } : {}),
+        ...(payload.appId ? { appId: payload.appId } : {}),
       },
     },
   };
@@ -691,7 +693,6 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
               initiatedBy: { type: 'user' as const, id: endUserId },
               authMethod,
               appId: app.id,
-              appPrompt: app.prompt || undefined,
               ...(Object.keys(verifiedClaims).length > 0 ? { verifiedClaims } : {}),
             },
           },
@@ -699,9 +700,11 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       } // end if (asymResult.ok)
     } // end if (hasAuthConfigured)
 
-    const pow = await verifyPoW(reqData.request, env.INKEEP_POW_HMAC_SECRET);
-    if (!pow.ok) {
-      throw new HTTPException(400, { message: getPoWErrorMessage(pow.error) });
+    if (reqData.request.method !== 'GET') {
+      const pow = await verifyPoW(reqData.request, env.INKEEP_POW_HMAC_SECRET);
+      if (!pow.ok) {
+        throw new HTTPException(400, { message: getPoWErrorMessage(pow.error) });
+      }
     }
 
     authMethod = 'app_credential_web_client';
@@ -764,7 +767,6 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
         ...(endUserId ? { initiatedBy: { type: 'user' as const, id: endUserId } } : {}),
         authMethod,
         appId: app.id,
-        appPrompt: app.prompt || undefined,
       },
     },
   };
@@ -814,7 +816,7 @@ async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
   const { apiKey, subAgentId } = reqData;
 
   // When subAgentId is set, this is an internal A2A call — skip app credential auth.
-  // The appId is forwarded for context only; the sub-agent authenticates via its own token.
+  // The sub-agent authenticates via its own service token (which carries appId in the JWT).
   if (reqData.appId && !subAgentId) {
     if (!apiKey) {
       return { authResult: null, failureMessage: 'Bearer token required for app credential auth' };
@@ -884,12 +886,6 @@ async function runApiKeyAuthHandler(
     const attempt = await authenticateRequest(reqData);
 
     if (attempt.authResult) {
-      if (reqData.appId && !attempt.authResult.metadata?.appId) {
-        attempt.authResult.metadata = {
-          ...attempt.authResult.metadata,
-          appId: reqData.appId,
-        };
-      }
       c.set('executionContext', buildExecutionContext(attempt.authResult, reqData));
     } else {
       logger.info(
@@ -901,8 +897,8 @@ async function runApiKeyAuthHandler(
       c.set('executionContext', buildExecutionContext(createDevContext(reqData), reqData));
     }
 
-    if (reqData.appId && attempt.authResult) {
-      trace.getActiveSpan()?.setAttribute('app.id', reqData.appId);
+    if (attempt.authResult?.metadata?.appId) {
+      trace.getActiveSpan()?.setAttribute('app.id', attempt.authResult.metadata.appId);
     }
     await next();
     return;
@@ -952,14 +948,9 @@ async function runApiKeyAuthHandler(
     'API key authenticated successfully'
   );
 
-  // Forward appId from internal A2A header when not already set by auth strategy
-  if (reqData.appId && !attempt.authResult.metadata?.appId) {
-    attempt.authResult.metadata = { ...attempt.authResult.metadata, appId: reqData.appId };
-  }
-
   c.set('executionContext', buildExecutionContext(attempt.authResult, reqData));
-  if (reqData.appId) {
-    trace.getActiveSpan()?.setAttribute('app.id', reqData.appId);
+  if (attempt.authResult.metadata?.appId) {
+    trace.getActiveSpan()?.setAttribute('app.id', attempt.authResult.metadata.appId);
   }
   await next();
 }

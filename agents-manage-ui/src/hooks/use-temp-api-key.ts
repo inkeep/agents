@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { throwError } from '@/lib/utils';
 
@@ -30,7 +30,7 @@ export function useTempApiKey({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchToken = useCallback(async (): Promise<string | null> => {
+  async function fetchToken(): Promise<string | null> {
     try {
       const response = await fetch(
         `${PUBLIC_INKEEP_AGENTS_API_URL}/manage/tenants/${tenantId}/playground/token`,
@@ -63,7 +63,7 @@ export function useTempApiKey({
       setIsLoading(false);
       return null;
     }
-  }, [tenantId, projectId, agentId, PUBLIC_INKEEP_AGENTS_API_URL]);
+  }
 
   // Initial fetch
   useEffect(() => {
@@ -73,7 +73,12 @@ export function useTempApiKey({
       // If not enabled or no agentId, set loading to false immediately
       setIsLoading(false);
     }
-  }, [enabled, agentId, fetchToken]);
+  }, [
+    enabled,
+    agentId,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchToken,
+  ]);
 
   // Auto-refresh before expiry
   useEffect(() => {
@@ -89,7 +94,11 @@ export function useTempApiKey({
     const timer = setTimeout(fetchToken, refreshTime);
 
     return () => clearTimeout(timer);
-  }, [expiresAt, fetchToken]);
+  }, [
+    expiresAt,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchToken,
+  ]);
 
   return { apiKey, appId, isLoading, error, refresh: fetchToken };
 }

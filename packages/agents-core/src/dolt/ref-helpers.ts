@@ -25,6 +25,8 @@ export const getTenantScopedRef = (tenantId: string, ref: string): string => {
 export const resolveRef =
   (db: AgentsManageDatabaseClient) =>
   async (ref: string): Promise<ResolvedRef | null> => {
+    const startTime = Date.now();
+
     if (isValidCommitHash(ref)) {
       return {
         type: 'commit',
@@ -43,8 +45,25 @@ export const resolveRef =
       };
     }
 
+    const branchQueryStart = Date.now();
     const branches = await doltListBranches(db)();
+    const branchQueryMs = Date.now() - branchQueryStart;
     const branch = branches.find((b) => b.name === ref);
+
+    if (!branch) {
+      const totalMs = Date.now() - startTime;
+      logger.info(
+        {
+          ref,
+          branchCount: branches.length,
+          branchQueryMs,
+          totalMs,
+          branchNames: branches.map((b) => b.name),
+        },
+        'resolveRef: branch not found in dolt_branches result'
+      );
+    }
+
     if (branch) {
       return {
         type: 'branch',

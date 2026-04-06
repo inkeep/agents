@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Bug, X } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { type Dispatch, useEffect, useMemo, useState } from 'react';
+import { type Dispatch, useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -54,7 +54,7 @@ export const Playground = ({
     return () => resetPlaygroundConversationId();
   }, []);
 
-  const headersTemplate = useMemo(() => {
+  const headersTemplate = (() => {
     if (!headersSchemaString) return undefined;
     try {
       const schema = JSON.parse(headersSchemaString);
@@ -65,16 +65,12 @@ export const Playground = ({
     } catch {
       return undefined;
     }
-  }, [headersSchemaString]);
+  })();
 
-  const resolver = useMemo(
-    () =>
-      zodResolver(
-        z.strictObject({
-          headers: createCustomHeadersSchema(headersSchemaString),
-        })
-      ),
-    [headersSchemaString]
+  const resolver = zodResolver(
+    z.strictObject({
+      headers: createCustomHeadersSchema(headersSchemaString),
+    })
   );
 
   const form = useForm({

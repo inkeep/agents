@@ -3,7 +3,7 @@
 import type { ColumnDef } from '@tanstack/react-table';
 import { Ban, MoreHorizontal, RotateCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -32,7 +32,7 @@ import {
 const POLLING_INTERVAL_MS = 3000;
 
 interface ScheduledTriggerInvocationsTableProps {
-  invocations: ScheduledTriggerInvocation[];
+  initialInvocations: ScheduledTriggerInvocation[];
   tenantId: string;
   projectId: string;
   agentId: string;
@@ -40,7 +40,7 @@ interface ScheduledTriggerInvocationsTableProps {
 }
 
 export function ScheduledTriggerInvocationsTable({
-  invocations: initialInvocations,
+  initialInvocations,
   tenantId,
   projectId,
   agentId,
@@ -48,7 +48,7 @@ export function ScheduledTriggerInvocationsTable({
 }: ScheduledTriggerInvocationsTableProps) {
   const router = useRouter();
   const [invocations, setInvocations] = useState(initialInvocations);
-  const [loadingInvocations, setLoadingInvocations] = useState<Set<string>>(new Set());
+  const [loadingInvocations, setLoadingInvocations] = useState(new Set<string>());
 
   const hasTransientInvocations = invocations.some(
     (inv) => inv.status === 'pending' || inv.status === 'running'
@@ -76,201 +76,188 @@ export function ScheduledTriggerInvocationsTable({
     return () => clearInterval(intervalId);
   }, [hasTransientInvocations, tenantId, projectId, agentId, scheduledTriggerId]);
 
-  useEffect(() => {
-    setInvocations(initialInvocations);
-  }, [initialInvocations]);
+  async function cancelInvocation(invocationId: string) {
+    if (!confirm('Are you sure you want to cancel this invocation?')) {
+      return;
+    }
 
-  const cancelInvocation = useCallback(
-    async (invocationId: string) => {
-      if (!confirm('Are you sure you want to cancel this invocation?')) {
-        return;
+    setLoadingInvocations((prev) => new Set(prev).add(invocationId));
+
+    try {
+      const result = await cancelScheduledTriggerInvocationAction(
+        tenantId,
+        projectId,
+        agentId,
+        scheduledTriggerId,
+        invocationId
+      );
+
+      if (result.success) {
+        toast.success('Invocation cancelled successfully');
+        router.refresh();
+      } else {
+        toast.error(result.error || 'Failed to cancel invocation');
       }
+    } catch (error) {
+      console.error('Failed to cancel invocation:', error);
+      toast.error('Failed to cancel invocation');
+    }
+    setLoadingInvocations((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(invocationId);
+      return newSet;
+    });
+  }
 
-      setLoadingInvocations((prev) => new Set(prev).add(invocationId));
+  async function rerunInvocation(invocationId: string) {
+    if (!confirm('Are you sure you want to rerun this invocation?')) {
+      return;
+    }
 
-      try {
-        const result = await cancelScheduledTriggerInvocationAction(
-          tenantId,
-          projectId,
-          agentId,
-          scheduledTriggerId,
-          invocationId
-        );
+    setLoadingInvocations((prev) => new Set(prev).add(invocationId));
 
-        if (result.success) {
-          toast.success('Invocation cancelled successfully');
-          router.refresh();
-        } else {
-          toast.error(result.error || 'Failed to cancel invocation');
-        }
-      } catch (error) {
-        console.error('Failed to cancel invocation:', error);
-        toast.error('Failed to cancel invocation');
+    try {
+      const result = await rerunScheduledTriggerInvocationAction(
+        tenantId,
+        projectId,
+        agentId,
+        scheduledTriggerId,
+        invocationId
+      );
+
+      if (result.success) {
+        toast.success('Invocation rerun started successfully');
+        router.refresh();
+      } else {
+        toast.error(result.error || 'Failed to rerun invocation');
       }
-      setLoadingInvocations((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(invocationId);
-        return newSet;
-      });
+    } catch (error) {
+      console.error('Failed to rerun invocation:', error);
+      toast.error('Failed to rerun invocation');
+    }
+    setLoadingInvocations((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(invocationId);
+      return newSet;
+    });
+  }
+
+  const columns: ColumnDef<ScheduledTriggerInvocation>[] = [
+    {
+      id: 'scheduledFor',
+      accessorFn: (row) => new Date(row.scheduledFor),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Scheduled For" />,
+      sortingFn: 'datetime',
+      cell: ({ row }) => (
+        <div className="font-mono text-sm">
+          {formatInvocationDateTime(row.original.scheduledFor)}
+        </div>
+      ),
     },
-    [tenantId, projectId, agentId, scheduledTriggerId, router]
-  );
-
-  const rerunInvocation = useCallback(
-    async (invocationId: string) => {
-      if (!confirm('Are you sure you want to rerun this invocation?')) {
-        return;
-      }
-
-      setLoadingInvocations((prev) => new Set(prev).add(invocationId));
-
-      try {
-        const result = await rerunScheduledTriggerInvocationAction(
-          tenantId,
-          projectId,
-          agentId,
-          scheduledTriggerId,
-          invocationId
-        );
-
-        if (result.success) {
-          toast.success('Invocation rerun started successfully');
-          router.refresh();
-        } else {
-          toast.error(result.error || 'Failed to rerun invocation');
-        }
-      } catch (error) {
-        console.error('Failed to rerun invocation:', error);
-        toast.error('Failed to rerun invocation');
-      }
-      setLoadingInvocations((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(invocationId);
-        return newSet;
-      });
+    {
+      id: 'status',
+      header: 'Status',
+      enableSorting: false,
+      cell: ({ row }) => getInvocationStatusBadge(row.original.status as InvocationStatus),
     },
-    [tenantId, projectId, agentId, scheduledTriggerId, router]
-  );
+    {
+      id: 'startedAt',
+      accessorFn: (row) => (row.startedAt ? new Date(row.startedAt) : undefined),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Started At" />,
+      sortingFn: 'datetime',
+      sortUndefined: 'last',
+      cell: ({ row }) => (
+        <div className="text-sm text-muted-foreground">
+          {formatInvocationDateTime(row.original.startedAt)}
+        </div>
+      ),
+    },
+    {
+      id: 'duration',
+      header: 'Duration',
+      enableSorting: false,
+      cell: ({ row }) => (
+        <div className="text-sm text-muted-foreground">
+          {formatInvocationDuration(row.original.startedAt, row.original.completedAt)}
+        </div>
+      ),
+    },
+    {
+      id: 'attempt',
+      header: 'Attempt',
+      enableSorting: false,
+      cell: ({ row }) => <Badge variant="count">{row.original.attemptNumber}</Badge>,
+    },
+    {
+      id: 'conversation',
+      header: 'Conversation',
+      enableSorting: false,
+      cell: ({ row }) =>
+        row.original.conversationIds && row.original.conversationIds.length > 0 ? (
+          <div className="flex flex-col gap-1">
+            {row.original.conversationIds.map((convId: string, idx: number) => (
+              <ExternalLink
+                key={convId}
+                href={`/${tenantId}/projects/${projectId}/traces/conversations/${convId}`}
+                className="text-primary no-underline"
+                iconClassName="text-primary"
+              >
+                {row.original.conversationIds && row.original.conversationIds.length > 1 && (
+                  <span className="text-muted-foreground text-xs">#{idx + 1}</span>
+                )}
+                View
+              </ExternalLink>
+            ))}
+          </div>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
+    },
+    {
+      id: 'actions',
+      header: '',
+      enableSorting: false,
+      meta: { className: 'w-12' },
+      cell: ({ row }) => {
+        const isLoading = loadingInvocations.has(row.original.id);
+        const canCancel = row.original.status === 'pending' || row.original.status === 'running';
+        const canRerun =
+          row.original.status === 'completed' ||
+          row.original.status === 'failed' ||
+          row.original.status === 'cancelled';
+        const hasActions = canCancel || canRerun;
 
-  const columns = useMemo<ColumnDef<ScheduledTriggerInvocation>[]>(
-    () => [
-      {
-        id: 'scheduledFor',
-        accessorFn: (row) => new Date(row.scheduledFor),
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Scheduled For" />,
-        sortingFn: 'datetime',
-        cell: ({ row }) => (
-          <div className="font-mono text-sm">
-            {formatInvocationDateTime(row.original.scheduledFor)}
-          </div>
-        ),
-      },
-      {
-        id: 'status',
-        header: 'Status',
-        enableSorting: false,
-        cell: ({ row }) => getInvocationStatusBadge(row.original.status as InvocationStatus),
-      },
-      {
-        id: 'startedAt',
-        accessorFn: (row) => (row.startedAt ? new Date(row.startedAt) : undefined),
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Started At" />,
-        sortingFn: 'datetime',
-        sortUndefined: 'last',
-        cell: ({ row }) => (
-          <div className="text-sm text-muted-foreground">
-            {formatInvocationDateTime(row.original.startedAt)}
-          </div>
-        ),
-      },
-      {
-        id: 'duration',
-        header: 'Duration',
-        enableSorting: false,
-        cell: ({ row }) => (
-          <div className="text-sm text-muted-foreground">
-            {formatInvocationDuration(row.original.startedAt, row.original.completedAt)}
-          </div>
-        ),
-      },
-      {
-        id: 'attempt',
-        header: 'Attempt',
-        enableSorting: false,
-        cell: ({ row }) => <Badge variant="count">{row.original.attemptNumber}</Badge>,
-      },
-      {
-        id: 'conversation',
-        header: 'Conversation',
-        enableSorting: false,
-        cell: ({ row }) =>
-          row.original.conversationIds && row.original.conversationIds.length > 0 ? (
-            <div className="flex flex-col gap-1">
-              {row.original.conversationIds.map((convId: string, idx: number) => (
-                <ExternalLink
-                  key={convId}
-                  href={`/${tenantId}/projects/${projectId}/traces/conversations/${convId}`}
-                  className="text-primary no-underline"
-                  iconClassName="text-primary"
+        if (!hasActions) return null;
+
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-sm" disabled={isLoading}>
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {canRerun && (
+                <DropdownMenuItem onClick={() => rerunInvocation(row.original.id)}>
+                  <RotateCcw className="w-4 h-4" />
+                  Rerun
+                </DropdownMenuItem>
+              )}
+              {canCancel && (
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() => cancelInvocation(row.original.id)}
                 >
-                  {row.original.conversationIds && row.original.conversationIds.length > 1 && (
-                    <span className="text-muted-foreground text-xs">#{idx + 1}</span>
-                  )}
-                  View
-                </ExternalLink>
-              ))}
-            </div>
-          ) : (
-            <span className="text-muted-foreground">—</span>
-          ),
+                  <Ban className="w-4 h-4" />
+                  Cancel
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
       },
-      {
-        id: 'actions',
-        header: '',
-        enableSorting: false,
-        meta: { className: 'w-12' },
-        cell: ({ row }) => {
-          const isLoading = loadingInvocations.has(row.original.id);
-          const canCancel = row.original.status === 'pending' || row.original.status === 'running';
-          const canRerun =
-            row.original.status === 'completed' ||
-            row.original.status === 'failed' ||
-            row.original.status === 'cancelled';
-          const hasActions = canCancel || canRerun;
-
-          if (!hasActions) return null;
-
-          return (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon-sm" disabled={isLoading}>
-                  <MoreHorizontal className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {canRerun && (
-                  <DropdownMenuItem onClick={() => rerunInvocation(row.original.id)}>
-                    <RotateCcw className="w-4 h-4" />
-                    Rerun
-                  </DropdownMenuItem>
-                )}
-                {canCancel && (
-                  <DropdownMenuItem
-                    variant="destructive"
-                    onClick={() => cancelInvocation(row.original.id)}
-                  >
-                    <Ban className="w-4 h-4" />
-                    Cancel
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          );
-        },
-      },
-    ],
-    [tenantId, projectId, loadingInvocations, cancelInvocation, rerunInvocation]
-  );
+    },
+  ];
 
   return (
     <div className="rounded-lg border">

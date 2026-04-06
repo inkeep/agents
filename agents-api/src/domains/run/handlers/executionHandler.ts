@@ -303,6 +303,7 @@ export class ExecutionHandler {
           originAgentId: agentId,
           targetAgentId: currentAgentId,
           initiatedBy,
+          appId: executionContext.metadata?.appId,
         });
 
         const runAsUserId =
@@ -313,8 +314,6 @@ export class ExecutionHandler {
             ? initiatedBy.id
             : undefined;
 
-        const appId = executionContext.metadata?.appId;
-
         const trustedHeaders: Record<string, string> = {
           Authorization: `Bearer ${authToken}`,
           'x-inkeep-tenant-id': tenantId,
@@ -322,7 +321,6 @@ export class ExecutionHandler {
           'x-inkeep-agent-id': agentId,
           'x-inkeep-sub-agent-id': currentAgentId,
           ...(runAsUserId ? { 'x-inkeep-run-as-user-id': runAsUserId } : {}),
-          ...(appId ? { 'x-inkeep-app-id': appId } : {}),
         };
 
         const a2aClient = new A2AClient(agentBaseUrl, {
