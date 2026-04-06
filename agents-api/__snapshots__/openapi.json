@@ -6680,8 +6680,7 @@
             "type": "string"
           },
           "id": {
-            "maxLength": 256,
-            "type": "string"
+            "$ref": "#/components/schemas/ProjectResourceId"
           },
           "models": {
             "$ref": "#/components/schemas/ProjectModel"
@@ -6703,7 +6702,10 @@
       },
       "ProjectIdPathParam": {
         "description": "Project identifier",
-        "example": "project_456",
+        "example": "project-456",
+        "maxLength": 255,
+        "minLength": 1,
+        "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
         "type": "string"
       },
       "ProjectListResponse": {
@@ -6741,6 +6743,14 @@
           "base"
         ],
         "type": "object"
+      },
+      "ProjectResourceId": {
+        "description": "Project identifier (lowercase alphanumeric and hyphens only)",
+        "example": "my-project-123",
+        "maxLength": 255,
+        "minLength": 1,
+        "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+        "type": "string"
       },
       "ProjectResponse": {
         "properties": {
@@ -44167,7 +44177,7 @@
             "required": false,
             "schema": {
               "description": "Project identifier",
-              "example": "project_456",
+              "example": "project-456",
               "type": "string"
             }
           },
@@ -44795,7 +44805,7 @@
         }
       }
     },
-    "/run/api/executions/:executionId": {
+    "/run/api/executions/{executionId}": {
       "get": {
         "description": "Returns the status of a durable execution.",
         "parameters": [
@@ -44886,7 +44896,7 @@
         }
       }
     },
-    "/run/api/executions/:executionId/approvals/:toolCallId": {
+    "/run/api/executions/{executionId}/approvals/{toolCallId}": {
       "post": {
         "description": "Resumes a suspended durable execution by approving or denying a pending tool call.",
         "parameters": [
@@ -44979,7 +44989,7 @@
         }
       }
     },
-    "/run/api/executions/:executionId/stream": {
+    "/run/api/executions/{executionId}/stream": {
       "get": {
         "description": "Reconnects to the SSE stream of an existing durable execution.",
         "parameters": [
@@ -46219,7 +46229,7 @@
             "required": false,
             "schema": {
               "description": "Project identifier",
-              "example": "project_456",
+              "example": "project-456",
               "type": "string"
             }
           },

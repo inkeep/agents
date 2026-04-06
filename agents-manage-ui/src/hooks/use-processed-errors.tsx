@@ -4,27 +4,28 @@ import { useFormState } from 'react-hook-form';
 import { flatNestedFieldMessage } from '@/components/ui/form';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 
+type Entity =
+  | 'subAgents'
+  | 'externalAgents'
+  | 'teamAgents'
+  | 'functionTools'
+  | 'functions'
+  | 'tools'
+  | 'mcpRelations';
+
 export function useProcessedErrors(
-  entity:
-    | 'subAgents'
-    | 'externalAgents'
-    | 'teamAgents'
-    | 'functionTools'
-    | 'functions'
-    | 'tools'
-    | 'mcpRelations',
+  entity: Entity,
   key: string
 ): Array<{
   field: string;
   message?: string;
 }> {
-  // React Hook Form uses a Proxy for formState,
-  // so the errors object may not get a new reference on updates with React compiler
   const { control } = useFullAgentFormContext();
-  const { errors } = useFormState({ control, name: `${entity}.${key}` });
+  const name = `${entity}.${key}` as const;
+  const formState = useFormState({ control, name });
+  const { error = {} } = control.getFieldState(name, formState);
 
-  const fieldErrors = errors?.[entity]?.[key] ?? {};
-  const processedErrors = Object.entries(fieldErrors).map(([key, value]) => ({
+  const processedErrors = Object.entries(error).map(([key, value]) => ({
     field: key,
     message: flatNestedFieldMessage(value),
   }));

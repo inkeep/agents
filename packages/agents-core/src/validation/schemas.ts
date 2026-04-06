@@ -98,6 +98,7 @@ import {
   omitTimestamps,
   PaginationQueryParamsSchema,
   PaginationSchema,
+  ProjectResourceIdSchema,
   ResourceIdSchema,
   StringRecordSchema,
 } from './schemas/shared';
@@ -2571,6 +2572,7 @@ export const ProjectSelectSchema = registerFieldSchemas(
 );
 export const ProjectInsertSchema = createInsertSchema(projects)
   .extend({
+    id: ProjectResourceIdSchema,
     models: ProjectModelSchema,
     stopWhen: StopWhenSchema.optional(),
   })
@@ -3003,7 +3005,7 @@ export const HeadersScopeSchema = z.object({
   }),
   'x-inkeep-project-id': z.string().optional().openapi({
     description: 'Project identifier',
-    example: 'project_456',
+    example: 'project-456',
   }),
   'x-inkeep-agent-id': z.string().optional().openapi({
     description: 'Agent identifier',
@@ -3020,13 +3022,13 @@ const TenantId = z.string().openapi('TenantIdPathParam', {
   example: 'tenant_123',
 });
 
-const ProjectId = z.string().openapi('ProjectIdPathParam', {
+const ProjectId = ProjectResourceIdSchema.openapi('ProjectIdPathParam', {
   param: {
     name: 'projectId',
     in: 'path',
   },
   description: 'Project identifier',
-  example: 'project_456',
+  example: 'project-456',
 });
 
 const AgentId = z.string().openapi('AgentIdPathParam', {
