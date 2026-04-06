@@ -71,10 +71,6 @@ function getModelConfigurationSlot(name: string): ModelConfigurationSlot {
   throw new Error(`Unsupported model configuration path: ${name}`);
 }
 
-function getModelConfigurationIdPrefix(name: string) {
-  return name.replaceAll('.', '-');
-}
-
 function getJsonPlaceholder({ model, slot }: { model?: string; slot: ModelConfigurationSlot }) {
   if (model?.startsWith('azure/')) {
     return slot === 'summarizer'
@@ -379,7 +375,6 @@ export function ModelConfiguration<
 }: ModelConfigurationProps<TFieldValues, TTransformedValues>) {
   const { data: capabilities } = useCapabilitiesQuery();
   const slot = getModelConfigurationSlot(name);
-  const idPrefix = getModelConfigurationIdPrefix(name);
 
   const { field: modelField } = useController({
     control,
@@ -451,7 +446,7 @@ export function ModelConfiguration<
   const resolvedLabel = label ?? MODEL_CONFIGURATION_LABELS[slot];
   const resolvedDescription = description ?? MODEL_CONFIGURATION_DESCRIPTIONS[slot];
   const jsonPlaceholder = getJsonPlaceholder({ model: effectiveModel, slot });
-
+  const providerOptionsId = useId();
   return (
     <div className="space-y-4">
       <div className="relative space-y-2">
@@ -475,7 +470,6 @@ export function ModelConfiguration<
         <AzureConfigurationSection
           providerOptions={effectiveProviderOptions}
           onProviderOptionsChange={handleProviderOptionsStringChange}
-          editorNamePrefix={idPrefix}
           disabled={disabled || isUsingInheritedOptions}
         />
       )}
@@ -483,7 +477,7 @@ export function ModelConfiguration<
       {effectiveModel && (
         <div className="space-y-2">
           <FieldLabel
-            id={`${idPrefix}-provider-options`}
+            id={providerOptionsId}
             label={
               isUsingInheritedOptions ? (
                 <span className="text-muted-foreground italic">
@@ -495,7 +489,7 @@ export function ModelConfiguration<
             }
           />
           <StandaloneJsonEditor
-            name={`${idPrefix}-provider-options`}
+            name={providerOptionsId}
             onChange={handleProviderOptionsStringChange}
             value={
               typeof effectiveProviderOptions === 'string'
