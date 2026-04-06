@@ -12,7 +12,13 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCapabilitiesQuery } from '@/lib/query/capabilities';
-import { azureModelProviderOptionsTemplate, providerOptionsTemplate } from '@/lib/templates';
+import {
+  azureModelProviderOptionsTemplate,
+  azureModelSummarizerProviderOptionsTemplate,
+  providerOptionsTemplate,
+  structuredOutputModelProviderOptionsTemplate,
+  summarizerModelProviderOptionsTemplate,
+} from '@/lib/templates';
 import { cn } from '@/lib/utils';
 import { FieldLabel } from '../agent/sidepane/form-components/label';
 import { AzureConfigurationSection } from './azure-configuration-section';
@@ -29,12 +35,77 @@ const AVAILABLE_PROVIDERS = [
 const providerLabel = (value: string) =>
   AVAILABLE_PROVIDERS.find((p) => p.value === value)?.label ?? value;
 
+type ModelConfigurationSlot = 'base' | 'structuredOutput' | 'summarizer';
+
+interface ModelConfigurationInheritedValues {
+  model?: string;
+  providerOptions?: string | Record<string, unknown>;
+  fallbackModels?: string[];
+  allowedProviders?: string[];
+}
+
+const MODEL_CONFIGURATION_LABELS: Record<ModelConfigurationSlot, string> = {
+  base: 'Base model',
+  structuredOutput: 'Structured output model',
+  summarizer: 'Summarizer model',
+};
+
+const MODEL_CONFIGURATION_DESCRIPTIONS: Record<ModelConfigurationSlot, string> = {
+  base: 'Primary model for general agent responses',
+  structuredOutput: 'Model for structured outputs and components (defaults to base model)',
+  summarizer: 'Model for summarization tasks (defaults to base model)',
+};
+
+const MODEL_CONFIGURATION_PLACEHOLDERS: Record<ModelConfigurationSlot, string> = {
+  base: 'Select base model',
+  structuredOutput: 'Select structured output model (optional)',
+  summarizer: 'Select summarizer model (optional)',
+};
+
+function getModelConfigurationSlot(name: string): ModelConfigurationSlot {
+  const slot = name.split('.').at(-1);
+  if (slot === 'base' || slot === 'structuredOutput' || slot === 'summarizer') {
+    return slot;
+  }
+
+  throw new Error(`Unsupported model configuration path: ${name}`);
+}
+
+function getModelConfigurationIdPrefix(name: string) {
+  return name.replaceAll('.', '-');
+}
+
+function getJsonPlaceholder({ model, slot }: { model?: string; slot: ModelConfigurationSlot }) {
+  if (model?.startsWith('azure/')) {
+    return slot === 'summarizer'
+      ? azureModelSummarizerProviderOptionsTemplate
+      : azureModelProviderOptionsTemplate;
+  }
+
+  if (slot === 'structuredOutput') {
+    return structuredOutputModelProviderOptionsTemplate;
+  }
+
+  if (slot === 'summarizer') {
+    return summarizerModelProviderOptionsTemplate;
+  }
+
+  return providerOptionsTemplate;
+}
+
 const AllowedProvidersSection: FC<{
+  idPrefix: string;
   allowedProviders?: string[];
   inheritedAllowedProviders?: string[];
   onAllowedProvidersChange: (providers: string[]) => void;
   disabled: boolean;
-}> = ({ allowedProviders, inheritedAllowedProviders, onAllowedProvidersChange, disabled }) => {
+}> = ({
+  idPrefix,
+  allowedProviders,
+  inheritedAllowedProviders,
+  onAllowedProvidersChange,
+  disabled,
+}) => {
   const [addOpen, setAddOpen] = useState(false);
   const [draggingId, setDraggingId] = useState('');
   const [dragOverId, setDragOverId] = useState('');
@@ -77,14 +148,20 @@ const AllowedProvidersSection: FC<{
         disabled={disabled || isInherited}
       >
         <div className="flex items-center gap-2">
-          <RadioGroupItem value="all" id="providers-all" />
-          <Label htmlFor="providers-all" className="text-sm font-normal cursor-pointer">
+          <RadioGroupItem value="all" id={`${idPrefix}-providers-all`} />
+          <Label
+            htmlFor={`${idPrefix}-providers-all`}
+            className="text-sm font-normal cursor-pointer"
+          >
             All providers
           </Label>
         </div>
         <div className="flex items-center gap-2">
-          <RadioGroupItem value="specific" id="providers-specific" />
-          <Label htmlFor="providers-specific" className="text-sm font-normal cursor-pointer">
+          <RadioGroupItem value="specific" id={`${idPrefix}-providers-specific`} />
+          <Label
+            htmlFor={`${idPrefix}-providers-specific`}
+            className="text-sm font-normal cursor-pointer"
+          >
             Specific providers
           </Label>
         </div>
@@ -183,18 +260,12 @@ const AllowedProvidersSection: FC<{
 };
 
 const FallbackModelsSection: FC<{
-  editorNamePrefix: string;
+  idPrefix: string;
   fallbackModels?: string[];
   inheritedFallbackModels?: string[];
   onFallbackModelsChange: (models: string[]) => void;
   disabled: boolean;
-}> = ({
-  editorNamePrefix,
-  fallbackModels,
-  inheritedFallbackModels,
-  onFallbackModelsChange,
-  disabled,
-}) => {
+}> = ({ idPrefix, fallbackModels, inheritedFallbackModels, onFallbackModelsChange, disabled }) => {
   const [showPendingSelector, setShowPendingSelector] = useState(false);
   const savedModels = fallbackModels ?? inheritedFallbackModels ?? [];
   const isInherited = !fallbackModels && !!inheritedFallbackModels;
@@ -202,15 +273,12 @@ const FallbackModelsSection: FC<{
   return (
     <div className="space-y-2">
       <FieldLabel
-        id={`${editorNamePrefix}-fallback-models`}
+        id={`${idPrefix}-fallback-models`}
         label="Fallback models"
         tooltip="Ordered list of models to try if the primary model fails. Requires AI Gateway."
       />
       {savedModels.map((model, index) => (
-        <div
-          key={`${editorNamePrefix}-fallback-${model}-${index}`}
-          className="flex items-center gap-2"
-        >
+        <div key={`${idPrefix}-fallback-${model}-${index}`} className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground w-4 shrink-0">{index + 1}.</span>
           <div className="flex-1">
             <ModelSelector
@@ -298,30 +366,13 @@ interface ModelConfigurationProps<
   TFieldValues extends FieldValues,
   TTransformedValues extends FieldValues | undefined = undefined,
 > {
-  /** Inherited/default model value to show when no value is set */
-  inheritedValue?: string;
-  /** Inherited provider options to show when no value is set */
-  inheritedProviderOptions?: string | Record<string, unknown>;
   /** Label for the model selector */
   label?: React.ReactNode;
   /** Description text shown below the selector */
   description?: string;
-  /** Placeholder text for the model selector */
-  placeholder?: string;
-  /** Whether the clear button should be shown */
-  canClear?: boolean;
-  /** Whether this field is required */
-  isRequired?: boolean;
-  /** Unique name prefix for the JSON editor */
-  editorNamePrefix?: string;
-  /** Custom placeholder for the JSON editor based on model type */
-  getJsonPlaceholder?: (model?: string) => string;
+  inherited?: ModelConfigurationInheritedValues;
   /** Whether the component is disabled/read-only */
   disabled?: boolean;
-  /** Inherited fallback models to show when no value is set */
-  inheritedFallbackModels?: string[];
-  /** Inherited allowed providers to show when no value is set */
-  inheritedAllowedProviders?: string[];
 
   control: Control<TFieldValues, unknown, TTransformedValues>;
   name: string;
@@ -331,22 +382,16 @@ export function ModelConfiguration<
   TFieldValues extends FieldValues,
   TTransformedValues extends FieldValues | undefined = undefined,
 >({
-  inheritedValue,
-  inheritedProviderOptions,
   label,
   description,
-  placeholder = 'Select a model...',
-  canClear = true,
-  isRequired = false,
-  editorNamePrefix = 'model',
-  getJsonPlaceholder,
+  inherited,
   disabled = false,
-  inheritedFallbackModels,
-  inheritedAllowedProviders,
   control,
   name,
 }: ModelConfigurationProps<TFieldValues, TTransformedValues>) {
   const { data: capabilities } = useCapabilitiesQuery();
+  const slot = getModelConfigurationSlot(name);
+  const idPrefix = getModelConfigurationIdPrefix(name);
 
   const { field: modelField } = useController({
     control,
@@ -381,14 +426,11 @@ export function ModelConfiguration<
   }
 
   function handleModelChange(modelValue: string) {
-    const previousEffectiveModel = value || inheritedValue;
+    const previousEffectiveModel = value || inherited?.model;
     const newModel = modelValue || undefined;
-    const wasInherited = !value && !!inheritedValue;
+    const wasInherited = !value && !!inherited?.model;
     const isNowExplicit = !!newModel;
 
-    // Clear provider options when:
-    // 1. Model value changes, OR
-    // 2. Switching from inherited to explicit (even if same model)
     if (previousEffectiveModel !== newModel || (wasInherited && isNowExplicit)) {
       onProviderOptionsChange('');
     }
@@ -410,24 +452,17 @@ export function ModelConfiguration<
     onProviderOptionsChange(nextValue);
   }
 
-  const getDefaultJsonPlaceholder = (model?: string) => {
-    if (model?.startsWith('azure/')) {
-      return azureModelProviderOptionsTemplate;
-    }
-    return providerOptionsTemplate;
-  };
-
-  const effectiveModel = value || inheritedValue;
-  const effectiveProviderOptions = value ? providerOptions : inheritedProviderOptions;
-  const isUsingInheritedOptions = !value && !!inheritedValue;
+  const effectiveModel = value || inherited?.model;
+  const effectiveProviderOptions = value ? providerOptions : inherited?.providerOptions;
+  const isUsingInheritedOptions = !value && !!inherited?.model;
 
   const modelProvider = effectiveModel?.split('/')[0] ?? '';
   const isGatewayRoutable =
     GATEWAY_ROUTABLE_PROVIDERS_SET.has(modelProvider) || modelProvider === 'gateway';
 
-  const jsonPlaceholder = getJsonPlaceholder
-    ? getJsonPlaceholder(effectiveModel)
-    : getDefaultJsonPlaceholder(effectiveModel);
+  const resolvedLabel = label ?? MODEL_CONFIGURATION_LABELS[slot];
+  const resolvedDescription = description ?? MODEL_CONFIGURATION_DESCRIPTIONS[slot];
+  const jsonPlaceholder = getJsonPlaceholder({ model: effectiveModel, slot });
 
   return (
     <div className="space-y-4">
@@ -436,31 +471,31 @@ export function ModelConfiguration<
           value={value || ''}
           onValueChange={handleModelChange}
           onProviderOptionsChange={handleProviderOptionsChange}
-          inheritedValue={inheritedValue}
-          label={label}
-          placeholder={placeholder}
-          canClear={canClear}
-          isRequired={isRequired}
+          inheritedValue={inherited?.model}
+          label={resolvedLabel}
+          placeholder={MODEL_CONFIGURATION_PLACEHOLDERS[slot]}
+          canClear={slot !== 'base'}
+          isRequired={slot === 'base'}
           disabled={disabled}
         />
-        {description && <p className="text-xs text-muted-foreground">{description}</p>}
+        {resolvedDescription && (
+          <p className="text-xs text-muted-foreground">{resolvedDescription}</p>
+        )}
       </div>
 
-      {/* Azure Configuration Fields */}
       {effectiveModel?.startsWith('azure/') && (
         <AzureConfigurationSection
           providerOptions={effectiveProviderOptions}
           onProviderOptionsChange={handleProviderOptionsStringChange}
-          editorNamePrefix={editorNamePrefix}
+          editorNamePrefix={idPrefix}
           disabled={disabled || isUsingInheritedOptions}
         />
       )}
 
-      {/* Provider Options JSON Editor */}
       {effectiveModel && (
         <div className="space-y-2">
           <FieldLabel
-            id={`${editorNamePrefix}-provider-options`}
+            id={`${idPrefix}-provider-options`}
             label={
               isUsingInheritedOptions ? (
                 <span className="text-muted-foreground italic">
@@ -472,7 +507,7 @@ export function ModelConfiguration<
             }
           />
           <StandaloneJsonEditor
-            name={`${editorNamePrefix}-provider-options`}
+            name={`${idPrefix}-provider-options`}
             onChange={handleProviderOptionsStringChange}
             value={
               typeof effectiveProviderOptions === 'string'
@@ -488,22 +523,21 @@ export function ModelConfiguration<
         </div>
       )}
 
-      {/* Allowed Providers */}
       {capabilities?.modelFallback?.enabled && effectiveModel && isGatewayRoutable && (
         <AllowedProvidersSection
+          idPrefix={idPrefix}
           allowedProviders={allowedProviders}
-          inheritedAllowedProviders={inheritedAllowedProviders}
+          inheritedAllowedProviders={inherited?.allowedProviders}
           onAllowedProvidersChange={onAllowedProvidersChange}
           disabled={disabled}
         />
       )}
 
-      {/* Fallback Models */}
       {capabilities?.modelFallback?.enabled && effectiveModel && isGatewayRoutable && (
         <FallbackModelsSection
-          editorNamePrefix={editorNamePrefix}
+          idPrefix={idPrefix}
           fallbackModels={fallbackModels}
-          inheritedFallbackModels={inheritedFallbackModels}
+          inheritedFallbackModels={inherited?.fallbackModels}
           onFallbackModelsChange={onFallbackModelsChange}
           disabled={disabled}
         />
