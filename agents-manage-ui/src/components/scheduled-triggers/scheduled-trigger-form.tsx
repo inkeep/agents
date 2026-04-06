@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { GitBranch, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -189,22 +189,36 @@ export function ScheduledTriggerForm({
     defaultValue: 'UTC',
   });
 
-  const loadTriggerUsers = useCallback(async () => {
-    if (mode !== 'edit' || !trigger || !isAdmin) return;
-    setIsLoadingUsers(true);
-    try {
-      const result = await getScheduledTriggerUsersAction(tenantId, projectId, agentId, trigger.id);
-      if (result.success && result.data) {
-        form.setValue('runAsUserIds', result.data, { shouldDirty: false });
-      }
-    } finally {
-      setIsLoadingUsers(false);
-    }
-  }, [mode, trigger, isAdmin, tenantId, projectId, agentId, form]);
-
   useEffect(() => {
+    if (mode !== 'edit' || !trigger || !isAdmin) return;
+
+    const triggerId = trigger.id;
+    let cancelled = false;
+    async function loadTriggerUsers() {
+      setIsLoadingUsers(true);
+      try {
+        const result = await getScheduledTriggerUsersAction(
+          tenantId,
+          projectId,
+          agentId,
+          triggerId
+        );
+        if (!cancelled && result.success && result.data) {
+          form.setValue('runAsUserIds', result.data, { shouldDirty: false });
+        }
+      } catch (error) {
+        console.error('Failed to load trigger users:', error);
+      }
+      if (!cancelled) {
+        setIsLoadingUsers(false);
+      }
+    }
+
     loadTriggerUsers();
-  }, [loadTriggerUsers]);
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, trigger, isAdmin, tenantId, projectId, agentId, form]);
 
   const getMemberDisplayName = (userId: string): string => {
     const member = orgMembers.find((m) => m.id === userId);
