@@ -53,6 +53,8 @@ const oneTimeTask = scheduledTrigger({
 | `retryDelaySeconds` | `number` | No | `60` | Seconds between retries (10–3600) |
 | `timeoutSeconds` | `number` | No | `780` | Execution timeout in seconds (30–780) |
 | `runAsUserId` | `string` | No | — | User ID whose identity and credentials are used during execution |
+| `runAsUserIds` | `string[]` | No | — | Array of user IDs to execute the trigger as. Produces one execution per user at each scheduled tick. Cannot be combined with `runAsUserId`. |
+| `dispatchDelayMs` | `number` | No | `0` | Delay in milliseconds between dispatching each user's execution (0–5000). Used to stagger executions and avoid MCP rate limits. |
 | `createdBy` | `string` | — | — | Read-only. User ID of the trigger creator, set automatically on creation. |
 
 <Note>
@@ -93,6 +95,29 @@ const userScopedReport = scheduledTrigger({
 ```
 
 When `runAsUserId` is set, agents automatically use that user's profile timezone for time-aware responses. Note that `cronTimezone` is still used for schedule calculation.
+
+### Multi-User Execution
+
+Use `runAsUserIds` to run a single trigger as multiple users. At each scheduled tick, the trigger produces one independent execution per user:
+
+```typescript
+import { scheduledTrigger } from "@inkeep/agents-sdk";
+
+const teamMeetingPrep = scheduledTrigger({
+  name: "Daily Meeting Prep",
+  cronExpression: "0 8 * * MON-FRI",
+  cronTimezone: "America/New_York",
+  messageTemplate: "Prepare briefings for today's meetings",
+  runAsUserIds: ["user_abc123", "user_def456", "user_ghi789"],
+  dispatchDelayMs: 1000, // 1s between each user's execution
+});
+```
+
+Each user's execution runs independently with its own invocation record, retry tracking, and conversation history. The `dispatchDelayMs` option staggers executions to avoid MCP rate limits when agents call the same tools.
+
+<Note>
+You must specify either `runAsUserId` (single user) or `runAsUserIds` (multiple users), but not both.
+</Note>
 
 See [Scheduled Triggers](/visual-builder/triggers/scheduled) for details on permissions, admin delegation, and runtime behavior.
 
