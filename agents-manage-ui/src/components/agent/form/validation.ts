@@ -7,6 +7,7 @@ import {
 import { z } from 'zod';
 import { getFunctionToolGraphKey, getMcpGraphKey } from '@/features/agent/domain/graph-keys';
 import { serializeJson } from '@/lib/utils';
+import { StringToJsonSchema } from '@/lib/validation';
 
 const OriginalContextConfigSchema =
   AgentWithinContextOfProjectSchema.shape.contextConfig.unwrap().shape;
@@ -41,13 +42,6 @@ const FunctionSchema = AgentWithinContextOfProjectSchema.shape.functions.unwrap(
 const ModelsBaseSchema = ModelsSchema.base.unwrap();
 const ModelsStructuredOutputSchema = ModelsSchema.structuredOutput.unwrap();
 const ModelsSummarizerSchema = ModelsSchema.summarizer.unwrap();
-
-const StringToJsonSchema = z
-  .string()
-  .trim()
-  .transform((value, ctx) => (value === '' ? undefined : transformToJson(value, ctx)))
-  .refine((v) => v !== null, 'Cannot be null')
-  .optional();
 
 const NullToUndefinedSchema = z
   // Normalize number input: <input type="number"> produce `null` for empty value,
