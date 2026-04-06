@@ -49,7 +49,7 @@ export function ModelSection({ projectModels, agentModels, control, basePath }: 
         allowedProviders: projectModel.allowedProviders,
       };
     }
-    if (models?.base?.model) {
+    if (models.base?.model) {
       return {
         model: models.base.model,
         options: models.base.providerOptions,
@@ -110,7 +110,7 @@ export function ModelSection({ projectModels, agentModels, control, basePath }: 
             <InheritanceIndicator
               {...getModelInheritanceStatus(
                 'agent',
-                models?.base?.model,
+                models.base?.model,
                 agentModels?.base?.model,
                 projectModels?.base?.model
               )}
@@ -140,7 +140,7 @@ export function ModelSection({ projectModels, agentModels, control, basePath }: 
               <InheritanceIndicator
                 {...getModelInheritanceStatus(
                   'agent',
-                  models?.structuredOutput?.model,
+                  models.structuredOutput?.model,
                   agentModels?.structuredOutput?.model,
                   projectModels?.structuredOutput?.model
                 )}
@@ -171,7 +171,7 @@ export function ModelSection({ projectModels, agentModels, control, basePath }: 
               <InheritanceIndicator
                 {...getModelInheritanceStatus(
                   'agent',
-                  models?.summarizer?.model,
+                  models.summarizer?.model,
                   agentModels?.summarizer?.model,
                   projectModels?.summarizer?.model
                 )}

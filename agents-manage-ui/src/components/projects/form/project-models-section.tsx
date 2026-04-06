@@ -2,7 +2,7 @@
 
 import { ChevronRight, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { type Control, useController, useFormState, useWatch } from 'react-hook-form';
+import { type Control, useFormState, useWatch } from 'react-hook-form';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
 import { Button } from '@/components/ui/button';
@@ -16,10 +16,12 @@ import {
   summarizerModelProviderOptionsTemplate,
 } from '@/lib/templates';
 import { ModelInheritanceInfo } from './model-inheritance-info';
-import type { ProjectFormData } from './validation';
+import type { ProjectFormData, ProjectFormInputValues } from './validation';
+
+type ProjectFormControl = Control<ProjectFormInputValues, unknown, ProjectFormData>;
 
 interface ProjectModelsSectionProps {
-  control: Control<ProjectFormData>;
+  control: ProjectFormControl;
   disabled?: boolean;
 }
 
@@ -27,7 +29,7 @@ function BaseModelSection({
   control,
   disabled,
 }: {
-  control: Control<ProjectFormData>;
+  control: ProjectFormControl;
   disabled?: boolean;
 }) {
   const { field: providerOptionsField } = useController({
@@ -96,7 +98,7 @@ function StructuredOutputModelSection({
   control,
   disabled,
 }: {
-  control: Control<ProjectFormData>;
+  control: ProjectFormControl;
   disabled?: boolean;
 }) {
   const { field: providerOptionsField } = useController({
@@ -180,7 +182,7 @@ function SummarizerModelSection({
   control,
   disabled,
 }: {
-  control: Control<ProjectFormData>;
+  control: ProjectFormControl;
   disabled?: boolean;
 }) {
   const { field: providerOptionsField } = useController({
