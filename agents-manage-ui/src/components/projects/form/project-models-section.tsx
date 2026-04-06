@@ -23,6 +23,8 @@ interface ProjectModelsSectionProps {
   disabled?: boolean;
 }
 
+type BaseModelSettings = ProjectFormInputValues['models']['base'];
+
 function BaseModelSection({
   control,
   disabled,
@@ -47,16 +49,13 @@ function BaseModelSection({
 
 function StructuredOutputModelSection({
   control,
+  base,
   disabled,
 }: {
   control: ProjectFormControl;
+  base: BaseModelSettings;
   disabled?: boolean;
 }) {
-  const baseModel = useWatch({ control, name: 'models.base.model' });
-  const baseProviderOptions = useWatch({ control, name: 'models.base.providerOptions' });
-  const baseFallbackModels = useWatch({ control, name: 'models.base.fallbackModels' });
-  const baseAllowedProviders = useWatch({ control, name: 'models.base.allowedProviders' });
-
   return (
     <ModelConfiguration
       control={control}
@@ -64,8 +63,8 @@ function StructuredOutputModelSection({
       label="Structured output model"
       description="Model for structured outputs and components (defaults to base model)"
       placeholder="Select structured output model (optional)"
-      inheritedValue={baseModel}
-      inheritedProviderOptions={baseProviderOptions}
+      inheritedValue={base.model}
+      inheritedProviderOptions={base.providerOptions}
       canClear={!disabled}
       editorNamePrefix="project-structured"
       getJsonPlaceholder={(model) => {
@@ -75,24 +74,21 @@ function StructuredOutputModelSection({
         return structuredOutputModelProviderOptionsTemplate;
       }}
       disabled={disabled}
-      inheritedFallbackModels={baseFallbackModels ?? undefined}
-      inheritedAllowedProviders={baseAllowedProviders ?? undefined}
+      inheritedFallbackModels={base.fallbackModels ?? undefined}
+      inheritedAllowedProviders={base.allowedProviders ?? undefined}
     />
   );
 }
 
 function SummarizerModelSection({
   control,
+  base,
   disabled,
 }: {
   control: ProjectFormControl;
+  base: BaseModelSettings;
   disabled?: boolean;
 }) {
-  const baseModel = useWatch({ control, name: 'models.base.model' });
-  const baseProviderOptions = useWatch({ control, name: 'models.base.providerOptions' });
-  const baseFallbackModels = useWatch({ control, name: 'models.base.fallbackModels' });
-  const baseAllowedProviders = useWatch({ control, name: 'models.base.allowedProviders' });
-
   return (
     <ModelConfiguration
       control={control}
@@ -100,8 +96,8 @@ function SummarizerModelSection({
       label="Summarizer model"
       description="Model for summarization tasks (defaults to base model)"
       placeholder="Select summarizer model (optional)"
-      inheritedValue={baseModel}
-      inheritedProviderOptions={baseProviderOptions}
+      inheritedValue={base.model}
+      inheritedProviderOptions={base.providerOptions}
       canClear
       editorNamePrefix="project-summarizer"
       getJsonPlaceholder={(model) => {
@@ -111,8 +107,8 @@ function SummarizerModelSection({
         return summarizerModelProviderOptionsTemplate;
       }}
       disabled={disabled}
-      inheritedFallbackModels={baseFallbackModels ?? undefined}
-      inheritedAllowedProviders={baseAllowedProviders ?? undefined}
+      inheritedFallbackModels={base.fallbackModels ?? undefined}
+      inheritedAllowedProviders={base.allowedProviders ?? undefined}
     />
   );
 }
@@ -120,6 +116,7 @@ function SummarizerModelSection({
 export function ProjectModelsSection({ control, disabled }: ProjectModelsSectionProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { errors } = useFormState({ control });
+  const base = useWatch({ control, name: 'models.base' });
 
   const hasModelsErrors = !!(
     errors.models?.base?.model ||
@@ -151,10 +148,10 @@ export function ProjectModelsSection({ control, disabled }: ProjectModelsSection
         <BaseModelSection control={control} disabled={disabled} />
 
         {/* Structured Output Model */}
-        <StructuredOutputModelSection control={control} disabled={disabled} />
+        <StructuredOutputModelSection control={control} base={base} disabled={disabled} />
 
         {/* Summarizer Model */}
-        <SummarizerModelSection control={control} disabled={disabled} />
+        <SummarizerModelSection control={control} base={base} disabled={disabled} />
         <InfoCard title="How model inheritance works:" Icon={Info}>
           <ModelInheritanceInfo />
         </InfoCard>
