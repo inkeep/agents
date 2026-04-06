@@ -1,4 +1,4 @@
-import type { Node } from '@xyflow/react';
+import { type Node, useNodes } from '@xyflow/react';
 import { useFormState, useWatch } from 'react-hook-form';
 import { isNodeType, NodeType } from '@/components/agent/configuration/node-types';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
@@ -46,7 +46,7 @@ function useErrors(control: ReturnType<typeof useFullAgentFormContext>['control'
 
 export function useGroupedAgentErrors() {
   const { control } = useFullAgentFormContext();
-  const nodes = useAgentStore((state) => state.nodes);
+  const nodes = useNodes();
   const {
     subAgents,
     functionTools,
