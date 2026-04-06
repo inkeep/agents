@@ -174,8 +174,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
       <Separator />
       <ModelSection
         control={form.control}
-        // field.value doesn't update properly here, so we read from subAgent.models instead
-        models={subAgent.models}
+        basePath={path('models')}
         projectModels={project?.models}
         agentModels={models}
       />
