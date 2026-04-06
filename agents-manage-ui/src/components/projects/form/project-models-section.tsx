@@ -263,15 +263,7 @@ function SummarizerModelSection({
 export function ProjectModelsSection({ control, disabled }: ProjectModelsSectionProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { errors } = useFormState({ control });
-
-  const hasModelsErrors = !!(
-    errors.models?.base?.model ||
-    errors.models?.base?.providerOptions ||
-    errors.models?.structuredOutput?.model ||
-    errors.models?.structuredOutput?.providerOptions ||
-    errors.models?.summarizer?.model ||
-    errors.models?.summarizer?.providerOptions
-  );
+  const hasModelsErrors = !!errors.models;
 
   // Auto-open the collapsible when there are errors in the models section
   useEffect(() => {
