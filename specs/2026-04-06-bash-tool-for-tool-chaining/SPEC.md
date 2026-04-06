@@ -354,23 +354,25 @@ Additionally, `sanitizeJMESPathSelector()` (`ArtifactService.ts:848-873`) alread
 
 **Note:** `sanitizeJMESPathSelector()` is currently a private method on `ArtifactService`. There are also public JMESPath utilities in `agents-core/src/utils/jmespath-utils.ts` (`validateJMESPathSecure()`, `searchJMESPath()`) with security checks. The implementation should consolidate to one location — either extract `sanitizeJMESPathSelector` to `jmespath-utils.ts` or use the existing public utilities. Avoid creating a third divergent implementation.
 
+**`result.` prefix handling:** `_structureHints.exampleSelectors` generate JMESPath expressions prefixed with `result.` (e.g., `result.items[?score > 0.8]`). `ArtifactService.createArtifact()` strips this prefix before applying (line 215-217). The `$select` implementation must decide: either strip the `result.` prefix automatically (matching artifact behavior), or update `_structureHints` guidance to clarify that `$select` expressions should NOT include the prefix. Recommend the former (auto-strip) for consistency — the LLM will copy selectors from `_structureHints` and they should work without modification.
+
 ### 5.3 Source Data Serialization
 
 The `$select` filter operates on the resolved data. Handle different data types:
 
 | Source type | Handling for JMESPath | Notes |
 |-------------|---------------------|-------|
-| Object/Array | `JSON.stringify(data)` | Normal case — jq operates on JSON |
-| String | Pass as-is (not re-stringified) | Avoid double-quoting: `"hello"` not `"\"hello\""` |
+| Object/Array | Pass directly to `jmespath.search()` | Normal case — JMESPath operates on JS objects |
+| String | Pass as-is | JMESPath can operate on strings for length/contains checks |
 | MCP content array | Unwrap text parts, concatenate | `{ content: [{type: 'text', text: '...'}] }` → extract text |
-| Buffer/binary | Skip jq, return error | jq only works on text/JSON |
+| Buffer/binary | Skip filter, return error | JMESPath only works on structured/text data |
 
 ### 5.4 Oversized Artifact Processing
 
 When `$tool`+`$artifact` ref resolves to an oversized artifact (`retrievalBlocked: true`):
 - `$select` filtering bypasses the retrieval block
 - Artifact data fetched via `ArtifactService.getArtifactFull()` with new `{ allowOversized: true }` option
-- jq filter applied, producing a subset that fits in context
+- JMESPath filter applied via `$select`, producing a subset that fits in context
 - Key capability: previously inaccessible data becomes usable
 
 ### 5.5 Error Handling
@@ -394,7 +396,7 @@ function applySelector(data: any, selector: string, toolCallId: string): any {
 }
 ```
 
-On jq failure, the `ToolChainResolutionError` propagates to the LLM as a tool call error. The LLM can retry with corrected syntax (same pattern as existing artifact resolution errors).
+On JMESPath failure, the `ToolChainResolutionError` propagates to the LLM as a tool call error. The LLM can retry with corrected syntax (same pattern as existing artifact resolution errors).
 
 ### 5.6 Prompt Guidance Updates
 
@@ -454,7 +456,7 @@ for the data you're working with.
 | Component | How it participates |
 |-----------|---------------------|
 | `resolveArgs()` | Extended (not replaced) — existing `$tool`/`$artifact` logic unchanged |
-| `ToolChainResolutionError` | Reused for jq filter errors |
+| `ToolChainResolutionError` | Reused for `$select` filter errors |
 | `tool-wrapper.ts` | No changes — `resolveArgs` is called before tool execution as before |
 | `ToolSessionManager` | No changes — downstream tool results still cached normally |
 
@@ -466,7 +468,7 @@ for the data you're working with.
 |---|----------|--------|------|------------|-----------|
 | D1 | Phase 1: `$select` (JMESPath) in resolveArgs; Phase 2: bash tool | LOCKED | Cross-cutting | HIGH | `$select` is smallest viable change — no new tool, no token cost, zero new deps (uses existing `jmespath`). Bash tool for exploratory cases pending validation. |
 | D2 | Queryable sources = session cache + stored artifacts | DIRECTED | Cross-cutting | HIGH | Session cache for current-turn, artifacts for cross-turn |
-| D3 | Allow processing oversized artifacts | LOCKED | Cross-cutting | HIGH | Key capability — jq filter operates out-of-context |
+| D3 | Allow processing oversized artifacts | LOCKED | Cross-cutting | HIGH | Key capability — `$select` filter operates out-of-context |
 | D4 | Phase 2 blocked on: dependency spike, Vercel compat, token cost measurement | DIRECTED | Technical | HIGH | Audit found child process model incompatible with Vercel serverless (H1). Must resolve before Phase 2. |
 | D5 | Bash tool must explicitly call `recordToolResult()` | LOCKED | Technical | HIGH | Audit finding H2: `wrapToolWithStreaming` does NOT auto-cache. Each tool type caches explicitly. |
 | D6 | Phase 2 execution via SandboxExecutorFactory | DIRECTED | Technical | HIGH | Reuses existing dual-path sandbox (NativeSandboxExecutor local, VercelSandboxExecutor prod). Solves Vercel compat. |
