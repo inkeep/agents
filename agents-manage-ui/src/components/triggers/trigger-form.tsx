@@ -478,8 +478,36 @@ export function TriggerForm({
     move: moveComponent,
   } = useFieldArray({ control, name: 'signedComponents' });
   const { isSubmitting } = form.formState;
-  const transformType = useWatch({ control, name: 'transformType' });
-  const signatureSource = useWatch({ control, name: 'signatureSource' });
+  const [
+    transformType,
+    signatureSource,
+    watchedRunAsUserId,
+    watchedAuthHeaders,
+    watchedSignatureVerificationEnabled,
+    watchedSigningCredential,
+    watchedSignatureKey,
+    watchedSignaturePrefix,
+    watchedSignatureAlgorithm,
+    watchedSignatureEncoding,
+    watchedSignedComponents,
+    watchedJoinSeparator,
+  ] = useWatch({
+    control,
+    name: [
+      'transformType',
+      'signatureSource',
+      'runAsUserId',
+      'authHeaders',
+      'signatureVerificationEnabled',
+      'signingSecretCredentialReferenceId',
+      'signatureKey',
+      'signaturePrefix',
+      'signatureAlgorithm',
+      'signatureEncoding',
+      'signedComponents',
+      'joinSeparator',
+    ],
+  });
 
   const resolveRunAsUserId = (value: string | undefined): string | null => {
     if (!value || value === NONE_VALUE) return null;
@@ -526,24 +554,6 @@ export function TriggerForm({
 
     toast.success(`Applied ${preset.name} preset`);
   };
-
-  // Watch specific fields for request preview and conditional rendering
-  const watchedRunAsUserId = useWatch({ control, name: 'runAsUserId' });
-  const watchedAuthHeaders = useWatch({ control, name: 'authHeaders' });
-  const watchedSignatureVerificationEnabled = useWatch({
-    control,
-    name: 'signatureVerificationEnabled',
-  });
-  const watchedSigningCredential = useWatch({
-    control,
-    name: 'signingSecretCredentialReferenceId',
-  });
-  const watchedSignatureKey = useWatch({ control, name: 'signatureKey' });
-  const watchedSignaturePrefix = useWatch({ control, name: 'signaturePrefix' });
-  const watchedSignatureAlgorithm = useWatch({ control, name: 'signatureAlgorithm' });
-  const watchedSignatureEncoding = useWatch({ control, name: 'signatureEncoding' });
-  const watchedSignedComponents = useWatch({ control, name: 'signedComponents' });
-  const watchedJoinSeparator = useWatch({ control, name: 'joinSeparator' });
 
   // Generate request preview based on current form values
   const authHeaders = watchedAuthHeaders || [];

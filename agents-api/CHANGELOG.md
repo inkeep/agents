@@ -1,5 +1,19 @@
 # @inkeep/agents-api
 
+## 0.65.0
+
+### Minor Changes
+
+- e332202: Add multi-user scheduled trigger support with per-user dispatch, sub-resource endpoints, and dispatch delay
+
+### Patch Changes
+
+- Updated dependencies [e332202]
+  - @inkeep/agents-core@0.65.0
+  - @inkeep/agents-work-apps@0.65.0
+  - @inkeep/agents-email@0.65.0
+  - @inkeep/agents-mcp@0.65.0
+
 ## 0.64.10
 
 ### Patch Changes

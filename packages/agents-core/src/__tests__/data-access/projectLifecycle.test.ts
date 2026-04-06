@@ -1,29 +1,34 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createProjectMetadataAndBranch,
-  deleteProjectWithBranch,
+  deleteProjectAndBranches,
   getProjectMainBranchName,
 } from '../../data-access/manage/projectLifecycle';
 import { createProjectMetadata, getProjectMetadata } from '../../data-access/runtime/projects';
 import { createTestOrganization } from '../../db/runtime/test-runtime-client';
 import { testRunDbClient } from '../setup';
 
-// Mock the dolt branch operations
 vi.mock('../../dolt/branch', () => ({
   doltBranch: vi.fn(),
   doltBranchExists: vi.fn(),
   doltCheckout: vi.fn(),
   doltDeleteBranch: vi.fn(),
+  doltListBranches: vi.fn(),
 }));
 
-// Import mocked modules
-import { doltBranch, doltBranchExists, doltCheckout, doltDeleteBranch } from '../../dolt/branch';
+import {
+  doltBranch,
+  doltBranchExists,
+  doltCheckout,
+  doltDeleteBranch,
+  doltListBranches,
+} from '../../dolt/branch';
 
-// Type the mocked functions
 const mockedDoltBranch = doltBranch as ReturnType<typeof vi.fn>;
 const mockedDoltBranchExists = doltBranchExists as ReturnType<typeof vi.fn>;
 const mockedDoltCheckout = doltCheckout as ReturnType<typeof vi.fn>;
 const mockedDoltDeleteBranch = doltDeleteBranch as ReturnType<typeof vi.fn>;
+const mockedDoltListBranches = doltListBranches as ReturnType<typeof vi.fn>;
 
 describe('Project Lifecycle Utilities', () => {
   const testTenantId = 'test-tenant-lifecycle';
@@ -136,16 +141,20 @@ describe('Project Lifecycle Utilities', () => {
     });
   });
 
-  describe('deleteProjectWithBranch', () => {
+  describe('deleteProjectAndBranches', () => {
     it('should delete project metadata and branch', async () => {
       const mockConfigDb = {} as any;
 
-      // First create a project
       await createProjectMetadata(testRunDbClient)({
         id: 'delete-lifecycle-project',
         tenantId: testTenantId,
         mainBranchName: `${testTenantId}_delete-lifecycle-project_main`,
       });
+
+      const mockDoltListBranchesFn = vi
+        .fn()
+        .mockResolvedValue([{ name: `${testTenantId}_delete-lifecycle-project_main` }]);
+      mockedDoltListBranches.mockReturnValue(mockDoltListBranchesFn);
 
       const mockDoltDeleteBranchFn = vi.fn().mockResolvedValue(undefined);
       mockedDoltDeleteBranch.mockReturnValue(mockDoltDeleteBranchFn);
@@ -153,7 +162,7 @@ describe('Project Lifecycle Utilities', () => {
       const mockDoltCheckoutFn = vi.fn().mockResolvedValue(undefined);
       mockedDoltCheckout.mockReturnValue(mockDoltCheckoutFn);
 
-      const result = await deleteProjectWithBranch(
+      const result = await deleteProjectAndBranches(
         testRunDbClient,
         mockConfigDb
       )({
@@ -185,7 +194,10 @@ describe('Project Lifecycle Utilities', () => {
     it('should return false for non-existent project', async () => {
       const mockConfigDb = {} as any;
 
-      const result = await deleteProjectWithBranch(
+      const mockDoltListBranchesFn = vi.fn().mockResolvedValue([]);
+      mockedDoltListBranches.mockReturnValue(mockDoltListBranchesFn);
+
+      const result = await deleteProjectAndBranches(
         testRunDbClient,
         mockConfigDb
       )({
@@ -202,12 +214,16 @@ describe('Project Lifecycle Utilities', () => {
     it('should still delete project metadata even if branch deletion fails', async () => {
       const mockConfigDb = {} as any;
 
-      // Create a project first
       await createProjectMetadata(testRunDbClient)({
         id: 'branch-fail-project',
         tenantId: testTenantId,
         mainBranchName: `${testTenantId}_branch-fail-project_main`,
       });
+
+      const mockDoltListBranchesFn = vi
+        .fn()
+        .mockResolvedValue([{ name: `${testTenantId}_branch-fail-project_main` }]);
+      mockedDoltListBranches.mockReturnValue(mockDoltListBranchesFn);
 
       const mockDoltDeleteBranchFn = vi.fn().mockRejectedValue(new Error('Branch deletion failed'));
       mockedDoltDeleteBranch.mockReturnValue(mockDoltDeleteBranchFn);
@@ -216,7 +232,7 @@ describe('Project Lifecycle Utilities', () => {
       mockedDoltCheckout.mockReturnValue(mockDoltCheckoutFn);
 
       // Should not throw, but continue with cleanup
-      const result = await deleteProjectWithBranch(
+      const result = await deleteProjectAndBranches(
         testRunDbClient,
         mockConfigDb
       )({
