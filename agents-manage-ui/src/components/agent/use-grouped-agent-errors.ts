@@ -18,8 +18,7 @@ function getGraphKeyEntries(key: string, node: Node): GraphKeyEntry[] {
 function useErrors(control: ReturnType<typeof useFullAgentFormContext>['control']) {
   'use no memo';
 
-  // Keep the RHF read and rest destructuring together so the compiler does not
-  // preserve stale grouped errors from RHF's proxy-backed form state.
+  // RHF field errors come from proxy-backed formState. Read them inside a no-memo boundary.
   const { errors } = useFormState({ control });
   const {
     subAgents = EMPTY_GROUP,

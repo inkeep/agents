@@ -13,18 +13,6 @@ type Entity =
   | 'tools'
   | 'mcpRelations';
 
-function useErrors(entity: Entity, key: string) {
-  'use no memo';
-
-  // Read field errors inside a no-memo boundary because RHF may update its
-  // proxy-backed form state without replacing nested error object references.
-  const { control } = useFullAgentFormContext();
-  const { errors } = useFormState({ control, name: `${entity}.${key}` });
-  const fieldErrors = errors?.[entity]?.[key] ?? {};
-
-  return fieldErrors;
-}
-
 export function useProcessedErrors(
   entity: Entity,
   key: string
@@ -32,9 +20,12 @@ export function useProcessedErrors(
   field: string;
   message?: string;
 }> {
-  const fieldErrors = useErrors(entity, key);
+  const { control, getFieldState } = useFullAgentFormContext();
+  const name = `${entity}.${key}` as const;
+  const formState = useFormState({ control, name });
+  const { error = {} } = getFieldState(name, formState);
 
-  const processedErrors = Object.entries(fieldErrors).map(([key, value]) => ({
+  const processedErrors = Object.entries(error).map(([key, value]) => ({
     field: key,
     message: flatNestedFieldMessage(value),
   }));
