@@ -44805,7 +44805,7 @@
         }
       }
     },
-    "/run/api/executions/:executionId": {
+    "/run/api/executions/{executionId}": {
       "get": {
         "description": "Returns the status of a durable execution.",
         "parameters": [
@@ -44896,7 +44896,7 @@
         }
       }
     },
-    "/run/api/executions/:executionId/approvals/:toolCallId": {
+    "/run/api/executions/{executionId}/approvals/{toolCallId}": {
       "post": {
         "description": "Resumes a suspended durable execution by approving or denying a pending tool call.",
         "parameters": [
@@ -44989,7 +44989,7 @@
         }
       }
     },
-    "/run/api/executions/:executionId/stream": {
+    "/run/api/executions/{executionId}/stream": {
       "get": {
         "description": "Reconnects to the SSE stream of an existing durable execution.",
         "parameters": [
