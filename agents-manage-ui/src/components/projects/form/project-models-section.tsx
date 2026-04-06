@@ -3,12 +3,12 @@
 import { ChevronRight, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { type Control, useController, useFormState, useWatch } from 'react-hook-form';
+import { SectionHeader } from '@/components/agent/sidepane/section';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { InfoCard } from '@/components/ui/info-card';
-import { Label } from '@/components/ui/label';
 import {
   azureModelProviderOptionsTemplate,
   azureModelSummarizerProviderOptionsTemplate,
@@ -274,12 +274,10 @@ export function ProjectModelsSection({ control, disabled }: ProjectModelsSection
 
   return (
     <div className="space-y-4">
-      <div>
-        <Label className="text-sm font-medium">Default models</Label>
-        <p className="text-sm text-muted-foreground mt-1">
-          Set default models that will be inherited by agents and sub agents in this project.
-        </p>
-      </div>
+      <SectionHeader
+        title="Default models"
+        description="Set default models that will be inherited by agents and sub agents in this project."
+      />
 
       <Collapsible
         open={isOpen}

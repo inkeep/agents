@@ -1,5 +1,5 @@
-import { useFormState, useWatch } from 'react-hook-form';
 import type { Node } from '@xyflow/react';
+import { useFormState, useWatch } from 'react-hook-form';
 import { isNodeType, NodeType } from '@/components/agent/configuration/node-types';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { findFunctionToolIdsForFunctionId, getNodeGraphKey } from '@/features/agent/domain';
