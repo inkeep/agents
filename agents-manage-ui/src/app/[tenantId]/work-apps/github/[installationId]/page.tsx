@@ -3,7 +3,7 @@
 import { ArrowLeft, ArrowUpRight, Building2, RefreshCw, User } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { use, useCallback, useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { DisconnectInstallationDialog } from '@/components/settings/work-app-github-disconnect-dialog';
@@ -78,7 +78,7 @@ export default function GitHubInstallationDetailPage({
   const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
 
-  const loadInstallation = useCallback(async () => {
+  async function loadInstallation() {
     try {
       const detail = await fetchWorkAppGitHubInstallationDetail(tenantId, installationId);
       setData(detail);
@@ -87,11 +87,14 @@ export default function GitHubInstallationDetailPage({
       setError(err instanceof Error ? err.message : 'Failed to fetch installation details');
     }
     setLoading(false);
-  }, [tenantId, installationId]);
+  }
 
   useEffect(() => {
     loadInstallation();
-  }, [loadInstallation]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadInstallation,
+  ]);
 
   const handleSync = async () => {
     setSyncing(true);

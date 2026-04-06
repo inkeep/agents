@@ -23,6 +23,8 @@ export type AgentExecutionPayload = {
   forwardedHeaders?: Record<string, string>;
   outputFormat?: 'sse' | 'vercel';
   emitOperations?: boolean;
+  /** User ID for user-scoped credential lookups (from authenticated user session) */
+  userId?: string;
 };
 
 /**

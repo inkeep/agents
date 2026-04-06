@@ -8,7 +8,7 @@ import {
   RefreshCw,
   RotateCcw,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { StickToBottom } from 'use-stick-to-bottom';
 import { ConversationTracesLink } from '@/components/traces/signoz-link';
@@ -208,12 +208,12 @@ export function TimelineWrapper({
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // State for collapsible AI messages
-  const [collapsedAiMessages, setCollapsedAiMessages] = useState<Set<string>>(new Set());
+  const [collapsedAiMessages, setCollapsedAiMessages] = useState(new Set<string>());
   const [aiMessagesGloballyCollapsed, setAiMessagesGloballyCollapsed] =
     useState<boolean>(enableAutoScroll);
 
   // State for collapsible tree nodes (lifted from HierarchicalTimeline)
-  const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
+  const [collapsedNodes, setCollapsedNodes] = useState(new Set<string>());
 
   useEffect(() => {
     if (selected) {
@@ -232,23 +232,18 @@ export function TimelineWrapper({
   }, [conversationId]);
 
   // Memoize activities calculation to prevent expensive operations on every render
-  const activities = useMemo(() => {
-    if (conversation?.activities && conversation.activities.length > 0) {
-      return conversation.activities;
-    }
-
-    return (
-      conversation?.toolCalls?.map((tc: ActivityItem) => ({
-        ...tc, // keep saveResultSaved, saveSummaryData, etc.
-        id: tc.id ?? `tool-call-${Date.now()}`,
-        type: 'tool_call' as const,
-        description: `Called ${tc.toolName} tool${tc.toolDescription ? ` - ${tc.toolDescription}` : ''}`,
-        timestamp: new Date(tc.timestamp).toISOString(),
-        subAgentName: tc.subAgentName || 'AI Agent',
-        toolResult: tc.result ?? tc.toolResult ?? 'Tool call completed',
-      })) || []
-    );
-  }, [conversation?.activities, conversation?.toolCalls]);
+  const activities =
+    conversation?.activities && conversation.activities.length > 0
+      ? conversation.activities
+      : conversation?.toolCalls?.map((tc) => ({
+          ...tc, // keep saveResultSaved, saveSummaryData, etc.
+          id: tc.id ?? `tool-call-${tc.toolName}-${tc.timestamp}`,
+          type: 'tool_call' as const,
+          description: `Called ${tc.toolName} tool${tc.toolDescription ? ` - ${tc.toolDescription}` : ''}`,
+          timestamp: new Date(tc.timestamp).toISOString(),
+          subAgentName: tc.subAgentName || 'AI Agent',
+          toolResult: tc.result ?? tc.toolResult ?? 'Tool call completed',
+        })) || [];
 
   // Token estimates state - calculated when dropdown opens
   const [tokenEstimates, setTokenEstimates] = useState<{
@@ -258,7 +253,7 @@ export function TimelineWrapper({
   const [isCalculatingTokens, setIsCalculatingTokens] = useState(false);
 
   // Calculate token estimates when dropdown opens
-  const calculateTokenEstimates = useCallback(async () => {
+  async function calculateTokenEstimates() {
     if (!conversation || !tenantId || !projectId || tokenEstimates.summarized !== null) return;
 
     setIsCalculatingTokens(true);
@@ -273,55 +268,44 @@ export function TimelineWrapper({
       full: Math.ceil(JSON.stringify(fullTrace).length / 4),
     });
     setIsCalculatingTokens(false);
-  }, [conversation, tenantId, projectId, tokenEstimates.summarized]);
+  }
 
   // Memoize sorted activities to prevent re-sorting on every render
-  const sortedActivities = useMemo(() => {
-    const list = [...activities];
-    list.sort((a, b) => {
-      const ta = new Date(a.timestamp).getTime();
-      const tb = new Date(b.timestamp).getTime();
-      return ta !== tb ? ta - tb : String(a.id).localeCompare(String(b.id));
-    });
-    return list;
-  }, [activities]);
+  const sortedActivities = activities.toSorted((a, b) => {
+    const ta = new Date(a.timestamp).getTime();
+    const tb = new Date(b.timestamp).getTime();
+    return ta !== tb ? ta - tb : String(a.id).localeCompare(String(b.id));
+  });
 
   // Ref to track if we've already scrolled to the first error
   const hasScrolledToErrorRef = useRef<string | undefined>(undefined);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Memoize AI message IDs to avoid recalculating on every render
-  const aiMessageIds = useMemo(() => {
-    return sortedActivities
-      .filter(
-        (activity) =>
-          activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
-          (activity.hasError && activity.otelStatusDescription)
-      )
-      .map((activity) => activity.id);
-  }, [sortedActivities]);
+  const aiMessageIds = sortedActivities
+    .filter(
+      (activity) =>
+        activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
+        activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
+        (activity.hasError && activity.otelStatusDescription)
+    )
+    .map((activity) => activity.id);
 
   // Memoize stream text IDs for cleaner collapse logic
-  const streamTextIds = useMemo(() => {
-    return sortedActivities
-      .filter((activity) => activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT)
-      .map((activity) => activity.id);
-  }, [sortedActivities]);
+  const streamTextIds = sortedActivities
+    .filter((activity) => activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT)
+    .map((activity) => activity.id);
 
   // Memoize IDs of nodes that have children (referenced as parentSpanId by other activities)
-  const parentNodeIds = useMemo(() => {
-    const ids = new Set<string>();
-    const activityIdSet = new Set(sortedActivities.map((a) => a.id));
-    for (const activity of sortedActivities) {
-      if (activity.parentSpanId && activityIdSet.has(activity.parentSpanId)) {
-        ids.add(activity.parentSpanId);
-      }
+  const parentNodeIds = new Set<string>();
+  const activityIdSet = new Set(sortedActivities.map((a) => a.id));
+  for (const activity of sortedActivities) {
+    if (activity.parentSpanId && activityIdSet.has(activity.parentSpanId)) {
+      parentNodeIds.add(activity.parentSpanId);
     }
-    return ids;
-  }, [sortedActivities]);
+  }
 
-  const toggleNodeCollapse = useCallback((nodeId: string) => {
+  function toggleNodeCollapse(nodeId: string) {
     setCollapsedNodes((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(nodeId)) {
@@ -331,10 +315,10 @@ export function TimelineWrapper({
       }
       return newSet;
     });
-  }, []);
+  }
 
   // Track which messages we've already processed
-  const processedIdsRef = useRef<Set<string>>(new Set());
+  const processedIdsRef = useRef(new Set<string>());
   const lastConversationRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
@@ -425,17 +409,17 @@ export function TimelineWrapper({
   }, [highlightMessageId, enableAutoScroll]);
 
   // Functions to handle expand/collapse all (memoized to prevent unnecessary re-renders)
-  const expandAll = useCallback(() => {
+  function expandAll() {
     setCollapsedAiMessages(new Set());
     setCollapsedNodes(new Set());
     setAiMessagesGloballyCollapsed(false);
-  }, []);
+  }
 
-  const collapseAll = useCallback(() => {
+  function collapseAll() {
     setCollapsedAiMessages(new Set(aiMessageIds));
     setCollapsedNodes(new Set(parentNodeIds));
     setAiMessagesGloballyCollapsed(true);
-  }, [aiMessageIds, parentNodeIds]);
+  }
 
   const toggleAiMessageCollapse = (activityId: string) => {
     const newCollapsed = new Set(collapsedAiMessages);
@@ -459,7 +443,7 @@ export function TimelineWrapper({
   };
 
   // Derive global collapsed state from both AI messages and tree nodes
-  const isGloballyCollapsed = useMemo(() => {
+  const isGloballyCollapsed = (() => {
     const hasAiMessages = aiMessageIds.length > 0;
     const hasParentNodes = parentNodeIds.size > 0;
     if (!hasAiMessages && !hasParentNodes) return false;
@@ -470,7 +454,7 @@ export function TimelineWrapper({
       }
     }
     return true;
-  }, [aiMessageIds, aiMessagesGloballyCollapsed, parentNodeIds, collapsedNodes]);
+  })();
 
   const closePanel = () => {
     setPanelVisible(false);
@@ -529,10 +513,9 @@ export function TimelineWrapper({
     };
   }, [selected, conversationId, tenantId]);
 
-  const findSpanById = useCallback(
-    (id?: string) => (id && lazySpan?.spanId === id ? lazySpan : undefined),
-    [lazySpan]
-  );
+  function findSpanById(id?: string) {
+    return id && lazySpan?.spanId === id ? lazySpan : undefined;
+  }
 
   const determinePanelType = (a: ActivityItem): Exclude<PanelType, 'mcp_tool_error'> => {
     if (a.type === ACTIVITY_TYPES.TOOL_CALL && a.toolType === TOOL_TYPES.TRANSFER)

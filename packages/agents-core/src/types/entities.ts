@@ -1,5 +1,6 @@
 import type { z } from '@hono/zod-openapi';
 import type {
+  AddScheduledTriggerUserRequestSchema,
   AgentApiInsertSchema,
   AgentApiSelectSchema,
   AgentApiUpdateSchema,
@@ -148,6 +149,7 @@ import type {
   FunctionToolApiSelectSchema,
   FunctionToolApiUpdateSchema,
   FunctionUpdateSchema,
+  LastRunSummarySchema,
   LedgerArtifactApiInsertSchema,
   LedgerArtifactApiSelectSchema,
   LedgerArtifactApiUpdateSchema,
@@ -180,7 +182,9 @@ import type {
   ScheduledTriggerInvocationUpdateSchema,
   ScheduledTriggerSelectSchema,
   ScheduledTriggerUpdateSchema,
+  ScheduledTriggerUsersResponseSchema,
   SchedulerStateSelectSchema,
+  SetScheduledTriggerUsersRequestSchema,
   SkillApiInsertSchema,
   SkillApiSelectSchema,
   SkillApiUpdateSchema,
@@ -468,6 +472,11 @@ export type ScheduledTriggerInvocationInsert = z.infer<
 export type ScheduledTriggerInvocationUpdate = z.infer<
   typeof ScheduledTriggerInvocationUpdateSchema
 >;
+
+export type LastRunSummary = z.infer<typeof LastRunSummarySchema>;
+export type SetScheduledTriggerUsersRequest = z.infer<typeof SetScheduledTriggerUsersRequestSchema>;
+export type AddScheduledTriggerUserRequest = z.infer<typeof AddScheduledTriggerUserRequestSchema>;
+export type ScheduledTriggerUsersResponse = z.infer<typeof ScheduledTriggerUsersResponseSchema>;
 
 export type SchedulerState = z.infer<typeof SchedulerStateSelectSchema>;
 

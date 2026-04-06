@@ -85,6 +85,12 @@ const envSchema = z
       .optional()
       .describe('Eval API bypass secret for local development and testing (skips auth)'),
 
+    // Vercel Cron
+    CRON_SECRET: z
+      .string()
+      .optional()
+      .describe('Secret used by Vercel Cron to authenticate cron job requests'),
+
     // Anonymous Session JWT
     INKEEP_ANON_JWT_SECRET: z
       .string()

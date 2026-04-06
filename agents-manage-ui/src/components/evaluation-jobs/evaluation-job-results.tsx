@@ -2,7 +2,7 @@
 
 import { ChevronDown, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
 import { EvaluatorViewDialog } from '@/components/evaluators/evaluator-view-dialog';
@@ -57,7 +57,7 @@ export function EvaluationJobResults({
     isRunning: boolean;
   }>({ total: 0, completed: 0, isRunning: false });
 
-  const loadProgress = useCallback(async () => {
+  async function loadProgress() {
     try {
       // Fetch latest results
       const latestResults = await fetchEvaluationResultsByJobConfig(
@@ -79,12 +79,15 @@ export function EvaluationJobResults({
     } catch (err) {
       console.error('Error loading evaluation progress:', err);
     }
-  }, [tenantId, projectId, jobConfig.id]);
+  }
 
   // Initial progress load
   useEffect(() => {
     loadProgress();
-  }, [loadProgress]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadProgress,
+  ]);
 
   // Auto-refresh when evaluations are in progress
   useEffect(() => {
@@ -95,7 +98,11 @@ export function EvaluationJobResults({
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [progress.isRunning, loadProgress]);
+  }, [
+    progress.isRunning,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadProgress,
+  ]);
 
   const evaluatorMap = new Map<string, string>();
   evaluators.forEach((evaluator) => {

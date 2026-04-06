@@ -862,6 +862,8 @@ export const CronExpressionSchema = z
   .describe('Cron expression in standard 5-field format (minute hour day month weekday)')
   .openapi('CronExpression');
 
+export const maxDispatchDelayMs = 600_000;
+
 export const ScheduledTriggerSelectSchema = createSelectSchema(scheduledTriggers).extend({
   payload: z.record(z.string(), z.unknown()).nullable().optional(),
   runAsUserId: UserIdSchema.nullable().describe(
@@ -939,7 +941,20 @@ export const ScheduledTriggerApiSelectSchema = createAgentScopedApiSchema(
 export const ScheduledTriggerApiInsertBaseSchema = createAgentScopedApiInsertSchema(
   ScheduledTriggerInsertSchemaBase
 )
-  .extend({ id: ResourceIdSchema.optional() })
+  .extend({
+    id: ResourceIdSchema.optional(),
+    runAsUserIds: z
+      .array(z.string())
+      .optional()
+      .describe('Array of user IDs to run this trigger as (multi-user)'),
+    dispatchDelayMs: z
+      .number()
+      .int()
+      .min(0)
+      .max(maxDispatchDelayMs)
+      .optional()
+      .describe('Delay in ms between dispatching each user workflow max 10 minutes'),
+  })
   .openapi('ScheduledTriggerInsertBase');
 
 export const ScheduledTriggerApiInsertSchema = ScheduledTriggerApiInsertBaseSchema.refine(
@@ -951,11 +966,47 @@ export const ScheduledTriggerApiInsertSchema = ScheduledTriggerApiInsertBaseSche
   .refine((data) => !(data.cronExpression && data.runAt), {
     message: 'Cannot specify both cronExpression and runAt',
   })
+  .refine((data) => !(data.runAsUserId && data.runAsUserIds), {
+    message: 'Cannot specify both runAsUserId and runAsUserIds',
+  })
   .openapi('ScheduledTriggerCreate');
 
 export const ScheduledTriggerApiUpdateSchema = createAgentScopedApiUpdateSchema(
   ScheduledTriggerUpdateSchema
-).openapi('ScheduledTriggerUpdate');
+)
+  .extend({
+    runAsUserIds: z
+      .array(z.string())
+      .optional()
+      .describe('Array of user IDs to run this trigger as (multi-user)'),
+    dispatchDelayMs: z
+      .number()
+      .int()
+      .min(0)
+      .max(maxDispatchDelayMs)
+      .nullable()
+      .optional()
+      .describe(`Delay in ms between dispatching each user workflow (0-${maxDispatchDelayMs})`),
+  })
+  .openapi('ScheduledTriggerUpdate');
+
+export const SetScheduledTriggerUsersRequestSchema = z
+  .object({
+    userIds: z.array(z.string()).describe('User IDs to set on this trigger'),
+  })
+  .openapi('SetScheduledTriggerUsersRequest');
+
+export const AddScheduledTriggerUserRequestSchema = z
+  .object({
+    userId: z.string().describe('User ID to add to this trigger'),
+  })
+  .openapi('AddScheduledTriggerUserRequest');
+
+export const ScheduledTriggerUsersResponseSchema = z
+  .object({
+    data: z.array(z.string()).describe('User IDs associated with this trigger'),
+  })
+  .openapi('ScheduledTriggerUsersResponse');
 
 export const ScheduledTriggerInvocationStatusEnum = z.enum([
   'pending',
@@ -2817,11 +2868,26 @@ export const TriggerWithWebhookUrlListResponse = z
   })
   .openapi('TriggerWithWebhookUrlListResponse');
 
+export const LastRunSummarySchema = z
+  .object({
+    total: z.number().int().describe('Total invocations for this tick'),
+    completed: z.number().int().describe('Completed invocations'),
+    failed: z.number().int().describe('Failed invocations'),
+    running: z.number().int().describe('Running invocations'),
+    pending: z.number().int().describe('Pending invocations'),
+  })
+  .openapi('LastRunSummary');
+
 export const ScheduledTriggerWithRunInfoSchema = ScheduledTriggerApiSelectSchema.extend({
   lastRunAt: z.iso.datetime().nullable().describe('Timestamp of the last completed or failed run'),
   lastRunStatus: z.enum(['completed', 'failed']).nullable().describe('Status of the last run'),
   lastRunConversationIds: z.array(z.string()).describe('Conversation IDs from the last run'),
   nextRunAt: z.iso.datetime().nullable().describe('Timestamp of the next pending run'),
+  runAsUserIds: z.array(z.string()).describe('User IDs associated with this trigger'),
+  userCount: z.number().int().describe('Number of associated users'),
+  lastRunSummary: LastRunSummarySchema.nullable().describe(
+    'Per-status counts for the most recent scheduled tick'
+  ),
 }).openapi('ScheduledTriggerWithRunInfo');
 
 export type ScheduledTriggerWithRunInfo = z.infer<typeof ScheduledTriggerWithRunInfoSchema>;

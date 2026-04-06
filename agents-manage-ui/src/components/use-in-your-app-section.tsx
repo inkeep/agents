@@ -1,6 +1,5 @@
 'use client';
 
-import { useMemo } from 'react';
 import { Streamdown } from 'streamdown';
 import { CopyableSingleLineCode } from '@/components/ui/copyable-single-line-code';
 import {
@@ -56,21 +55,14 @@ export function UseInYourAppSection({
   componentKind = 'data',
   renderCode,
 }: UseInYourAppSectionProps) {
-  const pascalCaseFileName = useMemo(() => toPascalCase(componentName), [componentName]);
-  const importedName = useMemo(
-    () => extractExportedComponentName(renderCode ?? '') ?? pascalCaseFileName,
-    [renderCode, pascalCaseFileName]
-  );
+  const pascalCaseFileName = toPascalCase(componentName);
+  const importedName = extractExportedComponentName(renderCode ?? '') ?? pascalCaseFileName;
   const addOneCommand = ADD_ONE_CMD(componentId);
-  const importAndSnippet = useMemo(
-    () =>
-      buildImportAndRegistrationSnippet(
-        pascalCaseFileName,
-        importedName,
-        componentName,
-        componentKind
-      ),
-    [pascalCaseFileName, importedName, componentName, componentKind]
+  const importAndSnippet = buildImportAndRegistrationSnippet(
+    pascalCaseFileName,
+    importedName,
+    componentName,
+    componentKind
   );
 
   return (
