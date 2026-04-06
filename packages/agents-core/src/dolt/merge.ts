@@ -238,7 +238,10 @@ export const doltMerge =
         try {
           await db.execute(sql.raw('ROLLBACK'));
         } catch (rollbackError) {
-          logger.error({ error: rollbackError }, 'Failed to rollback transaction');
+          logger.error(
+            { error: rollbackError, ...getDatabaseErrorLogContext(rollbackError) },
+            'Failed to rollback transaction'
+          );
         }
       }
     }
