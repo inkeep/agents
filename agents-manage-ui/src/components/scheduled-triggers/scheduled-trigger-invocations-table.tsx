@@ -200,13 +200,12 @@ export function ScheduledTriggerInvocationsTable({
     } catch (error) {
       console.error('Failed to cancel invocation:', error);
       toast.error('Failed to cancel invocation');
-    } finally {
-      setLoadingInvocations((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(invocationId);
-        return newSet;
-      });
     }
+    setLoadingInvocations((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(invocationId);
+      return newSet;
+    });
   }
 
   async function rerunInvocation(invocationId: string) {
@@ -234,13 +233,12 @@ export function ScheduledTriggerInvocationsTable({
     } catch (error) {
       console.error('Failed to rerun invocation:', error);
       toast.error('Failed to rerun invocation');
-    } finally {
-      setLoadingInvocations((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(invocationId);
-        return newSet;
-      });
     }
+    setLoadingInvocations((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(invocationId);
+      return newSet;
+    });
   }
 
   function renderInvocationActions(inv: ScheduledTriggerInvocation) {
