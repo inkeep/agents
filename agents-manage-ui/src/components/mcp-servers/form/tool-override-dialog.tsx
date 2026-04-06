@@ -150,9 +150,10 @@ export function ToolOverrideDialog({
     onOpenChange(false);
   };
   const { control } = form;
-  const displayName = useWatch({ control, name: 'displayName' });
-  const description = useWatch({ control, name: 'description' });
-  const schema = useWatch({ control, name: 'schema' });
+  const [displayName, description, schema] = useWatch({
+    control,
+    name: ['displayName', 'description', 'schema'],
+  });
 
   const hasChanges = displayName?.trim() || description?.trim() || schema?.trim();
 

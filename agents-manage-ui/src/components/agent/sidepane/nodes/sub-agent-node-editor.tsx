@@ -61,7 +61,10 @@ interface SubAgentNodeEditorProps {
 export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }) => {
   const form = useFullAgentFormContext();
   const nodeId = selectedNode.id;
-  const subAgent = useWatch({ control: form.control, name: `subAgents.${nodeId}` });
+  const [subAgent, models, defaultSubAgentNodeId] = useWatch({
+    control: form.control,
+    name: [`subAgents.${nodeId}`, 'models', 'defaultSubAgentNodeId'],
+  });
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const {
     data: { canEdit },
@@ -69,11 +72,6 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
   const { data: project } = useProjectQuery();
   const { data: artifactComponents } = useArtifactComponentsQuery();
   const { data: dataComponents } = useDataComponentsQuery();
-  const models = useWatch({ control: form.control, name: 'models' });
-  const defaultSubAgentNodeId = useWatch({
-    control: form.control,
-    name: 'defaultSubAgentNodeId',
-  });
   const path = <K extends string>(key: K) => `subAgents.${nodeId}.${key}` as const;
   const { deleteNode } = useDeleteNode(nodeId);
   const isPersistedSubAgent =

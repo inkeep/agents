@@ -158,13 +158,12 @@ export function EvaluationRunConfigFormDialog({
 
   const agentLookup = createLookup(agents);
 
-  const suiteAgentIds = useWatch({ control: suiteConfigForm.control, name: 'agentIds' });
-  const selectedEvaluatorIds = useWatch({
+  const [suiteAgentIds, selectedEvaluatorIds] = useWatch({
     control: suiteConfigForm.control,
-    name: 'evaluatorIds',
+    name: ['agentIds', 'evaluatorIds'],
   });
 
-  const [evaluatorAgentMap, setEvaluatorAgentMap] = useState<Map<string, string[]>>(new Map());
+  const [evaluatorAgentMap, setEvaluatorAgentMap] = useState(new Map<string, string[]>());
 
   useEffect(() => {
     if (evaluators.length === 0 || !isOpen) return;

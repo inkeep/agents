@@ -88,8 +88,10 @@ export function MCPServerForm({
 
   const { isSubmitting } = form.formState;
   const { control } = form;
-  const credentialScope = useWatch({ control, name: 'credentialScope' });
-  const toolOverrides = useWatch({ control, name: 'config.mcp.toolOverrides', defaultValue: {} });
+  const [credentialScope, toolOverrides = {}] = useWatch({
+    control,
+    name: ['credentialScope', 'config.mcp.toolOverrides'],
+  });
 
   // Helper function to filter active tools against available tools
   const getActiveTools = (toolsConfig: MCPToolFormData['config']['mcp']['toolsConfig']) => {
@@ -408,8 +410,9 @@ export function MCPServerForm({
                     newOverrides[toolName] = override;
                   }
 
-                  form.setValue('config.mcp.toolOverrides', newOverrides);
-                  form.trigger('config.mcp.toolOverrides');
+                  form.setValue('config.mcp.toolOverrides', newOverrides, {
+                    shouldDirty: true,
+                  });
                 }}
               />
             </>
