@@ -8,7 +8,7 @@ import type {
 export function firstWithModel(
   ...ms: (ModelSettings | null | undefined)[]
 ): ModelSettings | undefined {
-  return ms.find((m) => m?.model);
+  return ms.find((m): m is ModelSettings => Boolean(m?.model));
 }
 
 function inheritGatewayFields(
