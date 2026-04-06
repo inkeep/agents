@@ -35,7 +35,7 @@ export interface CreateProjectWithBranchResult {
   createdBy: string | null;
 }
 
-export interface DeleteProjectWithBranchParams {
+export interface DeleteProjectAndBranchesParams {
   tenantId: string;
   projectId: string;
 }
@@ -118,9 +118,9 @@ export const createProjectMetadataAndBranch =
  * @param runDb - Runtime database client (Postgres)
  * @param configDb - Config database client (Doltgres)
  */
-export const deleteProjectWithBranch =
+export const deleteProjectAndBranches =
   (runDb: AgentsRunDatabaseClient, configDb: AgentsManageDatabaseClient) =>
-  async (params: DeleteProjectWithBranchParams): Promise<boolean> => {
+  async (params: DeleteProjectAndBranchesParams): Promise<boolean> => {
     const { tenantId, projectId } = params;
 
     logger.info({ tenantId, projectId }, 'Deleting project with all branches');

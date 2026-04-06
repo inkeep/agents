@@ -7,7 +7,7 @@ import {
   createProject,
   createProjectMetadataAndBranch,
   deleteProject,
-  deleteProjectWithBranch,
+  deleteProjectAndBranches,
   doltCheckout,
   ErrorResponseSchema,
   getProject,
@@ -382,7 +382,7 @@ app.openapi(
       await doltCheckout(configDb)({ branch: 'main' });
 
       // 3. Delete project from runtime DB and delete project branch
-      const deleted = await deleteProjectWithBranch(
+      const deleted = await deleteProjectAndBranches(
         runDbClient,
         manageDbClient
       )({

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createProjectMetadataAndBranch,
-  deleteProjectWithBranch,
+  deleteProjectAndBranches,
   getProjectMainBranchName,
 } from '../../data-access/manage/projectLifecycle';
 import { createProjectMetadata, getProjectMetadata } from '../../data-access/runtime/projects';
@@ -141,7 +141,7 @@ describe('Project Lifecycle Utilities', () => {
     });
   });
 
-  describe('deleteProjectWithBranch', () => {
+  describe('deleteProjectAndBranches', () => {
     it('should delete project metadata and branch', async () => {
       const mockConfigDb = {} as any;
 
@@ -162,7 +162,7 @@ describe('Project Lifecycle Utilities', () => {
       const mockDoltCheckoutFn = vi.fn().mockResolvedValue(undefined);
       mockedDoltCheckout.mockReturnValue(mockDoltCheckoutFn);
 
-      const result = await deleteProjectWithBranch(
+      const result = await deleteProjectAndBranches(
         testRunDbClient,
         mockConfigDb
       )({
@@ -197,7 +197,7 @@ describe('Project Lifecycle Utilities', () => {
       const mockDoltListBranchesFn = vi.fn().mockResolvedValue([]);
       mockedDoltListBranches.mockReturnValue(mockDoltListBranchesFn);
 
-      const result = await deleteProjectWithBranch(
+      const result = await deleteProjectAndBranches(
         testRunDbClient,
         mockConfigDb
       )({
@@ -232,7 +232,7 @@ describe('Project Lifecycle Utilities', () => {
       mockedDoltCheckout.mockReturnValue(mockDoltCheckoutFn);
 
       // Should not throw, but continue with cleanup
-      const result = await deleteProjectWithBranch(
+      const result = await deleteProjectAndBranches(
         testRunDbClient,
         mockConfigDb
       )({
