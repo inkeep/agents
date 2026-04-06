@@ -33,10 +33,12 @@ Scheduled triggers run agents automatically on a recurring schedule (cron) or at
     In the **Execution Identity** section, choose which user identity the trigger runs as. This determines whose credentials and permissions are used during execution.
 
     - **None** — the trigger runs without a user identity (tools requiring user-scoped credentials are skipped)
-    - **Specific user** — the trigger uses that user's connected credentials (e.g., OAuth tokens for GitHub, Slack, or Jira)
+    - **Specific user(s)** — the trigger uses each selected user's connected credentials (e.g., OAuth tokens for GitHub, Slack, or Jira). When multiple users are selected, a single trigger is created that executes once per user on each tick.
+
+    When assigning multiple users, you can optionally set **Dispatch Delay** (0–5000 ms) to stagger execution between users.
 
     <Note>
-    Non-admin users can only assign triggers to themselves. Org admins can select any user in the organization — and when creating a trigger, admins can select multiple users to bulk-create one trigger per user.
+    Non-admin users can only assign triggers to themselves. Org admins can select any user in the organization and can assign multiple users to a single trigger.
     </Note>
   </Step>
   <Step>
@@ -110,7 +112,7 @@ The **Scheduled** tab shows all triggers in your project with their agent, sched
 
 | Action | Description |
 | --- | --- |
-| **Run Now** | Execute the trigger immediately, regardless of its schedule. Creates a new invocation and runs it with the trigger's configured payload, message template, and retry settings. |
+| **Run Now** | Execute the trigger immediately, regardless of its schedule. For multi-user triggers, creates one invocation per associated user. You can optionally target a single user via the dropdown. |
 | **View Invocations** | See all past and pending executions for this trigger |
 | **Edit** | Update the trigger's name, schedule, template, payload, retry settings, or execution identity |
 | **Duplicate** | Create a new trigger pre-filled with the same configuration |
@@ -130,6 +132,11 @@ Each invocation shows its status, scheduled time, start time, duration, attempt 
 | --- | --- | --- |
 | **Cancel** | `pending` or `running` | Stop the invocation before it completes |
 | **Rerun** | `completed`, `failed`, or `cancelled` | Re-execute with the same trigger configuration. Creates a new invocation and runs it immediately. |
+
+
+## Project member cleanup
+
+When a user's project access is revoked, they are automatically removed from all trigger-user associations in that project. If a trigger has zero associated users after removal, it is automatically disabled.
 
 ## Cron expression reference
 
