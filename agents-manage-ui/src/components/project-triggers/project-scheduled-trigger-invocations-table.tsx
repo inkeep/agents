@@ -228,6 +228,18 @@ export function ProjectScheduledTriggerInvocationsTable({
       ),
     },
     {
+      id: 'startedAt',
+      accessorFn: (row) => (row.startedAt ? new Date(row.startedAt) : undefined),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Started At" />,
+      sortingFn: 'datetime',
+      sortUndefined: 'last',
+      cell: ({ row }) => (
+        <div className="text-sm text-muted-foreground">
+          {formatInvocationDateTime(row.original.startedAt)}
+        </div>
+      ),
+    },
+    {
       id: 'status',
       header: 'Status',
       enableSorting: false,
@@ -377,7 +389,7 @@ export function ProjectScheduledTriggerInvocationsTable({
         <DataTable
           columns={columns}
           data={filteredInvocations}
-          defaultSort={[{ id: 'scheduledFor', desc: true }]}
+          defaultSort={[{ id: 'startedAt', desc: true }]}
           getRowId={(row) => row.id}
           emptyState={
             <div className="flex flex-col items-center gap-2">
