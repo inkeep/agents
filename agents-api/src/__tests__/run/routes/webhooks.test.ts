@@ -36,6 +36,7 @@ vi.mock('../../../logger', () => {
 // Create hoisted mocks for @inkeep/agents-core
 const {
   getTriggerByIdMock,
+  getTriggerUsersMock,
   createTriggerInvocationMock,
   updateTriggerInvocationStatusMock,
   getFullProjectWithRelationIdsMock,
@@ -51,6 +52,7 @@ const {
   const keychainGetMock = vi.fn();
   return {
     getTriggerByIdMock: vi.fn(),
+    getTriggerUsersMock: vi.fn(),
     createTriggerInvocationMock: vi.fn(),
     updateTriggerInvocationStatusMock: vi.fn(),
     getFullProjectWithRelationIdsMock: vi.fn(),
@@ -76,6 +78,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     ...actual,
     createAgentsManageDatabaseClient: vi.fn(() => ({})),
     getTriggerById: getTriggerByIdMock,
+    getTriggerUsers: getTriggerUsersMock,
     createTriggerInvocation: createTriggerInvocationMock,
     updateTriggerInvocationStatus: updateTriggerInvocationStatusMock,
     getFullProjectWithRelationIds: getFullProjectWithRelationIdsMock,
@@ -261,6 +264,7 @@ describe('Webhook Endpoint Tests', () => {
 
     // Setup default mock implementations
     getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(testTrigger));
+    getTriggerUsersMock.mockReturnValue(vi.fn().mockResolvedValue([]));
     createTriggerInvocationMock.mockReturnValue(vi.fn().mockResolvedValue({}));
     updateTriggerInvocationStatusMock.mockReturnValue(vi.fn().mockResolvedValue({}));
     getFullProjectWithRelationIdsMock.mockReturnValue(vi.fn().mockResolvedValue(testProject));
@@ -289,8 +293,13 @@ describe('Webhook Endpoint Tests', () => {
       const data = await response.json();
       expect(data).toEqual({
         success: true,
-        invocationId: 'test-id-123',
-        conversationId: 'conv-test-123',
+        invocations: [
+          {
+            invocationId: 'test-id-123',
+            conversationId: 'conv-test-123',
+            runAsUserId: null,
+          },
+        ],
       });
 
       // Verify trigger was fetched

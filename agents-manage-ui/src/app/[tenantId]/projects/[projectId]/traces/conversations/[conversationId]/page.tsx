@@ -126,6 +126,8 @@ export default function ConversationDetail({
   const handleRerunTrigger = async () => {
     if (!conversation?.triggerId || !conversation?.agentId) return;
 
+    const triggerRunAsUserId = conversation.triggerRunAsUserId ?? undefined;
+
     const isScheduledTrigger = conversation.invocationType === 'scheduled_trigger';
 
     if (isScheduledTrigger) {
@@ -192,6 +194,7 @@ export default function ConversationDetail({
         {
           userMessage: userMessageActivity.messageContent,
           messageParts,
+          runAsUserId: triggerRunAsUserId,
         }
       );
 

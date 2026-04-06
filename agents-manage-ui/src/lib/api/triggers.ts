@@ -18,10 +18,35 @@ import { makeManagementApiRequest } from './api-config';
 
 // Re-export types from core package for convenience
 export type Trigger = TriggerApiSelect & {
+  dispatchDelayMs?: number | null;
+  runAsUserId?: string | null;
+  runAsUserIds: string[];
+  userCount: number;
   webhookUrl: string; // Added by management API
 };
 
 export type TriggerInvocation = TriggerInvocationApiSelect;
+
+export type CreateTriggerInput = {
+  id?: string;
+  name: string;
+  description?: string;
+  enabled?: boolean;
+  inputSchema?: Record<string, unknown>;
+  outputTransform?: {
+    jmespath?: string;
+    objectTransformation?: Record<string, unknown>;
+  };
+  messageTemplate?: string | null;
+  authentication?: unknown;
+  signingSecretCredentialReferenceId?: string;
+  signatureVerification?: unknown;
+  runAsUserId?: string | null;
+  runAsUserIds?: string[];
+  dispatchDelayMs?: number | null;
+};
+
+export type UpdateTriggerInput = Partial<CreateTriggerInput>;
 
 export async function fetchTriggers(
   tenantId: string,
@@ -60,7 +85,7 @@ export async function createTrigger(
   tenantId: string,
   projectId: string,
   agentId: string,
-  triggerData: Partial<Trigger>
+  triggerData: CreateTriggerInput
 ): Promise<Trigger> {
   const response = await makeManagementApiRequest<SingleResponse<Trigger>>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
@@ -81,7 +106,7 @@ export async function updateTrigger(
   projectId: string,
   agentId: string,
   triggerId: string,
-  triggerData: Partial<Trigger>
+  triggerData: UpdateTriggerInput
 ): Promise<Trigger> {
   const response = await makeManagementApiRequest<SingleResponse<Trigger>>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}`,
@@ -122,6 +147,7 @@ export async function rerunTrigger(
   params: {
     userMessage: string;
     messageParts?: Part[];
+    runAsUserId?: string;
   }
 ): Promise<{ success: boolean; invocationId: string; conversationId: string }> {
   return makeManagementApiRequest(
@@ -131,6 +157,19 @@ export async function rerunTrigger(
       body: JSON.stringify(params),
     }
   );
+}
+
+export async function getTriggerUsers(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  triggerId: string
+): Promise<string[]> {
+  const response = await makeManagementApiRequest<{ data: string[] }>(
+    `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}/users`
+  );
+
+  return response.data;
 }
 
 /**

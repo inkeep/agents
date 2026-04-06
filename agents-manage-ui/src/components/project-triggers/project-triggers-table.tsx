@@ -1,7 +1,7 @@
 'use client';
 
 import type { ColumnDef } from '@tanstack/react-table';
-import { Copy, CopyPlus, History, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Copy, History, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -40,7 +40,9 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
   function canManageTrigger(trigger: TriggerWithAgent): boolean {
     if (isAdmin) return true;
     if (!user) return false;
-    return trigger.createdBy === user.id || trigger.runAsUserId === user.id;
+    if (trigger.createdBy === user.id || trigger.runAsUserId === user.id) return true;
+    const userIds = trigger.runAsUserIds ?? [];
+    return userIds.length === 1 && userIds[0] === user.id;
   }
 
   function getUserDisplayName(userId: string): string {
@@ -143,21 +145,50 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
       id: 'runAs',
       header: 'Run As',
       enableSorting: false,
-      cell: ({ row }) =>
-        row.original.runAsUserId ? (
+      cell: ({ row }) => {
+        const trigger = row.original;
+
+        if (trigger.userCount && trigger.userCount > 1) {
+          return (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="secondary" className="cursor-default">
+                  {trigger.userCount} users
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="flex flex-col gap-1">
+                  {trigger.runAsUserIds?.map((uid) => (
+                    <span key={uid} className="text-xs">
+                      {getUserDisplayName(uid)}
+                    </span>
+                  ))}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          );
+        }
+
+        const singleRunAsUserId =
+          trigger.runAsUserIds && trigger.runAsUserIds.length === 1
+            ? trigger.runAsUserIds[0]
+            : trigger.runAsUserId;
+
+        return singleRunAsUserId ? (
           <Tooltip>
             <TooltipTrigger asChild>
               <span className="text-sm text-muted-foreground truncate max-w-[150px] inline-block cursor-default">
-                {getUserDisplayName(row.original.runAsUserId)}
+                {getUserDisplayName(singleRunAsUserId)}
               </span>
             </TooltipTrigger>
             <TooltipContent>
-              <code className="font-mono text-xs">{row.original.runAsUserId}</code>
+              <code className="font-mono text-xs">{singleRunAsUserId}</code>
             </TooltipContent>
           </Tooltip>
         ) : (
           <span className="text-muted-foreground">—</span>
-        ),
+        );
+      },
     },
     {
       accessorKey: 'description',
@@ -246,26 +277,6 @@ export function ProjectTriggersTable({ triggers, tenantId, projectId }: ProjectT
                   </Link>
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem asChild>
-                <Link
-                  href={(() => {
-                    const params = new URLSearchParams();
-                    if (row.original.messageTemplate)
-                      params.set('messageTemplate', row.original.messageTemplate);
-                    if (row.original.inputSchema)
-                      params.set('inputSchema', JSON.stringify(row.original.inputSchema));
-                    if (row.original.outputTransform)
-                      params.set('outputTransform', JSON.stringify(row.original.outputTransform));
-                    params.set('enabled', String(row.original.enabled));
-                    if (row.original.runAsUserId)
-                      params.set('runAsUserId', row.original.runAsUserId);
-                    return `/${tenantId}/projects/${projectId}/triggers/webhooks/${row.original.agentId}/new?${params.toString()}`;
-                  })()}
-                >
-                  <CopyPlus className="w-4 h-4" />
-                  Duplicate
-                </Link>
-              </DropdownMenuItem>
               {canManage && (
                 <DropdownMenuItem
                   variant="destructive"

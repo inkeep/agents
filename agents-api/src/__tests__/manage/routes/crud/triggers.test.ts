@@ -3,6 +3,7 @@ import {
   createFullAgentServerSide,
   createTrigger,
   createTriggerInvocation,
+  createTriggerUser,
   generateId,
 } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
@@ -1249,21 +1250,20 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
   });
 
   describe('POST /{id}/rerun', () => {
-    it('should forward runAsUserId to dispatchExecution and call assertCanMutateTrigger when trigger has runAsUserId', async () => {
+    it('should require runAsUserId for multi-user trigger reruns and forward it to dispatchExecution', async () => {
       const tenantId = await createTestTenantWithOrg('rerun-with-user');
       const { agentId, projectId } = await createTestAgent(tenantId);
 
       const triggerId = `trigger-${generateId(6)}`;
-      const runAsUserId = `user-${generateId(6)}`;
       await createTrigger(manageDbClient)({
         id: triggerId,
         tenantId,
         projectId,
         agentId,
-        name: 'User-scoped Trigger',
-        description: 'Test trigger with runAsUserId',
+        name: 'Multi-user Trigger',
+        description: 'Test trigger with trigger_users rows',
         enabled: true,
-        runAsUserId,
+        runAsUserId: null,
         createdBy: null,
         authentication: null,
         signatureVerification: null,
@@ -1275,7 +1275,18 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         updatedAt: new Date().toISOString(),
       });
 
-      const res = await makeRequest(
+      await createTriggerUser(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId,
+        userId: 'user-1',
+      });
+      await createTriggerUser(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId,
+        userId: 'user-2',
+      });
+
+      const missingRunAsRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}/rerun`,
         {
           method: 'POST',
@@ -1283,30 +1294,33 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         }
       );
 
+      expect(missingRunAsRes.status).toBe(400);
+      const missingBody = await missingRunAsRes.json();
+      expect(missingBody.error.message).toBe('Multi-user trigger requires runAsUserId for rerun');
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}/rerun`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ userMessage: 'test message', runAsUserId: 'user-2' }),
+        }
+      );
+
       expect(res.status).toBe(202);
       const body = await res.json();
       expect(body.success).toBe(true);
 
-      expect(assertCanMutateTriggerMock).toHaveBeenCalledOnce();
-      const guardArgs = assertCanMutateTriggerMock.mock.calls[0][0];
-      expect(guardArgs.trigger.runAsUserId).toBe(runAsUserId);
-
       expect(dispatchExecutionMock).toHaveBeenCalledOnce();
       const callArgs = dispatchExecutionMock.mock.calls[0][0];
-      expect(callArgs.runAsUserId).toBe(runAsUserId);
+      expect(callArgs.runAsUserId).toBe('user-2');
       expect(callArgs.triggerId).toBe(triggerId);
       expect(callArgs.tenantId).toBe(tenantId);
       expect(callArgs.projectId).toBe(projectId);
       expect(callArgs.agentId).toBe(agentId);
     });
 
-    it('should return 403 when non-admin caller is not the runAsUserId or createdBy', async () => {
-      const { createApiError } = await import('@inkeep/agents-core');
-      assertCanMutateTriggerMock.mockImplementationOnce(() => {
-        throw createApiError({ code: 'forbidden', message: 'forbidden' });
-      });
-
-      const tenantId = await createTestTenantWithOrg('rerun-forbidden');
+    it('should return 400 when requested runAsUserId is not associated with the trigger', async () => {
+      const tenantId = await createTestTenantWithOrg('rerun-invalid-user');
       const { agentId, projectId } = await createTestAgent(tenantId);
 
       const triggerId = `trigger-${generateId(6)}`;
@@ -1315,11 +1329,11 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         tenantId,
         projectId,
         agentId,
-        name: 'Other User Trigger',
+        name: 'Multi-user Trigger',
         description: null,
         enabled: true,
-        runAsUserId: 'other-user-id',
-        createdBy: 'other-user-id',
+        runAsUserId: null,
+        createdBy: null,
         authentication: null,
         signatureVerification: null,
         signingSecretCredentialReferenceId: null,
@@ -1329,20 +1343,25 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
+      await createTriggerUser(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId,
+        userId: 'user-1',
+      });
 
       const res = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}/rerun`,
         {
           method: 'POST',
-          body: JSON.stringify({ userMessage: 'test message' }),
+          body: JSON.stringify({ userMessage: 'test message', runAsUserId: 'user-2' }),
         }
       );
 
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(400);
       expect(dispatchExecutionMock).not.toHaveBeenCalled();
     });
 
-    it('should not call assertCanMutateTrigger when trigger has no runAsUserId', async () => {
+    it('should rerun without user context when trigger has no associated user', async () => {
       const tenantId = await createTestTenantWithOrg('rerun-no-user');
       const { agentId, projectId } = await createTestAgent(tenantId);
       const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
@@ -1356,8 +1375,6 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       );
 
       expect(res.status).toBe(202);
-      expect(assertCanMutateTriggerMock).not.toHaveBeenCalled();
-
       expect(dispatchExecutionMock).toHaveBeenCalledOnce();
       const callArgs = dispatchExecutionMock.mock.calls[0][0];
       expect(callArgs.runAsUserId).toBeUndefined();

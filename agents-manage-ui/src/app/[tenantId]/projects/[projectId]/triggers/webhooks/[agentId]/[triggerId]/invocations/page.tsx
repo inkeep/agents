@@ -72,6 +72,9 @@ export default async function InvocationsPage({
         }}
         tenantId={tenantId}
         projectId={projectId}
+        agentId={agentId}
+        triggerId={triggerId}
+        isMultiUser={(trigger.userCount ?? 0) > 1}
         currentStatus={status}
       />
     </>
