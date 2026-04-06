@@ -11,12 +11,12 @@ import { Form } from '@/components/ui/form';
 import { Separator } from '@/components/ui/separator';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { createProjectAction, updateProjectAction } from '@/lib/actions/projects';
-import { cn } from '@/lib/utils';
+import { cn, serializeJson } from '@/lib/utils';
 import { defaultValues } from './form-configuration';
 import { ProjectModelsSection } from './project-models-section';
 import { ProjectStopWhenSection } from './project-stopwhen-section';
 import { ProjectWorkAppGitHubAccessSection } from './project-work-app-github-access-section';
-import { type ProjectFormData, projectSchema } from './validation';
+import { type ProjectFormData, type ProjectFormInputValues, projectSchema } from './validation';
 
 interface ProjectFormProps {
   tenantId: string;
@@ -101,12 +101,32 @@ const serializeData = (data: ProjectFormData) => {
   };
 };
 
-const createDefaultValues = (initialData?: ProjectFormData) => {
+const createDefaultValues = (initialData?: ProjectFormData): ProjectFormInputValues => {
+  if (!initialData) {
+    return { ...defaultValues };
+  }
+
   return {
     ...initialData,
-    // Handle null values from database - if an object field is null, validation will fail so we need to set it to an empty object
-    stopWhen: initialData?.stopWhen || {},
-    models: initialData?.models || { base: { model: '', providerOptions: null } },
+    stopWhen: initialData.stopWhen || {},
+    models: {
+      base: {
+        ...initialData.models.base,
+        providerOptions: serializeJson(initialData.models.base.providerOptions),
+      },
+      ...(initialData.models.structuredOutput && {
+        structuredOutput: {
+          ...initialData.models.structuredOutput,
+          providerOptions: serializeJson(initialData.models.structuredOutput.providerOptions),
+        },
+      }),
+      ...(initialData.models.summarizer && {
+        summarizer: {
+          ...initialData.models.summarizer,
+          providerOptions: serializeJson(initialData.models.summarizer.providerOptions),
+        },
+      }),
+    },
   };
 };
 
@@ -119,9 +139,9 @@ export function ProjectForm({
   readOnly = false,
   className,
 }: ProjectFormProps) {
-  const form = useForm<ProjectFormData>({
+  const form = useForm<ProjectFormInputValues, unknown, ProjectFormData>({
     resolver: zodResolver(projectSchema),
-    defaultValues: initialData ? createDefaultValues(initialData) : { ...defaultValues },
+    defaultValues: createDefaultValues(initialData),
   });
 
   const { isSubmitting } = form.formState;
