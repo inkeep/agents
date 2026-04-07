@@ -1,3 +1,4 @@
+import type { Context } from '@opentelemetry/api';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import {
   ALLOW_ALL_BAGGAGE_KEYS,
@@ -16,6 +17,7 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import {
   BatchSpanProcessor,
   NoopSpanProcessor,
+  type ReadableSpan,
   type SpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
@@ -71,8 +73,40 @@ export const defaultInstrumentations: NonNullable<NodeSDKConfiguration['instrume
   }),
 ];
 
+/**
+ * Strips _structureHints and _toolCallId from ai.toolCall.result span attributes
+ * so they don't bloat traces. These fields are internal LLM context, not useful for observability.
+ */
+class ToolResultSanitizer implements SpanProcessor {
+  onStart(_span: ReadableSpan, _parentContext: Context): void {}
+
+  onEnd(span: ReadableSpan): void {
+    const result = span.attributes['ai.toolCall.result'];
+    if (typeof result !== 'string') return;
+    try {
+      const parsed = JSON.parse(result);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        let changed = false;
+        for (const key of Object.keys(parsed)) {
+          if (key.startsWith('_')) {
+            delete parsed[key];
+            changed = true;
+          }
+        }
+        if (changed) {
+          (span as any).attributes['ai.toolCall.result'] = JSON.stringify(parsed);
+        }
+      }
+    } catch {}
+  }
+
+  async shutdown(): Promise<void> {}
+  async forceFlush(): Promise<void> {}
+}
+
 export const defaultSpanProcessors: SpanProcessor[] = [
   new BaggageSpanProcessor(ALLOW_ALL_BAGGAGE_KEYS),
+  new ToolResultSanitizer(),
   defaultBatchProcessor,
 ];
 
