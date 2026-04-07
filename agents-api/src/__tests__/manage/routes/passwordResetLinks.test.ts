@@ -293,7 +293,7 @@ describe('Password Reset Links Route', () => {
 
         expect(res.status).toBe(500);
         const body = await res.json();
-        expect(body.error.message).toContain('Auth not configured');
+        expect(body.error.message).toBe('An internal server error occurred. Please try again later.');
       });
     });
 
@@ -365,7 +365,7 @@ describe('Password Reset Links Route', () => {
 
         expect(res.status).toBe(500);
         const body = await res.json();
-        expect(body.error.message).toContain('Reset link not available');
+        expect(body.error.message).toBe('An internal server error occurred. Please try again later.');
       });
 
       it('should call waitForPasswordResetLink with correct email', async () => {
