@@ -12,7 +12,7 @@ import type {
 import { fetchEvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
 import { fetchEvaluators } from '@/lib/api/evaluators';
-import { formatDateTimeTable } from '@/lib/utils/format-date';
+import { LocalDateTimeText } from '@/components/ui/local-date-time-text';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,7 +70,7 @@ async function EvaluationJobPage({
         </div>
         <PageHeader
           title={await getJobName({ tenantId, projectId, jobConfig })}
-          description={`Created ${formatDateTimeTable(jobConfig.createdAt, { local: true })}`}
+          description={<>Created <LocalDateTimeText dateString={jobConfig.createdAt} /></>}
         />
         <EvaluationJobResults
           tenantId={tenantId}
