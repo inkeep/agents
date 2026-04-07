@@ -199,6 +199,33 @@ export function DuplicateAgentDialog({
         </DialogHeader>
         <Form {...form}>
           <form className="space-y-4" onSubmit={onSubmit}>
+            {isImportingToAnotherProject && (
+              <Alert variant="warning">
+                <AlertTriangle />
+                <AlertTitle>Credentials are not copied</AlertTitle>
+                <AlertDescription>
+                  Tools and external agents that depend on missing credentials will import
+                  disconnected and need reconnecting in the target project.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <GenericInput
+              control={form.control}
+              name="newAgentName"
+              label="New name"
+              placeholder={`${sourceAgentName} (Copy)`}
+              description="Leave blank to use the default copied name."
+              isRequired={isRequired(DuplicateAgentFormSchema, 'newAgentName')}
+            />
+            <GenericInput
+              control={form.control}
+              name="newAgentId"
+              label="New id"
+              placeholder={`${sourceAgentId}-copy`}
+              description="This becomes the new agent URL and identifier."
+              isRequired={isRequired(DuplicateAgentFormSchema, 'newAgentId')}
+            />
             <div className="space-y-2">
               {isTargetProjectPickerVisible ? (
                 <>
@@ -235,34 +262,6 @@ export function DuplicateAgentDialog({
                 </p>
               )}
             </div>
-
-            {isImportingToAnotherProject && (
-              <Alert variant="warning">
-                <AlertTriangle />
-                <AlertTitle>Credentials are not copied</AlertTitle>
-                <AlertDescription>
-                  Tools and external agents that depend on missing credentials will import
-                  disconnected and need reconnecting in the target project.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            <GenericInput
-              control={form.control}
-              name="newAgentName"
-              label="New name"
-              placeholder={`${sourceAgentName} (Copy)`}
-              description="Leave blank to use the default copied name."
-              isRequired={isRequired(DuplicateAgentFormSchema, 'newAgentName')}
-            />
-            <GenericInput
-              control={form.control}
-              name="newAgentId"
-              label="New id"
-              placeholder={`${sourceAgentId}-copy`}
-              description="This becomes the new agent URL and identifier."
-              isRequired={isRequired(DuplicateAgentFormSchema, 'newAgentId')}
-            />
 
             <DialogFooter>
               <DialogClose asChild>
