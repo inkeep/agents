@@ -5,7 +5,7 @@ import { GripVertical, Plus, X } from 'lucide-react';
 import { type FC, useId, useState } from 'react';
 import { type Control, type FieldPath, type FieldValues, useController } from 'react-hook-form';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
-import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
+import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandItem, CommandList } from '@/components/ui/command';
 import { Label } from '@/components/ui/label';
@@ -22,7 +22,6 @@ import {
 import { cn } from '@/lib/utils';
 import { FieldLabel } from '../agent/sidepane/form-components/label';
 import { AzureConfigurationSection } from './azure-configuration-section';
-import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 
 const AVAILABLE_PROVIDERS = [
   { value: 'anthropic', label: 'Anthropic' },
@@ -447,11 +446,6 @@ export function ModelConfiguration<
     onProviderOptionsChange(jsonString);
   }
 
-  // Handle both string (from JSON editors) and object (from ModelSelector) inputs
-  function handleProviderOptionsStringChange(nextValue = '') {
-    onProviderOptionsChange(nextValue);
-  }
-
   const effectiveModel = value || inheritedValue;
   const effectiveProviderOptions = value ? providerOptions : inheritedProviderOptions;
   const isUsingInheritedOptions = !value && !!inheritedValue;
@@ -486,7 +480,7 @@ export function ModelConfiguration<
             /* Azure Configuration Fields */
             <AzureConfigurationSection
               providerOptions={effectiveProviderOptions}
-              onProviderOptionsChange={handleProviderOptionsStringChange}
+              onProviderOptionsChange={onProviderOptionsChange}
               disabled={disabled || isUsingInheritedOptions}
             />
           )}
