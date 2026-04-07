@@ -13,7 +13,6 @@ import type {
   PublicKeyConfigSchema,
   StatusComponentSchema,
   StatusUpdateSchema,
-  WebClientAuthConfigSchema,
   WebClientConfigSchema,
   WorkAppGitHubAccountTypeSchema,
   WorkAppGitHubInstallationStatusSchema,
@@ -328,6 +327,7 @@ export interface BaseExecutionContext {
       | 'app_credential_web_client'
       | 'app_credential_api'
       | 'app_credential_web_client_authenticated';
+    appId?: string;
     appPrompt?: string;
   };
 }
@@ -447,7 +447,6 @@ export type AppType = 'web_client' | 'api';
 
 export type PublicKeyAlgorithm = z.infer<typeof PublicKeyAlgorithmSchema>;
 export type PublicKeyConfig = z.infer<typeof PublicKeyConfigSchema>;
-export type WebClientAuthConfig = z.infer<typeof WebClientAuthConfigSchema>;
 export type WebClientConfig = z.infer<typeof WebClientConfigSchema>;
 
 export type ApiConfig = z.infer<typeof ApiConfigSchema>;

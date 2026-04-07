@@ -33,7 +33,6 @@ export function GenericJsonEditor<
   customTemplate?: string;
   readOnly?: boolean;
 }) {
-  'use memo';
   const [open, onOpenChange] = useState(false);
   const uri = `${open ? 'expanded-' : ''}${name}.json` as const;
   const { getEditorByUri } = useMonacoActions();

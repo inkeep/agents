@@ -2,6 +2,7 @@ import {
   advanceScheduledTriggerNextRunAt,
   computeNextRunAt,
   findDueScheduledTriggersAcrossProjects,
+  getScheduledTriggerUsers,
   type ScheduledTrigger,
 } from '@inkeep/agents-core';
 import { start } from 'workflow/api';
@@ -31,15 +32,15 @@ export async function dispatchDueTriggers(): Promise<DispatchResult> {
 
   logger.info({ dueCount: dueTriggers.length }, 'Found due triggers');
 
+  let totalDispatched = 0;
   const results = await Promise.allSettled(
     dueTriggers.map((trigger) => dispatchSingleTrigger(trigger))
   );
 
-  let dispatched = 0;
   for (let i = 0; i < results.length; i++) {
     const result = results[i];
     if (result.status === 'fulfilled') {
-      dispatched++;
+      totalDispatched += result.value;
     } else {
       const trigger = dueTriggers[i];
       logger.error(
@@ -55,10 +56,10 @@ export async function dispatchDueTriggers(): Promise<DispatchResult> {
     }
   }
 
-  return { dispatched };
+  return { dispatched: totalDispatched };
 }
 
-async function dispatchSingleTrigger(trigger: ScheduledTrigger): Promise<void> {
+async function dispatchSingleTrigger(trigger: ScheduledTrigger): Promise<number> {
   const { tenantId, projectId, agentId, id: scheduledTriggerId } = trigger;
 
   const isOneTime = !trigger.cronExpression;
@@ -71,29 +72,82 @@ async function dispatchSingleTrigger(trigger: ScheduledTrigger): Promise<void> {
         lastScheduledFor: trigger.nextRunAt,
       });
 
-  const payload: TriggerPayload = {
+  const scheduledFor = trigger.nextRunAt ?? new Date().toISOString();
+  const dispatchDelayMs = trigger.dispatchDelayMs ?? 0;
+
+  const joinTableUsers = await getScheduledTriggerUsers(runDbClient)({
     tenantId,
-    projectId,
-    agentId,
     scheduledTriggerId,
-    scheduledFor: trigger.nextRunAt ?? new Date().toISOString(),
-    ref: trigger.ref,
-  };
+  });
 
-  await start(scheduledTriggerRunnerWorkflow, [payload]);
+  let workflowsStarted = 0;
 
-  try {
-    await advanceScheduledTriggerNextRunAt(runDbClient)({
-      scopes: { tenantId, projectId, agentId },
+  if (joinTableUsers.length > 0) {
+    const payloads: TriggerPayload[] = joinTableUsers.map((row, index) => ({
+      tenantId,
+      projectId,
+      agentId,
       scheduledTriggerId,
-      nextRunAt,
-    });
-  } catch (err) {
-    logger.error(
-      { scheduledTriggerId, err },
-      'Failed to advance next_run_at after workflow start; next tick will retry (idempotent)'
+      scheduledFor,
+      ref: trigger.ref,
+      runAsUserId: row.userId,
+      delayBeforeExecutionMs: index * dispatchDelayMs,
+    }));
+
+    const workflowResults = await Promise.allSettled(
+      payloads.map((payload) => start(scheduledTriggerRunnerWorkflow, [payload]))
+    );
+
+    for (let i = 0; i < workflowResults.length; i++) {
+      if (workflowResults[i].status === 'fulfilled') {
+        workflowsStarted++;
+      } else {
+        const error = (workflowResults[i] as PromiseRejectedResult).reason;
+        logger.error(
+          {
+            scheduledTriggerId,
+            userId: joinTableUsers[i].userId,
+            error,
+          },
+          'Failed to start workflow for user'
+        );
+      }
+    }
+  } else {
+    const payload: TriggerPayload = {
+      tenantId,
+      projectId,
+      agentId,
+      scheduledTriggerId,
+      scheduledFor,
+      ref: trigger.ref,
+    };
+
+    await start(scheduledTriggerRunnerWorkflow, [payload]);
+    workflowsStarted = 1;
+  }
+
+  if (workflowsStarted > 0) {
+    try {
+      await advanceScheduledTriggerNextRunAt(runDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        scheduledTriggerId,
+        nextRunAt,
+      });
+    } catch (err) {
+      logger.error(
+        { scheduledTriggerId, err },
+        'Failed to advance next_run_at after workflow start; next tick will retry (idempotent)'
+      );
+    }
+  } else {
+    logger.warn(
+      { scheduledTriggerId, scheduledFor },
+      'No workflows started for trigger tick; not advancing nextRunAt so next tick retries'
     );
   }
 
-  logger.info({ scheduledTriggerId, scheduledFor: trigger.nextRunAt }, 'Trigger dispatched');
+  logger.info({ scheduledTriggerId, scheduledFor, workflowsStarted }, 'Trigger dispatched');
+
+  return workflowsStarted;
 }

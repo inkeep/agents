@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -95,7 +95,6 @@ export function EvaluationRunConfigFormDialog({
   trigger,
   onSuccess,
 }: EvaluationRunConfigFormDialogProps) {
-  'use memo';
   const router = useRouter();
   const [internalIsOpen, setInternalIsOpen] = useState(false);
 
@@ -157,15 +156,14 @@ export function EvaluationRunConfigFormDialog({
     });
   }, [isOpen, initialData, form, suiteConfigForm]);
 
-  const agentLookup = useMemo(() => createLookup(agents), [agents]);
+  const agentLookup = createLookup(agents);
 
-  const suiteAgentIds = useWatch({ control: suiteConfigForm.control, name: 'agentIds' });
-  const selectedEvaluatorIds = useWatch({
+  const [suiteAgentIds, selectedEvaluatorIds] = useWatch({
     control: suiteConfigForm.control,
-    name: 'evaluatorIds',
+    name: ['agentIds', 'evaluatorIds'],
   });
 
-  const [evaluatorAgentMap, setEvaluatorAgentMap] = useState<Map<string, string[]>>(new Map());
+  const [evaluatorAgentMap, setEvaluatorAgentMap] = useState(new Map<string, string[]>());
 
   useEffect(() => {
     if (evaluators.length === 0 || !isOpen) return;
@@ -184,19 +182,16 @@ export function EvaluationRunConfigFormDialog({
     return () => abortController.abort();
   }, [evaluators, tenantId, projectId, isOpen]);
 
-  const displayEvaluators = useMemo(() => {
-    if (suiteAgentIds.length === 0) return evaluators;
-    return evaluators.filter((ev) => {
-      const scopedAgents = evaluatorAgentMap.get(ev.id);
-      if (!scopedAgents || scopedAgents.length === 0) return true;
-      return scopedAgents.some((agentId) => suiteAgentIds.includes(agentId));
-    });
-  }, [evaluators, suiteAgentIds, evaluatorAgentMap]);
+  const displayEvaluators =
+    suiteAgentIds.length === 0
+      ? evaluators
+      : evaluators.filter((ev) => {
+          const scopedAgents = evaluatorAgentMap.get(ev.id);
+          if (!scopedAgents || scopedAgents.length === 0) return true;
+          return scopedAgents.some((agentId) => suiteAgentIds.includes(agentId));
+        });
 
-  const displayEvaluatorLookup = useMemo(
-    () => createLookup(displayEvaluators),
-    [displayEvaluators]
-  );
+  const displayEvaluatorLookup = createLookup(displayEvaluators);
 
   useEffect(() => {
     if (!displayEvaluators.length) return;

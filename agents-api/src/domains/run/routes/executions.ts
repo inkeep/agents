@@ -98,7 +98,7 @@ const createExecutionRoute = createProtectedRoute({
 
 const getExecutionRoute = createProtectedRoute({
   method: 'get',
-  path: '/executions/:executionId',
+  path: '/executions/{executionId}',
   tags: ['Executions'],
   summary: 'Get execution status',
   description: 'Returns the status of a durable execution.',
@@ -132,7 +132,7 @@ const getExecutionRoute = createProtectedRoute({
 
 const reconnectExecutionStreamRoute = createProtectedRoute({
   method: 'get',
-  path: '/executions/:executionId/stream',
+  path: '/executions/{executionId}/stream',
   tags: ['Executions'],
   summary: 'Reconnect to execution stream',
   description: 'Reconnects to the SSE stream of an existing durable execution.',
@@ -155,7 +155,7 @@ const reconnectExecutionStreamRoute = createProtectedRoute({
 
 const approveToolCallRoute = createProtectedRoute({
   method: 'post',
-  path: '/executions/:executionId/approvals/:toolCallId',
+  path: '/executions/{executionId}/approvals/{toolCallId}',
   tags: ['Executions'],
   summary: 'Approve or deny a tool call',
   description: 'Resumes a suspended durable execution by approving or denying a pending tool call.',

@@ -53,10 +53,6 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   };
 });
 
-vi.mock('../../utils/copilot.js', () => ({
-  isCopilotAgent: vi.fn().mockReturnValue(false),
-}));
-
 import { runApiKeyAuth } from '../../middleware/runAuth';
 
 function createTestApp() {
@@ -102,11 +98,9 @@ function makeAppWithAuth(
       type: 'web_client',
       webClient: {
         allowedDomains: ['https://example.com'],
-        auth: {
-          publicKeys,
-          ...(audience !== undefined ? { audience } : {}),
-          ...authOverrides,
-        },
+        publicKeys,
+        ...(audience !== undefined ? { audience } : {}),
+        ...authOverrides,
       },
     },
     ...overrides,
@@ -603,7 +597,11 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
       expect(ctx?.projectId).toBe('project-g');
       expect(ctx?.agentId).toBe('agent-g');
       expect(ctx?.metadata?.endUserId).toBe('user_global');
-      expect(mockCanUseProjectStrict).not.toHaveBeenCalled();
+      expect(mockCanUseProjectStrict).toHaveBeenCalledWith({
+        userId: 'user_global',
+        tenantId: 'tenant-g',
+        projectId: 'project-g',
+      });
     });
 
     it('should return 401 when global app token is missing tid/pid claims', async () => {
@@ -635,7 +633,7 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
       expect(res.status).toBe(401);
     });
 
-    it('should return 403 when canUseProjectStrict denies access for global app with validateScopeClaims', async () => {
+    it('should return 403 when canUseProjectStrict denies access for global app', async () => {
       const app = makeAppWithAuth(
         [
           {
@@ -646,8 +644,7 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
           },
         ],
         undefined,
-        { tenantId: null, projectId: null },
-        { validateScopeClaims: true }
+        { tenantId: null, projectId: null }
       );
       mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(app));
       mockCanUseProjectStrict.mockResolvedValue(false);
@@ -811,6 +808,35 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
       expect(res.status).toBe(200);
       expect(getContext()?.metadata?.authMethod).toBe('app_credential_web_client_authenticated');
       expect(getContext()?.metadata?.endUserId).toBe('user_authenticated');
+    });
+  });
+
+  describe('misconfiguration guard', () => {
+    it('should return 401 when allowAnonymous is false but no public keys configured', async () => {
+      const anonSecret = new TextEncoder().encode('test-anon-secret-for-jwt-signing-1234');
+      const anonToken = await new SignJWT({ app: 'app_test123', type: 'anonymous' })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setSubject('anon_test_user')
+        .setIssuer('inkeep')
+        .setIssuedAt()
+        .setExpirationTime(Math.floor(Date.now() / 1000) + 3600)
+        .sign(anonSecret);
+
+      const appRecord = makeAppWithAuth([], undefined, {}, { allowAnonymous: false });
+      mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
+
+      const { app: testApp } = createTestApp();
+      const res = await testApp.request('/test', {
+        headers: {
+          Authorization: `Bearer ${anonToken}`,
+          'x-inkeep-app-id': 'app_test123',
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(401);
+      const body = await res.json();
+      expect(body.detail).toContain('no public keys are configured');
     });
   });
 

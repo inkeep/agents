@@ -38,8 +38,10 @@ import {
 } from '../services/blob-storage/file-upload-helpers';
 import { pendingToolApprovalManager } from '../session/PendingToolApprovalManager';
 import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
+import { streamBufferRegistry } from '../stream/stream-buffer-registry';
 import { createBufferingStreamHelper, createVercelStreamHelper } from '../stream/stream-helpers';
 import { VercelMessageSchema } from '../types/chat';
+import { getUserIdFromContext } from '../types/executionContext';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromVercelContent } from '../utils/message-parts';
 import { agentExecutionWorkflow, toolApprovalHook } from '../workflow/functions/agentExecution';
@@ -399,6 +401,10 @@ app.openapi(chatDataStreamRoute, async (c) => {
       const hasAttachedFiles = messageParts.some((part) => part.kind === 'file');
       const attachmentTaskId = hasAttachedFiles ? `message_${userMessageId}` : undefined;
 
+      if (messageSpan) {
+        messageSpan.setAttribute('message.id', userMessageId);
+      }
+
       const messageContent = await buildPersistedMessageContent(userText, messageParts, {
         tenantId,
         projectId,
@@ -423,7 +429,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
       });
       if (messageSpan) {
         messageSpan.addEvent('user.message.stored', {
-          'message.id': conversationId,
+          'message.id': userMessageId,
           'database.operation': 'insert',
         });
       }
@@ -432,6 +438,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
 
       if (effectiveExecutionMode === 'durable') {
         const requestId = `chatds-${Date.now()}`;
+        const userId = getUserIdFromContext(executionContext);
         const run = await start(agentExecutionWorkflow, [
           {
             tenantId,
@@ -445,6 +452,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
             forwardedHeaders:
               Object.keys(forwardedHeaders).length > 0 ? forwardedHeaders : undefined,
             outputFormat: 'vercel',
+            userId,
           },
         ]);
         logger.info(
@@ -457,12 +465,16 @@ app.openapi(chatDataStreamRoute, async (c) => {
         c.header('connection', 'keep-alive');
         c.header('x-vercel-ai-data-stream', 'v2');
         c.header('x-accel-buffering', 'no');
+        streamBufferRegistry.register({ tenantId, projectId, conversationId });
         return stream(c, async (s) => {
           try {
+            const encoder = new TextEncoder();
             const reader = run.readable.getReader();
             while (true) {
               const { done, value } = await reader.read();
               if (done) break;
+              const encoded = typeof value === 'string' ? encoder.encode(value) : value;
+              streamBufferRegistry.push({ tenantId, projectId, conversationId }, encoded);
               await s.write(value);
             }
           } catch (error) {
@@ -471,6 +483,8 @@ app.openapi(chatDataStreamRoute, async (c) => {
               'Error streaming durable execution via /chat'
             );
             await s.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
+          } finally {
+            await streamBufferRegistry.complete({ tenantId, projectId, conversationId });
           }
         });
       }
@@ -638,13 +652,29 @@ app.openapi(chatDataStreamRoute, async (c) => {
       c.header('x-vercel-ai-data-stream', 'v2');
       c.header('x-accel-buffering', 'no'); // disable nginx buffering
 
-      return stream(c, (stream) =>
-        stream.pipe(
-          dataStream
-            .pipeThrough(new JsonToSseTransformStream())
-            .pipeThrough(new TextEncoderStream())
-        )
-      );
+      const encodedStream = dataStream
+        .pipeThrough(new JsonToSseTransformStream())
+        .pipeThrough(new TextEncoderStream());
+
+      const [clientStream, bufferStream] = encodedStream.tee();
+
+      streamBufferRegistry.register({ tenantId, projectId, conversationId });
+      (async () => {
+        const reader = bufferStream.getReader();
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            streamBufferRegistry.push({ tenantId, projectId, conversationId }, value);
+          }
+        } catch (error) {
+          logger.error({ error, conversationId }, 'Error buffering stream for resumption');
+        } finally {
+          await streamBufferRegistry.complete({ tenantId, projectId, conversationId });
+        }
+      })();
+
+      return stream(c, (s) => s.pipe(clientStream));
     });
   } catch (error) {
     if (error instanceof FileSecurityError) {

@@ -9,7 +9,7 @@ import {
   createFullProjectServerSide,
   createProjectMetadataAndBranch,
   deleteFullProject,
-  deleteProjectWithBranch,
+  deleteProjectAndBranches,
   doltCheckout,
   ErrorResponseSchema,
   FullProjectDefinitionSchema,
@@ -621,10 +621,9 @@ app.openapi(
     }
 
     try {
-      // 1. Delete runtime entities for this project
+      // 1. Delete runtime entities for this project (across all branches)
       await cascadeDeleteByProject(runDbClient)({
         scopes: { tenantId, projectId },
-        fullBranchName: resolvedRef.name,
       });
 
       // 2. Delete the full project config from the config DB
@@ -636,7 +635,7 @@ app.openapi(
       await doltCheckout(configDb)({ branch: 'main' });
 
       // 3. Delete project from runtime DB and delete project branch
-      const deleted = await deleteProjectWithBranch(
+      const deleted = await deleteProjectAndBranches(
         runDbClient,
         manageDbClient
       )({

@@ -16,6 +16,7 @@ import {
   Library,
   Lock,
   LucideHexagon,
+  MessageSquare,
   Settings,
   Users,
   Workflow,
@@ -48,7 +49,6 @@ interface AppSidebarProps extends ComponentProps<typeof Sidebar> {
 }
 
 export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => {
-  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId?: string }>();
   const pathname = usePathname();
   const { user } = useAuthSession();
@@ -212,6 +212,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           title: STATIC_LABELS.traces,
           url: `/${tenantId}/projects/${projectId}/traces`,
           icon: Activity,
+        },
+        {
+          title: STATIC_LABELS.feedback,
+          url: `/${tenantId}/projects/${projectId}/feedback`,
+          icon: MessageSquare,
         },
         {
           title: 'Test Suites',

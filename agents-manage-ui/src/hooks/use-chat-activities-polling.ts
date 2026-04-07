@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
+import { throwError } from '@/lib/utils';
 
 interface UseChatActivitiesPollingOptions {
   conversationId: string;
@@ -33,7 +34,7 @@ export const useChatActivitiesPolling = ({
   const isComponentMountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const fetchChatActivities = useCallback(async (): Promise<ConversationDetail | null> => {
+  async function fetchChatActivities(): Promise<ConversationDetail | null> {
     try {
       setError(null);
 
@@ -64,7 +65,7 @@ export const useChatActivitiesPolling = ({
           // If we can't parse the error response, use the default message
         }
 
-        throw new Error(errorMessage);
+        throwError(errorMessage);
       }
 
       const data: ConversationDetail = await response.json();
@@ -101,10 +102,10 @@ export const useChatActivitiesPolling = ({
       }
       throw err;
     }
-  }, [conversationId, tenantId, projectId]);
+  }
 
   // Start polling
-  const startPolling = useCallback(() => {
+  function startPolling() {
     if (pollingIntervalRef.current) return; // Already polling
 
     setIsPolling(true);
@@ -120,10 +121,10 @@ export const useChatActivitiesPolling = ({
         // Error handling is already done in fetchChatActivities
       });
     }, pollingInterval);
-  }, [fetchChatActivities, pollingInterval]);
+  }
 
   // Stop polling
-  const stopPolling = useCallback(() => {
+  function stopPolling() {
     setIsPolling(false);
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
@@ -134,24 +135,24 @@ export const useChatActivitiesPolling = ({
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-  }, []);
+  }
 
   // Retry connection - clears error and restarts polling
-  const retryConnection = useCallback(() => {
+  function retryConnection() {
     setError(null);
     stopPolling();
     startPolling();
-  }, [startPolling, stopPolling]);
+  }
 
   // Refresh once - makes a single request without starting polling
-  const refreshOnce = useCallback(async (): Promise<{
+  async function refreshOnce(): Promise<{
     hasNewActivity: boolean;
-  }> => {
+  }> {
     const currentCount = chatActivities?.activities?.length || 0;
     const data = await fetchChatActivities();
     const newCount = data?.activities?.length || 0;
     return { hasNewActivity: newCount > currentCount };
-  }, [fetchChatActivities, chatActivities?.activities?.length]);
+  }
 
   // Cleanup on unmount
   useEffect(() => {
@@ -160,7 +161,10 @@ export const useChatActivitiesPolling = ({
       isComponentMountedRef.current = false;
       stopPolling();
     };
-  }, [stopPolling]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    stopPolling,
+  ]);
 
   // Reset chat activities and stop polling when conversationId changes
   const prevConversationIdRef = useRef(conversationId);

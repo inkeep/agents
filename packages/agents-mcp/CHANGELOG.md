@@ -1,5 +1,35 @@
 # @inkeep/agents-mcp
 
+## 0.65.1
+
+## 0.65.0
+
+## 0.64.10
+
+## 0.64.9
+
+## 0.64.8
+
+## 0.64.7
+
+## 0.64.6
+
+## 0.64.5
+
+## 0.64.4
+
+## 0.64.3
+
+## 0.64.2
+
+## 0.64.1
+
+## 0.64.0
+
+### Patch Changes
+
+- 47915b3: Add agent-scoped datasets and evaluators with direct agent execution for dataset runs
+
 ## 0.63.3
 
 ## 0.63.2

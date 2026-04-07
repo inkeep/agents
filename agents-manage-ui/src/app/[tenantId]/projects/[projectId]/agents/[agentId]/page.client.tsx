@@ -117,7 +117,6 @@ const nonValidationErrors = new Set([
 ]);
 
 export const Agent: FC<AgentProps> = ({ agent }) => {
-  'use memo';
   const [showPlayground, setShowPlayground] = useState(false);
   const {
     isOpen: isCopilotChatOpen,
@@ -470,74 +469,71 @@ export const Agent: FC<AgentProps> = ({ agent }) => {
 
   useAgentShortcuts();
 
-  const onSubmit = form.handleSubmit(
-    async ({ mcpRelations, defaultSubAgentNodeId, ...data }): Promise<void> => {
-      const serializedData = editorToPayload(nodes, edges, {
-        mcpRelations: mcpRelations ?? {},
-        functionToolRelations: data.functionToolRelations ?? {},
-        functionTools: data.functionTools ?? {},
-        externalAgents: data.externalAgents ?? {},
-        teamAgents: data.teamAgents ?? {},
-        subAgents: data.subAgents ?? {},
-        functions: data.functions ?? {},
-        defaultSubAgentNodeId,
+  const onSubmit = form.handleSubmit(async ({ mcpRelations, defaultSubAgentNodeId, ...data }) => {
+    const serializedData = editorToPayload(nodes, edges, {
+      mcpRelations: mcpRelations ?? {},
+      functionToolRelations: data.functionToolRelations ?? {},
+      functionTools: data.functionTools ?? {},
+      externalAgents: data.externalAgents ?? {},
+      teamAgents: data.teamAgents ?? {},
+      subAgents: data.subAgents ?? {},
+      functions: data.functions ?? {},
+      defaultSubAgentNodeId,
+    });
+    const res = await updateFullAgentAction(tenantId, projectId, agentId, {
+      ...data,
+      defaultSubAgentId: serializedData.defaultSubAgentId,
+      subAgents: serializedData.subAgents,
+      functionTools: serializedData.functionTools,
+      functions: serializedData.functions,
+    });
+
+    if (res.success) {
+      toast.success('Agent saved', { closeButton: true });
+      markSaved();
+      const syncedGraph = syncSavedAgentGraph({
+        nodes,
+        edges,
+        savedAgent: res.data,
+        nodeId,
+        edgeId,
+        subAgentFormData: data.subAgents,
+        functionToolRelations: data.functionToolRelations,
       });
-      const res = await updateFullAgentAction(tenantId, projectId, agentId, {
-        ...data,
-        defaultSubAgentId: serializedData.defaultSubAgentId,
-        subAgents: serializedData.subAgents,
-        functionTools: serializedData.functionTools,
-        functions: serializedData.functions,
+
+      setQueryState((prev) => ({
+        ...prev,
+        pane:
+          (prev.pane === 'node' && !syncedGraph.nodeId) ||
+          (prev.pane === 'edge' && !syncedGraph.edgeId)
+            ? 'agent'
+            : prev.pane,
+        nodeId: syncedGraph.nodeId,
+        edgeId: syncedGraph.edgeId,
+      }));
+      form.reset(apiToFormValues(res.data));
+      setInitial(syncedGraph.nodes, syncedGraph.edges);
+      return;
+    }
+
+    if (res.code && nonValidationErrors.has(res.code)) {
+      const error = res.error || 'An error occurred while saving the agent';
+      toast.error(error, { closeButton: true });
+      return;
+    }
+
+    // Handle validation errors (422 status - unprocessable_entity)
+    try {
+      const issues: z.ZodIssue[] = JSON.parse(res.error);
+      issues.forEach(({ path, code, message }) => {
+        form.setError(path.join('.') as any, { type: code, message });
       });
-
-      if (res.success) {
-        toast.success('Agent saved', { closeButton: true });
-        markSaved();
-        const syncedGraph = syncSavedAgentGraph({
-          nodes,
-          edges,
-          savedAgent: res.data,
-          nodeId,
-          edgeId,
-          subAgentFormData: data.subAgents,
-          functionToolRelations: data.functionToolRelations,
-        });
-
-        setQueryState((prev) => ({
-          ...prev,
-          pane:
-            (prev.pane === 'node' && !syncedGraph.nodeId) ||
-            (prev.pane === 'edge' && !syncedGraph.edgeId)
-              ? 'agent'
-              : prev.pane,
-          nodeId: syncedGraph.nodeId,
-          edgeId: syncedGraph.edgeId,
-        }));
-        form.reset(apiToFormValues(res.data));
-        setInitial(syncedGraph.nodes, syncedGraph.edges);
-        return;
-      }
-
-      if (res.code && nonValidationErrors.has(res.code)) {
-        const error = res.error || 'An error occurred while saving the agent';
-        toast.error(error, { closeButton: true });
-        return;
-      }
-
-      // Handle validation errors (422 status - unprocessable_entity)
-      try {
-        const issues: z.ZodIssue[] = JSON.parse(res.error);
-        issues.forEach(({ path, code, message }) => {
-          form.setError(path.join('.') as any, { type: code, message });
-        });
-      } catch (parseError) {
-        // Fallback for unparseable errors
-        console.error('Failed to parse validation errors:', parseError);
-        toast.error('Failed to save agent', { closeButton: true });
-      }
-    },
-    console.error
-  );
+    } catch (parseError) {
+      // Fallback for unparseable errors
+      console.error('Failed to parse validation errors:', parseError);
+      toast.error('Failed to save agent', { closeButton: true });
+    }
+  }, console.error);
 
   useAnimateGraph();
 

@@ -106,6 +106,7 @@ pnpm build           # Build documentation for production
 - **Types**: Explicit types preferred, avoid `any` where possible (warning), use Zod for validation
 - **Naming**: camelCase for variables/functions, PascalCase for types/components, kebab-case for files
 - **Error Handling**: Use try-catch, validate with Zod schemas, handle errors explicitly
+- **React Compiler**: React Compiler is enabled for this repo. Do not add `memo`, `useMemo`, or `useCallback`; rely on the compiler unless a maintainer explicitly requests an exception
 - **Function Arguments**: When a function has more than 3 parameters, prefer a single object argument so that parameters are well-labeled, ordering doesn't matter, and callers can benefit from spread operators
 - **No Comments**: Do not add comments unless explicitly requested
 
@@ -116,6 +117,27 @@ pnpm build           # Build documentation for production
 - Run with `--run` flag to avoid watch mode
 - 60-second timeouts for A2A interactions
 - Each test worker uses an embedded Postgres (pglite) database with manage/run Drizzle migrations applied in setup
+
+### Visual Regression Tests
+Browser-based visual tests (screenshot comparisons) run Chromium inside a Docker container so screenshots are identical across macOS and Linux CI.
+
+```bash
+# Start the Playwright Docker server (one-time, stays running)
+docker compose -f docker-compose.visual.yml up -d
+
+# Run visual tests
+pnpm --filter @inkeep/agents-manage-ui test:visual
+
+# Update baselines after intentional UI changes
+pnpm --filter @inkeep/agents-manage-ui test:visual:update
+
+# Stop the server when done
+docker compose -f docker-compose.visual.yml down
+```
+
+- Visual test files: `*.browser.test.tsx`
+- Baselines stored in `src/__screenshots__/`
+- Docker is **required** — without it, tests fall back to local Chromium and screenshots won't match CI
 
 ## Package Manager
 - Always use `pnpm` (not npm, yarn, or bun)
@@ -241,7 +263,7 @@ describe('MyFeature', () => {
 
 ### Environment Configuration
 Required environment variables in `.env` files:
-```
+```dotenv
 ENVIRONMENT=development|production|test
 INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@localhost:5432/inkeep_agents
 INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@localhost:5433/inkeep_agents
@@ -363,6 +385,7 @@ This product has **50+ customer-facing** and **100+ internal tooling/devops** su
 
 **Before marking any feature complete, verify:**
 - [ ] `pnpm check` passes
+- [ ] **Changeset created** via `pnpm bump` for every published package with runtime behavior changes (see [Creating Changelog Entries](#creating-changelog-entries-changesets))
 - [ ] UI components implemented in agents-manage-ui
 - [ ] Documentation added to `/agents-docs/`
 - [ ] Surface area and breaking changes have been addressed as agreed with the user (see “Clarify scope and surface area before implementing”).
@@ -370,8 +393,9 @@ This product has **50+ customer-facing** and **100+ internal tooling/devops** su
 ### 📋 Standard Development Workflow
 
 1. Create a branch: `git checkout -b feature/your-feature-name`
-2. Run [Verification](#verification) before pushing
-3. Commit, then `gh pr create`
+2. Create a changeset: `pnpm bump <patch|minor> --pkg <package> "<message>"` (required for any runtime behavior change to a published package — see [Creating Changelog Entries](#creating-changelog-entries-changesets))
+3. Run [Verification](#verification) before pushing
+4. Commit, then `gh pr create`
 
 The user may override this workflow (e.g., work directly on main).
 

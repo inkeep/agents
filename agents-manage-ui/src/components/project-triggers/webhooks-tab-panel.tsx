@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Combobox } from '@/components/ui/combobox';
 import type { AgentSummary, TriggerWithAgent } from '@/lib/api/project-triggers';
 import { FilterTriggerComponent } from '../traces/filters/filter-trigger';
@@ -18,12 +18,11 @@ export function WebhooksTabPanel({
   triggers: TriggerWithAgent[];
   agents: AgentSummary[];
 }) {
-  const [agentFilter, setAgentFilter] = useState<string>('');
+  const [agentFilter, setAgentFilter] = useState('');
 
-  const filteredTriggers = useMemo(() => {
-    if (!agentFilter) return triggers;
-    return triggers.filter((t) => t.agentId === agentFilter);
-  }, [triggers, agentFilter]);
+  const filteredTriggers = !agentFilter
+    ? triggers
+    : triggers.filter((t) => t.agentId === agentFilter);
 
   return (
     <div className="space-y-4">

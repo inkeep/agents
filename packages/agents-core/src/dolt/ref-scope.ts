@@ -4,6 +4,7 @@ import type { Pool, PoolClient } from 'pg';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import * as schema from '../db/manage/manage-schema';
 import { generateId } from '../utils/conversations';
+import { getDatabaseErrorLogContext } from '../utils/error';
 import { getLogger } from '../utils/logger';
 import type { ResolvedRef } from '../validation/dolt-schemas';
 import { checkoutBranch } from './branches-api';
@@ -147,7 +148,13 @@ export async function withRef<T>(
     'Acquiring connection for ref scope'
   );
 
+  const connectStart = Date.now();
   const connection: PoolClient = await pool.connect();
+  const connectMs = Date.now() - connectStart;
+  if (connectMs > 5_000) {
+    logger.info({ ref: resolvedRef.name, connectMs, connectionId }, 'Slow pool.connect in withRef');
+  }
+
   let tempBranch: string | null = null;
 
   try {
@@ -155,7 +162,15 @@ export async function withRef<T>(
 
     if (resolvedRef.type === 'branch') {
       logger.debug({ branch: resolvedRef.name, connectionId }, 'Checking out branch');
+      const checkoutStart = Date.now();
       await checkoutBranch(db)({ branchName: resolvedRef.name, syncSchema: false });
+      const checkoutMs = Date.now() - checkoutStart;
+      if (checkoutMs > 5_000) {
+        logger.info(
+          { ref: resolvedRef.name, checkoutMs, connectionId },
+          'Slow checkoutBranch in withRef'
+        );
+      }
     } else {
       // For tags/commits, create temporary branch from the hash
       // Include timestamp for easier cleanup of orphaned branches
@@ -194,11 +209,16 @@ export async function withRef<T>(
           logger.info({ branch: resolvedRef.name, connectionId }, 'Successfully committed changes');
         }
       } catch (commitError) {
-        // Log but don't fail - the operation already succeeded
         logger.error(
-          { error: commitError, branch: resolvedRef.name, connectionId },
-          'Failed to auto-commit changes'
+          {
+            error: commitError,
+            ...getDatabaseErrorLogContext(commitError),
+            branch: resolvedRef.name,
+            connectionId,
+          },
+          'Failed to auto-commit changes — uncommitted writes will be lost on connection release'
         );
+        throw commitError;
       }
     }
 
@@ -224,19 +244,31 @@ export async function withRef<T>(
         }
       } catch (resetError) {
         logger.error(
-          { error: resetError, branch: resolvedRef.name, connectionId },
+          {
+            error: resetError,
+            ...getDatabaseErrorLogContext(resetError),
+            branch: resolvedRef.name,
+            connectionId,
+          },
           'Failed to reset changes after error'
         );
       }
     }
 
     logger.error(
-      { ref: resolvedRef.name, duration: Date.now() - startTime, connectionId, error },
+      {
+        ref: resolvedRef.name,
+        duration: Date.now() - startTime,
+        connectionId,
+        error,
+        ...getDatabaseErrorLogContext(error),
+      },
       'Ref scope failed'
     );
     throw error;
   } finally {
     // Cleanup: checkout main, delete temp branch, release connection
+    const cleanupStart = Date.now();
     try {
       await connection.query(`SELECT DOLT_CHECKOUT('main')`);
 
@@ -245,14 +277,35 @@ export async function withRef<T>(
         await connection.query(`SELECT DOLT_BRANCH('-D', $1)`, [tempBranch]);
       }
     } catch (cleanupError) {
+      logger.info(
+        {
+          ref: resolvedRef.name,
+          connectionId,
+          cleanupMs: Date.now() - cleanupStart,
+          error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
+        },
+        'withRef cleanup failed'
+      );
       logger.error(
-        { error: cleanupError, tempBranch, connectionId },
+        {
+          error: cleanupError,
+          ...getDatabaseErrorLogContext(cleanupError),
+          tempBranch,
+          connectionId,
+        },
         'Error during ref scope cleanup'
       );
     } finally {
+      const totalMs = Date.now() - startTime;
+      if (totalMs > 5_000) {
+        logger.info(
+          { ref: resolvedRef.name, totalMs, connectMs, connectionId },
+          'Slow withRef total duration'
+        );
+      }
       connection.release();
       logger.debug(
-        { ref: resolvedRef.name, duration: Date.now() - startTime, connectionId },
+        { ref: resolvedRef.name, duration: totalMs, connectionId },
         'Connection released'
       );
     }

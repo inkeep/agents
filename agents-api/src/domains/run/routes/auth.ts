@@ -161,8 +161,16 @@ app.openapi(
       type: 'web_client';
       webClient: {
         allowedDomains: string[];
+        allowAnonymous?: boolean;
       };
     };
+
+    if (config.webClient.allowAnonymous === false) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Anonymous sessions are disabled for this app. Authentication is required.',
+      });
+    }
 
     const origin = c.req.header('Origin');
     if (!validateOrigin(origin, config.webClient.allowedDomains)) {

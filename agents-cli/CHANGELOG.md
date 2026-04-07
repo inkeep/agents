@@ -1,5 +1,153 @@
 # @inkeep/agents-cli
 
+## 0.65.1
+
+### Patch Changes
+
+- Updated dependencies [16fb544]
+- Updated dependencies [3735393]
+- Updated dependencies [4077b67]
+- Updated dependencies [dbee04b]
+  - @inkeep/agents-manage-ui@0.65.1
+  - @inkeep/agents-core@0.65.1
+  - @inkeep/agents-sdk@0.65.1
+
+## 0.65.0
+
+### Patch Changes
+
+- Updated dependencies [27f2620]
+- Updated dependencies [e332202]
+- Updated dependencies [b43f5e1]
+  - @inkeep/agents-manage-ui@0.65.0
+  - @inkeep/agents-core@0.65.0
+  - @inkeep/agents-sdk@0.65.0
+
+## 0.64.10
+
+### Patch Changes
+
+- 4082cfd: Revert of [#3012](https://github.com/inkeep/agents/pull/3012)
+- Updated dependencies [4082cfd]
+  - @inkeep/agents-manage-ui@0.64.10
+  - @inkeep/agents-core@0.64.10
+  - @inkeep/agents-sdk@0.64.10
+
+## 0.64.9
+
+### Patch Changes
+
+- Updated dependencies [fa20781]
+  - @inkeep/agents-manage-ui@0.64.9
+  - @inkeep/agents-core@0.64.9
+  - @inkeep/agents-sdk@0.64.9
+
+## 0.64.8
+
+### Patch Changes
+
+- Updated dependencies [701e8c9]
+  - @inkeep/agents-manage-ui@0.64.8
+  - @inkeep/agents-core@0.64.8
+  - @inkeep/agents-sdk@0.64.8
+
+## 0.64.7
+
+### Patch Changes
+
+- daee0b6: Revert
+- Updated dependencies [daee0b6]
+  - @inkeep/agents-manage-ui@0.64.7
+  - @inkeep/agents-core@0.64.7
+  - @inkeep/agents-sdk@0.64.7
+
+## 0.64.6
+
+### Patch Changes
+
+- Updated dependencies [09c6eb0]
+- Updated dependencies [3237c45]
+- Updated dependencies [528f69c]
+- Updated dependencies [6fddd34]
+  - @inkeep/agents-core@0.64.6
+  - @inkeep/agents-manage-ui@0.64.6
+  - @inkeep/agents-sdk@0.64.6
+
+## 0.64.5
+
+### Patch Changes
+
+- dee33a4: Remove manual `useMemo` and `useCallback` usages in favor of React Compiler
+- Updated dependencies [dee33a4]
+- Updated dependencies [e91d67b]
+  - @inkeep/agents-manage-ui@0.64.5
+  - @inkeep/agents-core@0.64.5
+  - @inkeep/agents-sdk@0.64.5
+
+## 0.64.4
+
+### Patch Changes
+
+- Updated dependencies [707333c]
+  - @inkeep/agents-manage-ui@0.64.4
+  - @inkeep/agents-core@0.64.4
+  - @inkeep/agents-sdk@0.64.4
+
+## 0.64.3
+
+### Patch Changes
+
+- Updated dependencies [d10ccf6]
+- Updated dependencies [63b1062]
+- Updated dependencies [7aa1fac]
+- Updated dependencies [7aa1fac]
+- Updated dependencies [4ace590]
+- Updated dependencies [ee1d23a]
+  - @inkeep/agents-manage-ui@0.64.3
+  - @inkeep/agents-core@0.64.3
+  - @inkeep/agents-sdk@0.64.3
+
+## 0.64.2
+
+### Patch Changes
+
+- Updated dependencies [f0081f7]
+- Updated dependencies [f099221]
+- Updated dependencies [a41b6c7]
+- Updated dependencies [8c16740]
+- Updated dependencies [b55675b]
+  - @inkeep/agents-manage-ui@0.64.2
+  - @inkeep/agents-core@0.64.2
+  - @inkeep/agents-sdk@0.64.2
+
+## 0.64.1
+
+### Patch Changes
+
+- Updated dependencies [9bf97a7]
+  - @inkeep/agents-manage-ui@0.64.1
+  - @inkeep/agents-core@0.64.1
+  - @inkeep/agents-sdk@0.64.1
+
+## 0.64.0
+
+### Patch Changes
+
+- Updated dependencies [254edb8]
+- Updated dependencies [47915b3]
+- Updated dependencies [981ba48]
+- Updated dependencies [ba40c53]
+- Updated dependencies [47a3df7]
+- Updated dependencies [d27011a]
+- Updated dependencies [2ebe1c4]
+- Updated dependencies [a929847]
+- Updated dependencies [68a55f5]
+- Updated dependencies [1512a7b]
+- Updated dependencies [abc3b5d]
+  - @inkeep/agents-manage-ui@0.64.0
+  - @inkeep/agents-core@0.64.0
+  - @inkeep/agents-sdk@0.64.0
+
 ## 0.63.3
 
 ### Patch Changes

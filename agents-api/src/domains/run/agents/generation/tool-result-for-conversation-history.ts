@@ -31,12 +31,15 @@ function formatToolResultForConversationHistory(
 
   if (isToolResultDenied(result)) {
     return [
-      `## Tool: ${toolName}`,
+      `## Tool: ${toolName} [DENIED BY USER]`,
       '',
-      `### 🔧 TOOL_CALL_ID: ${toolCallId}`,
+      `### TOOL_CALL_ID: ${toolCallId}`,
       '',
-      `### Output`,
-      result.reason,
+      `### Input`,
+      input,
+      '',
+      `### Denial Reason`,
+      result.reason ?? 'Tool call was denied by the user.',
     ].join('\n');
   }
 

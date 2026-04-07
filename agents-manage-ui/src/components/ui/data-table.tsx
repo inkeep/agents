@@ -39,6 +39,8 @@ export function DataTable<TData>({
   emptyState,
   getRowId,
 }: DataTableProps<TData>) {
+  // Fix React compiler error: TanStack Table's `useReactTable()` API returns functions that cannot be memoized safely
+  'use no memo';
   const [sorting, setSorting] = useState<SortingState>(defaultSort);
 
   const table = useReactTable({

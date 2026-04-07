@@ -35,6 +35,8 @@ export type CreateScheduledTriggerInput = {
   retryDelaySeconds?: number;
   timeoutSeconds?: number;
   runAsUserId?: string | null;
+  runAsUserIds?: string[];
+  dispatchDelayMs?: number;
   ref?: string | null;
 };
 
@@ -183,10 +185,10 @@ export async function runScheduledTriggerNow(
   projectId: string,
   agentId: string,
   scheduledTriggerId: string
-): Promise<{ success: boolean; invocationId: string }> {
+): Promise<{ success: boolean; invocationIds: string[] }> {
   const response = await makeManagementApiRequest<{
     success: boolean;
-    invocationId: string;
+    invocationIds: string[];
   }>(
     `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers/${scheduledTriggerId}/run`,
     {
@@ -223,4 +225,20 @@ export async function fetchScheduledTriggerInvocations(
   );
 
   return response;
+}
+
+/**
+ * Get users associated with a scheduled trigger
+ */
+export async function getScheduledTriggerUsers(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  scheduledTriggerId: string
+): Promise<string[]> {
+  const response = await makeManagementApiRequest<{ data: string[] }>(
+    `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/scheduled-triggers/${scheduledTriggerId}/users`
+  );
+
+  return response.data;
 }

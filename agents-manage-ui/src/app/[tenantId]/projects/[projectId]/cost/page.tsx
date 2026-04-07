@@ -1,7 +1,7 @@
 'use client';
 
 import { notFound } from 'next/navigation';
-import { use, useMemo } from 'react';
+import { use } from 'react';
 import { CostDashboard } from '@/components/cost/cost-dashboard';
 import { PageHeader } from '@/components/layout/page-header';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
@@ -19,7 +19,7 @@ export default function ProjectUsagePage({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/cost'>) {
   const { tenantId, projectId } = use(params);
-  const { data: capabilities, isLoading: capabilitiesLoading } = useCapabilitiesQuery();
+  const { data: capabilities, isFetching: capabilitiesLoading } = useCapabilitiesQuery();
 
   if (!capabilitiesLoading && !capabilities?.costTracking?.enabled) {
     notFound();
@@ -33,7 +33,7 @@ export default function ProjectUsagePage({
     setCustomDateRange,
   } = useTracesQueryState();
 
-  const { startTime, endTime } = useMemo(() => {
+  const { startTime, endTime } = (() => {
     if (selectedTimeRange === CUSTOM && customStartDate && customEndDate) {
       return {
         startTime: new Date(customStartDate).toISOString(),
@@ -44,7 +44,7 @@ export default function ProjectUsagePage({
     const end = new Date();
     const start = new Date(end.getTime() - range.hours * 60 * 60 * 1000);
     return { startTime: start.toISOString(), endTime: end.toISOString() };
-  }, [selectedTimeRange, customStartDate, customEndDate]);
+  })();
 
   return (
     <div className="flex flex-col gap-6">

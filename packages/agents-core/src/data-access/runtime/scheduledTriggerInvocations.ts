@@ -2,6 +2,7 @@ import { and, asc, count, desc, eq, gte, inArray, lte, ne, sql } from 'drizzle-o
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { scheduledTriggerInvocations } from '../../db/runtime/runtime-schema';
 import type {
+  LastRunSummary,
   ScheduledTriggerInvocation,
   ScheduledTriggerInvocationInsert,
   ScheduledTriggerInvocationUpdate,
@@ -419,29 +420,31 @@ export const cancelPastPendingInvocationsForTrigger =
     return result.length;
   };
 
+export type ScheduledTriggerRunInfo = {
+  lastRunAt: string | null;
+  lastRunStatus: 'completed' | 'failed' | null;
+  lastRunConversationIds: string[];
+  nextRunAt: string | null;
+  lastRunSummary: LastRunSummary | null;
+};
+
 /**
- * Get run info for multiple scheduled triggers in a single query
- * Returns last run (completed/failed) and next pending run for each trigger
+ * Get run info for multiple scheduled triggers in a single query.
+ * Groups invocations by (triggerId, scheduledFor) to support multi-user triggers.
+ * Excludes manual runs (manual-run-* and manual-rerun-* idempotency keys).
+ * Returns lastRunSummary with per-status counts for the most recent scheduled tick.
  */
 export const getScheduledTriggerRunInfoBatch =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: Omit<AgentScopeConfig, 'agentId'>;
     triggerIds: Array<{ agentId: string; triggerId: string }>;
-  }): Promise<
-    Map<
-      string,
-      {
-        lastRunAt: string | null;
-        lastRunStatus: 'completed' | 'failed' | null;
-        lastRunConversationIds: string[];
-        nextRunAt: string | null;
-      }
-    >
-  > => {
+  }): Promise<Map<string, ScheduledTriggerRunInfo>> => {
     if (params.triggerIds.length === 0) {
       return new Map();
     }
+
+    const triggerIdValues = params.triggerIds.map((t) => t.triggerId);
 
     const allInvocations = await db
       .select({
@@ -450,28 +453,18 @@ export const getScheduledTriggerRunInfoBatch =
         scheduledFor: scheduledTriggerInvocations.scheduledFor,
         completedAt: scheduledTriggerInvocations.completedAt,
         conversationIds: scheduledTriggerInvocations.conversationIds,
+        idempotencyKey: scheduledTriggerInvocations.idempotencyKey,
       })
       .from(scheduledTriggerInvocations)
       .where(
         and(
           projectScopedWhere(scheduledTriggerInvocations, params.scopes),
-          inArray(
-            scheduledTriggerInvocations.scheduledTriggerId,
-            params.triggerIds.map((t) => t.triggerId)
-          )
+          inArray(scheduledTriggerInvocations.scheduledTriggerId, triggerIdValues)
         )
       )
-      .orderBy(desc(scheduledTriggerInvocations.completedAt));
+      .orderBy(desc(scheduledTriggerInvocations.scheduledFor));
 
-    const result = new Map<
-      string,
-      {
-        lastRunAt: string | null;
-        lastRunStatus: 'completed' | 'failed' | null;
-        lastRunConversationIds: string[];
-        nextRunAt: string | null;
-      }
-    >();
+    const result = new Map<string, ScheduledTriggerRunInfo>();
 
     for (const trigger of params.triggerIds) {
       result.set(trigger.triggerId, {
@@ -479,19 +472,108 @@ export const getScheduledTriggerRunInfoBatch =
         lastRunStatus: null,
         lastRunConversationIds: [],
         nextRunAt: null,
+        lastRunSummary: null,
       });
     }
+
+    const isManualRun = (key: string) =>
+      key.startsWith('manual-run-') || key.startsWith('manual-rerun-');
+
+    type TickInvocation = {
+      status: string;
+      completedAt: string | null;
+      conversationIds: unknown;
+    };
+
+    const tickMap = new Map<string, Map<string, TickInvocation[]>>();
 
     for (const inv of allInvocations) {
       const triggerInfo = result.get(inv.scheduledTriggerId);
       if (!triggerInfo) continue;
+
       if (inv.status === 'pending' && !triggerInfo.nextRunAt) {
         triggerInfo.nextRunAt = inv.scheduledFor;
       }
-      if ((inv.status === 'completed' || inv.status === 'failed') && !triggerInfo.lastRunAt) {
-        triggerInfo.lastRunAt = inv.completedAt;
-        triggerInfo.lastRunStatus = inv.status;
-        triggerInfo.lastRunConversationIds = (inv.conversationIds as string[]) || [];
+
+      if (isManualRun(inv.idempotencyKey)) continue;
+
+      let triggerTicks = tickMap.get(inv.scheduledTriggerId);
+      if (!triggerTicks) {
+        triggerTicks = new Map();
+        tickMap.set(inv.scheduledTriggerId, triggerTicks);
+      }
+      let tickInvocations = triggerTicks.get(inv.scheduledFor);
+      if (!tickInvocations) {
+        tickInvocations = [];
+        triggerTicks.set(inv.scheduledFor, tickInvocations);
+      }
+      tickInvocations.push({
+        status: inv.status,
+        completedAt: inv.completedAt,
+        conversationIds: inv.conversationIds,
+      });
+    }
+
+    for (const [triggerId, triggerTicks] of tickMap) {
+      const triggerInfo = result.get(triggerId);
+      if (!triggerInfo) continue;
+
+      let bestScheduledFor: string | null = null;
+      let bestInvocations: TickInvocation[] | null = null;
+
+      for (const [scheduledFor, invocations] of triggerTicks) {
+        const hasTerminal = invocations.some(
+          (i) => i.status === 'completed' || i.status === 'failed'
+        );
+        if (!hasTerminal) continue;
+
+        if (!bestScheduledFor || scheduledFor > bestScheduledFor) {
+          bestScheduledFor = scheduledFor;
+          bestInvocations = invocations;
+        }
+      }
+
+      if (bestInvocations) {
+        const summary: LastRunSummary = {
+          total: bestInvocations.length,
+          completed: 0,
+          failed: 0,
+          running: 0,
+          pending: 0,
+        };
+
+        let maxCompletedAt: string | null = null;
+
+        for (const inv of bestInvocations) {
+          if (inv.status === 'completed') summary.completed++;
+          else if (inv.status === 'failed') summary.failed++;
+          else if (inv.status === 'running') summary.running++;
+          else if (inv.status === 'pending') summary.pending++;
+
+          if (inv.completedAt && (!maxCompletedAt || inv.completedAt > maxCompletedAt)) {
+            maxCompletedAt = inv.completedAt;
+          }
+        }
+
+        triggerInfo.lastRunAt = maxCompletedAt;
+        triggerInfo.lastRunSummary = summary;
+
+        if (summary.failed > 0) {
+          triggerInfo.lastRunStatus = 'failed';
+        } else if (summary.completed > 0) {
+          triggerInfo.lastRunStatus = 'completed';
+        }
+
+        const allConvIds: string[] = [];
+        for (const inv of bestInvocations) {
+          const ids = inv.conversationIds as string[] | null;
+          if (ids) {
+            for (const id of ids) {
+              allConvIds.push(id);
+            }
+          }
+        }
+        triggerInfo.lastRunConversationIds = allConvIds;
       }
     }
 

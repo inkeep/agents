@@ -1,5 +1,131 @@
 # @inkeep/agents-manage-ui
 
+## 0.65.1
+
+### Patch Changes
+
+- 16fb544: Batch useWatch calls to reduce React Hook Form subscriptions and re-renders
+- 4077b67: Update agents-ui and agents-ui-cloud versions to 0.15.29
+- dbee04b: Add feedback CRUD API, database table, and Manage UI for collecting user feedback on conversations and messages
+- Updated dependencies [3735393]
+- Updated dependencies [dbee04b]
+  - @inkeep/agents-core@0.65.1
+
+## 0.65.0
+
+### Patch Changes
+
+- 27f2620: Enable `validateNoDerivedComputationsInEffects` in React Compiler
+- b43f5e1: sort trigger invocations by started at time
+- Updated dependencies [e332202]
+  - @inkeep/agents-core@0.65.0
+
+## 0.64.10
+
+### Patch Changes
+
+- 4082cfd: Revert of [#3012](https://github.com/inkeep/agents/pull/3012)
+  - @inkeep/agents-core@0.64.10
+
+## 0.64.9
+
+### Patch Changes
+
+- fa20781: Enable `validateNoImpureFunctionsInRender` in React Compiler via pnpm patch and fix impure `Math.random()` call in SidebarMenuSkeleton
+  - @inkeep/agents-core@0.64.9
+
+## 0.64.8
+
+### Patch Changes
+
+- 701e8c9: fix `Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render.
+  - @inkeep/agents-core@0.64.8
+
+## 0.64.7
+
+### Patch Changes
+
+- daee0b6: Revert
+  - @inkeep/agents-core@0.64.7
+
+## 0.64.6
+
+### Patch Changes
+
+- Updated dependencies [09c6eb0]
+- Updated dependencies [3237c45]
+- Updated dependencies [528f69c]
+- Updated dependencies [6fddd34]
+  - @inkeep/agents-core@0.64.6
+
+## 0.64.5
+
+### Patch Changes
+
+- dee33a4: Remove manual `useMemo` and `useCallback` usages in favor of React Compiler
+- e91d67b: Patched Doltgres Backslash Escaping
+- Updated dependencies [e91d67b]
+  - @inkeep/agents-core@0.64.5
+
+## 0.64.4
+
+### Patch Changes
+
+- 707333c: Enable React Compiler for all components, removing annotation mode and manual memoization
+  - @inkeep/agents-core@0.64.4
+
+## 0.64.3
+
+### Patch Changes
+
+- d10ccf6: Remove legacy auth headers from playground chat widget
+- 63b1062: Update the agents-ui package
+- 7aa1fac: Add copilot app credential auth with manage-UI-signed JWT
+- 4ace590: Remove axios dependency in favor of native fetch for improved security
+- ee1d23a: Tweak modal widths, remove edit skills button in agents view
+- Updated dependencies [7aa1fac]
+- Updated dependencies [4ace590]
+  - @inkeep/agents-core@0.64.3
+
+## 0.64.2
+
+### Patch Changes
+
+- f0081f7: fix loading `.svg` files as React components in tests
+- a41b6c7: Remove unused `ExpandablePromptEditor` component
+- 8c16740: Fix cost page loading state by using isFetching instead of isLoading to prevent premature redirects on initial load
+- Updated dependencies [f099221]
+  - @inkeep/agents-core@0.64.2
+
+## 0.64.1
+
+### Patch Changes
+
+- 9bf97a7: Dockerize visual regression tests for cross-OS screenshot consistency
+  - @inkeep/agents-core@0.64.1
+
+## 0.64.0
+
+### Minor Changes
+
+- a929847: Add Require Authentication toggle for web client apps
+
+### Patch Changes
+
+- 254edb8: fast fail signoz for conversations not in db
+- 47915b3: Add agent-scoped datasets and evaluators with direct agent execution for dataset runs
+- 981ba48: Fix active sidebar item when file or folder path contains whitespace
+- ba40c53: Fix breadcrumbs in cost page
+- 47a3df7: Remove evaluations from conversation traces
+- d27011a: Reuse existing TanStack Query hooks for project fetching instead of manual fetch calls
+- 1512a7b: fix `Uncaught Error: Previous layout not found for panel index 2` when resizing `Try it` side-pane
+- abc3b5d: Add per-role seat limit enforcement to invitations and members UI
+- Updated dependencies [47915b3]
+- Updated dependencies [2ebe1c4]
+- Updated dependencies [68a55f5]
+- Updated dependencies [abc3b5d]
+  - @inkeep/agents-core@0.64.0
+
 ## 0.63.3
 
 ### Patch Changes

@@ -1,17 +1,15 @@
 import type { ScheduledTrigger } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@inkeep/agents-core', async () => {
-  const actual = await vi.importActual<typeof import('@inkeep/agents-core')>('@inkeep/agents-core');
-  return {
-    ...actual,
-    findDueScheduledTriggersAcrossProjects: vi.fn(),
-    advanceScheduledTriggerNextRunAt: vi.fn(),
-  };
-});
+vi.mock('@inkeep/agents-core', () => ({
+  findDueScheduledTriggersAcrossProjects: vi.fn(),
+  advanceScheduledTriggerNextRunAt: vi.fn(),
+  getScheduledTriggerUsers: vi.fn(),
+  computeNextRunAt: vi.fn(),
+}));
 
-vi.mock('src/data/db', () => ({
-  runDbClient: 'mock-run-client',
+vi.mock('../../../../data/db/runDbClient', () => ({
+  default: 'mock-run-client',
 }));
 
 vi.mock('workflow/api', () => ({
@@ -28,18 +26,22 @@ vi.mock('../../../../logger', () => ({
 }));
 
 vi.mock('../../workflow/functions/scheduledTriggerRunner', () => ({
-  scheduledTriggerRunnerWorkflow: { workflowId: 'mock-workflow' },
+  scheduledTriggerRunnerWorkflow: 'mock-workflow',
 }));
 
 import {
   advanceScheduledTriggerNextRunAt,
+  computeNextRunAt,
   findDueScheduledTriggersAcrossProjects,
+  getScheduledTriggerUsers,
 } from '@inkeep/agents-core';
 import { start } from 'workflow/api';
 import { dispatchDueTriggers } from '../triggerDispatcher';
 
 const mockFindDueTriggers = findDueScheduledTriggersAcrossProjects as ReturnType<typeof vi.fn>;
 const mockAdvanceNextRunAt = advanceScheduledTriggerNextRunAt as ReturnType<typeof vi.fn>;
+const mockGetScheduledTriggerUsers = getScheduledTriggerUsers as ReturnType<typeof vi.fn>;
+const mockComputeNextRunAt = computeNextRunAt as ReturnType<typeof vi.fn>;
 const mockStart = start as ReturnType<typeof vi.fn>;
 
 function makeTrigger(overrides: Partial<ScheduledTrigger> = {}): ScheduledTrigger {
@@ -58,8 +60,9 @@ function makeTrigger(overrides: Partial<ScheduledTrigger> = {}): ScheduledTrigge
     maxRetries: 1,
     retryDelaySeconds: 60,
     timeoutSeconds: 780,
-    runAsUserId: null,
+    runAsUserId: 'user-1',
     createdBy: null,
+    dispatchDelayMs: null,
     nextRunAt: '2026-03-13T10:00:00.000Z',
     enabled: true,
     ref: 'main',
@@ -75,6 +78,8 @@ describe('dispatchDueTriggers', () => {
 
     mockFindDueTriggers.mockReturnValue(() => Promise.resolve([]));
     mockAdvanceNextRunAt.mockReturnValue(() => Promise.resolve());
+    mockGetScheduledTriggerUsers.mockReturnValue(() => Promise.resolve([]));
+    mockComputeNextRunAt.mockReturnValue('2026-03-13T10:01:00.000Z');
     mockStart.mockResolvedValue(undefined);
   });
 
@@ -216,5 +221,66 @@ describe('dispatchDueTriggers', () => {
 
     expect(result).toEqual({ dispatched: 0 });
     expect(mockAdvanceNextRunAt).not.toHaveBeenCalled();
+  });
+
+  it('fans out to multiple users from join table', async () => {
+    const trigger = makeTrigger({ dispatchDelayMs: 1000 });
+
+    mockFindDueTriggers.mockReturnValue(() => Promise.resolve([trigger]));
+    mockGetScheduledTriggerUsers.mockReturnValue(() =>
+      Promise.resolve([
+        { tenantId: 'tenant-1', scheduledTriggerId: 'trigger-1', userId: 'user-a', createdAt: '' },
+        { tenantId: 'tenant-1', scheduledTriggerId: 'trigger-1', userId: 'user-b', createdAt: '' },
+        { tenantId: 'tenant-1', scheduledTriggerId: 'trigger-1', userId: 'user-c', createdAt: '' },
+      ])
+    );
+
+    const result = await dispatchDueTriggers();
+
+    expect(result).toEqual({ dispatched: 3 });
+    expect(mockStart).toHaveBeenCalledTimes(3);
+    expect(mockStart).toHaveBeenCalledWith(expect.anything(), [
+      expect.objectContaining({ runAsUserId: 'user-a', delayBeforeExecutionMs: 0 }),
+    ]);
+    expect(mockStart).toHaveBeenCalledWith(expect.anything(), [
+      expect.objectContaining({ runAsUserId: 'user-b', delayBeforeExecutionMs: 1000 }),
+    ]);
+    expect(mockStart).toHaveBeenCalledWith(expect.anything(), [
+      expect.objectContaining({ runAsUserId: 'user-c', delayBeforeExecutionMs: 2000 }),
+    ]);
+  });
+
+  it('dispatches single workflow when no join table users and no runAsUserId', async () => {
+    const trigger = makeTrigger({ runAsUserId: null });
+
+    mockFindDueTriggers.mockReturnValue(() => Promise.resolve([trigger]));
+
+    const result = await dispatchDueTriggers();
+
+    expect(result).toEqual({ dispatched: 1 });
+    expect(mockStart).toHaveBeenCalledTimes(1);
+    expect(mockStart).toHaveBeenCalledWith(expect.anything(), [
+      expect.objectContaining({
+        scheduledTriggerId: 'trigger-1',
+        ref: 'main',
+      }),
+    ]);
+  });
+
+  it('dispatches single workflow when join table empty but runAsUserId set', async () => {
+    const trigger = makeTrigger({ runAsUserId: 'legacy-user' });
+
+    mockFindDueTriggers.mockReturnValue(() => Promise.resolve([trigger]));
+
+    const result = await dispatchDueTriggers();
+
+    expect(result).toEqual({ dispatched: 1 });
+    expect(mockStart).toHaveBeenCalledTimes(1);
+    expect(mockStart).toHaveBeenCalledWith(expect.anything(), [
+      expect.objectContaining({
+        scheduledTriggerId: 'trigger-1',
+        ref: 'main',
+      }),
+    ]);
   });
 });

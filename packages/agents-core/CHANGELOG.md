@@ -1,5 +1,67 @@
 # @inkeep/agents-core
 
+## 0.65.1
+
+### Patch Changes
+
+- 3735393: fix so project deletion cant delete other projects' branches
+- dbee04b: Add feedback CRUD API, database table, and Manage UI for collecting user feedback on conversations and messages
+
+## 0.65.0
+
+### Minor Changes
+
+- e332202: Add multi-user scheduled trigger support with per-user dispatch, sub-resource endpoints, and dispatch delay
+
+## 0.64.10
+
+## 0.64.9
+
+## 0.64.8
+
+## 0.64.7
+
+## 0.64.6
+
+### Patch Changes
+
+- 09c6eb0: Add stream resumption for interrupted conversations with Postgres-backed chunk buffering
+- 3237c45: Fix release workflow npm bootstrap for OIDC publishing
+- 528f69c: logging for for Doltgres database operations"
+- 6fddd34: Bugfix App Prompt Security Vulerability
+
+## 0.64.5
+
+### Patch Changes
+
+- e91d67b: Patched Doltgres Backslash Escaping
+
+## 0.64.4
+
+## 0.64.3
+
+### Patch Changes
+
+- 7aa1fac: Remove dead signTempToken function and rename derivePlaygroundKid to deriveKidFromPublicKey
+- 4ace590: Remove axios dependency in favor of native fetch for improved security
+
+## 0.64.2
+
+### Patch Changes
+
+- f099221: Fix app prompt encoding errors by resolving prompt from database via appId instead of forwarding text in HTTP headers
+
+## 0.64.1
+
+## 0.64.0
+
+### Patch Changes
+
+- 47915b3: Add agent-scoped datasets and evaluators with direct agent execution for dataset runs
+- 2ebe1c4: Add fallbackModels field to ModelSettings for gateway-based model failover
+- 68a55f5: Fix false positive 'Needs Login' status for connected MCP servers with valid credentials
+- abc3b5d: Add per-role seat limit enforcement to invitations and members UI
+
 ## 0.63.3
 
 ## 0.63.2

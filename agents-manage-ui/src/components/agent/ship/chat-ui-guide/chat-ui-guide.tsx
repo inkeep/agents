@@ -17,9 +17,11 @@ interface ChatUIProps {
 }
 
 export function ChatUIGuide() {
-  const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
-  const baseUrl = PUBLIC_INKEEP_AGENTS_API_URL;
-  const form = useForm<Partial<ChatUIProps>>({
+  // TODO:
+  // React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  'use no memo';
+  const { PUBLIC_INKEEP_AGENTS_API_URL: baseUrl } = useRuntimeConfig();
+  const form = useForm<ChatUIProps>({
     defaultValues: {
       component: ChatUIComponent.EMBEDDED_CHAT,
       baseSettings: {
@@ -39,9 +41,7 @@ export function ChatUIGuide() {
   const allValues = form.watch();
   const component = allValues.component ?? ChatUIComponent.EMBEDDED_CHAT;
   const baseSettings = allValues.baseSettings ?? { primaryBrandColor: INKEEP_BRAND_COLOR };
-  const aiChatSettings = allValues.aiChatSettings ?? {
-    baseUrl,
-  };
+  const aiChatSettings = allValues.aiChatSettings ?? { baseUrl };
   const shouldEmitDataOperations = allValues.shouldEmitDataOperations ?? true;
 
   return (
@@ -82,7 +82,7 @@ export function ChatUIGuide() {
       <TabsContent value="code">
         <ChatUICode
           component={component}
-          baseSettings={{ ...baseSettings }}
+          baseSettings={baseSettings}
           extraAiChatSettings={{
             introMessage: aiChatSettings.introMessage,
             placeholder: aiChatSettings.placeholder,

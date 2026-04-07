@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -86,15 +86,23 @@ export function ProjectScheduledTriggersTable({
   projectId,
 }: ProjectScheduledTriggersTableProps) {
   const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
   const [loadingTriggers, setLoadingTriggers] = useState<Set<string>>(new Set());
   const { members: orgMembers } = useOrgMembers(tenantId);
   const { user } = useAuthSession();
   const { isAdmin } = useIsOrgAdmin();
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const canManageTrigger = (trigger: ScheduledTriggerWithAgent): boolean => {
+    if (!isMounted) return false;
     if (isAdmin) return true;
     if (!user) return false;
-    return trigger.createdBy === user.id || trigger.runAsUserId === user.id;
+    if (trigger.createdBy === user.id || trigger.runAsUserId === user.id) return true;
+    const userIds = trigger.runAsUserIds ?? [];
+    return userIds.length === 1 && userIds[0] === user.id;
   };
 
   const getUserDisplayName = (userId: string): string => {
@@ -123,13 +131,12 @@ export function ProjectScheduledTriggersTable({
     } catch (error) {
       console.error('Failed to update scheduled trigger:', error);
       toast.error('Failed to update scheduled trigger status');
-    } finally {
-      setLoadingTriggers((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(triggerId);
-        return newSet;
-      });
     }
+    setLoadingTriggers((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(triggerId);
+      return newSet;
+    });
   };
 
   const deleteTrigger = async (triggerId: string, agentId: string, name: string) => {
@@ -178,13 +185,12 @@ export function ProjectScheduledTriggersTable({
     } catch (error) {
       console.error('Failed to run scheduled trigger:', error);
       toast.error('Failed to run scheduled trigger');
-    } finally {
-      setLoadingTriggers((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(triggerId);
-        return newSet;
-      });
     }
+    setLoadingTriggers((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(triggerId);
+      return newSet;
+    });
   };
 
   const localTz = getLocalTimezoneAbbreviation();
@@ -219,6 +225,7 @@ export function ProjectScheduledTriggersTable({
               const isLoading = loadingTriggers.has(trigger.id);
               const scheduleType = getScheduleType(trigger);
               const canManage = canManageTrigger(trigger);
+
               return (
                 <TableRow key={trigger.id} noHover>
                   <TableCell>
@@ -246,7 +253,39 @@ export function ProjectScheduledTriggersTable({
                     </span>
                   </TableCell>
                   <TableCell>
-                    {trigger.runAsUserId ? (
+                    {trigger.userCount && trigger.userCount > 1 ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="secondary" className="cursor-default">
+                              {trigger.userCount} users
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="flex flex-col gap-1">
+                              {trigger.runAsUserIds?.map((uid) => (
+                                <span key={uid} className="text-xs">
+                                  {getUserDisplayName(uid)}
+                                </span>
+                              ))}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : trigger.runAsUserIds && trigger.runAsUserIds.length === 1 ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-sm text-muted-foreground truncate max-w-[150px] inline-block cursor-default">
+                              {getUserDisplayName(trigger.runAsUserIds[0])}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <code className="font-mono text-xs">{trigger.runAsUserIds[0]}</code>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : trigger.runAsUserId ? (
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>

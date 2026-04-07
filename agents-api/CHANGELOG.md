@@ -1,5 +1,165 @@
 # @inkeep/agents-api
 
+## 0.65.1
+
+### Patch Changes
+
+- 78c78d7: Fix summarizer and base model resolution falling back to empty agent ModelSettings objects instead of project-level config when no defaultSubAgentId is set
+- 6f2619d: Fix execution route paths to use OpenAPI {param} syntax
+- dbee04b: Add feedback CRUD API, database table, and Manage UI for collecting user feedback on conversations and messages
+- Updated dependencies [3735393]
+- Updated dependencies [dbee04b]
+  - @inkeep/agents-core@0.65.1
+  - @inkeep/agents-work-apps@0.65.1
+  - @inkeep/agents-email@0.65.1
+  - @inkeep/agents-mcp@0.65.1
+
+## 0.65.0
+
+### Minor Changes
+
+- e332202: Add multi-user scheduled trigger support with per-user dispatch, sub-resource endpoints, and dispatch delay
+
+### Patch Changes
+
+- Updated dependencies [e332202]
+  - @inkeep/agents-core@0.65.0
+  - @inkeep/agents-work-apps@0.65.0
+  - @inkeep/agents-email@0.65.0
+  - @inkeep/agents-mcp@0.65.0
+
+## 0.64.10
+
+### Patch Changes
+
+- @inkeep/agents-core@0.64.10
+- @inkeep/agents-email@0.64.10
+- @inkeep/agents-mcp@0.64.10
+- @inkeep/agents-work-apps@0.64.10
+
+## 0.64.9
+
+### Patch Changes
+
+- @inkeep/agents-core@0.64.9
+- @inkeep/agents-email@0.64.9
+- @inkeep/agents-mcp@0.64.9
+- @inkeep/agents-work-apps@0.64.9
+
+## 0.64.8
+
+### Patch Changes
+
+- @inkeep/agents-core@0.64.8
+- @inkeep/agents-email@0.64.8
+- @inkeep/agents-mcp@0.64.8
+- @inkeep/agents-work-apps@0.64.8
+
+## 0.64.7
+
+### Patch Changes
+
+- @inkeep/agents-core@0.64.7
+- @inkeep/agents-email@0.64.7
+- @inkeep/agents-mcp@0.64.7
+- @inkeep/agents-work-apps@0.64.7
+
+## 0.64.6
+
+### Patch Changes
+
+- 09c6eb0: Add stream resumption for interrupted conversations with Postgres-backed chunk buffering
+- 528f69c: logging for for Doltgres database operations"
+- 6fddd34: Bugfix App Prompt Security Vulerability
+- cc56dda: Fix durable workflow not resolving user-scoped MCP credentials and improve MCP tool loading resilience
+- Updated dependencies [09c6eb0]
+- Updated dependencies [3237c45]
+- Updated dependencies [528f69c]
+- Updated dependencies [6fddd34]
+  - @inkeep/agents-core@0.64.6
+  - @inkeep/agents-work-apps@0.64.6
+  - @inkeep/agents-email@0.64.6
+  - @inkeep/agents-mcp@0.64.6
+
+## 0.64.5
+
+### Patch Changes
+
+- e91d67b: Patched Doltgres Backslash Escaping
+- Updated dependencies [e91d67b]
+  - @inkeep/agents-core@0.64.5
+  - @inkeep/agents-work-apps@0.64.5
+  - @inkeep/agents-email@0.64.5
+  - @inkeep/agents-mcp@0.64.5
+
+## 0.64.4
+
+### Patch Changes
+
+- @inkeep/agents-core@0.64.4
+- @inkeep/agents-email@0.64.4
+- @inkeep/agents-mcp@0.64.4
+- @inkeep/agents-work-apps@0.64.4
+
+## 0.64.3
+
+### Patch Changes
+
+- d85f7ca: Fix CI triggers on changeset PR by disabling checkout credential persistence
+- f0d61ab: Fix changeset bot CI trigger by passing App token as github-token input to changesets/action
+- 7aa1fac: Remove tryTempJwtAuth auth strategy and copilot tenant bypass in favor of app credential auth
+- 4ace590: Remove axios dependency in favor of native fetch for improved security
+- f5460ba: Baggage added for traces with durable execution
+- Updated dependencies [7aa1fac]
+- Updated dependencies [4ace590]
+  - @inkeep/agents-core@0.64.3
+  - @inkeep/agents-work-apps@0.64.3
+  - @inkeep/agents-email@0.64.3
+  - @inkeep/agents-mcp@0.64.3
+
+## 0.64.2
+
+### Patch Changes
+
+- f099221: Fix app prompt encoding errors by resolving prompt from database via appId instead of forwarding text in HTTP headers
+- Updated dependencies [f099221]
+  - @inkeep/agents-core@0.64.2
+  - @inkeep/agents-work-apps@0.64.2
+  - @inkeep/agents-email@0.64.2
+  - @inkeep/agents-mcp@0.64.2
+
+## 0.64.1
+
+### Patch Changes
+
+- 0fc8043: Add S3 presigned URL support for private media delivery
+- Updated dependencies [a26343d]
+  - @inkeep/agents-work-apps@0.64.1
+  - @inkeep/agents-core@0.64.1
+  - @inkeep/agents-email@0.64.1
+  - @inkeep/agents-mcp@0.64.1
+
+## 0.64.0
+
+### Minor Changes
+
+- a929847: Add server-side config merge for web client app updates, enforce allowAnonymous across all auth paths, flatten auth config into webClient, and add migration to backfill allowAnonymous for existing apps
+
+### Patch Changes
+
+- 47915b3: Add agent-scoped datasets and evaluators with direct agent execution for dataset runs
+- 2ebe1c4: Extend /capabilities with modelFallback and costTracking flags
+- 704026c: Bind tenant/project into anonymous session JWTs for global apps
+- abc3b5d: Add per-role seat limit enforcement to invitations and members UI
+- Updated dependencies [47915b3]
+- Updated dependencies [2ebe1c4]
+- Updated dependencies [68a55f5]
+- Updated dependencies [abc3b5d]
+  - @inkeep/agents-core@0.64.0
+  - @inkeep/agents-mcp@0.64.0
+  - @inkeep/agents-work-apps@0.64.0
+  - @inkeep/agents-email@0.64.0
+
 ## 0.63.3
 
 ### Patch Changes

@@ -34,6 +34,7 @@ import { manageRefMiddleware, runRefMiddleware, writeProtectionMiddleware } from
 import { sessionContext } from './middleware/sessionAuth';
 import { executionBaggageMiddleware } from './middleware/tracing';
 import { setupOpenAPIRoutes } from './openapi';
+import { cleanupStreamChunksHandler } from './routes/cleanupStreamChunks';
 import { healthChecksHandler } from './routes/healthChecks';
 import { restartWorkflowHandler } from './routes/restartScheduler';
 import type { AppConfig, AppVariables } from './types';
@@ -220,6 +221,9 @@ function createAgentsHono(config: AppConfig) {
   // Deploy hook - restarts scheduler workflow on new deployment
   app.route('/', restartWorkflowHandler);
 
+  // Vercel cron - cleanup expired stream chunks
+  app.route('/', cleanupStreamChunksHandler);
+
   // Authentication middleware for protected manage routes
   app.use('/manage/tenants/*', manageBearerOrSessionAuth());
 
@@ -253,7 +257,8 @@ function createAgentsHono(config: AppConfig) {
 
   // Fetch project config upfront for authenticated execution routes
   // Skip for lightweight endpoints that only need base execution context (tenant/project/user scoping)
-  const isLightweightRunRoute = (path: string) => path.startsWith('/run/v1/conversations');
+  const isLightweightRunRoute = (path: string) =>
+    path.startsWith('/run/v1/conversations') || path.startsWith('/run/v1/feedback');
   app.use('/run/tenants/*', projectConfigMiddlewareExcept(isWebhookRoute));
   app.use('/run/agents/*', projectConfigMiddleware);
   app.use('/run/v1/*', projectConfigMiddlewareExcept(isLightweightRunRoute));

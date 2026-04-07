@@ -57,7 +57,6 @@ const executionLimitInheritanceInfo = (
 );
 
 export const MetadataEditor: FC = () => {
-  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const baseUrl = PUBLIC_INKEEP_AGENTS_API_URL;
@@ -68,11 +67,16 @@ export const MetadataEditor: FC = () => {
   const { data: project } = useProjectQuery();
   const form = useFullAgentFormContext();
 
-  const isStatusUpdateEnabled = useWatch({ control: form.control, name: 'statusUpdates.enabled' });
-  const numEvents = useWatch({ control: form.control, name: 'statusUpdates.numEvents' });
-  const timeInSeconds = useWatch({ control: form.control, name: 'statusUpdates.timeInSeconds' });
-  const transferCountIs = useWatch({ control: form.control, name: 'stopWhen.transferCountIs' });
-  const models = useWatch({ control: form.control, name: 'models' });
+  const [isStatusUpdateEnabled, numEvents, timeInSeconds, transferCountIs, models] = useWatch({
+    control: form.control,
+    name: [
+      'statusUpdates.enabled',
+      'statusUpdates.numEvents',
+      'statusUpdates.timeInSeconds',
+      'stopWhen.transferCountIs',
+      'models',
+    ],
+  });
 
   return (
     <div className="space-y-8">

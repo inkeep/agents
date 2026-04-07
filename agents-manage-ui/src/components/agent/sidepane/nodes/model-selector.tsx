@@ -26,8 +26,8 @@ import { cn } from '@/lib/utils';
 interface ModelSelectorProps {
   tooltip?: string;
   label?: React.ReactNode;
-  value?: string;
-  onValueChange?: (value: string) => void;
+  value: string;
+  onValueChange: (value: string) => void;
   onProviderOptionsChange?: (options: Record<string, any>) => void;
   placeholder?: string;
   inheritedValue?: string;
@@ -54,8 +54,6 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
   defaultOpen = false,
   onClose,
 }) => {
-  'use memo';
-
   const [open, setOpen] = useState(defaultOpen);
 
   const [showCustomInput, setShowCustomInput] = useState<
@@ -161,7 +159,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
               variant="outline"
               size="icon"
               onClick={() => {
-                onValueChange?.('');
+                onValueChange('');
               }}
               aria-label="Clear model selection"
               type="button"
@@ -210,7 +208,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                               // Could be openrouter format, let user decide or add logic here
                             }
 
-                            onValueChange?.(modelValue);
+                            onValueChange(modelValue);
                             setOpen(false);
                           }}
                         >
@@ -240,7 +238,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                         className="flex items-center justify-between cursor-pointer text-foreground"
                         value={model.value}
                         onSelect={(currentValue) => {
-                          onValueChange?.(currentValue === value ? '' : currentValue);
+                          onValueChange(currentValue === value ? '' : currentValue);
                           setOpen(false);
                           setCustomModelInput('');
                           setShowCustomInput(null);
@@ -283,7 +281,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                       setShowCustomInput('openrouter');
                       setOpen(false);
                       setCustomModelInput('');
-                      onValueChange?.('openrouter/...');
+                      onValueChange('openrouter/...');
                     }}
                   >
                     OpenRouter ...
@@ -295,7 +293,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                       setShowCustomInput('gateway');
                       setOpen(false);
                       setCustomModelInput('');
-                      onValueChange?.('gateway/...');
+                      onValueChange('gateway/...');
                     }}
                   >
                     Vercel AI Gateway ...
@@ -307,7 +305,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                       setShowCustomInput('nim');
                       setOpen(false);
                       setCustomModelInput('');
-                      onValueChange?.('nim/...');
+                      onValueChange('nim/...');
                     }}
                   >
                     NVIDIA NIM ...
@@ -322,7 +320,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                       setAzureDeploymentName('');
                       setAzureResourceName('');
                       setAzureBaseURL('');
-                      onValueChange?.('azure/...');
+                      onValueChange('azure/...');
                     }}
                   >
                     Azure ...
@@ -374,7 +372,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                         : showCustomInput === 'nim'
                           ? 'nim/'
                           : 'custom/';
-                  onValueChange?.(`${prefix}${customModelInput.trim()}`);
+                  onValueChange(`${prefix}${customModelInput.trim()}`);
                   setShowCustomInput(null);
                   setCustomModelInput('');
                   setOpen(false);
@@ -397,7 +395,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                         : showCustomInput === 'nim'
                           ? 'nim/'
                           : 'custom/';
-                  onValueChange?.(`${prefix}${customModelInput.trim()}`);
+                  onValueChange(`${prefix}${customModelInput.trim()}`);
                   setShowCustomInput(null);
                   setCustomModelInput('');
                   setOpen(false);
@@ -413,7 +411,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
               onClick={() => {
                 setShowCustomInput(null);
                 setCustomModelInput('');
-                onValueChange?.('');
+                onValueChange('');
               }}
             >
               Cancel
@@ -480,7 +478,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                   (azureResourceName.trim() || azureBaseURL.trim())
                 ) {
                   // Set the Azure model FIRST so the store has it
-                  onValueChange?.(`azure/${azureDeploymentName.trim()}`);
+                  onValueChange(`azure/${azureDeploymentName.trim()}`);
 
                   // Then set the provider options
                   const providerOptions: Record<string, any> = {};
@@ -511,7 +509,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                 setAzureDeploymentName('');
                 setAzureResourceName('');
                 setAzureBaseURL('');
-                onValueChange?.('');
+                onValueChange('');
               }}
             >
               Cancel

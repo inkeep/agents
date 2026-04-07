@@ -10,9 +10,10 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 import NextLink from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { FeedbackDialog } from '@/components/agent/playground/feedback-dialog';
 import { MCPBreakdownCard } from '@/components/traces/mcp-breakdown-card';
 import { SignozLink } from '@/components/traces/signoz-link';
 import { InfoRow } from '@/components/traces/timeline/blocks';
@@ -26,10 +27,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
+import { GENERATION_TYPES } from '@/constants/signoz';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { hasConversationFeedbackAction } from '@/lib/actions/feedback';
 import { rerunScheduledTriggerInvocationAction } from '@/lib/actions/scheduled-triggers';
 import { rerunTriggerAction } from '@/lib/actions/triggers';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
+import { throwError } from '@/lib/utils';
 import { formatDateTime, formatDuration } from '@/lib/utils/format-date';
 import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
 import {
@@ -44,6 +48,8 @@ export default function ConversationDetail({
   const backLink = `/${tenantId}/projects/${projectId}/traces` as const;
 
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const highlightMessageId = searchParams.get('messageId');
   const [conversation, setConversation] = useState<ConversationDetailType | null>(null);
   const [usageEvents, setUsageEvents] = useState<
     Array<{
@@ -60,6 +66,12 @@ export default function ConversationDetail({
   const [error, setError] = useState<string | null>(null);
   const [isCopying, setIsCopying] = useState(false);
   const [isRerunning, setIsRerunning] = useState(false);
+  const [feedbackDialog, setFeedbackDialog] = useState<{
+    open: boolean;
+    messageId?: string;
+    type?: 'positive' | 'negative';
+  }>({ open: false });
+  const [hasFeedback, setHasFeedback] = useState(false);
   const { PUBLIC_SIGNOZ_URL, PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
   const isCloudDeployment = PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true';
 
@@ -82,10 +94,9 @@ export default function ConversationDetail({
       toast.error('Failed to copy trace', {
         description: err instanceof Error ? err.message : 'An unknown error occurred',
       });
-    } finally {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      setIsCopying(false);
     }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    setIsCopying(false);
   };
 
   const handleCopySummarizedTrace = async () => {
@@ -107,10 +118,9 @@ export default function ConversationDetail({
       toast.error('Failed to copy trace', {
         description: err instanceof Error ? err.message : 'An unknown error occurred',
       });
-    } finally {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      setIsCopying(false);
     }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    setIsCopying(false);
   };
 
   const handleRerunTrigger = async () => {
@@ -147,10 +157,8 @@ export default function ConversationDetail({
         toast.error('Failed to rerun scheduled trigger', {
           description: err instanceof Error ? err.message : 'An unknown error occurred',
         });
-      } finally {
-        setIsRerunning(false);
       }
-      return;
+      setIsRerunning(false);
     }
 
     const userMessageActivity = conversation.activities?.find(
@@ -208,9 +216,8 @@ export default function ConversationDetail({
       toast.error('Failed to rerun trigger', {
         description: err instanceof Error ? err.message : 'An unknown error occurred',
       });
-    } finally {
-      setIsRerunning(false);
     }
+    setIsRerunning(false);
   };
 
   useEffect(() => {
@@ -223,25 +230,35 @@ export default function ConversationDetail({
         const start = new Date('2020-01-01T00:00:00Z').getTime();
         const end = Date.now();
 
-        const [traceResponse, eventsResult] = await Promise.allSettled([
+        const [traceResponse, eventsResult, feedbackResult] = await Promise.allSettled([
           fetch(
             `/api/traces/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`
           ),
           client.getUsageEventsList(start, end, projectId, conversationId, 200),
+          hasConversationFeedbackAction(tenantId, projectId, conversationId),
         ]);
 
         if (traceResponse.status === 'rejected' || !traceResponse.value.ok) {
-          throw new Error('Failed to fetch conversation details');
+          throwError('Failed to fetch conversation details');
         }
         const data = await traceResponse.value.json();
         setConversation(data);
 
-        setUsageEvents(eventsResult.status === 'fulfilled' ? eventsResult.value : []);
+        setUsageEvents(
+          eventsResult.status === 'fulfilled'
+            ? eventsResult.value.filter(
+                (e: { generationType: string }) =>
+                  e.generationType !== GENERATION_TYPES.EVAL_SCORING &&
+                  e.generationType !== GENERATION_TYPES.EVAL_SIMULATION
+              )
+            : []
+        );
+
+        setHasFeedback(feedbackResult.status === 'fulfilled' && feedbackResult.value === true);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     if (conversationId && tenantId && projectId) fetchConversationDetail();
@@ -304,6 +321,13 @@ export default function ConversationDetail({
               href={`/${tenantId}/projects/${projectId}/agents/${conversation.agentId}`}
             >
               {conversation.agentName ? `${conversation.agentName}` : conversation.agentId}
+            </ExternalLink>
+          )}
+          {hasFeedback && (
+            <ExternalLink
+              href={`/${tenantId}/projects/${projectId}/feedback?conversationId=${conversationId}`}
+            >
+              View Feedback
             </ExternalLink>
           )}
           <SignozLink conversationId={conversationId} />
@@ -539,6 +563,10 @@ export default function ConversationDetail({
             conversationId={conversationId}
             tenantId={tenantId}
             projectId={projectId}
+            highlightMessageId={highlightMessageId}
+            onLeaveFeedback={(_activityId, messageId, type) => {
+              setFeedbackDialog({ open: true, messageId, type: type ?? 'negative' });
+            }}
             onCopyFullTrace={handleCopyFullTrace}
             onCopySummarizedTrace={handleCopySummarizedTrace}
             isCopying={isCopying}
@@ -548,6 +576,17 @@ export default function ConversationDetail({
           />
         </ResizablePanelGroup>
       </div>
+
+      <FeedbackDialog
+        isOpen={feedbackDialog.open}
+        onOpenChange={(open) => setFeedbackDialog((prev) => ({ ...prev, open }))}
+        tenantId={tenantId}
+        projectId={projectId}
+        conversationId={conversationId}
+        messageId={feedbackDialog.messageId}
+        initialType={feedbackDialog.type}
+        onSubmitSuccess={() => setHasFeedback(true)}
+      />
     </div>
   );
 }

@@ -191,9 +191,9 @@ async function init() {
     const publicKeys: PublicKeyConfig[] = [];
 
     if (tempJwtPublicKeyB64) {
-      const { derivePlaygroundKid } = await import('../utils/jwt-helpers');
+      const { deriveKidFromPublicKey } = await import('../utils/jwt-helpers');
       const publicKeyPem = Buffer.from(tempJwtPublicKeyB64, 'base64').toString('utf-8');
-      const kid = await derivePlaygroundKid(publicKeyPem);
+      const kid = await deriveKidFromPublicKey(publicKeyPem);
       publicKeys.push({
         kid,
         publicKey: publicKeyPem,
@@ -210,7 +210,8 @@ async function init() {
       type: 'web_client',
       webClient: {
         allowedDomains,
-        ...(publicKeys.length > 0 ? { auth: { publicKeys, validateScopeClaims: true } } : {}),
+        publicKeys,
+        allowAnonymous: false,
       },
     };
 

@@ -28,18 +28,34 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
+          # Do not persist the default GITHUB_TOKEN credentials. actions/checkout
+          # sets http.https://github.com/.extraheader with an AUTHORIZATION header
+          # that overrides URL-embedded tokens. This prevents changesets/action from
+          # pushing with the App token (set via github-token input), causing GitHub
+          # to treat the push as GITHUB_TOKEN and skip triggering downstream workflows.
+          persist-credentials: false
 
       - name: Install
         uses: ./.github/composite-actions/install
 
       - name: Setup npm for OIDC publishing
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
 
       - name: Ensure npm 11.5.1+ for OIDC support
-        run: npm install -g npm@latest
+        run: |
+          if npm install -g npm@latest 2>/dev/null; then
+            echo "npm upgraded via bundled npm"
+          else
+            echo "::warning::Bundled npm broken, bootstrapping from tarball"
+            NPM_VER=$(node -e "fetch('https://registry.npmjs.org/npm/latest').then(r=>r.json()).then(d=>console.log(d.version))")
+            curl -fsSL "https://registry.npmjs.org/npm/-/npm-${NPM_VER}.tgz" | tar xz -C /tmp
+            node /tmp/package/bin/npm-cli.js install -g "npm@${NPM_VER}"
+            rm -rf /tmp/package
+          fi
+          echo "npm $(npm --version)"
 
       - name: Setup Turborepo cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
@@ -66,20 +82,20 @@ jobs:
           app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
           private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
 
-      # Set the git remote URL to use the App token so that commits pushed by
-      # changesets/action trigger downstream CI workflows. Without this, the
-      # push uses the default GITHUB_TOKEN which GitHub ignores for triggering.
-      - name: Configure git remote with App token
-        run: git remote set-url origin "https://x-access-token:${APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-        env:
-          APP_TOKEN: ${{ steps.app-token.outputs.token }}
-
+      # Pass the App token as the github-token INPUT to changesets/action.
+      # The action internally runs `git remote set-url` using its github-token
+      # input before pushing. If only the GITHUB_TOKEN env var is overridden,
+      # the action's input still defaults to github.token (the built-in token),
+      # and GitHub silently ignores pushes from GITHUB_TOKEN for triggering
+      # downstream workflows. Passing the App token as the input ensures the
+      # force-push to changeset-release/main fires pull_request.synchronize.
       - name: Publish packages
         id: changesets
         uses: changesets/action@6a0a831ff30acef54f2c6aa1cbbc1096b066edaf # v1
         with:
           publish: pnpm release
           createGithubReleases: false
+          github-token: ${{ steps.app-token.outputs.token }}
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           HUSKY: 0

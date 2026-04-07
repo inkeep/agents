@@ -3,8 +3,6 @@ import {
   parseContextBreakdownFromSpan,
   V1_BREAKDOWN_SCHEMA,
 } from '@inkeep/agents-core/client-exports';
-import axios from 'axios';
-import axiosRetry from 'axios-retry';
 import { type NextRequest, NextResponse } from 'next/server';
 import {
   ACTIVITY_NAMES,
@@ -14,6 +12,7 @@ import {
   AI_OPERATIONS,
   FIELD_CONTEXTS,
   FIELD_DATA_TYPES,
+  GENERATION_TYPES,
   ORDER_DIRECTIONS,
   QUERY_DEFAULTS,
   QUERY_EXPRESSIONS,
@@ -25,18 +24,13 @@ import {
   UNKNOWN_VALUE,
 } from '@/constants/signoz';
 import { getAgentsApiUrl } from '@/lib/api/api-config';
+import { fetchWithRetry } from '@/lib/api/fetch-with-retry';
 import {
   DEFAULT_LOOKBACK_MS,
   getConversationTimeRange,
 } from '@/lib/api/signoz-conversation-time-range';
 
 import { getLogger } from '@/lib/logger';
-
-// Configure axios retry
-axiosRetry(axios, {
-  retries: 3,
-  retryDelay: axiosRetry.exponentialDelay,
-});
 
 export const dynamic = 'force-dynamic';
 
@@ -127,13 +121,34 @@ async function signozQuery(
 
     logger.debug({ endpoint }, 'Calling agents-api for conversation traces');
 
-    const response = await axios.post(endpoint, payload, {
+    const response = await fetchWithRetry(endpoint, {
+      method: 'POST',
       headers,
+      body: JSON.stringify(payload),
+      credentials: 'include',
       timeout: 30000,
-      withCredentials: true,
+      maxAttempts: 3,
+      label: 'signoz-conversation-query',
     });
 
-    const json = response.data;
+    if (!response.ok) {
+      const statusText = response.statusText;
+      if (response.status === 401 || response.status === 403) {
+        throw new Error(`SigNoz authentication failed: ${statusText}`);
+      }
+      if (response.status === 400) {
+        throw new Error(`Invalid SigNoz query: ${statusText}`);
+      }
+      if (response.status === 429) {
+        throw new Error(`SigNoz rate limit exceeded: ${statusText}`);
+      }
+      if (response.status >= 500) {
+        throw new Error(`SigNoz server error: ${statusText}`);
+      }
+      throw new Error(`SigNoz request failed: ${statusText}`);
+    }
+
+    const json = await response.json();
     const results = json?.data?.data?.results ?? [];
     logger.debug(
       {
@@ -145,26 +160,13 @@ async function signozQuery(
   } catch (e) {
     logger.error({ error: e }, 'SigNoz query error');
 
-    // Re-throw the error with more context for proper error handling
-    if (axios.isAxiosError(e)) {
-      if (e.code === 'ECONNREFUSED' || e.code === 'ENOTFOUND' || e.code === 'ETIMEDOUT') {
-        throw new Error(`SigNoz service unavailable: ${e.message}`);
-      }
-      if (e.response?.status === 401 || e.response?.status === 403) {
-        throw new Error(`SigNoz authentication failed: ${e.response.statusText}`);
-      }
-      if (e.response?.status === 400) {
-        throw new Error(`Invalid SigNoz query: ${e.response.statusText}`);
-      }
-      if (e.response?.status === 429) {
-        throw new Error(`SigNoz rate limit exceeded: ${e.response.statusText}`);
-      }
-      if (e.response?.status && e.response.status >= 500) {
-        throw new Error(`SigNoz server error: ${e.response.statusText}`);
-      }
-      throw new Error(`SigNoz request failed: ${e.message}`);
+    if (e instanceof TypeError) {
+      throw new Error(`SigNoz service unavailable: ${e.message}`);
     }
-    throw new Error(`SigNoz query failed: ${e instanceof Error ? e.message : 'Unknown error'}`);
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      throw new Error(`SigNoz service unavailable: request timed out`);
+    }
+    throw e instanceof Error ? e : new Error(`SigNoz query failed: ${String(e)}`);
   }
 }
 
@@ -278,6 +280,7 @@ function buildConversationPayloads(
         sf(SPAN_KEYS.MESSAGE_CONTENT, str, attr),
         sf(SPAN_KEYS.MESSAGE_PARTS, str, attr),
         sf(SPAN_KEYS.MESSAGE_TIMESTAMP, str, attr),
+        sf(SPAN_KEYS.MESSAGE_ID, str, attr),
         sf(SPAN_KEYS.AGENT_ID, str, attr),
         sf(SPAN_KEYS.AGENT_NAME, str, attr),
         sf(SPAN_KEYS.INVOCATION_TYPE, str, attr),
@@ -297,6 +300,7 @@ function buildConversationPayloads(
         sf(SPAN_KEYS.DURATION_NANO, float64, span),
         sf(SPAN_KEYS.AI_RESPONSE_CONTENT, str, attr),
         sf(SPAN_KEYS.AI_RESPONSE_TIMESTAMP, str, attr),
+        sf(SPAN_KEYS.MESSAGE_ID, str, attr),
         sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
         sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
         sf(SPAN_KEYS.OTEL_STATUS_DESCRIPTION, str, attr),
@@ -483,6 +487,20 @@ function buildConversationPayloads(
         sf(SPAN_KEYS.STREAM_BUFFER_SIZE_BYTES, int64, attr),
       ]
     ),
+    buildQueryEnvelope(
+      QUERY_EXPRESSIONS.DURABLE_TOOL_EXECUTIONS,
+      `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.DURABLE_TOOL_EXECUTION}'`,
+      [
+        sf(SPAN_KEYS.SPAN_ID, str, span),
+        sf(SPAN_KEYS.TIMESTAMP, int64, span),
+        sf(SPAN_KEYS.HAS_ERROR, bool, span),
+        sf(SPAN_KEYS.TOOL_NAME, str, attr),
+        sf(SPAN_KEYS.TOOL_CALL_ID, str, attr),
+        sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
+        sf(SPAN_KEYS.TOOL_RESPONSE_CONTENT, str, attr),
+        sf(SPAN_KEYS.TOOL_RESPONSE_TIMESTAMP, str, attr),
+      ]
+    ),
   ];
 
   return [
@@ -491,12 +509,6 @@ function buildConversationPayloads(
     wrapQueries(eventQueries, start, end, projectId),
   ];
 }
-
-// ---------- Main handler
-
-type RouteContext<_T> = {
-  params: Promise<Record<string, string>>;
-};
 
 export async function GET(
   req: NextRequest,
@@ -523,13 +535,19 @@ export async function GET(
     const logger = getLogger('conversation-detail');
     const t0 = Date.now();
 
-    const { start, end } = await getConversationTimeRange({
+    const timeRange = await getConversationTimeRange({
       startParam,
       endParam,
       projectId,
       tenantId,
       conversationId,
     });
+
+    if (timeRange.notFound) {
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+    }
+
+    const { start, end } = timeRange;
     const tTimeRange = Date.now();
 
     const payloads = buildConversationPayloads(conversationId, start, end, projectId);
@@ -599,6 +617,7 @@ export async function GET(
     const compressionSpans = parseList(resp, QUERY_EXPRESSIONS.COMPRESSION);
     const maxStepsReachedSpans = parseList(resp, QUERY_EXPRESSIONS.MAX_STEPS_REACHED);
     const streamLifetimeExceededSpans = parseList(resp, QUERY_EXPRESSIONS.STREAM_LIFETIME_EXCEEDED);
+    const durableToolExecutionSpans = parseList(resp, QUERY_EXPRESSIONS.DURABLE_TOOL_EXECUTIONS);
 
     logger.info(
       {
@@ -664,6 +683,7 @@ export async function GET(
     // activities
     type Activity = {
       id: string;
+      messageId?: string;
       type:
         | 'tool_call'
         | 'ai_generation'
@@ -679,7 +699,8 @@ export async function GET(
         | 'tool_approval_denied'
         | 'compression'
         | 'max_steps_reached'
-        | 'stream_lifetime_exceeded';
+        | 'stream_lifetime_exceeded'
+        | 'durable_tool_execution';
       description: string;
       timestamp: string;
       parentSpanId?: string | null;
@@ -773,6 +794,9 @@ export async function GET(
       streamCleanupReason?: string;
       streamMaxLifetimeMs?: number;
       streamBufferSizeBytes?: number;
+      // durable tool execution
+      toolCallId?: string;
+      toolResponseContent?: string;
     };
 
     const activities: Activity[] = [];
@@ -921,6 +945,7 @@ export async function GET(
 
       activities.push({
         id: userMessageSpanId,
+        messageId: getString(span, SPAN_KEYS.MESSAGE_ID, '') || undefined,
         type: ACTIVITY_TYPES.USER_MESSAGE,
         description,
         timestamp: getString(span, SPAN_KEYS.MESSAGE_TIMESTAMP),
@@ -937,7 +962,6 @@ export async function GET(
           : `Message received successfully (${durMs.toFixed(2)}ms)`,
         messageContent: getString(span, SPAN_KEYS.MESSAGE_CONTENT, ''),
         messageParts: getString(span, SPAN_KEYS.MESSAGE_PARTS, ''),
-        // Trigger-specific attributes
         invocationType: invocationType || undefined,
         invocationEntryPoint: spanEntryPoint || undefined,
         triggerId: triggerId || undefined,
@@ -956,6 +980,7 @@ export async function GET(
         : '';
       activities.push({
         id: aiAssistantMessageSpanId,
+        messageId: getString(span, SPAN_KEYS.MESSAGE_ID, '') || undefined,
         type: ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE,
         description: 'AI Assistant responded',
         timestamp: getString(span, SPAN_KEYS.AI_RESPONSE_TIMESTAMP),
@@ -975,6 +1000,10 @@ export async function GET(
 
     // ai generations
     for (const span of aiGenerationSpans) {
+      const genType = getString(span, SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, '');
+      if (genType === GENERATION_TYPES.EVAL_SCORING || genType === GENERATION_TYPES.EVAL_SIMULATION)
+        continue;
+
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
 
@@ -983,7 +1012,6 @@ export async function GET(
       const aiPromptMessages = getString(span, SPAN_KEYS.AI_PROMPT_MESSAGES, '');
 
       const aiGeneration = getString(span, SPAN_KEYS.SPAN_ID, '');
-      const genType = getString(span, SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, '');
       const genResponseText = getString(span, SPAN_KEYS.AI_RESPONSE_TEXT, '');
       const formatted = genType
         ? formatGenerationType(genType, genResponseText)
@@ -1289,6 +1317,30 @@ export async function GET(
         streamCleanupReason: cleanupReason,
         streamMaxLifetimeMs: maxLifetimeMs,
         streamBufferSizeBytes: bufferSizeBytes,
+      });
+    }
+
+    for (const span of durableToolExecutionSpans) {
+      const spanId = getString(span, SPAN_KEYS.SPAN_ID, '');
+      const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
+      const toolName = getString(span, SPAN_KEYS.TOOL_NAME, '');
+      const toolCallId = getString(span, SPAN_KEYS.TOOL_CALL_ID, '');
+      const subAgentId = getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT);
+      const toolResponseContent = getString(span, SPAN_KEYS.TOOL_RESPONSE_CONTENT, '');
+
+      activities.push({
+        id: spanId,
+        type: ACTIVITY_TYPES.DURABLE_TOOL_EXECUTION,
+        description: hasError
+          ? `Durable tool execution failed: ${toolName}`
+          : `Durable tool executed: ${toolName}`,
+        timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(spanId) || undefined,
+        status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
+        subAgentId,
+        toolName: toolName || undefined,
+        toolCallId: toolCallId || undefined,
+        toolResponseContent: toolResponseContent || undefined,
       });
     }
 

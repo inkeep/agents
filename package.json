@@ -47,6 +47,7 @@
     "version": "changeset version",
     "release": "changeset publish",
     "release-dev": "changeset version --snapshot dev && changeset publish --tag dev",
+    "generate:keys": "bash scripts/generate-jwt-keys.sh",
     "db:generate": "pnpm --filter @inkeep/agents-core db:generate",
     "db:migrate": "pnpm --filter @inkeep/agents-core db:migrate",
     "db:drop": "pnpm --filter @inkeep/agents-core db:drop",
@@ -142,5 +143,5 @@
       "express-rate-limit": ">=8.2.2"
     }
   },
-  "packageManager": "pnpm@10.10.0"
+  "packageManager": "pnpm@10.33.0"
 }
