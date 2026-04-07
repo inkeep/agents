@@ -1,5 +1,6 @@
 import type { Part, ResolvedRef } from '@inkeep/agents-core';
 import { defineHook, getWorkflowMetadata } from 'workflow';
+import { getLogger } from '../../../../logger';
 import {
   callLlmStep,
   type DenialRedirect,
@@ -11,6 +12,8 @@ import {
   markWorkflowRunningStep,
   markWorkflowSuspendedStep,
 } from '../steps/agentExecutionSteps';
+
+const logger = getLogger('agentExecution');
 
 export type AgentExecutionPayload = {
   tenantId: string;
@@ -87,12 +90,15 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
           const hookToolCallId = llmResult.delegatedApproval?.toolCallId ?? toolCall.toolCallId;
           const token = `tool-approval:${payload.conversationId}:${workflowRunId}:${hookToolCallId}`;
 
-          console.info('[agentExecution] Creating tool approval hook', {
-            hookToolCallId,
-            parentToolCallId: toolCall.toolCallId,
-            isDelegated: !!llmResult.delegatedApproval,
-            workflowRunId,
-          });
+          logger.info(
+            {
+              hookToolCallId,
+              parentToolCallId: toolCall.toolCallId,
+              isDelegated: !!llmResult.delegatedApproval,
+              workflowRunId,
+            },
+            'Creating tool approval hook'
+          );
 
           // The hook suspends the workflow until an external system resumes it.
           // Unlike the in-process PendingToolApprovalManager (10-min timeout), durable
