@@ -200,17 +200,35 @@ export function DuplicateAgentDialog({
         <Form {...form}>
           <form className="space-y-4" onSubmit={onSubmit}>
             <div className="space-y-2">
-              <FieldLabel label="Target project" isRequired />
-              <Combobox
-                options={projectOptions}
-                onSelect={setTargetProjectId}
-                defaultValue={targetProjectId}
-                placeholder="Select a project"
-                searchPlaceholder="Search projects..."
-                notFoundMessage="No projects found."
-                triggerClassName="w-full"
-                className="w-(--radix-popover-trigger-width)"
-              />
+              {isTargetProjectPickerVisible ? (
+                <>
+                  <FieldLabel label="Target project" isRequired />
+                  <Combobox
+                    options={projectOptions}
+                    onSelect={handleTargetProjectSelect}
+                    defaultValue={targetProjectId}
+                    placeholder="Select a project"
+                    searchPlaceholder="Search projects..."
+                    notFoundMessage="No projects found."
+                    triggerClassName="w-full"
+                    className="w-(--radix-popover-trigger-width)"
+                  />
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {`Your duplicated agent will be created in the ${isImportingToAnotherProject ? 'selected' : 'same'} project:`}{' '}
+                  <b className="text-foreground">"{targetProjectName}"</b>{' '}
+                  {!projectsError && (
+                    <button
+                      type="button"
+                      className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                      onClick={() => setIsTargetProjectPickerVisible(true)}
+                    >
+                      Change
+                    </button>
+                  )}
+                </p>
+              )}
               {projectsError && (
                 <p className="text-sm text-destructive">
                   Could not load other projects. You can still copy within this project.
