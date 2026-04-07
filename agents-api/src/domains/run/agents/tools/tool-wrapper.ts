@@ -142,9 +142,9 @@ export function wrapToolWithStreaming(
       const needsApproval = options?.needsApproval || false;
 
       const preApprovedEntry = ctx.durableWorkflowRunId
-        ? ctx.approvedToolCalls?.[toolName]?.[0]
+        ? ctx.approvedToolCalls?.[toolCallId]
         : undefined;
-      const effectiveToolCallId = preApprovedEntry?.originalToolCallId ?? toolCallId;
+      const effectiveToolCallId = toolCallId;
       const isPreApproved = !!preApprovedEntry;
 
       if (streamRequestId && streamHelper && !isInternalToolForUi && !isPreApproved) {

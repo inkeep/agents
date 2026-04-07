@@ -969,9 +969,7 @@ export async function executeToolStep(params: ExecuteToolStepParams): Promise<Ex
 
           if (preApproved !== undefined) {
             agent.setApprovedToolCalls({
-              [toolName]: [
-                { approved: preApproved, reason: approvalReason, originalToolCallId: toolCallId },
-              ],
+              [toolCallId]: { approved: preApproved, reason: approvalReason },
             });
           }
 
