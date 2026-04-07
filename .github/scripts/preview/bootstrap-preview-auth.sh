@@ -107,7 +107,8 @@ if [ -n "${RAILWAY_API_TOKEN:-}" ] &&
     "$(pr_env_name "${PR_NUMBER}")" \
     "${RAILWAY_SPICEDB_SERVICE}" \
     15 \
-    4
+    4 \
+    2
   echo "::endgroup::"
 fi
 

@@ -195,6 +195,8 @@ jobs:
       manage_db_url: ${{ steps.provision.outputs.manage_db_url }}
       run_db_url: ${{ steps.provision.outputs.run_db_url }}
       spicedb_endpoint: ${{ steps.provision.outputs.spicedb_endpoint }}
+      recreate_backup_env_id: ${{ steps.provision.outputs.recreate_backup_env_id }}
+      recreate_backup_env_name: ${{ steps.provision.outputs.recreate_backup_env_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -228,12 +230,17 @@ jobs:
   bootstrap-preview-auth:
     name: Bootstrap Preview Auth
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     needs: [compute-context, provision-tier1]
     if: |
       needs.compute-context.outputs.preview_enabled == 'true' &&
       github.event.action != 'closed' &&
       needs.compute-context.outputs.is_internal_pr == 'true'
+    outputs:
+      manage_db_url: ${{ steps.bootstrap.outputs.manage_db_url }}
+      run_db_url: ${{ steps.bootstrap.outputs.run_db_url }}
+      spicedb_endpoint: ${{ steps.bootstrap.outputs.spicedb_endpoint }}
+      recreated_preview_env: ${{ steps.bootstrap.outputs.recreated_preview_env }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -242,30 +249,45 @@ jobs:
         uses: ./.github/composite-actions/install
 
       - name: Seed preview admin user
+        id: bootstrap
         env:
+          MANAGE_DB_URL: ${{ needs.provision-tier1.outputs.manage_db_url }}
           API_URL: ${{ needs.compute-context.outputs.api_url }}
           RUN_DB_URL: ${{ needs.provision-tier1.outputs.run_db_url }}
           SPICEDB_ENDPOINT: ${{ needs.provision-tier1.outputs.spicedb_endpoint }}
           SPICEDB_TLS_ENABLED: false
           RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN || secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+          RAILWAY_TEMPLATE_ENVIRONMENT: ${{ vars.RAILWAY_TEMPLATE_ENVIRONMENT }}
           RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}
+          RAILWAY_MANAGE_DB_SERVICE: ${{ vars.RAILWAY_MANAGE_DB_SERVICE || 'doltgres' }}
+          RAILWAY_RUN_DB_SERVICE: ${{ vars.RAILWAY_RUN_DB_SERVICE || 'postgres' }}
+          RAILWAY_MANAGE_DB_TCP_PORT: ${{ vars.RAILWAY_MANAGE_DB_TCP_PORT || '5432' }}
+          RAILWAY_RUN_DB_TCP_PORT: ${{ vars.RAILWAY_RUN_DB_TCP_PORT || '5432' }}
           RAILWAY_SPICEDB_SERVICE: ${{ vars.RAILWAY_SPICEDB_SERVICE || 'spicedb' }}
+          RAILWAY_SPICEDB_TCP_PORT: ${{ vars.RAILWAY_SPICEDB_TCP_PORT || '50051' }}
+          RAILWAY_SPICEDB_PRESHARED_KEY_KEY: ${{ vars.RAILWAY_SPICEDB_PRESHARED_KEY_KEY || 'SPICEDB_GRPC_PRESHARED_KEY' }}
+          RAILWAY_MANAGE_DB_URL_KEY: ${{ vars.RAILWAY_MANAGE_DB_URL_KEY || 'INKEEP_AGENTS_MANAGE_DATABASE_URL' }}
           RAILWAY_RUN_DB_URL_KEY: ${{ vars.RAILWAY_RUN_DB_URL_KEY || 'INKEEP_AGENTS_RUN_DATABASE_URL' }}
           RAILWAY_SPICEDB_ENDPOINT_KEY: ${{ vars.RAILWAY_SPICEDB_ENDPOINT_KEY || 'SPICEDB_ENDPOINT' }}
+          RAILWAY_MANAGE_DB_URL_TEMPLATE: ${{ vars.RAILWAY_MANAGE_DB_URL_TEMPLATE || '' }}
+          RAILWAY_RUN_DB_URL_TEMPLATE: ${{ vars.RAILWAY_RUN_DB_URL_TEMPLATE || '' }}
+          RAILWAY_SPICEDB_ENDPOINT_TEMPLATE: ${{ vars.RAILWAY_SPICEDB_ENDPOINT_TEMPLATE || '' }}
           SPICEDB_PRESHARED_KEY: ${{ secrets.PREVIEW_SPICEDB_PRESHARED_KEY }}
           PR_NUMBER: ${{ needs.compute-context.outputs.pr_number }}
+          RECREATE_BACKUP_ENV_ID: ${{ needs.provision-tier1.outputs.recreate_backup_env_id }}
+          RECREATE_BACKUP_ENV_NAME: ${{ needs.provision-tier1.outputs.recreate_backup_env_name }}
           TENANT_ID: default
           INKEEP_AGENTS_MANAGE_UI_USERNAME: ${{ vars.PREVIEW_MANAGE_UI_USERNAME }}
           INKEEP_AGENTS_MANAGE_UI_PASSWORD: ${{ secrets.PREVIEW_MANAGE_UI_PASSWORD }}
           BETTER_AUTH_SECRET: ${{ secrets.PREVIEW_BETTER_AUTH_SECRET }}
-        run: bash .github/scripts/preview/bootstrap-preview-auth.sh
+        run: bash .github/scripts/preview/bootstrap-preview-auth-with-recovery.sh
 
   configure-vercel-preview:
     name: Inject Vercel Preview Env Vars
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [compute-context, provision-tier1]
+    needs: [compute-context, provision-tier1, bootstrap-preview-auth]
     if: |
       needs.compute-context.outputs.preview_enabled == 'true' &&
       github.event.action != 'closed' &&
@@ -289,9 +311,9 @@ jobs:
           PR_BRANCH: ${{ needs.compute-context.outputs.pr_branch }}
           API_URL: ${{ needs.compute-context.outputs.api_url }}
           UI_URL: ${{ needs.compute-context.outputs.ui_url }}
-          MANAGE_DB_URL: ${{ needs.provision-tier1.outputs.manage_db_url }}
-          RUN_DB_URL: ${{ needs.provision-tier1.outputs.run_db_url }}
-          SPICEDB_ENDPOINT: ${{ needs.provision-tier1.outputs.spicedb_endpoint }}
+          MANAGE_DB_URL: ${{ needs.bootstrap-preview-auth.outputs.manage_db_url }}
+          RUN_DB_URL: ${{ needs.bootstrap-preview-auth.outputs.run_db_url }}
+          SPICEDB_ENDPOINT: ${{ needs.bootstrap-preview-auth.outputs.spicedb_endpoint }}
           BETTER_AUTH_SECRET: ${{ secrets.PREVIEW_BETTER_AUTH_SECRET }}
           SPICEDB_PRESHARED_KEY: ${{ secrets.PREVIEW_SPICEDB_PRESHARED_KEY }}
           CI: true
