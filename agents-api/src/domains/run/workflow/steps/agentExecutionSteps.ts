@@ -1154,6 +1154,7 @@ export async function markWorkflowResumingStep(params: {
     projectId,
     id: workflowRunId,
     status: 'running',
+    metadata: { pendingToolApproval: null },
   });
 
   logger.info({ workflowRunId }, 'Workflow execution marked as running (resuming after approval)');

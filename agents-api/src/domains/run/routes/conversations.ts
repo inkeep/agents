@@ -579,13 +579,13 @@ app.openapi(
     }
 
     const metadata = execution.metadata as Record<string, unknown> | null;
-    const pendingToolApproval = metadata?.pendingToolApproval as
-      | { toolCallId: string; toolName: string; args: unknown; isDelegated: boolean }
-      | undefined;
+    const parsed = PendingToolApprovalSchema.safeParse(metadata?.pendingToolApproval);
 
-    if (!pendingToolApproval) {
+    if (!parsed.success) {
       return c.json({ hasPending: false });
     }
+
+    const pendingToolApproval = parsed.data;
 
     return c.json({
       hasPending: true,
