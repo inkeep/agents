@@ -8,7 +8,7 @@ import { SectionHeader } from '@/components/agent/sidepane/section';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
 import { InfoCard } from '@/components/ui/info-card';
 import { ModelInheritanceInfo } from './model-inheritance-info';
-import type { ProjectOutput, ProjectInput } from './validation';
+import type { ProjectInput, ProjectOutput } from './validation';
 
 type ProjectFormControl = Control<ProjectInput, unknown, ProjectOutput>;
 

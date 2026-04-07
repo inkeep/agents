@@ -137,7 +137,7 @@ export function ProjectForm({
 
         <Separator />
 
-        <ProjectModelsSection form={form} disabled={readOnly} />
+        <ProjectModelsSection control={form.control} disabled={readOnly} />
 
         <Separator />
 

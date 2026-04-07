@@ -26,11 +26,11 @@ export const ProjectSchema = ProjectApiInsertSchema.extend({
       }).optional(),
     })
     .transform(({ base, structuredOutput, summarizer }) => {
-        return {
-            base,
-            ...(structuredOutput?.model && { structuredOutput }),
-            ...(summarizer?.model && { summarizer }),
-        };
+      return {
+        base,
+        ...(structuredOutput?.model && { structuredOutput }),
+        ...(summarizer?.model && { summarizer }),
+      };
     }),
   stopWhen: z
     .strictObject({
