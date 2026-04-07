@@ -6,7 +6,6 @@ import {
   type CreateTriggerInput,
   createTrigger,
   deleteTrigger,
-  getTriggerUsers,
   rerunTrigger,
   type Trigger,
   type UpdateTriggerInput,
@@ -165,28 +164,6 @@ export async function deleteTriggerAction(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to delete trigger',
-      code: 'unknown_error',
-    };
-  }
-}
-
-export async function getTriggerUsersAction(
-  tenantId: string,
-  projectId: string,
-  agentId: string,
-  triggerId: string
-): Promise<ActionResult<string[]>> {
-  try {
-    const userIds = await getTriggerUsers(tenantId, projectId, agentId, triggerId);
-    return { success: true, data: userIds };
-  } catch (error) {
-    if (error instanceof ApiError) {
-      return { success: false, error: error.message, code: error.error.code };
-    }
-
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch trigger users',
       code: 'unknown_error',
     };
   }
