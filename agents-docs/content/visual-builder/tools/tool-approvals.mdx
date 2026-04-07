@@ -106,6 +106,8 @@ When a tool with approval enabled is invoked:
 4. If approved, the tool executes and the agent continues
 5. If denied, the agent receives a human-readable denial reason string (or a default message if no reason was provided), allowing it to understand why the request was denied and adapt its behavior (for example, trying a different approach or asking a clarifying question)
 
+This same approval flow applies when a tool is called by a [delegated sub-agent](/typescript-sdk/sub-agents#delegation-relationships). In [durable execution mode](/visual-builder/agent-settings/execution-modes#durable-mode), the approval request bubbles up from the delegated sub-agent to the parent agent and is surfaced to the user. Once the user responds, the approval decision is forwarded back to the delegated sub-agent, which then executes or skips the tool accordingly.
+
 ## Best practices
 
 - **Enable approval for destructive operations**: Tools that delete data, modify configurations, or make irreversible changes should require approval
