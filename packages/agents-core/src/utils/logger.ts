@@ -228,20 +228,44 @@ export class PinoLogger {
     return this.with(bindings);
   }
 
-  error(data: any, message: string): void {
-    this.resolveInstance().error(data, message);
+  error(message: string): void;
+  error(data: any, message: string): void;
+  error(dataOrMessage: any, message?: string): void {
+    if (message === undefined) {
+      this.resolveInstance().error(dataOrMessage);
+    } else {
+      this.resolveInstance().error(dataOrMessage, message);
+    }
   }
 
-  warn(data: any, message: string): void {
-    this.resolveInstance().warn(data, message);
+  warn(message: string): void;
+  warn(data: any, message: string): void;
+  warn(dataOrMessage: any, message?: string): void {
+    if (message === undefined) {
+      this.resolveInstance().warn(dataOrMessage);
+    } else {
+      this.resolveInstance().warn(dataOrMessage, message);
+    }
   }
 
-  info(data: any, message: string): void {
-    this.resolveInstance().info(data, message);
+  info(message: string): void;
+  info(data: any, message: string): void;
+  info(dataOrMessage: any, message?: string): void {
+    if (message === undefined) {
+      this.resolveInstance().info(dataOrMessage);
+    } else {
+      this.resolveInstance().info(dataOrMessage, message);
+    }
   }
 
-  debug(data: any, message: string): void {
-    this.resolveInstance().debug(data, message);
+  debug(message: string): void;
+  debug(data: any, message: string): void;
+  debug(dataOrMessage: any, message?: string): void {
+    if (message === undefined) {
+      this.resolveInstance().debug(dataOrMessage);
+    } else {
+      this.resolveInstance().debug(dataOrMessage, message);
+    }
   }
 }
 

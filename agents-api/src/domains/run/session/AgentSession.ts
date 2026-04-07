@@ -271,7 +271,7 @@ export class AgentSession {
    */
   enableEmitOperations(): void {
     this.isEmitOperations = true;
-    this.logger.info({}, 'DEBUG: Emit operations enabled for AgentSession');
+    this.logger.info('DEBUG: Emit operations enabled for AgentSession');
   }
 
   /**
@@ -361,7 +361,7 @@ export class AgentSession {
     if (this.statusUpdateState.config.timeInSeconds) {
       this.statusUpdateTimer = setInterval(async () => {
         if (!this.statusUpdateState || this.isEnded) {
-          this.logger.debug({}, 'Timer triggered but session already cleaned up or ended');
+          this.logger.debug('Timer triggered but session already cleaned up or ended');
           if (this.statusUpdateTimer) {
             clearInterval(this.statusUpdateTimer);
             this.statusUpdateTimer = undefined;
@@ -487,12 +487,12 @@ export class AgentSession {
    */
   private checkStatusUpdates(): void {
     if (this.isEnded) {
-      this.logger.debug({}, 'Session has ended - skipping status update check');
+      this.logger.debug('Session has ended - skipping status update check');
       return;
     }
 
     if (!this.statusUpdateState) {
-      this.logger.debug({}, 'No status update state - skipping check');
+      this.logger.debug('No status update state - skipping check');
       return;
     }
 
@@ -512,12 +512,12 @@ export class AgentSession {
    */
   private async checkAndSendTimeBasedUpdate(): Promise<void> {
     if (this.isEnded) {
-      this.logger.debug({}, 'Session has ended - skipping time-based update');
+      this.logger.debug('Session has ended - skipping time-based update');
       return;
     }
 
     if (!this.statusUpdateState) {
-      this.logger.debug({}, 'No status updates configured for time-based check');
+      this.logger.debug('No status updates configured for time-based check');
       return;
     }
 
@@ -696,27 +696,27 @@ export class AgentSession {
    */
   private async generateAndSendUpdate(): Promise<void> {
     if (this.isEnded) {
-      this.logger.debug({}, 'Session has ended - not generating update');
+      this.logger.debug('Session has ended - not generating update');
       return;
     }
 
     if (this.isTextStreaming) {
-      this.logger.debug({}, 'Text is currently streaming - skipping status update');
+      this.logger.debug('Text is currently streaming - skipping status update');
       return;
     }
 
     if (this.isGeneratingUpdate) {
-      this.logger.debug({}, 'Update already in progress - skipping duplicate generation');
+      this.logger.debug('Update already in progress - skipping duplicate generation');
       return;
     }
 
     if (!this.statusUpdateState) {
-      this.logger.warn({}, 'No status update state - cannot generate update');
+      this.logger.warn('No status update state - cannot generate update');
       return;
     }
 
     if (!this.executionContext.agentId) {
-      this.logger.warn({}, 'No agent ID - cannot generate update');
+      this.logger.warn('No agent ID - cannot generate update');
       return;
     }
 
@@ -735,7 +735,7 @@ export class AgentSession {
     try {
       const streamHelper = getStreamHelper(this.sessionId);
       if (!streamHelper) {
-        this.logger.warn({}, 'No stream helper found - cannot send status update');
+        this.logger.warn('No stream helper found - cannot send status update');
         this.isGeneratingUpdate = false;
         return;
       }

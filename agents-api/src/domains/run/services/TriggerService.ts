@@ -543,7 +543,7 @@ export async function dispatchExecution(params: {
         transformedPayload: transformedPayload as Record<string, unknown> | undefined,
       });
 
-      logger.info({}, 'Trigger invocation created');
+      logger.info('Trigger invocation created');
 
       // Wrap agent execution in a single promise protected by waitUntil
       // The trigger.message_received span is created inside executeAgentAsync
@@ -588,7 +588,7 @@ export async function dispatchExecution(params: {
       // In other environments, the promise runs in the background
       const waitUntil = await getWaitUntil();
       if (waitUntil) {
-        logger.info({}, 'Calling waitUntil with execution promise');
+        logger.info('Calling waitUntil with execution promise');
         waitUntil(safeExecutionPromise);
       } else {
         logger.warn(
@@ -597,7 +597,7 @@ export async function dispatchExecution(params: {
         );
       }
 
-      logger.info({}, 'Async execution dispatched');
+      logger.info('Async execution dispatched');
 
       return { invocationId, conversationId };
     }
@@ -650,7 +650,7 @@ export async function executeAgentAsync(
   return runWithLogContext(
     { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
     async () => {
-      logger.info({}, 'executeAgentAsync: starting');
+      logger.info('executeAgentAsync: starting');
       let userMessage: string;
       let messageParts: Part[];
 
@@ -695,19 +695,19 @@ export async function executeAgentAsync(
       logger.info({ hasProject: !!project, loadProjectMs }, 'executeAgentAsync: project loaded');
 
       if (!project) {
-        logger.error({}, 'Project not found for trigger execution');
+        logger.error('Project not found for trigger execution');
         throw new Error(`Project ${projectId} not found`);
       }
 
       // Find the agent's default sub-agent
       const agent = project.agents?.[agentId];
       if (!agent) {
-        logger.error({}, 'Agent not found in project for trigger execution');
+        logger.error('Agent not found in project for trigger execution');
         throw new Error(`Agent ${agentId} not found in project`);
       }
       const defaultSubAgentId = agent.defaultSubAgentId;
       if (!defaultSubAgentId) {
-        logger.error({}, 'Agent has no default sub-agent configured');
+        logger.error('Agent has no default sub-agent configured');
         throw new Error(`Agent ${agentId} has no default sub-agent configured`);
       }
 
@@ -804,7 +804,7 @@ export async function executeAgentAsync(
         .setEntry('agent.name', { value: agentName });
       const ctxWithBaggage = propagation.setBaggage(otelContext.active(), baggage);
 
-      logger.info({}, 'executeAgentAsync: starting tracer span');
+      logger.info('executeAgentAsync: starting tracer span');
 
       // Execute the agent in a new trace root with baggage
       return tracer.startActiveSpan(
@@ -848,7 +848,7 @@ export async function executeAgentAsync(
           );
           messageSpan.end();
           await flushBatchProcessor();
-          logger.info({}, 'Starting async trigger execution');
+          logger.info('Starting async trigger execution');
 
           try {
             // Create conversation and set active agent
@@ -970,7 +970,7 @@ export async function executeAgentAsync(
 
             span.setStatus({ code: SpanStatusCode.OK });
 
-            logger.info({}, 'Async trigger execution completed successfully');
+            logger.info('Async trigger execution completed successfully');
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             const errorStack = error instanceof Error ? error.stack : undefined;
