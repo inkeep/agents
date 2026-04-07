@@ -113,7 +113,7 @@ async function dispatchSingleTrigger(trigger: ScheduledTrigger): Promise<number>
         );
       }
     }
-  } else if (trigger.runAsUserId) {
+  } else {
     const payload: TriggerPayload = {
       tenantId,
       projectId,
@@ -125,11 +125,6 @@ async function dispatchSingleTrigger(trigger: ScheduledTrigger): Promise<number>
 
     await start(scheduledTriggerRunnerWorkflow, [payload]);
     workflowsStarted = 1;
-  } else {
-    logger.warn(
-      { scheduledTriggerId, tenantId, projectId },
-      'Trigger has no associated users and no runAsUserId, skipping execution'
-    );
   }
 
   if (workflowsStarted > 0) {

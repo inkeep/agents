@@ -250,18 +250,24 @@ describe('dispatchDueTriggers', () => {
     ]);
   });
 
-  it('skips execution when no join table users and no runAsUserId', async () => {
+  it('dispatches single workflow when no join table users and no runAsUserId', async () => {
     const trigger = makeTrigger({ runAsUserId: null });
 
     mockFindDueTriggers.mockReturnValue(() => Promise.resolve([trigger]));
 
     const result = await dispatchDueTriggers();
 
-    expect(result).toEqual({ dispatched: 0 });
-    expect(mockStart).not.toHaveBeenCalled();
+    expect(result).toEqual({ dispatched: 1 });
+    expect(mockStart).toHaveBeenCalledTimes(1);
+    expect(mockStart).toHaveBeenCalledWith(expect.anything(), [
+      expect.objectContaining({
+        scheduledTriggerId: 'trigger-1',
+        ref: 'main',
+      }),
+    ]);
   });
 
-  it('uses legacy path when join table empty but runAsUserId set', async () => {
+  it('dispatches single workflow when join table empty but runAsUserId set', async () => {
     const trigger = makeTrigger({ runAsUserId: 'legacy-user' });
 
     mockFindDueTriggers.mockReturnValue(() => Promise.resolve([trigger]));
