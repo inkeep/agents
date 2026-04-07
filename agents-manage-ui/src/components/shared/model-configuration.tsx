@@ -5,7 +5,6 @@ import { GripVertical, Plus, X } from 'lucide-react';
 import { type FC, useId, useState } from 'react';
 import { type Control, type FieldPath, type FieldValues, useController } from 'react-hook-form';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
-import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandItem, CommandList } from '@/components/ui/command';
 import { Label } from '@/components/ui/label';
@@ -22,6 +21,14 @@ import {
 import { cn } from '@/lib/utils';
 import { FieldLabel } from '../agent/sidepane/form-components/label';
 import { AzureConfigurationSection } from './azure-configuration-section';
+import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 
 const AVAILABLE_PROVIDERS = [
   { value: 'anthropic', label: 'Anthropic' },
@@ -419,7 +426,7 @@ export function ModelConfiguration<
   }
 
   const inheritedValue = inherited?.model;
-  const inheritedProviderOptions = inherited?.providerOptions;
+  const inheritedProviderOptions = inherited?.providerOptions ?? '';
 
   function handleModelChange(modelValue: string) {
     const previousEffectiveModel = value || inheritedValue;
@@ -455,6 +462,7 @@ export function ModelConfiguration<
     GATEWAY_ROUTABLE_PROVIDERS_SET.has(modelProvider) || modelProvider === 'gateway';
 
   const jsonPlaceholder = getJsonPlaceholder({ model: effectiveModel, slot });
+  const providerOptionsId = useId();
   return (
     <div className="space-y-4">
       <div className="relative space-y-2">
@@ -484,29 +492,34 @@ export function ModelConfiguration<
               disabled={disabled || isUsingInheritedOptions}
             />
           )}
-          <StandaloneJsonEditor
-            value={
-              typeof effectiveProviderOptions === 'string'
-                ? effectiveProviderOptions
-                : effectiveProviderOptions
-                  ? JSON.stringify(effectiveProviderOptions, null, 2)
-                  : ''
-            }
-          />
-          <GenericJsonEditor
+          <FormField
             control={control}
             name={`${name}.providerOptions` as FieldPath<TFieldValues>}
-            label={
-              <>
-                Provider options
-                {isUsingInheritedOptions && (
-                  <i className="text-xs text-muted-foreground"> (inherited)</i>
-                )}
-              </>
-            }
-            placeholder={jsonPlaceholder}
-            customTemplate={jsonPlaceholder}
-            readOnly={disabled || isUsingInheritedOptions}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  Provider options
+                  {isUsingInheritedOptions && (
+                    <i className="text-xs text-muted-foreground"> (inherited)</i>
+                  )}
+                </FormLabel>
+                <FormControl>
+                  <StandaloneJsonEditor
+                    name={providerOptionsId}
+                    onChange={onProviderOptionsChange}
+                    value={
+                      typeof effectiveProviderOptions === 'object'
+                        ? JSON.stringify(effectiveProviderOptions, null, 2)
+                        : effectiveProviderOptions
+                    }
+                    placeholder={jsonPlaceholder}
+                    customTemplate={jsonPlaceholder}
+                    readOnly={disabled || isUsingInheritedOptions}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
           {capabilities?.modelFallback?.enabled && isGatewayRoutable && (
             <>

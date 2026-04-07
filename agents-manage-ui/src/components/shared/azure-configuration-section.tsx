@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 interface AzureConfigurationSectionProps {
-  providerOptions: Record<string, unknown> | string | undefined;
+  providerOptions: Record<string, unknown> | string;
   onProviderOptionsChange: (value: string) => void;
   disabled?: boolean;
 }
@@ -14,9 +14,7 @@ export function AzureConfigurationSection({
   disabled = false,
 }: AzureConfigurationSectionProps) {
   const providerOptionsObj =
-    providerOptions && typeof providerOptions === 'string'
-      ? JSON.parse(providerOptions)
-      : providerOptions;
+    typeof providerOptions === 'object' ? providerOptions : JSON.parse(providerOptions);
 
   const handleFieldChange = (field: string, value: string) => {
     const updatedOptions = {
