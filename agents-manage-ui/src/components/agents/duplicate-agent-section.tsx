@@ -5,7 +5,7 @@ import type { ImportAgentWarning } from '@inkeep/agents-core';
 import { DuplicateAgentRequestSchema } from '@inkeep/agents-core/client-exports';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { type Dispatch, type SetStateAction, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -35,16 +35,13 @@ const DuplicateAgentFormSchema = z.strictObject({
   ),
 });
 
-const initialData: DuplicateAgentRequest = {
-  newAgentId: '',
-  newAgentName: '',
-};
-
-interface DuplicateAgentSectionProps {
+interface DuplicateAgentDialogProps {
   tenantId: string;
-  projectId: string;
+  sourceProjectId: string;
+  sourceAgentId: string;
+  sourceAgentName: string;
   isOpen: boolean;
-  onSuccess?: () => void;
+  setIsOpen: Dispatch<SetStateAction<boolean>>;
 }
 
 function buildWarningSummary(warnings: ImportAgentWarning[]) {
@@ -68,7 +65,7 @@ function buildWarningSummary(warnings: ImportAgentWarning[]) {
   return parts.join(' | ');
 }
 
-function renderLabel(name: string, description?: string | null) {
+function renderProjectLabel(name: string, description?: string | null) {
   return (
     <div className="min-w-0">
       <div className="truncate font-medium">{name}</div>
@@ -77,18 +74,22 @@ function renderLabel(name: string, description?: string | null) {
   );
 }
 
-export function DuplicateAgentSection({
+export function DuplicateAgentDialog({
   tenantId,
-  projectId,
+  sourceProjectId,
+  sourceAgentId,
+  sourceAgentName,
   isOpen,
-  onSuccess,
-}: DuplicateAgentSectionProps) {
+  setIsOpen,
+}: DuplicateAgentDialogProps) {
   const router = useRouter();
-  const [sourceProjectId, setSourceProjectId] = useState(projectId);
-  const [sourceAgentId, setSourceAgentId] = useState('');
+  const [targetProjectId, setTargetProjectId] = useState(sourceProjectId);
   const form = useForm({
     resolver: zodResolver(DuplicateAgentFormSchema),
-    defaultValues: initialData,
+    defaultValues: {
+      newAgentId: '',
+      newAgentName: `${sourceAgentName} (Copy)`,
+    },
     mode: 'onChange',
   });
 
@@ -97,32 +98,27 @@ export function DuplicateAgentSection({
     tenantId,
     enabled: isOpen,
   });
-  const { data: agents } = useAgentsListQuery({
-    tenantId,
-    projectId: sourceProjectId,
-    enabled: isOpen && Boolean(sourceProjectId),
-  });
 
-  const currentProject = projects.find((project) => project.projectId === projectId);
-  const selectedAgent = agents.find((agent) => agent.id === sourceAgentId);
-  const isImportingFromAnotherProject = sourceProjectId !== projectId;
-  const currentProjectName = currentProject?.name ?? 'This project';
+  const currentProject = projects.find((project) => project.projectId === sourceProjectId);
+  const currentProjectName = currentProject?.name ?? 'Current project';
   const currentProjectDescription = currentProject?.description;
-  const otherProjects = projects.filter((project) => project.projectId !== projectId);
+  const otherProjects = projects.filter((project) => project.projectId !== sourceProjectId);
   const projectOptions = [
     {
-      value: projectId,
+      value: sourceProjectId,
       selectedLabel: currentProjectName,
-      label: renderLabel(currentProjectName, currentProjectDescription),
-      searchBy: `${currentProjectName} ${currentProjectDescription} ${projectId}`,
+      label: renderProjectLabel(currentProjectName, currentProjectDescription),
+      searchBy: `${currentProjectName} ${currentProjectDescription ?? ''} ${sourceProjectId}`,
     },
     ...otherProjects.map((project) => ({
       value: project.projectId,
       selectedLabel: project.name,
-      label: renderLabel(project.name, project.description),
+      label: renderProjectLabel(project.name, project.description),
       searchBy: `${project.name} ${project.description ?? ''} ${project.projectId}`,
     })),
   ];
+
+  const isImportingToAnotherProject = targetProjectId !== sourceProjectId;
 
   useAutoPrefillId({
     form,
@@ -130,38 +126,22 @@ export function DuplicateAgentSection({
     idField: 'newAgentId',
   });
 
-  useEffect(() => {
-    if (!isOpen) {
-      setSourceProjectId(projectId);
-      setSourceAgentId('');
-      form.reset(initialData);
+  function handleOpenChange(open: boolean) {
+    if (!open) {
+      setTargetProjectId(sourceProjectId);
+      form.reset({
+        newAgentId: '',
+        newAgentName: `${sourceAgentName} (Copy)`,
+      });
     }
-  }, [form, isOpen, projectId]);
 
-  function handleProjectSelect(nextSourceProjectId: string) {
-    setSourceProjectId(nextSourceProjectId);
-    setSourceAgentId('');
-    form.reset(initialData);
-  }
-
-  function handleSourceAgentSelect(agentId: string) {
-    const sourceAgent = agents.find((agent) => agent.id === agentId);
-
-    setSourceAgentId(agentId);
-    form.reset({
-      newAgentId: '',
-      newAgentName: sourceAgent ? `${sourceAgent.name} (Copy)` : '',
-    });
+    setIsOpen(open);
   }
 
   const onSubmit = form.handleSubmit(async (data) => {
-    if (!sourceProjectId || !sourceAgentId) {
-      return;
-    }
-
     try {
-      if (isImportingFromAnotherProject) {
-        const result = await importAgentAction(tenantId, projectId, {
+      if (isImportingToAnotherProject) {
+        const result = await importAgentAction(tenantId, targetProjectId, {
           ...data,
           sourceProjectId,
           sourceAgentId,
@@ -183,12 +163,12 @@ export function DuplicateAgentSection({
           );
         }
 
-        onSuccess?.();
-        router.push(`/${tenantId}/projects/${projectId}/agents/${result.data.data.id}`);
+        handleOpenChange(false);
+        router.push(`/${tenantId}/projects/${targetProjectId}/agents/${result.data.data.id}`);
         return;
       }
 
-      const result = await duplicateAgentAction(tenantId, projectId, sourceAgentId, data);
+      const result = await duplicateAgentAction(tenantId, sourceProjectId, sourceAgentId, data);
 
       if (!result.success) {
         toast.error(result.error || 'Failed to copy agent.');
@@ -196,8 +176,8 @@ export function DuplicateAgentSection({
       }
 
       toast.success('Agent copied!');
-      onSuccess?.();
-      router.push(`/${tenantId}/projects/${projectId}/agents/${result.data.id}`);
+      handleOpenChange(false);
+      router.push(`/${tenantId}/projects/${sourceProjectId}/agents/${result.data.id}`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to copy agent.';
       toast.error(errorMessage);
@@ -205,26 +185,34 @@ export function DuplicateAgentSection({
   });
 
   return (
-    <Form {...form}>
-      <form className="space-y-8" onSubmit={onSubmit}>
-        <div className="space-y-2">
-          <FieldLabel label="Source project" />
-          <Combobox
-            options={projectOptions}
-            onSelect={handleProjectSelect}
-            defaultValue={sourceProjectId}
-            placeholder="Select a project"
-            searchPlaceholder="Search projects..."
-            notFoundMessage="No projects found."
-            triggerClassName="w-full"
-            className="w-(--radix-popover-trigger-width)"
-          />
-          {projectsError && (
-            <p className="text-sm text-muted-foreground">
-              Could not load other projects. You can still copy from this project.
-            </p>
-          )}
-        </div>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>{`Duplicate "${sourceAgentName}"`}</DialogTitle>
+          <DialogDescription>
+            Create a copy of this agent in the current project or another project.
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form className="space-y-8" onSubmit={onSubmit}>
+            <div className="space-y-2">
+              <FieldLabel label="Target project" />
+              <Combobox
+                options={projectOptions}
+                onSelect={setTargetProjectId}
+                defaultValue={targetProjectId}
+                placeholder="Select a project"
+                searchPlaceholder="Search projects..."
+                notFoundMessage="No projects found."
+                triggerClassName="w-full"
+                className="w-(--radix-popover-trigger-width)"
+              />
+              {projectsError && (
+                <p className="text-sm text-muted-foreground">
+                  Could not load other projects. You can still copy within this project.
+                </p>
+              )}
+            </div>
 
         <div className="space-y-2">
           <FieldLabel label="Source agent" />

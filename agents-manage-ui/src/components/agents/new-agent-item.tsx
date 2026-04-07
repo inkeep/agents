@@ -28,9 +28,7 @@ const NewAgentDialogContent = ({ tenantId, projectId, onSuccess }: NewAgentDialo
     <DialogContent className="sm:max-w-xl">
       <DialogHeader>
         <DialogTitle>New Agent</DialogTitle>
-        <DialogDescription>
-          Create a blank agent and continue editing in the builder.
-        </DialogDescription>
+        <DialogDescription className="sr-only">Create a blank agent.</DialogDescription>
       </DialogHeader>
       <AgentForm tenantId={tenantId} projectId={projectId} onSuccess={onSuccess} />
     </DialogContent>
