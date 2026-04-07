@@ -44,7 +44,7 @@
       "https://<YOUR_API_DOMAIN>/work-apps/slack/oauth_redirect"
     ],
     "scopes": {
-      "user": ["users:read", "users:read.email"],
+      "user": [],
       "bot": [
         "app_mentions:read",
         "channels:history",
