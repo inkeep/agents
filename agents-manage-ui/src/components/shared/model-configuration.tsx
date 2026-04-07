@@ -40,8 +40,8 @@ type ModelConfigurationSlot = 'base' | 'structuredOutput' | 'summarizer';
 interface ModelConfigurationInheritedValues {
   model?: string;
   providerOptions?: string | Record<string, unknown>;
-  fallbackModels?: string[];
-  allowedProviders?: string[];
+  fallbackModels?: string[] | null;
+  allowedProviders?: string[] | null;
 }
 
 const MODEL_CONFIGURATION_LABELS: Record<ModelConfigurationSlot, string> = {
@@ -354,6 +354,8 @@ interface ModelConfigurationProps<
   /** Description text shown below the selector */
   description?: string;
   inherited?: ModelConfigurationInheritedValues;
+  /** Whether this field is required */
+  isRequired?: boolean;
   /** Whether the component is disabled/read-only */
   disabled?: boolean;
   control: Control<TFieldValues, unknown, TTransformedValues>;
@@ -366,6 +368,7 @@ export function ModelConfiguration<
 >({
   label,
   description,
+  isRequired,
   inherited,
   disabled = false,
   control,
@@ -462,7 +465,7 @@ export function ModelConfiguration<
           label={resolvedLabel}
           placeholder={MODEL_CONFIGURATION_PLACEHOLDERS[slot]}
           canClear={slot !== 'base'}
-          isRequired={slot === 'base'}
+          isRequired={isRequired}
           disabled={disabled}
         />
         <p className="text-xs text-muted-foreground">{resolvedDescription}</p>
@@ -509,13 +512,13 @@ export function ModelConfiguration<
             <>
               <AllowedProvidersSection
                 allowedProviders={allowedProviders}
-                inheritedAllowedProviders={inherited?.allowedProviders}
+                inheritedAllowedProviders={inherited?.allowedProviders ?? undefined}
                 onAllowedProvidersChange={onAllowedProvidersChange}
                 disabled={disabled}
               />
               <FallbackModelsSection
                 fallbackModels={fallbackModels}
-                inheritedFallbackModels={inherited?.fallbackModels}
+                inheritedFallbackModels={inherited?.fallbackModels ?? undefined}
                 onFallbackModelsChange={onFallbackModelsChange}
                 disabled={disabled}
               />

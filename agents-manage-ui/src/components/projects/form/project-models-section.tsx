@@ -26,7 +26,7 @@ function BaseModelSection({
   control: ProjectFormControl;
   disabled?: boolean;
 }) {
-  return <ModelConfiguration control={control} name="models.base" disabled={disabled} />;
+  return <ModelConfiguration control={control} name="models.base" isRequired disabled={disabled} />;
 }
 
 function StructuredOutputModelSection({
@@ -45,8 +45,8 @@ function StructuredOutputModelSection({
       inherited={{
         model: base.model,
         providerOptions: base.providerOptions,
-        fallbackModels: base.fallbackModels ?? undefined,
-        allowedProviders: base.allowedProviders ?? undefined,
+        fallbackModels: base.fallbackModels,
+        allowedProviders: base.allowedProviders,
       }}
       disabled={disabled}
     />
@@ -69,8 +69,8 @@ function SummarizerModelSection({
       inherited={{
         model: base.model,
         providerOptions: base.providerOptions,
-        fallbackModels: base.fallbackModels ?? undefined,
-        allowedProviders: base.allowedProviders ?? undefined,
+        fallbackModels: base.fallbackModels,
+        allowedProviders: base.allowedProviders,
       }}
       disabled={disabled}
     />
