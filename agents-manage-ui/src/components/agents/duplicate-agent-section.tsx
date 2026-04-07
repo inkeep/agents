@@ -8,7 +8,6 @@ import { useRouter } from 'next/navigation';
 import { type Dispatch, type SetStateAction, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { z } from 'zod';
 import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 import { GenericInput } from '@/components/form/generic-input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -16,8 +15,10 @@ import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -188,15 +189,15 @@ export function DuplicateAgentDialog({
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>{`Duplicate "${sourceAgentName}"`}</DialogTitle>
+          <DialogTitle>{`Duplicate "${sourceAgentName}" agent`}</DialogTitle>
           <DialogDescription>
             Create a copy of this agent in the current project or another project.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form className="space-y-8" onSubmit={onSubmit}>
+          <form className="space-y-4" onSubmit={onSubmit}>
             <div className="space-y-2">
-              <FieldLabel label="Target project" />
+              <FieldLabel label="Target project" isRequired />
               <Combobox
                 options={projectOptions}
                 onSelect={setTargetProjectId}
@@ -208,7 +209,7 @@ export function DuplicateAgentDialog({
                 className="w-(--radix-popover-trigger-width)"
               />
               {projectsError && (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-destructive">
                   Could not load other projects. You can still copy within this project.
                 </p>
               )}
@@ -242,10 +243,12 @@ export function DuplicateAgentDialog({
               isRequired={isRequired(DuplicateAgentFormSchema, 'newAgentId')}
             />
 
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)}>
-                Cancel
-              </Button>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="ghost">
+                  Cancel
+                </Button>
+              </DialogClose>
               <Button disabled={isSubmitting} type="submit">
                 {isSubmitting ? (
                   <>
@@ -255,7 +258,7 @@ export function DuplicateAgentDialog({
                   'Copy agent'
                 )}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
         </Form>
       </DialogContent>

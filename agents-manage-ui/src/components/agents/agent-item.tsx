@@ -5,13 +5,13 @@ import {
   ItemCardDescription,
   ItemCardFooter,
   ItemCardHeader,
+  ItemCardLink,
   ItemCardRoot,
   ItemCardTitle,
 } from '@/components/ui/item-card';
 import type { Agent } from '@/lib/types/agent-full';
 import { formatDate } from '@/lib/utils/format-date';
 import { AgentItemMenu } from './agent-item-menu';
-import NextLink from 'next/link';
 
 interface AgentItemProps extends Agent {
   tenantId: string;
@@ -28,28 +28,30 @@ export function AgentItem({
   projectId,
   canEdit = false,
 }: AgentItemProps) {
+  const linkPath = `/${tenantId}/projects/${projectId}/agents/${id}`;
+
   return (
-    <NextLink href={`/${tenantId}/projects/${projectId}/agents/${id}`}>
-      <ItemCardRoot>
-        <ItemCardHeader>
+    <ItemCardRoot>
+      <ItemCardHeader>
+        <ItemCardLink href={linkPath}>
           <ItemCardTitle className="text-sm">{name}</ItemCardTitle>
-          {canEdit && (
-            <AgentItemMenu
-              id={id}
-              name={name}
-              description={description}
-              projectId={projectId}
-              tenantId={tenantId}
-            />
-          )}
-        </ItemCardHeader>
-        <ItemCardContent>
-          <ItemCardDescription hasContent={!!description}>
-            {description || 'No description'}
-          </ItemCardDescription>
-          <ItemCardFooter footerText={`Created ${formatDate(createdAt)}`} />
-        </ItemCardContent>
-      </ItemCardRoot>
-    </NextLink>
+        </ItemCardLink>
+        {canEdit && (
+          <AgentItemMenu
+            id={id}
+            name={name}
+            description={description}
+            projectId={projectId}
+            tenantId={tenantId}
+          />
+        )}
+      </ItemCardHeader>
+      <ItemCardContent>
+        <ItemCardDescription hasContent={!!description}>
+          {description || 'No description'}
+        </ItemCardDescription>
+        <ItemCardFooter footerText={`Created ${formatDate(createdAt)}`} />
+      </ItemCardContent>
+    </ItemCardRoot>
   );
 }
