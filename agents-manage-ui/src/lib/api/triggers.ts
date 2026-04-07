@@ -159,19 +159,6 @@ export async function rerunTrigger(
   );
 }
 
-export async function getTriggerUsers(
-  tenantId: string,
-  projectId: string,
-  agentId: string,
-  triggerId: string
-): Promise<string[]> {
-  const response = await makeManagementApiRequest<{ data: string[] }>(
-    `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}/users`
-  );
-
-  return response.data;
-}
-
 /**
  * Fetch invocations for a trigger
  */
