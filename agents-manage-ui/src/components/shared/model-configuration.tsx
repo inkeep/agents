@@ -5,8 +5,10 @@ import { GripVertical, Plus, X } from 'lucide-react';
 import { type FC, type ReactNode, useId, useState } from 'react';
 import { type Control, type FieldPath, type FieldValues, useController } from 'react-hook-form';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
+import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandItem, CommandList } from '@/components/ui/command';
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -21,8 +23,6 @@ import {
 import { cn } from '@/lib/utils';
 import { FieldLabel } from '../agent/sidepane/form-components/label';
 import { AzureConfigurationSection } from './azure-configuration-section';
-import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 const AVAILABLE_PROVIDERS = [
   { value: 'anthropic', label: 'Anthropic' },
@@ -536,10 +536,11 @@ interface MyFormProps<TFieldValues extends FieldValues, TTransformedValues exten
   children: ReactNode;
 }
 
-function MyForm<
-  TFieldValues extends FieldValues,
-  TTransformedValues extends FieldValues,
->({ control, name, children }: MyFormProps<TFieldValues, TTransformedValues>) {
+function MyForm<TFieldValues extends FieldValues, TTransformedValues extends FieldValues>({
+  control,
+  name,
+  children,
+}: MyFormProps<TFieldValues, TTransformedValues>) {
   return (
     <FormField
       control={control}
