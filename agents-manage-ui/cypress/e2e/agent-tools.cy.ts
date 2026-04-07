@@ -11,6 +11,15 @@ function dragNode(selector: string) {
     .trigger('dragover', { dataTransfer, force: true })
     .trigger('drop', { dataTransfer, force: true });
 }
+
+function selectFunctionToolNode() {
+  cy.get('.react-flow__node-function-tool', { timeout: 20_000 })
+    .should('have.length.at.least', 1)
+    .last()
+    .click({ force: true });
+  cy.get('#function-tool-name', { timeout: 20_000 }).should('exist');
+}
+
 function connectEdge(selector: string) {
   cy.get(selector).trigger('mousedown', { button: 0, force: true });
   cy.get('[data-handleid="target-agent"]')
@@ -29,6 +38,7 @@ describe('Agent Tools', () => {
 
     dragNode('[aria-label="Drag Function Tool node"]');
     cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 2);
+    selectFunctionToolNode();
     connectEdge('[data-handleid="target-function-tool"]');
 
     // Fill in required function tool fields before saving
@@ -65,6 +75,11 @@ describe('Agent Tools', () => {
 
       cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent');
       dragNode('[aria-label="Drag Function Tool node"]');
+      cy.get('.react-flow__node-function-tool', { timeout: 20_000 }).should(
+        'have.length.at.least',
+        1
+      );
+      selectFunctionToolNode();
       cy.typeInMonaco(uri, 'function qux(){return"foo"}');
       cy.contains('Format').click();
       cy.assertMonacoContent(
