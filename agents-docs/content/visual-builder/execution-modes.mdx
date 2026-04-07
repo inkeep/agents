@@ -25,7 +25,7 @@ Durable mode wraps agent execution in a workflow with persistent checkpoints. Ea
 
 - Execution state is persisted to the workflow backend
 - If the server crashes, the workflow can resume from the last completed step
-- Tool approval suspends the workflow until the user responds, then resumes
+- Tool approval suspends the workflow until the user responds, then resumes — including tools used by delegated sub-agents
 - Stream data is persisted by the workflow runtime for client reconnection
 - Higher time-to-first-byte (~2s) due to workflow step transitions
 
