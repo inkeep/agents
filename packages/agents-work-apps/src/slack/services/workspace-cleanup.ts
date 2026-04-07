@@ -57,48 +57,50 @@ export async function cleanupWorkspaceInstallation({
     }
   }
 
-  try {
-    const deletedChannelConfigs = await deleteAllWorkAppSlackChannelAgentConfigsByTeam(runDbClient)(
-      tenantId,
-      teamId
-    );
-    if (deletedChannelConfigs > 0) {
-      logger.info({ teamId, deletedChannelConfigs }, 'Deleted channel configs during cleanup');
-    }
+  const steps: Array<{ name: string; run: () => Promise<unknown> }> = [
+    {
+      name: 'channel_configs',
+      run: () => deleteAllWorkAppSlackChannelAgentConfigsByTeam(runDbClient)(tenantId, teamId),
+    },
+    {
+      name: 'user_mappings',
+      run: () => deleteAllWorkAppSlackUserMappingsByTeam(runDbClient)(tenantId, teamId),
+    },
+    {
+      name: 'mcp_configs',
+      run: () => deleteAllSlackMcpToolAccessConfigsByTenant(runDbClient)(tenantId),
+    },
+    {
+      name: 'workspace_row',
+      run: () => deleteWorkAppSlackWorkspaceByNangoConnectionId(runDbClient)(connectionId),
+    },
+    {
+      name: 'nango_connection',
+      run: () => deleteWorkspaceInstallation(connectionId),
+    },
+  ];
 
-    const deletedMappings = await deleteAllWorkAppSlackUserMappingsByTeam(runDbClient)(
-      tenantId,
-      teamId
-    );
-    if (deletedMappings > 0) {
-      logger.info({ teamId, deletedMappings }, 'Deleted user mappings during cleanup');
+  const failures: string[] = [];
+  for (const step of steps) {
+    try {
+      await step.run();
+    } catch (error) {
+      failures.push(step.name);
+      logger.error({ error, teamId, connectionId, step: step.name }, 'Cleanup step failed');
     }
-
-    const deletedMcpConfigs =
-      await deleteAllSlackMcpToolAccessConfigsByTenant(runDbClient)(tenantId);
-    if (deletedMcpConfigs > 0) {
-      logger.info({ teamId, deletedMcpConfigs }, 'Deleted MCP tool access configs during cleanup');
-    }
-
-    const dbDeleted =
-      await deleteWorkAppSlackWorkspaceByNangoConnectionId(runDbClient)(connectionId);
-    if (dbDeleted) {
-      logger.info({ connectionId }, 'Deleted workspace from database during cleanup');
-    }
-
-    result.dbCleaned = true;
-  } catch (error) {
-    logger.error({ error, teamId, connectionId }, 'Failed to clean up database records');
   }
 
-  result.nangoCleaned = await deleteWorkspaceInstallation(connectionId);
-  if (!result.nangoCleaned) {
-    logger.error({ connectionId }, 'Failed to delete Nango installation during cleanup');
-  }
+  result.dbCleaned = !failures.some((f) => f !== 'nango_connection');
+  result.nangoCleaned = !failures.includes('nango_connection');
 
   clearWorkspaceConnectionCache(teamId);
-  logger.info({ teamId, connectionId, result }, 'Workspace cleanup completed');
 
-  result.success = result.dbCleaned && result.nangoCleaned;
+  result.success = failures.length === 0;
+  if (failures.length > 0) {
+    logger.error({ teamId, connectionId, failures }, 'Workspace cleanup completed with failures');
+  } else {
+    logger.info({ teamId, connectionId }, 'Workspace cleanup completed');
+  }
+
   return result;
 }
