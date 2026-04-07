@@ -12,8 +12,7 @@ const logger = getLogger('Agent');
 
 export function getArtifactTools(ctx: AgentRunContext): Tool<any, any> {
   return tool({
-    description:
-      'Retrieves the complete data of an existing artifact. NOTE: To pass an artifact to a tool you do NOT need to call this — use the { "$artifact": "id", "$tool": "toolCallId" } sentinel and the system resolves the full data automatically. summary_data in available_artifacts already contains all preview fields. Only call this when you specifically need the actual value of a non-preview field that is not visible in summary_data.',
+    description: `Reads an artifact's data into your context. Do not use get_reference_artifact to pass data to another tool — tool-chain instead: { "${SENTINEL_KEY.ARTIFACT}": "id", "${SENTINEL_KEY.TOOL}": "toolCallId" } or { "${SENTINEL_KEY.TOOL}": "toolCallId", "${SENTINEL_KEY.SELECT}": "..." }. Only call this when you need to read the data yourself.`,
     inputSchema: z.object({
       artifactId: z.string().describe('The unique identifier of the artifact to get.'),
       toolCallId: z.string().describe('The tool call ID associated with this artifact.'),
