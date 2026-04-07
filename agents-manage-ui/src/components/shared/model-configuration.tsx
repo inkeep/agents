@@ -2,7 +2,7 @@
 
 import { GATEWAY_ROUTABLE_PROVIDERS_SET } from '@inkeep/agents-core/client-exports';
 import { GripVertical, Plus, X } from 'lucide-react';
-import { type FC, useId, useState } from 'react';
+import { type FC, type ReactNode, useId, useState } from 'react';
 import { type Control, type FieldPath, type FieldValues, useController } from 'react-hook-form';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { Button } from '@/components/ui/button';
@@ -22,13 +22,7 @@ import { cn } from '@/lib/utils';
 import { FieldLabel } from '../agent/sidepane/form-components/label';
 import { AzureConfigurationSection } from './azure-configuration-section';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 const AVAILABLE_PROVIDERS = [
   { value: 'anthropic', label: 'Anthropic' },
@@ -492,35 +486,28 @@ export function ModelConfiguration<
               disabled={disabled || isUsingInheritedOptions}
             />
           )}
-          <FormField
-            control={control}
-            name={`${name}.providerOptions` as FieldPath<TFieldValues>}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Provider options
-                  {isUsingInheritedOptions && (
-                    <i className="text-xs text-muted-foreground"> (inherited)</i>
-                  )}
-                </FormLabel>
-                <FormControl>
-                  <StandaloneJsonEditor
-                    name={providerOptionsId}
-                    onChange={onProviderOptionsChange}
-                    value={
-                      typeof effectiveProviderOptions === 'object'
-                        ? JSON.stringify(effectiveProviderOptions, null, 2)
-                        : effectiveProviderOptions
-                    }
-                    placeholder={jsonPlaceholder}
-                    customTemplate={jsonPlaceholder}
-                    readOnly={disabled || isUsingInheritedOptions}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <MyForm control={control} name={`${name}.providerOptions` as FieldPath<TFieldValues>}>
+            <FormLabel>
+              Provider options
+              {isUsingInheritedOptions && (
+                <i className="text-xs text-muted-foreground"> (inherited)</i>
+              )}
+            </FormLabel>
+            <FormControl>
+              <StandaloneJsonEditor
+                name={providerOptionsId}
+                onChange={onProviderOptionsChange}
+                value={
+                  typeof effectiveProviderOptions === 'object'
+                    ? JSON.stringify(effectiveProviderOptions, null, 2)
+                    : effectiveProviderOptions
+                }
+                placeholder={jsonPlaceholder}
+                customTemplate={jsonPlaceholder}
+                readOnly={disabled || isUsingInheritedOptions}
+              />
+            </FormControl>
+          </MyForm>
           {capabilities?.modelFallback?.enabled && isGatewayRoutable && (
             <>
               <AllowedProvidersSection
@@ -540,5 +527,20 @@ export function ModelConfiguration<
         </>
       )}
     </div>
+  );
+}
+
+function MyForm({ control, name, children }: { control: any; name: string; children: ReactNode }) {
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          {children}
+          <FormMessage />
+        </FormItem>
+      )}
+    />
   );
 }
