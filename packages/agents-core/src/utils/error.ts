@@ -2,6 +2,92 @@ import { z } from '@hono/zod-openapi';
 import { HTTPException } from 'hono/http-exception';
 import { getLogger } from './logger';
 
+const PG_ERROR_KEYS = [
+  'code',
+  'detail',
+  'hint',
+  'severity',
+  'schema',
+  'table',
+  'column',
+  'constraint',
+  'routine',
+  'position',
+  'internalPosition',
+  'internalQuery',
+  'where',
+  'dataType',
+  'line',
+  'file',
+] as const;
+
+const DRIZZLE_EXTRA_KEYS = ['query', 'params'] as const;
+
+/**
+ * Builds structured fields from an error chain (Drizzle → pg DatabaseError / Doltgres).
+ * Outer wrappers often omit SQLSTATE and server detail; those live on nested `.cause`.
+ */
+export function getDatabaseErrorLogContext(error: unknown): Record<string, unknown> {
+  const chain: Record<string, unknown>[] = [];
+  const seen = new Set<unknown>();
+  let current: unknown = error;
+  let depth = 0;
+
+  while (current != null && typeof current === 'object' && !seen.has(current)) {
+    seen.add(current);
+    const e = current as Record<string, unknown>;
+    const slice: Record<string, unknown> = {};
+
+    if (typeof e.message === 'string' && e.message.length > 0) {
+      slice.message = e.message;
+    }
+    if (depth === 0 && typeof e.stack === 'string' && e.stack.length > 0) {
+      slice.stack = e.stack;
+    }
+    for (const k of PG_ERROR_KEYS) {
+      const v = e[k];
+      if (v !== undefined && v !== null && v !== '') {
+        slice[k] = v;
+      }
+    }
+    for (const k of DRIZZLE_EXTRA_KEYS) {
+      if (e[k] !== undefined) {
+        slice[k] =
+          k === 'params'
+            ? `[${Array.isArray(e[k]) ? (e[k] as unknown[]).length : '?'} params redacted]`
+            : e[k];
+      }
+    }
+    if (Object.keys(slice).length > 0) {
+      chain.push(slice);
+    }
+    depth += 1;
+    current = 'cause' in e ? e.cause : undefined;
+  }
+
+  if (chain.length === 0) {
+    return {};
+  }
+
+  const root = chain[chain.length - 1] as Record<string, unknown>;
+  const out: Record<string, unknown> = { dbErrorChain: chain };
+
+  if (root.message !== undefined) {
+    out.dbRootMessage = root.message;
+  }
+  if (root.code !== undefined) {
+    out.dbRootCode = root.code;
+  }
+  if (root.detail !== undefined) {
+    out.dbRootDetail = root.detail;
+  }
+  if (root.hint !== undefined) {
+    out.dbRootHint = root.hint;
+  }
+
+  return out;
+}
+
 export const ErrorCode = z.enum([
   'bad_request',
   'unauthorized',
@@ -158,17 +244,7 @@ export async function handleApiError(
       };
     }
 
-    if (error.status >= 500) {
-      getLogger('core').error(
-        {
-          error,
-          status: error.status,
-          message: responseJson.detail || responseJson.error.message,
-          requestId: responseJson.requestId || requestId || 'unknown',
-        },
-        'API server error occurred'
-      );
-    } else {
+    if (error.status < 500) {
       getLogger('core').info(
         {
           error,
@@ -183,20 +259,6 @@ export async function handleApiError(
 
     return responseJson;
   }
-
-  const errorMessage = error instanceof Error ? error.message : String(error);
-  const errorStack = error instanceof Error ? error.stack : undefined;
-
-  getLogger('core').error(
-    {
-      error,
-      message: errorMessage,
-      stack: errorStack,
-      status: 500,
-      requestId: requestId || 'unknown',
-    },
-    'Unhandled API error occurred'
-  );
 
   const sanitizedErrorMessage =
     error instanceof Error

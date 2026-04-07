@@ -1,5 +1,65 @@
 import { describe, expect, it } from 'vitest';
-import { isUniqueConstraintError, throwIfUniqueConstraintError } from '../error';
+import {
+  getDatabaseErrorLogContext,
+  isUniqueConstraintError,
+  throwIfUniqueConstraintError,
+} from '../error';
+
+describe('getDatabaseErrorLogContext', () => {
+  it('returns empty object for null', () => {
+    expect(getDatabaseErrorLogContext(null)).toEqual({});
+  });
+
+  it('extracts PG fields from Drizzle-style cause chain', () => {
+    const inner = {
+      message: 'invalid input syntax for type json',
+      code: '22P02',
+      detail: 'Token "NaN" is invalid.',
+      hint: 'See JSON spec.',
+    };
+    const outer = new Error('Failed query: insert into "x"');
+    (outer as Error & { cause: unknown }).cause = inner;
+
+    const ctx = getDatabaseErrorLogContext(outer);
+    expect(ctx.dbRootCode).toBe('22P02');
+    expect(ctx.dbRootDetail).toBe('Token "NaN" is invalid.');
+    expect(ctx.dbRootHint).toBe('See JSON spec.');
+    expect(ctx.dbRootMessage).toBe(inner.message);
+    expect(Array.isArray(ctx.dbErrorChain)).toBe(true);
+    expect(ctx.dbErrorChain).toHaveLength(2);
+  });
+
+  it('handles circular cause reference without infinite loop', () => {
+    const err = new Error('loop');
+    (err as any).cause = err;
+    const ctx = getDatabaseErrorLogContext(err);
+    expect(ctx.dbErrorChain).toHaveLength(1);
+    expect(ctx.dbRootMessage).toBe('loop');
+  });
+
+  it('includes stack only at depth 0', () => {
+    const inner = { message: 'inner error', stack: 'inner stack trace' };
+    const outer = new Error('outer error');
+    (outer as any).cause = inner;
+
+    const ctx = getDatabaseErrorLogContext(outer);
+    const chain = ctx.dbErrorChain as Record<string, unknown>[];
+    expect(chain[0].stack).toBeDefined();
+    expect(chain[1].stack).toBeUndefined();
+  });
+
+  it('redacts params values and keeps query', () => {
+    const err = {
+      message: 'insert failed',
+      query: 'INSERT INTO users (email, password) VALUES ($1, $2)',
+      params: ['user@example.com', 'secret-password'],
+    };
+    const ctx = getDatabaseErrorLogContext(err);
+    const chain = ctx.dbErrorChain as Record<string, unknown>[];
+    expect(chain[0].query).toBe(err.query);
+    expect(chain[0].params).toBe('[2 params redacted]');
+  });
+});
 
 describe('isUniqueConstraintError', () => {
   describe('PostgreSQL unique violation (23505)', () => {

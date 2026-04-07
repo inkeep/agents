@@ -385,6 +385,7 @@ This product has **50+ customer-facing** and **100+ internal tooling/devops** su
 
 **Before marking any feature complete, verify:**
 - [ ] `pnpm check` passes
+- [ ] **Changeset created** via `pnpm bump` for every published package with runtime behavior changes (see [Creating Changelog Entries](#creating-changelog-entries-changesets))
 - [ ] UI components implemented in agents-manage-ui
 - [ ] Documentation added to `/agents-docs/`
 - [ ] Surface area and breaking changes have been addressed as agreed with the user (see “Clarify scope and surface area before implementing”).
@@ -392,8 +393,9 @@ This product has **50+ customer-facing** and **100+ internal tooling/devops** su
 ### 📋 Standard Development Workflow
 
 1. Create a branch: `git checkout -b feature/your-feature-name`
-2. Run [Verification](#verification) before pushing
-3. Commit, then `gh pr create`
+2. Create a changeset: `pnpm bump <patch|minor> --pkg <package> "<message>"` (required for any runtime behavior change to a published package — see [Creating Changelog Entries](#creating-changelog-entries-changesets))
+3. Run [Verification](#verification) before pushing
+4. Commit, then `gh pr create`
 
 The user may override this workflow (e.g., work directly on main).
 
