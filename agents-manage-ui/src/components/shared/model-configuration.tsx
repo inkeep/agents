@@ -254,12 +254,21 @@ const AllowedProvidersSection: FC<{
 };
 
 const FallbackModelsSection: FC<{
-  fallbackModels?: string[];
   inheritedFallbackModels?: string[];
-  onFallbackModelsChange: (models: string[]) => void;
   disabled: boolean;
-}> = ({ fallbackModels, inheritedFallbackModels, onFallbackModelsChange, disabled }) => {
+  name: string;
+  control: Control;
+}> = ({ inheritedFallbackModels, disabled, name, control }) => {
   const [showPendingSelector, setShowPendingSelector] = useState(false);
+  const { field: fallbackModelsField } = useController({
+    control,
+    name: `${name}.fallbackModels`,
+    shouldUnregister: true,
+  });
+  const fallbackModels = fallbackModelsField.value;
+  function onFallbackModelsChange(models: string[]) {
+    fallbackModelsField.onChange(models.length ? models : undefined);
+  }
   const savedModels = fallbackModels ?? inheritedFallbackModels ?? [];
   const isInherited = !fallbackModels && !!inheritedFallbackModels;
 
@@ -406,16 +415,6 @@ export function ModelConfiguration<
   const providerOptions = providerOptionsField.value;
   const onProviderOptionsChange = providerOptionsField.onChange;
 
-  const { field: fallbackModelsField } = useController({
-    control,
-    name: `${name}.fallbackModels` as FieldPath<TFieldValues>,
-    shouldUnregister: true,
-  });
-  const fallbackModels = fallbackModelsField.value;
-  function onFallbackModelsChange(models: string[]) {
-    fallbackModelsField.onChange(models.length ? models : undefined);
-  }
-
   const { field: allowedProvidersField } = useController({
     control,
     name: `${name}.allowedProviders` as FieldPath<TFieldValues>,
@@ -523,10 +522,10 @@ export function ModelConfiguration<
                 disabled={disabled}
               />
               <FallbackModelsSection
-                fallbackModels={fallbackModels}
                 inheritedFallbackModels={inherited?.fallbackModels ?? undefined}
-                onFallbackModelsChange={onFallbackModelsChange}
                 disabled={disabled}
+                name={name}
+                control={control}
               />
             </>
           )}
@@ -551,7 +550,7 @@ function MyForm<TFieldValues extends FieldValues, TTransformedValues extends Fie
     <FormField
       control={control}
       name={name}
-      render={({ field }) => (
+      render={() => (
         <FormItem>
           {children}
           <FormMessage />
