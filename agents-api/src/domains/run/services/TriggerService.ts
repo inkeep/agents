@@ -592,7 +592,6 @@ export async function dispatchExecution(params: {
         waitUntil(safeExecutionPromise);
       } else {
         logger.warn(
-          {},
           'waitUntil is NOT available — background execution will be abandoned on serverless'
         );
       }
