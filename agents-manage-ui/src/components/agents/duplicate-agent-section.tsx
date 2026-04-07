@@ -214,67 +214,51 @@ export function DuplicateAgentDialog({
               )}
             </div>
 
-        <div className="space-y-2">
-          <FieldLabel label="Source agent" />
-          <Combobox
-            options={agents.map((agent) => ({
-              value: agent.id,
-              selectedLabel: agent.name,
-              label: renderLabel(agent.name, agent.description),
-              searchBy: `${agent.name} ${agent.description ?? ''}`,
-            }))}
-            onSelect={handleSourceAgentSelect}
-            defaultValue={sourceAgentId}
-            placeholder={
-              isImportingFromAnotherProject ? 'Select an agent to copy' : 'Select an existing agent'
-            }
-            searchPlaceholder="Search agents..."
-            notFoundMessage="No agents found."
-            triggerClassName="w-full"
-            className="w-(--radix-popover-trigger-width)"
-          />
-        </div>
-
-        {selectedAgent && isImportingFromAnotherProject && (
-          <Alert variant="warning">
-            <AlertTriangle />
-            <AlertTitle>Credentials are not copied</AlertTitle>
-            <AlertDescription>
-              Tools and external agents that depend on missing credentials will import disconnected
-              and need reconnecting in this project.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <GenericInput
-          control={form.control}
-          name="newAgentName"
-          label="New name"
-          placeholder={selectedAgent ? `${selectedAgent.name} (Copy)` : 'Copied agent'}
-          description="Leave blank to use the default copied name."
-          isRequired={isRequired(DuplicateAgentFormSchema, 'newAgentName')}
-        />
-        <GenericInput
-          control={form.control}
-          name="newAgentId"
-          label="New id"
-          placeholder={selectedAgent ? `${selectedAgent.id}-copy` : 'copied-agent'}
-          description="This becomes the new agent URL and identifier."
-          isRequired={isRequired(DuplicateAgentFormSchema, 'newAgentId')}
-        />
-
-        <div className="flex justify-end">
-          <Button disabled={!sourceProjectId || !sourceAgentId || isSubmitting} type="submit">
-            {isSubmitting ? (
-              <>
-                <Loader2 className="size-4 animate-spin" /> Copying...
-              </>
-            ) : (
-              'Copy agent'
+            {isImportingToAnotherProject && (
+              <Alert variant="warning">
+                <AlertTriangle />
+                <AlertTitle>Credentials are not copied</AlertTitle>
+                <AlertDescription>
+                  Tools and external agents that depend on missing credentials will import
+                  disconnected and need reconnecting in the target project.
+                </AlertDescription>
+              </Alert>
             )}
-          </Button>
-        </div>
-      </form>
-    </Form>
+
+            <GenericInput
+              control={form.control}
+              name="newAgentName"
+              label="New name"
+              placeholder={`${sourceAgentName} (Copy)`}
+              description="Leave blank to use the default copied name."
+              isRequired={isRequired(DuplicateAgentFormSchema, 'newAgentName')}
+            />
+            <GenericInput
+              control={form.control}
+              name="newAgentId"
+              label="New id"
+              placeholder={`${sourceAgentId}-copy`}
+              description="This becomes the new agent URL and identifier."
+              isRequired={isRequired(DuplicateAgentFormSchema, 'newAgentId')}
+            />
+
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button disabled={isSubmitting} type="submit">
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" /> Copying...
+                  </>
+                ) : (
+                  'Copy agent'
+                )}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
   );
 }

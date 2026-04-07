@@ -18,7 +18,13 @@ interface AgentItemMenuProps extends Pick<Agent, 'id' | 'name' | 'description'> 
   tenantId: string;
 }
 
-export function AgentItemMenu({ id, name, description, projectId, tenantId }: AgentItemMenuProps) {
+export function AgentItemMenu({
+  id,
+  name,
+  description = '',
+  projectId,
+  tenantId,
+}: AgentItemMenuProps) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDuplicateOpen, setIsDuplicateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -27,12 +33,8 @@ export function AgentItemMenu({ id, name, description, projectId, tenantId }: Ag
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className=" p-0 hover:bg-accent hover:text-accent-foreground rounded-sm -mr-2"
-          >
-            <MoreVertical className="h-4 w-4 text-muted-foreground" />
+          <Button variant="ghost" size="icon-sm" className="-mr-2">
+            <MoreVertical className="text-muted-foreground" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
@@ -40,11 +42,11 @@ export function AgentItemMenu({ id, name, description, projectId, tenantId }: Ag
           className="w-48 shadow-lg border border-border bg-popover/95 backdrop-blur-sm"
         >
           <DropdownMenuItem className=" cursor-pointer" onClick={() => setIsEditOpen(true)}>
-            <Pencil className="size-4" />
+            <Pencil />
             Edit
           </DropdownMenuItem>
           <DropdownMenuItem className="cursor-pointer" onClick={() => setIsDuplicateOpen(true)}>
-            <Copy className="size-4" />
+            <Copy />
             Duplicate
           </DropdownMenuItem>
           <DropdownMenuItem variant="destructive" onClick={() => setIsDeleteOpen(true)}>
@@ -53,30 +55,24 @@ export function AgentItemMenu({ id, name, description, projectId, tenantId }: Ag
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      {isDeleteOpen && (
-        <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-          <DeleteAgentConfirmation agentId={id} agentName={name} setIsOpen={setIsDeleteOpen} />
-        </Dialog>
-      )}
-      {isEditOpen && (
-        <EditAgentDialog
-          tenantId={tenantId}
-          projectId={projectId}
-          agentData={{ id, name, description: description || '' }}
-          isOpen={isEditOpen}
-          setIsOpen={setIsEditOpen}
-        />
-      )}
-      {isDuplicateOpen && (
-        <DuplicateAgentDialog
-          tenantId={tenantId}
-          sourceProjectId={projectId}
-          sourceAgentId={id}
-          sourceAgentName={name}
-          isOpen={isDuplicateOpen}
-          setIsOpen={setIsDuplicateOpen}
-        />
-      )}
+      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <DeleteAgentConfirmation agentId={id} agentName={name} setIsOpen={setIsDeleteOpen} />
+      </Dialog>
+      <EditAgentDialog
+        tenantId={tenantId}
+        projectId={projectId}
+        agentData={{ id, name, description }}
+        isOpen={isEditOpen}
+        setIsOpen={setIsEditOpen}
+      />
+      <DuplicateAgentDialog
+        tenantId={tenantId}
+        sourceProjectId={projectId}
+        sourceAgentId={id}
+        sourceAgentName={name}
+        isOpen={isDuplicateOpen}
+        setIsOpen={setIsDuplicateOpen}
+      />
     </>
   );
 }
