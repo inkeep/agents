@@ -1,5 +1,15 @@
 # @inkeep/agents-work-apps
 
+## 0.65.2
+
+### Patch Changes
+
+- 50f57fa: Remove unused bot scopes (channels:join, search:read.\*) and add app_uninstalled/tokens_revoked event listeners
+- Updated dependencies [fa18f84]
+- Updated dependencies [34e1d67]
+- Updated dependencies [93eb31e]
+  - @inkeep/agents-core@0.65.2
+
 ## 0.65.1
 
 ### Patch Changes

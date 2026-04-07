@@ -1,5 +1,11 @@
 # @inkeep/agents-mcp
 
+## 0.65.2
+
+### Patch Changes
+
+- b33134a: Regenerate MCP server from latest OpenAPI spec with pnpm monorepo compatibility fixes
+
 ## 0.65.1
 
 ## 0.65.0
