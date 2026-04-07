@@ -421,6 +421,9 @@ export function ModelConfiguration<
     const wasInherited = !value && !!inheritedValue;
     const isNowExplicit = !!newModel;
 
+    // Clear provider options when:
+    // 1. Model value changes, OR
+    // 2. Switching from inherited to explicit (even if same model)
     if (previousEffectiveModel !== newModel || (wasInherited && isNowExplicit)) {
       onProviderOptionsChange('');
     }
@@ -474,6 +477,7 @@ export function ModelConfiguration<
       {effectiveModel && (
         <>
           {effectiveModel.startsWith('azure/') && (
+            /* Azure Configuration Fields */
             <AzureConfigurationSection
               providerOptions={effectiveProviderOptions}
               onProviderOptionsChange={handleProviderOptionsStringChange}
