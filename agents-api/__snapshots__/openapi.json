@@ -45084,10 +45084,18 @@
                   "properties": {
                     "cleanedUp": {
                       "type": "number"
+                    },
+                    "failed": {
+                      "type": "number"
+                    },
+                    "total": {
+                      "type": "number"
                     }
                   },
                   "required": [
-                    "cleanedUp"
+                    "cleanedUp",
+                    "failed",
+                    "total"
                   ],
                   "type": "object"
                 }

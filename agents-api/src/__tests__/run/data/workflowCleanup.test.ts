@@ -16,6 +16,7 @@ describe('getStaleWorkflowExecutions', () => {
     status?: string;
     updatedAt?: string;
     metadata?: Record<string, unknown>;
+    tenantIdOverride?: string;
   }) {
     const id = generateId();
     const now = new Date().toISOString();
@@ -24,7 +25,7 @@ describe('getStaleWorkflowExecutions', () => {
       .insert(workflowExecutions)
       .values({
         id,
-        tenantId,
+        tenantId: overrides.tenantIdOverride ?? tenantId,
         projectId,
         agentId: 'test-agent',
         conversationId: `conv-${id}`,
@@ -54,6 +55,7 @@ describe('getStaleWorkflowExecutions', () => {
 
     const staleBefore = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const result = await getStaleWorkflowExecutions(runDbClient)({
+      tenantId,
       staleBefore,
     });
 
@@ -79,6 +81,7 @@ describe('getStaleWorkflowExecutions', () => {
 
     const staleBefore = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const result = await getStaleWorkflowExecutions(runDbClient)({
+      tenantId,
       staleBefore,
     });
 
@@ -97,6 +100,7 @@ describe('getStaleWorkflowExecutions', () => {
 
     const staleBefore = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const result = await getStaleWorkflowExecutions(runDbClient)({
+      tenantId,
       staleBefore,
       limit: 1,
     });
@@ -115,6 +119,7 @@ describe('getStaleWorkflowExecutions', () => {
 
     const staleBefore = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const result = await getStaleWorkflowExecutions(runDbClient)({
+      tenantId,
       staleBefore,
     });
 
@@ -125,16 +130,41 @@ describe('getStaleWorkflowExecutions', () => {
     }
   });
 
-  it('should return empty array when no stale workflows exist', async () => {
+  it('should only return workflows for the specified tenant', async () => {
+    const otherTenant = createTestTenantId('other-tenant');
+    const oldTime = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+    const ownExecution = await createExecution({
+      status: 'suspended',
+      updatedAt: oldTime,
+    });
+    const otherExecution = await createExecution({
+      status: 'suspended',
+      updatedAt: oldTime,
+      tenantIdOverride: otherTenant,
+    });
+
+    const staleBefore = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const result = await getStaleWorkflowExecutions(runDbClient)({
+      tenantId,
+      staleBefore,
+    });
+
+    const ids = result.map((r) => r.id);
+    expect(ids).toContain(ownExecution.id);
+    expect(ids).not.toContain(otherExecution.id);
+  });
+
+  it('should return empty array when no stale workflows exist for tenant', async () => {
     const freshTenant = createTestTenantId('no-stale');
 
     const staleBefore = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const result = await getStaleWorkflowExecutions(runDbClient)({
+      tenantId: freshTenant,
       staleBefore,
     });
 
-    const filtered = result.filter((r) => r.tenantId === freshTenant);
-    expect(filtered).toHaveLength(0);
+    expect(result).toHaveLength(0);
   });
 });
 

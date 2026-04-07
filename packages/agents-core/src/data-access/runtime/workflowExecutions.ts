@@ -67,12 +67,17 @@ export const getWorkflowExecutionByConversation =
 
 export const getStaleWorkflowExecutions =
   (db: AgentsRunDatabaseClient) =>
-  async (params: { staleBefore: string; limit?: number }): Promise<WorkflowExecutionSelect[]> => {
+  async (params: {
+    tenantId: string;
+    staleBefore: string;
+    limit?: number;
+  }): Promise<WorkflowExecutionSelect[]> => {
     const result = await db
       .select()
       .from(workflowExecutions)
       .where(
         and(
+          eq(workflowExecutions.tenantId, params.tenantId),
           eq(workflowExecutions.status, 'suspended'),
           lte(workflowExecutions.updatedAt, params.staleBefore)
         )
