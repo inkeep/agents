@@ -47,8 +47,12 @@ export type SetMcpToolGithubAccessRequestBody = {
 export const SetMcpToolGithubAccessRequestBody$zodSchema: z.ZodType<
   SetMcpToolGithubAccessRequestBody
 > = z.object({
-  mode: SetMcpToolGithubAccessModeRequest$zodSchema,
-  repositoryIds: z.array(z.string()).optional(),
+  mode: SetMcpToolGithubAccessModeRequest$zodSchema.describe(
+    "Access mode: \"all\" means the MCP tool has access to all project repositories, \"selected\" means the tool is scoped to specific repositories",
+  ),
+  repositoryIds: z.array(z.string()).optional().describe(
+    "Internal repository IDs (required when mode=\"selected\")",
+  ),
 });
 
 export type SetMcpToolGithubAccessRequest = {
@@ -99,8 +103,12 @@ export type SetMcpToolGithubAccessResponseBody = {
 export const SetMcpToolGithubAccessResponseBody$zodSchema: z.ZodType<
   SetMcpToolGithubAccessResponseBody
 > = z.object({
-  mode: SetMcpToolGithubAccessModeResponse$zodSchema,
-  repositoryCount: z.number(),
+  mode: SetMcpToolGithubAccessModeResponse$zodSchema.describe(
+    "Access mode: \"all\" means the MCP tool has access to all project repositories, \"selected\" means the tool is scoped to specific repositories",
+  ),
+  repositoryCount: z.number().describe(
+    "Number of repositories the MCP tool now has access to (0 when mode=\"all\")",
+  ),
 }).describe("GitHub access configuration updated successfully");
 
 export type SetMcpToolGithubAccessResponse = {
@@ -119,14 +127,23 @@ export type SetMcpToolGithubAccessResponse = {
 export const SetMcpToolGithubAccessResponse$zodSchema: z.ZodType<
   SetMcpToolGithubAccessResponse
 > = z.object({
-  BadRequest: BadRequest$zodSchema.optional(),
-  ContentType: z.string(),
-  Forbidden: Forbidden$zodSchema.optional(),
-  InternalServerError: InternalServerError$zodSchema.optional(),
-  NotFound: NotFound$zodSchema.optional(),
-  RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
-  Unauthorized: Unauthorized$zodSchema.optional(),
-  UnprocessableEntity: UnprocessableEntity$zodSchema.optional(),
-  object: z.lazy(() => SetMcpToolGithubAccessResponseBody$zodSchema).optional(),
+  BadRequest: BadRequest$zodSchema.optional().describe("Bad Request"),
+  ContentType: z.string().describe(
+    "HTTP response content type for this operation",
+  ),
+  Forbidden: Forbidden$zodSchema.optional().describe("Forbidden"),
+  InternalServerError: InternalServerError$zodSchema.optional().describe(
+    "Internal Server Error",
+  ),
+  NotFound: NotFound$zodSchema.optional().describe("Not Found"),
+  RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+    "Raw HTTP response; suitable for custom response parsing",
+  ),
+  StatusCode: z.int().describe("HTTP response status code for this operation"),
+  Unauthorized: Unauthorized$zodSchema.optional().describe("Unauthorized"),
+  UnprocessableEntity: UnprocessableEntity$zodSchema.optional().describe(
+    "Unprocessable Entity",
+  ),
+  object: z.lazy(() => SetMcpToolGithubAccessResponseBody$zodSchema).optional()
+    .describe("GitHub access configuration updated successfully"),
 });

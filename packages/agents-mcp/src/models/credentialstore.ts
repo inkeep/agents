@@ -10,6 +10,7 @@ export const CredentialStoreType = {
   Memory: "memory",
   Keychain: "keychain",
   Nango: "nango",
+  Composio: "composio",
 } as const;
 export type CredentialStoreType = ClosedEnum<typeof CredentialStoreType>;
 
@@ -17,6 +18,7 @@ export const CredentialStoreType$zodSchema = z.enum([
   "memory",
   "keychain",
   "nango",
+  "composio",
 ]);
 
 export type CredentialStore = {
@@ -27,8 +29,12 @@ export type CredentialStore = {
 };
 
 export const CredentialStore$zodSchema: z.ZodType<CredentialStore> = z.object({
-  available: z.boolean(),
-  id: z.string(),
-  reason: z.string().nullable(),
+  available: z.boolean().describe(
+    "Whether the store is functional and ready to use",
+  ),
+  id: z.string().describe("Unique identifier of the credential store"),
+  reason: z.string().nullable().describe(
+    "Reason why store is not available, if applicable",
+  ),
   type: CredentialStoreType$zodSchema,
 });

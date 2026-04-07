@@ -15,10 +15,10 @@ export type SlackUserConnectRequest = {
 export const SlackUserConnectRequest$zodSchema: z.ZodType<
   SlackUserConnectRequest
 > = z.object({
-  tenantId: z.string().optional(),
-  userEmail: z.string().optional(),
-  userId: z.string(),
-  userName: z.string().optional(),
+  tenantId: z.string().optional().describe("Tenant ID"),
+  userEmail: z.string().optional().describe("User email"),
+  userId: z.string().describe("Inkeep user ID"),
+  userName: z.string().optional().describe("User display name"),
 });
 
 /**
@@ -46,8 +46,13 @@ export type SlackUserConnectResponse = {
 export const SlackUserConnectResponse$zodSchema: z.ZodType<
   SlackUserConnectResponse
 > = z.object({
-  ContentType: z.string(),
-  RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
-  object: z.lazy(() => SlackUserConnectResponseBody$zodSchema).optional(),
+  ContentType: z.string().describe(
+    "HTTP response content type for this operation",
+  ),
+  RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+    "Raw HTTP response; suitable for custom response parsing",
+  ),
+  StatusCode: z.int().describe("HTTP response status code for this operation"),
+  object: z.lazy(() => SlackUserConnectResponseBody$zodSchema).optional()
+    .describe("Connect session created"),
 });

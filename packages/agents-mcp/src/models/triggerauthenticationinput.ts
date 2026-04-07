@@ -8,8 +8,8 @@ import * as z from "zod";
 export type Header = { name: string; value: string };
 
 export const Header$zodSchema: z.ZodType<Header> = z.object({
-  name: z.string(),
-  value: z.string(),
+  name: z.string().describe("Header name (e.g., X-API-Key, Authorization)"),
+  value: z.string().describe("Expected header value (plaintext)"),
 });
 
 export type TriggerAuthenticationInput = {
@@ -19,5 +19,7 @@ export type TriggerAuthenticationInput = {
 export const TriggerAuthenticationInput$zodSchema: z.ZodType<
   TriggerAuthenticationInput
 > = z.object({
-  headers: z.array(z.lazy(() => Header$zodSchema)).optional(),
+  headers: z.array(z.lazy(() => Header$zodSchema)).optional().describe(
+    "Array of headers to validate on incoming requests",
+  ),
 });

@@ -21,6 +21,50 @@ import { MCPServerFlags } from "./flags.js";
 import { MCPScope, mcpScopes } from "./scopes.js";
 import { valueToBase64 } from "./shared.js";
 
+export type MCPToolAnnotationFilter = {
+  readOnlyHint?: boolean;
+  destructiveHint?: boolean;
+  idempotentHint?: boolean;
+  openWorldHint?: boolean;
+};
+
+const VALID_ANNOTATIONS = [
+  "readOnly",
+  "destructive",
+  "idempotent",
+  "openWorld",
+] as const;
+type AnnotationName = typeof VALID_ANNOTATIONS[number];
+
+const annotationToKey: Record<AnnotationName, keyof MCPToolAnnotationFilter> = {
+  readOnly: "readOnlyHint",
+  destructive: "destructiveHint",
+  idempotent: "idempotentHint",
+  openWorld: "openWorldHint",
+};
+
+export function buildAnnotationFilter(
+  annotations: string[] | undefined,
+): MCPToolAnnotationFilter {
+  const filter: MCPToolAnnotationFilter = {};
+  if (!annotations || annotations.length === 0) {
+    return filter;
+  }
+  for (const a of annotations) {
+    if (!VALID_ANNOTATIONS.includes(a as AnnotationName)) {
+      throw new Error(
+        `Invalid annotation filter: "${a}". Valid values are: ${
+          VALID_ANNOTATIONS.join(", ")
+        }`,
+      );
+    }
+  }
+  for (const name of VALID_ANNOTATIONS) {
+    filter[annotationToKey[name]] = annotations.includes(name);
+  }
+  return filter;
+}
+
 export type ToolDefinition<
   Args extends undefined | ZodRawShapeCompat = undefined,
 > = Args extends ZodRawShapeCompat ? {
@@ -91,6 +135,7 @@ export function createRegisterTool(
   allowedScopes: Set<MCPScope>,
   allowedTools?: Set<string>,
   dynamic?: boolean,
+  annotationFilter?: MCPToolAnnotationFilter,
 ): [
   <A extends ZodRawShapeCompat | undefined>(tool: ToolDefinition<A>) => void,
   Array<{ name: string; description: string }>,
@@ -118,6 +163,34 @@ export function createRegisterTool(
       && !scopes.every((s: MCPScope) => allowedScopes.has(s))
     ) {
       return;
+    }
+
+    if (annotationFilter) {
+      const a = tool.annotations;
+      if (
+        annotationFilter.readOnlyHint !== undefined
+        && a.readOnlyHint !== annotationFilter.readOnlyHint
+      ) {
+        return;
+      }
+      if (
+        annotationFilter.destructiveHint !== undefined
+        && a.destructiveHint !== annotationFilter.destructiveHint
+      ) {
+        return;
+      }
+      if (
+        annotationFilter.idempotentHint !== undefined
+        && a.idempotentHint !== annotationFilter.idempotentHint
+      ) {
+        return;
+      }
+      if (
+        annotationFilter.openWorldHint !== undefined
+        && a.openWorldHint !== annotationFilter.openWorldHint
+      ) {
+        return;
+      }
     }
 
     toolMap.set(

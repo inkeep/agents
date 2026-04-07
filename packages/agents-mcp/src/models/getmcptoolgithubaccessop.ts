@@ -70,7 +70,9 @@ export const GetMcpToolGithubAccessRepository$zodSchema: z.ZodType<
 > = z.object({
   createdAt: z.string(),
   id: z.string(),
-  installationAccountLogin: z.string(),
+  installationAccountLogin: z.string().describe(
+    "The GitHub account login for the installation",
+  ),
   installationDbId: z.string(),
   private: z.boolean(),
   repositoryFullName: z.string(),
@@ -90,9 +92,13 @@ export type GetMcpToolGithubAccessResponseBody = {
 export const GetMcpToolGithubAccessResponseBody$zodSchema: z.ZodType<
   GetMcpToolGithubAccessResponseBody
 > = z.object({
-  mode: GetMcpToolGithubAccessMode$zodSchema,
+  mode: GetMcpToolGithubAccessMode$zodSchema.describe(
+    "Access mode: \"all\" means the MCP tool has access to all project repositories, \"selected\" means the tool is scoped to specific repositories",
+  ),
   repositories: z.array(
     z.lazy(() => GetMcpToolGithubAccessRepository$zodSchema),
+  ).describe(
+    "List of repositories the MCP tool has access to (only populated when mode=\"selected\")",
   ),
 }).describe("GitHub access configuration retrieved successfully");
 
@@ -112,14 +118,23 @@ export type GetMcpToolGithubAccessResponse = {
 export const GetMcpToolGithubAccessResponse$zodSchema: z.ZodType<
   GetMcpToolGithubAccessResponse
 > = z.object({
-  BadRequest: BadRequest$zodSchema.optional(),
-  ContentType: z.string(),
-  Forbidden: Forbidden$zodSchema.optional(),
-  InternalServerError: InternalServerError$zodSchema.optional(),
-  NotFound: NotFound$zodSchema.optional(),
-  RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
-  Unauthorized: Unauthorized$zodSchema.optional(),
-  UnprocessableEntity: UnprocessableEntity$zodSchema.optional(),
-  object: z.lazy(() => GetMcpToolGithubAccessResponseBody$zodSchema).optional(),
+  BadRequest: BadRequest$zodSchema.optional().describe("Bad Request"),
+  ContentType: z.string().describe(
+    "HTTP response content type for this operation",
+  ),
+  Forbidden: Forbidden$zodSchema.optional().describe("Forbidden"),
+  InternalServerError: InternalServerError$zodSchema.optional().describe(
+    "Internal Server Error",
+  ),
+  NotFound: NotFound$zodSchema.optional().describe("Not Found"),
+  RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+    "Raw HTTP response; suitable for custom response parsing",
+  ),
+  StatusCode: z.int().describe("HTTP response status code for this operation"),
+  Unauthorized: Unauthorized$zodSchema.optional().describe("Unauthorized"),
+  UnprocessableEntity: UnprocessableEntity$zodSchema.optional().describe(
+    "Unprocessable Entity",
+  ),
+  object: z.lazy(() => GetMcpToolGithubAccessResponseBody$zodSchema).optional()
+    .describe("GitHub access configuration retrieved successfully"),
 });

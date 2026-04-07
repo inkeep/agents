@@ -18,6 +18,6 @@ export const ExternalAgentUpdate$zodSchema: z.ZodType<ExternalAgentUpdate> = z
     baseUrl: z.string().optional(),
     credentialReferenceId: z.string().nullable().optional(),
     description: z.string().nullable().optional(),
-    id: z.string().optional(),
+    id: z.string().optional().describe("Resource identifier"),
     name: z.string().optional(),
   });

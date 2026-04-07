@@ -10,7 +10,6 @@ export type DatasetItem = {
   datasetId: string;
   input?: any | null | undefined;
   expectedOutput?: any | null | undefined;
-  simulationAgent?: any | null | undefined;
   createdAt: string;
   updatedAt: string;
 };
@@ -21,6 +20,5 @@ export const DatasetItem$zodSchema: z.ZodType<DatasetItem> = z.object({
   expectedOutput: z.any().nullable().optional(),
   id: z.string(),
   input: z.any().nullable().optional(),
-  simulationAgent: z.any().nullable().optional(),
   updatedAt: z.string(),
 });

@@ -19,8 +19,8 @@ export const SubAgentTeamAgentRelationUpdate$zodSchema: z.ZodType<
 > = z.object({
   createdAt: z.string().optional(),
   headers: z.record(z.string(), z.string()).nullable().optional(),
-  id: z.string().optional(),
-  subAgentId: z.string().optional(),
-  targetAgentId: z.string().optional(),
+  id: z.string().optional().describe("Resource identifier"),
+  subAgentId: z.string().optional().describe("Resource identifier"),
+  targetAgentId: z.string().optional().describe("Resource identifier"),
   updatedAt: z.string().optional(),
 });

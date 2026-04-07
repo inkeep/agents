@@ -18,6 +18,6 @@ export const SubAgentSkillCreate$zodSchema: z.ZodType<SubAgentSkillCreate> = z
     agentId: z.string(),
     alwaysLoaded: z.boolean().default(false),
     index: z.int(),
-    skillId: z.string(),
-    subAgentId: z.string(),
+    skillId: z.string().describe("Resource identifier"),
+    subAgentId: z.string().describe("Resource identifier"),
   });

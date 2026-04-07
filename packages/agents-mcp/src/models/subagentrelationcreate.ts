@@ -34,11 +34,11 @@ export const SubAgentRelationCreate$zodSchema: z.ZodType<
   SubAgentRelationCreate
 > = z.object({
   createdAt: z.string().optional(),
-  externalSubAgentId: z.string().optional(),
-  id: z.string(),
+  externalSubAgentId: z.string().optional().describe("Resource identifier"),
+  id: z.string().describe("Resource identifier"),
   relationType: SubAgentRelationCreateRelationType$zodSchema,
-  sourceSubAgentId: z.string(),
-  targetSubAgentId: z.string().optional(),
-  teamSubAgentId: z.string().optional(),
+  sourceSubAgentId: z.string().describe("Resource identifier"),
+  targetSubAgentId: z.string().optional().describe("Resource identifier"),
+  teamSubAgentId: z.string().optional().describe("Resource identifier"),
   updatedAt: z.string().optional(),
 });

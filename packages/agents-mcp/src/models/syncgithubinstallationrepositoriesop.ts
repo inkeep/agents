@@ -118,9 +118,9 @@ export type SyncGithubInstallationRepositoriesSyncResult = {
 export const SyncGithubInstallationRepositoriesSyncResult$zodSchema: z.ZodType<
   SyncGithubInstallationRepositoriesSyncResult
 > = z.object({
-  added: z.number(),
-  removed: z.number(),
-  updated: z.number(),
+  added: z.number().describe("Number of repositories added"),
+  removed: z.number().describe("Number of repositories removed"),
+  updated: z.number().describe("Number of repositories updated"),
 });
 
 /**
@@ -135,7 +135,7 @@ export const SyncGithubInstallationRepositoriesResponseBody$zodSchema:
   z.ZodType<SyncGithubInstallationRepositoriesResponseBody> = z.object({
     repositories: z.array(
       z.lazy(() => SyncGithubInstallationRepositoriesRepository$zodSchema),
-    ),
+    ).describe("Updated list of repositories"),
     syncResult: z.lazy(() =>
       SyncGithubInstallationRepositoriesSyncResult$zodSchema
     ),
@@ -162,19 +162,27 @@ export type SyncGithubInstallationRepositoriesResponse = {
 export const SyncGithubInstallationRepositoriesResponse$zodSchema: z.ZodType<
   SyncGithubInstallationRepositoriesResponse
 > = z.object({
-  BadRequest: BadRequest$zodSchema.optional(),
-  ContentType: z.string(),
-  Forbidden: Forbidden$zodSchema.optional(),
-  InternalServerError: InternalServerError$zodSchema.optional(),
-  NotFound: NotFound$zodSchema.optional(),
-  RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
-  Unauthorized: Unauthorized$zodSchema.optional(),
-  UnprocessableEntity: UnprocessableEntity$zodSchema.optional(),
+  BadRequest: BadRequest$zodSchema.optional().describe("Bad Request"),
+  ContentType: z.string().describe(
+    "HTTP response content type for this operation",
+  ),
+  Forbidden: Forbidden$zodSchema.optional().describe("Forbidden"),
+  InternalServerError: InternalServerError$zodSchema.optional().describe(
+    "Internal Server Error",
+  ),
+  NotFound: NotFound$zodSchema.optional().describe("Not Found"),
+  RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+    "Raw HTTP response; suitable for custom response parsing",
+  ),
+  StatusCode: z.int().describe("HTTP response status code for this operation"),
+  Unauthorized: Unauthorized$zodSchema.optional().describe("Unauthorized"),
+  UnprocessableEntity: UnprocessableEntity$zodSchema.optional().describe(
+    "Unprocessable Entity",
+  ),
   fiveHundredAndThreeApplicationProblemPlusJsonObject: z.lazy(() =>
     SyncGithubInstallationRepositoriesServiceUnavailableResponseBody$zodSchema
-  ).optional(),
+  ).optional().describe("Service Unavailable - GitHub API is not accessible"),
   twoHundredApplicationJsonObject: z.lazy(() =>
     SyncGithubInstallationRepositoriesResponseBody$zodSchema
-  ).optional(),
+  ).optional().describe("Repositories synced successfully"),
 });

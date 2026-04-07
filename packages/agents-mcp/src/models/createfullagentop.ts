@@ -60,15 +60,27 @@ export const CreateFullAgentResponse$zodSchema: z.ZodType<
   CreateFullAgentResponse
 > = z.object({
   AgentWithinContextOfProjectResponse:
-    AgentWithinContextOfProjectResponse$zodSchema.optional(),
-  BadRequest: BadRequest$zodSchema.optional(),
-  ContentType: z.string(),
-  ErrorResponse: ErrorResponse$zodSchema.optional(),
-  Forbidden: Forbidden$zodSchema.optional(),
-  InternalServerError: InternalServerError$zodSchema.optional(),
-  NotFound: NotFound$zodSchema.optional(),
-  RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
-  Unauthorized: Unauthorized$zodSchema.optional(),
-  UnprocessableEntity: UnprocessableEntity$zodSchema.optional(),
+    AgentWithinContextOfProjectResponse$zodSchema.optional().describe(
+      "Full agent created successfully",
+    ),
+  BadRequest: BadRequest$zodSchema.optional().describe("Bad Request"),
+  ContentType: z.string().describe(
+    "HTTP response content type for this operation",
+  ),
+  ErrorResponse: ErrorResponse$zodSchema.optional().describe(
+    "Agent already exists",
+  ),
+  Forbidden: Forbidden$zodSchema.optional().describe("Forbidden"),
+  InternalServerError: InternalServerError$zodSchema.optional().describe(
+    "Internal Server Error",
+  ),
+  NotFound: NotFound$zodSchema.optional().describe("Not Found"),
+  RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+    "Raw HTTP response; suitable for custom response parsing",
+  ),
+  StatusCode: z.int().describe("HTTP response status code for this operation"),
+  Unauthorized: Unauthorized$zodSchema.optional().describe("Unauthorized"),
+  UnprocessableEntity: UnprocessableEntity$zodSchema.optional().describe(
+    "Unprocessable Entity",
+  ),
 });

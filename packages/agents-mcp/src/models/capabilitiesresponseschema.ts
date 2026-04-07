@@ -50,18 +50,56 @@ export type Sandbox = {
 };
 
 export const Sandbox$zodSchema: z.ZodType<Sandbox> = z.object({
-  configured: z.boolean(),
-  provider: Provider$zodSchema.optional(),
-  runtime: Runtime$zodSchema.optional(),
+  configured: z.boolean().describe(
+    "Whether a sandbox provider is configured. Required for Function Tools execution.",
+  ),
+  provider: Provider$zodSchema.optional().describe(
+    "The configured sandbox provider, if enabled.",
+  ),
+  runtime: Runtime$zodSchema.optional().describe(
+    "The configured sandbox runtime, if enabled.",
+  ),
 }).describe("Sandbox execution capabilities (used by Function Tools).");
+
+/**
+ * Fallback model capabilities (requires AI Gateway).
+ */
+export type ModelFallback = { enabled: boolean };
+
+export const ModelFallback$zodSchema: z.ZodType<ModelFallback> = z.object({
+  enabled: z.boolean().describe("Whether fallback model support is available."),
+}).describe("Fallback model capabilities (requires AI Gateway).");
+
+/**
+ * Cost tracking capabilities (requires AI Gateway).
+ */
+export type CostTracking = { enabled: boolean };
+
+export const CostTracking$zodSchema: z.ZodType<CostTracking> = z.object({
+  enabled: z.boolean().describe(
+    "Whether per-request cost tracking is available.",
+  ),
+}).describe("Cost tracking capabilities (requires AI Gateway).");
 
 /**
  * Optional server capabilities and configuration.
  */
-export type CapabilitiesResponseSchema = { sandbox: Sandbox };
+export type CapabilitiesResponseSchema = {
+  sandbox: Sandbox;
+  modelFallback: ModelFallback;
+  costTracking: CostTracking;
+};
 
 export const CapabilitiesResponseSchema$zodSchema: z.ZodType<
   CapabilitiesResponseSchema
 > = z.object({
-  sandbox: z.lazy(() => Sandbox$zodSchema),
+  costTracking: z.lazy(() => CostTracking$zodSchema).describe(
+    "Cost tracking capabilities (requires AI Gateway).",
+  ),
+  modelFallback: z.lazy(() => ModelFallback$zodSchema).describe(
+    "Fallback model capabilities (requires AI Gateway).",
+  ),
+  sandbox: z.lazy(() => Sandbox$zodSchema).describe(
+    "Sandbox execution capabilities (used by Function Tools).",
+  ),
 }).describe("Optional server capabilities and configuration.");

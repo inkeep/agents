@@ -36,8 +36,16 @@ export type SignatureSource = {
 };
 
 export const SignatureSource$zodSchema: z.ZodType<SignatureSource> = z.object({
-  key: z.string(),
-  prefix: z.string().optional(),
-  regex: z.string().optional(),
-  source: SignatureSourceSource$zodSchema,
+  key: z.string().describe(
+    "Key name for the signature (header name, query param, or JMESPath)",
+  ),
+  prefix: z.string().optional().describe(
+    "Optional prefix to strip from signature value (e.g., \"sha256=\", \"v0=\")",
+  ),
+  regex: z.string().optional().describe(
+    "Optional regex pattern to extract signature from value (first capture group used)",
+  ),
+  source: SignatureSourceSource$zodSchema.describe(
+    "Location of the signature in the incoming request",
+  ),
 }).describe("Configuration for extracting the signature");

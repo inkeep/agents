@@ -6,10 +6,7 @@
 import * as z from "zod";
 
 export type ScheduledTriggerUpdate = {
-  tenantId?: string | undefined;
   id?: string | undefined;
-  projectId?: string | undefined;
-  agentId?: string | undefined;
   name?: string | undefined;
   description?: string | null | undefined;
   enabled?: boolean | undefined;
@@ -23,26 +20,46 @@ export type ScheduledTriggerUpdate = {
   timeoutSeconds?: number | undefined;
   runAsUserId?: string | null | undefined;
   createdBy?: string | null | undefined;
+  ref?: string | undefined;
+  dispatchDelayMs?: number | null | undefined;
+  runAsUserIds?: Array<string> | undefined;
 };
 
 export const ScheduledTriggerUpdate$zodSchema: z.ZodType<
   ScheduledTriggerUpdate
 > = z.object({
-  agentId: z.string().optional(),
-  createdBy: z.string().nullable().optional(),
-  cronExpression: z.string().nullable().optional(),
-  cronTimezone: z.string().nullable().optional(),
-  description: z.string().nullable().optional(),
-  enabled: z.boolean().optional(),
-  id: z.string().optional(),
+  createdBy: z.string().nullable().optional().describe(
+    "User ID of the user who created this trigger",
+  ),
+  cronExpression: z.string().nullable().optional().describe(
+    "Cron expression in standard 5-field format (minute hour day month weekday)",
+  ),
+  cronTimezone: z.string().nullable().optional().describe(
+    "IANA timezone for cron expression (e.g., America/New_York, Europe/London)",
+  ),
+  description: z.string().nullable().optional().describe(
+    "Scheduled trigger description",
+  ),
+  dispatchDelayMs: z.int().nullable().optional().describe(
+    "Delay in ms between dispatching each user workflow (0-600000)",
+  ),
+  enabled: z.boolean().optional().describe("Whether the trigger is enabled"),
+  id: z.string().optional().describe("Resource identifier"),
   maxRetries: z.int().optional(),
-  messageTemplate: z.string().nullable().optional(),
-  name: z.string().optional(),
-  payload: z.record(z.string(), z.any().nullable()).nullable().optional(),
-  projectId: z.string().optional(),
+  messageTemplate: z.string().nullable().optional().describe(
+    "Message template with {{\"{{\"}}placeholder}} syntax",
+  ),
+  name: z.string().optional().describe("Scheduled trigger name"),
+  payload: z.record(z.string(), z.any().nullable()).nullable().optional()
+    .describe("Static payload for agent execution"),
+  ref: z.string().optional().describe("Branch ref to run the agent from"),
   retryDelaySeconds: z.int().optional(),
   runAsUserId: z.string().nullable().optional(),
-  runAt: z.iso.datetime({ offset: true }).nullable().optional(),
-  tenantId: z.string().optional(),
+  runAsUserIds: z.array(z.string()).optional().describe(
+    "Array of user IDs to run this trigger as (multi-user)",
+  ),
+  runAt: z.iso.datetime({ offset: true }).nullable().optional().describe(
+    "One-time execution timestamp",
+  ),
   timeoutSeconds: z.int().optional(),
 });

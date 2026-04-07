@@ -8,5 +8,7 @@ import * as z from "zod";
 export type AgentStopWhen = { transferCountIs?: number | undefined };
 
 export const AgentStopWhen$zodSchema: z.ZodType<AgentStopWhen> = z.object({
-  transferCountIs: z.number().optional(),
+  transferCountIs: z.int().optional().describe(
+    "The maximum number of transfers to trigger the stop condition.",
+  ),
 });

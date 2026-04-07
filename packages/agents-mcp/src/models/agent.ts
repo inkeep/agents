@@ -15,6 +15,7 @@ export type Agent = {
   statusUpdates?: any | null | undefined;
   prompt: string | null;
   stopWhen?: any | null | undefined;
+  executionMode: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -24,6 +25,7 @@ export const Agent$zodSchema: z.ZodType<Agent> = z.object({
   createdAt: z.string(),
   defaultSubAgentId: z.string().nullable(),
   description: z.string().nullable(),
+  executionMode: z.string(),
   id: z.string(),
   models: z.any().nullable().optional(),
   name: z.string(),

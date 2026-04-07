@@ -60,8 +60,13 @@ export type SlackWorkspaceHealthResponse = {
 export const SlackWorkspaceHealthResponse$zodSchema: z.ZodType<
   SlackWorkspaceHealthResponse
 > = z.object({
-  ContentType: z.string(),
-  RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
-  object: z.lazy(() => SlackWorkspaceHealthResponseBody$zodSchema).optional(),
+  ContentType: z.string().describe(
+    "HTTP response content type for this operation",
+  ),
+  RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+    "Raw HTTP response; suitable for custom response parsing",
+  ),
+  StatusCode: z.int().describe("HTTP response status code for this operation"),
+  object: z.lazy(() => SlackWorkspaceHealthResponseBody$zodSchema).optional()
+    .describe("Health check result"),
 });

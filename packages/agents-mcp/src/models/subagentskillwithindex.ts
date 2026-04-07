@@ -30,7 +30,7 @@ export const SubAgentSkillWithIndex$zodSchema: z.ZodType<
   index: z.int(),
   metadata: z.record(z.string(), z.string()).nullable(),
   name: z.string(),
-  subAgentId: z.string(),
-  subAgentSkillId: z.string(),
+  subAgentId: z.string().describe("Resource identifier"),
+  subAgentSkillId: z.string().describe("Resource identifier"),
   updatedAt: z.string(),
 });

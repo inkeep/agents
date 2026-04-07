@@ -4,6 +4,20 @@
  */
 
 import * as z from "zod";
+import { ClosedEnum } from "../types/enums.js";
+
+export const AgentUpdateExecutionMode = {
+  Classic: "classic",
+  Durable: "durable",
+} as const;
+export type AgentUpdateExecutionMode = ClosedEnum<
+  typeof AgentUpdateExecutionMode
+>;
+
+export const AgentUpdateExecutionMode$zodSchema = z.enum([
+  "classic",
+  "durable",
+]);
 
 export type AgentUpdate = {
   name?: string | undefined;
@@ -14,12 +28,14 @@ export type AgentUpdate = {
   statusUpdates?: any | null | undefined;
   prompt?: string | null | undefined;
   stopWhen?: any | null | undefined;
+  executionMode?: AgentUpdateExecutionMode | undefined;
 };
 
 export const AgentUpdate$zodSchema: z.ZodType<AgentUpdate> = z.object({
   contextConfigId: z.string().nullable().optional(),
   defaultSubAgentId: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
+  executionMode: AgentUpdateExecutionMode$zodSchema.optional(),
   models: z.any().nullable().optional(),
   name: z.string().optional(),
   prompt: z.string().nullable().optional(),

@@ -19,10 +19,15 @@ import {
   UnprocessableEntity$zodSchema,
 } from "./unprocessableentity.js";
 
-export type ListEvaluatorsRequest = { tenantId: string; projectId: string };
+export type ListEvaluatorsRequest = {
+  tenantId: string;
+  projectId: string;
+  agentId?: string | undefined;
+};
 
 export const ListEvaluatorsRequest$zodSchema: z.ZodType<ListEvaluatorsRequest> =
   z.object({
+    agentId: z.string().optional(),
     projectId: z.string().describe("Project identifier"),
     tenantId: z.string().describe("Tenant identifier"),
   });
@@ -58,14 +63,23 @@ export type ListEvaluatorsResponse = {
 export const ListEvaluatorsResponse$zodSchema: z.ZodType<
   ListEvaluatorsResponse
 > = z.object({
-  BadRequest: BadRequest$zodSchema.optional(),
-  ContentType: z.string(),
-  Forbidden: Forbidden$zodSchema.optional(),
-  InternalServerError: InternalServerError$zodSchema.optional(),
-  NotFound: NotFound$zodSchema.optional(),
-  RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
-  Unauthorized: Unauthorized$zodSchema.optional(),
-  UnprocessableEntity: UnprocessableEntity$zodSchema.optional(),
-  object: z.lazy(() => ListEvaluatorsResponseBody$zodSchema).optional(),
+  BadRequest: BadRequest$zodSchema.optional().describe("Bad Request"),
+  ContentType: z.string().describe(
+    "HTTP response content type for this operation",
+  ),
+  Forbidden: Forbidden$zodSchema.optional().describe("Forbidden"),
+  InternalServerError: InternalServerError$zodSchema.optional().describe(
+    "Internal Server Error",
+  ),
+  NotFound: NotFound$zodSchema.optional().describe("Not Found"),
+  RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+    "Raw HTTP response; suitable for custom response parsing",
+  ),
+  StatusCode: z.int().describe("HTTP response status code for this operation"),
+  Unauthorized: Unauthorized$zodSchema.optional().describe("Unauthorized"),
+  UnprocessableEntity: UnprocessableEntity$zodSchema.optional().describe(
+    "Unprocessable Entity",
+  ),
+  object: z.lazy(() => ListEvaluatorsResponseBody$zodSchema).optional()
+    .describe("List of evaluators"),
 });

@@ -4,6 +4,7 @@
  */
 
 import * as z from "zod";
+import { ClosedEnum } from "../types/enums.js";
 import { BadRequest, BadRequest$zodSchema } from "./badrequest.js";
 import { ErrorResponse, ErrorResponse$zodSchema } from "./errorresponse.js";
 import {
@@ -17,15 +18,28 @@ import {
   UnprocessableEntity$zodSchema,
 } from "./unprocessableentity.js";
 
+export const Force = {
+  True: "true",
+  False: "false",
+} as const;
+export type Force = ClosedEnum<typeof Force>;
+
+export const Force$zodSchema = z.enum([
+  "true",
+  "false",
+]);
+
 export type DeleteBranchRequest = {
   tenantId: string;
   projectId: string;
   branchName: string;
+  force?: Force | undefined;
 };
 
 export const DeleteBranchRequest$zodSchema: z.ZodType<DeleteBranchRequest> = z
   .object({
     branchName: z.string(),
+    force: Force$zodSchema.default("false"),
     projectId: z.string(),
     tenantId: z.string(),
   });
@@ -44,13 +58,25 @@ export type DeleteBranchResponse = {
 
 export const DeleteBranchResponse$zodSchema: z.ZodType<DeleteBranchResponse> = z
   .object({
-    BadRequest: BadRequest$zodSchema.optional(),
-    ContentType: z.string(),
-    ErrorResponse: ErrorResponse$zodSchema.optional(),
-    InternalServerError: InternalServerError$zodSchema.optional(),
-    NotFound: NotFound$zodSchema.optional(),
-    RawResponse: z.custom<Response>(x => x instanceof Response),
-    StatusCode: z.int(),
-    Unauthorized: Unauthorized$zodSchema.optional(),
-    UnprocessableEntity: UnprocessableEntity$zodSchema.optional(),
+    BadRequest: BadRequest$zodSchema.optional().describe("Bad Request"),
+    ContentType: z.string().describe(
+      "HTTP response content type for this operation",
+    ),
+    ErrorResponse: ErrorResponse$zodSchema.optional().describe(
+      "Cannot delete protected branch",
+    ),
+    InternalServerError: InternalServerError$zodSchema.optional().describe(
+      "Internal Server Error",
+    ),
+    NotFound: NotFound$zodSchema.optional().describe("Not Found"),
+    RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+      "Raw HTTP response; suitable for custom response parsing",
+    ),
+    StatusCode: z.int().describe(
+      "HTTP response status code for this operation",
+    ),
+    Unauthorized: Unauthorized$zodSchema.optional().describe("Unauthorized"),
+    UnprocessableEntity: UnprocessableEntity$zodSchema.optional().describe(
+      "Unprocessable Entity",
+    ),
   });

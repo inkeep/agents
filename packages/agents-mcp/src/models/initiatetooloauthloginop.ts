@@ -31,9 +31,13 @@ export type InitiateToolOauthLoginResponse = {
 export const InitiateToolOauthLoginResponse$zodSchema: z.ZodType<
   InitiateToolOauthLoginResponse
 > = z.object({
-  ContentType: z.string(),
-  RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
+  ContentType: z.string().describe(
+    "HTTP response content type for this operation",
+  ),
+  RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+    "Raw HTTP response; suitable for custom response parsing",
+  ),
+  StatusCode: z.int().describe("HTTP response status code for this operation"),
   fiveHundredTextHtmlRes: z.string().describe("Internal server error")
     .optional(),
   fourHundredAndFourTextHtmlRes: z.string().describe("Tool not found")

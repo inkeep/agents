@@ -32,7 +32,7 @@ generation:
     generateNewTests: true
     skipResponseBodyAssertions: false
 mcp-typescript:
-  version: 0.0.1
+  version: 0.0.2
   additionalDependencies:
     dependencies: {}
     devDependencies: {}
@@ -43,6 +43,7 @@ mcp-typescript:
   cloudflareEnabled: false
   defaultErrorName: InkeepAgentsDefaultError
   envVarPrefix: INKEEPAGENTS
+  fixEnumNameSanitization: false
   formStringArrayEncodeMode: array
   gramEnabled: false
   inferUnionDiscriminators: true

@@ -5,14 +5,15 @@
 
 import * as z from "zod";
 
-export type SkillUpdate = {
-  description?: string | undefined;
-  content?: string | undefined;
-  metadata?: { [k: string]: string } | null | undefined;
-};
+export type SkillUpdateFile = { filePath: string; content: string };
+
+export const SkillUpdateFile$zodSchema: z.ZodType<SkillUpdateFile> = z.object({
+  content: z.string(),
+  filePath: z.string(),
+});
+
+export type SkillUpdate = { files: Array<SkillUpdateFile> };
 
 export const SkillUpdate$zodSchema: z.ZodType<SkillUpdate> = z.object({
-  content: z.string().optional(),
-  description: z.string().optional(),
-  metadata: z.record(z.string(), z.string()).nullable().optional(),
+  files: z.array(z.lazy(() => SkillUpdateFile$zodSchema)),
 });

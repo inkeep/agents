@@ -15,47 +15,47 @@ export const FilePartKind$zodSchema = z.enum([
   "file",
 ]);
 
-export type File2 = {
+export type FilePartFile2 = {
   name?: string | undefined;
   mimeType?: string | undefined;
   uri: string;
 };
 
-export const File2$zodSchema: z.ZodType<File2> = z.object({
+export const FilePartFile2$zodSchema: z.ZodType<FilePartFile2> = z.object({
   mimeType: z.string().optional(),
   name: z.string().optional(),
   uri: z.string(),
 });
 
-export type File1 = {
+export type FilePartFile1 = {
   name?: string | undefined;
   mimeType?: string | undefined;
   bytes: string;
 };
 
-export const File1$zodSchema: z.ZodType<File1> = z.object({
+export const FilePartFile1$zodSchema: z.ZodType<FilePartFile1> = z.object({
   bytes: z.string(),
   mimeType: z.string().optional(),
   name: z.string().optional(),
 });
 
-export type FileUnion = File1 | File2;
+export type FileT = FilePartFile1 | FilePartFile2;
 
-export const FileUnion$zodSchema: z.ZodType<FileUnion> = z.union([
-  z.lazy(() => File1$zodSchema),
-  z.lazy(() => File2$zodSchema),
+export const FileT$zodSchema: z.ZodType<FileT> = z.union([
+  z.lazy(() => FilePartFile1$zodSchema),
+  z.lazy(() => FilePartFile2$zodSchema),
 ]);
 
 export type FilePart = {
   kind: FilePartKind;
-  file: File1 | File2;
+  file: FilePartFile1 | FilePartFile2;
   metadata?: { [k: string]: any | null } | undefined;
 };
 
 export const FilePart$zodSchema: z.ZodType<FilePart> = z.object({
   file: z.union([
-    z.lazy(() => File1$zodSchema),
-    z.lazy(() => File2$zodSchema),
+    z.lazy(() => FilePartFile1$zodSchema),
+    z.lazy(() => FilePartFile2$zodSchema),
   ]),
   kind: FilePartKind$zodSchema,
   metadata: z.record(z.string(), z.any().nullable()).optional(),

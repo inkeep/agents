@@ -57,7 +57,9 @@ export const ToolCreateTransport$zodSchema: z.ZodType<ToolCreateTransport> = z
   .object({
     eventSourceInit: z.record(z.string(), z.any().nullable()).optional(),
     reconnectionOptions: z.lazy(() => ToolCreateReconnectionOptions$zodSchema)
-      .optional(),
+      .optional().describe(
+        "Reconnection options for streamable HTTP transport",
+      ),
     requestInit: z.record(z.string(), z.any().nullable()).optional(),
     sessionId: z.string().optional(),
     type: ToolCreateTransportType$zodSchema,
@@ -126,7 +128,7 @@ export type ToolCreate = {
   config: ToolCreateConfig;
   credentialReferenceId?: string | null | undefined;
   credentialScope?: string | undefined;
-  headers?: any | null | undefined;
+  headers?: { [k: string]: string } | null | undefined;
   imageUrl?: string | undefined;
   capabilities?: any | null | undefined;
   lastError?: string | null | undefined;
@@ -139,8 +141,8 @@ export const ToolCreate$zodSchema: z.ZodType<ToolCreate> = z.object({
   credentialReferenceId: z.string().nullable().optional(),
   credentialScope: z.string().optional(),
   description: z.string().nullable().optional(),
-  headers: z.any().nullable().optional(),
-  id: z.string(),
+  headers: z.record(z.string(), z.string()).nullable().optional(),
+  id: z.string().describe("Resource identifier"),
   imageUrl: z.string().optional(),
   isWorkApp: z.boolean().optional(),
   lastError: z.string().nullable().optional(),

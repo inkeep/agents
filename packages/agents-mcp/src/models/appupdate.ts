@@ -13,6 +13,7 @@ export type AppUpdate = {
   description?: string | null | undefined;
   defaultProjectId?: string | null | undefined;
   defaultAgentId?: string | null | undefined;
+  prompt?: string | null | undefined;
   enabled?: boolean | undefined;
   config?: AppConfig | undefined;
   lastUsedAt?: string | null | undefined;
@@ -28,6 +29,7 @@ export const AppUpdate$zodSchema: z.ZodType<AppUpdate> = z.object({
   lastUsedAt: z.string().nullable().optional(),
   name: z.string().optional(),
   projectId: z.string().nullable().optional(),
+  prompt: z.string().nullable().optional(),
   tenantId: z.string().nullable().optional(),
   updatedAt: z.string().optional(),
 });

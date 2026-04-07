@@ -21,7 +21,7 @@ export const ArtifactComponentCreate$zodSchema: z.ZodType<
   ArtifactComponentCreate
 > = z.object({
   description: z.string().nullable().optional(),
-  id: z.string(),
+  id: z.string().describe("Resource identifier"),
   name: z.string(),
   props: JsonSchemaForLlmSchema$zodSchema.nullable(),
   render: z.any().nullable().optional(),

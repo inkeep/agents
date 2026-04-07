@@ -12,7 +12,7 @@ export type ErrorResponse = {
 };
 
 export const ErrorResponse$zodSchema: z.ZodType<ErrorResponse> = z.object({
-  details: z.any().nullable().optional(),
+  details: z.any().nullable().optional().describe("Additional error details"),
   error: z.string(),
   message: z.string().optional(),
 });

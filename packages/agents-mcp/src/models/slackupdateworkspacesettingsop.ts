@@ -64,9 +64,13 @@ export type SlackUpdateWorkspaceSettingsResponse = {
 export const SlackUpdateWorkspaceSettingsResponse$zodSchema: z.ZodType<
   SlackUpdateWorkspaceSettingsResponse
 > = z.object({
-  ContentType: z.string(),
-  RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
+  ContentType: z.string().describe(
+    "HTTP response content type for this operation",
+  ),
+  RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+    "Raw HTTP response; suitable for custom response parsing",
+  ),
+  StatusCode: z.int().describe("HTTP response status code for this operation"),
   object: z.lazy(() => SlackUpdateWorkspaceSettingsResponseBody$zodSchema)
-    .optional(),
+    .optional().describe("Settings updated"),
 });

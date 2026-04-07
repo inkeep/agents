@@ -27,6 +27,6 @@ export const Strategy$zodSchema = z.enum([
 export type ComponentJoin = { strategy: Strategy; separator: string };
 
 export const ComponentJoin$zodSchema: z.ZodType<ComponentJoin> = z.object({
-  separator: z.string(),
-  strategy: Strategy$zodSchema,
+  separator: z.string().describe("String to insert between joined components"),
+  strategy: Strategy$zodSchema.describe("Strategy for joining components"),
 }).describe("How to join signed components");

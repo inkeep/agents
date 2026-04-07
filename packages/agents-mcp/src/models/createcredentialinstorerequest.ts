@@ -14,7 +14,9 @@ export type CreateCredentialInStoreRequest = {
 export const CreateCredentialInStoreRequest$zodSchema: z.ZodType<
   CreateCredentialInStoreRequest
 > = z.object({
-  key: z.string(),
-  metadata: z.record(z.string(), z.string()).nullable().optional(),
-  value: z.string(),
+  key: z.string().describe("The credential key"),
+  metadata: z.record(z.string(), z.string()).nullable().optional().describe(
+    "The metadata for the credential",
+  ),
+  value: z.string().describe("The credential value"),
 });

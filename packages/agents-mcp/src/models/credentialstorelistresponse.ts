@@ -14,5 +14,7 @@ export type CredentialStoreListResponse = { data: Array<CredentialStore> };
 export const CredentialStoreListResponse$zodSchema: z.ZodType<
   CredentialStoreListResponse
 > = z.object({
-  data: z.array(CredentialStore$zodSchema),
+  data: z.array(CredentialStore$zodSchema).describe(
+    "List of credential stores",
+  ),
 });

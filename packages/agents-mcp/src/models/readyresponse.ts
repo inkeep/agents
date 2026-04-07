@@ -22,7 +22,7 @@ export type ReadyResponse = {
 };
 
 export const ReadyResponse$zodSchema: z.ZodType<ReadyResponse> = z.object({
-  manageDb: z.boolean(),
-  runDb: z.boolean(),
+  manageDb: z.boolean().describe("Whether the manage database is reachable"),
+  runDb: z.boolean().describe("Whether the run database is reachable"),
   status: ReadyResponseStatus$zodSchema,
 });

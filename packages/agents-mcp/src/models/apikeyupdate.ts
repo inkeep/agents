@@ -13,7 +13,7 @@ export type ApiKeyUpdate = {
 };
 
 export const ApiKeyUpdate$zodSchema: z.ZodType<ApiKeyUpdate> = z.object({
-  agentId: z.string().optional(),
+  agentId: z.string().optional().describe("Resource identifier"),
   expiresAt: z.string().nullable().optional(),
   name: z.string().optional(),
   updatedAt: z.string().optional(),

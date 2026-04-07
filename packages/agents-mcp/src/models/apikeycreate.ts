@@ -14,7 +14,7 @@ export type ApiKeyCreate = {
 };
 
 export const ApiKeyCreate$zodSchema: z.ZodType<ApiKeyCreate> = z.object({
-  agentId: z.string(),
+  agentId: z.string().describe("Resource identifier"),
   createdAt: z.string().optional(),
   expiresAt: z.string().nullable().optional(),
   name: z.string(),

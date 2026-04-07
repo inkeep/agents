@@ -6,6 +6,43 @@
 import * as z from "zod";
 import { ClosedEnum } from "../types/enums.js";
 
+/**
+ * The type of ref
+ */
+export const ScheduledTriggerInvocationType = {
+  Commit: "commit",
+  Tag: "tag",
+  Branch: "branch",
+} as const;
+/**
+ * The type of ref
+ */
+export type ScheduledTriggerInvocationType = ClosedEnum<
+  typeof ScheduledTriggerInvocationType
+>;
+
+export const ScheduledTriggerInvocationType$zodSchema = z.enum([
+  "commit",
+  "tag",
+  "branch",
+]).describe("The type of ref");
+
+export type ScheduledTriggerInvocationRef = {
+  type: ScheduledTriggerInvocationType;
+  name: string;
+  hash: string;
+};
+
+export const ScheduledTriggerInvocationRef$zodSchema: z.ZodType<
+  ScheduledTriggerInvocationRef
+> = z.object({
+  hash: z.string().describe("The commit hash this ref resolves to"),
+  name: z.string().describe(
+    "The name of the ref (branch name, tag name, or commit hash)",
+  ),
+  type: ScheduledTriggerInvocationType$zodSchema.describe("The type of ref"),
+});
+
 export const ScheduledTriggerInvocationStatus = {
   Pending: "pending",
   Running: "running",
@@ -28,6 +65,7 @@ export const ScheduledTriggerInvocationStatus$zodSchema = z.enum([
 export type ScheduledTriggerInvocation = {
   id: string;
   scheduledTriggerId: string;
+  ref?: ScheduledTriggerInvocationRef | null | undefined;
   status: ScheduledTriggerInvocationStatus;
   scheduledFor: string;
   startedAt: string | null;
@@ -36,6 +74,7 @@ export type ScheduledTriggerInvocation = {
   conversationIds?: any | null | undefined;
   attemptNumber: number;
   idempotencyKey: string;
+  runAsUserId: string | null;
   createdAt: string;
 };
 
@@ -48,8 +87,11 @@ export const ScheduledTriggerInvocation$zodSchema: z.ZodType<
   createdAt: z.string(),
   id: z.string(),
   idempotencyKey: z.string(),
+  ref: z.lazy(() => ScheduledTriggerInvocationRef$zodSchema).nullable()
+    .optional(),
   resolvedPayload: z.record(z.string(), z.any().nullable()).nullable()
     .optional(),
+  runAsUserId: z.string().nullable(),
   scheduledFor: z.string(),
   scheduledTriggerId: z.string(),
   startedAt: z.string().nullable(),

@@ -52,9 +52,13 @@ export type EvaluateConversationsByJobResponse = {
 export const EvaluateConversationsByJobResponse$zodSchema: z.ZodType<
   EvaluateConversationsByJobResponse
 > = z.object({
-  ContentType: z.string(),
-  RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
+  ContentType: z.string().describe(
+    "HTTP response content type for this operation",
+  ),
+  RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+    "Raw HTTP response; suitable for custom response parsing",
+  ),
+  StatusCode: z.int().describe("HTTP response status code for this operation"),
   object: z.lazy(() => EvaluateConversationsByJobResponseBody$zodSchema)
-    .optional(),
+    .optional().describe("Evaluation job triggered successfully"),
 });

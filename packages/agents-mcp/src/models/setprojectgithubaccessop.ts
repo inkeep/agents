@@ -47,8 +47,12 @@ export type SetProjectGithubAccessRequestBody = {
 export const SetProjectGithubAccessRequestBody$zodSchema: z.ZodType<
   SetProjectGithubAccessRequestBody
 > = z.object({
-  mode: SetProjectGithubAccessModeRequest$zodSchema,
-  repositoryIds: z.array(z.string()).optional(),
+  mode: SetProjectGithubAccessModeRequest$zodSchema.describe(
+    "Access mode: \"all\" means project has access to all tenant repositories, \"selected\" means project is scoped to specific repositories",
+  ),
+  repositoryIds: z.array(z.string()).optional().describe(
+    "Internal repository IDs (required when mode=\"selected\")",
+  ),
 });
 
 export type SetProjectGithubAccessRequest = {
@@ -97,8 +101,12 @@ export type SetProjectGithubAccessResponseBody = {
 export const SetProjectGithubAccessResponseBody$zodSchema: z.ZodType<
   SetProjectGithubAccessResponseBody
 > = z.object({
-  mode: SetProjectGithubAccessModeResponse$zodSchema,
-  repositoryCount: z.number(),
+  mode: SetProjectGithubAccessModeResponse$zodSchema.describe(
+    "Access mode: \"all\" means project has access to all tenant repositories, \"selected\" means project is scoped to specific repositories",
+  ),
+  repositoryCount: z.number().describe(
+    "Number of repositories the project now has access to (0 when mode=\"all\")",
+  ),
 }).describe("GitHub access configuration updated successfully");
 
 export type SetProjectGithubAccessResponse = {
@@ -117,14 +125,23 @@ export type SetProjectGithubAccessResponse = {
 export const SetProjectGithubAccessResponse$zodSchema: z.ZodType<
   SetProjectGithubAccessResponse
 > = z.object({
-  BadRequest: BadRequest$zodSchema.optional(),
-  ContentType: z.string(),
-  Forbidden: Forbidden$zodSchema.optional(),
-  InternalServerError: InternalServerError$zodSchema.optional(),
-  NotFound: NotFound$zodSchema.optional(),
-  RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
-  Unauthorized: Unauthorized$zodSchema.optional(),
-  UnprocessableEntity: UnprocessableEntity$zodSchema.optional(),
-  object: z.lazy(() => SetProjectGithubAccessResponseBody$zodSchema).optional(),
+  BadRequest: BadRequest$zodSchema.optional().describe("Bad Request"),
+  ContentType: z.string().describe(
+    "HTTP response content type for this operation",
+  ),
+  Forbidden: Forbidden$zodSchema.optional().describe("Forbidden"),
+  InternalServerError: InternalServerError$zodSchema.optional().describe(
+    "Internal Server Error",
+  ),
+  NotFound: NotFound$zodSchema.optional().describe("Not Found"),
+  RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+    "Raw HTTP response; suitable for custom response parsing",
+  ),
+  StatusCode: z.int().describe("HTTP response status code for this operation"),
+  Unauthorized: Unauthorized$zodSchema.optional().describe("Unauthorized"),
+  UnprocessableEntity: UnprocessableEntity$zodSchema.optional().describe(
+    "Unprocessable Entity",
+  ),
+  object: z.lazy(() => SetProjectGithubAccessResponseBody$zodSchema).optional()
+    .describe("GitHub access configuration updated successfully"),
 });

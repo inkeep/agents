@@ -20,7 +20,7 @@ export const ArtifactComponentUpdate$zodSchema: z.ZodType<
 > = z.object({
   createdAt: z.string().optional(),
   description: z.string().nullable().optional(),
-  id: z.string().optional(),
+  id: z.string().optional().describe("Resource identifier"),
   name: z.string().optional(),
   props: z.any().nullable().optional(),
   render: z.any().nullable().optional(),

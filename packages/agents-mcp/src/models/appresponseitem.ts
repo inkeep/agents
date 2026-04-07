@@ -18,6 +18,7 @@ export type AppResponseItem = {
   type: string;
   defaultProjectId: string | null;
   defaultAgentId: string | null;
+  prompt: string | null;
   enabled: boolean;
   lastUsedAt: string | null;
   createdAt: string;
@@ -36,6 +37,7 @@ export const AppResponseItem$zodSchema: z.ZodType<AppResponseItem> = z.object({
   lastUsedAt: z.string().nullable(),
   name: z.string(),
   projectId: z.string().nullable(),
+  prompt: z.string().nullable(),
   tenantId: z.string().nullable(),
   type: z.string(),
   updatedAt: z.string(),

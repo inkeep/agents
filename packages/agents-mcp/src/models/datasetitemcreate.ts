@@ -8,7 +8,6 @@ import * as z from "zod";
 export type DatasetItemCreate = {
   input?: any | null | undefined;
   expectedOutput?: any | null | undefined;
-  simulationAgent?: any | null | undefined;
   createdAt?: string | undefined;
   updatedAt?: string | undefined;
 };
@@ -18,6 +17,5 @@ export const DatasetItemCreate$zodSchema: z.ZodType<DatasetItemCreate> = z
     createdAt: z.string().optional(),
     expectedOutput: z.any().nullable().optional(),
     input: z.any().nullable().optional(),
-    simulationAgent: z.any().nullable().optional(),
     updatedAt: z.string().optional(),
   });

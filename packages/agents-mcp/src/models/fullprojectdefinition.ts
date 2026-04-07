@@ -73,7 +73,9 @@ export const FullProjectDefinition$zodSchema: z.ZodType<FullProjectDefinition> =
     functionTools: z.record(z.string(), FunctionToolCreate$zodSchema)
       .optional(),
     functions: z.record(z.string(), FunctionCreate$zodSchema).optional(),
-    id: z.string(),
+    id: z.string().describe(
+      "Project identifier (lowercase alphanumeric and hyphens only)",
+    ),
     models: ProjectModel$zodSchema.nullable(),
     name: z.string(),
     skills: z.record(z.string(), SkillCreate$zodSchema).optional(),

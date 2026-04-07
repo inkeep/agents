@@ -20,23 +20,46 @@ export type ScheduledTriggerCreate = {
   timeoutSeconds?: number | undefined;
   runAsUserId?: string | null | undefined;
   createdBy?: string | null | undefined;
+  ref?: string | undefined;
+  dispatchDelayMs?: number | undefined;
+  runAsUserIds?: Array<string> | undefined;
 };
 
 export const ScheduledTriggerCreate$zodSchema: z.ZodType<
   ScheduledTriggerCreate
 > = z.object({
-  createdBy: z.string().nullable().optional(),
-  cronExpression: z.string().nullable().optional(),
-  cronTimezone: z.string().default("UTC").nullable(),
-  description: z.string().nullable().optional(),
-  enabled: z.boolean().default(true),
-  id: z.string().optional(),
+  createdBy: z.string().nullable().optional().describe(
+    "User ID of the user who created this trigger",
+  ),
+  cronExpression: z.string().nullable().optional().describe(
+    "Cron expression in standard 5-field format (minute hour day month weekday)",
+  ),
+  cronTimezone: z.string().default("UTC").nullable().describe(
+    "IANA timezone for cron expression (e.g., America/New_York, Europe/London)",
+  ),
+  description: z.string().nullable().optional().describe(
+    "Scheduled trigger description",
+  ),
+  dispatchDelayMs: z.int().optional().describe(
+    "Delay in ms between dispatching each user workflow max 10 minutes",
+  ),
+  enabled: z.boolean().default(true).describe("Whether the trigger is enabled"),
+  id: z.string().optional().describe("Resource identifier"),
   maxRetries: z.int().default(1),
-  messageTemplate: z.string().nullable().optional(),
-  name: z.string(),
-  payload: z.record(z.string(), z.any().nullable()).nullable().optional(),
+  messageTemplate: z.string().nullable().optional().describe(
+    "Message template with {{\"{{\"}}placeholder}} syntax",
+  ),
+  name: z.string().describe("Scheduled trigger name"),
+  payload: z.record(z.string(), z.any().nullable()).nullable().optional()
+    .describe("Static payload for agent execution"),
+  ref: z.string().default("main").describe("Branch ref to run the agent from"),
   retryDelaySeconds: z.int().default(60),
   runAsUserId: z.string().nullable().optional(),
-  runAt: z.iso.datetime({ offset: true }).nullable().optional(),
+  runAsUserIds: z.array(z.string()).optional().describe(
+    "Array of user IDs to run this trigger as (multi-user)",
+  ),
+  runAt: z.iso.datetime({ offset: true }).nullable().optional().describe(
+    "One-time execution timestamp",
+  ),
   timeoutSeconds: z.int().default(780),
 });

@@ -41,7 +41,7 @@ export const FullAgentAgentInsertSkill$zodSchema: z.ZodType<
   FullAgentAgentInsertSkill
 > = z.object({
   alwaysLoaded: z.boolean().optional(),
-  id: z.string(),
+  id: z.string().describe("Resource identifier"),
   index: z.int(),
 });
 
@@ -95,7 +95,7 @@ export const FullAgentAgentInsert$zodSchema: z.ZodType<FullAgentAgentInsert> = z
     createdAt: z.string().optional(),
     dataComponents: z.array(z.string()).optional(),
     description: z.string().nullable().optional(),
-    id: z.string(),
+    id: z.string().describe("Resource identifier"),
     models: Model$zodSchema.optional(),
     name: z.string(),
     prompt: z.string().optional(),

@@ -18,6 +18,6 @@ export const FunctionToolUpdate$zodSchema: z.ZodType<FunctionToolUpdate> = z
     agentId: z.string().optional(),
     description: z.string().nullable().optional(),
     functionId: z.string().optional(),
-    id: z.string().optional(),
+    id: z.string().optional().describe("Resource identifier"),
     name: z.string().optional(),
   });

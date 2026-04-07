@@ -34,8 +34,13 @@ export type SlackDeleteWorkspaceResponse = {
 export const SlackDeleteWorkspaceResponse$zodSchema: z.ZodType<
   SlackDeleteWorkspaceResponse
 > = z.object({
-  ContentType: z.string(),
-  RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
-  object: z.lazy(() => SlackDeleteWorkspaceResponseBody$zodSchema).optional(),
+  ContentType: z.string().describe(
+    "HTTP response content type for this operation",
+  ),
+  RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+    "Raw HTTP response; suitable for custom response parsing",
+  ),
+  StatusCode: z.int().describe("HTTP response status code for this operation"),
+  object: z.lazy(() => SlackDeleteWorkspaceResponseBody$zodSchema).optional()
+    .describe("Workspace uninstalled"),
 });

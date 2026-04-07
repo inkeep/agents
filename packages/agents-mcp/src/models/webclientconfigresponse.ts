@@ -5,6 +5,10 @@
 
 import * as z from "zod";
 import { ClosedEnum } from "../types/enums.js";
+import {
+  PublicKeyConfig,
+  PublicKeyConfig$zodSchema,
+} from "./publickeyconfig.js";
 
 export const WebClientConfigResponseType = {
   WebClient: "web_client",
@@ -19,12 +23,18 @@ export const WebClientConfigResponseType$zodSchema = z.enum([
 
 export type WebClientConfigResponseWebClient = {
   allowedDomains: Array<string>;
+  publicKeys?: Array<PublicKeyConfig> | undefined;
+  audience?: string | undefined;
+  allowAnonymous?: boolean | undefined;
 };
 
 export const WebClientConfigResponseWebClient$zodSchema: z.ZodType<
   WebClientConfigResponseWebClient
 > = z.object({
+  allowAnonymous: z.boolean().default(false),
   allowedDomains: z.array(z.string()),
+  audience: z.string().optional(),
+  publicKeys: z.array(PublicKeyConfig$zodSchema).optional(),
 });
 
 export type WebClientConfigResponse = {

@@ -7,18 +7,18 @@ import * as z from "zod";
 
 export type FunctionUpdate = {
   id?: string | undefined;
-  inputSchema?: any | null | undefined;
+  inputSchema?: { [k: string]: any | null } | null | undefined;
   executeCode?: string | undefined;
-  dependencies?: any | null | undefined;
+  dependencies?: { [k: string]: string } | null | undefined;
   createdAt?: string | undefined;
   updatedAt?: string | undefined;
 };
 
 export const FunctionUpdate$zodSchema: z.ZodType<FunctionUpdate> = z.object({
   createdAt: z.string().optional(),
-  dependencies: z.any().nullable().optional(),
+  dependencies: z.record(z.string(), z.string()).nullable().optional(),
   executeCode: z.string().optional(),
-  id: z.string().optional(),
-  inputSchema: z.any().nullable().optional(),
+  id: z.string().optional().describe("Resource identifier"),
+  inputSchema: z.record(z.string(), z.any().nullable()).nullable().optional(),
   updatedAt: z.string().optional(),
 });

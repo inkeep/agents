@@ -41,40 +41,87 @@ export const PostRunV1ChatCompletionsRole$zodSchema = z.enum([
   "tool",
 ]).describe("The role of the message");
 
-export const TypeImageURL = {
+export const PostRunV1ChatCompletionsTypeFile = {
+  File: "file",
+} as const;
+export type PostRunV1ChatCompletionsTypeFile = ClosedEnum<
+  typeof PostRunV1ChatCompletionsTypeFile
+>;
+
+export const PostRunV1ChatCompletionsTypeFile$zodSchema = z.enum([
+  "file",
+]);
+
+export type PostRunV1ChatCompletionsFile = {
+  file_data: string;
+  filename?: string | undefined;
+};
+
+export const PostRunV1ChatCompletionsFile$zodSchema: z.ZodType<
+  PostRunV1ChatCompletionsFile
+> = z.object({
+  file_data: z.string(),
+  filename: z.string().optional(),
+});
+
+export type ContentFile = {
+  type: PostRunV1ChatCompletionsTypeFile;
+  file: PostRunV1ChatCompletionsFile;
+};
+
+export const ContentFile$zodSchema: z.ZodType<ContentFile> = z.object({
+  file: z.lazy(() => PostRunV1ChatCompletionsFile$zodSchema),
+  type: PostRunV1ChatCompletionsTypeFile$zodSchema,
+});
+
+export const PostRunV1ChatCompletionsTypeImageURL = {
   ImageUrl: "image_url",
 } as const;
-export type TypeImageURL = ClosedEnum<typeof TypeImageURL>;
+export type PostRunV1ChatCompletionsTypeImageURL = ClosedEnum<
+  typeof PostRunV1ChatCompletionsTypeImageURL
+>;
 
-export const TypeImageURL$zodSchema = z.enum([
+export const PostRunV1ChatCompletionsTypeImageURL$zodSchema = z.enum([
   "image_url",
 ]);
 
-export const DetailRequest = {
+export const PostRunV1ChatCompletionsDetailRequest = {
   Auto: "auto",
   Low: "low",
   High: "high",
 } as const;
-export type DetailRequest = ClosedEnum<typeof DetailRequest>;
+export type PostRunV1ChatCompletionsDetailRequest = ClosedEnum<
+  typeof PostRunV1ChatCompletionsDetailRequest
+>;
 
-export const DetailRequest$zodSchema = z.enum([
+export const PostRunV1ChatCompletionsDetailRequest$zodSchema = z.enum([
   "auto",
   "low",
   "high",
 ]);
 
-export type ImageUrl = { url: string; detail?: DetailRequest | undefined };
+export type PostRunV1ChatCompletionsImageUrl = {
+  url: string;
+  detail?: PostRunV1ChatCompletionsDetailRequest | undefined;
+};
 
-export const ImageUrl$zodSchema: z.ZodType<ImageUrl> = z.object({
-  detail: DetailRequest$zodSchema.optional(),
+export const PostRunV1ChatCompletionsImageUrl$zodSchema: z.ZodType<
+  PostRunV1ChatCompletionsImageUrl
+> = z.object({
+  detail: PostRunV1ChatCompletionsDetailRequest$zodSchema.optional(),
   url: z.string(),
 });
 
-export type ContentImageURL = { type: TypeImageURL; image_url: ImageUrl };
+export type PostRunV1ChatCompletionsContentImageURL = {
+  type: PostRunV1ChatCompletionsTypeImageURL;
+  image_url: PostRunV1ChatCompletionsImageUrl;
+};
 
-export const ContentImageURL$zodSchema: z.ZodType<ContentImageURL> = z.object({
-  image_url: z.lazy(() => ImageUrl$zodSchema),
-  type: TypeImageURL$zodSchema,
+export const PostRunV1ChatCompletionsContentImageURL$zodSchema: z.ZodType<
+  PostRunV1ChatCompletionsContentImageURL
+> = z.object({
+  image_url: z.lazy(() => PostRunV1ChatCompletionsImageUrl$zodSchema),
+  type: PostRunV1ChatCompletionsTypeImageURL$zodSchema,
 });
 
 export const PostRunV1ChatCompletionsTypeText = {
@@ -88,29 +135,39 @@ export const PostRunV1ChatCompletionsTypeText$zodSchema = z.enum([
   "text",
 ]);
 
-export type ContentText = {
+export type PostRunV1ChatCompletionsContentText = {
   type: PostRunV1ChatCompletionsTypeText;
   text: string;
 };
 
-export const ContentText$zodSchema: z.ZodType<ContentText> = z.object({
+export const PostRunV1ChatCompletionsContentText$zodSchema: z.ZodType<
+  PostRunV1ChatCompletionsContentText
+> = z.object({
   text: z.string(),
   type: PostRunV1ChatCompletionsTypeText$zodSchema,
 });
 
-export type ContentUnion2 =
-  | (ContentText & { type: "text" })
-  | (ContentImageURL & { type: "image_url" });
+export type PostRunV1ChatCompletionsContentUnion2 =
+  | (PostRunV1ChatCompletionsContentText & { type: "text" })
+  | (PostRunV1ChatCompletionsContentImageURL & { type: "image_url" })
+  | (ContentFile & { type: "file" });
 
-export const ContentUnion2$zodSchema: z.ZodType<ContentUnion2> = z.union([
-  z.lazy(() => ContentText$zodSchema).and(
+export const PostRunV1ChatCompletionsContentUnion2$zodSchema: z.ZodType<
+  PostRunV1ChatCompletionsContentUnion2
+> = z.union([
+  z.lazy(() => PostRunV1ChatCompletionsContentText$zodSchema).and(
     z.object({
       type: z.literal("text"),
     }).transform((v) => ({ type: v.type })),
   ),
-  z.lazy(() => ContentImageURL$zodSchema).and(
+  z.lazy(() => PostRunV1ChatCompletionsContentImageURL$zodSchema).and(
     z.object({
       type: z.literal("image_url"),
+    }).transform((v) => ({ type: v.type })),
+  ),
+  z.lazy(() => ContentFile$zodSchema).and(
+    z.object({
+      type: z.literal("file"),
     }).transform((v) => ({ type: v.type })),
   ),
 ]);
@@ -118,23 +175,32 @@ export const ContentUnion2$zodSchema: z.ZodType<ContentUnion2> = z.union([
 /**
  * The message content
  */
-export type ContentUnion1 =
+export type PostRunV1ChatCompletionsContentUnion1 =
   | string
   | Array<
-    (ContentText & { type: "text" }) | (ContentImageURL & { type: "image_url" })
+    | (PostRunV1ChatCompletionsContentText & { type: "text" })
+    | (PostRunV1ChatCompletionsContentImageURL & { type: "image_url" })
+    | (ContentFile & { type: "file" })
   >;
 
-export const ContentUnion1$zodSchema: z.ZodType<ContentUnion1> = z.union([
+export const PostRunV1ChatCompletionsContentUnion1$zodSchema: z.ZodType<
+  PostRunV1ChatCompletionsContentUnion1
+> = z.union([
   z.string(),
   z.array(z.union([
-    z.lazy(() => ContentText$zodSchema).and(
+    z.lazy(() => PostRunV1ChatCompletionsContentText$zodSchema).and(
       z.object({
         type: z.literal("text"),
       }).transform((v) => ({ type: v.type })),
     ),
-    z.lazy(() => ContentImageURL$zodSchema).and(
+    z.lazy(() => PostRunV1ChatCompletionsContentImageURL$zodSchema).and(
       z.object({
         type: z.literal("image_url"),
+      }).transform((v) => ({ type: v.type })),
+    ),
+    z.lazy(() => ContentFile$zodSchema).and(
+      z.object({
+        type: z.literal("file"),
       }).transform((v) => ({ type: v.type })),
     ),
   ])),
@@ -145,8 +211,9 @@ export type PostRunV1ChatCompletionsMessage = {
   content:
     | string
     | Array<
-      | (ContentText & { type: "text" })
-      | (ContentImageURL & { type: "image_url" })
+      | (PostRunV1ChatCompletionsContentText & { type: "text" })
+      | (PostRunV1ChatCompletionsContentImageURL & { type: "image_url" })
+      | (ContentFile & { type: "file" })
     >;
   name?: string | undefined;
 };
@@ -157,21 +224,49 @@ export const PostRunV1ChatCompletionsMessage$zodSchema: z.ZodType<
   content: z.union([
     z.string(),
     z.array(z.union([
-      z.lazy(() => ContentText$zodSchema).and(
+      z.lazy(() => PostRunV1ChatCompletionsContentText$zodSchema).and(
         z.object({
           type: z.literal("text"),
         }).transform((v) => ({ type: v.type })),
       ),
-      z.lazy(() => ContentImageURL$zodSchema).and(
+      z.lazy(() => PostRunV1ChatCompletionsContentImageURL$zodSchema).and(
         z.object({
           type: z.literal("image_url"),
         }).transform((v) => ({ type: v.type })),
       ),
+      z.lazy(() => ContentFile$zodSchema).and(
+        z.object({
+          type: z.literal("file"),
+        }).transform((v) => ({ type: v.type })),
+      ),
     ])),
-  ]),
-  name: z.string().optional(),
-  role: PostRunV1ChatCompletionsRole$zodSchema,
+  ]).describe("The message content"),
+  name: z.string().optional().describe("The name of the message sender"),
+  role: PostRunV1ChatCompletionsRole$zodSchema.describe(
+    "The role of the message",
+  ),
 });
+
+/**
+ * Override the agent execution mode for this request. Takes precedence over the agent config default. Falls back to classic if unset.
+ */
+export const PostRunV1ChatCompletionsExecutionMode = {
+  Classic: "classic",
+  Durable: "durable",
+} as const;
+/**
+ * Override the agent execution mode for this request. Takes precedence over the agent config default. Falls back to classic if unset.
+ */
+export type PostRunV1ChatCompletionsExecutionMode = ClosedEnum<
+  typeof PostRunV1ChatCompletionsExecutionMode
+>;
+
+export const PostRunV1ChatCompletionsExecutionMode$zodSchema = z.enum([
+  "classic",
+  "durable",
+]).describe(
+  "Override the agent execution mode for this request. Takes precedence over the agent config default. Falls back to classic if unset.",
+);
 
 export type PostRunV1ChatCompletionsRequest = {
   model: string;
@@ -188,27 +283,49 @@ export type PostRunV1ChatCompletionsRequest = {
   conversationId?: string | undefined;
   tools?: Array<string> | undefined;
   runConfig?: { [k: string]: any | null } | undefined;
+  executionMode?: PostRunV1ChatCompletionsExecutionMode | undefined;
   headers?: { [k: string]: any | null } | undefined;
+  userProperties?: { [k: string]: any | null } | undefined;
 };
 
 export const PostRunV1ChatCompletionsRequest$zodSchema: z.ZodType<
   PostRunV1ChatCompletionsRequest
 > = z.object({
-  conversationId: z.string().optional(),
-  frequency_penalty: z.number().optional(),
-  headers: z.record(z.string(), z.any().nullable()).optional(),
-  logit_bias: z.record(z.string(), z.number()).optional(),
-  max_tokens: z.number().optional(),
-  messages: z.array(z.lazy(() => PostRunV1ChatCompletionsMessage$zodSchema)),
-  model: z.string(),
-  n: z.number().optional(),
-  presence_penalty: z.number().optional(),
-  runConfig: z.record(z.string(), z.any().nullable()).optional(),
-  stream: z.boolean().optional(),
-  temperature: z.number().optional(),
-  tools: z.array(z.string()).optional(),
-  top_p: z.number().optional(),
-  user: z.string().optional(),
+  conversationId: z.string().optional().describe(
+    "Conversation ID for multi-turn chat",
+  ),
+  executionMode: PostRunV1ChatCompletionsExecutionMode$zodSchema.optional()
+    .describe(
+      "Override the agent execution mode for this request. Takes precedence over the agent config default. Falls back to classic if unset.",
+    ),
+  frequency_penalty: z.number().optional().describe(
+    "Frequency penalty (-2 to 2)",
+  ),
+  headers: z.record(z.string(), z.any().nullable()).optional().describe(
+    "Headers data for template processing (validated against context config schema)",
+  ),
+  logit_bias: z.record(z.string(), z.number()).optional().describe(
+    "Token logit bias",
+  ),
+  max_tokens: z.number().optional().describe("Maximum tokens to generate"),
+  messages: z.array(z.lazy(() => PostRunV1ChatCompletionsMessage$zodSchema))
+    .describe("The conversation messages"),
+  model: z.string().describe("The model to use for the completion"),
+  n: z.number().optional().describe("Number of completions to generate"),
+  presence_penalty: z.number().optional().describe(
+    "Presence penalty (-2 to 2)",
+  ),
+  runConfig: z.record(z.string(), z.any().nullable()).optional().describe(
+    "Run configuration",
+  ),
+  stream: z.boolean().optional().describe("Whether to stream the response"),
+  temperature: z.number().optional().describe("Controls randomness (0-1)"),
+  tools: z.array(z.string()).optional().describe("Available tools"),
+  top_p: z.number().optional().describe("Controls nucleus sampling"),
+  user: z.string().optional().describe("User identifier"),
+  userProperties: z.record(z.string(), z.any().nullable()).optional().describe(
+    "User properties to associate with the conversation",
+  ),
 });
 
 /**
@@ -284,19 +401,23 @@ export type PostRunV1ChatCompletionsResponse = {
 export const PostRunV1ChatCompletionsResponse$zodSchema: z.ZodType<
   PostRunV1ChatCompletionsResponse
 > = z.object({
-  ContentType: z.string(),
+  ContentType: z.string().describe(
+    "HTTP response content type for this operation",
+  ),
   Headers: z.record(z.string(), z.array(z.string())).default({}),
-  RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
+  RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+    "Raw HTTP response; suitable for custom response parsing",
+  ),
+  StatusCode: z.int().describe("HTTP response status code for this operation"),
   fiveHundredApplicationJsonObject: z.lazy(() =>
     PostRunV1ChatCompletionsInternalServerErrorResponseBody$zodSchema
-  ).optional(),
+  ).optional().describe("Internal server error"),
   fourHundredAndFourApplicationJsonObject: z.lazy(() =>
     PostRunV1ChatCompletionsNotFoundResponseBody$zodSchema
-  ).optional(),
+  ).optional().describe("Agent or agent not found"),
   fourHundredApplicationJsonObject: z.lazy(() =>
     PostRunV1ChatCompletionsBadRequestResponseBody$zodSchema
-  ).optional(),
+  ).optional().describe("Invalid request context or parameters"),
   twoHundredTextEventStreamRes: z.string().describe(
     "Streaming chat completion response in Server-Sent Events format",
   ).optional(),

@@ -17,7 +17,9 @@ export type ProjectCreate = {
 
 export const ProjectCreate$zodSchema: z.ZodType<ProjectCreate> = z.object({
   description: z.string().nullable().optional(),
-  id: z.string(),
+  id: z.string().describe(
+    "Project identifier (lowercase alphanumeric and hyphens only)",
+  ),
   models: ProjectModel$zodSchema.nullable(),
   name: z.string(),
   stopWhen: StopWhen$zodSchema.nullable().optional(),

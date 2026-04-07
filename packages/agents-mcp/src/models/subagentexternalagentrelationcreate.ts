@@ -16,7 +16,7 @@ export const SubAgentExternalAgentRelationCreate$zodSchema: z.ZodType<
   SubAgentExternalAgentRelationCreate
 > = z.object({
   createdAt: z.string().optional(),
-  externalAgentId: z.string(),
+  externalAgentId: z.string().describe("Resource identifier"),
   headers: z.record(z.string(), z.string()).nullable().optional(),
   updatedAt: z.string().optional(),
 });
