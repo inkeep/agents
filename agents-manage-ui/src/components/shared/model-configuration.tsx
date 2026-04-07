@@ -453,8 +453,6 @@ export function ModelConfiguration<
   const isGatewayRoutable =
     GATEWAY_ROUTABLE_PROVIDERS_SET.has(modelProvider) || modelProvider === 'gateway';
 
-  const resolvedLabel = label ?? MODEL_CONFIGURATION_LABELS[slot];
-  const resolvedDescription = description ?? MODEL_CONFIGURATION_DESCRIPTIONS[slot];
   const jsonPlaceholder = getJsonPlaceholder({ model: effectiveModel, slot });
   const providerOptionsId = useId();
   return (
@@ -465,13 +463,15 @@ export function ModelConfiguration<
           onValueChange={handleModelChange}
           onProviderOptionsChange={handleProviderOptionsChange}
           inheritedValue={inheritedValue}
-          label={resolvedLabel}
+          label={label ?? MODEL_CONFIGURATION_LABELS[slot]}
           placeholder={MODEL_CONFIGURATION_PLACEHOLDERS[slot]}
           canClear={slot !== 'base'}
           isRequired={isRequired}
           disabled={disabled}
         />
-        <p className="text-xs text-muted-foreground">{resolvedDescription}</p>
+        <p className="text-xs text-muted-foreground">
+          {description ?? MODEL_CONFIGURATION_DESCRIPTIONS[slot]}
+        </p>
       </div>
 
       {effectiveModel && (
