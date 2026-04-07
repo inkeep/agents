@@ -530,7 +530,16 @@ export function ModelConfiguration<
   );
 }
 
-function MyForm({ control, name, children }: { control: any; name: string; children: ReactNode }) {
+interface MyFormProps<TFieldValues extends FieldValues, TTransformedValues extends FieldValues> {
+  control: Control<TFieldValues, unknown, TTransformedValues>;
+  name: FieldPath<TFieldValues>;
+  children: ReactNode;
+}
+
+function MyForm<
+  TFieldValues extends FieldValues,
+  TTransformedValues extends FieldValues,
+>({ control, name, children }: MyFormProps<TFieldValues, TTransformedValues>) {
   return (
     <FormField
       control={control}
