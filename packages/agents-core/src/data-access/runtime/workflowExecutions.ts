@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, lte } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { workflowExecutions } from '../../db/runtime/runtime-schema';
 import type { WorkflowExecutionInsert, WorkflowExecutionSelect } from '../../types/index';
@@ -63,6 +63,23 @@ export const getWorkflowExecutionByConversation =
       .limit(1);
 
     return (result[0] as WorkflowExecutionSelect) ?? null;
+  };
+
+export const getStaleWorkflowExecutions =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: { staleBefore: string; limit?: number }): Promise<WorkflowExecutionSelect[]> => {
+    const result = await db
+      .select()
+      .from(workflowExecutions)
+      .where(
+        and(
+          eq(workflowExecutions.status, 'suspended'),
+          lte(workflowExecutions.updatedAt, params.staleBefore)
+        )
+      )
+      .orderBy(asc(workflowExecutions.updatedAt))
+      .limit(params.limit ?? 100);
+    return result as WorkflowExecutionSelect[];
   };
 
 export const updateWorkflowExecutionStatus =

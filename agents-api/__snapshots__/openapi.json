@@ -45046,6 +45046,106 @@
         }
       }
     },
+    "/run/api/workflows/cleanup-stale": {
+      "post": {
+        "description": "Finds workflows that have been suspended longer than the configured timeout and marks them as failed.",
+        "operationId": "cleanup-stale-workflows",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "limit": {
+                    "default": 100,
+                    "description": "Maximum number of stale workflows to clean up",
+                    "exclusiveMinimum": true,
+                    "maximum": 1000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "timeoutMinutes": {
+                    "default": 30,
+                    "description": "Minutes after which a suspended workflow is considered stale",
+                    "exclusiveMinimum": true,
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "cleanedUp": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "cleanedUp"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Cleanup results"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Invalid request"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Internal server error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Clean up stale suspended workflows",
+        "tags": [
+          "Workflows"
+        ],
+        "x-authz": {
+          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
+        }
+      }
+    },
     "/run/auth/apps/{appId}/anonymous-session": {
       "post": {
         "description": "Issue an anonymous session JWT for a web_client app. If a valid Bearer token for the same app is provided, the existing anonymous identity is preserved with a fresh expiry (rolling refresh). Otherwise a new identity is created.",
