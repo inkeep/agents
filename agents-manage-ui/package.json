@@ -33,7 +33,7 @@
   "scripts": {
     "knip": "knip --directory .. --workspace agents-manage-ui --config agents-manage-ui/knip.config.ts --files --dependencies --fix-type exports --fix-type types --include exports,types",
     "dev": "next --port ${MANAGE_UI_PORT:-3000}",
-    "build:sync": "cp -r public .next/standalone/agents-manage-ui && mkdir -p .next/standalone/agents-manage-ui/.next/ && cp -r .next/static .next/standalone/agents-manage-ui/.next/static",
+    "build:sync": "if [ -f .next/standalone/public/agents/agents-manage-ui/server.js ]; then mkdir -p .next/standalone/agents-manage-ui && cp .next/standalone/public/agents/agents-manage-ui/server.js .next/standalone/agents-manage-ui/server.js && cp .next/standalone/public/agents/agents-manage-ui/package.json .next/standalone/agents-manage-ui/package.json && rm -rf .next/standalone/agents-manage-ui/node_modules .next/standalone/agents-manage-ui/.next && cp -R .next/standalone/public/agents/agents-manage-ui/node_modules .next/standalone/agents-manage-ui/node_modules && cp -R .next/standalone/public/agents/agents-manage-ui/.next .next/standalone/agents-manage-ui/.next; fi && rm -rf .next/standalone/agents-manage-ui/public .next/standalone/agents-manage-ui/.next/static && cp -R public .next/standalone/agents-manage-ui && mkdir -p .next/standalone/agents-manage-ui/.next && cp -R .next/static .next/standalone/agents-manage-ui/.next/static",
     "build": "next build && pnpm build:sync",
     "prepublishOnly": "node --experimental-strip-types scripts/append-hash-for-server-only-packages.mts",
     "start": "node .next/standalone/agents-manage-ui/server.js",
