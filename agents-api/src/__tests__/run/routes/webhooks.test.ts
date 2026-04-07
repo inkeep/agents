@@ -2042,4 +2042,96 @@ describe('Webhook Endpoint Tests', () => {
       expect(canUseProjectStrictMock).not.toHaveBeenCalled();
     });
   });
+
+  describe('Multi-user fan-out', () => {
+    it('should fan out to multiple users when trigger has multiple trigger_users', async () => {
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(testTrigger));
+      getTriggerUsersMock.mockReturnValue(
+        vi
+          .fn()
+          .mockResolvedValue([{ userId: 'user-1' }, { userId: 'user-2' }, { userId: 'user-3' }])
+      );
+
+      const createInvocationFn = vi.fn().mockResolvedValue({});
+      createTriggerInvocationMock.mockReturnValue(createInvocationFn);
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: 'hello' }),
+        }
+      );
+
+      expect(response.status).toBe(202);
+      const data = await response.json();
+      expect(data.success).toBe(true);
+      expect(data.invocations).toHaveLength(3);
+      expect(data.invocations.map((i: any) => i.runAsUserId)).toEqual([
+        'user-1',
+        'user-2',
+        'user-3',
+      ]);
+
+      expect(createInvocationFn).toHaveBeenCalledTimes(3);
+    });
+
+    it('should return success with partial invocations when some dispatches fail', async () => {
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(testTrigger));
+      getTriggerUsersMock.mockReturnValue(
+        vi
+          .fn()
+          .mockResolvedValue([{ userId: 'user-1' }, { userId: 'user-2' }, { userId: 'user-3' }])
+      );
+
+      let callCount = 0;
+      const createInvocationFn = vi.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount === 2) {
+          throw new Error('DB connection lost');
+        }
+        return {};
+      });
+      createTriggerInvocationMock.mockReturnValue(createInvocationFn);
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: 'hello' }),
+        }
+      );
+
+      expect(response.status).toBe(202);
+      const data = await response.json();
+      expect(data.success).toBe(true);
+      expect(data.invocations).toHaveLength(2);
+    });
+
+    it('should return 500 when all dispatches fail', async () => {
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(testTrigger));
+      getTriggerUsersMock.mockReturnValue(
+        vi.fn().mockResolvedValue([{ userId: 'user-1' }, { userId: 'user-2' }])
+      );
+
+      createTriggerInvocationMock.mockReturnValue(
+        vi.fn().mockRejectedValue(new Error('DB unavailable'))
+      );
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: 'hello' }),
+        }
+      );
+
+      expect(response.status).toBe(500);
+      const data = await response.json();
+      expect(data.error).toContain('All dispatch executions failed');
+    });
+  });
 });

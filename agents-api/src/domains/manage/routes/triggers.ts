@@ -1,6 +1,7 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   AddTriggerUserRequestSchema,
+  canUseProjectStrict,
   commonGetErrorResponses,
   createApiError,
   createTriggerUser,
@@ -1413,6 +1414,14 @@ app.openapi(
       throw createApiError({
         code: 'bad_request',
         message: 'runAsUserId is not associated with this trigger',
+      });
+    }
+
+    const callerCanUse = await canUseProjectStrict({ userId: callerId, tenantId, projectId });
+    if (!callerCanUse) {
+      throw createApiError({
+        code: 'forbidden',
+        message: 'You no longer have permission to use this project',
       });
     }
 

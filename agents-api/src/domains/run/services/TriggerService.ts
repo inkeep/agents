@@ -183,7 +183,10 @@ export async function processWebhook(params: TriggerWebhookParams): Promise<Trig
             logger.error(
               {
                 runAsUserId,
-                error: error instanceof Error ? error.message : String(error),
+                error:
+                  error instanceof Error
+                    ? { message: error.message, stack: error.stack }
+                    : String(error),
               },
               'Failed to dispatch trigger execution for user'
             );
@@ -192,6 +195,14 @@ export async function processWebhook(params: TriggerWebhookParams): Promise<Trig
         })
       )
     ).filter((invocation): invocation is NonNullable<typeof invocation> => invocation !== null);
+
+    if (invocations.length === 0) {
+      return {
+        success: false,
+        error: 'All dispatch executions failed',
+        status: 500 as const,
+      };
+    }
 
     return { success: true, invocations };
   });

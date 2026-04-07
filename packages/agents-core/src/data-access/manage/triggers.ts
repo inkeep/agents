@@ -238,28 +238,27 @@ export const deleteTriggerUser =
 export const setTriggerUsers =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig; triggerId: string; userIds: string[] }) => {
-    await db.transaction(async (tx) => {
-      await tx
-        .delete(triggerUsers)
-        .where(
-          and(
-            agentScopedWhere(triggerUsers, params.scopes),
-            eq(triggerUsers.triggerId, params.triggerId)
-          )
-        );
+    // Expects caller to provide transaction context
+    await db
+      .delete(triggerUsers)
+      .where(
+        and(
+          agentScopedWhere(triggerUsers, params.scopes),
+          eq(triggerUsers.triggerId, params.triggerId)
+        )
+      );
 
-      if (params.userIds.length > 0) {
-        await tx.insert(triggerUsers).values(
-          params.userIds.map((userId) => ({
-            tenantId: params.scopes.tenantId,
-            projectId: params.scopes.projectId,
-            agentId: params.scopes.agentId,
-            triggerId: params.triggerId,
-            userId,
-          }))
-        );
-      }
-    });
+    if (params.userIds.length > 0) {
+      await db.insert(triggerUsers).values(
+        params.userIds.map((userId) => ({
+          tenantId: params.scopes.tenantId,
+          projectId: params.scopes.projectId,
+          agentId: params.scopes.agentId,
+          triggerId: params.triggerId,
+          userId,
+        }))
+      );
+    }
   };
 
 export const getTriggerUserCount =
