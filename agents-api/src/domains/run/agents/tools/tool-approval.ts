@@ -47,6 +47,35 @@ export async function waitForToolApproval(
         delete approvedToolCalls[toolName];
       }
       if (preApproved !== undefined) {
+        if (preApproved.originalToolCallId && preApproved.originalToolCallId !== toolCallId) {
+          const deniedResult = tracer.startActiveSpan(
+            'tool.approval_denied',
+            {
+              attributes: {
+                ...baseSpanAttributes,
+                'tool.approval.reason': 'originalToolCallId mismatch',
+                'tool.approval.originalToolCallId': preApproved.originalToolCallId,
+              },
+            },
+            (denialSpan: Span) => {
+              logger.warn(
+                {
+                  toolName,
+                  toolCallId,
+                  originalToolCallId: preApproved.originalToolCallId,
+                },
+                'Durable approval rejected: originalToolCallId mismatch — tool call may have changed since approval'
+              );
+              denialSpan.setStatus({ code: SpanStatusCode.OK });
+              denialSpan.end();
+              return createDeniedToolResult(
+                toolCallId,
+                'Tool approval rejected: the tool call changed since it was approved.'
+              );
+            }
+          );
+          return { approved: false, deniedResult };
+        }
         if (!preApproved.approved) {
           const deniedResult = tracer.startActiveSpan(
             'tool.approval_denied',
