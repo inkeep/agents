@@ -106,6 +106,40 @@ When a tool with approval enabled is invoked:
 4. If approved, the tool executes and the agent continues
 5. If denied, the agent receives a human-readable denial reason string (or a default message if no reason was provided), allowing it to understand why the request was denied and adapt its behavior (for example, trying a different approach or asking a clarifying question)
 
+## Recovering pending approvals
+
+If the SSE stream disconnects — due to network issues, a page reload, or a client crash — the `tool-approval-request` event may never reach the UI. The approval state is persisted server-side, so your client can recover it by polling a dedicated endpoint.
+
+### Endpoint
+
+`GET /run/v1/conversations/{conversationId}/pending-approvals`
+
+This returns whether a pending tool approval exists for the conversation and, if so, the full approval details.
+
+### Response shape
+
+```json
+{
+  "hasPending": true,
+  "approval": {
+    "toolCallId": "call_abc123def456",
+    "toolName": "delete_record",
+    "args": { "recordId": "rec_789" },
+    "isDelegated": false,
+    "workflowRunId": "wfr_xyz",
+    "suspendedAt": "2026-04-07T22:45:00.000Z"
+  }
+}
+```
+
+When no approval is pending, the response is `{ "hasPending": false }`.
+
+### When to poll
+
+- **On page load** — check for any approval the user missed while away
+- **After SSE reconnection** — recover approval state lost during a stream failure
+- **Periodic polling** — as a fallback if your client doesn't maintain a persistent SSE connection
+
 ## Best practices
 
 - **Enable approval for destructive operations**: Tools that delete data, modify configurations, or make irreversible changes should require approval
