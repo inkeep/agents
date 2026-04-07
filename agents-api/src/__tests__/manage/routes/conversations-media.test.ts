@@ -18,7 +18,9 @@ vi.mock('../../../logger', () => ({
     debug: vi.fn(),
     warn: vi.fn(),
     error: loggerErrorMock,
+    with: vi.fn().mockReturnThis(),
   }),
+  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
 }));
 
 vi.mock('../../../middleware/projectAccess', () => ({

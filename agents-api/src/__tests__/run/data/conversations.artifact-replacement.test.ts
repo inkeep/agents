@@ -13,7 +13,14 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
 vi.mock('../../../data/db/runDbClient', () => ({ default: {} }));
 
 vi.mock('../../../logger', () => ({
-  getLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
+  getLogger: () => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    with: vi.fn().mockReturnThis(),
+  }),
+  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
 }));
 
 vi.mock('../../../domains/run/compression/ConversationCompressor', () => ({
