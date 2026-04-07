@@ -9,12 +9,14 @@ interface AzureConfigurationSectionProps {
 }
 
 export function AzureConfigurationSection({
-  providerOptions = {},
+  providerOptions,
   onProviderOptionsChange,
   disabled = false,
 }: AzureConfigurationSectionProps) {
   const providerOptionsObj =
-    typeof providerOptions === 'object' ? providerOptions : JSON.parse(providerOptions);
+    providerOptions && typeof providerOptions === 'string'
+      ? JSON.parse(providerOptions)
+      : providerOptions;
 
   const handleFieldChange = (field: string, value: string) => {
     const updatedOptions = {
