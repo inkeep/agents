@@ -139,6 +139,29 @@ while IFS= read -r row; do
   esac
 done < <(jq -rc '.[]' <<< "${PR_ENVIRONMENTS_JSON}")
 
+PARKED_ENVIRONMENTS_JSON="$(jq -c '[.[] | select(.name | test("^pr-[0-9]+-parked-"))]' <<< "${ENVIRONMENTS_JSON}")"
+PARKED_COUNT="$(jq 'length' <<< "${PARKED_ENVIRONMENTS_JSON}")"
+
+if [ "${PARKED_COUNT}" -gt 0 ]; then
+  preview_log "Found ${PARKED_COUNT} parked environment(s) from transactional recreates."
+  while IFS= read -r row; do
+    [ -z "${row}" ] && continue
+    env_id="$(jq -r '.id' <<< "${row}")"
+    env_name="$(jq -r '.name' <<< "${row}")"
+    stale_targets=$((stale_targets + 1))
+    if [ "${DRY_RUN}" = "true" ]; then
+      preview_log "[dry-run] Would delete parked environment ${env_name}."
+    else
+      if ! delete_env_and_verify "${env_id}" "${env_name}"; then
+        deletion_failures=$((deletion_failures + 1))
+      else
+        deleted=$((deleted + 1))
+        deleted_names+=("${env_name}")
+      fi
+    fi
+  done < <(jq -rc '.[]' <<< "${PARKED_ENVIRONMENTS_JSON}")
+fi
+
 if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
   {
     echo "## Railway Preview Janitor"

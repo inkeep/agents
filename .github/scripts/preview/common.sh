@@ -444,6 +444,8 @@ railway_wait_for_service_deployment_ready() {
   local service_name="$3"
   local max_attempts="${4:-15}"
   local sleep_seconds="${5:-4}"
+  local max_redeploys="${6:-0}"
+  local redeploy_count=0
   local attempt=""
   local env_id=""
   local service_id=""
@@ -481,6 +483,18 @@ railway_wait_for_service_deployment_ready() {
         return 0
         ;;
       FAILED|CRASHED|REMOVED)
+        if [ "${max_redeploys}" -gt 0 ] && [ "${redeploy_count}" -lt "${max_redeploys}" ]; then
+          redeploy_count=$((redeploy_count + 1))
+          preview_log "Deployment for ${service_name} in ${env_name} is ${deployment_status}${deployment_id:+ (${deployment_id})}; auto-redeploy ${redeploy_count}/${max_redeploys}."
+          if railway_service_instance_redeploy "${env_id}" "${service_id}" >/dev/null 2>&1; then
+            preview_log "Redeploy triggered for ${service_name} in ${env_name}; restarting wait loop."
+            attempt=0
+            sleep_with_jitter "${sleep_seconds}"
+            continue
+          else
+            preview_log "Auto-redeploy API call failed for ${service_name} in ${env_name}."
+          fi
+        fi
         echo "Railway deployment for ${service_name} in ${env_name} entered terminal status ${deployment_status}${deployment_id:+ (${deployment_id})}." >&2
         return 1
         ;;
@@ -500,6 +514,48 @@ railway_wait_for_service_deployment_ready() {
 
   echo "Railway deployment for ${service_name} in ${env_name} was not ready after ${max_attempts} attempts. Last observed status: ${deployment_status:-none}${deployment_id:+ (${deployment_id})}." >&2
   return 1
+}
+
+railway_service_instance_redeploy() {
+  local environment_id="$1"
+  local service_id="$2"
+  local variables_json=""
+  local response=""
+
+  variables_json="$(jq -nc \
+    --arg environment_id "${environment_id}" \
+    --arg service_id "${service_id}" \
+    '{environmentId: $environment_id, serviceId: $service_id}')"
+
+  response="$(
+    railway_graphql 'mutation($environmentId: String!, $serviceId: String!) {
+  serviceInstanceRedeploy(environmentId: $environmentId, serviceId: $serviceId)
+}' "${variables_json}"
+  )"
+  railway_require_graphql_success "${response}" "GraphQL error redeploying Railway service instance" || return 1
+
+  printf '%s' "${response}"
+}
+
+railway_environment_rename() {
+  local environment_id="$1"
+  local new_name="$2"
+  local variables_json=""
+  local response=""
+
+  variables_json="$(jq -nc \
+    --arg id "${environment_id}" \
+    --arg name "${new_name}" \
+    '{id: $id, input: {name: $name}}')"
+
+  response="$(
+    railway_graphql 'mutation($id: String!, $input: EnvironmentRenameInput!) {
+  environmentRename(id: $id, input: $input) { id name }
+}' "${variables_json}"
+  )"
+  railway_require_graphql_success "${response}" "GraphQL error renaming Railway environment" || return 1
+
+  printf '%s' "${response}"
 }
 
 railway_ensure_tcp_proxy() {

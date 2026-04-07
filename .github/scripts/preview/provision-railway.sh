@@ -87,14 +87,55 @@ create_preview_environment() {
   return 1
 }
 
+transactional_recreate_environment() {
+  local existing_env_id="$1"
+  local parked_name="${RAILWAY_ENV_NAME}-parked-$(date +%s)"
+
+  preview_log "Transactional recreate: renaming ${RAILWAY_ENV_NAME} to ${parked_name}."
+  if ! railway_environment_rename "${existing_env_id}" "${parked_name}" >/dev/null; then
+    echo "Failed to rename ${RAILWAY_ENV_NAME}; aborting recreate." >&2
+    return 1
+  fi
+
+  railway_wait_for_environment_absent "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" 10 2 || true
+
+  preview_log "Transactional recreate: creating fresh ${RAILWAY_ENV_NAME} from ${RAILWAY_TEMPLATE_ENVIRONMENT}."
+  if create_preview_environment && \
+     railway_wait_for_environment_id "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" 20 4 >/dev/null; then
+    preview_log "Fresh ${RAILWAY_ENV_NAME} is live; deleting parked ${parked_name}."
+    railway_environment_delete_by_id "${existing_env_id}" >/dev/null 2>&1 || \
+      preview_log "Warning: failed to delete ${parked_name}; janitor will clean it up."
+    return 0
+  fi
+
+  preview_log "Transactional recreate FAILED. Rolling back."
+  local partial_env_id=""
+  partial_env_id="$(railway_environment_id "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}")"
+  if [ -n "${partial_env_id}" ] && [ "${partial_env_id}" != "${existing_env_id}" ]; then
+    railway_environment_delete_by_id "${partial_env_id}" >/dev/null 2>&1 || true
+    railway_wait_for_environment_absent "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" 10 2 || true
+  fi
+
+  if railway_environment_rename "${existing_env_id}" "${RAILWAY_ENV_NAME}" >/dev/null; then
+    preview_log "Rollback succeeded: ${parked_name} restored to ${RAILWAY_ENV_NAME}."
+    return 0
+  fi
+
+  echo "CRITICAL: recreate failed and rollback rename failed. Env exists as ${parked_name}. Manual intervention required." >&2
+  return 1
+}
+
 ENV_EXISTS="$(railway_env_exists_count "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}")"
 
 if [ "${RECREATE_PREVIEW_ENV}" = "true" ] && [ "${ENV_EXISTS}" != "0" ]; then
-  preview_log "Manual recreate requested for ${RAILWAY_ENV_NAME}; deleting the existing Railway environment first."
+  preview_log "Recreate requested for ${RAILWAY_ENV_NAME}; using transactional rename-park-create."
   EXISTING_ENV_ID="$(railway_wait_for_environment_id "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" 10 2)"
-  railway_environment_delete_by_id "${EXISTING_ENV_ID}" >/dev/null
-  railway_wait_for_environment_absent "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" 20 3
-  ENV_EXISTS="0"
+  if transactional_recreate_environment "${EXISTING_ENV_ID}"; then
+    ENV_EXISTS="$(railway_env_exists_count "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}")"
+  else
+    echo "Transactional recreate of ${RAILWAY_ENV_NAME} failed." >&2
+    exit 1
+  fi
 fi
 
 if [ "${ENV_EXISTS}" = "0" ]; then
