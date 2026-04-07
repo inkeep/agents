@@ -2,14 +2,28 @@
 
 import { generateId } from '../../src/lib/utils/id-utils';
 
-function dragNode(selector: string) {
+function dragNode(selector: string, nodeType: string) {
   const dataTransfer = new DataTransfer();
-  cy.get(selector).trigger('dragstart', { dataTransfer, force: true });
+  dataTransfer.setData('application/reactflow', JSON.stringify({ type: nodeType }));
+  dataTransfer.effectAllowed = 'move';
 
-  cy.get('.react-flow__node-agent')
-    .eq(0)
-    .trigger('dragover', { dataTransfer, force: true })
-    .trigger('drop', { dataTransfer, force: true });
+  cy.get(selector).should('be.visible').trigger('dragstart', { dataTransfer, force: true });
+  cy.get('.react-flow__node-agent', { timeout: 20_000 }).should('have.length.at.least', 1);
+
+  // New nodes are created by ReactFlow's canvas-level onDrop handler, not by
+  // dropping onto an existing node element. Drop into a known-empty region
+  // instead of the pane center, which is already occupied on existing-agent
+  // pages and can make the drop flaky.
+  cy.get('.react-flow__pane').then(($pane) => {
+    const rect = $pane[0].getBoundingClientRect();
+    const clientX = Math.min(rect.left + 240, rect.right - 80);
+    const clientY = Math.min(rect.top + 200, rect.bottom - 80);
+
+    cy.wrap($pane)
+      .trigger('dragenter', { dataTransfer, clientX, clientY, force: true })
+      .trigger('dragover', { dataTransfer, clientX, clientY, force: true })
+      .trigger('drop', { dataTransfer, clientX, clientY, force: true });
+  });
 }
 
 function selectFunctionToolNode() {
@@ -36,7 +50,7 @@ describe('Agent Tools', () => {
     cy.url({ timeout: 30_000 }).should('include', '/agents/');
     cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 1);
 
-    dragNode('[aria-label="Drag Function Tool node"]');
+    dragNode('[aria-label="Drag Function Tool node"]', 'function-tool');
     cy.get('.react-flow__node', { timeout: 20_000 }).should('have.length', 2);
     selectFunctionToolNode();
     connectEdge('[data-handleid="target-function-tool"]');
@@ -74,7 +88,7 @@ describe('Agent Tools', () => {
       const uri = 'code.jsx';
 
       cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent');
-      dragNode('[aria-label="Drag Function Tool node"]');
+      dragNode('[aria-label="Drag Function Tool node"]', 'function-tool');
       cy.get('.react-flow__node-function-tool', { timeout: 20_000 }).should(
         'have.length.at.least',
         1
