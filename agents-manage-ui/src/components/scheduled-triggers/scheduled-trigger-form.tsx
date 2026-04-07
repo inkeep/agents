@@ -182,11 +182,9 @@ export function ScheduledTriggerForm({
   });
 
   const { isSubmitting } = form.formState;
-  const scheduleType = useWatch({ control: form.control, name: 'scheduleType' });
-  const cronTimezone = useWatch({
+  const [scheduleType, cronTimezone = 'UTC'] = useWatch({
     control: form.control,
-    name: 'cronTimezone',
-    defaultValue: 'UTC',
+    name: ['scheduleType', 'cronTimezone'],
   });
 
   useEffect(() => {

@@ -46,6 +46,7 @@ import {
   datasetRunConversationRelations,
   evaluationResult,
   evaluationRun,
+  feedback,
   ledgerArtifacts,
   messages,
   projectMetadata,
@@ -97,6 +98,7 @@ import {
   omitTimestamps,
   PaginationQueryParamsSchema,
   PaginationSchema,
+  ProjectResourceIdSchema,
   ResourceIdSchema,
   StringRecordSchema,
 } from './schemas/shared';
@@ -1219,6 +1221,24 @@ export const MessageApiInsertSchema =
   createApiInsertSchema(MessageInsertSchema).openapi('MessageCreate');
 export const MessageApiUpdateSchema =
   createApiUpdateSchema(MessageUpdateSchema).openapi('MessageUpdate');
+
+export const FeedbackSelectSchema = createSelectSchema(feedback);
+export const FeedbackInsertSchema = createInsertSchema(feedback).extend({
+  id: ResourceIdSchema,
+  conversationId: ResourceIdSchema,
+  messageId: ResourceIdSchema.optional(),
+  type: z.enum(['positive', 'negative']),
+  details: z.string().nullable().optional(),
+});
+export const FeedbackUpdateSchema = FeedbackInsertSchema.partial();
+
+export const FeedbackApiSelectSchema = createApiSchema(FeedbackSelectSchema).openapi('Feedback');
+export const FeedbackApiInsertSchema = createApiInsertSchema(FeedbackInsertSchema)
+  .extend({ id: ResourceIdSchema.optional() })
+  .openapi('FeedbackCreate');
+export const FeedbackApiUpdateSchema = createApiUpdateSchema(FeedbackUpdateSchema)
+  .omit({ conversationId: true, messageId: true, id: true })
+  .openapi('FeedbackUpdate');
 
 export const ContextCacheSelectSchema = createSelectSchema(contextCache).extend({
   ref: ResolvedRefSchema.nullable().optional(),
@@ -2552,6 +2572,7 @@ export const ProjectSelectSchema = registerFieldSchemas(
 );
 export const ProjectInsertSchema = createInsertSchema(projects)
   .extend({
+    id: ProjectResourceIdSchema,
     models: ProjectModelSchema,
     stopWhen: StopWhenSchema.optional(),
   })
@@ -2707,6 +2728,9 @@ export const TriggerResponse = z
 export const TriggerInvocationResponse = z
   .object({ data: TriggerInvocationApiSelectSchema })
   .openapi('TriggerInvocationResponse');
+export const FeedbackResponse = z
+  .object({ data: FeedbackApiSelectSchema })
+  .openapi('FeedbackResponse');
 
 export const ProjectListResponse = z
   .object({
@@ -2775,6 +2799,17 @@ export const SubAgentFunctionToolRelationListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('SubAgentFunctionToolRelationListResponse');
+
+const FeedbackListItemSchema = FeedbackApiSelectSchema.extend({
+  agentId: z.string().nullable().optional(),
+});
+
+export const FeedbackListResponse = z
+  .object({
+    data: z.array(FeedbackListItemSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('FeedbackListResponse');
 
 export const DataComponentListResponse = z
   .object({
@@ -2970,7 +3005,7 @@ export const HeadersScopeSchema = z.object({
   }),
   'x-inkeep-project-id': z.string().optional().openapi({
     description: 'Project identifier',
-    example: 'project_456',
+    example: 'project-456',
   }),
   'x-inkeep-agent-id': z.string().optional().openapi({
     description: 'Agent identifier',
@@ -2987,13 +3022,13 @@ const TenantId = z.string().openapi('TenantIdPathParam', {
   example: 'tenant_123',
 });
 
-const ProjectId = z.string().openapi('ProjectIdPathParam', {
+const ProjectId = ProjectResourceIdSchema.openapi('ProjectIdPathParam', {
   param: {
     name: 'projectId',
     in: 'path',
   },
   description: 'Project identifier',
-  example: 'project_456',
+  example: 'project-456',
 });
 
 const AgentId = z.string().openapi('AgentIdPathParam', {

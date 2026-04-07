@@ -4598,6 +4598,146 @@
         },
         "type": "object"
       },
+      "Feedback": {
+        "properties": {
+          "conversationId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "details": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "messageId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "type": {
+            "maxLength": 20,
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "conversationId",
+          "messageId",
+          "type",
+          "details",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "FeedbackCreate": {
+        "properties": {
+          "conversationId": {
+            "$ref": "#/components/schemas/ResourceId"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "details": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "$ref": "#/components/schemas/ResourceId"
+          },
+          "messageId": {
+            "$ref": "#/components/schemas/ResourceId"
+          },
+          "type": {
+            "enum": [
+              "positive",
+              "negative"
+            ],
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversationId",
+          "type"
+        ],
+        "type": "object"
+      },
+      "FeedbackListResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Feedback"
+                },
+                {
+                  "properties": {
+                    "agentId": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "type": "object"
+      },
+      "FeedbackResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Feedback"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "FeedbackUpdate": {
+        "properties": {
+          "createdAt": {
+            "type": "string"
+          },
+          "details": {
+            "nullable": true,
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "positive",
+              "negative"
+            ],
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "FilePart": {
         "properties": {
           "file": {
@@ -6540,8 +6680,7 @@
             "type": "string"
           },
           "id": {
-            "maxLength": 256,
-            "type": "string"
+            "$ref": "#/components/schemas/ProjectResourceId"
           },
           "models": {
             "$ref": "#/components/schemas/ProjectModel"
@@ -6563,7 +6702,10 @@
       },
       "ProjectIdPathParam": {
         "description": "Project identifier",
-        "example": "project_456",
+        "example": "project-456",
+        "maxLength": 255,
+        "minLength": 1,
+        "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
         "type": "string"
       },
       "ProjectListResponse": {
@@ -6601,6 +6743,14 @@
           "base"
         ],
         "type": "object"
+      },
+      "ProjectResourceId": {
+        "description": "Project identifier (lowercase alphanumeric and hyphens only)",
+        "example": "my-project-123",
+        "maxLength": 255,
+        "minLength": 1,
+        "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+        "type": "string"
       },
       "ProjectResponse": {
         "properties": {
@@ -38485,6 +38635,658 @@
         }
       }
     },
+    "/manage/tenants/{tenantId}/projects/{projectId}/feedback": {
+      "get": {
+        "description": "List feedback for a project, optionally filtered by conversation or message",
+        "operationId": "list-feedback",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationPageQueryParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationLimitQueryParam"
+            }
+          },
+          {
+            "description": "Optionally filter by conversation ID",
+            "in": "query",
+            "name": "conversationId",
+            "required": false,
+            "schema": {
+              "description": "Optionally filter by conversation ID",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optionally filter by message ID",
+            "in": "query",
+            "name": "messageId",
+            "required": false,
+            "schema": {
+              "description": "Optionally filter by message ID",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optionally filter by agent ID",
+            "in": "query",
+            "name": "agentId",
+            "required": false,
+            "schema": {
+              "description": "Optionally filter by agent ID",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optionally filter by feedback type",
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "description": "Optionally filter by feedback type",
+              "enum": [
+                "positive",
+                "negative"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter feedback created on or after this date (YYYY-MM-DD)",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "description": "Filter feedback created on or after this date (YYYY-MM-DD)",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter feedback created on or before this date (YYYY-MM-DD)",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "description": "Filter feedback created on or before this date (YYYY-MM-DD)",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackListResponse"
+                }
+              }
+            },
+            "description": "List of feedback retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Feedback",
+        "tags": [
+          "Feedback"
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
+      },
+      "post": {
+        "description": "Create a new feedback entry for a conversation or message",
+        "operationId": "create-feedback",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackResponse"
+                }
+              }
+            },
+            "description": "Feedback created successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Create Feedback",
+        "tags": [
+          "Feedback"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/feedback/{id}": {
+      "delete": {
+        "description": "Delete a feedback entry",
+        "operationId": "delete-feedback",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Feedback deleted successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Delete Feedback",
+        "tags": [
+          "Feedback"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      },
+      "get": {
+        "description": "Get a specific feedback entry by ID",
+        "operationId": "get-feedback-by-id",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackResponse"
+                }
+              }
+            },
+            "description": "Feedback found"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get Feedback",
+        "tags": [
+          "Feedback"
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
+      },
+      "patch": {
+        "description": "Update an existing feedback entry",
+        "operationId": "update-feedback",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackResponse"
+                }
+              }
+            },
+            "description": "Feedback updated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Feedback",
+        "tags": [
+          "Feedback"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      }
+    },
     "/manage/tenants/{tenantId}/projects/{projectId}/functions": {
       "get": {
         "operationId": "list-functions",
@@ -43375,7 +44177,7 @@
             "required": false,
             "schema": {
               "description": "Project identifier",
-              "example": "project_456",
+              "example": "project-456",
               "type": "string"
             }
           },
@@ -44003,7 +44805,7 @@
         }
       }
     },
-    "/run/api/executions/:executionId": {
+    "/run/api/executions/{executionId}": {
       "get": {
         "description": "Returns the status of a durable execution.",
         "parameters": [
@@ -44094,7 +44896,7 @@
         }
       }
     },
-    "/run/api/executions/:executionId/approvals/:toolCallId": {
+    "/run/api/executions/{executionId}/approvals/{toolCallId}": {
       "post": {
         "description": "Resumes a suspended durable execution by approving or denying a pending tool call.",
         "parameters": [
@@ -44187,7 +44989,7 @@
         }
       }
     },
-    "/run/api/executions/:executionId/stream": {
+    "/run/api/executions/{executionId}/stream": {
       "get": {
         "description": "Reconnects to the SSE stream of an existing durable execution.",
         "parameters": [
@@ -45316,6 +46118,95 @@
         }
       }
     },
+    "/run/v1/feedback": {
+      "post": {
+        "description": "Submit feedback for a conversation or message.",
+        "operationId": "submit-end-user-feedback",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackResponse"
+                }
+              }
+            },
+            "description": "Feedback submitted successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Submit Feedback",
+        "tags": [
+          "Feedback"
+        ],
+        "x-authz": {
+          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
+        }
+      }
+    },
     "/run/v1/mcp": {
       "post": {
         "description": "Handles Model Context Protocol (MCP) JSON-RPC requests",
@@ -45338,7 +46229,7 @@
             "required": false,
             "schema": {
               "description": "Project identifier",
-              "example": "project_456",
+              "example": "project-456",
               "type": "string"
             }
           },
@@ -47173,6 +48064,10 @@
     {
       "description": "Operations for managing external agents",
       "name": "External Agents"
+    },
+    {
+      "description": "Operations for managing feedback",
+      "name": "Feedback"
     },
     {
       "description": "Operations for managing function tools",

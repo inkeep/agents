@@ -191,6 +191,56 @@ describe('Project Lifecycle Utilities', () => {
       expect(project).toBeNull();
     });
 
+    it('should not delete branches belonging to other projects with similar names', async () => {
+      const mockConfigDb = {} as any;
+
+      await createProjectMetadata(testRunDbClient)({
+        id: 'foo',
+        tenantId: testTenantId,
+        mainBranchName: `${testTenantId}_foo_main`,
+      });
+
+      await createProjectMetadata(testRunDbClient)({
+        id: 'foo-bar',
+        tenantId: testTenantId,
+        mainBranchName: `${testTenantId}_foo-bar_main`,
+      });
+
+      const mockDoltListBranchesFn = vi
+        .fn()
+        .mockResolvedValue([
+          { name: `${testTenantId}_foo_main` },
+          { name: `${testTenantId}_foo-bar_main` },
+        ]);
+      mockedDoltListBranches.mockReturnValue(mockDoltListBranchesFn);
+
+      const mockDoltDeleteBranchFn = vi.fn().mockResolvedValue(undefined);
+      mockedDoltDeleteBranch.mockReturnValue(mockDoltDeleteBranchFn);
+
+      const mockDoltCheckoutFn = vi.fn().mockResolvedValue(undefined);
+      mockedDoltCheckout.mockReturnValue(mockDoltCheckoutFn);
+
+      await deleteProjectAndBranches(
+        testRunDbClient,
+        mockConfigDb
+      )({
+        tenantId: testTenantId,
+        projectId: 'foo',
+      });
+
+      expect(mockDoltDeleteBranchFn).toHaveBeenCalledTimes(1);
+      expect(mockDoltDeleteBranchFn).toHaveBeenCalledWith({
+        name: `${testTenantId}_foo_main`,
+        force: true,
+      });
+
+      const otherProject = await getProjectMetadata(testRunDbClient)({
+        tenantId: testTenantId,
+        projectId: 'foo-bar',
+      });
+      expect(otherProject).not.toBeNull();
+    });
+
     it('should return false for non-existent project', async () => {
       const mockConfigDb = {} as any;
 
@@ -231,7 +281,6 @@ describe('Project Lifecycle Utilities', () => {
       const mockDoltCheckoutFn = vi.fn().mockResolvedValue(undefined);
       mockedDoltCheckout.mockReturnValue(mockDoltCheckoutFn);
 
-      // Should not throw, but continue with cleanup
       const result = await deleteProjectAndBranches(
         testRunDbClient,
         mockConfigDb
@@ -242,7 +291,6 @@ describe('Project Lifecycle Utilities', () => {
 
       expect(result).toBe(true);
 
-      // Verify project was still deleted from runtime DB
       const project = await getProjectMetadata(testRunDbClient)({
         tenantId: testTenantId,
         projectId: 'branch-fail-project',

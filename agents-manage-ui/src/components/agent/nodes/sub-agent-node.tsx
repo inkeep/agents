@@ -52,10 +52,11 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
   const status = getNodeStatus(data);
   const { control } = useFullAgentFormContext();
   const formKey = `subAgents.${id}` as const;
-  const subAgent = useWatch({ control, name: formKey });
+  const [subAgent, defaultSubAgentNodeId, agentModel] = useWatch({
+    control,
+    name: [formKey, 'defaultSubAgentNodeId', 'models'],
+  });
   const processedErrors = useProcessedErrors('subAgents', id);
-  const defaultSubAgentNodeId = useWatch({ control, name: 'defaultSubAgentNodeId' });
-  const agentModel = useWatch({ control, name: 'models' });
   const { data: project } = useProjectQuery();
   const { data: artifactComponents } = useArtifactComponentsQuery();
   const { data: dataComponents } = useDataComponentsQuery();
@@ -136,10 +137,12 @@ export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNo
         <div className="text-sm text-muted-foreground">
           {description || <i className="text-muted-foreground/50">No description</i>}
         </div>
-        <Badge className="text-xs max-w-full" variant="code">
-          {ModelIcon && <ModelIcon className="size-3 shrink-0" />}
-          <span className="truncate">{modelName}</span> {inheritedFrom && '(inherited)'}
-        </Badge>
+        {modelName && (
+          <Badge className="text-xs max-w-full" variant="code">
+            {ModelIcon && <ModelIcon className="size-3 shrink-0" />}
+            <span className="truncate">{modelName}</span> {inheritedFrom && '(inherited)'}
+          </Badge>
+        )}
         {dataComponentNames?.length > 0 && (
           <ListSection
             title={STATIC_LABELS.components}

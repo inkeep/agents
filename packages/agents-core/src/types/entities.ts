@@ -129,6 +129,9 @@ import type {
   ExternalAgentUpdateSchema,
   ExternalSubAgentRelationApiInsertSchema,
   ExternalSubAgentRelationInsertSchema,
+  FeedbackInsertSchema,
+  FeedbackSelectSchema,
+  FeedbackUpdateSchema,
   FetchConfigSchema,
   FetchDefinitionSchema,
   FullAgentAgentInsertSchema,
@@ -292,6 +295,10 @@ import type {
   WorkflowExecutionSelectSchema,
   WorkflowExecutionUpdateSchema,
 } from '../validation';
+
+export type FeedbackSelect = z.infer<typeof FeedbackSelectSchema>;
+export type FeedbackInsert = z.infer<typeof FeedbackInsertSchema>;
+export type FeedbackUpdate = z.infer<typeof FeedbackUpdateSchema>;
 
 export type DatasetRunSelect = z.infer<typeof DatasetRunSelectSchema>;
 export type DatasetRunInsert = z.infer<typeof DatasetRunInsertSchema>;
