@@ -644,7 +644,131 @@
               },
               "triggers": {
                 "additionalProperties": {
-                  "$ref": "#/components/schemas/TriggerCreate"
+                  "properties": {
+                    "authentication": {
+                      "$ref": "#/components/schemas/TriggerAuthenticationInput"
+                    },
+                    "createdBy": {
+                      "description": "User ID of the user who created this trigger",
+                      "example": "user_123",
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "description": {
+                      "description": "Trigger description",
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "dispatchDelayMs": {
+                      "description": "Delay in ms between dispatching each user execution (0-600000)",
+                      "maximum": 600000,
+                      "minimum": 0,
+                      "nullable": true,
+                      "type": "integer"
+                    },
+                    "enabled": {
+                      "default": true,
+                      "description": "Whether the trigger is enabled",
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "$ref": "#/components/schemas/ResourceId"
+                    },
+                    "inputSchema": {
+                      "additionalProperties": {
+                        "nullable": true
+                      },
+                      "description": "JSON Schema for input validation",
+                      "nullable": true,
+                      "type": "object"
+                    },
+                    "messageTemplate": {
+                      "description": "Message template with {{placeholder}} syntax",
+                      "minLength": 1,
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "name": {
+                      "description": "Trigger name",
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "outputTransform": {
+                      "$ref": "#/components/schemas/TriggerOutputTransform"
+                    },
+                    "runAsUserId": {
+                      "description": "User ID to run the webhook as",
+                      "example": "user_123",
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "runAsUserIds": {
+                      "description": "Array of user IDs to run this trigger as (multi-user)",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "signatureVerification": {
+                      "description": "Configuration for webhook signature verification",
+                      "nullable": true,
+                      "properties": {
+                        "algorithm": {
+                          "description": "HMAC algorithm to use for signature verification",
+                          "enum": [
+                            "sha256",
+                            "sha512",
+                            "sha384",
+                            "sha1",
+                            "md5"
+                          ],
+                          "type": "string"
+                        },
+                        "componentJoin": {
+                          "$ref": "#/components/schemas/ComponentJoin"
+                        },
+                        "encoding": {
+                          "description": "Encoding format of the signature (hex or base64)",
+                          "enum": [
+                            "hex",
+                            "base64"
+                          ],
+                          "type": "string"
+                        },
+                        "signature": {
+                          "$ref": "#/components/schemas/SignatureSource"
+                        },
+                        "signedComponents": {
+                          "description": "Array of components that are signed (order matters)",
+                          "items": {
+                            "$ref": "#/components/schemas/SignedComponent"
+                          },
+                          "minItems": 1,
+                          "type": "array"
+                        },
+                        "validation": {
+                          "$ref": "#/components/schemas/SignatureValidationOptions"
+                        }
+                      },
+                      "required": [
+                        "algorithm",
+                        "encoding",
+                        "signature",
+                        "signedComponents",
+                        "componentJoin"
+                      ],
+                      "type": "object"
+                    },
+                    "signingSecretCredentialReferenceId": {
+                      "description": "Reference to credential containing signing secret",
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "type": "object"
                 },
                 "type": "object"
               }
