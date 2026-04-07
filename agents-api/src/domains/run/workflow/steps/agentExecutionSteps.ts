@@ -583,12 +583,11 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
         if (!agent.runContext.pendingDurableApproval) {
           throw generateError;
         }
-        logger.info(
+        logger.warn(
           {
             requestId,
             currentSubAgentId,
-            error: generateError instanceof Error ? generateError.message : String(generateError),
-            errorName: generateError instanceof Error ? generateError.name : undefined,
+            error: generateError,
           },
           'callLlmStep: agent.generate threw during durable approval flow, continuing with pending approval'
         );
@@ -1126,6 +1125,16 @@ export async function markWorkflowSuspendedStep(params: {
   });
 
   logger.info({ workflowRunId }, 'Workflow execution marked as suspended (awaiting tool approval)');
+}
+
+export async function logToolApprovalCreationStep(params: {
+  hookToolCallId: string;
+  parentToolCallId: string;
+  isDelegated: boolean;
+  workflowRunId: string;
+}): Promise<void> {
+  'use step';
+  logger.info(params, 'Creating tool approval hook');
 }
 
 export async function markWorkflowResumingStep(params: {

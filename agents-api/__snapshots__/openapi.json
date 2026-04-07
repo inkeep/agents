@@ -4644,9 +4644,6 @@
           "conversationId": {
             "$ref": "#/components/schemas/ResourceId"
           },
-          "createdAt": {
-            "type": "string"
-          },
           "details": {
             "nullable": true,
             "type": "string"
@@ -4662,9 +4659,6 @@
               "positive",
               "negative"
             ],
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           }
         },
@@ -4718,9 +4712,6 @@
       },
       "FeedbackUpdate": {
         "properties": {
-          "createdAt": {
-            "type": "string"
-          },
           "details": {
             "nullable": true,
             "type": "string"
@@ -4730,9 +4721,6 @@
               "positive",
               "negative"
             ],
-            "type": "string"
-          },
-          "updatedAt": {
             "type": "string"
           }
         },
