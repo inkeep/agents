@@ -87,6 +87,7 @@ export function DuplicateAgentDialog({
   setIsOpen,
 }: DuplicateAgentDialogProps) {
   const router = useRouter();
+  const [isTargetProjectPickerVisible, setIsTargetProjectPickerVisible] = useState(false);
   const [targetProjectId, setTargetProjectId] = useState(sourceProjectId);
   const form = useForm({
     resolver: zodResolver(DuplicateAgentFormSchema),
@@ -123,6 +124,8 @@ export function DuplicateAgentDialog({
   ];
 
   const isImportingToAnotherProject = targetProjectId !== sourceProjectId;
+  const targetProject = projects.find((project) => project.projectId === targetProjectId);
+  const targetProjectName = targetProject?.name ?? currentProjectName;
 
   useAutoPrefillId({
     form,
@@ -132,6 +135,7 @@ export function DuplicateAgentDialog({
 
   function handleOpenChange(open: boolean) {
     if (!open) {
+      setIsTargetProjectPickerVisible(false);
       setTargetProjectId(sourceProjectId);
       form.reset({
         newAgentId: '',
@@ -140,6 +144,11 @@ export function DuplicateAgentDialog({
     }
 
     setIsOpen(open);
+  }
+
+  function handleTargetProjectSelect(projectId: string) {
+    setTargetProjectId(projectId);
+    setIsTargetProjectPickerVisible(false);
   }
 
   const onSubmit = form.handleSubmit(async (data) => {
