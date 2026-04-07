@@ -38,7 +38,9 @@ export type DisconnectGithubInstallationResponseBody = {
 export const DisconnectGithubInstallationResponseBody$zodSchema: z.ZodType<
   DisconnectGithubInstallationResponseBody
 > = z.object({
-  success: z.literal(true).default(true).optional(),
+  success: z.literal(true).default(true).optional().describe(
+    "Whether the disconnection was successful",
+  ),
 }).describe("Installation disconnected successfully");
 
 export type DisconnectGithubInstallationResponse = {
@@ -56,14 +58,22 @@ export type DisconnectGithubInstallationResponse = {
 export const DisconnectGithubInstallationResponse$zodSchema: z.ZodType<
   DisconnectGithubInstallationResponse
 > = z.object({
-  BadRequest: BadRequest$zodSchema.optional(),
-  ContentType: z.string(),
-  Forbidden: Forbidden$zodSchema.optional(),
-  InternalServerError: InternalServerError$zodSchema.optional(),
-  RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
-  Unauthorized: Unauthorized$zodSchema.optional(),
-  UnprocessableEntity: UnprocessableEntity$zodSchema.optional(),
+  BadRequest: BadRequest$zodSchema.optional().describe("Bad Request"),
+  ContentType: z.string().describe(
+    "HTTP response content type for this operation",
+  ),
+  Forbidden: Forbidden$zodSchema.optional().describe("Forbidden"),
+  InternalServerError: InternalServerError$zodSchema.optional().describe(
+    "Internal Server Error",
+  ),
+  RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+    "Raw HTTP response; suitable for custom response parsing",
+  ),
+  StatusCode: z.int().describe("HTTP response status code for this operation"),
+  Unauthorized: Unauthorized$zodSchema.optional().describe("Unauthorized"),
+  UnprocessableEntity: UnprocessableEntity$zodSchema.optional().describe(
+    "Unprocessable Entity",
+  ),
   object: z.lazy(() => DisconnectGithubInstallationResponseBody$zodSchema)
-    .optional(),
+    .optional().describe("Installation disconnected successfully"),
 });

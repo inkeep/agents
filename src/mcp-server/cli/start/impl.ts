@@ -13,6 +13,7 @@ import {
 } from "../../console-logger.js";
 import { MCPServerFlags } from "../../flags.js";
 import { createMCPServer } from "../../server.js";
+import { buildAnnotationFilter } from "../../tools.js";
 
 import { landingPageExpress } from "../../../landing-page.js";
 
@@ -53,6 +54,7 @@ async function startStdio(flags: StartCommandFlags) {
     logger,
     allowedTools: flags.tool,
     dynamic: flags.mode === "dynamic",
+    annotationFilter: buildAnnotationFilter(flags["tool-annotations"]),
     security: {
       cookieAuth: flags["cookie-auth"] ?? "",
       bearerAuth: flags["bearer-auth"] ?? "",
@@ -108,6 +110,7 @@ async function startSSE(cliFlags: StartCommandFlags) {
       logger,
       allowedTools: flags.tool,
       dynamic: flags.mode === "dynamic",
+      annotationFilter: buildAnnotationFilter(flags["tool-annotations"]),
       security: {
         cookieAuth: flags["cookie-auth"] ?? "",
         bearerAuth: flags["bearer-auth"] ?? "",

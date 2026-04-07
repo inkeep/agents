@@ -8,7 +8,7 @@ import * as z from "zod";
 export type BranchInfo = { baseName: string; fullName: string; hash: string };
 
 export const BranchInfo$zodSchema: z.ZodType<BranchInfo> = z.object({
-  baseName: z.string(),
-  fullName: z.string(),
-  hash: z.string(),
+  baseName: z.string().describe("User-provided branch name"),
+  fullName: z.string().describe("Full namespaced branch name"),
+  hash: z.string().describe("Current commit hash of the branch"),
 });

@@ -34,10 +34,10 @@ export const SubAgentToolRelationCreate$zodSchema: z.ZodType<
 > = z.object({
   createdAt: z.string().optional(),
   headers: z.record(z.string(), z.string()).nullable().optional(),
-  id: z.string(),
+  id: z.string().describe("Resource identifier"),
   selectedTools: z.array(z.string()).nullable().optional(),
-  subAgentId: z.string(),
-  toolId: z.string(),
+  subAgentId: z.string().describe("Resource identifier"),
+  toolId: z.string().describe("Resource identifier"),
   toolPolicies: z.record(
     z.string(),
     z.lazy(() => SubAgentToolRelationCreateToolPolicies$zodSchema),

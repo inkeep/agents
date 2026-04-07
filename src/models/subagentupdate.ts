@@ -22,7 +22,7 @@ export const SubAgentUpdate$zodSchema: z.ZodType<SubAgentUpdate> = z.object({
   conversationHistoryConfig: z.any().nullable().optional(),
   createdAt: z.string().optional(),
   description: z.string().nullable().optional(),
-  id: z.string().optional(),
+  id: z.string().optional().describe("Resource identifier"),
   models: Model$zodSchema.optional(),
   name: z.string().optional(),
   prompt: z.string().nullable().optional(),

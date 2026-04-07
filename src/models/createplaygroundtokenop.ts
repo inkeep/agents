@@ -46,13 +46,15 @@ export const CreatePlaygroundTokenRequest$zodSchema: z.ZodType<
 export type CreatePlaygroundTokenResponseBody = {
   apiKey: string;
   expiresAt: string;
+  appId: string;
 };
 
 export const CreatePlaygroundTokenResponseBody$zodSchema: z.ZodType<
   CreatePlaygroundTokenResponseBody
 > = z.object({
-  apiKey: z.string(),
-  expiresAt: z.string(),
+  apiKey: z.string().describe("Temporary API key for playground use"),
+  appId: z.string().describe("App ID for client authentication"),
+  expiresAt: z.string().describe("ISO 8601 timestamp when the key expires"),
 }).describe("Temporary API key generated successfully");
 
 export type CreatePlaygroundTokenResponse = {
@@ -66,9 +68,16 @@ export type CreatePlaygroundTokenResponse = {
 export const CreatePlaygroundTokenResponse$zodSchema: z.ZodType<
   CreatePlaygroundTokenResponse
 > = z.object({
-  ContentType: z.string(),
-  ErrorResponse: ErrorResponse$zodSchema.optional(),
-  RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
-  object: z.lazy(() => CreatePlaygroundTokenResponseBody$zodSchema).optional(),
+  ContentType: z.string().describe(
+    "HTTP response content type for this operation",
+  ),
+  ErrorResponse: ErrorResponse$zodSchema.optional().describe(
+    "Unauthorized - session required",
+  ),
+  RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+    "Raw HTTP response; suitable for custom response parsing",
+  ),
+  StatusCode: z.int().describe("HTTP response status code for this operation"),
+  object: z.lazy(() => CreatePlaygroundTokenResponseBody$zodSchema).optional()
+    .describe("Temporary API key generated successfully"),
 });

@@ -10,6 +10,7 @@ export const CredentialReferenceType = {
   Memory: "memory",
   Keychain: "keychain",
   Nango: "nango",
+  Composio: "composio",
 } as const;
 export type CredentialReferenceType = ClosedEnum<
   typeof CredentialReferenceType
@@ -19,6 +20,7 @@ export const CredentialReferenceType$zodSchema = z.enum([
   "memory",
   "keychain",
   "nango",
+  "composio",
 ]);
 
 export type CredentialReferenceTool = {

@@ -11,8 +11,11 @@ import {
   InternalServerError$zodSchema,
 } from "./internalservererror.js";
 import { NotFound, NotFound$zodSchema } from "./notfound.js";
-import { SkillResponse, SkillResponse$zodSchema } from "./skillresponse.js";
 import { SkillUpdate, SkillUpdate$zodSchema } from "./skillupdate.js";
+import {
+  SkillWithFilesResponse,
+  SkillWithFilesResponse$zodSchema,
+} from "./skillwithfilesresponse.js";
 import { Unauthorized, Unauthorized$zodSchema } from "./unauthorized.js";
 import {
   UnprocessableEntity,
@@ -38,7 +41,7 @@ export type UpdateSkillResponse = {
   ContentType: string;
   StatusCode: number;
   RawResponse: Response;
-  SkillResponse?: SkillResponse | undefined;
+  SkillWithFilesResponse?: SkillWithFilesResponse | undefined;
   BadRequest?: BadRequest | undefined;
   Unauthorized?: Unauthorized | undefined;
   Forbidden?: Forbidden | undefined;
@@ -49,14 +52,25 @@ export type UpdateSkillResponse = {
 
 export const UpdateSkillResponse$zodSchema: z.ZodType<UpdateSkillResponse> = z
   .object({
-    BadRequest: BadRequest$zodSchema.optional(),
-    ContentType: z.string(),
-    Forbidden: Forbidden$zodSchema.optional(),
-    InternalServerError: InternalServerError$zodSchema.optional(),
-    NotFound: NotFound$zodSchema.optional(),
-    RawResponse: z.custom<Response>(x => x instanceof Response),
-    SkillResponse: SkillResponse$zodSchema.optional(),
-    StatusCode: z.int(),
-    Unauthorized: Unauthorized$zodSchema.optional(),
-    UnprocessableEntity: UnprocessableEntity$zodSchema.optional(),
+    BadRequest: BadRequest$zodSchema.optional().describe("Bad Request"),
+    ContentType: z.string().describe(
+      "HTTP response content type for this operation",
+    ),
+    Forbidden: Forbidden$zodSchema.optional().describe("Forbidden"),
+    InternalServerError: InternalServerError$zodSchema.optional().describe(
+      "Internal Server Error",
+    ),
+    NotFound: NotFound$zodSchema.optional().describe("Not Found"),
+    RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+      "Raw HTTP response; suitable for custom response parsing",
+    ),
+    SkillWithFilesResponse: SkillWithFilesResponse$zodSchema.optional()
+      .describe("Skill updated successfully"),
+    StatusCode: z.int().describe(
+      "HTTP response status code for this operation",
+    ),
+    Unauthorized: Unauthorized$zodSchema.optional().describe("Unauthorized"),
+    UnprocessableEntity: UnprocessableEntity$zodSchema.optional().describe(
+      "Unprocessable Entity",
+    ),
   });

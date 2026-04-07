@@ -52,7 +52,9 @@ export const ListGithubInstallationsInstallation$zodSchema: z.ZodType<
   createdAt: z.string(),
   id: z.string(),
   installationId: z.string(),
-  repositoryCount: z.number(),
+  repositoryCount: z.number().describe(
+    "Number of repositories accessible to this installation",
+  ),
   status: z.string(),
   updatedAt: z.string(),
 });
@@ -69,7 +71,7 @@ export const ListGithubInstallationsResponseBody$zodSchema: z.ZodType<
 > = z.object({
   installations: z.array(
     z.lazy(() => ListGithubInstallationsInstallation$zodSchema),
-  ),
+  ).describe("List of GitHub App installations"),
 }).describe("List of GitHub App installations");
 
 export type ListGithubInstallationsResponse = {
@@ -88,15 +90,23 @@ export type ListGithubInstallationsResponse = {
 export const ListGithubInstallationsResponse$zodSchema: z.ZodType<
   ListGithubInstallationsResponse
 > = z.object({
-  BadRequest: BadRequest$zodSchema.optional(),
-  ContentType: z.string(),
-  Forbidden: Forbidden$zodSchema.optional(),
-  InternalServerError: InternalServerError$zodSchema.optional(),
-  NotFound: NotFound$zodSchema.optional(),
-  RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
-  Unauthorized: Unauthorized$zodSchema.optional(),
-  UnprocessableEntity: UnprocessableEntity$zodSchema.optional(),
-  object: z.lazy(() => ListGithubInstallationsResponseBody$zodSchema)
-    .optional(),
+  BadRequest: BadRequest$zodSchema.optional().describe("Bad Request"),
+  ContentType: z.string().describe(
+    "HTTP response content type for this operation",
+  ),
+  Forbidden: Forbidden$zodSchema.optional().describe("Forbidden"),
+  InternalServerError: InternalServerError$zodSchema.optional().describe(
+    "Internal Server Error",
+  ),
+  NotFound: NotFound$zodSchema.optional().describe("Not Found"),
+  RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+    "Raw HTTP response; suitable for custom response parsing",
+  ),
+  StatusCode: z.int().describe("HTTP response status code for this operation"),
+  Unauthorized: Unauthorized$zodSchema.optional().describe("Unauthorized"),
+  UnprocessableEntity: UnprocessableEntity$zodSchema.optional().describe(
+    "Unprocessable Entity",
+  ),
+  object: z.lazy(() => ListGithubInstallationsResponseBody$zodSchema).optional()
+    .describe("List of GitHub App installations"),
 });

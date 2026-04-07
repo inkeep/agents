@@ -4,6 +4,7 @@
  */
 
 import * as z from "zod";
+import { ClosedEnum } from "../types/enums.js";
 import { AgentStopWhen, AgentStopWhen$zodSchema } from "./agentstopwhen.js";
 import {
   ContextConfigCreate,
@@ -23,14 +24,23 @@ import {
   FunctionToolCreate$zodSchema,
 } from "./functiontoolcreate.js";
 import { Model, Model$zodSchema } from "./model.js";
-import {
-  ScheduledTriggerInsertBase,
-  ScheduledTriggerInsertBase$zodSchema,
-} from "./scheduledtriggerinsertbase.js";
 import { StatusUpdate, StatusUpdate$zodSchema } from "./statusupdate.js";
 import { TeamAgent, TeamAgent$zodSchema } from "./teamagent.js";
 import { ToolCreate, ToolCreate$zodSchema } from "./toolcreate.js";
 import { TriggerCreate, TriggerCreate$zodSchema } from "./triggercreate.js";
+
+export const AgentWithinContextOfProjectExecutionMode = {
+  Classic: "classic",
+  Durable: "durable",
+} as const;
+export type AgentWithinContextOfProjectExecutionMode = ClosedEnum<
+  typeof AgentWithinContextOfProjectExecutionMode
+>;
+
+export const AgentWithinContextOfProjectExecutionMode$zodSchema = z.enum([
+  "classic",
+  "durable",
+]);
 
 export type AgentWithinContextOfProject = {
   id: string;
@@ -42,6 +52,7 @@ export type AgentWithinContextOfProject = {
   statusUpdates?: StatusUpdate | undefined;
   prompt?: string | undefined;
   stopWhen?: AgentStopWhen | undefined;
+  executionMode?: AgentWithinContextOfProjectExecutionMode | undefined;
   subAgents: { [k: string]: FullAgentAgentInsert };
   tools?: { [k: string]: ToolCreate } | undefined;
   externalAgents?: { [k: string]: ExternalAgentCreate } | undefined;
@@ -49,7 +60,6 @@ export type AgentWithinContextOfProject = {
   functionTools?: { [k: string]: FunctionToolCreate } | undefined;
   functions?: { [k: string]: FunctionCreate } | undefined;
   triggers?: { [k: string]: TriggerCreate } | undefined;
-  scheduledTriggers?: { [k: string]: ScheduledTriggerInsertBase } | undefined;
   contextConfig?: ContextConfigCreate | undefined;
 };
 
@@ -60,16 +70,15 @@ export const AgentWithinContextOfProject$zodSchema: z.ZodType<
   contextConfigId: z.string().nullable().optional(),
   defaultSubAgentId: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
+  executionMode: AgentWithinContextOfProjectExecutionMode$zodSchema.optional(),
   externalAgents: z.record(z.string(), ExternalAgentCreate$zodSchema)
     .optional(),
   functionTools: z.record(z.string(), FunctionToolCreate$zodSchema).optional(),
   functions: z.record(z.string(), FunctionCreate$zodSchema).optional(),
-  id: z.string(),
+  id: z.string().describe("Resource identifier"),
   models: Model$zodSchema.optional(),
   name: z.string(),
   prompt: z.string().optional(),
-  scheduledTriggers: z.record(z.string(), ScheduledTriggerInsertBase$zodSchema)
-    .optional(),
   statusUpdates: StatusUpdate$zodSchema.optional(),
   stopWhen: AgentStopWhen$zodSchema.optional(),
   subAgents: z.record(z.string(), FullAgentAgentInsert$zodSchema),

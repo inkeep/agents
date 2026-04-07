@@ -5,6 +5,7 @@
 
 import * as z from "zod";
 import { ClosedEnum } from "../types/enums.js";
+import { LastRunSummary, LastRunSummary$zodSchema } from "./lastrunsummary.js";
 
 /**
  * Status of the last run
@@ -38,12 +39,17 @@ export type ScheduledTriggerWithRunInfo = {
   timeoutSeconds: number;
   runAsUserId: string | null;
   createdBy: string | null;
+  nextRunAt: string | null;
+  ref: string;
+  dispatchDelayMs: number | null;
   createdAt: string;
   updatedAt: string;
   lastRunAt: string | null;
   lastRunStatus: LastRunStatus | null;
   lastRunConversationIds: Array<string>;
-  nextRunAt: string | null;
+  runAsUserIds: Array<string>;
+  userCount: number;
+  lastRunSummary: LastRunSummary | null;
 };
 
 export const ScheduledTriggerWithRunInfo$zodSchema: z.ZodType<
@@ -54,19 +60,36 @@ export const ScheduledTriggerWithRunInfo$zodSchema: z.ZodType<
   cronExpression: z.string().nullable(),
   cronTimezone: z.string().nullable(),
   description: z.string().nullable(),
+  dispatchDelayMs: z.int().nullable(),
   enabled: z.boolean(),
   id: z.string(),
-  lastRunAt: z.iso.datetime({ offset: true }).nullable(),
-  lastRunConversationIds: z.array(z.string()),
-  lastRunStatus: LastRunStatus$zodSchema.nullable(),
-  maxRetries: z.number(),
+  lastRunAt: z.iso.datetime({ offset: true }).nullable().describe(
+    "Timestamp of the last completed or failed run",
+  ),
+  lastRunConversationIds: z.array(z.string()).describe(
+    "Conversation IDs from the last run",
+  ),
+  lastRunStatus: LastRunStatus$zodSchema.nullable().describe(
+    "Status of the last run",
+  ),
+  lastRunSummary: LastRunSummary$zodSchema.nullable().describe(
+    "Per-status counts for the most recent scheduled tick",
+  ),
+  maxRetries: z.int(),
   messageTemplate: z.string().nullable(),
   name: z.string(),
-  nextRunAt: z.iso.datetime({ offset: true }).nullable(),
+  nextRunAt: z.iso.datetime({ offset: true }).nullable().describe(
+    "Timestamp of the next pending run",
+  ),
   payload: z.record(z.string(), z.any().nullable()).nullable().optional(),
-  retryDelaySeconds: z.number(),
+  ref: z.string(),
+  retryDelaySeconds: z.int(),
   runAsUserId: z.string().nullable(),
+  runAsUserIds: z.array(z.string()).describe(
+    "User IDs associated with this trigger",
+  ),
   runAt: z.string().nullable(),
-  timeoutSeconds: z.number(),
+  timeoutSeconds: z.int(),
   updatedAt: z.string(),
+  userCount: z.int().describe("Number of associated users"),
 });

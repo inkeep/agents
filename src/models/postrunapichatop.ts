@@ -94,14 +94,12 @@ export const PostRunApiChatPart2$zodSchema: z.ZodType<PostRunApiChatPart2> = z
 export const PostRunApiChatTypeEnum = {
   Audio: "audio",
   Video: "video",
-  File: "file",
 } as const;
 export type PostRunApiChatTypeEnum = ClosedEnum<typeof PostRunApiChatTypeEnum>;
 
 export const PostRunApiChatTypeEnum$zodSchema = z.enum([
   "audio",
   "video",
-  "file",
 ]);
 
 export type Type = PostRunApiChatTypeEnum | string;
@@ -124,6 +122,29 @@ export const PostRunApiChatPart1$zodSchema: z.ZodType<PostRunApiChatPart1> = z
       z.string(),
     ]),
   });
+
+export const PostRunApiChatTypeFile = {
+  File: "file",
+} as const;
+export type PostRunApiChatTypeFile = ClosedEnum<typeof PostRunApiChatTypeFile>;
+
+export const PostRunApiChatTypeFile$zodSchema = z.enum([
+  "file",
+]);
+
+export type PartFile = {
+  type: PostRunApiChatTypeFile;
+  url: string;
+  mediaType: string;
+  filename?: string | undefined;
+};
+
+export const PartFile$zodSchema: z.ZodType<PartFile> = z.object({
+  filename: z.string().optional(),
+  mediaType: z.string(),
+  type: PostRunApiChatTypeFile$zodSchema,
+  url: z.string(),
+});
 
 export const TypeImage = {
   Image: "image",
@@ -158,6 +179,7 @@ export const PartText$zodSchema: z.ZodType<PartText> = z.object({
 });
 
 export type PostRunApiChatPartUnion =
+  | PartFile
   | PartText
   | PartImage
   | PostRunApiChatPart2
@@ -167,6 +189,7 @@ export type PostRunApiChatPartUnion =
 export const PostRunApiChatPartUnion$zodSchema: z.ZodType<
   PostRunApiChatPartUnion
 > = z.union([
+  z.lazy(() => PartFile$zodSchema),
   z.lazy(() => PartText$zodSchema),
   z.lazy(() => PartImage$zodSchema),
   z.lazy(() => PostRunApiChatPart2$zodSchema),
@@ -179,6 +202,7 @@ export type PostRunApiChatMessage = {
   content?: any | null | undefined;
   parts?:
     | Array<
+      | PartFile
       | PartText
       | PartImage
       | PostRunApiChatPart2
@@ -192,6 +216,7 @@ export const PostRunApiChatMessage$zodSchema: z.ZodType<PostRunApiChatMessage> =
   z.object({
     content: z.any().nullable().optional(),
     parts: z.array(z.union([
+      z.lazy(() => PartFile$zodSchema),
       z.lazy(() => PartText$zodSchema),
       z.lazy(() => PartImage$zodSchema),
       z.lazy(() => PostRunApiChatPart2$zodSchema),
@@ -200,6 +225,27 @@ export const PostRunApiChatMessage$zodSchema: z.ZodType<PostRunApiChatMessage> =
     ])).optional(),
     role: PostRunApiChatRole$zodSchema,
   });
+
+/**
+ * Override the agent execution mode for this request. Takes precedence over the agent config default. Falls back to classic if unset.
+ */
+export const PostRunApiChatExecutionMode = {
+  Classic: "classic",
+  Durable: "durable",
+} as const;
+/**
+ * Override the agent execution mode for this request. Takes precedence over the agent config default. Falls back to classic if unset.
+ */
+export type PostRunApiChatExecutionMode = ClosedEnum<
+  typeof PostRunApiChatExecutionMode
+>;
+
+export const PostRunApiChatExecutionMode$zodSchema = z.enum([
+  "classic",
+  "durable",
+]).describe(
+  "Override the agent execution mode for this request. Takes precedence over the agent config default. Falls back to classic if unset.",
+);
 
 export type PostRunApiChatRequest = {
   model?: string | undefined;
@@ -210,18 +256,31 @@ export type PostRunApiChatRequest = {
   max_tokens?: number | undefined;
   headers?: { [k: string]: any | null } | undefined;
   runConfig?: { [k: string]: any | null } | undefined;
+  executionMode?: PostRunApiChatExecutionMode | undefined;
+  userProperties?: { [k: string]: any | null } | undefined;
 };
 
 export const PostRunApiChatRequest$zodSchema: z.ZodType<PostRunApiChatRequest> =
   z.object({
     conversationId: z.string().optional(),
-    headers: z.record(z.string(), z.any().nullable()).optional(),
+    executionMode: PostRunApiChatExecutionMode$zodSchema.optional().describe(
+      "Override the agent execution mode for this request. Takes precedence over the agent config default. Falls back to classic if unset.",
+    ),
+    headers: z.record(z.string(), z.any().nullable()).optional().describe(
+      "Headers data for template processing",
+    ),
     id: z.string().optional(),
-    max_tokens: z.number().optional(),
+    max_tokens: z.number().optional().describe("Maximum tokens to generate"),
     messages: z.array(z.lazy(() => PostRunApiChatMessage$zodSchema)),
     model: z.string().optional(),
-    runConfig: z.record(z.string(), z.any().nullable()).optional(),
-    stream: z.boolean().default(true),
+    runConfig: z.record(z.string(), z.any().nullable()).optional().describe(
+      "Run configuration",
+    ),
+    stream: z.boolean().default(true).describe(
+      "Whether to stream the response",
+    ),
+    userProperties: z.record(z.string(), z.any().nullable()).optional()
+      .describe("User properties to associate with the conversation"),
   });
 
 export type PostRunApiChatResponse = {
@@ -240,14 +299,22 @@ export type PostRunApiChatResponse = {
 export const PostRunApiChatResponse$zodSchema: z.ZodType<
   PostRunApiChatResponse
 > = z.object({
-  BadRequest: BadRequest$zodSchema.optional(),
-  ContentType: z.string(),
-  Forbidden: Forbidden$zodSchema.optional(),
+  BadRequest: BadRequest$zodSchema.optional().describe("Bad Request"),
+  ContentType: z.string().describe(
+    "HTTP response content type for this operation",
+  ),
+  Forbidden: Forbidden$zodSchema.optional().describe("Forbidden"),
   Headers: z.record(z.string(), z.array(z.string())).default({}),
-  InternalServerError: InternalServerError$zodSchema.optional(),
-  NotFound: NotFound$zodSchema.optional(),
-  RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
-  Unauthorized: Unauthorized$zodSchema.optional(),
-  UnprocessableEntity: UnprocessableEntity$zodSchema.optional(),
+  InternalServerError: InternalServerError$zodSchema.optional().describe(
+    "Internal Server Error",
+  ),
+  NotFound: NotFound$zodSchema.optional().describe("Not Found"),
+  RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+    "Raw HTTP response; suitable for custom response parsing",
+  ),
+  StatusCode: z.int().describe("HTTP response status code for this operation"),
+  Unauthorized: Unauthorized$zodSchema.optional().describe("Unauthorized"),
+  UnprocessableEntity: UnprocessableEntity$zodSchema.optional().describe(
+    "Unprocessable Entity",
+  ),
 });

@@ -42,8 +42,12 @@ export const NotFoundCode2$zodSchema = z.enum([
 export type NotFoundError = { code: NotFoundCode2; message: string };
 
 export const NotFoundError$zodSchema: z.ZodType<NotFoundError> = z.object({
-  code: NotFoundCode2$zodSchema,
-  message: z.string(),
+  code: NotFoundCode2$zodSchema.describe(
+    "A short code indicating the error code returned.",
+  ),
+  message: z.string().describe(
+    "A concise error message suitable for display to end users. May be truncated if the full detail is long.",
+  ),
 }).describe("Legacy error format for backward compatibility.");
 
 export type NotFound = {
@@ -57,11 +61,23 @@ export type NotFound = {
 };
 
 export const NotFound$zodSchema: z.ZodType<NotFound> = z.object({
-  code: NotFoundCode1$zodSchema,
-  detail: z.string(),
-  error: z.lazy(() => NotFoundError$zodSchema),
-  instance: z.string().optional(),
-  requestId: z.string().optional(),
-  status: z.int(),
-  title: z.string(),
+  code: NotFoundCode1$zodSchema.describe(
+    "A short code indicating the error code returned.",
+  ),
+  detail: z.string().describe(
+    "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong.",
+  ),
+  error: z.lazy(() => NotFoundError$zodSchema).describe(
+    "Legacy error format for backward compatibility.",
+  ),
+  instance: z.string().optional().describe(
+    "A URI reference that identifies the specific occurrence of the problem.",
+  ),
+  requestId: z.string().optional().describe(
+    "A unique identifier for the request, useful for troubleshooting.",
+  ),
+  status: z.int().describe("The HTTP status code."),
+  title: z.string().describe(
+    "A short, human-readable summary of the problem type.",
+  ),
 });

@@ -72,7 +72,9 @@ export const ListToolsRequest$zodSchema: z.ZodType<ListToolsRequest> = z.object(
     limit: z.number().default(10),
     page: z.number().default(1),
     projectId: z.string().describe("Project identifier"),
-    skipDiscovery: SkipDiscovery$zodSchema.optional(),
+    skipDiscovery: SkipDiscovery$zodSchema.optional().describe(
+      "Skip MCP server discovery for faster response. Status will be \"unknown\".",
+    ),
     status: ListToolsStatus$zodSchema.optional(),
     tenantId: z.string().describe("Tenant identifier"),
   },
@@ -93,14 +95,26 @@ export type ListToolsResponse = {
 
 export const ListToolsResponse$zodSchema: z.ZodType<ListToolsResponse> = z
   .object({
-    BadRequest: BadRequest$zodSchema.optional(),
-    ContentType: z.string(),
-    Forbidden: Forbidden$zodSchema.optional(),
-    InternalServerError: InternalServerError$zodSchema.optional(),
-    McpToolListResponse: McpToolListResponse$zodSchema.optional(),
-    NotFound: NotFound$zodSchema.optional(),
-    RawResponse: z.custom<Response>(x => x instanceof Response),
-    StatusCode: z.int(),
-    Unauthorized: Unauthorized$zodSchema.optional(),
-    UnprocessableEntity: UnprocessableEntity$zodSchema.optional(),
+    BadRequest: BadRequest$zodSchema.optional().describe("Bad Request"),
+    ContentType: z.string().describe(
+      "HTTP response content type for this operation",
+    ),
+    Forbidden: Forbidden$zodSchema.optional().describe("Forbidden"),
+    InternalServerError: InternalServerError$zodSchema.optional().describe(
+      "Internal Server Error",
+    ),
+    McpToolListResponse: McpToolListResponse$zodSchema.optional().describe(
+      "List of tools retrieved successfully",
+    ),
+    NotFound: NotFound$zodSchema.optional().describe("Not Found"),
+    RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+      "Raw HTTP response; suitable for custom response parsing",
+    ),
+    StatusCode: z.int().describe(
+      "HTTP response status code for this operation",
+    ),
+    Unauthorized: Unauthorized$zodSchema.optional().describe("Unauthorized"),
+    UnprocessableEntity: UnprocessableEntity$zodSchema.optional().describe(
+      "Unprocessable Entity",
+    ),
   });

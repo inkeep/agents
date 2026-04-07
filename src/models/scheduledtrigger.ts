@@ -20,6 +20,9 @@ export type ScheduledTrigger = {
   timeoutSeconds: number;
   runAsUserId: string | null;
   createdBy: string | null;
+  nextRunAt: string | null;
+  ref: string;
+  dispatchDelayMs: number | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -31,16 +34,19 @@ export const ScheduledTrigger$zodSchema: z.ZodType<ScheduledTrigger> = z.object(
     cronExpression: z.string().nullable(),
     cronTimezone: z.string().nullable(),
     description: z.string().nullable(),
+    dispatchDelayMs: z.int().nullable(),
     enabled: z.boolean(),
     id: z.string(),
-    maxRetries: z.number(),
+    maxRetries: z.int(),
     messageTemplate: z.string().nullable(),
     name: z.string(),
+    nextRunAt: z.string().nullable(),
     payload: z.record(z.string(), z.any().nullable()).nullable().optional(),
-    retryDelaySeconds: z.number(),
+    ref: z.string(),
+    retryDelaySeconds: z.int(),
     runAsUserId: z.string().nullable(),
     runAt: z.string().nullable(),
-    timeoutSeconds: z.number(),
+    timeoutSeconds: z.int(),
     updatedAt: z.string(),
   },
 );

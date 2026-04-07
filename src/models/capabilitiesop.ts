@@ -18,8 +18,15 @@ export type CapabilitiesResponse = {
 
 export const CapabilitiesResponse$zodSchema: z.ZodType<CapabilitiesResponse> = z
   .object({
-    CapabilitiesResponseSchema: CapabilitiesResponseSchema$zodSchema.optional(),
-    ContentType: z.string(),
-    RawResponse: z.custom<Response>(x => x instanceof Response),
-    StatusCode: z.int(),
+    CapabilitiesResponseSchema: CapabilitiesResponseSchema$zodSchema.optional()
+      .describe("Server capabilities"),
+    ContentType: z.string().describe(
+      "HTTP response content type for this operation",
+    ),
+    RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+      "Raw HTTP response; suitable for custom response parsing",
+    ),
+    StatusCode: z.int().describe(
+      "HTTP response status code for this operation",
+    ),
   });

@@ -13,7 +13,11 @@ import {
   createRegisterResourceTemplate,
 } from "./resources.js";
 import { MCPScope } from "./scopes.js";
-import { createRegisterTool, registerDynamicTools } from "./tools.js";
+import {
+  createRegisterTool,
+  MCPToolAnnotationFilter,
+  registerDynamicTools,
+} from "./tools.js";
 import { tool$agentsAssociateArtifactComponentWithAgent } from "./tools/agentsAssociateArtifactComponentWithAgent.js";
 import { tool$agentsAssociateDataComponentWithAgent } from "./tools/agentsAssociateDataComponentWithAgent.js";
 import { tool$agentsCheckArtifactComponentAgentAssociation } from "./tools/agentsCheckArtifactComponentAgentAssociation.js";
@@ -41,8 +45,11 @@ import { tool$apiKeysGetAPIKeyById } from "./tools/apiKeysGetAPIKeyById.js";
 import { tool$apiKeysListAPIKeys } from "./tools/apiKeysListAPIKeys.js";
 import { tool$apiKeysUpdateAPIKey } from "./tools/apiKeysUpdateAPIKey.js";
 import { tool$appsCreateApp } from "./tools/appsCreateApp.js";
+import { tool$appsCreateAppAuthKey } from "./tools/appsCreateAppAuthKey.js";
 import { tool$appsDeleteApp } from "./tools/appsDeleteApp.js";
+import { tool$appsDeleteAppAuthKey } from "./tools/appsDeleteAppAuthKey.js";
 import { tool$appsGetAppById } from "./tools/appsGetAppById.js";
+import { tool$appsListAppAuthKeys } from "./tools/appsListAppAuthKeys.js";
 import { tool$appsListApps } from "./tools/appsListApps.js";
 import { tool$appsUpdateApp } from "./tools/appsUpdateApp.js";
 import { tool$artifactComponentsCreateArtifactComponent } from "./tools/artifactComponentsCreateArtifactComponent.js";
@@ -57,6 +64,8 @@ import { tool$branchesDeleteBranch } from "./tools/branchesDeleteBranch.js";
 import { tool$branchesGetBranch } from "./tools/branchesGetBranch.js";
 import { tool$branchesListBranches } from "./tools/branchesListBranches.js";
 import { tool$branchesListBranchesForAgent } from "./tools/branchesListBranchesForAgent.js";
+import { tool$branchesMergeExecute } from "./tools/branchesMergeExecute.js";
+import { tool$branchesMergePreview } from "./tools/branchesMergePreview.js";
 import { tool$capabilities } from "./tools/capabilities.js";
 import { tool$cliGetManageApiCLIMe } from "./tools/cliGetManageApiCLIMe.js";
 import { tool$contextConfigsCreateContextConfig } from "./tools/contextConfigsCreateContextConfig.js";
@@ -80,11 +89,16 @@ import { tool$dataComponentsDeleteDataComponent } from "./tools/dataComponentsDe
 import { tool$dataComponentsGetDataComponentById } from "./tools/dataComponentsGetDataComponentById.js";
 import { tool$dataComponentsListDataComponents } from "./tools/dataComponentsListDataComponents.js";
 import { tool$dataComponentsUpdateDataComponent } from "./tools/dataComponentsUpdateDataComponent.js";
+import { tool$entitlementsListOrgEntitlements } from "./tools/entitlementsListOrgEntitlements.js";
+import { tool$evaluationsAddAgentToDataset } from "./tools/evaluationsAddAgentToDataset.js";
+import { tool$evaluationsAddAgentToEvaluator } from "./tools/evaluationsAddAgentToEvaluator.js";
 import { tool$evaluationsAddEvaluatorToJobConfig } from "./tools/evaluationsAddEvaluatorToJobConfig.js";
 import { tool$evaluationsAddEvaluatorToSuiteConfig } from "./tools/evaluationsAddEvaluatorToSuiteConfig.js";
+import { tool$evaluationsBatchGetEvaluatorAgentScopes } from "./tools/evaluationsBatchGetEvaluatorAgentScopes.js";
 import { tool$evaluationsCreateDataset } from "./tools/evaluationsCreateDataset.js";
 import { tool$evaluationsCreateDatasetItem } from "./tools/evaluationsCreateDatasetItem.js";
 import { tool$evaluationsCreateDatasetItemsBulk } from "./tools/evaluationsCreateDatasetItemsBulk.js";
+import { tool$evaluationsCreateDatasetRunConfig } from "./tools/evaluationsCreateDatasetRunConfig.js";
 import { tool$evaluationsCreateEvaluationJobConfig } from "./tools/evaluationsCreateEvaluationJobConfig.js";
 import { tool$evaluationsCreateEvaluationResult } from "./tools/evaluationsCreateEvaluationResult.js";
 import { tool$evaluationsCreateEvaluationRunConfig } from "./tools/evaluationsCreateEvaluationRunConfig.js";
@@ -92,6 +106,7 @@ import { tool$evaluationsCreateEvaluationSuiteConfig } from "./tools/evaluations
 import { tool$evaluationsCreateEvaluator } from "./tools/evaluationsCreateEvaluator.js";
 import { tool$evaluationsDeleteDataset } from "./tools/evaluationsDeleteDataset.js";
 import { tool$evaluationsDeleteDatasetItem } from "./tools/evaluationsDeleteDatasetItem.js";
+import { tool$evaluationsDeleteDatasetRunConfig } from "./tools/evaluationsDeleteDatasetRunConfig.js";
 import { tool$evaluationsDeleteEvaluationJobConfig } from "./tools/evaluationsDeleteEvaluationJobConfig.js";
 import { tool$evaluationsDeleteEvaluationResult } from "./tools/evaluationsDeleteEvaluationResult.js";
 import { tool$evaluationsDeleteEvaluationRunConfig } from "./tools/evaluationsDeleteEvaluationRunConfig.js";
@@ -100,6 +115,9 @@ import { tool$evaluationsDeleteEvaluator } from "./tools/evaluationsDeleteEvalua
 import { tool$evaluationsEvaluateConversation } from "./tools/evaluationsEvaluateConversation.js";
 import { tool$evaluationsGetDataset } from "./tools/evaluationsGetDataset.js";
 import { tool$evaluationsGetDatasetItem } from "./tools/evaluationsGetDatasetItem.js";
+import { tool$evaluationsGetDatasetRun } from "./tools/evaluationsGetDatasetRun.js";
+import { tool$evaluationsGetDatasetRunConfig } from "./tools/evaluationsGetDatasetRunConfig.js";
+import { tool$evaluationsGetDatasetRunItems } from "./tools/evaluationsGetDatasetRunItems.js";
 import { tool$evaluationsGetEvaluationJobConfig } from "./tools/evaluationsGetEvaluationJobConfig.js";
 import { tool$evaluationsGetEvaluationJobConfigResults } from "./tools/evaluationsGetEvaluationJobConfigResults.js";
 import { tool$evaluationsGetEvaluationResult } from "./tools/evaluationsGetEvaluationResult.js";
@@ -108,19 +126,27 @@ import { tool$evaluationsGetEvaluationRunConfigResults } from "./tools/evaluatio
 import { tool$evaluationsGetEvaluationSuiteConfig } from "./tools/evaluationsGetEvaluationSuiteConfig.js";
 import { tool$evaluationsGetEvaluator } from "./tools/evaluationsGetEvaluator.js";
 import { tool$evaluationsGetEvaluatorsBatch } from "./tools/evaluationsGetEvaluatorsBatch.js";
+import { tool$evaluationsListDatasetAgents } from "./tools/evaluationsListDatasetAgents.js";
 import { tool$evaluationsListDatasetItems } from "./tools/evaluationsListDatasetItems.js";
+import { tool$evaluationsListDatasetRunConfigs } from "./tools/evaluationsListDatasetRunConfigs.js";
+import { tool$evaluationsListDatasetRuns } from "./tools/evaluationsListDatasetRuns.js";
 import { tool$evaluationsListDatasets } from "./tools/evaluationsListDatasets.js";
 import { tool$evaluationsListEvaluationJobConfigEvaluators } from "./tools/evaluationsListEvaluationJobConfigEvaluators.js";
 import { tool$evaluationsListEvaluationJobConfigs } from "./tools/evaluationsListEvaluationJobConfigs.js";
 import { tool$evaluationsListEvaluationRunConfigs } from "./tools/evaluationsListEvaluationRunConfigs.js";
 import { tool$evaluationsListEvaluationSuiteConfigEvaluators } from "./tools/evaluationsListEvaluationSuiteConfigEvaluators.js";
 import { tool$evaluationsListEvaluationSuiteConfigs } from "./tools/evaluationsListEvaluationSuiteConfigs.js";
+import { tool$evaluationsListEvaluatorAgents } from "./tools/evaluationsListEvaluatorAgents.js";
 import { tool$evaluationsListEvaluators } from "./tools/evaluationsListEvaluators.js";
+import { tool$evaluationsRemoveAgentFromDataset } from "./tools/evaluationsRemoveAgentFromDataset.js";
+import { tool$evaluationsRemoveAgentFromEvaluator } from "./tools/evaluationsRemoveAgentFromEvaluator.js";
 import { tool$evaluationsRemoveEvaluatorFromJobConfig } from "./tools/evaluationsRemoveEvaluatorFromJobConfig.js";
 import { tool$evaluationsRemoveEvaluatorFromSuiteConfig } from "./tools/evaluationsRemoveEvaluatorFromSuiteConfig.js";
 import { tool$evaluationsStartConversationsEvaluations } from "./tools/evaluationsStartConversationsEvaluations.js";
+import { tool$evaluationsTriggerDatasetRun } from "./tools/evaluationsTriggerDatasetRun.js";
 import { tool$evaluationsUpdateDataset } from "./tools/evaluationsUpdateDataset.js";
 import { tool$evaluationsUpdateDatasetItem } from "./tools/evaluationsUpdateDatasetItem.js";
+import { tool$evaluationsUpdateDatasetRunConfig } from "./tools/evaluationsUpdateDatasetRunConfig.js";
 import { tool$evaluationsUpdateEvaluationResult } from "./tools/evaluationsUpdateEvaluationResult.js";
 import { tool$evaluationsUpdateEvaluationRunConfig } from "./tools/evaluationsUpdateEvaluationRunConfig.js";
 import { tool$evaluationsUpdateEvaluationSuiteConfig } from "./tools/evaluationsUpdateEvaluationSuiteConfig.js";
@@ -130,6 +156,11 @@ import { tool$externalAgentsDeleteExternalAgent } from "./tools/externalAgentsDe
 import { tool$externalAgentsGetExternalAgentById } from "./tools/externalAgentsGetExternalAgentById.js";
 import { tool$externalAgentsListExternalAgents } from "./tools/externalAgentsListExternalAgents.js";
 import { tool$externalAgentsUpdateExternalAgent } from "./tools/externalAgentsUpdateExternalAgent.js";
+import { tool$feedbackCreateFeedback } from "./tools/feedbackCreateFeedback.js";
+import { tool$feedbackDeleteFeedback } from "./tools/feedbackDeleteFeedback.js";
+import { tool$feedbackGetFeedbackById } from "./tools/feedbackGetFeedbackById.js";
+import { tool$feedbackListFeedback } from "./tools/feedbackListFeedback.js";
+import { tool$feedbackUpdateFeedback } from "./tools/feedbackUpdateFeedback.js";
 import { tool$functionsCreateFunction } from "./tools/functionsCreateFunction.js";
 import { tool$functionsDeleteFunction } from "./tools/functionsDeleteFunction.js";
 import { tool$functionsGetFunction } from "./tools/functionsGetFunction.js";
@@ -171,6 +202,7 @@ import { tool$projectsSetProjectGithubAccess } from "./tools/projectsSetProjectG
 import { tool$projectsUpdateFullProject } from "./tools/projectsUpdateFullProject.js";
 import { tool$projectsUpdateProject } from "./tools/projectsUpdateProject.js";
 import { tool$refsResolveRef } from "./tools/refsResolveRef.js";
+import { tool$scheduledTriggersAddScheduledTriggerUser } from "./tools/scheduledTriggersAddScheduledTriggerUser.js";
 import { tool$scheduledTriggersCancelScheduledTriggerInvocation } from "./tools/scheduledTriggersCancelScheduledTriggerInvocation.js";
 import { tool$scheduledTriggersCreateScheduledTrigger } from "./tools/scheduledTriggersCreateScheduledTrigger.js";
 import { tool$scheduledTriggersDeleteScheduledTrigger } from "./tools/scheduledTriggersDeleteScheduledTrigger.js";
@@ -178,18 +210,25 @@ import { tool$scheduledTriggersGetScheduledTriggerById } from "./tools/scheduled
 import { tool$scheduledTriggersGetScheduledTriggerInvocationById } from "./tools/scheduledTriggersGetScheduledTriggerInvocationById.js";
 import { tool$scheduledTriggersListScheduledTriggerInvocations } from "./tools/scheduledTriggersListScheduledTriggerInvocations.js";
 import { tool$scheduledTriggersListScheduledTriggers } from "./tools/scheduledTriggersListScheduledTriggers.js";
+import { tool$scheduledTriggersListScheduledTriggerUsers } from "./tools/scheduledTriggersListScheduledTriggerUsers.js";
 import { tool$scheduledTriggersListUpcomingScheduledRuns } from "./tools/scheduledTriggersListUpcomingScheduledRuns.js";
+import { tool$scheduledTriggersRemoveScheduledTriggerUser } from "./tools/scheduledTriggersRemoveScheduledTriggerUser.js";
 import { tool$scheduledTriggersRerunScheduledTriggerInvocation } from "./tools/scheduledTriggersRerunScheduledTriggerInvocation.js";
 import { tool$scheduledTriggersRunScheduledTriggerNow } from "./tools/scheduledTriggersRunScheduledTriggerNow.js";
+import { tool$scheduledTriggersSetScheduledTriggerUsers } from "./tools/scheduledTriggersSetScheduledTriggerUsers.js";
 import { tool$scheduledTriggersUpdateScheduledTrigger } from "./tools/scheduledTriggersUpdateScheduledTrigger.js";
 import { tool$skillsCreateSkill } from "./tools/skillsCreateSkill.js";
+import { tool$skillsCreateSkillFile } from "./tools/skillsCreateSkillFile.js";
 import { tool$skillsCreateSubagentSkill } from "./tools/skillsCreateSubagentSkill.js";
 import { tool$skillsDeleteSkill } from "./tools/skillsDeleteSkill.js";
+import { tool$skillsDeleteSkillFile } from "./tools/skillsDeleteSkillFile.js";
 import { tool$skillsDeleteSubagentSkill } from "./tools/skillsDeleteSubagentSkill.js";
 import { tool$skillsGetSkill } from "./tools/skillsGetSkill.js";
+import { tool$skillsGetSkillFile } from "./tools/skillsGetSkillFile.js";
 import { tool$skillsGetSkillsForSubagent } from "./tools/skillsGetSkillsForSubagent.js";
 import { tool$skillsListSkills } from "./tools/skillsListSkills.js";
 import { tool$skillsUpdateSkill } from "./tools/skillsUpdateSkill.js";
+import { tool$skillsUpdateSkillFile } from "./tools/skillsUpdateSkillFile.js";
 import { tool$subAgentsAssociateFunctionToolWithSubAgent } from "./tools/subAgentsAssociateFunctionToolWithSubAgent.js";
 import { tool$subAgentsCheckFunctionToolSubAgentAssociation } from "./tools/subAgentsCheckFunctionToolSubAgentAssociation.js";
 import { tool$subAgentsCreateSubagent } from "./tools/subAgentsCreateSubagent.js";
@@ -270,14 +309,15 @@ import { tool$workAppsSlackUserStatus } from "./tools/workAppsSlackUserStatus.js
 import { tool$workAppsSlackVerifyLinkToken } from "./tools/workAppsSlackVerifyLinkToken.js";
 import { tool$workAppsSlackWorkspaceHealth } from "./tools/workAppsSlackWorkspaceHealth.js";
 import { tool$workflowsEvaluateConversationsByJob } from "./tools/workflowsEvaluateConversationsByJob.js";
-import { tool$workflowsGetApiWorkflowProcess } from "./tools/workflowsGetApiWorkflowProcess.js";
-import { tool$workflowsRunDatasetItems } from "./tools/workflowsRunDatasetItems.js";
+import { tool$workflowsGetApiCronCleanupStreamChunks } from "./tools/workflowsGetApiCronCleanupStreamChunks.js";
+import { tool$workflowsPostApiDeployRestartScheduler } from "./tools/workflowsPostApiDeployRestartScheduler.js";
 
 export function createMCPServer(deps: {
   logger: ConsoleLogger;
   allowedTools?: string[] | undefined;
   dynamic?: boolean | undefined;
   scopes?: MCPScope[] | undefined;
+  annotationFilter?: MCPToolAnnotationFilter | undefined;
   getSDK?: () => InkeepAgentsCore;
   serverURL?: string | undefined;
   security?: SDKOptions["security"] | undefined;
@@ -285,7 +325,7 @@ export function createMCPServer(deps: {
 }) {
   const server = new McpServer({
     name: "InkeepAgents",
-    version: "0.0.1",
+    version: "0.0.2",
   });
 
   const getClient = deps.getSDK || (() =>
@@ -312,6 +352,7 @@ export function createMCPServer(deps: {
     scopes,
     allowedTools,
     deps.dynamic,
+    deps.annotationFilter,
   );
   const resource = createRegisterResource(
     deps.logger,
@@ -332,12 +373,13 @@ export function createMCPServer(deps: {
   tool(tool$capabilities);
   tool(tool$healthHealth);
   tool(tool$healthReady);
-  tool(tool$workflowsGetApiWorkflowProcess);
-  tool(tool$workflowsRunDatasetItems);
+  tool(tool$workflowsPostApiDeployRestartScheduler);
+  tool(tool$workflowsGetApiCronCleanupStreamChunks);
   tool(tool$workflowsEvaluateConversationsByJob);
   tool(tool$userProfileGetUserProfile);
   tool(tool$userProfileUpsertUserProfile);
   tool(tool$cliGetManageApiCLIMe);
+  tool(tool$entitlementsListOrgEntitlements);
   tool(tool$projectsListProjects);
   tool(tool$projectsCreateProject);
   tool(tool$projectsGetProjectById);
@@ -355,6 +397,8 @@ export function createMCPServer(deps: {
   tool(tool$branchesGetBranch);
   tool(tool$branchesDeleteBranch);
   tool(tool$branchesListBranchesForAgent);
+  tool(tool$branchesMergePreview);
+  tool(tool$branchesMergeExecute);
   tool(tool$refsResolveRef);
   tool(tool$projectMembersListProjectMembers);
   tool(tool$projectMembersAddProjectMember);
@@ -364,28 +408,28 @@ export function createMCPServer(deps: {
   tool(tool$subAgentsListSubagents);
   tool(tool$subAgentsCreateSubagent);
   tool(tool$subAgentsGetSubagentById);
-  tool(tool$subAgentsUpdateSubagent);
   tool(tool$subAgentsDeleteSubagent);
+  tool(tool$subAgentsUpdateSubagent);
   tool(tool$subAgentsListSubAgentRelations);
   tool(tool$subAgentsCreateSubAgentRelation);
   tool(tool$subAgentsGetSubAgentRelationById);
-  tool(tool$subAgentsUpdateSubAgentRelation);
   tool(tool$subAgentsDeleteSubAgentRelation);
+  tool(tool$subAgentsUpdateSubAgentRelation);
   tool(tool$subAgentsListSubAgentExternalAgentRelations);
   tool(tool$subAgentsCreateSubAgentExternalAgentRelation);
   tool(tool$subAgentsGetSubAgentExternalAgentRelationById);
-  tool(tool$subAgentsUpdateSubAgentExternalAgentRelation);
   tool(tool$subAgentsDeleteSubAgentExternalAgentRelation);
+  tool(tool$subAgentsUpdateSubAgentExternalAgentRelation);
   tool(tool$subAgentsListSubAgentTeamAgentRelations);
   tool(tool$subAgentsCreateSubAgentTeamAgentRelation);
   tool(tool$subAgentsGetSubAgentTeamAgentRelationById);
-  tool(tool$subAgentsUpdateSubAgentTeamAgentRelation);
   tool(tool$subAgentsDeleteSubAgentTeamAgentRelation);
+  tool(tool$subAgentsUpdateSubAgentTeamAgentRelation);
   tool(tool$subAgentsListSubagentToolRelations);
   tool(tool$subAgentsCreateSubagentToolRelation);
   tool(tool$subAgentsGetSubagentToolRelation);
-  tool(tool$subAgentsUpdateSubagentToolRelation);
   tool(tool$subAgentsDeleteSubagentToolRelation);
+  tool(tool$subAgentsUpdateSubagentToolRelation);
   tool(tool$subAgentsGetSubagentsForTool);
   tool(tool$subAgentsGetFunctionToolsForSubAgent);
   tool(tool$subAgentsGetSubAgentsUsingFunctionTool);
@@ -395,13 +439,13 @@ export function createMCPServer(deps: {
   tool(tool$externalAgentsListExternalAgents);
   tool(tool$externalAgentsCreateExternalAgent);
   tool(tool$externalAgentsGetExternalAgentById);
-  tool(tool$externalAgentsUpdateExternalAgent);
   tool(tool$externalAgentsDeleteExternalAgent);
+  tool(tool$externalAgentsUpdateExternalAgent);
   tool(tool$agentsListAgents);
   tool(tool$agentsCreateAgent);
   tool(tool$agentsGetAgent);
-  tool(tool$agentsUpdateAgent);
   tool(tool$agentsDeleteAgent);
+  tool(tool$agentsUpdateAgent);
   tool(tool$agentsGetRelatedAgentInfos);
   tool(tool$agentsGetFullAgentDefinition);
   tool(tool$agentsGetArtifactComponentsForAgent);
@@ -421,8 +465,8 @@ export function createMCPServer(deps: {
   tool(tool$toolsListTools);
   tool(tool$toolsCreateTool);
   tool(tool$toolsGetTool);
-  tool(tool$toolsUpdateTool);
   tool(tool$toolsDeleteTool);
+  tool(tool$toolsUpdateTool);
   tool(tool$toolsGetUserCredentialForTool);
   tool(tool$toolsInitiateToolOauthLogin);
   tool(tool$toolsGetMcpToolGithubAccess);
@@ -432,31 +476,35 @@ export function createMCPServer(deps: {
   tool(tool$artifactComponentsListArtifactComponents);
   tool(tool$artifactComponentsCreateArtifactComponent);
   tool(tool$artifactComponentsGetArtifactComponentById);
-  tool(tool$artifactComponentsUpdateArtifactComponent);
   tool(tool$artifactComponentsDeleteArtifactComponent);
+  tool(tool$artifactComponentsUpdateArtifactComponent);
   tool(tool$dataComponentsListDataComponents);
   tool(tool$dataComponentsCreateDataComponent);
   tool(tool$dataComponentsGetDataComponentById);
-  tool(tool$dataComponentsUpdateDataComponent);
   tool(tool$dataComponentsDeleteDataComponent);
+  tool(tool$dataComponentsUpdateDataComponent);
   tool(tool$functionToolsListFunctionTools);
   tool(tool$functionToolsCreateFunctionTool);
   tool(tool$functionToolsGetFunctionTool);
-  tool(tool$functionToolsUpdateFunctionTool);
   tool(tool$functionToolsDeleteFunctionTool);
+  tool(tool$functionToolsUpdateFunctionTool);
   tool(tool$skillsListSkills);
   tool(tool$skillsCreateSkill);
+  tool(tool$skillsCreateSkillFile);
+  tool(tool$skillsGetSkillFile);
+  tool(tool$skillsDeleteSkillFile);
+  tool(tool$skillsUpdateSkillFile);
   tool(tool$skillsGetSkill);
-  tool(tool$skillsUpdateSkill);
   tool(tool$skillsDeleteSkill);
+  tool(tool$skillsUpdateSkill);
   tool(tool$skillsGetSkillsForSubagent);
   tool(tool$skillsCreateSubagentSkill);
   tool(tool$skillsDeleteSubagentSkill);
   tool(tool$contextConfigsListContextConfigs);
   tool(tool$contextConfigsCreateContextConfig);
   tool(tool$contextConfigsGetContextConfigById);
-  tool(tool$contextConfigsUpdateContextConfig);
   tool(tool$contextConfigsDeleteContextConfig);
+  tool(tool$contextConfigsUpdateContextConfig);
   tool(tool$conversationsListConversations);
   tool(tool$conversationsGetConversation);
   tool(tool$conversationsGetConversationBounds);
@@ -464,25 +512,28 @@ export function createMCPServer(deps: {
   tool(tool$credentialsListCredentials);
   tool(tool$credentialsCreateCredential);
   tool(tool$credentialsGetCredentialById);
-  tool(tool$credentialsUpdateCredential);
   tool(tool$credentialsDeleteCredential);
+  tool(tool$credentialsUpdateCredential);
   tool(tool$credentialStoresListCredentialStores);
   tool(tool$credentialStoresCreateCredentialInStore);
   tool(tool$functionsListFunctions);
   tool(tool$functionsCreateFunction);
   tool(tool$functionsGetFunction);
-  tool(tool$functionsUpdateFunction);
   tool(tool$functionsDeleteFunction);
+  tool(tool$functionsUpdateFunction);
   tool(tool$apiKeysListAPIKeys);
   tool(tool$apiKeysCreateAPIKey);
   tool(tool$apiKeysGetAPIKeyById);
-  tool(tool$apiKeysUpdateAPIKey);
   tool(tool$apiKeysDeleteAPIKey);
+  tool(tool$apiKeysUpdateAPIKey);
   tool(tool$appsListApps);
   tool(tool$appsCreateApp);
   tool(tool$appsGetAppById);
-  tool(tool$appsUpdateApp);
   tool(tool$appsDeleteApp);
+  tool(tool$appsUpdateApp);
+  tool(tool$appsListAppAuthKeys);
+  tool(tool$appsCreateAppAuthKey);
+  tool(tool$appsDeleteAppAuthKey);
   tool(tool$mcpCatalogListMCPCatalog);
   tool(tool$thirdPartyMCPServersGetThirdPartyMCPServer);
   tool(tool$thirdPartyMCPServersGetOauthRedirectUrl);
@@ -500,17 +551,30 @@ export function createMCPServer(deps: {
   tool(tool$scheduledTriggersGetScheduledTriggerById);
   tool(tool$scheduledTriggersDeleteScheduledTrigger);
   tool(tool$scheduledTriggersUpdateScheduledTrigger);
+  tool(tool$scheduledTriggersListScheduledTriggerUsers);
+  tool(tool$scheduledTriggersSetScheduledTriggerUsers);
+  tool(tool$scheduledTriggersAddScheduledTriggerUser);
+  tool(tool$scheduledTriggersRemoveScheduledTriggerUser);
   tool(tool$scheduledTriggersListScheduledTriggerInvocations);
   tool(tool$scheduledTriggersGetScheduledTriggerInvocationById);
   tool(tool$scheduledTriggersCancelScheduledTriggerInvocation);
   tool(tool$scheduledTriggersRerunScheduledTriggerInvocation);
   tool(tool$scheduledTriggersRunScheduledTriggerNow);
+  tool(tool$evaluationsListDatasetRunConfigs);
+  tool(tool$evaluationsGetDatasetRunConfig);
+  tool(tool$evaluationsDeleteDatasetRunConfig);
+  tool(tool$evaluationsUpdateDatasetRunConfig);
+  tool(tool$evaluationsCreateDatasetRunConfig);
+  tool(tool$evaluationsTriggerDatasetRun);
   tool(tool$evaluationsListDatasetItems);
   tool(tool$evaluationsGetDatasetItem);
   tool(tool$evaluationsDeleteDatasetItem);
   tool(tool$evaluationsUpdateDatasetItem);
   tool(tool$evaluationsCreateDatasetItem);
   tool(tool$evaluationsCreateDatasetItemsBulk);
+  tool(tool$evaluationsListDatasetRuns);
+  tool(tool$evaluationsGetDatasetRun);
+  tool(tool$evaluationsGetDatasetRunItems);
   tool(tool$evaluationsListEvaluationJobConfigs);
   tool(tool$evaluationsCreateEvaluationJobConfig);
   tool(tool$evaluationsGetEvaluationJobConfig);
@@ -538,12 +602,19 @@ export function createMCPServer(deps: {
   tool(tool$evaluationsGetDataset);
   tool(tool$evaluationsDeleteDataset);
   tool(tool$evaluationsUpdateDataset);
+  tool(tool$evaluationsListDatasetAgents);
+  tool(tool$evaluationsAddAgentToDataset);
+  tool(tool$evaluationsRemoveAgentFromDataset);
   tool(tool$evaluationsListEvaluators);
   tool(tool$evaluationsCreateEvaluator);
   tool(tool$evaluationsGetEvaluator);
   tool(tool$evaluationsDeleteEvaluator);
   tool(tool$evaluationsUpdateEvaluator);
   tool(tool$evaluationsGetEvaluatorsBatch);
+  tool(tool$evaluationsBatchGetEvaluatorAgentScopes);
+  tool(tool$evaluationsListEvaluatorAgents);
+  tool(tool$evaluationsAddAgentToEvaluator);
+  tool(tool$evaluationsRemoveAgentFromEvaluator);
   tool(tool$evaluationsGetEvaluationResult);
   tool(tool$evaluationsDeleteEvaluationResult);
   tool(tool$evaluationsUpdateEvaluationResult);
@@ -558,6 +629,11 @@ export function createMCPServer(deps: {
   tool(tool$gitHubReconnectGithubInstallation);
   tool(tool$gitHubSyncGithubInstallationRepositories);
   tool(tool$userProjectMembershipsListUserProjectMemberships);
+  tool(tool$feedbackListFeedback);
+  tool(tool$feedbackCreateFeedback);
+  tool(tool$feedbackGetFeedbackById);
+  tool(tool$feedbackDeleteFeedback);
+  tool(tool$feedbackUpdateFeedback);
   tool(tool$oAuthMcpOauthCallback);
   tool(tool$oAuthSlackInstall);
   tool(tool$oAuthSlackOauthRedirect);

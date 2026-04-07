@@ -40,10 +40,10 @@ export const FullProjectSelectStatusUpdates$zodSchema: z.ZodType<
   FullProjectSelectStatusUpdates
 > = z.object({
   enabled: z.boolean().optional(),
-  numEvents: z.number().optional(),
+  numEvents: z.int().optional().describe("Trigger after N events"),
   prompt: z.string().optional(),
   statusComponents: z.array(StatusComponent$zodSchema).optional(),
-  timeInSeconds: z.number().optional(),
+  timeInSeconds: z.int().optional().describe("Trigger after N seconds"),
 });
 
 export type FullProjectSelect = {

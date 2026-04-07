@@ -26,6 +26,7 @@ export type AppCreate = {
   type: AppCreateType;
   defaultProjectId?: string | null | undefined;
   defaultAgentId?: string | null | undefined;
+  prompt?: string | null | undefined;
   enabled?: boolean | undefined;
   config: AppConfig;
   createdAt?: string | undefined;
@@ -41,6 +42,7 @@ export const AppCreate$zodSchema: z.ZodType<AppCreate> = z.object({
   enabled: z.boolean().optional(),
   name: z.string(),
   projectId: z.string().nullable().optional(),
+  prompt: z.string().nullable().optional(),
   tenantId: z.string().nullable().optional(),
   type: AppCreateType$zodSchema,
   updatedAt: z.string().optional(),

@@ -28,7 +28,9 @@ export const ResolvedRefType$zodSchema = z.enum([
 export type ResolvedRef = { type: ResolvedRefType; name: string; hash: string };
 
 export const ResolvedRef$zodSchema: z.ZodType<ResolvedRef> = z.object({
-  hash: z.string(),
-  name: z.string(),
-  type: ResolvedRefType$zodSchema,
+  hash: z.string().describe("The commit hash this ref resolves to"),
+  name: z.string().describe(
+    "The name of the ref (branch name, tag name, or commit hash)",
+  ),
+  type: ResolvedRefType$zodSchema.describe("The type of ref"),
 });

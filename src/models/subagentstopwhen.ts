@@ -9,6 +9,8 @@ export type SubAgentStopWhen = { stepCountIs?: number | undefined };
 
 export const SubAgentStopWhen$zodSchema: z.ZodType<SubAgentStopWhen> = z.object(
   {
-    stepCountIs: z.number().optional(),
+    stepCountIs: z.int().optional().describe(
+      "The maximum number of steps to trigger the stop condition.",
+    ),
   },
 );

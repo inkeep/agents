@@ -16,7 +16,7 @@ export const ServerList = [
   /**
    * API Server
    */
-  "https://api.pilot.inkeep.com",
+  "https://api.agents.inkeep.com",
 ] as const;
 
 export type SDKOptions = {
@@ -66,8 +66,8 @@ export function serverURLFromOptions(options: SDKOptions): URL | null {
 export const SDK_METADATA = {
   language: "typescript",
   openapiDocVersion: "1.0.0",
-  sdkVersion: "0.0.1",
-  genVersion: "2.866.2",
+  sdkVersion: "0.0.2",
+  genVersion: "2.879.6",
   userAgent:
-    "speakeasy-sdk/mcp-typescript 0.0.1 2.866.2 1.0.0 @inkeep/agents-mcp",
+    "speakeasy-sdk/mcp-typescript 0.0.2 2.879.6 1.0.0 @inkeep/agents-mcp",
 } as const;

@@ -31,8 +31,8 @@ export type AssociateArtifactComponentWithAgentRequestBody = {
 export const AssociateArtifactComponentWithAgentRequestBody$zodSchema:
   z.ZodType<AssociateArtifactComponentWithAgentRequestBody> = z.object({
     agentId: z.string(),
-    artifactComponentId: z.string(),
-    subAgentId: z.string(),
+    artifactComponentId: z.string().describe("Resource identifier"),
+    subAgentId: z.string().describe("Resource identifier"),
   });
 
 export type AssociateArtifactComponentWithAgentRequest = {
@@ -71,16 +71,28 @@ export type AssociateArtifactComponentWithAgentResponse = {
 export const AssociateArtifactComponentWithAgentResponse$zodSchema: z.ZodType<
   AssociateArtifactComponentWithAgentResponse
 > = z.object({
-  BadRequest: BadRequest$zodSchema.optional(),
-  ContentType: z.string(),
-  ErrorResponse: ErrorResponse$zodSchema.optional(),
-  Forbidden: Forbidden$zodSchema.optional(),
-  InternalServerError: InternalServerError$zodSchema.optional(),
-  NotFound: NotFound$zodSchema.optional(),
-  RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
+  BadRequest: BadRequest$zodSchema.optional().describe("Bad Request"),
+  ContentType: z.string().describe(
+    "HTTP response content type for this operation",
+  ),
+  ErrorResponse: ErrorResponse$zodSchema.optional().describe(
+    "Association already exists",
+  ),
+  Forbidden: Forbidden$zodSchema.optional().describe("Forbidden"),
+  InternalServerError: InternalServerError$zodSchema.optional().describe(
+    "Internal Server Error",
+  ),
+  NotFound: NotFound$zodSchema.optional().describe("Not Found"),
+  RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+    "Raw HTTP response; suitable for custom response parsing",
+  ),
+  StatusCode: z.int().describe("HTTP response status code for this operation"),
   SubAgentArtifactComponentResponse: SubAgentArtifactComponentResponse$zodSchema
-    .optional(),
-  Unauthorized: Unauthorized$zodSchema.optional(),
-  UnprocessableEntity: UnprocessableEntity$zodSchema.optional(),
+    .optional().describe(
+      "Agent artifact component association created successfully",
+    ),
+  Unauthorized: Unauthorized$zodSchema.optional().describe("Unauthorized"),
+  UnprocessableEntity: UnprocessableEntity$zodSchema.optional().describe(
+    "Unprocessable Entity",
+  ),
 });

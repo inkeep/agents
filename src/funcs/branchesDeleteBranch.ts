@@ -4,7 +4,7 @@
  */
 
 import { InkeepAgentsCore } from "../core.js";
-import { encodeSimple } from "../lib/encodings.js";
+import { encodeFormQuery, encodeSimple } from "../lib/encodings.js";
 import { compactMap } from "../lib/primitives.js";
 import { safeParse } from "../lib/schemas.js";
 import { RequestOptions } from "../lib/sdks.js";
@@ -109,6 +109,9 @@ async function $do(
   )(
     pathParams$,
   );
+  const query$ = encodeFormQuery({
+    "force": payload$.force,
+  });
 
   const headers$ = new Headers(compactMap({
     Accept: options?.acceptHeaderOverride
@@ -142,6 +145,7 @@ async function $do(
     baseURL: options?.serverURL,
     path: path$,
     headers: headers$,
+    query: query$,
     body: body$,
     userAgent: client$._options.userAgent,
     timeoutMs: options?.timeoutMs || client$._options.timeoutMs

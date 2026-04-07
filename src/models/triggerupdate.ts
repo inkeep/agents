@@ -82,19 +82,28 @@ export type TriggerUpdateSignatureVerification = {
 export const TriggerUpdateSignatureVerification$zodSchema: z.ZodType<
   TriggerUpdateSignatureVerification
 > = z.object({
-  algorithm: TriggerUpdateAlgorithm$zodSchema,
-  componentJoin: ComponentJoin$zodSchema,
-  encoding: TriggerUpdateEncoding$zodSchema,
-  signature: SignatureSource$zodSchema,
-  signedComponents: z.array(SignedComponent$zodSchema),
-  validation: SignatureValidationOptions$zodSchema.optional(),
+  algorithm: TriggerUpdateAlgorithm$zodSchema.describe(
+    "HMAC algorithm to use for signature verification",
+  ),
+  componentJoin: ComponentJoin$zodSchema.describe(
+    "How to join signed components",
+  ),
+  encoding: TriggerUpdateEncoding$zodSchema.describe(
+    "Encoding format of the signature (hex or base64)",
+  ),
+  signature: SignatureSource$zodSchema.describe(
+    "Configuration for extracting the signature",
+  ),
+  signedComponents: z.array(SignedComponent$zodSchema).describe(
+    "Array of components that are signed (order matters)",
+  ),
+  validation: SignatureValidationOptions$zodSchema.optional().describe(
+    "Advanced validation options",
+  ),
 }).describe("Configuration for webhook signature verification");
 
 export type TriggerUpdate = {
-  tenantId?: string | undefined;
   id?: string | undefined;
-  projectId?: string | undefined;
-  agentId?: string | undefined;
   name?: string | undefined;
   description?: string | null | undefined;
   enabled?: boolean | undefined;
@@ -111,23 +120,31 @@ export type TriggerUpdate = {
 };
 
 export const TriggerUpdate$zodSchema: z.ZodType<TriggerUpdate> = z.object({
-  agentId: z.string().optional(),
   authentication: TriggerAuthenticationInput$zodSchema.nullable().optional(),
   createdAt: z.string().optional(),
-  createdBy: z.string().nullable().optional(),
-  description: z.string().nullable().optional(),
-  enabled: z.boolean().optional(),
-  id: z.string().optional(),
-  inputSchema: z.record(z.string(), z.any().nullable()).nullable().optional(),
-  messageTemplate: z.string().nullable().optional(),
-  name: z.string().optional(),
+  createdBy: z.string().nullable().optional().describe(
+    "User ID of the user who created this trigger",
+  ),
+  description: z.string().nullable().optional().describe("Trigger description"),
+  enabled: z.boolean().optional().describe("Whether the trigger is enabled"),
+  id: z.string().optional().describe("Resource identifier"),
+  inputSchema: z.record(z.string(), z.any().nullable()).nullable().optional()
+    .describe("JSON Schema for input validation"),
+  messageTemplate: z.string().nullable().optional().describe(
+    "Message template with {{\"{{\"}}placeholder}} syntax",
+  ),
+  name: z.string().optional().describe("Trigger name"),
   outputTransform: TriggerOutputTransform$zodSchema.nullable().optional(),
-  projectId: z.string().optional(),
-  runAsUserId: z.string().nullable().optional(),
+  runAsUserId: z.string().nullable().optional().describe(
+    "User ID to run the webhook as",
+  ),
   signatureVerification: z.lazy(() =>
     TriggerUpdateSignatureVerification$zodSchema
-  ).nullable().optional(),
-  signingSecretCredentialReferenceId: z.string().nullable().optional(),
-  tenantId: z.string().optional(),
+  ).nullable().optional().describe(
+    "Configuration for webhook signature verification",
+  ),
+  signingSecretCredentialReferenceId: z.string().nullable().optional().describe(
+    "Reference to credential containing signing secret",
+  ),
   updatedAt: z.string().optional(),
 });

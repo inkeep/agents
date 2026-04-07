@@ -13,6 +13,10 @@ export type TriggerOutputTransform = {
 export const TriggerOutputTransform$zodSchema: z.ZodType<
   TriggerOutputTransform
 > = z.object({
-  jmespath: z.string().optional(),
-  objectTransformation: z.record(z.string(), z.string()).optional(),
+  jmespath: z.string().optional().describe(
+    "JMESPath expression (max 1000 chars). Valid: \"data.items[0].name\", \"results[?status=='active']\", \"keys(@)\". Invalid: \"${...}\" (template injection), \"eval\" calls, \"constructor\", \"__proto__\".",
+  ),
+  objectTransformation: z.record(z.string(), z.string()).optional().describe(
+    "Object transformation mapping",
+  ),
 });

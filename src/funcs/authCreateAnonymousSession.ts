@@ -34,7 +34,7 @@ export enum CreateAnonymousSessionAcceptEnum {
  * Create Anonymous Session
  *
  * @remarks
- * Issue an anonymous session JWT for a web_client app. The app must have anonymous access enabled and the Origin must match an allowed domain.
+ * Issue an anonymous session JWT for a web_client app. If a valid Bearer token for the same app is provided, the existing anonymous identity is preserved with a fresh expiry (rolling refresh). Otherwise a new identity is created.
  */
 export function authCreateAnonymousSession(
   client$: InkeepAgentsCore,

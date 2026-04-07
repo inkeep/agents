@@ -4,6 +4,20 @@
  */
 
 import * as z from "zod";
+import { ClosedEnum } from "../types/enums.js";
+
+export const AgentCreateExecutionMode = {
+  Classic: "classic",
+  Durable: "durable",
+} as const;
+export type AgentCreateExecutionMode = ClosedEnum<
+  typeof AgentCreateExecutionMode
+>;
+
+export const AgentCreateExecutionMode$zodSchema = z.enum([
+  "classic",
+  "durable",
+]);
 
 export type AgentCreate = {
   id: string;
@@ -15,13 +29,15 @@ export type AgentCreate = {
   statusUpdates?: any | null | undefined;
   prompt?: string | null | undefined;
   stopWhen?: any | null | undefined;
+  executionMode?: AgentCreateExecutionMode | undefined;
 };
 
 export const AgentCreate$zodSchema: z.ZodType<AgentCreate> = z.object({
   contextConfigId: z.string().nullable().optional(),
   defaultSubAgentId: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
-  id: z.string(),
+  executionMode: AgentCreateExecutionMode$zodSchema.optional(),
+  id: z.string().describe("Resource identifier"),
   models: z.any().nullable().optional(),
   name: z.string(),
   prompt: z.string().nullable().optional(),

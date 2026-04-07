@@ -36,9 +36,19 @@ export type SignedComponent = {
 };
 
 export const SignedComponent$zodSchema: z.ZodType<SignedComponent> = z.object({
-  key: z.string().optional(),
-  regex: z.string().optional(),
-  required: z.boolean().default(true),
-  source: SignedComponentSource$zodSchema,
-  value: z.string().optional(),
+  key: z.string().optional().describe(
+    "Key for header name or JMESPath expression (required for header/body sources)",
+  ),
+  regex: z.string().optional().describe(
+    "Optional regex pattern to extract from component value (first capture group)",
+  ),
+  required: z.boolean().default(true).describe(
+    "If false, missing component results in empty string instead of error",
+  ),
+  source: SignedComponentSource$zodSchema.describe(
+    "Source of the component: header value, body via JMESPath, or literal string",
+  ),
+  value: z.string().optional().describe(
+    "Literal string value (required for literal source)",
+  ),
 });

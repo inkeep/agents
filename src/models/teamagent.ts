@@ -5,10 +5,14 @@
 
 import * as z from "zod";
 
-export type TeamAgent = { id: string; name: string; description: string };
+export type TeamAgent = {
+  id: string;
+  name: string;
+  description?: string | null | undefined;
+};
 
 export const TeamAgent$zodSchema: z.ZodType<TeamAgent> = z.object({
-  description: z.string(),
-  id: z.string(),
+  description: z.string().nullable().optional(),
+  id: z.string().describe("Resource identifier"),
   name: z.string(),
 });

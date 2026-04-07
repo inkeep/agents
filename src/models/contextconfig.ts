@@ -25,7 +25,8 @@ export type ContextConfig = {
 export const ContextConfig$zodSchema: z.ZodType<ContextConfig> = z.object({
   contextVariables: z.any().nullable().optional(),
   createdAt: z.string(),
-  headersSchema: z.lazy(() => ContextConfigHeadersSchema$zodSchema).optional(),
+  headersSchema: z.lazy(() => ContextConfigHeadersSchema$zodSchema).optional()
+    .describe("JSON Schema for validating request headers"),
   id: z.string(),
   updatedAt: z.string(),
 });

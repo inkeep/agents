@@ -51,8 +51,12 @@ export type InternalServerErrorError = {
 export const InternalServerErrorError$zodSchema: z.ZodType<
   InternalServerErrorError
 > = z.object({
-  code: InternalServerErrorCode2$zodSchema,
-  message: z.string(),
+  code: InternalServerErrorCode2$zodSchema.describe(
+    "A short code indicating the error code returned.",
+  ),
+  message: z.string().describe(
+    "A concise error message suitable for display to end users. May be truncated if the full detail is long.",
+  ),
 }).describe("Legacy error format for backward compatibility.");
 
 export type InternalServerError = {
@@ -67,11 +71,23 @@ export type InternalServerError = {
 
 export const InternalServerError$zodSchema: z.ZodType<InternalServerError> = z
   .object({
-    code: InternalServerErrorCode1$zodSchema,
-    detail: z.string(),
-    error: z.lazy(() => InternalServerErrorError$zodSchema),
-    instance: z.string().optional(),
-    requestId: z.string().optional(),
-    status: z.int(),
-    title: z.string(),
+    code: InternalServerErrorCode1$zodSchema.describe(
+      "A short code indicating the error code returned.",
+    ),
+    detail: z.string().describe(
+      "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong.",
+    ),
+    error: z.lazy(() => InternalServerErrorError$zodSchema).describe(
+      "Legacy error format for backward compatibility.",
+    ),
+    instance: z.string().optional().describe(
+      "A URI reference that identifies the specific occurrence of the problem.",
+    ),
+    requestId: z.string().optional().describe(
+      "A unique identifier for the request, useful for troubleshooting.",
+    ),
+    status: z.int().describe("The HTTP status code."),
+    title: z.string().describe(
+      "A short, human-readable summary of the problem type.",
+    ),
   });

@@ -5,10 +5,19 @@
 
 import * as z from "zod";
 
-export type CreateBranchRequest = { name: string; from?: string | undefined };
+export type CreateBranchRequest = {
+  name: string;
+  fromBranch?: string | undefined;
+  fromCommit?: string | undefined;
+};
 
 export const CreateBranchRequest$zodSchema: z.ZodType<CreateBranchRequest> = z
   .object({
-    from: z.string().optional(),
-    name: z.string(),
+    fromBranch: z.string().optional().describe(
+      "Branch name to create from. Defaults to tenant main branch.",
+    ),
+    fromCommit: z.string().optional().describe(
+      "Commit hash to create from. Mutually exclusive with fromBranch.",
+    ),
+    name: z.string().describe("Name of the branch"),
   });

@@ -24,9 +24,17 @@ export type GetPowChallengeResponse = {
 export const GetPowChallengeResponse$zodSchema: z.ZodType<
   GetPowChallengeResponse
 > = z.object({
-  ContentType: z.string(),
-  PowChallengeResponse: PowChallengeResponse$zodSchema.optional(),
-  PowDisabledError: PowDisabledError$zodSchema.optional(),
-  RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
+  ContentType: z.string().describe(
+    "HTTP response content type for this operation",
+  ),
+  PowChallengeResponse: PowChallengeResponse$zodSchema.optional().describe(
+    "PoW challenge generated successfully",
+  ),
+  PowDisabledError: PowDisabledError$zodSchema.optional().describe(
+    "PoW is not enabled",
+  ),
+  RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+    "Raw HTTP response; suitable for custom response parsing",
+  ),
+  StatusCode: z.int().describe("HTTP response status code for this operation"),
 });

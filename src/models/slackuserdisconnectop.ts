@@ -15,10 +15,10 @@ export type SlackUserDisconnectRequest = {
 export const SlackUserDisconnectRequest$zodSchema: z.ZodType<
   SlackUserDisconnectRequest
 > = z.object({
-  slackTeamId: z.string().optional(),
-  slackUserId: z.string().optional(),
-  tenantId: z.string().optional(),
-  userId: z.string().optional(),
+  slackTeamId: z.string().optional().describe("Slack team ID"),
+  slackUserId: z.string().optional().describe("Slack user ID"),
+  tenantId: z.string().optional().describe("Tenant ID"),
+  userId: z.string().optional().describe("Inkeep user ID"),
 });
 
 /**
@@ -42,8 +42,13 @@ export type SlackUserDisconnectResponse = {
 export const SlackUserDisconnectResponse$zodSchema: z.ZodType<
   SlackUserDisconnectResponse
 > = z.object({
-  ContentType: z.string(),
-  RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
-  object: z.lazy(() => SlackUserDisconnectResponseBody$zodSchema).optional(),
+  ContentType: z.string().describe(
+    "HTTP response content type for this operation",
+  ),
+  RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+    "Raw HTTP response; suitable for custom response parsing",
+  ),
+  StatusCode: z.int().describe("HTTP response status code for this operation"),
+  object: z.lazy(() => SlackUserDisconnectResponseBody$zodSchema).optional()
+    .describe("User disconnected"),
 });

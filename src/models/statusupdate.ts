@@ -19,8 +19,8 @@ export type StatusUpdate = {
 
 export const StatusUpdate$zodSchema: z.ZodType<StatusUpdate> = z.object({
   enabled: z.boolean().optional(),
-  numEvents: z.number().optional(),
+  numEvents: z.int().optional().describe("Trigger after N events"),
   prompt: z.string().optional(),
   statusComponents: z.array(StatusComponent$zodSchema).optional(),
-  timeInSeconds: z.number().optional(),
+  timeInSeconds: z.int().optional().describe("Trigger after N seconds"),
 });

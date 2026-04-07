@@ -9,7 +9,7 @@ export type ReadyErrorChecks = { manageDb: boolean; runDb: boolean };
 
 export const ReadyErrorChecks$zodSchema: z.ZodType<ReadyErrorChecks> = z.object(
   {
-    manageDb: z.boolean(),
-    runDb: z.boolean(),
+    manageDb: z.boolean().describe("Whether the manage database check passed"),
+    runDb: z.boolean().describe("Whether the run database check passed"),
   },
 );

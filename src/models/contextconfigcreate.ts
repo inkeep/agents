@@ -35,8 +35,10 @@ export const ContextConfigCreate$zodSchema: z.ZodType<ContextConfigCreate> = z
   .object({
     contextVariables: z.lazy(() =>
       ContextConfigCreateContextVariables$zodSchema
-    ).optional(),
+    ).optional().describe(
+      "Context variables configuration with fetch definitions",
+    ),
     headersSchema: z.lazy(() => ContextConfigCreateHeadersSchema$zodSchema)
-      .optional(),
-    id: z.string().optional(),
+      .optional().describe("JSON Schema for validating request headers"),
+    id: z.string().optional().describe("Resource identifier"),
   });

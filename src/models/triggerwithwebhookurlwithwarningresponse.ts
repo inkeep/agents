@@ -18,5 +18,7 @@ export const TriggerWithWebhookUrlWithWarningResponse$zodSchema: z.ZodType<
   TriggerWithWebhookUrlWithWarningResponse
 > = z.object({
   data: TriggerWithWebhookUrl$zodSchema,
-  warning: z.string().optional(),
+  warning: z.string().optional().describe(
+    "Security warning when runAsUserId is set but no authentication or signature verification is configured",
+  ),
 });

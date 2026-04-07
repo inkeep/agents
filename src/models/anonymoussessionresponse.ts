@@ -10,6 +10,6 @@ export type AnonymousSessionResponse = { token: string; expiresAt: string };
 export const AnonymousSessionResponse$zodSchema: z.ZodType<
   AnonymousSessionResponse
 > = z.object({
-  expiresAt: z.string(),
-  token: z.string(),
+  expiresAt: z.string().describe("Token expiration time (ISO 8601)"),
+  token: z.string().describe("Anonymous session JWT"),
 });

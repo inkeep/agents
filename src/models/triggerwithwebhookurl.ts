@@ -31,7 +31,9 @@ export const TriggerWithWebhookUrl$zodSchema: z.ZodType<TriggerWithWebhookUrl> =
   z.object({
     authentication: z.any().nullable().optional(),
     createdAt: z.string(),
-    createdBy: z.string().nullable().optional(),
+    createdBy: z.string().nullable().optional().describe(
+      "User ID of the user who created this trigger",
+    ),
     description: z.string().nullable(),
     enabled: z.boolean(),
     id: z.string(),
@@ -39,10 +41,14 @@ export const TriggerWithWebhookUrl$zodSchema: z.ZodType<TriggerWithWebhookUrl> =
     messageTemplate: z.string().nullable(),
     name: z.string(),
     outputTransform: z.any().nullable().optional(),
-    runAsUserId: z.string().nullable().optional(),
+    runAsUserId: z.string().nullable().optional().describe(
+      "User ID to run the webhook as",
+    ),
     signatureVerification: SignatureVerificationConfig$zodSchema.nullable()
       .optional(),
     signingSecretCredentialReferenceId: z.string().nullable().optional(),
     updatedAt: z.string(),
-    webhookUrl: z.string(),
+    webhookUrl: z.string().describe(
+      "Fully qualified webhook URL for this trigger",
+    ),
   });

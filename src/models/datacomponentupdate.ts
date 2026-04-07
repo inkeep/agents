@@ -20,7 +20,7 @@ export type DataComponentUpdate = {
 export const DataComponentUpdate$zodSchema: z.ZodType<DataComponentUpdate> = z
   .object({
     description: z.string().nullable().optional(),
-    id: z.string().optional(),
+    id: z.string().optional().describe("Resource identifier"),
     name: z.string(),
     props: JsonSchemaForLlmSchema$zodSchema.nullable(),
     render: z.any().nullable().optional(),

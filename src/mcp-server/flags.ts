@@ -12,6 +12,7 @@ import { SDKOptions } from "../lib/config.js";
 export interface MCPServerFlags {
   readonly tool?: string[];
   readonly mode?: "dynamic" | undefined;
+  readonly "tool-annotations"?: string[] | undefined;
   readonly "cookie-auth"?: string | undefined;
   readonly "bearer-auth"?: string | undefined;
   readonly "server-url"?: string | undefined;

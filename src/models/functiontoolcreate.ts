@@ -16,6 +16,6 @@ export const FunctionToolCreate$zodSchema: z.ZodType<FunctionToolCreate> = z
   .object({
     description: z.string().nullable().optional(),
     functionId: z.string(),
-    id: z.string(),
+    id: z.string().describe("Resource identifier"),
     name: z.string(),
   });

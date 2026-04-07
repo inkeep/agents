@@ -17,7 +17,13 @@ export type SignatureValidationOptions = {
 export const SignatureValidationOptions$zodSchema: z.ZodType<
   SignatureValidationOptions
 > = z.object({
-  allowEmptyBody: z.boolean().default(true),
-  headerCaseSensitive: z.boolean().default(false),
-  normalizeUnicode: z.boolean().default(false),
+  allowEmptyBody: z.boolean().default(true).describe(
+    "If true, allow empty request body for verification",
+  ),
+  headerCaseSensitive: z.boolean().default(false).describe(
+    "If true, header names are matched case-sensitively",
+  ),
+  normalizeUnicode: z.boolean().default(false).describe(
+    "If true, normalize Unicode strings to NFC form before signing",
+  ),
 }).describe("Advanced validation options");

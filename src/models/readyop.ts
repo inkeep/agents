@@ -20,9 +20,19 @@ export type ReadyResponseResponse = {
 
 export const ReadyResponseResponse$zodSchema: z.ZodType<ReadyResponseResponse> =
   z.object({
-    ContentType: z.string(),
-    RawResponse: z.custom<Response>(x => x instanceof Response),
-    ReadyErrorResponse: ReadyErrorResponse$zodSchema.optional(),
-    ReadyResponse: ReadyResponse$zodSchema.optional(),
-    StatusCode: z.int(),
+    ContentType: z.string().describe(
+      "HTTP response content type for this operation",
+    ),
+    RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+      "Raw HTTP response; suitable for custom response parsing",
+    ),
+    ReadyErrorResponse: ReadyErrorResponse$zodSchema.optional().describe(
+      "Service is not ready - one or more health checks failed",
+    ),
+    ReadyResponse: ReadyResponse$zodSchema.optional().describe(
+      "Service is ready - all health checks passed",
+    ),
+    StatusCode: z.int().describe(
+      "HTTP response status code for this operation",
+    ),
   });

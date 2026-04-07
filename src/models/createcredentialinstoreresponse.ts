@@ -14,9 +14,9 @@ export type CreateCredentialInStoreResponseData = {
 export const CreateCredentialInStoreResponseData$zodSchema: z.ZodType<
   CreateCredentialInStoreResponseData
 > = z.object({
-  createdAt: z.string(),
-  key: z.string(),
-  storeId: z.string(),
+  createdAt: z.string().describe("ISO timestamp of creation"),
+  key: z.string().describe("The credential key"),
+  storeId: z.string().describe("The store ID where credential was created"),
 });
 
 export type CreateCredentialInStoreResponse = {

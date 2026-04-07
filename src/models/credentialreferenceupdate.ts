@@ -10,6 +10,7 @@ export const CredentialReferenceUpdateType = {
   Memory: "memory",
   Keychain: "keychain",
   Nango: "nango",
+  Composio: "composio",
 } as const;
 export type CredentialReferenceUpdateType = ClosedEnum<
   typeof CredentialReferenceUpdateType
@@ -19,6 +20,7 @@ export const CredentialReferenceUpdateType$zodSchema = z.enum([
   "memory",
   "keychain",
   "nango",
+  "composio",
 ]);
 
 export type CredentialReferenceUpdate = {
@@ -36,8 +38,8 @@ export const CredentialReferenceUpdate$zodSchema: z.ZodType<
   CredentialReferenceUpdate
 > = z.object({
   createdBy: z.string().nullable().optional(),
-  credentialStoreId: z.string().optional(),
-  id: z.string().optional(),
+  credentialStoreId: z.string().optional().describe("Resource identifier"),
+  id: z.string().optional().describe("Resource identifier"),
   name: z.string().optional(),
   retrievalParams: z.record(z.string(), z.any().nullable()).nullable()
     .optional(),

@@ -47,8 +47,12 @@ export type TriggerIsDisabledError = {
 export const TriggerIsDisabledError$zodSchema: z.ZodType<
   TriggerIsDisabledError
 > = z.object({
-  code: TriggerIsDisabledCode2$zodSchema,
-  message: z.string(),
+  code: TriggerIsDisabledCode2$zodSchema.describe(
+    "A short code indicating the error code returned.",
+  ),
+  message: z.string().describe(
+    "A concise error message suitable for display to end users. May be truncated if the full detail is long.",
+  ),
 }).describe("Legacy error format for backward compatibility.");
 
 export type TriggerIsDisabled = {
@@ -63,11 +67,23 @@ export type TriggerIsDisabled = {
 
 export const TriggerIsDisabled$zodSchema: z.ZodType<TriggerIsDisabled> = z
   .object({
-    code: TriggerIsDisabledCode1$zodSchema,
-    detail: z.string(),
-    error: z.lazy(() => TriggerIsDisabledError$zodSchema),
-    instance: z.string().optional(),
-    requestId: z.string().optional(),
-    status: z.int(),
-    title: z.string(),
+    code: TriggerIsDisabledCode1$zodSchema.describe(
+      "A short code indicating the error code returned.",
+    ),
+    detail: z.string().describe(
+      "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong.",
+    ),
+    error: z.lazy(() => TriggerIsDisabledError$zodSchema).describe(
+      "Legacy error format for backward compatibility.",
+    ),
+    instance: z.string().optional().describe(
+      "A URI reference that identifies the specific occurrence of the problem.",
+    ),
+    requestId: z.string().optional().describe(
+      "A unique identifier for the request, useful for troubleshooting.",
+    ),
+    status: z.int().describe("The HTTP status code."),
+    title: z.string().describe(
+      "A short, human-readable summary of the problem type.",
+    ),
   });

@@ -14,7 +14,7 @@ export type SubAgentFunctionToolRelationCreate = {
 export const SubAgentFunctionToolRelationCreate$zodSchema: z.ZodType<
   SubAgentFunctionToolRelationCreate
 > = z.object({
-  functionToolId: z.string(),
-  subAgentId: z.string(),
+  functionToolId: z.string().describe("Resource identifier"),
+  subAgentId: z.string().describe("Resource identifier"),
   toolPolicies: z.any().nullable().optional(),
 });

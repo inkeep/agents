@@ -13,10 +13,6 @@ import { FunctionT, FunctionT$zodSchema } from "./function.js";
 import { FunctionTool, FunctionTool$zodSchema } from "./functiontool.js";
 import { ModelSettings, ModelSettings$zodSchema } from "./modelsettings.js";
 import {
-  ScheduledTrigger,
-  ScheduledTrigger$zodSchema,
-} from "./scheduledtrigger.js";
-import {
   StatusComponent,
   StatusComponent$zodSchema,
 } from "./statuscomponent.js";
@@ -48,10 +44,10 @@ export const AgentWithinContextOfProjectSelectWithRelationIdsStatusUpdates$zodSc
   z.ZodType<AgentWithinContextOfProjectSelectWithRelationIdsStatusUpdates> = z
     .object({
       enabled: z.boolean().optional(),
-      numEvents: z.number().optional(),
+      numEvents: z.int().optional().describe("Trigger after N events"),
       prompt: z.string().optional(),
       statusComponents: z.array(StatusComponent$zodSchema).optional(),
-      timeInSeconds: z.number().optional(),
+      timeInSeconds: z.int().optional().describe("Trigger after N seconds"),
     });
 
 export type AgentWithinContextOfProjectSelectWithRelationIdsStopWhen = {
@@ -61,7 +57,9 @@ export type AgentWithinContextOfProjectSelectWithRelationIdsStopWhen = {
 export const AgentWithinContextOfProjectSelectWithRelationIdsStopWhen$zodSchema:
   z.ZodType<AgentWithinContextOfProjectSelectWithRelationIdsStopWhen> = z
     .object({
-      transferCountIs: z.number().optional(),
+      transferCountIs: z.int().optional().describe(
+        "The maximum number of transfers to trigger the stop condition.",
+      ),
     });
 
 /**
@@ -90,7 +88,7 @@ export const AgentWithinContextOfProjectSelectWithRelationIdsContextConfig$zodSc
       createdAt: z.string(),
       headersSchema: z.lazy(() =>
         AgentWithinContextOfProjectSelectWithRelationIdsHeadersSchema$zodSchema
-      ).optional(),
+      ).optional().describe("JSON Schema for validating request headers"),
       id: z.string(),
       updatedAt: z.string(),
     });
@@ -107,6 +105,7 @@ export type AgentWithinContextOfProjectSelectWithRelationIds = {
     | null;
   prompt: string | null;
   stopWhen: AgentWithinContextOfProjectSelectWithRelationIdsStopWhen | null;
+  executionMode: string;
   createdAt: string;
   updatedAt: string;
   subAgents: { [k: string]: FullAgentSubAgentSelectWithRelationIds };
@@ -115,7 +114,6 @@ export type AgentWithinContextOfProjectSelectWithRelationIds = {
   teamAgents: { [k: string]: TeamAgent } | null;
   functionTools: { [k: string]: FunctionTool } | null;
   functions: { [k: string]: FunctionT } | null;
-  scheduledTriggers: { [k: string]: ScheduledTrigger } | null;
   contextConfig:
     | AgentWithinContextOfProjectSelectWithRelationIdsContextConfig
     | null;
@@ -130,6 +128,7 @@ export const AgentWithinContextOfProjectSelectWithRelationIds$zodSchema:
     createdAt: z.string(),
     defaultSubAgentId: z.string().nullable(),
     description: z.string().nullable(),
+    executionMode: z.string(),
     externalAgents: z.record(z.string(), ExternalAgent$zodSchema).nullable(),
     functionTools: z.record(z.string(), FunctionTool$zodSchema).nullable(),
     functions: z.record(z.string(), FunctionT$zodSchema).nullable(),
@@ -139,8 +138,6 @@ export const AgentWithinContextOfProjectSelectWithRelationIds$zodSchema:
     ).nullable(),
     name: z.string(),
     prompt: z.string().nullable(),
-    scheduledTriggers: z.record(z.string(), ScheduledTrigger$zodSchema)
-      .nullable(),
     statusUpdates: z.lazy(() =>
       AgentWithinContextOfProjectSelectWithRelationIdsStatusUpdates$zodSchema
     ).nullable(),

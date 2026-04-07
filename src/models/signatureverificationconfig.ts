@@ -75,10 +75,22 @@ export type SignatureVerificationConfig = {
 export const SignatureVerificationConfig$zodSchema: z.ZodType<
   SignatureVerificationConfig
 > = z.object({
-  algorithm: SignatureVerificationConfigAlgorithm$zodSchema,
-  componentJoin: ComponentJoin$zodSchema,
-  encoding: SignatureVerificationConfigEncoding$zodSchema,
-  signature: SignatureSource$zodSchema,
-  signedComponents: z.array(SignedComponent$zodSchema),
-  validation: SignatureValidationOptions$zodSchema.optional(),
+  algorithm: SignatureVerificationConfigAlgorithm$zodSchema.describe(
+    "HMAC algorithm to use for signature verification",
+  ),
+  componentJoin: ComponentJoin$zodSchema.describe(
+    "How to join signed components",
+  ),
+  encoding: SignatureVerificationConfigEncoding$zodSchema.describe(
+    "Encoding format of the signature (hex or base64)",
+  ),
+  signature: SignatureSource$zodSchema.describe(
+    "Configuration for extracting the signature",
+  ),
+  signedComponents: z.array(SignedComponent$zodSchema).describe(
+    "Array of components that are signed (order matters)",
+  ),
+  validation: SignatureValidationOptions$zodSchema.optional().describe(
+    "Advanced validation options",
+  ),
 });

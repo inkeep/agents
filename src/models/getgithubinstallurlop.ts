@@ -33,7 +33,9 @@ export type GetGithubInstallUrlResponseBody = { url: string };
 export const GetGithubInstallUrlResponseBody$zodSchema: z.ZodType<
   GetGithubInstallUrlResponseBody
 > = z.object({
-  url: z.string(),
+  url: z.string().describe(
+    "GitHub App installation URL with signed state parameter",
+  ),
 }).describe("GitHub App installation URL generated successfully");
 
 export type GetGithubInstallUrlResponse = {
@@ -52,14 +54,23 @@ export type GetGithubInstallUrlResponse = {
 export const GetGithubInstallUrlResponse$zodSchema: z.ZodType<
   GetGithubInstallUrlResponse
 > = z.object({
-  BadRequest: BadRequest$zodSchema.optional(),
-  ContentType: z.string(),
-  Forbidden: Forbidden$zodSchema.optional(),
-  InternalServerError: InternalServerError$zodSchema.optional(),
-  NotFound: NotFound$zodSchema.optional(),
-  RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
-  Unauthorized: Unauthorized$zodSchema.optional(),
-  UnprocessableEntity: UnprocessableEntity$zodSchema.optional(),
-  object: z.lazy(() => GetGithubInstallUrlResponseBody$zodSchema).optional(),
+  BadRequest: BadRequest$zodSchema.optional().describe("Bad Request"),
+  ContentType: z.string().describe(
+    "HTTP response content type for this operation",
+  ),
+  Forbidden: Forbidden$zodSchema.optional().describe("Forbidden"),
+  InternalServerError: InternalServerError$zodSchema.optional().describe(
+    "Internal Server Error",
+  ),
+  NotFound: NotFound$zodSchema.optional().describe("Not Found"),
+  RawResponse: z.custom<Response>(x => x instanceof Response).describe(
+    "Raw HTTP response; suitable for custom response parsing",
+  ),
+  StatusCode: z.int().describe("HTTP response status code for this operation"),
+  Unauthorized: Unauthorized$zodSchema.optional().describe("Unauthorized"),
+  UnprocessableEntity: UnprocessableEntity$zodSchema.optional().describe(
+    "Unprocessable Entity",
+  ),
+  object: z.lazy(() => GetGithubInstallUrlResponseBody$zodSchema).optional()
+    .describe("GitHub App installation URL generated successfully"),
 });

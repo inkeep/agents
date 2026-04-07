@@ -44,6 +44,13 @@ export const startCommand = buildCommand({
         values: ["dynamic"],
         optional: true,
       },
+      "tool-annotations": {
+        kind: "parsed",
+        brief:
+          "Filter tools by annotations (comma-separated: readOnly, destructive, idempotent, openWorld). Listed = required true, unlisted = required false.",
+        optional: true,
+        parse: (value) => value.split(",").map(s => s.trim()),
+      },
       "cookie-auth": {
         kind: "parsed",
         brief: "Sets the cookieAuth auth field for the API",

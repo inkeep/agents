@@ -5,16 +5,15 @@
 
 import * as z from "zod";
 
-export type SkillCreate = {
-  name: string;
-  description: string;
-  content: string;
-  metadata?: { [k: string]: string } | null | undefined;
-};
+export type SkillCreateFile = { filePath: string; content: string };
+
+export const SkillCreateFile$zodSchema: z.ZodType<SkillCreateFile> = z.object({
+  content: z.string(),
+  filePath: z.string(),
+});
+
+export type SkillCreate = { files: Array<SkillCreateFile> };
 
 export const SkillCreate$zodSchema: z.ZodType<SkillCreate> = z.object({
-  content: z.string(),
-  description: z.string(),
-  metadata: z.record(z.string(), z.string()).nullable().optional(),
-  name: z.string(),
+  files: z.array(z.lazy(() => SkillCreateFile$zodSchema)),
 });

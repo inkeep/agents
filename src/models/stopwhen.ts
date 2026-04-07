@@ -11,6 +11,10 @@ export type StopWhen = {
 };
 
 export const StopWhen$zodSchema: z.ZodType<StopWhen> = z.object({
-  stepCountIs: z.number().optional(),
-  transferCountIs: z.number().optional(),
+  stepCountIs: z.int().optional().describe(
+    "The maximum number of steps to trigger the stop condition.",
+  ),
+  transferCountIs: z.int().optional().describe(
+    "The maximum number of transfers to trigger the stop condition.",
+  ),
 });

@@ -35,20 +35,38 @@ export type ThirdPartyMCPServerResponseData = {
   category?: string | undefined;
   description?: string | undefined;
   thirdPartyConnectAccountUrl?: string | undefined;
+  connectedAccountId?: string | undefined;
+  authScheme?: string | undefined;
 };
 
 export const ThirdPartyMCPServerResponseData$zodSchema: z.ZodType<
   ThirdPartyMCPServerResponseData
 > = z.object({
-  category: z.string().optional(),
-  description: z.string().optional(),
-  id: z.string(),
-  imageUrl: z.string().optional(),
-  isOpen: z.boolean().optional(),
-  name: z.string(),
-  thirdPartyConnectAccountUrl: z.string().optional(),
-  transport: ThirdPartyMCPServerResponseTransport$zodSchema,
-  url: z.string(),
+  authScheme: z.string().optional().describe(
+    "The authentication scheme used (e.g. OAUTH2, API_KEY, BASIC)",
+  ),
+  category: z.string().optional().describe(
+    "Category of the MCP server (e.g., communication, project_management)",
+  ),
+  connectedAccountId: z.string().optional().describe(
+    "The Composio connected account ID for the active connection",
+  ),
+  description: z.string().optional().describe(
+    "Brief description of what the MCP server does",
+  ),
+  id: z.string().describe("Unique identifier for the MCP server"),
+  imageUrl: z.string().optional().describe("Logo/icon URL for the MCP server"),
+  isOpen: z.boolean().optional().describe(
+    "Whether the MCP server is open (doesn't require authentication)",
+  ),
+  name: z.string().describe("Display name of the MCP server"),
+  thirdPartyConnectAccountUrl: z.string().optional().describe(
+    "URL to connect to the third party account",
+  ),
+  transport: ThirdPartyMCPServerResponseTransport$zodSchema.describe(
+    "Transport protocol type",
+  ),
+  url: z.string().describe("URL endpoint for the MCP server"),
 });
 
 export type ThirdPartyMCPServerResponse = {

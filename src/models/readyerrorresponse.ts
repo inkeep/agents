@@ -20,8 +20,14 @@ export type ReadyErrorResponse = {
 export const ReadyErrorResponse$zodSchema: z.ZodType<ReadyErrorResponse> = z
   .object({
     checks: ReadyErrorChecks$zodSchema,
-    detail: z.string(),
-    status: z.number(),
-    title: z.string(),
-    type: z.string(),
+    detail: z.string().describe(
+      "A human-readable explanation specific to this occurrence",
+    ),
+    status: z.number().describe("The HTTP status code"),
+    title: z.string().describe(
+      "A short, human-readable summary of the problem type",
+    ),
+    type: z.string().describe(
+      "A URI reference that identifies the problem type",
+    ),
   });
