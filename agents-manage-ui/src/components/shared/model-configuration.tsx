@@ -461,7 +461,6 @@ export function ModelConfiguration<
     GATEWAY_ROUTABLE_PROVIDERS_SET.has(modelProvider) || modelProvider === 'gateway';
 
   const jsonPlaceholder = getJsonPlaceholder({ model: effectiveModel, slot });
-  const providerOptionsId = useId();
   return (
     <div className="space-y-4">
       <div className="relative space-y-2">
@@ -491,50 +490,30 @@ export function ModelConfiguration<
               disabled={disabled || isUsingInheritedOptions}
             />
           )}
-          <div className="space-y-2">
-            <FieldLabel
-              id={providerOptionsId}
-              label={
-                isUsingInheritedOptions ? (
-                  <span className="text-muted-foreground italic">
-                    Provider options <span className="text-xs">(inherited)</span>
-                  </span>
-                ) : (
-                  'Provider options'
-                )
-              }
-            />
-            <StandaloneJsonEditor
-              name={providerOptionsId}
-              onChange={handleProviderOptionsStringChange}
-              value={
-                typeof effectiveProviderOptions === 'string'
-                  ? effectiveProviderOptions
-                  : effectiveProviderOptions
-                    ? JSON.stringify(effectiveProviderOptions, null, 2)
-                    : ''
-              }
-              placeholder={jsonPlaceholder}
-              customTemplate={jsonPlaceholder}
-              readOnly={disabled || isUsingInheritedOptions}
-            />
-            <GenericJsonEditor
-              control={control}
-              name={`${name}.providerOptions`}
-              label={
-                isUsingInheritedOptions ? (
-                  <span className="text-muted-foreground italic">
-                    Provider options <span className="text-xs">(inherited)</span>
-                  </span>
-                ) : (
-                  'Provider options'
-                )
-              }
-              placeholder={jsonPlaceholder}
-              customTemplate={jsonPlaceholder}
-              readOnly={disabled || isUsingInheritedOptions}
-            />
-          </div>
+          <StandaloneJsonEditor
+            value={
+              typeof effectiveProviderOptions === 'string'
+                ? effectiveProviderOptions
+                : effectiveProviderOptions
+                  ? JSON.stringify(effectiveProviderOptions, null, 2)
+                  : ''
+            }
+          />
+          <GenericJsonEditor
+            control={control}
+            name={`${name}.providerOptions` as FieldPath<TFieldValues>}
+            label={
+              <>
+                Provider options
+                {isUsingInheritedOptions && (
+                  <i className="text-xs text-muted-foreground"> (inherited)</i>
+                )}
+              </>
+            }
+            placeholder={jsonPlaceholder}
+            customTemplate={jsonPlaceholder}
+            readOnly={disabled || isUsingInheritedOptions}
+          />
           {capabilities?.modelFallback?.enabled && isGatewayRoutable && (
             <>
               <AllowedProvidersSection
