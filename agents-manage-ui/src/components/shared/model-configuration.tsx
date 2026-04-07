@@ -22,6 +22,7 @@ import {
 import { cn } from '@/lib/utils';
 import { FieldLabel } from '../agent/sidepane/form-components/label';
 import { AzureConfigurationSection } from './azure-configuration-section';
+import { GenericJsonEditor } from '@/components/form/generic-json-editor';
 
 const AVAILABLE_PROVIDERS = [
   { value: 'anthropic', label: 'Anthropic' },
@@ -512,6 +513,22 @@ export function ModelConfiguration<
                   : effectiveProviderOptions
                     ? JSON.stringify(effectiveProviderOptions, null, 2)
                     : ''
+              }
+              placeholder={jsonPlaceholder}
+              customTemplate={jsonPlaceholder}
+              readOnly={disabled || isUsingInheritedOptions}
+            />
+            <GenericJsonEditor
+              control={control}
+              name={`${name}.providerOptions`}
+              label={
+                isUsingInheritedOptions ? (
+                  <span className="text-muted-foreground italic">
+                    Provider options <span className="text-xs">(inherited)</span>
+                  </span>
+                ) : (
+                  'Provider options'
+                )
               }
               placeholder={jsonPlaceholder}
               customTemplate={jsonPlaceholder}
