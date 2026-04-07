@@ -1110,9 +1110,16 @@ export async function markWorkflowSuspendedStep(params: {
   projectId: string;
   workflowRunId: string;
   continuationStreamNamespace: string;
+  pendingToolApproval?: {
+    toolCallId: string;
+    toolName: string;
+    args: unknown;
+    isDelegated: boolean;
+  };
 }): Promise<void> {
   'use step';
-  const { tenantId, projectId, workflowRunId, continuationStreamNamespace } = params;
+  const { tenantId, projectId, workflowRunId, continuationStreamNamespace, pendingToolApproval } =
+    params;
 
   const { updateWorkflowExecutionStatus } = await import('@inkeep/agents-core');
   const { default: runDbClient } = await import('../../../../data/db/runDbClient');
@@ -1122,7 +1129,10 @@ export async function markWorkflowSuspendedStep(params: {
     projectId,
     id: workflowRunId,
     status: 'suspended',
-    metadata: { continuationStreamNamespace },
+    metadata: {
+      continuationStreamNamespace,
+      ...(pendingToolApproval ? { pendingToolApproval } : {}),
+    },
   });
 
   logger.info({ workflowRunId }, 'Workflow execution marked as suspended (awaiting tool approval)');
