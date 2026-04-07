@@ -1,11 +1,11 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { DuplicateAgentRequest, ImportAgentWarning } from '@inkeep/agents-core';
+import type { ImportAgentWarning } from '@inkeep/agents-core';
 import { DuplicateAgentRequestSchema } from '@inkeep/agents-core/client-exports';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -14,10 +14,16 @@ import { GenericInput } from '@/components/form/generic-input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { duplicateAgentAction, importAgentAction } from '@/lib/actions/agent-full';
-import { useAgentsListQuery } from '@/lib/query/agents';
 import { useProjectsQuery } from '@/lib/query/projects';
 import { isRequired } from '@/lib/utils';
 

@@ -23,30 +23,25 @@ You can use the Visual Builder to add Sub Agents to an Agent, give Sub Agents to
 
 ## Copying an Agent
 
-The **New Agent** dialog now has two starting points:
+Use the menu on an existing agent card and choose **Duplicate**.
 
-- **Create blank agent** starts from scratch.
-- **Copy existing agent** lets you copy from the current project or another project.
-
-When you choose **Copy existing agent**, the flow is the same in both cases:
-
-1. Choose a **Source project**. The current project is selected by default.
-2. Choose the **Source agent**.
+1. Open the agent's menu and select **Duplicate**.
+2. Choose the **Target project**. The current project is selected by default.
 3. Change the suggested name and ID.
 4. Click **Copy agent**.
 
 ### Copy within the same project
 
-If you keep **Source project** set to the current project, the copied agent stays within that
+If you keep **Target project** set to the current project, the copied agent stays within that
 project.
 
 The copy keeps the original agent's agent-scoped configuration and continues to reference the same
 project-scoped dependencies. Webhook and scheduled triggers are not copied.
 
-### Copy from another project
+### Copy into another project
 
-If you change **Source project** to a different project, the builder copies that agent into the
-current project instead. Cross-project copies always read from the source project's main branch.
+If you change **Target project** to a different project, the builder copies the selected agent into
+that project instead. Cross-project copies always read from the source project's main branch.
 
 When you copy an agent across projects:
 

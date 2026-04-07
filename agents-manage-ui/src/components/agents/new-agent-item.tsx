@@ -1,15 +1,7 @@
 'use client';
 
 import { Plus } from 'lucide-react';
-import { useId, useState } from 'react';
-import {
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldLabel,
-  FieldTitle,
-} from '@/components/ui/field';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useState } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import {
@@ -21,7 +13,6 @@ import {
   DialogTrigger,
 } from '../ui/dialog';
 import { AgentForm } from './agent-form';
-import { DuplicateAgentSection } from './duplicate-agent-section';
 
 interface NewAgentItemProps {
   tenantId: string;
@@ -30,62 +21,18 @@ interface NewAgentItemProps {
 
 interface NewAgentDialogContentProps extends NewAgentItemProps {
   onSuccess?: () => void;
-  open: boolean;
 }
 
-const NewAgentDialogContent = ({
-  tenantId,
-  projectId,
-  onSuccess,
-  open,
-}: NewAgentDialogContentProps) => {
-  const newAgentId = useId();
-  const duplicateAgentId = useId();
-  const [value, setValue] = useState('');
-
+const NewAgentDialogContent = ({ tenantId, projectId, onSuccess }: NewAgentDialogContentProps) => {
   return (
     <DialogContent className="sm:max-w-xl">
       <DialogHeader>
         <DialogTitle>New Agent</DialogTitle>
-        <DialogDescription>Create a blank agent or copy an existing one.</DialogDescription>
+        <DialogDescription>
+          Create a blank agent and continue editing in the builder.
+        </DialogDescription>
       </DialogHeader>
-      <RadioGroup value={value} onValueChange={setValue}>
-        <FieldLabel htmlFor={newAgentId}>
-          <Field orientation="horizontal">
-            <FieldContent>
-              <FieldTitle>Create blank agent</FieldTitle>
-              <FieldDescription>
-                Start from scratch with a new agent shell and continue editing in the builder.
-              </FieldDescription>
-            </FieldContent>
-            <RadioGroupItem value="new" id={newAgentId} />
-          </Field>
-        </FieldLabel>
-        <FieldLabel htmlFor={duplicateAgentId}>
-          <Field orientation="horizontal">
-            <FieldContent>
-              <FieldTitle>Copy existing agent</FieldTitle>
-              <FieldDescription>
-                Copy an agent from this project or another project into a new agent. Triggers are
-                not copied.
-              </FieldDescription>
-            </FieldContent>
-            <RadioGroupItem value="duplicate" id={duplicateAgentId} />
-          </Field>
-        </FieldLabel>
-      </RadioGroup>
-      {value === 'new' ? (
-        <AgentForm tenantId={tenantId} projectId={projectId} onSuccess={onSuccess} />
-      ) : (
-        value === 'duplicate' && (
-          <DuplicateAgentSection
-            tenantId={tenantId}
-            projectId={projectId}
-            isOpen={open}
-            onSuccess={onSuccess}
-          />
-        )
-      )}
+      <AgentForm tenantId={tenantId} projectId={projectId} onSuccess={onSuccess} />
     </DialogContent>
   );
 };
@@ -98,11 +45,10 @@ export function NewAgentDialog({ tenantId, projectId }: NewAgentItemProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
-          <Plus className="size-4" /> New Agent
+          <Plus /> New Agent
         </Button>
       </DialogTrigger>
       <NewAgentDialogContent
-        open={open}
         tenantId={tenantId}
         projectId={projectId}
         onSuccess={() => setOpen(false)}
@@ -128,7 +74,6 @@ export function NewAgentItem({ tenantId, projectId }: NewAgentItemProps) {
         </Card>
       </DialogTrigger>
       <NewAgentDialogContent
-        open={open}
         tenantId={tenantId}
         projectId={projectId}
         onSuccess={() => setOpen(false)}
