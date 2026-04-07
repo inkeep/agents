@@ -29,6 +29,10 @@ interface SkillFormProps {
 
 const resolver = zodResolver(schema);
 
+function normalizeSkillName(value: string) {
+  return value.replaceAll(' ', '-');
+}
+
 function formatFormData(data: SkillDetail | null): SkillInput {
   if (data) {
     return {
@@ -111,6 +115,7 @@ export const SkillForm: FC<SkillFormProps> = ({ onSuccess }) => {
           name="name"
           label="Name"
           placeholder="my-skill"
+          transformValue={normalizeSkillName}
           description={
             initialData
               ? ''
