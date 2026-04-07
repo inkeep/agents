@@ -217,6 +217,8 @@ If a tool is configured with `needsApproval: true`, the run pauses and the strea
 
 To continue the run, your client must approve/deny the pending tool call. See [Tool approvals](/typescript-sdk/tools/tool-approvals).
 
+If the SSE stream disconnects before the client receives the `tool-approval-request` event, the approval request is still persisted server-side. Your client can poll `GET /run/v1/conversations/{conversationId}/pending-approvals` to recover pending approval state on page load or after a reconnection. See [Tool approvals](/typescript-sdk/tools/tool-approvals) for implementation details.
+
 ### Tool input & output events
 
 Depending on UI needs, the stream may include tool input and tool output events.
