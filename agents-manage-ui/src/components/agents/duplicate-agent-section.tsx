@@ -48,19 +48,21 @@ interface DuplicateAgentDialogProps {
 function buildWarningSummary(warnings: ImportAgentWarning[]) {
   const disconnectedTools = warnings
     .filter((warning) => warning.resourceType === 'tool')
-    .map((warning) => warning.resourceId);
+    .map((warning) => warning.resourceId)
+    .join(', ');
   const disconnectedExternalAgents = warnings
     .filter((warning) => warning.resourceType === 'externalAgent')
-    .map((warning) => warning.resourceId);
+    .map((warning) => warning.resourceId)
+    .join(', ');
 
   const parts = [];
 
-  if (disconnectedTools.length) {
-    parts.push(`tools: ${disconnectedTools.join(', ')}`);
+  if (disconnectedTools) {
+    parts.push(`tools: ${disconnectedTools}`);
   }
 
-  if (disconnectedExternalAgents.length) {
-    parts.push(`external agents: ${disconnectedExternalAgents.join(', ')}`);
+  if (disconnectedExternalAgents) {
+    parts.push(`external agents: ${disconnectedExternalAgents}`);
   }
 
   return parts.join(' | ');
