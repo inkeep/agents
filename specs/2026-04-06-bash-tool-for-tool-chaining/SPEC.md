@@ -81,15 +81,14 @@ render_card({
 
 **What:** A sandboxed bash tool powered by `just-bash` for interactive data exploration — when the agent needs to SEE filtered results before deciding what to do next, rather than piping them directly to another tool.
 
-**Why Phase 2 (not Phase 1):** Phase 1 (`$select`) covers the pipeline case with zero cost. Phase 2 adds a real tool to the agent's tool set, which means token cost in system prompts (~300-350 tokens), a new dependency (`just-bash` with 19 transitive deps), and sandbox execution complexity. Before investing in this, we want to: (a) validate Phase 1 covers most use cases, (b) **revisit conversation and generation compression triggers** — the current thresholds may need different strategies once agents can proactively filter data via `$select`, and (c) complete the prerequisite spikes below.
+**Why Phase 2 (not Phase 1):** Phase 1 (`$select`) covers the pipeline case with zero cost. Phase 2 adds a real tool to the agent's tool set, which means token cost in system prompts (~300-350 tokens) and a new dependency (`just-bash` with 19 transitive deps). Before investing in this, we want to: (a) validate Phase 1 covers most use cases, (b) **revisit conversation and generation compression triggers** — the current thresholds may need different strategies once agents can proactively filter data via `$select`, and (c) complete the prerequisite spikes below.
 
 #### Prerequisites
 
 1. **Compression trigger re-evaluation** — with `$select` reducing context pressure, the existing compression thresholds (`COMPRESSION_HARD_LIMIT: 120K`, `COMPRESSION_SAFETY_BUFFER: 20K`) and mid-generation compression behavior should be re-assessed. The triggers may fire too aggressively, or the compression strategy may need to change (e.g., suggest `$select` usage instead of summarizing). This informs whether Phase 2 is even needed at current scale.
-2. **Dependency spike** — verify `just-bash` installs, builds, and works in the codebase. Measure cold start time including WASM initialization (could be 500ms-2s due to sql.js + quickjs-emscripten WASM modules). Verify ESM/CJS compatibility with the build system.
-3. **SandboxExecutorFactory compatibility** — verify just-bash runs correctly inside both `NativeSandboxExecutor` (child process) and `VercelSandboxExecutor` (Vercel MicroVM).
-4. **Token cost measurement** — quantify the bash tool schema token cost. Determine if always-on is justified or if conditional injection is needed (e.g., only when compression is enabled or MCP tools are configured).
-5. **Phase 1 usage data** — does `$select` in refs cover enough use cases? What fraction of cases need the exploratory pattern where the agent sees the result?
+2. **Dependency spike** — verify `just-bash` installs, builds, and works in the codebase. Verify ESM/CJS compatibility with the build system. Cold start is expected to be negligible since we disable the WASM-dependent optional runtimes (python, javascript, sqlite3) — the core shell and all relevant commands (jq, grep, awk, sed, etc.) are pure TypeScript.
+3. **Token cost measurement** — quantify the bash tool schema token cost. Determine if always-on is justified or if conditional injection is needed (e.g., only when compression is enabled or MCP tools are configured).
+4. **Phase 1 usage data** — does `$select` in refs cover enough use cases? What fraction of cases need the exploratory pattern where the agent sees the result?
 
 #### Tool Interface
 
@@ -100,7 +99,7 @@ One built-in function tool: **`bash`**
 
 const bashInputSchema = z.object({
   command: z.string().describe(
-    'Bash command to execute in a sandboxed environment. Use jq for JSON processing, ' +
+    'Bash command to execute in a virtual shell environment. Use jq for JSON processing, ' +
     'grep for text search, and standard Unix tools (awk, sed, sort, head, tail, etc.) ' +
     'for data manipulation. Pipe commands with |. Data from source is available on stdin.'
   ),
@@ -114,27 +113,21 @@ const bashInputSchema = z.object({
 
 #### Architecture
 
+just-bash is a fully virtual bash environment — a TypeScript AST-based interpreter that reimplements all commands (jq, grep, awk, sed, etc.) in pure TypeScript. It does not shell out to the host system. It uses an in-memory filesystem (`InMemoryFs`) by default with no disk access, and network is disabled unless explicitly configured. This means **no external sandbox is needed** — just-bash is inherently isolated and runs in-process.
+
 ```
-Main thread (event loop — never blocked):
+Main thread:
   AI SDK calls bash tool execute()
     → resolveArgs() resolves $tool/$artifact ref to raw data
     → serialize source data for stdin
-    → SandboxExecutorFactory.exec(bashWorkerScript, { command, stdin })
-      → NativeSandboxExecutor (local dev): child process + semaphore
-      → VercelSandboxExecutor (production): Vercel MicroVM
+    → bash.exec(command, { stdin, signal: AbortSignal.timeout(30_000) })
+      → pure TypeScript execution, in-memory FS, no network
     → parse stdout as JSON if possible, else return string
     → explicitly call toolSessionManager.recordToolResult() (NOT auto-cached by wrapper)
     → return to AI SDK → result is $tool-referenceable
-
-Sandbox process:
-  import { Bash } from 'just-bash';
-  const bash = new Bash({ executionLimits: { maxCallDepth: 50 } });
-  // No network, no python, no javascript
-
-  receives { command, stdin, timeout }:
-    result = await bash.exec(command, { stdin, signal: AbortSignal.timeout(timeout) })
-    returns { stdout, stderr, exitCode }
 ```
+
+**Why no SandboxExecutorFactory:** just-bash runs entirely in the Node.js process — no child processes, no WASM for core commands, no system shell access. The virtual filesystem and disabled network provide application-level isolation. Since the LLM generates the commands (not arbitrary untrusted users), and we control what data enters via `$tool` refs, this level of isolation is sufficient. We disable the optional WASM-based runtimes (python, javascript) to further reduce attack surface.
 
 #### Data Flow: stdin Model
 
@@ -146,14 +139,14 @@ Data flows through stdin. No in-memory filesystem. Stateless per call.
    - Object/Array → `JSON.stringify(data)`
    - String → pass as-is (not re-stringified to avoid double-quoting)
    - MCP content array → unwrap text parts, concatenate
-4. Sandbox process: `bash.exec(command, { stdin })` — jq reads from stdin by default
-5. Sandbox returns `{ stdout, stderr, exitCode }`
-6. Main thread parses stdout:
+4. `bash.exec(command, { stdin })` — jq reads from stdin by default (runs in-process)
+5. Returns `{ stdout, stderr, exitCode }`
+6. Parses stdout:
    ```typescript
    try { return JSON.parse(result.stdout); }  // structured JSON for downstream tools
    catch { return result.stdout; }              // raw text (grep output, etc.)
    ```
-7. Main thread explicitly calls `toolSessionManager.recordToolResult()` to cache output
+7. Explicitly calls `toolSessionManager.recordToolResult()` to cache output
 8. Result is `$tool`-referenceable by downstream tools
 
 **Why stdin, not filesystem:**
@@ -163,35 +156,35 @@ Data flows through stdin. No in-memory filesystem. Stateless per call.
 - `$tool` refs ARE the persistence mechanism for chaining
 - Complex multi-step work uses pipes within one call: `jq '.items[]' | grep "auth" | wc -l`
 
-#### Execution via SandboxExecutorFactory
+#### Execution Model
 
-The bash worker script is executed through the existing `SandboxExecutorFactory` (`agents-api/src/domains/run/tools/SandboxExecutorFactory.ts`), which already handles the dual-path routing:
+just-bash executes directly in-process — no child processes, no IPC, no sandbox wrappers needed.
 
-| Environment | Executor | How it works |
-|-------------|----------|-------------|
-| Local dev | `NativeSandboxExecutor` | Spawns child process, installs no deps (just-bash bundled), executes via IPC. Pooled with semaphore. |
-| Production (Vercel) | `VercelSandboxExecutor` | Runs in Vercel MicroVM via `@vercel/sandbox`. Isolated, serverless-compatible. |
+| Environment | How it works |
+|-------------|-------------|
+| Local dev | Direct `bash.exec()` call in the Node.js process. In-memory FS, no network. |
+| Production (Vercel) | Same — runs in the serverless function process. No Vercel MicroVM needed. |
 
-This solves the Vercel serverless compatibility issue (audit finding H1) without building new infrastructure.
+This is simpler than the SandboxExecutorFactory approach and works identically across all deployment targets since it's pure TypeScript with no system dependencies.
 
 #### Resource Limits
 
 | Limit | Value | Source |
 |-------|-------|--------|
-| Concurrent executions | 2 (vCPU default) | `ExecutionSemaphore` via SandboxExecutorFactory |
-| Per-command timeout | 30s | `AbortSignal.timeout()` in sandbox + SIGTERM/SIGKILL from executor |
-| Output size | 1MB | Match `FUNCTION_TOOL_SANDBOX_MAX_OUTPUT_SIZE_BYTES` |
-| Queue wait timeout | 30s | Match `FUNCTION_TOOL_SANDBOX_QUEUE_WAIT_TIMEOUT_MS` |
-| maxCallDepth | 50 | Prevents deep recursion in bash |
-| Network | disabled | No curl/fetch — data processing only |
-| Python/JS runtimes | disabled | Not needed, reduces attack surface |
+| Per-command timeout | 30s | `AbortSignal.timeout()` passed to `bash.exec()` |
+| Output size | 1MB | Truncate stdout before returning to AI SDK |
+| maxCallDepth | 50 | just-bash `executionLimits` — prevents deep recursion |
+| Network | disabled | Default — `curl` command not available unless explicitly enabled |
+| Python/JS runtimes | disabled | Default — not enabled in constructor options |
+| Filesystem | in-memory only | `InMemoryFs` (default) — no host disk access |
 
 #### just-bash Configuration
 
 ```typescript
 new Bash({
   executionLimits: { maxCallDepth: 50 },
-  // All defaults: InMemoryFs (within sandbox only), no network, no python, no javascript
+  // All defaults: InMemoryFs, no network, no python, no javascript
+  // Runs in-process — no child process, no WASM for core commands
 });
 ```
 
@@ -215,7 +208,7 @@ Step 2: bash({
           source: { "$tool": "call_search" }
         })
         → stdin receives 50K JSON, jq filters to 3K (call_id: "call_bash_1")
-        → executed in sandbox, event loop free
+        → executed in-process via just-bash virtual shell
         → 3K result cached in ToolSessionManager, enters context
 
 Step 3: render_card({ data: { "$tool": "call_bash_1" } })
@@ -285,8 +278,7 @@ Bash tool calls must include OpenTelemetry spans (audit finding M4):
 **New files:**
 | File | Purpose |
 |------|---------|
-| `agents-api/src/domains/run/agents/tools/bash-tool.ts` | Tool factory: schema, execute function, source→stdin bridge, explicit result caching |
-| `agents-api/src/domains/run/tools/bash-sandbox-script.ts` | Sandbox script: imports just-bash, receives IPC, executes command, returns result |
+| `agents-api/src/domains/run/agents/tools/bash-tool.ts` | Tool factory: schema, execute function, source→stdin bridge, just-bash instance management, explicit result caching |
 | `agents-api/src/__tests__/run/tools/bash-tool.test.ts` | Unit + integration tests |
 
 **Modified files:**
@@ -303,13 +295,12 @@ Bash tool calls must include OpenTelemetry spans (audit finding M4):
 2. Bash tool output is cached in `ToolSessionManager` via explicit `recordToolResult()` and is `$tool`-referenceable
 3. Large tool results processed via bash do NOT trigger compression when the filtered output fits in context
 4. Oversized artifacts can be processed via bash (bypasses `retrievalBlocked`)
-5. Bash execution runs in sandbox (NativeSandboxExecutor locally, VercelSandboxExecutor in production)
-6. Concurrent bash calls bounded by semaphore
-7. Commands timeout after 30 seconds with clear error
-8. Bad commands return error objects with stderr and hint
-9. Tool call events streamed to client UI (visible as tool calls)
-10. `_structureHints` auto-applied to JSON output
-11. OpenTelemetry spans present for bash tool calls
+5. Bash execution runs in-process via just-bash virtual shell (no external sandbox, no child processes)
+6. Commands timeout after 30 seconds with clear error
+7. Bad commands return error objects with stderr and hint
+8. Tool call events streamed to client UI (visible as tool calls)
+9. `_structureHints` auto-applied to JSON output
+10. OpenTelemetry spans present for bash tool calls
 
 ---
 
@@ -469,9 +460,9 @@ for the data you're working with.
 | D1 | Phase 1: `$select` (JMESPath) in resolveArgs; Phase 2: bash tool | LOCKED | Cross-cutting | HIGH | `$select` is smallest viable change — no new tool, no token cost, zero new deps (uses existing `jmespath`). Bash tool for exploratory cases pending validation. |
 | D2 | Queryable sources = session cache + stored artifacts | DIRECTED | Cross-cutting | HIGH | Session cache for current-turn, artifacts for cross-turn |
 | D3 | Allow processing oversized artifacts | LOCKED | Cross-cutting | HIGH | Key capability — `$select` filter operates out-of-context |
-| D4 | Phase 2 blocked on: dependency spike, Vercel compat, token cost measurement | DIRECTED | Technical | HIGH | Audit found child process model incompatible with Vercel serverless (H1). Must resolve before Phase 2. |
+| D4 | Phase 2 blocked on: dependency spike, token cost measurement | DIRECTED | Technical | HIGH | Verify just-bash installs/builds correctly, measure token cost of tool schema. |
 | D5 | Bash tool must explicitly call `recordToolResult()` | LOCKED | Technical | HIGH | Audit finding H2: `wrapToolWithStreaming` does NOT auto-cache. Each tool type caches explicitly. |
-| D6 | Phase 2 execution via SandboxExecutorFactory | DIRECTED | Technical | HIGH | Reuses existing dual-path sandbox (NativeSandboxExecutor local, VercelSandboxExecutor prod). Solves Vercel compat. |
+| D6 | Phase 2 execution: direct in-process via just-bash (no SandboxExecutorFactory) | LOCKED | Technical | HIGH | just-bash is a fully virtual bash — pure TypeScript interpreter, in-memory FS, no network by default. No external sandbox needed. Works on any deployment target including Vercel serverless. |
 | D7 | Phase 2 injection: conditional (not always-on) pending token cost analysis | INVESTIGATING | Product | MEDIUM | Challenger finding: ~300-350 tokens/call overhead. Need measurement before locking always-on. |
 | D8 | Phase 1 uses existing `jmespath` library; `$select` key is language-agnostic for future jq upgrade | LOCKED | Technical | HIGH | Zero new deps. `_structureHints` already generates JMESPath selectors. `sanitizeJMESPathSelector()` fixes LLM errors. |
 
@@ -485,10 +476,9 @@ for the data you're working with.
 
 ### Phase 2 (must resolve before Phase 2 implementation)
 
-2. **[Technical, P0]** just-bash cold start time including WASM init (sql.js, quickjs-emscripten). Could be 500ms-2s. Spike needed.
-3. **[Technical, P0]** Verify just-bash works within SandboxExecutorFactory (both Native and Vercel paths).
-4. **[Product, P0]** Token cost of bash tool schema. Quantify before deciding always-on vs conditional.
-5. **[Technical, P0]** Observability — need OpenTelemetry spans for bash tool calls (audit finding M4).
+2. **[Technical, P1]** Verify just-bash installs, builds, and works in the codebase. ESM/CJS compatibility with the build system. Cold start expected to be negligible (core shell is pure TS, WASM runtimes disabled).
+3. **[Product, P0]** Token cost of bash tool schema. Quantify before deciding always-on vs conditional.
+4. **[Technical, P0]** Observability — need OpenTelemetry spans for bash tool calls (audit finding M4).
 
 ---
 
@@ -508,7 +498,7 @@ for the data you're working with.
 |------|----------|------------|
 | LLM writes bad JMESPath expressions | Medium | `sanitizeJMESPathSelector()` auto-fixes common errors. `_structureHints` provide ready-to-use selectors. `ToolChainResolutionError` returns clear error. |
 | `$select` in resolveArgs adds latency to all tool calls | Low | Only runs when `$select` key is present. No overhead for normal refs. JMESPath is <1ms. |
-| just-bash dependency abandoned (Phase 2) | Medium | Thin wrapper. Can replace with direct jq/grep libs. |
+| just-bash dependency abandoned (Phase 2) | Medium | Thin wrapper over pure TS command reimplementations. Can replace with direct jq/grep libs. No system-level integration to untangle. |
 | JMESPath too limiting for complex transforms | Medium | `$select` key is language-agnostic. Can upgrade to jq in Phase 2 without changing the API contract. |
 
 ---
@@ -518,7 +508,7 @@ for the data you're working with.
 | Item | Maturity | Phase |
 |------|----------|-------|
 | Compression trigger re-evaluation | Explored | Pre-Phase 2 — reassess COMPRESSION_HARD_LIMIT, SAFETY_BUFFER, and mid-generation behavior with `$select` reducing context pressure |
-| Built-in bash tool | Explored | Phase 2 — pending compression re-eval, dependency spike, SandboxExecutorFactory compat, token cost analysis |
+| Built-in bash tool | Explored | Phase 2 — pending compression re-eval, dependency spike, token cost analysis. Runs in-process via just-bash (no sandbox needed). |
 | Custom bash commands (`defineCommand`) | Identified | Phase 2+ — `artifact`, `refs`, `schema` commands for in-shell data access |
 | Multiple source refs | Explored | Decided single-source. Revisit if join use cases emerge. |
 | `$select` on artifact refs in prompt text (not just tool args) | Noted | Would allow filtering in `<artifact:ref>` tags too |
