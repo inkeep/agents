@@ -1,4 +1,4 @@
-import type { Part, ResolvedRef } from '@inkeep/agents-core';
+import { type Part, type ResolvedRef, TOOL_APPROVAL_HOOK_PREFIX } from '@inkeep/agents-core';
 import { defineHook, getWorkflowMetadata } from 'workflow';
 import {
   callLlmStep,
@@ -30,7 +30,7 @@ export type AgentExecutionPayload = {
 
 /**
  * Hook for tool approval: external systems resume this to approve/deny a tool call.
- * Token format: `tool-approval:${conversationId}:${workflowRunId}:${toolCallId}`
+ * Token format: `${TOOL_APPROVAL_HOOK_PREFIX}${conversationId}:${workflowRunId}:${toolCallId}`
  */
 export const toolApprovalHook = defineHook<
   { approved: boolean; reason?: string },
@@ -85,7 +85,7 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
           });
 
           const hookToolCallId = llmResult.delegatedApproval?.toolCallId ?? toolCall.toolCallId;
-          const token = `tool-approval:${payload.conversationId}:${workflowRunId}:${hookToolCallId}`;
+          const token = `${TOOL_APPROVAL_HOOK_PREFIX}${payload.conversationId}:${workflowRunId}:${hookToolCallId}`;
 
           console.info('[agentExecution] Creating tool approval hook', {
             hookToolCallId,

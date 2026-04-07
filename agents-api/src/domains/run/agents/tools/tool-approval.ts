@@ -1,4 +1,8 @@
-import { parseEmbeddedJson } from '@inkeep/agents-core';
+import {
+  APPROVAL_NEEDED_EVENT,
+  APPROVAL_RESOLVED_EVENT,
+  parseEmbeddedJson,
+} from '@inkeep/agents-core';
 import type { Span } from '@opentelemetry/api';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { getLogger } from '../../../../logger';
@@ -155,7 +159,7 @@ export async function waitForToolApproval(
     const currentStreamRequestId = ctx.streamRequestId ?? '';
     if (currentStreamRequestId) {
       await toolApprovalUiBus.publish(currentStreamRequestId, {
-        type: 'approval-needed',
+        type: APPROVAL_NEEDED_EVENT,
         toolCallId,
         toolName,
         input: args,
@@ -178,7 +182,7 @@ export async function waitForToolApproval(
       const currentStreamRequestId = ctx.streamRequestId ?? '';
       if (currentStreamRequestId) {
         await toolApprovalUiBus.publish(currentStreamRequestId, {
-          type: 'approval-resolved',
+          type: APPROVAL_RESOLVED_EVENT,
           toolCallId,
           approved: false,
           reason: approvalResult.reason,
@@ -222,7 +226,7 @@ export async function waitForToolApproval(
     const currentStreamRequestId = ctx.streamRequestId ?? '';
     if (currentStreamRequestId) {
       await toolApprovalUiBus.publish(currentStreamRequestId, {
-        type: 'approval-resolved',
+        type: APPROVAL_RESOLVED_EVENT,
         toolCallId,
         approved: true,
       });

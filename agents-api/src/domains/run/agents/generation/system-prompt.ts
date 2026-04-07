@@ -1,5 +1,10 @@
 import type { Artifact, ArtifactComponentApiInsert, AssembleResult } from '@inkeep/agents-core';
-import { TemplateEngine } from '@inkeep/agents-core';
+import {
+  DELEGATE_TOOL_PREFIX,
+  LOAD_SKILL_TOOL,
+  TemplateEngine,
+  TRANSFER_TOOL_PREFIX,
+} from '@inkeep/agents-core';
 import type { ToolSet } from 'ai';
 import { getLogger } from '../../../../logger';
 import { getModelAwareCompressionConfig } from '../../compression/BaseCompressor';
@@ -220,7 +225,7 @@ export async function buildSystemPrompt(
   const functionTools = preLoadedTools.functionTools;
   const relationTools = preLoadedTools.relationTools;
   const hasOnDemandSkills = ctx.config.skills?.some((skill) => !skill.alwaysLoaded);
-  const skillTools = hasOnDemandSkills ? { load_skill: createLoadSkillTool(ctx) } : {};
+  const skillTools = hasOnDemandSkills ? { [LOAD_SKILL_TOOL]: createLoadSkillTool(ctx) } : {};
   const allTools = { ...mcpTools, ...functionTools, ...relationTools, ...skillTools } as Record<
     string,
     AiSdkToolDefinition
@@ -252,10 +257,10 @@ export async function buildSystemPrompt(
       description: tool.description || '',
       inputSchema: (tool.inputSchema ?? tool.parameters ?? {}) as Record<string, unknown>,
       usageGuidelines:
-        name === 'load_skill'
+        name === LOAD_SKILL_TOOL
           ? 'Use this tool to load the full content and attached files of an on-demand skill by name.'
-          : name.startsWith('transfer_to_') || name.startsWith('delegate_to_')
-            ? `Use this tool to ${name.startsWith('transfer_to_') ? 'transfer' : 'delegate'} to another agent when appropriate.`
+          : name.startsWith(TRANSFER_TOOL_PREFIX) || name.startsWith(DELEGATE_TOOL_PREFIX)
+            ? `Use this tool to ${name.startsWith(TRANSFER_TOOL_PREFIX) ? 'transfer' : 'delegate'} to another agent when appropriate.`
             : 'Use this tool when appropriate for the task at hand.',
     }));
 
