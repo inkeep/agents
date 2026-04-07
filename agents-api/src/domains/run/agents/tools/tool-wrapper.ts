@@ -59,9 +59,17 @@ function extractDurableApproval(
   // Search parts nested inside artifacts
   if (Array.isArray(taskResult.artifacts)) {
     for (const artifact of taskResult.artifacts) {
-      if (artifact && typeof artifact === 'object' && Array.isArray((artifact as Record<string, unknown>).parts)) {
+      if (
+        artifact &&
+        typeof artifact === 'object' &&
+        Array.isArray((artifact as Record<string, unknown>).parts)
+      ) {
         for (const part of (artifact as Record<string, unknown>).parts as unknown[]) {
-          if (part && typeof part === 'object' && (part as Record<string, unknown>).kind === 'data') {
+          if (
+            part &&
+            typeof part === 'object' &&
+            (part as Record<string, unknown>).kind === 'data'
+          ) {
             candidates.push((part as Record<string, unknown>).data);
           }
         }
