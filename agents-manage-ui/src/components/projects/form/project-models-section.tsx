@@ -26,7 +26,15 @@ function BaseModelSection({
   control: ProjectFormControl;
   disabled?: boolean;
 }) {
-  return <ModelConfiguration control={control} name="models.base" isRequired disabled={disabled} />;
+  return (
+    <ModelConfiguration
+      control={control}
+      name="models.base"
+      canClear={false}
+      isRequired
+      disabled={disabled}
+    />
+  );
 }
 
 function StructuredOutputModelSection({

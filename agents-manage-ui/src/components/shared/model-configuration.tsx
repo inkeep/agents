@@ -353,6 +353,11 @@ interface ModelConfigurationProps<
   label?: React.ReactNode;
   /** Description text shown below the selector */
   description?: string;
+  /**
+   * Whether the clear button should be shown
+   * @default true
+   */
+  canClear?: boolean;
   inherited?: ModelConfigurationInheritedValues;
   /** Whether this field is required */
   isRequired?: boolean;
@@ -364,10 +369,11 @@ interface ModelConfigurationProps<
 
 export function ModelConfiguration<
   TFieldValues extends FieldValues,
-  TTransformedValues extends FieldValues | undefined = undefined,
+  TTransformedValues extends FieldValues,
 >({
   label,
   description,
+  canClear = true,
   isRequired,
   inherited,
   disabled = false,
@@ -465,7 +471,7 @@ export function ModelConfiguration<
           inheritedValue={inheritedValue}
           label={label ?? MODEL_CONFIGURATION_LABELS[slot]}
           placeholder={MODEL_CONFIGURATION_PLACEHOLDERS[slot]}
-          canClear={slot !== 'base'}
+          canClear={canClear}
           isRequired={isRequired}
           disabled={disabled}
         />
