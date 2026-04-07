@@ -88,10 +88,12 @@ function extractDurableApproval(
       typeof candidate === 'object' &&
       (candidate as Record<string, unknown>).type === DURABLE_APPROVAL_ARTIFACT_TYPE
     ) {
+      const candidateObj = candidate as Record<string, unknown>;
       logger.error(
         {
           parentToolName,
-          candidate,
+          toolCallId: candidateObj.toolCallId,
+          toolName: candidateObj.toolName,
           validationErrors: parsed.error.issues,
         },
         'Found durable-approval-required artifact but it failed schema validation'
@@ -279,27 +281,6 @@ export function wrapToolWithStreaming(
         const duration = Date.now() - startTime;
 
         if (ctx.durableWorkflowRunId && result && typeof result === 'object') {
-<<<<<<< HEAD
-          const resultObj = result as Record<string, unknown>;
-          const taskResult = resultObj?.result as Record<string, unknown> | undefined;
-
-          const findApprovalRequired = (
-            parts: Array<Record<string, unknown>> | undefined
-          ): Record<string, unknown> | undefined => {
-            if (!Array.isArray(parts)) return undefined;
-            for (const part of parts) {
-              if (part?.kind === 'data') {
-                const data = part.data as Record<string, unknown> | undefined;
-                if (data?.type === DURABLE_APPROVAL_ARTIFACT_TYPE) return data;
-              }
-            }
-            return undefined;
-          };
-
-          const findApprovalInArtifacts = (
-            artifacts: Array<Record<string, unknown>> | undefined
-          ): Record<string, unknown> | undefined => {
-            if (!Array.isArray(artifacts)) return undefined;
           const approvalData = extractDurableApproval(result, toolName);
           if (approvalData) {
             ctx.pendingDurableApproval = {
