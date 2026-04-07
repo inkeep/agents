@@ -73,14 +73,15 @@ export function ChatWidget({
   stopPolling,
   customHeaders,
   chatActivities,
-  setShowTraces,
+  setShowTraces: _setShowTraces,
   hasHeadersError,
 }: ChatWidgetProps) {
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
-  const { isCopilotConfigured } = useCopilotContext();
+  const copilotCtx = useCopilotContext();
   const { data: dataComponents } = useDataComponentsQuery();
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [messageId, setMessageId] = useState<string | undefined>(undefined);
+  const [feedbackType, setFeedbackType] = useState<'positive' | 'negative'>('negative');
   const {
     apiKey: tempApiKey,
     appId: playgroundAppId,
@@ -239,28 +240,54 @@ export function ChatWidget({
             },
             isChatHistoryButtonVisible: false,
             isViewOnly: hasHeadersError,
-            conversationId,
+            conversationIdOverride: conversationId,
             baseUrl: PUBLIC_INKEEP_AGENTS_API_URL,
             appId: playgroundAppId ?? undefined,
             headers: {
               'x-emit-operations': 'true',
               ...customHeaders,
             },
-            messageActions: isCopilotConfigured
-              ? [
-                  {
-                    label: 'Improve with AI',
-                    icon: { builtIn: 'LuSparkles' },
-                    action: {
-                      type: 'invoke_message_callback',
-                      callback({ messageId }) {
-                        setMessageId(messageId);
-                        setIsFeedbackDialogOpen(true);
+            messageActions: [
+              {
+                label: '',
+                icon: { builtIn: 'LuThumbsUp' },
+                action: {
+                  type: 'invoke_message_callback',
+                  callback({ messageId }) {
+                    setMessageId(messageId);
+                    setFeedbackType('positive');
+                    setIsFeedbackDialogOpen(true);
+                  },
+                },
+              },
+              {
+                label: '',
+                icon: { builtIn: 'LuThumbsDown' },
+                action: {
+                  type: 'invoke_message_callback',
+                  callback({ messageId }) {
+                    setMessageId(messageId);
+                    setFeedbackType('negative');
+                    setIsFeedbackDialogOpen(true);
+                  },
+                },
+              },
+              ...(copilotCtx.isCopilotConfigured
+                ? [
+                    {
+                      label: 'Improve with AI',
+                      icon: { builtIn: 'LuSparkles' as const },
+                      action: {
+                        type: 'invoke_message_callback' as const,
+                        callback({ messageId }: { messageId?: string }) {
+                          copilotCtx.openCopilot();
+                          copilotCtx.setDynamicHeaders({ conversationId, messageId });
+                        },
                       },
                     },
-                  },
-                ]
-              : undefined,
+                  ]
+                : []),
+            ],
             components: new Proxy(
               {},
               {
@@ -293,9 +320,11 @@ export function ChatWidget({
         <FeedbackDialog
           isOpen={isFeedbackDialogOpen}
           onOpenChange={setIsFeedbackDialogOpen}
+          tenantId={tenantId}
+          projectId={projectId}
           conversationId={conversationId}
           messageId={messageId}
-          setShowTraces={setShowTraces}
+          initialType={feedbackType}
         />
       )}
     </div>

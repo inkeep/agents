@@ -5,6 +5,7 @@ import authLookupRoutes from './routes/authLookup';
 import availableAgentsRoutes from './routes/availableAgents';
 import cliAuthRoutes from './routes/cliAuth';
 import entitlementsRoutes from './routes/entitlements';
+import feedbackRoutes from './routes/feedback';
 import githubRoutes from './routes/github';
 import crudRoutes from './routes/index';
 import invitationsRoutes from './routes/invitations';
@@ -69,6 +70,9 @@ export function createManageRoutes() {
     '/tenants/:tenantId/projects/:projectId/tools/:toolId/slack-access',
     mcpToolSlackAccessRoutes
   );
+
+  // Mount feedback routes under tenant/project
+  app.route('/tenants/:tenantId/projects/:projectId/feedback', feedbackRoutes);
 
   // Mount full project routes directly under tenant
   app.route('/tenants/:tenantId', projectFullRoutes);

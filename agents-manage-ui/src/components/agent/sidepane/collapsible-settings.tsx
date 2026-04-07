@@ -5,15 +5,13 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { cn } from '@/lib/utils';
 
 interface CollapsibleSettingsProps extends Omit<ComponentProps<typeof Collapsible>, 'title'> {
-  defaultOpen?: boolean;
-  children: ReactNode;
   title: ReactNode;
 }
 
 export function CollapsibleSettings({
   title,
-  className,
   children,
+  className,
   ...props
 }: CollapsibleSettingsProps) {
   return (

@@ -34,6 +34,7 @@ import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
 import { createSSEStreamHelper } from '../stream/stream-helpers';
 import type { Message } from '../types/chat';
 import { FileContentItemSchema, ImageContentItemSchema } from '../types/chat';
+import { getUserIdFromContext } from '../types/executionContext';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromOpenAIContent } from '../utils/message-parts';
 import { agentExecutionWorkflow } from '../workflow/functions/agentExecution';
@@ -368,6 +369,10 @@ app.openapi(chatCompletionsRoute, async (c) => {
       }
       const userMessageId = generateId();
 
+      if (messageSpan) {
+        messageSpan.setAttribute('message.id', userMessageId);
+      }
+
       const messageContent = await buildPersistedMessageContent(userMessage, messageParts, {
         tenantId,
         projectId,
@@ -389,7 +394,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
 
       if (messageSpan) {
         messageSpan.addEvent('user.message.stored', {
-          'message.id': conversationId,
+          'message.id': userMessageId,
           'database.operation': 'insert',
         });
       }
@@ -442,6 +447,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
         const emitOperationsHeader = c.req.header('x-emit-operations');
         const emitOperations = emitOperationsHeader === 'true';
 
+        const userId = getUserIdFromContext(executionContext);
         const run = await start(agentExecutionWorkflow, [
           {
             tenantId,
@@ -455,6 +461,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
             forwardedHeaders:
               Object.keys(forwardedHeaders).length > 0 ? forwardedHeaders : undefined,
             emitOperations: emitOperations || undefined,
+            userId,
           },
         ]);
 

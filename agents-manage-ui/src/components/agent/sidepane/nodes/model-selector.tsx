@@ -26,8 +26,8 @@ import { cn } from '@/lib/utils';
 interface ModelSelectorProps {
   tooltip?: string;
   label?: React.ReactNode;
-  value?: string;
-  onValueChange?: (value: string) => void;
+  value: string;
+  onValueChange: (value: string) => void;
   onProviderOptionsChange?: (options: Record<string, any>) => void;
   placeholder?: string;
   inheritedValue?: string;
@@ -69,7 +69,10 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
     setHasOpenModelConfig(showCustomInput !== null);
   }, [showCustomInput]);
 
-  const selectedModel = (() => {
+  const selectedModel = ((): null | {
+    label: string;
+    prefix?: string;
+  } => {
     for (const models of Object.values(modelOptions)) {
       const model = models.find((m) => m.value === value);
       if (model) return model;
@@ -80,34 +83,34 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
     // Handle custom models with prefix display
     if (value.startsWith('openrouter/')) {
       const modelName = value.replace('openrouter/', '');
-      return { value, label: modelName, prefix: 'openrouter/' };
+      return { label: modelName, prefix: 'openrouter/' };
     }
     if (value.startsWith('gateway/')) {
       const modelName = value.replace('gateway/', '');
-      return { value, label: modelName, prefix: 'gateway/' };
+      return { label: modelName, prefix: 'gateway/' };
     }
     if (value.startsWith('nim/')) {
       const modelName = value.replace('nim/', '');
-      return { value, label: modelName, prefix: 'nim/' };
+      return { label: modelName, prefix: 'nim/' };
     }
     if (value.startsWith('custom/')) {
       const modelName = value.replace('custom/', '');
-      return { value, label: modelName, prefix: 'custom/' };
+      return { label: modelName, prefix: 'custom/' };
     }
     if (value.startsWith('azure/')) {
       const modelName = value.replace('azure/', '');
-      return { value, label: modelName, prefix: 'azure/' };
+      return { label: modelName, prefix: 'azure/' };
     }
-    return { value, label: `${value} (custom)` };
+    return { label: `${value} (custom)` };
   })();
 
-  const inheritedModel = (() => {
+  const inheritedModel = ((): null | { label: string } => {
     if (!inheritedValue) return null;
     for (const models of Object.values(modelOptions)) {
       const model = models.find((m) => m.value === inheritedValue);
       if (model) return model;
     }
-    return { value: inheritedValue, label: inheritedValue };
+    return { label: inheritedValue };
   })();
 
   return (
@@ -121,8 +124,8 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
             ? undefined
             : (nextOpen) => {
                 setOpen(nextOpen);
-                if (!nextOpen && !value && onClose) {
-                  onClose();
+                if (!nextOpen && !value) {
+                  onClose?.();
                 }
               }
         }
@@ -159,7 +162,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
               variant="outline"
               size="icon"
               onClick={() => {
-                onValueChange?.('');
+                onValueChange('');
               }}
               aria-label="Clear model selection"
               type="button"
@@ -208,7 +211,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                               // Could be openrouter format, let user decide or add logic here
                             }
 
-                            onValueChange?.(modelValue);
+                            onValueChange(modelValue);
                             setOpen(false);
                           }}
                         >
@@ -238,7 +241,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                         className="flex items-center justify-between cursor-pointer text-foreground"
                         value={model.value}
                         onSelect={(currentValue) => {
-                          onValueChange?.(currentValue === value ? '' : currentValue);
+                          onValueChange(currentValue === value ? '' : currentValue);
                           setOpen(false);
                           setCustomModelInput('');
                           setShowCustomInput(null);
@@ -281,7 +284,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                       setShowCustomInput('openrouter');
                       setOpen(false);
                       setCustomModelInput('');
-                      onValueChange?.('openrouter/...');
+                      onValueChange('openrouter/...');
                     }}
                   >
                     OpenRouter ...
@@ -293,7 +296,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                       setShowCustomInput('gateway');
                       setOpen(false);
                       setCustomModelInput('');
-                      onValueChange?.('gateway/...');
+                      onValueChange('gateway/...');
                     }}
                   >
                     Vercel AI Gateway ...
@@ -305,7 +308,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                       setShowCustomInput('nim');
                       setOpen(false);
                       setCustomModelInput('');
-                      onValueChange?.('nim/...');
+                      onValueChange('nim/...');
                     }}
                   >
                     NVIDIA NIM ...
@@ -320,7 +323,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                       setAzureDeploymentName('');
                       setAzureResourceName('');
                       setAzureBaseURL('');
-                      onValueChange?.('azure/...');
+                      onValueChange('azure/...');
                     }}
                   >
                     Azure ...
@@ -372,7 +375,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                         : showCustomInput === 'nim'
                           ? 'nim/'
                           : 'custom/';
-                  onValueChange?.(`${prefix}${customModelInput.trim()}`);
+                  onValueChange(`${prefix}${customModelInput.trim()}`);
                   setShowCustomInput(null);
                   setCustomModelInput('');
                   setOpen(false);
@@ -395,7 +398,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                         : showCustomInput === 'nim'
                           ? 'nim/'
                           : 'custom/';
-                  onValueChange?.(`${prefix}${customModelInput.trim()}`);
+                  onValueChange(`${prefix}${customModelInput.trim()}`);
                   setShowCustomInput(null);
                   setCustomModelInput('');
                   setOpen(false);
@@ -411,7 +414,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
               onClick={() => {
                 setShowCustomInput(null);
                 setCustomModelInput('');
-                onValueChange?.('');
+                onValueChange('');
               }}
             >
               Cancel
@@ -478,7 +481,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                   (azureResourceName.trim() || azureBaseURL.trim())
                 ) {
                   // Set the Azure model FIRST so the store has it
-                  onValueChange?.(`azure/${azureDeploymentName.trim()}`);
+                  onValueChange(`azure/${azureDeploymentName.trim()}`);
 
                   // Then set the provider options
                   const providerOptions: Record<string, any> = {};
@@ -509,7 +512,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                 setAzureDeploymentName('');
                 setAzureResourceName('');
                 setAzureBaseURL('');
-                onValueChange?.('');
+                onValueChange('');
               }}
             >
               Cancel

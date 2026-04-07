@@ -55,7 +55,18 @@ const config: InkeepModalSearchAndChatProps = {
             }
             [data-theme="light"].ikp-chat-button__button:focus-visible {
               box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #69A3FF !important;
-            }`,
+            }
+            [data-theme="light"] .ikp-ai-chat-input__send-button {
+              color: #3784ff;
+            }
+            [data-theme="light"] .ikp-ai-chat-input__send-button:hover {
+              color: #006fe7;
+            }
+            [data-theme="light"] .ikp-markdown-sup > a:hover,
+            [data-theme="light"] .ikp-markdown-sup[data-part="markdown-sup"]:hover a[data-part="markdown-link"] {
+              color: var(--ikp-color-inkeep-expanded-primary-950);
+            }
+            `,
         },
       ],
     },

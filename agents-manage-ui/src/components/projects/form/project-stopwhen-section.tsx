@@ -19,9 +19,8 @@ export function ProjectStopWhenSection({ control, disabled }: ProjectStopWhenSec
   const stopWhen = useWatch({ control, name: 'stopWhen' });
   const hasConfiguredStopWhen = !!(stopWhen?.transferCountIs || stopWhen?.stepCountIs);
   const [isOpen, setIsOpen] = useState(hasConfiguredStopWhen);
-
   const { errors } = useFormState({ control });
-  const hasStopWhenErrors = !!(errors.stopWhen?.transferCountIs || errors.stopWhen?.stepCountIs);
+  const hasStopWhenErrors = !!errors.stopWhen;
 
   // Auto-open the collapsible when there are errors in the stopWhen section
   useEffect(() => {

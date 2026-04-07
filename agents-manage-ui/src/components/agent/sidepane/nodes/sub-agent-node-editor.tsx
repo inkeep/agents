@@ -61,7 +61,10 @@ interface SubAgentNodeEditorProps {
 export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }) => {
   const form = useFullAgentFormContext();
   const nodeId = selectedNode.id;
-  const subAgent = useWatch({ control: form.control, name: `subAgents.${nodeId}` });
+  const [subAgent, models, defaultSubAgentNodeId] = useWatch({
+    control: form.control,
+    name: [`subAgents.${nodeId}`, 'models', 'defaultSubAgentNodeId'],
+  });
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const {
     data: { canEdit },
@@ -69,11 +72,6 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
   const { data: project } = useProjectQuery();
   const { data: artifactComponents } = useArtifactComponentsQuery();
   const { data: dataComponents } = useDataComponentsQuery();
-  const models = useWatch({ control: form.control, name: 'models' });
-  const defaultSubAgentNodeId = useWatch({
-    control: form.control,
-    name: 'defaultSubAgentNodeId',
-  });
   const path = <K extends string>(key: K) => `subAgents.${nodeId}.${key}` as const;
   const { deleteNode } = useDeleteNode(nodeId);
   const isPersistedSubAgent =
@@ -172,23 +170,11 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
         )}
       />
       <Separator />
-      <FormField
+      <ModelSection
         control={form.control}
-        name={path('models')}
-        render={({ field: _field }) => (
-          <FormItem>
-            <ModelSection
-              // field.value doesn't update properly here, so we read from subAgent.models instead
-              models={subAgent.models}
-              updatePath={(fieldPath, value) => {
-                form.setValue(path(fieldPath), value, { shouldDirty: true });
-              }}
-              projectModels={project?.models}
-              agentModels={models}
-            />
-            <FormMessage />
-          </FormItem>
-        )}
+        basePath={path('models')}
+        projectModels={project?.models}
+        agentModels={models}
       />
       <Separator />
       {/* Agent Execution Limits */}

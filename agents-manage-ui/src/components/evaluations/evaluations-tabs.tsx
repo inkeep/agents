@@ -132,7 +132,7 @@ export function EvaluationsTabs({
         <EvaluationRunConfigsList
           tenantId={tenantId}
           projectId={projectId}
-          runConfigs={runConfigs}
+          initialRunConfigs={runConfigs}
           refreshKey={refreshKey}
         />
       </TabsContent>

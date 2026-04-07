@@ -1,22 +1,24 @@
+import { type Node, useNodes } from '@xyflow/react';
 import { useFormState } from 'react-hook-form';
 import { isNodeType, NodeType } from '@/components/agent/configuration/node-types';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { findFunctionToolIdsForFunctionId, getNodeGraphKey } from '@/features/agent/domain';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
 
 type ErrorGroup = Record<string, Record<string, unknown> | undefined>;
 type GraphKeyEntry = [string, string];
 
 const EMPTY_GROUP: ErrorGroup = {};
 
-function getGraphKeyEntries(key: string, graphKey?: string | null): GraphKeyEntry[] {
+function getGraphKeyEntries(key: string, node: Node): GraphKeyEntry[] {
+  const graphKey = getNodeGraphKey(node);
   return graphKey ? [[key, graphKey]] : [];
 }
 
-export function useGroupedAgentErrors() {
-  const form = useFullAgentFormContext();
-  const { errors } = useFormState({ control: form.control });
-  const nodes = useAgentStore((state) => state.nodes);
+function useErrors(control: ReturnType<typeof useFullAgentFormContext>['control']) {
+  'use no memo';
+
+  // RHF field errors come from proxy-backed formState. Read them inside a no-memo boundary.
+  const { errors } = useFormState({ control });
   const {
     subAgents = EMPTY_GROUP,
     functionTools,
@@ -28,29 +30,50 @@ export function useGroupedAgentErrors() {
     defaultSubAgentNodeId,
     ...agentSettings
   } = errors;
-  const functionToolFormData = form.getValues('functionTools');
-  const nodeGraphKeysByNodeId = new Map(
-    nodes.flatMap((node) => getGraphKeyEntries(node.id, getNodeGraphKey(node)))
-  );
+  return {
+    subAgents,
+    functionTools,
+    functions,
+    externalAgents,
+    teamAgents,
+    tools,
+    mcpRelations,
+    defaultSubAgentNodeId,
+    agentSettings,
+  };
+}
+
+export function useGroupedAgentErrors() {
+  const form = useFullAgentFormContext();
+  const nodes = useNodes();
+  const {
+    subAgents,
+    functionTools,
+    functions,
+    externalAgents,
+    teamAgents,
+    tools,
+    mcpRelations,
+    defaultSubAgentNodeId,
+    agentSettings,
+  } = useErrors(form.control);
+
+  const nodeGraphKeysByNodeId = new Map(nodes.flatMap((node) => getGraphKeyEntries(node.id, node)));
   const functionToolGraphKeysByToolId = new Map(
     nodes.flatMap((node) =>
-      isNodeType(node, NodeType.FunctionTool)
-        ? getGraphKeyEntries(node.data.toolId, getNodeGraphKey(node))
-        : []
+      isNodeType(node, NodeType.FunctionTool) ? getGraphKeyEntries(node.data.toolId, node) : []
     )
   );
   const externalAgentGraphKeysById = new Map(
     nodes.flatMap((node) =>
       isNodeType(node, NodeType.ExternalAgent)
-        ? getGraphKeyEntries(node.data.externalAgentId, getNodeGraphKey(node))
+        ? getGraphKeyEntries(node.data.externalAgentId, node)
         : []
     )
   );
   const teamAgentGraphKeysById = new Map(
     nodes.flatMap((node) =>
-      isNodeType(node, NodeType.TeamAgent)
-        ? getGraphKeyEntries(node.data.teamAgentId, getNodeGraphKey(node))
-        : []
+      isNodeType(node, NodeType.TeamAgent) ? getGraphKeyEntries(node.data.teamAgentId, node) : []
     )
   );
   const remapErrorGroup = (
@@ -63,7 +86,7 @@ export function useGroupedAgentErrors() {
 
   const functionErrorsByToolId = Object.fromEntries(
     Object.entries(functions).flatMap(([functionId, value]) => {
-      const toolIds = findFunctionToolIdsForFunctionId(functionId, functionToolFormData);
+      const toolIds = findFunctionToolIdsForFunctionId(functionId, form.getValues('functionTools'));
 
       return toolIds.map((toolId) => [functionToolGraphKeysByToolId.get(toolId) ?? '', value]);
     })
@@ -97,6 +120,5 @@ export function useGroupedAgentErrors() {
       ...remapErrorGroup(mcpRelations, (nodeId) => nodeGraphKeysByNodeId.get(nodeId)),
     },
     agentSettings,
-    other: EMPTY_GROUP,
   };
 }

@@ -280,6 +280,7 @@ function buildConversationPayloads(
         sf(SPAN_KEYS.MESSAGE_CONTENT, str, attr),
         sf(SPAN_KEYS.MESSAGE_PARTS, str, attr),
         sf(SPAN_KEYS.MESSAGE_TIMESTAMP, str, attr),
+        sf(SPAN_KEYS.MESSAGE_ID, str, attr),
         sf(SPAN_KEYS.AGENT_ID, str, attr),
         sf(SPAN_KEYS.AGENT_NAME, str, attr),
         sf(SPAN_KEYS.INVOCATION_TYPE, str, attr),
@@ -299,6 +300,7 @@ function buildConversationPayloads(
         sf(SPAN_KEYS.DURATION_NANO, float64, span),
         sf(SPAN_KEYS.AI_RESPONSE_CONTENT, str, attr),
         sf(SPAN_KEYS.AI_RESPONSE_TIMESTAMP, str, attr),
+        sf(SPAN_KEYS.MESSAGE_ID, str, attr),
         sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
         sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
         sf(SPAN_KEYS.OTEL_STATUS_DESCRIPTION, str, attr),
@@ -681,6 +683,7 @@ export async function GET(
     // activities
     type Activity = {
       id: string;
+      messageId?: string;
       type:
         | 'tool_call'
         | 'ai_generation'
@@ -942,6 +945,7 @@ export async function GET(
 
       activities.push({
         id: userMessageSpanId,
+        messageId: getString(span, SPAN_KEYS.MESSAGE_ID, '') || undefined,
         type: ACTIVITY_TYPES.USER_MESSAGE,
         description,
         timestamp: getString(span, SPAN_KEYS.MESSAGE_TIMESTAMP),
@@ -958,7 +962,6 @@ export async function GET(
           : `Message received successfully (${durMs.toFixed(2)}ms)`,
         messageContent: getString(span, SPAN_KEYS.MESSAGE_CONTENT, ''),
         messageParts: getString(span, SPAN_KEYS.MESSAGE_PARTS, ''),
-        // Trigger-specific attributes
         invocationType: invocationType || undefined,
         invocationEntryPoint: spanEntryPoint || undefined,
         triggerId: triggerId || undefined,
@@ -977,6 +980,7 @@ export async function GET(
         : '';
       activities.push({
         id: aiAssistantMessageSpanId,
+        messageId: getString(span, SPAN_KEYS.MESSAGE_ID, '') || undefined,
         type: ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE,
         description: 'AI Assistant responded',
         timestamp: getString(span, SPAN_KEYS.AI_RESPONSE_TIMESTAMP),

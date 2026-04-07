@@ -1358,7 +1358,8 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
 
         const body = await res.json();
         expect(body.success).toBe(true);
-        expect(body.invocationId).toBeDefined();
+        expect(body.invocationIds).toBeDefined();
+        expect(body.invocationIds.length).toBeGreaterThan(0);
       });
 
       it('should return 404 for non-existent trigger', async () => {
@@ -1384,17 +1385,18 @@ describe('Scheduled Trigger CRUD Routes - Integration Tests', () => {
         );
         expect(runRes.status).toBe(200);
         const runBody = await runRes.json();
+        const invocationId = runBody.invocationIds[0];
 
         // Small delay for the invocation to be created
         await new Promise((resolve) => setTimeout(resolve, 100));
 
         const invRes = await makeRequest(
-          `${basePath(tenantId, projectId, agentId)}/${trigger.id}/invocations/${runBody.invocationId}`
+          `${basePath(tenantId, projectId, agentId)}/${trigger.id}/invocations/${invocationId}`
         );
         expect(invRes.status).toBe(200);
 
         const invBody = await invRes.json();
-        expect(invBody.data.id).toBe(runBody.invocationId);
+        expect(invBody.data.id).toBe(invocationId);
         expect(invBody.data.scheduledTriggerId).toBe(trigger.id);
       });
     });

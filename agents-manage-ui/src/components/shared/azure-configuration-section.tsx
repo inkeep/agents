@@ -1,17 +1,16 @@
+import { useId } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 interface AzureConfigurationSectionProps {
   providerOptions: Record<string, unknown> | string | undefined;
-  onProviderOptionsChange?: (value: string | undefined) => void;
-  editorNamePrefix: string;
+  onProviderOptionsChange: (value: string | undefined) => void;
   disabled?: boolean;
 }
 
 export function AzureConfigurationSection({
   providerOptions,
   onProviderOptionsChange,
-  editorNamePrefix,
   disabled = false,
 }: AzureConfigurationSectionProps) {
   const providerOptionsObj =
@@ -20,8 +19,6 @@ export function AzureConfigurationSection({
       : providerOptions || {};
 
   const handleFieldChange = (field: string, value: string) => {
-    if (!onProviderOptionsChange) return;
-
     const updatedOptions = {
       ...providerOptionsObj,
       [field]: value || undefined,
@@ -39,6 +36,9 @@ export function AzureConfigurationSection({
     onProviderOptionsChange(finalValue);
   };
 
+  const resourceNameId = useId();
+  const baseUrlId = useId();
+
   return (
     <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
       <h4 className="text-sm font-medium text-foreground">Azure OpenAI Configuration</h4>
@@ -50,14 +50,11 @@ export function AzureConfigurationSection({
           </p>
           <div className="space-y-3">
             <div className="space-y-2">
-              <Label
-                htmlFor={`${editorNamePrefix}-azure-resource-name`}
-                className="text-sm font-medium"
-              >
+              <Label htmlFor={resourceNameId} className="text-sm font-medium">
                 Resource Name
               </Label>
               <Input
-                id={`${editorNamePrefix}-azure-resource-name`}
+                id={resourceNameId}
                 type="text"
                 value={providerOptionsObj.resourceName || ''}
                 onChange={(e) => handleFieldChange('resourceName', e.target.value)}
@@ -73,11 +70,11 @@ export function AzureConfigurationSection({
             <div className="text-center text-xs text-muted-foreground">— OR —</div>
 
             <div className="space-y-2">
-              <Label htmlFor={`${editorNamePrefix}-azure-base-url`} className="text-sm font-medium">
+              <Label htmlFor={baseUrlId} className="text-sm font-medium">
                 Base URL
               </Label>
               <Input
-                id={`${editorNamePrefix}-azure-base-url`}
+                id={baseUrlId}
                 type="text"
                 value={providerOptionsObj.baseURL || ''}
                 onChange={(e) => handleFieldChange('baseURL', e.target.value)}
