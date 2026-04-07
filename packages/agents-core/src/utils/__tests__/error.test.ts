@@ -1,9 +1,112 @@
 import { describe, expect, it } from 'vitest';
 import {
+  createApiError,
   getDatabaseErrorLogContext,
+  handleApiError,
   isUniqueConstraintError,
   throwIfUniqueConstraintError,
 } from '../error';
+
+const STATIC_500_MESSAGE = 'An internal server error occurred. Please try again later.';
+
+describe('createApiError 500 static message', () => {
+  async function getResponseBody(
+    message: string,
+    code: 'internal_server_error' | 'bad_request' | 'not_found' = 'internal_server_error'
+  ) {
+    const exception = createApiError({ code, message });
+    return JSON.parse(await exception.getResponse().text());
+  }
+
+  it('returns static message for 500 regardless of input', async () => {
+    const body = await getResponseBody('connect ECONNREFUSED 10.0.0.5:5432');
+    expect(body.detail).toBe(STATIC_500_MESSAGE);
+    expect(body.error.message).toBe(STATIC_500_MESSAGE);
+    expect(body.status).toBe(500);
+  });
+
+  it('never leaks connection strings', async () => {
+    const body = await getResponseBody('postgresql://appuser:pass@host:5432/db failed');
+    expect(body.detail).not.toContain('appuser');
+    expect(body.detail).not.toContain('pass');
+    expect(body.detail).not.toContain('postgresql');
+  });
+
+  it('never leaks file paths', async () => {
+    const body = await getResponseBody('Error at /var/task/packages/agents-core/dist/index.js:42');
+    expect(body.detail).not.toContain('/var/task');
+  });
+
+  it('never leaks IP addresses', async () => {
+    const body = await getResponseBody('connect to 192.168.1.1:5432 failed');
+    expect(body.detail).not.toContain('192.168.1.1');
+  });
+
+  it('includes requestId when provided', async () => {
+    const exception = createApiError({
+      code: 'internal_server_error',
+      message: 'some secret error',
+      requestId: 'req-abc123',
+    });
+    const body = JSON.parse(await exception.getResponse().text());
+    expect(body.requestId).toBe('req-abc123');
+    expect(body.detail).toBe(STATIC_500_MESSAGE);
+  });
+
+  it('preserves 400 response body unchanged', async () => {
+    const message = 'Missing required header: x-api-key with auth token';
+    const body = await getResponseBody(message, 'bad_request');
+    expect(body.detail).toBe(message);
+    expect(body.error.message).toBe(message);
+    expect(body.status).toBe(400);
+  });
+
+  it('preserves 404 response body unchanged', async () => {
+    const message = 'Agent not found';
+    const body = await getResponseBody(message, 'not_found');
+    expect(body.detail).toBe(message);
+  });
+});
+
+describe('handleApiError 500 static message', () => {
+  it('returns static message for raw Error', async () => {
+    const error = new Error('connect ECONNREFUSED 10.0.0.5:5432');
+    const result = await handleApiError(error, 'req-123');
+    expect(result.detail).toBe(STATIC_500_MESSAGE);
+    expect(result.error.message).toBe(STATIC_500_MESSAGE);
+    expect(result.requestId).toBe('req-123');
+  });
+
+  it('never leaks connection strings from raw errors', async () => {
+    const error = new Error('postgresql://user:pass@host/db failed');
+    const result = await handleApiError(error, 'req-456');
+    expect(result.detail).not.toContain('user');
+    expect(result.detail).not.toContain('pass');
+  });
+
+  it('returns static message for non-Error values', async () => {
+    const result = await handleApiError('string error', 'req-789');
+    expect(result.detail).toBe(STATIC_500_MESSAGE);
+    expect(result.status).toBe(500);
+  });
+
+  it('returns static message for HTTPException 500s', async () => {
+    const inner = createApiError({
+      code: 'internal_server_error',
+      message: 'secret database details',
+    });
+    const result = await handleApiError(inner, 'req-abc');
+    expect(result.detail).toBe(STATIC_500_MESSAGE);
+    expect(result.error.message).toBe(STATIC_500_MESSAGE);
+  });
+
+  it('preserves 4xx HTTPException messages', async () => {
+    const message = 'Resource not found';
+    const inner = createApiError({ code: 'not_found', message });
+    const result = await handleApiError(inner, 'req-def');
+    expect(result.detail).toBe(message);
+  });
+});
 
 describe('getDatabaseErrorLogContext', () => {
   it('returns empty object for null', () => {
