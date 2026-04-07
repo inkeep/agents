@@ -37,14 +37,11 @@ interface ModelSelectorProps {
 }
 
 export const ModelSelector: FC<ModelSelectorProps> = ({
-  label = 'Model',
-  tooltip,
   value,
   onValueChange,
   onProviderOptionsChange,
   placeholder = 'Select a model...',
   inheritedValue,
-  isRequired = false,
   canClear = true,
   disabled = false,
   gatewayOnly = false,

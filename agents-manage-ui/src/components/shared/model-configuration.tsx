@@ -8,7 +8,14 @@ import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector'
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandItem, CommandList } from '@/components/ui/command';
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import {
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -459,22 +466,21 @@ export function ModelConfiguration<
   const providerOptionsId = useId();
   return (
     <div className="space-y-4">
-      <div className="relative space-y-2">
-        <ModelSelector
-          value={value || ''}
-          onValueChange={handleModelChange}
-          onProviderOptionsChange={handleProviderOptionsChange}
-          inheritedValue={inheritedValue}
-          label={label ?? MODEL_CONFIGURATION_LABELS[slot]}
-          placeholder={MODEL_CONFIGURATION_PLACEHOLDERS[slot]}
-          canClear={canClear}
-          isRequired={isRequired}
-          disabled={disabled}
-        />
-        <p className="text-xs text-muted-foreground">
-          {description ?? MODEL_CONFIGURATION_DESCRIPTIONS[slot]}
-        </p>
-      </div>
+      <MyForm control={control} name={`${name}.model` as FieldPath<TFieldValues>}>
+        <FormLabel isRequired={isRequired}>{label ?? MODEL_CONFIGURATION_LABELS[slot]}</FormLabel>
+        <FormControl>
+          <ModelSelector
+            value={value || ''}
+            onValueChange={handleModelChange}
+            onProviderOptionsChange={handleProviderOptionsChange}
+            inheritedValue={inheritedValue}
+            placeholder={MODEL_CONFIGURATION_PLACEHOLDERS[slot]}
+            canClear={canClear}
+            disabled={disabled}
+          />
+        </FormControl>
+        <FormDescription>{description ?? MODEL_CONFIGURATION_DESCRIPTIONS[slot]}</FormDescription>
+      </MyForm>
 
       {effectiveModel && (
         <>
