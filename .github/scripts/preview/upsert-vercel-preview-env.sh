@@ -35,17 +35,20 @@ if [ -z "${MANAGE_DB_URL:-}" ] || [ -z "${RUN_DB_URL:-}" ] || [ -z "${SPICEDB_EN
     PR_NUMBER
 
   RAILWAY_ENV_NAME="$(pr_env_name "${PR_NUMBER}")"
-
-  railway_link_service "${RAILWAY_PROJECT_ID}" "${RAILWAY_OUTPUT_SERVICE}" "${RAILWAY_ENV_NAME}"
+  RAILWAY_ENV_ID="$(railway_wait_for_environment_id "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" 10 2)"
+  OUTPUT_SERVICE_ID="$(railway_project_service_id "${RAILWAY_PROJECT_ID}" "${RAILWAY_OUTPUT_SERVICE}")"
+  OUTPUT_SERVICE_ENV_JSON="$(
+    railway_variables_json "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_ID}" "${OUTPUT_SERVICE_ID}"
+  )"
 
   if [ -z "${MANAGE_DB_URL:-}" ]; then
-    MANAGE_DB_URL="$(railway_extract_runtime_var "${RAILWAY_OUTPUT_SERVICE}" "${RAILWAY_ENV_NAME}" "${RAILWAY_MANAGE_DB_URL_KEY}")"
+    MANAGE_DB_URL="$(jq -r --arg key "${RAILWAY_MANAGE_DB_URL_KEY}" '.[$key] // empty' <<< "${OUTPUT_SERVICE_ENV_JSON}")"
   fi
   if [ -z "${RUN_DB_URL:-}" ]; then
-    RUN_DB_URL="$(railway_extract_runtime_var "${RAILWAY_OUTPUT_SERVICE}" "${RAILWAY_ENV_NAME}" "${RAILWAY_RUN_DB_URL_KEY}")"
+    RUN_DB_URL="$(jq -r --arg key "${RAILWAY_RUN_DB_URL_KEY}" '.[$key] // empty' <<< "${OUTPUT_SERVICE_ENV_JSON}")"
   fi
   if [ -z "${SPICEDB_ENDPOINT:-}" ]; then
-    SPICEDB_ENDPOINT="$(railway_extract_runtime_var "${RAILWAY_OUTPUT_SERVICE}" "${RAILWAY_ENV_NAME}" "${RAILWAY_SPICEDB_ENDPOINT_KEY}")"
+    SPICEDB_ENDPOINT="$(jq -r --arg key "${RAILWAY_SPICEDB_ENDPOINT_KEY}" '.[$key] // empty' <<< "${OUTPUT_SERVICE_ENV_JSON}")"
   fi
 
   mask_env_vars MANAGE_DB_URL RUN_DB_URL SPICEDB_ENDPOINT

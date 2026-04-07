@@ -20,6 +20,17 @@ require_pr_number() {
   fi
 }
 
+preview_log() {
+  printf '[preview][%s] %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >&2
+}
+
+preview_should_log_wait_attempt() {
+  local attempt="$1"
+  local max_attempts="$2"
+
+  [ "${attempt}" = "1" ] || [ "${attempt}" = "${max_attempts}" ] || [ $((attempt % 5)) -eq 0 ]
+}
+
 sleep_with_jitter() {
   local sleep_seconds="$1"
   local jittered_sleep=""
@@ -29,6 +40,26 @@ sleep_with_jitter() {
 import random
 base = float(${sleep_seconds})
 print(base * (0.5 + random.random()))
+PY
+  )"
+
+  sleep "${jittered_sleep}"
+}
+
+sleep_with_backoff_and_jitter() {
+  local base_sleep_seconds="$1"
+  local attempt="$2"
+  local max_sleep_seconds="${3:-30}"
+  local jittered_sleep=""
+
+  jittered_sleep="$(
+    python3 - <<PY
+import random
+base = float(${base_sleep_seconds})
+attempt = int(${attempt})
+cap = float(${max_sleep_seconds})
+sleep_seconds = min(base * (2 ** max(attempt - 1, 0)), cap)
+print(sleep_seconds * (0.5 + random.random()))
 PY
   )"
 
@@ -45,69 +76,14 @@ pr_env_name() {
 railway_env_exists_count() {
   local project_id="$1"
   local env_name="$2"
-  local output_path="${3:-/tmp/railway-projects.json}"
+  local env_id=""
 
-  if ! railway project list --json > "${output_path}"; then
-    echo "Failed to list Railway environments for project ${project_id}." >&2
-    return 1
-  fi
-
-  jq -r \
-    --arg project_id "${project_id}" \
-    --arg name "${env_name}" \
-    '[.[] | select(.id == $project_id) | .environments.edges[].node | select(.name == $name)] | length' \
-    "${output_path}"
-}
-
-railway_link_service() {
-  local project_id="$1"
-  local service="$2"
-  local env_name="$3"
-
-  if ! railway link \
-    --project "${project_id}" \
-    --service "${service}" \
-    --environment "${env_name}" \
-    >/dev/null; then
-    echo "Failed to link Railway CLI to project ${project_id} service ${service} env ${env_name}." >&2
-    return 1
-  fi
-}
-
-railway_extract_runtime_var() {
-  local service="$1"
-  local env_name="$2"
-  local key="$3"
-  local max_attempts="${4:-20}"
-  local sleep_seconds="${5:-2}"
-  local attempt=""
-  local value=""
-
-  for attempt in $(seq 1 "${max_attempts}"); do
-    value="$(
-      railway variable list \
-        --service "${service}" \
-        --environment "${env_name}" \
-        --json |
-      jq -r --arg key "${key}" '.[$key] // empty'
-    )"
-
-    if [ -n "${value}" ] && ! printf '%s' "${value}" | grep -q '\$[{][{]'; then
-      printf '%s' "${value}"
-      return 0
-    fi
-
-    if [ "${attempt}" -lt "${max_attempts}" ]; then
-      sleep_with_jitter "${sleep_seconds}"
-    fi
-  done
-
-  if [ -z "${value:-}" ]; then
-    echo "Missing runtime variable ${key} in Railway service ${service} for env ${env_name}." >&2
+  env_id="$(railway_environment_id "${project_id}" "${env_name}")"
+  if [ -n "${env_id}" ]; then
+    printf '1'
   else
-    echo "Runtime variable ${key} is unresolved (${value}) after waiting for Railway interpolation." >&2
+    printf '0'
   fi
-  return 1
 }
 
 mask_env_vars() {
@@ -119,31 +95,222 @@ mask_env_vars() {
   done
 }
 
+railway_graphql_has_errors() {
+  local response="$1"
+
+  jq -e '.errors and (.errors | length > 0)' >/dev/null 2>&1 <<< "${response}"
+}
+
+railway_graphql_first_error_message() {
+  local response="$1"
+
+  jq -r '.errors[0].message // "unknown GraphQL error"' <<< "${response}"
+}
+
+railway_require_graphql_success() {
+  local response="$1"
+  local context="$2"
+
+  if railway_graphql_has_errors "${response}"; then
+    echo "${context}: $(railway_graphql_first_error_message "${response}")" >&2
+    return 1
+  fi
+}
+
 railway_graphql() {
   local query="$1"
+  local variables_json="${2:-}"
   local payload=""
+  local max_attempts="${RAILWAY_GRAPHQL_MAX_ATTEMPTS:-6}"
+  local sleep_seconds="${RAILWAY_GRAPHQL_SLEEP_SECONDS:-3}"
+  local max_sleep_seconds="${RAILWAY_GRAPHQL_MAX_SLEEP_SECONDS:-30}"
+  local connect_timeout_seconds="${RAILWAY_GRAPHQL_CONNECT_TIMEOUT_SECONDS:-10}"
+  local curl_max_time_seconds="${RAILWAY_GRAPHQL_CURL_MAX_TIME_SECONDS:-30}"
+  local attempt=""
+  local body_file=""
+  local header_file=""
+  local http_status=""
+  local retry_after=""
+  local exit_code="0"
 
-  payload="$(jq -nc --arg query "${query}" '{query: $query}')"
+  if [ -n "${variables_json}" ]; then
+    payload="$(jq -nc --arg query "${query}" --argjson variables "${variables_json}" '{query: $query, variables: $variables}')"
+  else
+    payload="$(jq -nc --arg query "${query}" '{query: $query}')"
+  fi
 
-  curl --connect-timeout 10 --max-time 30 -fsS \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer ${RAILWAY_API_TOKEN}" \
-    -H "User-Agent: Mozilla/5.0" \
-    -H "Origin: https://railway.com" \
-    -H "Referer: https://railway.com/" \
-    -d "${payload}" \
-    https://backboard.railway.com/graphql/v2
+  body_file="$(mktemp)"
+  header_file="$(mktemp)"
+
+  for attempt in $(seq 1 "${max_attempts}"); do
+    exit_code="0"
+    : > "${body_file}"
+    : > "${header_file}"
+    http_status="$(
+      curl --connect-timeout "${connect_timeout_seconds}" --max-time "${curl_max_time_seconds}" -sS \
+        -D "${header_file}" \
+        -o "${body_file}" \
+        -w '%{http_code}' \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer ${RAILWAY_API_TOKEN}" \
+        -H "User-Agent: inkeep-preview-ci" \
+        -d "${payload}" \
+        https://backboard.railway.com/graphql/v2
+    )" || exit_code="$?"
+
+    if [ "${exit_code}" = "0" ] && [ "${http_status}" = "200" ]; then
+      cat "${body_file}"
+      rm -f "${body_file}" "${header_file}"
+      return 0
+    fi
+
+    retry_after="$(
+      awk 'tolower($1) == "retry-after:" {print $2}' "${header_file}" |
+      tr -d '\r' |
+      tail -n 1
+    )"
+
+    if [ "${attempt}" -lt "${max_attempts}" ]; then
+      if [ -n "${retry_after}" ] && [[ "${retry_after}" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+        preview_log "Railway GraphQL attempt ${attempt}/${max_attempts} got HTTP ${http_status}; retrying after ${retry_after}s."
+        sleep_with_jitter "${retry_after}"
+      elif [ "${exit_code}" != "0" ] || [[ "${http_status}" =~ ^(429|5[0-9]{2}|000)$ ]]; then
+        preview_log "Railway GraphQL attempt ${attempt}/${max_attempts} failed with HTTP ${http_status} and exit code ${exit_code}; retrying with backoff."
+        sleep_with_backoff_and_jitter "${sleep_seconds}" "${attempt}" "${max_sleep_seconds}"
+      else
+        cat "${body_file}" >&2
+        rm -f "${body_file}" "${header_file}"
+        return 1
+      fi
+    fi
+  done
+
+  cat "${body_file}" >&2
+  rm -f "${body_file}" "${header_file}"
+  return 1
+}
+
+railway_environment_create_from_source() {
+  local project_id="$1"
+  local env_name="$2"
+  local source_environment_id="$3"
+  local variables_json=""
+  local response=""
+
+  variables_json="$(jq -nc \
+    --arg project_id "${project_id}" \
+    --arg env_name "${env_name}" \
+    --arg source_environment_id "${source_environment_id}" \
+    '{input: {projectId: $project_id, name: $env_name, sourceEnvironmentId: $source_environment_id}}')"
+
+  response="$(
+    railway_graphql 'mutation($input: EnvironmentCreateInput!) { environmentCreate(input: $input) { id name } }' "${variables_json}"
+  )"
+  railway_require_graphql_success "${response}" "GraphQL error creating Railway environment" || return 1
+
+  printf '%s' "${response}"
+}
+
+railway_environment_delete_by_id() {
+  local environment_id="$1"
+  local variables_json=""
+  local response=""
+
+  variables_json="$(jq -nc --arg environment_id "${environment_id}" '{id: $environment_id}')"
+
+  response="$(
+    railway_graphql 'mutation($id: String!) { environmentDelete(id: $id) }' "${variables_json}"
+  )"
+  railway_require_graphql_success "${response}" "GraphQL error deleting Railway environment" || return 1
+
+  printf '%s' "${response}"
+}
+
+railway_project_service_id() {
+  local project_id="$1"
+  local service_ref="$2"
+  local response=""
+  local variables_json=""
+
+  if [[ "${service_ref}" =~ ^[0-9a-fA-F-]{36}$ ]]; then
+    printf '%s' "${service_ref}"
+    return 0
+  fi
+
+  variables_json="$(jq -nc --arg project_id "${project_id}" '{projectId: $project_id}')"
+
+  response="$(
+    railway_graphql 'query($projectId: String!) { project(id: $projectId) { services { edges { node { id name } } } } }' "${variables_json}"
+  )"
+  railway_require_graphql_success "${response}" "GraphQL error querying Railway services" || return 1
+
+  jq -r --arg service_ref "${service_ref}" '
+    (.data.project.services.edges // [])[]
+    | .node
+    | select(.id == $service_ref or .name == $service_ref or .name == ("@inkeep/" + $service_ref))
+    | .id
+  ' <<< "${response}" | head -n 1
+}
+
+railway_variables_json() {
+  local project_id="$1"
+  local environment_id="$2"
+  local service_id="$3"
+  local unrendered="${4:-false}"
+  local variables_json=""
+  local response=""
+
+  variables_json="$(jq -nc \
+    --arg project_id "${project_id}" \
+    --arg environment_id "${environment_id}" \
+    --arg service_id "${service_id}" \
+    --argjson unrendered "${unrendered}" \
+    '{projectId: $project_id, environmentId: $environment_id, serviceId: $service_id, unrendered: $unrendered}')"
+
+  response="$(
+    railway_graphql 'query($projectId: String!, $environmentId: String!, $serviceId: String!, $unrendered: Boolean) { variables(projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId, unrendered: $unrendered) }' "${variables_json}"
+  )"
+  railway_require_graphql_success "${response}" "GraphQL error fetching Railway variables" || return 1
+
+  jq -c '.data.variables // {}' <<< "${response}"
+}
+
+railway_variable_collection_upsert() {
+  local project_id="$1"
+  local environment_id="$2"
+  local service_id="$3"
+  local skip_deploys="${4:-true}"
+  local variables_payload="$5"
+  local variables_json=""
+  local response=""
+
+  variables_json="$(jq -nc \
+    --arg project_id "${project_id}" \
+    --arg environment_id "${environment_id}" \
+    --arg service_id "${service_id}" \
+    --argjson skip_deploys "${skip_deploys}" \
+    --argjson variables "${variables_payload}" \
+    '{input: {projectId: $project_id, environmentId: $environment_id, serviceId: $service_id, skipDeploys: $skip_deploys, variables: $variables}}')"
+
+  response="$(
+    railway_graphql 'mutation($input: VariableCollectionUpsertInput!) { variableCollectionUpsert(input: $input) }' "${variables_json}"
+  )"
+  railway_require_graphql_success "${response}" "GraphQL error upserting Railway variables" || return 1
+
+  printf '%s' "${response}"
 }
 
 railway_environment_id() {
   local project_id="$1"
   local env_name="$2"
   local response=""
+  local variables_json=""
+
+  variables_json="$(jq -nc --arg project_id "${project_id}" '{projectId: $project_id}')"
 
   response="$(
-    railway_graphql "$(cat <<EOF
-query {
-  environments(projectId: "${project_id}") {
+    railway_graphql 'query($projectId: String!) {
+  environments(projectId: $projectId) {
     edges {
       node {
         id
@@ -151,38 +318,188 @@ query {
       }
     }
   }
-}
-EOF
-)"
+}' "${variables_json}"
   )"
+  railway_require_graphql_success "${response}" "GraphQL error querying Railway environments" || return 1
 
-  jq -r --arg env_name "${env_name}" '.data.environments.edges[] | select(.node.name == $env_name) | .node.id' <<< "${response}"
+  jq -r --arg env_name "${env_name}" '(.data.environments.edges // [])[] | select(.node.name == $env_name) | .node.id' <<< "${response}"
 }
 
-railway_service_id_for_env() {
-  local env_id="$1"
-  local service_name="$2"
+railway_project_environments_json() {
+  local project_id="$1"
   local response=""
+  local variables_json=""
+
+  variables_json="$(jq -nc --arg project_id "${project_id}" '{projectId: $project_id}')"
 
   response="$(
-    railway_graphql "$(cat <<EOF
-query {
-  environment(id: "${env_id}") {
-    serviceInstances {
-      edges {
-        node {
-          serviceId
-          serviceName
-        }
+    railway_graphql 'query($projectId: String!) {
+  environments(projectId: $projectId) {
+    edges {
+      node {
+        id
+        name
       }
     }
   }
-}
-EOF
-)"
+}' "${variables_json}"
   )"
+  railway_require_graphql_success "${response}" "GraphQL error querying Railway environments" || return 1
 
-  jq -r --arg service_name "${service_name}" '.data.environment.serviceInstances.edges[] | select(.node.serviceName == $service_name) | .node.serviceId' <<< "${response}"
+  jq -c '[((.data.environments.edges // [])[]) | .node]' <<< "${response}"
+}
+
+railway_wait_for_environment_id() {
+  local project_id="$1"
+  local env_name="$2"
+  local max_attempts="${3:-20}"
+  local sleep_seconds="${4:-4}"
+  local attempt=""
+  local env_id=""
+
+  for attempt in $(seq 1 "${max_attempts}"); do
+    env_id="$(railway_environment_id "${project_id}" "${env_name}")"
+    if [ -n "${env_id}" ]; then
+      printf '%s' "${env_id}"
+      return 0
+    fi
+
+    if [ "${attempt}" -lt "${max_attempts}" ]; then
+      if preview_should_log_wait_attempt "${attempt}" "${max_attempts}"; then
+        preview_log "Waiting for Railway environment ${env_name} to appear (attempt ${attempt}/${max_attempts})."
+      fi
+      sleep_with_jitter "${sleep_seconds}"
+    fi
+  done
+
+  echo "Unable to resolve Railway environment ID for ${env_name}." >&2
+  return 1
+}
+
+railway_wait_for_environment_absent() {
+  local project_id="$1"
+  local env_name="$2"
+  local max_attempts="${3:-10}"
+  local sleep_seconds="${4:-3}"
+  local attempt=""
+  local env_exists=""
+
+  for attempt in $(seq 1 "${max_attempts}"); do
+    env_exists="$(railway_env_exists_count "${project_id}" "${env_name}")"
+    if [ "${env_exists}" = "0" ]; then
+      return 0
+    fi
+
+    if [ "${attempt}" -lt "${max_attempts}" ]; then
+      if preview_should_log_wait_attempt "${attempt}" "${max_attempts}"; then
+        preview_log "Waiting for Railway environment ${env_name} to be deleted (attempt ${attempt}/${max_attempts})."
+      fi
+      sleep_with_jitter "${sleep_seconds}"
+    fi
+  done
+
+  echo "Railway environment ${env_name} still exists after waiting for deletion." >&2
+  return 1
+}
+
+railway_service_instance_json_by_id() {
+  local env_id="$1"
+  local service_id="$2"
+  local response=""
+  local variables_json=""
+
+  variables_json="$(jq -nc \
+    --arg environment_id "${env_id}" \
+    --arg service_id "${service_id}" \
+    '{environmentId: $environment_id, serviceId: $service_id}')"
+
+  response="$(
+    RAILWAY_GRAPHQL_MAX_ATTEMPTS="${RAILWAY_GRAPHQL_POLL_MAX_ATTEMPTS:-1}" \
+      RAILWAY_GRAPHQL_CURL_MAX_TIME_SECONDS="${RAILWAY_GRAPHQL_POLL_CURL_MAX_TIME_SECONDS:-8}" \
+      railway_graphql 'query($environmentId: String!, $serviceId: String!) {
+  serviceInstance(environmentId: $environmentId, serviceId: $serviceId) {
+    latestDeployment {
+      id
+      status
+      createdAt
+      updatedAt
+    }
+    activeDeployments {
+      id
+      status
+      createdAt
+      updatedAt
+    }
+  }
+}' "${variables_json}"
+  )"
+  railway_require_graphql_success "${response}" "GraphQL error querying Railway service instance" || return 1
+
+  jq -c '.data.serviceInstance // {}' <<< "${response}"
+}
+
+railway_wait_for_service_deployment_ready() {
+  local project_id="$1"
+  local env_name="$2"
+  local service_name="$3"
+  local max_attempts="${4:-15}"
+  local sleep_seconds="${5:-4}"
+  local attempt=""
+  local env_id=""
+  local service_id=""
+  local service_instance_json=""
+  local deployment_json=""
+  local deployment_id=""
+  local deployment_status=""
+
+  env_id="$(railway_wait_for_environment_id "${project_id}" "${env_name}" 10 2)" || return 1
+  service_id="$(railway_project_service_id "${project_id}" "${service_name}")"
+  if [ -z "${service_id}" ]; then
+    echo "Unable to resolve Railway service ID for ${service_name} in project ${project_id}." >&2
+    return 1
+  fi
+
+  for attempt in $(seq 1 "${max_attempts}"); do
+    service_instance_json="$(railway_service_instance_json_by_id "${env_id}" "${service_id}")" || return 1
+    deployment_json="$(
+      jq -c '
+        if ((.activeDeployments // []) | length) > 0 then
+          ((.activeDeployments // []) | sort_by(.createdAt // "") | last)
+        elif .latestDeployment then
+          .latestDeployment
+        else
+          {}
+        end
+      ' <<< "${service_instance_json}"
+    )"
+    deployment_id="$(jq -r '.id // empty' <<< "${deployment_json}")"
+    deployment_status="$(jq -r '.status // empty' <<< "${deployment_json}")"
+
+    case "${deployment_status}" in
+      SUCCESS|SLEEPING)
+        preview_log "Railway deployment for ${service_name} in ${env_name} is ${deployment_status}${deployment_id:+ (${deployment_id})}."
+        return 0
+        ;;
+      FAILED|CRASHED|REMOVED)
+        echo "Railway deployment for ${service_name} in ${env_name} entered terminal status ${deployment_status}${deployment_id:+ (${deployment_id})}." >&2
+        return 1
+        ;;
+      SKIPPED)
+        echo "Railway deployment for ${service_name} in ${env_name} was skipped${deployment_id:+ (${deployment_id})}; service may require manual attention." >&2
+        return 1
+        ;;
+    esac
+
+    if [ "${attempt}" -lt "${max_attempts}" ]; then
+      if preview_should_log_wait_attempt "${attempt}" "${max_attempts}"; then
+        preview_log "Waiting for Railway deployment for ${service_name} in ${env_name} to become ready (attempt ${attempt}/${max_attempts}). Current status: ${deployment_status:-none}"
+      fi
+      sleep_with_jitter "${sleep_seconds}"
+    fi
+  done
+
+  echo "Railway deployment for ${service_name} in ${env_name} was not ready after ${max_attempts} attempts. Last observed status: ${deployment_status:-none}${deployment_id:+ (${deployment_id})}." >&2
+  return 1
 }
 
 railway_ensure_tcp_proxy() {
@@ -190,90 +507,135 @@ railway_ensure_tcp_proxy() {
   local env_name="$2"
   local service_name="$3"
   local application_port="$4"
-  local max_attempts="${5:-30}"
-  local sleep_seconds="${6:-2}"
+  local max_attempts="${5:-20}"
+  local sleep_seconds="${6:-4}"
   local env_id=""
   local service_id=""
   local response=""
   local count=""
   local active=""
   local attempt=""
+  local create_error=""
 
-  env_id="$(railway_environment_id "${project_id}" "${env_name}")"
-  if [ -z "${env_id}" ]; then
-    echo "Unable to resolve Railway environment ID for ${env_name}." >&2
-    return 1
-  fi
-
-  service_id="$(railway_service_id_for_env "${env_id}" "${service_name}")"
+  env_id="$(railway_wait_for_environment_id "${project_id}" "${env_name}" "${max_attempts}" "${sleep_seconds}")" || return 1
+  service_id="$(railway_project_service_id "${project_id}" "${service_name}")"
   if [ -z "${service_id}" ]; then
-    echo "Unable to resolve Railway service ID for ${service_name} in ${env_name}." >&2
+    echo "Unable to resolve Railway service ID for ${service_name} in project ${project_id}." >&2
     return 1
-  fi
-
-  response="$(
-    railway_graphql "$(cat <<EOF
-query {
-  tcpProxies(environmentId: "${env_id}", serviceId: "${service_id}") {
-    id
-    domain
-    proxyPort
-    applicationPort
-    syncStatus
-  }
-}
-EOF
-)"
-  )"
-
-  count="$(jq -r --argjson application_port "${application_port}" '[.data.tcpProxies[] | select(.applicationPort == $application_port)] | length' <<< "${response}")"
-  if [ "${count}" = "0" ]; then
-    response="$(
-      railway_graphql "$(cat <<EOF
-mutation {
-  tcpProxyCreate(input: {
-    environmentId: "${env_id}"
-    serviceId: "${service_id}"
-    applicationPort: ${application_port}
-  }) {
-    id
-  }
-}
-EOF
-)"
-    )"
-
-    if echo "${response}" | jq -e '.errors' >/dev/null 2>&1; then
-      echo "Failed to create TCP proxy for ${service_name} in ${env_name}: $(echo "${response}" | jq -r '.errors[0].message // "unknown error"')" >&2
-      return 1
-    fi
   fi
 
   for attempt in $(seq 1 "${max_attempts}"); do
     response="$(
-      railway_graphql "$(cat <<EOF
-query {
-  tcpProxies(environmentId: "${env_id}", serviceId: "${service_id}") {
+      railway_graphql 'query($environmentId: String!, $serviceId: String!) {
+  tcpProxies(environmentId: $environmentId, serviceId: $serviceId) {
     applicationPort
     syncStatus
   }
-}
-EOF
-)"
+}' "$(jq -nc --arg environment_id "${env_id}" --arg service_id "${service_id}" '{environmentId: $environment_id, serviceId: $service_id}')"
     )"
+    if railway_graphql_has_errors "${response}"; then
+      create_error="$(railway_graphql_first_error_message "${response}")"
+      if [ "${attempt}" -lt "${max_attempts}" ]; then
+        sleep_with_jitter "${sleep_seconds}"
+        continue
+      fi
+      echo "Failed to query TCP proxies for ${service_name} in ${env_name}: ${create_error}" >&2
+      return 1
+    fi
 
-    active="$(jq -r --argjson application_port "${application_port}" '[.data.tcpProxies[] | select(.applicationPort == $application_port and .syncStatus == "ACTIVE")] | length' <<< "${response}")"
+    count="$(jq -r --argjson application_port "${application_port}" '[.data.tcpProxies // [] | .[] | select(.applicationPort == $application_port)] | length' <<< "${response}")"
+    active="$(jq -r --argjson application_port "${application_port}" '[.data.tcpProxies // [] | .[] | select(.applicationPort == $application_port and .syncStatus == "ACTIVE")] | length' <<< "${response}")"
     if [ "${active}" != "0" ]; then
       return 0
     fi
 
+    if [ "${count}" = "0" ]; then
+      preview_log "Creating Railway TCP proxy for ${service_name}:${application_port} in ${env_name}."
+      response="$(
+        railway_graphql 'mutation($environmentId: String!, $serviceId: String!, $applicationPort: Int!) {
+  tcpProxyCreate(input: {
+    environmentId: $environmentId
+    serviceId: $serviceId
+    applicationPort: $applicationPort
+  }) {
+    id
+  }
+}' "$(jq -nc --arg environment_id "${env_id}" --arg service_id "${service_id}" --argjson application_port "${application_port}" '{environmentId: $environment_id, serviceId: $service_id, applicationPort: $application_port}')"
+      )"
+
+      if railway_graphql_has_errors "${response}"; then
+        create_error="$(railway_graphql_first_error_message "${response}")"
+      else
+        create_error=""
+      fi
+    fi
+
     if [ "${attempt}" -lt "${max_attempts}" ]; then
+      if preview_should_log_wait_attempt "${attempt}" "${max_attempts}"; then
+        preview_log "Waiting for Railway TCP proxy ${service_name}:${application_port} in ${env_name} to become ACTIVE (attempt ${attempt}/${max_attempts})."
+      fi
       sleep_with_jitter "${sleep_seconds}"
     fi
   done
 
+  if [ -n "${create_error}" ]; then
+    echo "TCP proxy for ${service_name} in ${env_name} did not become ACTIVE. Last create error: ${create_error}" >&2
+    return 1
+  fi
+
   echo "TCP proxy for ${service_name} in ${env_name} did not become ACTIVE." >&2
   return 1
+}
+
+vercel_list_preview_only_env_vars() {
+  local project_id="$1"
+  local tmp_all=""
+  local tmp_page=""
+  local next_cursor=""
+  local limit=100
+  local url=""
+
+  tmp_all="$(mktemp)"
+  tmp_page="$(mktemp)"
+  trap "rm -f '${tmp_all}' '${tmp_page}'" RETURN
+
+  printf '[]' > "${tmp_all}"
+
+  while true; do
+    url="https://api.vercel.com/v10/projects/${project_id}/env?teamId=${VERCEL_ORG_ID}&limit=${limit}"
+    if [ -n "${next_cursor}" ]; then
+      url="${url}&until=${next_cursor}"
+    fi
+
+    if ! curl --fail-with-body -sS \
+      --connect-timeout 10 \
+      --max-time 60 \
+      -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+      "${url}" \
+      > "${tmp_page}" 2>&1; then
+      echo "Failed to list env vars for project ${project_id}." >&2
+      cat "${tmp_page}" >&2
+      return 1
+    fi
+
+    jq -c --slurpfile page "${tmp_page}" '. + ($page[0].envs // [])' "${tmp_all}" > "${tmp_all}.new"
+    mv "${tmp_all}.new" "${tmp_all}"
+
+    next_cursor="$(jq -r '.pagination.next // empty' "${tmp_page}")"
+    if [ -z "${next_cursor}" ]; then
+      break
+    fi
+  done
+
+  local non_preview=""
+  non_preview="$(jq '[.[] | select(.gitBranch != null and .gitBranch != "") | select((.target | sort) != ["preview"])] | length' "${tmp_all}")"
+  if [ "${non_preview}" -gt 0 ]; then
+    echo "SAFETY: found ${non_preview} branch-scoped env var(s) targeting production or development — refusing to proceed." >&2
+    jq -r '.[] | select(.gitBranch != null and .gitBranch != "") | select((.target | sort) != ["preview"]) | "  \(.key) target=\(.target) branch=\(.gitBranch)"' "${tmp_all}" >&2
+    return 1
+  fi
+
+  jq -c '{envs: .}' "${tmp_all}"
 }
 
 redact_preview_logs() {
