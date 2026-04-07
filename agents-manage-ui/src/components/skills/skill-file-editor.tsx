@@ -16,6 +16,7 @@ import { SkillFileSchema, SUPPORTED_FILE_EXT } from '@/components/skills/form/va
 import type { DemoTreeNode } from '@/components/skills/tree-utils';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
+import { ExternalLink } from '@/components/ui/external-link';
 import {
   Form,
   FormControl,
@@ -33,6 +34,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { DOCS_BASE_URL } from '@/constants/theme';
 import { createSkillFileAction, updateSkillFileAction } from '@/lib/actions/skill-files';
 import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import {
@@ -45,7 +48,6 @@ import {
   isSkillEntryFile,
   SKILL_ENTRY_FILE_PATH,
 } from '@/lib/utils/skill-files';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const resolver = zodResolver(SkillFileSchema);
 
@@ -330,9 +332,15 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
                         <TooltipTrigger asChild>
                           <Info className="size-3" />
                         </TooltipTrigger>
-                        <TooltipContent>
-                          to create a folder append / in filename.{' '}
-                          <a href="link to docs">Learn more.</a>
+                        <TooltipContent className="text-xs">
+                          Use <b>/</b> in the file name to place the file in a folder, for example{' '}
+                          <b>templates/checklist</b>.
+                          <ExternalLink
+                            href={`${DOCS_BASE_URL}/visual-builder/skills#create-nested-folders-with-file-paths`}
+                            className="text-xs normal-case"
+                          >
+                            Learn more
+                          </ExternalLink>
                         </TooltipContent>
                       </Tooltip>
                       <FormMessage />
