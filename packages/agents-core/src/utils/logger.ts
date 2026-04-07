@@ -211,6 +211,12 @@ export class PinoLogger {
     return cached;
   }
 
+  /**
+   * Creates a new PinoLogger with the given bindings baked in (snapshot semantics).
+   * Captures the current ALS context at call time. The returned logger does NOT
+   * pick up subsequent ALS context changes — use for class member loggers that
+   * are constructed once and reused within a request scope.
+   */
   with(bindings: Record<string, unknown>): PinoLogger {
     return new PinoLogger(this.name, {
       fromInstance: this.resolveInstance().child(bindings),

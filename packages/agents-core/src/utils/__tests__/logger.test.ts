@@ -199,4 +199,17 @@ describe('PinoLogger scoped context', () => {
       expect(line.module).toBe('Levels');
     }
   });
+
+  it('propagates context across await boundaries', async () => {
+    const { logger, lines } = createTestLogger();
+
+    await runWithLogContext({ tenantId: 'async-tenant' }, async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      logger.info({}, 'after await');
+    });
+
+    expect(lines.length).toBe(1);
+    expect(lines[0].tenantId).toBe('async-tenant');
+    expect(lines[0].module).toBe('test');
+  });
 });
