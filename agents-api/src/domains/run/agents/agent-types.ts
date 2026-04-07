@@ -222,6 +222,18 @@ export type DelegateRelation =
   | { type: 'external'; config: ExternalAgentRelationConfig }
   | { type: 'team'; config: TeamAgentRelationConfig };
 
+export interface PendingDurableApproval {
+  toolCallId: string;
+  toolName: string;
+  args: unknown;
+  delegatedApproval?: {
+    toolCallId: string;
+    toolName: string;
+    args: unknown;
+    subAgentId: string;
+  };
+}
+
 export type ToolType = 'transfer' | 'delegation' | 'mcp' | 'tool';
 
 export function isValidTool(tool: unknown): tool is {
@@ -270,5 +282,11 @@ export interface AgentRunContext {
     string,
     Array<{ approved: boolean; reason?: string; originalToolCallId?: string }>
   >;
-  pendingDurableApproval?: { toolCallId: string; toolName: string; args: unknown };
+  pendingDurableApproval?: PendingDurableApproval;
+  delegatedToolApproval?: {
+    toolCallId: string;
+    toolName: string;
+    approved: boolean;
+    reason?: string;
+  };
 }

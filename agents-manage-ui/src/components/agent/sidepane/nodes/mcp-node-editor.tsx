@@ -38,10 +38,9 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
   const { toolId } = selectedNode.data;
   const nodeId = selectedNode.id;
   const relationKey = getMcpRelationFormKey({ nodeId });
-  const tool = useWatch({ control: form.control, name: `tools.${toolId}` });
-  const mcpRelation = useWatch({
+  const [tool, mcpRelation] = useWatch({
     control: form.control,
-    name: `mcpRelations.${relationKey}`,
+    name: [`tools.${toolId}`, `mcpRelations.${relationKey}`],
   });
 
   const path = <K extends string>(key: K) => `tools.${toolId}.${key}` as const;

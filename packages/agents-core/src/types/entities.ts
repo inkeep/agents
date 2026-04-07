@@ -1,5 +1,6 @@
 import type { z } from '@hono/zod-openapi';
 import type {
+  AddScheduledTriggerUserRequestSchema,
   AgentApiInsertSchema,
   AgentApiSelectSchema,
   AgentApiUpdateSchema,
@@ -129,6 +130,9 @@ import type {
   ExternalAgentUpdateSchema,
   ExternalSubAgentRelationApiInsertSchema,
   ExternalSubAgentRelationInsertSchema,
+  FeedbackInsertSchema,
+  FeedbackSelectSchema,
+  FeedbackUpdateSchema,
   FetchConfigSchema,
   FetchDefinitionSchema,
   FullAgentAgentInsertSchema,
@@ -146,6 +150,7 @@ import type {
   FunctionToolApiSelectSchema,
   FunctionToolApiUpdateSchema,
   FunctionUpdateSchema,
+  LastRunSummarySchema,
   ImportAgentRequestSchema,
   ImportAgentResponseSchema,
   ImportAgentWarningSchema,
@@ -181,7 +186,9 @@ import type {
   ScheduledTriggerInvocationUpdateSchema,
   ScheduledTriggerSelectSchema,
   ScheduledTriggerUpdateSchema,
+  ScheduledTriggerUsersResponseSchema,
   SchedulerStateSelectSchema,
+  SetScheduledTriggerUsersRequestSchema,
   SkillApiInsertSchema,
   SkillApiSelectSchema,
   SkillApiUpdateSchema,
@@ -292,6 +299,10 @@ import type {
   WorkflowExecutionSelectSchema,
   WorkflowExecutionUpdateSchema,
 } from '../validation';
+
+export type FeedbackSelect = z.infer<typeof FeedbackSelectSchema>;
+export type FeedbackInsert = z.infer<typeof FeedbackInsertSchema>;
+export type FeedbackUpdate = z.infer<typeof FeedbackUpdateSchema>;
 
 export type DatasetRunSelect = z.infer<typeof DatasetRunSelectSchema>;
 export type DatasetRunInsert = z.infer<typeof DatasetRunInsertSchema>;
@@ -465,6 +476,11 @@ export type ScheduledTriggerInvocationInsert = z.infer<
 export type ScheduledTriggerInvocationUpdate = z.infer<
   typeof ScheduledTriggerInvocationUpdateSchema
 >;
+
+export type LastRunSummary = z.infer<typeof LastRunSummarySchema>;
+export type SetScheduledTriggerUsersRequest = z.infer<typeof SetScheduledTriggerUsersRequestSchema>;
+export type AddScheduledTriggerUserRequest = z.infer<typeof AddScheduledTriggerUserRequestSchema>;
+export type ScheduledTriggerUsersResponse = z.infer<typeof ScheduledTriggerUsersResponseSchema>;
 
 export type SchedulerState = z.infer<typeof SchedulerStateSelectSchema>;
 

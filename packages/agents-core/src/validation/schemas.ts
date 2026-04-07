@@ -46,6 +46,7 @@ import {
   datasetRunConversationRelations,
   evaluationResult,
   evaluationRun,
+  feedback,
   ledgerArtifacts,
   messages,
   projectMetadata,
@@ -97,6 +98,7 @@ import {
   omitTimestamps,
   PaginationQueryParamsSchema,
   PaginationSchema,
+  ProjectResourceIdSchema,
   ResourceIdSchema,
   StringRecordSchema,
 } from './schemas/shared';
@@ -861,6 +863,8 @@ export const CronExpressionSchema = z
   .describe('Cron expression in standard 5-field format (minute hour day month weekday)')
   .openapi('CronExpression');
 
+export const maxDispatchDelayMs = 600_000;
+
 export const ScheduledTriggerSelectSchema = createSelectSchema(scheduledTriggers).extend({
   payload: z.record(z.string(), z.unknown()).nullable().optional(),
   runAsUserId: UserIdSchema.nullable().describe(
@@ -938,7 +942,20 @@ export const ScheduledTriggerApiSelectSchema = createAgentScopedApiSchema(
 export const ScheduledTriggerApiInsertBaseSchema = createAgentScopedApiInsertSchema(
   ScheduledTriggerInsertSchemaBase
 )
-  .extend({ id: ResourceIdSchema.optional() })
+  .extend({
+    id: ResourceIdSchema.optional(),
+    runAsUserIds: z
+      .array(z.string())
+      .optional()
+      .describe('Array of user IDs to run this trigger as (multi-user)'),
+    dispatchDelayMs: z
+      .number()
+      .int()
+      .min(0)
+      .max(maxDispatchDelayMs)
+      .optional()
+      .describe('Delay in ms between dispatching each user workflow max 10 minutes'),
+  })
   .openapi('ScheduledTriggerInsertBase');
 
 export const ScheduledTriggerApiInsertSchema = ScheduledTriggerApiInsertBaseSchema.refine(
@@ -950,11 +967,47 @@ export const ScheduledTriggerApiInsertSchema = ScheduledTriggerApiInsertBaseSche
   .refine((data) => !(data.cronExpression && data.runAt), {
     message: 'Cannot specify both cronExpression and runAt',
   })
+  .refine((data) => !(data.runAsUserId && data.runAsUserIds), {
+    message: 'Cannot specify both runAsUserId and runAsUserIds',
+  })
   .openapi('ScheduledTriggerCreate');
 
 export const ScheduledTriggerApiUpdateSchema = createAgentScopedApiUpdateSchema(
   ScheduledTriggerUpdateSchema
-).openapi('ScheduledTriggerUpdate');
+)
+  .extend({
+    runAsUserIds: z
+      .array(z.string())
+      .optional()
+      .describe('Array of user IDs to run this trigger as (multi-user)'),
+    dispatchDelayMs: z
+      .number()
+      .int()
+      .min(0)
+      .max(maxDispatchDelayMs)
+      .nullable()
+      .optional()
+      .describe(`Delay in ms between dispatching each user workflow (0-${maxDispatchDelayMs})`),
+  })
+  .openapi('ScheduledTriggerUpdate');
+
+export const SetScheduledTriggerUsersRequestSchema = z
+  .object({
+    userIds: z.array(z.string()).describe('User IDs to set on this trigger'),
+  })
+  .openapi('SetScheduledTriggerUsersRequest');
+
+export const AddScheduledTriggerUserRequestSchema = z
+  .object({
+    userId: z.string().describe('User ID to add to this trigger'),
+  })
+  .openapi('AddScheduledTriggerUserRequest');
+
+export const ScheduledTriggerUsersResponseSchema = z
+  .object({
+    data: z.array(z.string()).describe('User IDs associated with this trigger'),
+  })
+  .openapi('ScheduledTriggerUsersResponse');
 
 export const ScheduledTriggerInvocationStatusEnum = z.enum([
   'pending',
@@ -1168,6 +1221,24 @@ export const MessageApiInsertSchema =
   createApiInsertSchema(MessageInsertSchema).openapi('MessageCreate');
 export const MessageApiUpdateSchema =
   createApiUpdateSchema(MessageUpdateSchema).openapi('MessageUpdate');
+
+export const FeedbackSelectSchema = createSelectSchema(feedback);
+export const FeedbackInsertSchema = createInsertSchema(feedback).extend({
+  id: ResourceIdSchema,
+  conversationId: ResourceIdSchema,
+  messageId: ResourceIdSchema.optional(),
+  type: z.enum(['positive', 'negative']),
+  details: z.string().nullable().optional(),
+});
+export const FeedbackUpdateSchema = FeedbackInsertSchema.partial();
+
+export const FeedbackApiSelectSchema = createApiSchema(FeedbackSelectSchema).openapi('Feedback');
+export const FeedbackApiInsertSchema = createApiInsertSchema(FeedbackInsertSchema)
+  .extend({ id: ResourceIdSchema.optional() })
+  .openapi('FeedbackCreate');
+export const FeedbackApiUpdateSchema = createApiUpdateSchema(FeedbackUpdateSchema)
+  .omit({ conversationId: true, messageId: true, id: true })
+  .openapi('FeedbackUpdate');
 
 export const ContextCacheSelectSchema = createSelectSchema(contextCache).extend({
   ref: ResolvedRefSchema.nullable().optional(),
@@ -2501,6 +2572,7 @@ export const ProjectSelectSchema = registerFieldSchemas(
 );
 export const ProjectInsertSchema = createInsertSchema(projects)
   .extend({
+    id: ProjectResourceIdSchema,
     models: ProjectModelSchema,
     stopWhen: StopWhenSchema.optional(),
   })
@@ -2656,6 +2728,9 @@ export const TriggerResponse = z
 export const TriggerInvocationResponse = z
   .object({ data: TriggerInvocationApiSelectSchema })
   .openapi('TriggerInvocationResponse');
+export const FeedbackResponse = z
+  .object({ data: FeedbackApiSelectSchema })
+  .openapi('FeedbackResponse');
 
 export const ProjectListResponse = z
   .object({
@@ -2725,6 +2800,17 @@ export const SubAgentFunctionToolRelationListResponse = z
   })
   .openapi('SubAgentFunctionToolRelationListResponse');
 
+const FeedbackListItemSchema = FeedbackApiSelectSchema.extend({
+  agentId: z.string().nullable().optional(),
+});
+
+export const FeedbackListResponse = z
+  .object({
+    data: z.array(FeedbackListItemSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('FeedbackListResponse');
+
 export const DataComponentListResponse = z
   .object({
     data: z.array(DataComponentApiSelectSchema),
@@ -2784,11 +2870,26 @@ export const TriggerWithWebhookUrlListResponse = z
   })
   .openapi('TriggerWithWebhookUrlListResponse');
 
+export const LastRunSummarySchema = z
+  .object({
+    total: z.number().int().describe('Total invocations for this tick'),
+    completed: z.number().int().describe('Completed invocations'),
+    failed: z.number().int().describe('Failed invocations'),
+    running: z.number().int().describe('Running invocations'),
+    pending: z.number().int().describe('Pending invocations'),
+  })
+  .openapi('LastRunSummary');
+
 export const ScheduledTriggerWithRunInfoSchema = ScheduledTriggerApiSelectSchema.extend({
   lastRunAt: z.iso.datetime().nullable().describe('Timestamp of the last completed or failed run'),
   lastRunStatus: z.enum(['completed', 'failed']).nullable().describe('Status of the last run'),
   lastRunConversationIds: z.array(z.string()).describe('Conversation IDs from the last run'),
   nextRunAt: z.iso.datetime().nullable().describe('Timestamp of the next pending run'),
+  runAsUserIds: z.array(z.string()).describe('User IDs associated with this trigger'),
+  userCount: z.number().int().describe('Number of associated users'),
+  lastRunSummary: LastRunSummarySchema.nullable().describe(
+    'Per-status counts for the most recent scheduled tick'
+  ),
 }).openapi('ScheduledTriggerWithRunInfo');
 
 export type ScheduledTriggerWithRunInfo = z.infer<typeof ScheduledTriggerWithRunInfoSchema>;
@@ -2936,7 +3037,7 @@ export const HeadersScopeSchema = z.object({
   }),
   'x-inkeep-project-id': z.string().optional().openapi({
     description: 'Project identifier',
-    example: 'project_456',
+    example: 'project-456',
   }),
   'x-inkeep-agent-id': z.string().optional().openapi({
     description: 'Agent identifier',
@@ -2953,13 +3054,13 @@ const TenantId = z.string().openapi('TenantIdPathParam', {
   example: 'tenant_123',
 });
 
-const ProjectId = z.string().openapi('ProjectIdPathParam', {
+const ProjectId = ProjectResourceIdSchema.openapi('ProjectIdPathParam', {
   param: {
     name: 'projectId',
     in: 'path',
   },
   description: 'Project identifier',
-  example: 'project_456',
+  example: 'project-456',
 });
 
 const AgentId = z.string().openapi('AgentIdPathParam', {

@@ -93,6 +93,7 @@ export async function createInvocationIdempotentStep(params: {
   payload: Record<string, unknown> | null;
   idempotencyKey: string;
   ref: string;
+  runAsUserId?: string;
 }) {
   'use step';
 
@@ -133,6 +134,7 @@ export async function createInvocationIdempotentStep(params: {
     resolvedPayload: params.payload,
     idempotencyKey: params.idempotencyKey,
     attemptNumber: 1,
+    runAsUserId: params.runAsUserId,
   });
 
   logger.info(
@@ -298,6 +300,19 @@ export async function disableOneTimeTriggerStep(params: {
   scheduledTriggerId: string;
 }) {
   'use step';
+
+  const trigger = await getScheduledTriggerById(runDbClient)({
+    scopes: {
+      tenantId: params.tenantId,
+      projectId: params.projectId,
+      agentId: params.agentId,
+    },
+    scheduledTriggerId: params.scheduledTriggerId,
+  });
+
+  if (!trigger || !trigger.enabled) {
+    return;
+  }
 
   await advanceScheduledTriggerNextRunAt(runDbClient)({
     scopes: {

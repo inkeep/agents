@@ -26,8 +26,8 @@
   "dependencies": {
     "@inkeep/agents-cli": "workspace:*",
     "@inkeep/agents-core": "workspace:*",
-    "@inkeep/agents-ui": "^0.15.27",
-    "@inkeep/agents-ui-cloud": "^0.15.27",
+    "@inkeep/agents-ui": "^0.15.29",
+    "@inkeep/agents-ui-cloud": "^0.15.29",
     "@inkeep/docskit": "^0.0.8",
     "@radix-ui/react-collapsible": "^1.1.1",
     "@radix-ui/react-popover": "^1.1.14",

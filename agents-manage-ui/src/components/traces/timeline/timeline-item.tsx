@@ -188,6 +188,7 @@ interface TimelineItemProps {
   isLast: boolean;
   onSelect: () => void;
   isSelected?: boolean;
+  isHighlighted?: boolean;
   isAiMessageCollapsed?: boolean;
   onToggleAiMessageCollapse?: (activityId: string) => void;
   hasChildren?: boolean;
@@ -200,6 +201,7 @@ export function TimelineItem({
   isLast,
   onSelect,
   isSelected = false,
+  isHighlighted = false,
   isAiMessageCollapsed = false,
   onToggleAiMessageCollapse,
   hasChildren = false,
@@ -243,7 +245,9 @@ export function TimelineItem({
 
   return (
     <div
-      className={`flex flex-col text-muted-foreground relative text-xs`}
+      className={`flex flex-col text-muted-foreground relative text-xs${isHighlighted && !isSelected ? ' ring-2 ring-primary/50 rounded-md bg-primary/5' : ''}`}
+      data-activity-id={activity.id}
+      data-message-id={activity.messageId || undefined}
       data-has-error={activity.status === ACTIVITY_STATUS.ERROR || undefined}
     >
       <div className="flex items-start">

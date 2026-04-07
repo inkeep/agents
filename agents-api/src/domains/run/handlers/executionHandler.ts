@@ -30,7 +30,7 @@ import { BufferingStreamHelper } from '../stream/stream-helpers.js';
 import { registerStreamHelper, unregisterStreamHelper } from '../stream/stream-registry.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
 import { mergeHeadersWithoutOverrides } from '../utils/merge-headers.js';
-import { resolveModelConfig } from '../utils/model-resolver.js';
+import { firstWithModel, resolveModelConfig } from '../utils/model-resolver.js';
 import { tracer } from '../utils/tracer.js';
 
 const logger = getLogger('ExecutionHandler');
@@ -130,9 +130,13 @@ export class ExecutionHandler {
           summarizerModel = resolvedModels.summarizer;
           baseModel = resolvedModels.base;
         } else {
-          // Fallback to agent-level config if no default sub-agent
-          summarizerModel = agent.models?.summarizer;
-          baseModel = agent.models?.base;
+          // Fallback when no defaultSubAgentId — walk the full chain
+          summarizerModel = firstWithModel(
+            agent.models?.summarizer,
+            project.models?.summarizer,
+            project.models?.base
+          );
+          baseModel = firstWithModel(agent.models?.base, project.models?.base);
         }
       } catch (modelError) {
         logger.warn(
@@ -142,8 +146,12 @@ export class ExecutionHandler {
           },
           'Failed to resolve models, using agent-level config'
         );
-        summarizerModel = agent.models?.summarizer;
-        baseModel = agent.models?.base;
+        summarizerModel = firstWithModel(
+          agent.models?.summarizer,
+          project.models?.summarizer,
+          project.models?.base
+        );
+        baseModel = firstWithModel(agent.models?.base, project.models?.base);
       }
 
       // Initialize status updates (always call to set models, but only enable events if configured)
@@ -295,6 +303,7 @@ export class ExecutionHandler {
           originAgentId: agentId,
           targetAgentId: currentAgentId,
           initiatedBy,
+          appId: executionContext.metadata?.appId,
         });
 
         const runAsUserId =
@@ -305,8 +314,6 @@ export class ExecutionHandler {
             ? initiatedBy.id
             : undefined;
 
-        const appId = executionContext.metadata?.appId;
-
         const trustedHeaders: Record<string, string> = {
           Authorization: `Bearer ${authToken}`,
           'x-inkeep-tenant-id': tenantId,
@@ -314,7 +321,6 @@ export class ExecutionHandler {
           'x-inkeep-agent-id': agentId,
           'x-inkeep-sub-agent-id': currentAgentId,
           ...(runAsUserId ? { 'x-inkeep-run-as-user-id': runAsUserId } : {}),
-          ...(appId ? { 'x-inkeep-app-id': appId } : {}),
         };
 
         const a2aClient = new A2AClient(agentBaseUrl, {
@@ -545,15 +551,16 @@ export class ExecutionHandler {
           // Stream completion operation - wrapped in span for tracing
           return tracer.startActiveSpan('execution_handler.execute', {}, async (span) => {
             try {
+              const messageId = params.responseMessageId || generateId();
               span.setAttributes({
                 'ai.response.content': textContent || 'No response content',
                 'ai.response.timestamp': new Date().toISOString(),
                 'subAgent.name': agent?.subAgents[currentAgentId]?.name,
                 'subAgent.id': currentAgentId,
+                'message.id': messageId,
               });
 
               // Store the agent response in the database with both text and parts
-              const messageId = params.responseMessageId || generateId();
               await createMessage(runDbClient)({
                 scopes: { tenantId, projectId },
                 data: {

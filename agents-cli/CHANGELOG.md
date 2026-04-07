@@ -1,5 +1,89 @@
 # @inkeep/agents-cli
 
+## 0.65.1
+
+### Patch Changes
+
+- Updated dependencies [16fb544]
+- Updated dependencies [3735393]
+- Updated dependencies [4077b67]
+- Updated dependencies [dbee04b]
+  - @inkeep/agents-manage-ui@0.65.1
+  - @inkeep/agents-core@0.65.1
+  - @inkeep/agents-sdk@0.65.1
+
+## 0.65.0
+
+### Patch Changes
+
+- Updated dependencies [27f2620]
+- Updated dependencies [e332202]
+- Updated dependencies [b43f5e1]
+  - @inkeep/agents-manage-ui@0.65.0
+  - @inkeep/agents-core@0.65.0
+  - @inkeep/agents-sdk@0.65.0
+
+## 0.64.10
+
+### Patch Changes
+
+- 4082cfd: Revert of [#3012](https://github.com/inkeep/agents/pull/3012)
+- Updated dependencies [4082cfd]
+  - @inkeep/agents-manage-ui@0.64.10
+  - @inkeep/agents-core@0.64.10
+  - @inkeep/agents-sdk@0.64.10
+
+## 0.64.9
+
+### Patch Changes
+
+- Updated dependencies [fa20781]
+  - @inkeep/agents-manage-ui@0.64.9
+  - @inkeep/agents-core@0.64.9
+  - @inkeep/agents-sdk@0.64.9
+
+## 0.64.8
+
+### Patch Changes
+
+- Updated dependencies [701e8c9]
+  - @inkeep/agents-manage-ui@0.64.8
+  - @inkeep/agents-core@0.64.8
+  - @inkeep/agents-sdk@0.64.8
+
+## 0.64.7
+
+### Patch Changes
+
+- daee0b6: Revert
+- Updated dependencies [daee0b6]
+  - @inkeep/agents-manage-ui@0.64.7
+  - @inkeep/agents-core@0.64.7
+  - @inkeep/agents-sdk@0.64.7
+
+## 0.64.6
+
+### Patch Changes
+
+- Updated dependencies [09c6eb0]
+- Updated dependencies [3237c45]
+- Updated dependencies [528f69c]
+- Updated dependencies [6fddd34]
+  - @inkeep/agents-core@0.64.6
+  - @inkeep/agents-manage-ui@0.64.6
+  - @inkeep/agents-sdk@0.64.6
+
+## 0.64.5
+
+### Patch Changes
+
+- dee33a4: Remove manual `useMemo` and `useCallback` usages in favor of React Compiler
+- Updated dependencies [dee33a4]
+- Updated dependencies [e91d67b]
+  - @inkeep/agents-manage-ui@0.64.5
+  - @inkeep/agents-core@0.64.5
+  - @inkeep/agents-sdk@0.64.5
+
 ## 0.64.4
 
 ### Patch Changes
