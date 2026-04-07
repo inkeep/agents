@@ -64,8 +64,8 @@ const MODEL_CONFIGURATION_PLACEHOLDERS: Record<ModelConfigurationSlot, string> =
 
 function getModelConfigurationSlot(name: string): ModelConfigurationSlot {
   const slot = name.split('.').at(-1);
-  if (slot === 'base' || slot === 'structuredOutput' || slot === 'summarizer') {
-    return slot;
+  if (slot && ['base', 'structuredOutput', 'summarizer'].includes(slot)) {
+    return slot as ModelConfigurationSlot;
   }
 
   throw new Error(`Unsupported model configuration path: ${name}`);
@@ -262,7 +262,7 @@ const FallbackModelsSection: FC<{
         tooltip="Ordered list of models to try if the primary model fails. Requires AI Gateway."
       />
       {savedModels.map((model, index) => (
-        <div key={model} className="flex items-center gap-2">
+        <div key={`${model}-${index}`} className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground w-4 shrink-0">{index + 1}.</span>
           <div className="flex-1">
             <ModelSelector
@@ -298,7 +298,7 @@ const FallbackModelsSection: FC<{
           </Button>
         </div>
       ))}
-      {showPendingSelector && (
+      {showPendingSelector ? (
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground w-4 shrink-0">
             {savedModels.length + 1}.
@@ -329,8 +329,7 @@ const FallbackModelsSection: FC<{
             <X className="h-4 w-4" />
           </Button>
         </div>
-      )}
-      {!showPendingSelector && (
+      ) : (
         <Button
           variant="outline"
           size="sm"
@@ -410,10 +409,13 @@ export function ModelConfiguration<
     allowedProvidersField.onChange(providers.length ? providers : undefined);
   }
 
+  const inheritedValue = inherited?.model;
+  const inheritedProviderOptions = inherited?.providerOptions;
+
   function handleModelChange(modelValue: string) {
-    const previousEffectiveModel = value || inherited?.model;
+    const previousEffectiveModel = value || inheritedValue;
     const newModel = modelValue || undefined;
-    const wasInherited = !value && !!inherited?.model;
+    const wasInherited = !value && !!inheritedValue;
     const isNowExplicit = !!newModel;
 
     if (previousEffectiveModel !== newModel || (wasInherited && isNowExplicit)) {
@@ -437,9 +439,9 @@ export function ModelConfiguration<
     onProviderOptionsChange(nextValue);
   }
 
-  const effectiveModel = value || inherited?.model;
-  const effectiveProviderOptions = value ? providerOptions : inherited?.providerOptions;
-  const isUsingInheritedOptions = !value && !!inherited?.model;
+  const effectiveModel = value || inheritedValue;
+  const effectiveProviderOptions = value ? providerOptions : inheritedProviderOptions;
+  const isUsingInheritedOptions = !value && !!inheritedValue;
 
   const modelProvider = effectiveModel?.split('/')[0] ?? '';
   const isGatewayRoutable =
@@ -456,16 +458,14 @@ export function ModelConfiguration<
           value={value || ''}
           onValueChange={handleModelChange}
           onProviderOptionsChange={handleProviderOptionsChange}
-          inheritedValue={inherited?.model}
+          inheritedValue={inheritedValue}
           label={resolvedLabel}
           placeholder={MODEL_CONFIGURATION_PLACEHOLDERS[slot]}
           canClear={slot !== 'base'}
           isRequired={slot === 'base'}
           disabled={disabled}
         />
-        {resolvedDescription && (
-          <p className="text-xs text-muted-foreground">{resolvedDescription}</p>
-        )}
+        <p className="text-xs text-muted-foreground">{resolvedDescription}</p>
       </div>
 
       {effectiveModel && (

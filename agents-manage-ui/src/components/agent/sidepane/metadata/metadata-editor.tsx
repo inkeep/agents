@@ -74,41 +74,28 @@ export const MetadataEditor: FC = () => {
   const baseInherited = {
     model: project?.models.base?.model,
     providerOptions: project?.models.base?.providerOptions,
-    fallbackModels: project?.models.base?.fallbackModels ?? undefined,
-    allowedProviders: project?.models.base?.allowedProviders ?? undefined,
+    fallbackModels: project?.models.base?.fallbackModels,
+    allowedProviders: project?.models.base?.allowedProviders,
   };
+  const model = models.base.model || baseInherited.model;
+  const fallbackModels = models.base.fallbackModels ?? baseInherited.fallbackModels;
+  const allowedProviders = models.base.allowedProviders ?? baseInherited.allowedProviders;
+
   const structuredOutputInherited = {
-    model:
-      project?.models.structuredOutput?.model || models.base.model || project?.models.base?.model,
+    model: project?.models.structuredOutput?.model || model,
     providerOptions: project?.models.structuredOutput?.model
       ? project?.models.structuredOutput?.providerOptions
       : undefined,
-    fallbackModels:
-      project?.models.structuredOutput?.fallbackModels ??
-      models.base.fallbackModels ??
-      project?.models.base?.fallbackModels ??
-      undefined,
-    allowedProviders:
-      project?.models.structuredOutput?.allowedProviders ??
-      models.base.allowedProviders ??
-      project?.models.base?.allowedProviders ??
-      undefined,
+    fallbackModels: project?.models.structuredOutput?.fallbackModels ?? fallbackModels,
+    allowedProviders: project?.models.structuredOutput?.allowedProviders ?? allowedProviders,
   };
   const summarizerInherited = {
-    model: project?.models.summarizer?.model || models.base.model || project?.models.base?.model,
+    model: project?.models.summarizer?.model || model,
     providerOptions: project?.models.summarizer?.model
       ? project?.models.summarizer?.providerOptions
       : undefined,
-    fallbackModels:
-      project?.models.summarizer?.fallbackModels ??
-      models.base.fallbackModels ??
-      project?.models.base?.fallbackModels ??
-      undefined,
-    allowedProviders:
-      project?.models.summarizer?.allowedProviders ??
-      models.base.allowedProviders ??
-      project?.models.base?.allowedProviders ??
-      undefined,
+    fallbackModels: project?.models.summarizer?.fallbackModels ?? fallbackModels,
+    allowedProviders: project?.models.summarizer?.allowedProviders ?? allowedProviders,
   };
 
   return (
