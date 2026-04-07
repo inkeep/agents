@@ -70,7 +70,7 @@ async function EvaluationJobPage({
         </div>
         <PageHeader
           title={await getJobName({ tenantId, projectId, jobConfig })}
-          description={`Created ${formatDateTimeTable(jobConfig.createdAt)}`}
+          description={`Created ${formatDateTimeTable(jobConfig.createdAt, { local: true })}`}
         />
         <EvaluationJobResults
           tenantId={tenantId}
