@@ -559,6 +559,10 @@ app.openapi(
         return c.json({ error: 'Workspace not found' }, 404);
       }
 
+      if (!verifyTenantOwnership(c, workspace.tenantId)) {
+        return c.json({ error: 'Access denied' }, 403);
+      }
+
       const result = await cleanupWorkspaceInstallation({ teamId });
 
       if (!result.success) {
