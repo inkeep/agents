@@ -17,74 +17,6 @@ interface ProjectModelsSectionProps {
   disabled?: boolean;
 }
 
-type BaseModelSettings = ProjectInput['models']['base'];
-
-function BaseModelSection({
-  control,
-  disabled,
-}: {
-  control: ProjectFormControl;
-  disabled?: boolean;
-}) {
-  return (
-    <ModelConfiguration
-      control={control}
-      name="models.base"
-      canClear={false}
-      isRequired
-      disabled={disabled}
-    />
-  );
-}
-
-function StructuredOutputModelSection({
-  control,
-  base,
-  disabled,
-}: {
-  control: ProjectFormControl;
-  base: BaseModelSettings;
-  disabled?: boolean;
-}) {
-  return (
-    <ModelConfiguration
-      control={control}
-      name="models.structuredOutput"
-      inherited={{
-        model: base.model,
-        providerOptions: base.providerOptions,
-        fallbackModels: base.fallbackModels,
-        allowedProviders: base.allowedProviders,
-      }}
-      disabled={disabled}
-    />
-  );
-}
-
-function SummarizerModelSection({
-  control,
-  base,
-  disabled,
-}: {
-  control: ProjectFormControl;
-  base: BaseModelSettings;
-  disabled?: boolean;
-}) {
-  return (
-    <ModelConfiguration
-      control={control}
-      name="models.summarizer"
-      inherited={{
-        model: base.model,
-        providerOptions: base.providerOptions,
-        fallbackModels: base.fallbackModels,
-        allowedProviders: base.allowedProviders,
-      }}
-      disabled={disabled}
-    />
-  );
-}
-
 export function ProjectModelsSection({ control, disabled }: ProjectModelsSectionProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { errors } = useFormState({ control });
@@ -107,13 +39,29 @@ export function ProjectModelsSection({ control, disabled }: ProjectModelsSection
 
       <CollapsibleSettings open={isOpen} onOpenChange={setIsOpen} title="Configure default models">
         {/* Base Model */}
-        <BaseModelSection control={control} disabled={disabled} />
+        <ModelConfiguration
+          control={control}
+          name="models.base"
+          canClear={false}
+          isRequired
+          disabled={disabled}
+        />
 
         {/* Structured Output Model */}
-        <StructuredOutputModelSection control={control} base={base} disabled={disabled} />
+        <ModelConfiguration
+          control={control}
+          name="models.structuredOutput"
+          inherited={base}
+          disabled={disabled}
+        />
 
         {/* Summarizer Model */}
-        <SummarizerModelSection control={control} base={base} disabled={disabled} />
+        <ModelConfiguration
+          control={control}
+          name="models.summarizer"
+          inherited={base}
+          disabled={disabled}
+        />
         <InfoCard title="How model inheritance works:" Icon={Info}>
           <ModelInheritanceInfo />
         </InfoCard>
