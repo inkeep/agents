@@ -33,13 +33,6 @@ export function runWithLogContext<T>(bindings: Record<string, unknown>, fn: () =
   return loggerStorage.run(child, fn);
 }
 
-export function getLogContext(): Record<string, unknown> {
-  const store = loggerStorage.getStore();
-  if (!store) return {};
-  const raw = (store as any).bindings?.() ?? {};
-  return raw;
-}
-
 let basePinoInstance: PinoLoggerInstance = pino({ level: 'silent' });
 
 function setBasePinoInstance(instance: PinoLoggerInstance): void {

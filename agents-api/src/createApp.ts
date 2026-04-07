@@ -271,7 +271,7 @@ function createAgentsHono(config: AppConfig) {
 
   // Logger ALS context for run routes
   app.use('/run/*', async (c, next) => {
-    const ctx = (c as any).get('executionContext') as
+    const ctx = c.get('executionContext' as keyof typeof c.var) as
       | { tenantId: string; projectId: string; agentId: string }
       | undefined;
     if (ctx) {
