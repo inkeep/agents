@@ -4,9 +4,9 @@ import { Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { type Control, useFormState, useWatch } from 'react-hook-form';
 import { CollapsibleSettings } from '@/components/agent/sidepane/collapsible-settings';
+import { SectionHeader } from '@/components/agent/sidepane/section';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
 import { InfoCard } from '@/components/ui/info-card';
-import { Label } from '@/components/ui/label';
 import { ModelInheritanceInfo } from './model-inheritance-info';
 import type { ProjectFormData, ProjectFormInputValues } from './validation';
 
@@ -16,6 +16,8 @@ interface ProjectModelsSectionProps {
   control: ProjectFormControl;
   disabled?: boolean;
 }
+
+type BaseModelSettings = ProjectFormInputValues['models']['base'];
 
 function BaseModelSection({
   control,
@@ -29,25 +31,22 @@ function BaseModelSection({
 
 function StructuredOutputModelSection({
   control,
+  base,
   disabled,
 }: {
   control: ProjectFormControl;
+  base: BaseModelSettings;
   disabled?: boolean;
 }) {
-  const baseModel = useWatch({ control, name: 'models.base.model' });
-  const baseProviderOptions = useWatch({ control, name: 'models.base.providerOptions' });
-  const baseFallbackModels = useWatch({ control, name: 'models.base.fallbackModels' });
-  const baseAllowedProviders = useWatch({ control, name: 'models.base.allowedProviders' });
-
   return (
     <ModelConfiguration
       control={control}
       name="models.structuredOutput"
       inherited={{
-        model: baseModel,
-        providerOptions: baseProviderOptions,
-        fallbackModels: baseFallbackModels ?? undefined,
-        allowedProviders: baseAllowedProviders ?? undefined,
+        model: base.model,
+        providerOptions: base.providerOptions,
+        fallbackModels: base.fallbackModels ?? undefined,
+        allowedProviders: base.allowedProviders ?? undefined,
       }}
       disabled={disabled}
     />
@@ -56,25 +55,22 @@ function StructuredOutputModelSection({
 
 function SummarizerModelSection({
   control,
+  base,
   disabled,
 }: {
   control: ProjectFormControl;
+  base: BaseModelSettings;
   disabled?: boolean;
 }) {
-  const baseModel = useWatch({ control, name: 'models.base.model' });
-  const baseProviderOptions = useWatch({ control, name: 'models.base.providerOptions' });
-  const baseFallbackModels = useWatch({ control, name: 'models.base.fallbackModels' });
-  const baseAllowedProviders = useWatch({ control, name: 'models.base.allowedProviders' });
-
   return (
     <ModelConfiguration
       control={control}
       name="models.summarizer"
       inherited={{
-        model: baseModel,
-        providerOptions: baseProviderOptions,
-        fallbackModels: baseFallbackModels ?? undefined,
-        allowedProviders: baseAllowedProviders ?? undefined,
+        model: base.model,
+        providerOptions: base.providerOptions,
+        fallbackModels: base.fallbackModels ?? undefined,
+        allowedProviders: base.allowedProviders ?? undefined,
       }}
       disabled={disabled}
     />
@@ -84,15 +80,8 @@ function SummarizerModelSection({
 export function ProjectModelsSection({ control, disabled }: ProjectModelsSectionProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { errors } = useFormState({ control });
-
-  const hasModelsErrors = !!(
-    errors.models?.base?.model ||
-    errors.models?.base?.providerOptions ||
-    errors.models?.structuredOutput?.model ||
-    errors.models?.structuredOutput?.providerOptions ||
-    errors.models?.summarizer?.model ||
-    errors.models?.summarizer?.providerOptions
-  );
+  const base = useWatch({ control, name: 'models.base' });
+  const hasModelsErrors = !!errors.models;
 
   // Auto-open the collapsible when there are errors in the models section
   useEffect(() => {
@@ -103,22 +92,20 @@ export function ProjectModelsSection({ control, disabled }: ProjectModelsSection
 
   return (
     <div className="space-y-4">
-      <div>
-        <Label className="text-sm font-medium">Default models</Label>
-        <p className="text-sm text-muted-foreground mt-1">
-          Set default models that will be inherited by agents and sub agents in this project.
-        </p>
-      </div>
+      <SectionHeader
+        title="Default models"
+        description="Set default models that will be inherited by agents and sub agents in this project."
+      />
 
       <CollapsibleSettings open={isOpen} onOpenChange={setIsOpen} title="Configure default models">
         {/* Base Model */}
         <BaseModelSection control={control} disabled={disabled} />
 
         {/* Structured Output Model */}
-        <StructuredOutputModelSection control={control} disabled={disabled} />
+        <StructuredOutputModelSection control={control} base={base} disabled={disabled} />
 
         {/* Summarizer Model */}
-        <SummarizerModelSection control={control} disabled={disabled} />
+        <SummarizerModelSection control={control} base={base} disabled={disabled} />
         <InfoCard title="How model inheritance works:" Icon={Info}>
           <ModelInheritanceInfo />
         </InfoCard>

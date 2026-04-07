@@ -59,17 +59,13 @@ export const ContextConfigSchema = z.strictObject({
 const MyModelsSchema = z
   .strictObject({
     base: ModelsBaseSchema.extend({
-      providerOptions: StringToJsonSchema.pipe(ModelsBaseSchema.shape.providerOptions).optional(),
+      providerOptions: StringToJsonSchema.pipe(ModelsBaseSchema.shape.providerOptions),
     }),
     structuredOutput: ModelsStructuredOutputSchema.extend({
-      providerOptions: StringToJsonSchema.pipe(
-        ModelsStructuredOutputSchema.shape.providerOptions
-      ).optional(),
+      providerOptions: StringToJsonSchema.pipe(ModelsStructuredOutputSchema.shape.providerOptions),
     }),
     summarizer: ModelsSummarizerSchema.extend({
-      providerOptions: StringToJsonSchema.pipe(
-        ModelsSummarizerSchema.shape.providerOptions
-      ).optional(),
+      providerOptions: StringToJsonSchema.pipe(ModelsSummarizerSchema.shape.providerOptions),
     }),
   })
   .transform(({ base, structuredOutput, summarizer, ...value }) => {

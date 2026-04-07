@@ -1,5 +1,33 @@
 # @inkeep/agents-api
 
+## 0.65.1
+
+### Patch Changes
+
+- 78c78d7: Fix summarizer and base model resolution falling back to empty agent ModelSettings objects instead of project-level config when no defaultSubAgentId is set
+- 6f2619d: Fix execution route paths to use OpenAPI {param} syntax
+- dbee04b: Add feedback CRUD API, database table, and Manage UI for collecting user feedback on conversations and messages
+- Updated dependencies [3735393]
+- Updated dependencies [dbee04b]
+  - @inkeep/agents-core@0.65.1
+  - @inkeep/agents-work-apps@0.65.1
+  - @inkeep/agents-email@0.65.1
+  - @inkeep/agents-mcp@0.65.1
+
+## 0.65.0
+
+### Minor Changes
+
+- e332202: Add multi-user scheduled trigger support with per-user dispatch, sub-resource endpoints, and dispatch delay
+
+### Patch Changes
+
+- Updated dependencies [e332202]
+  - @inkeep/agents-core@0.65.0
+  - @inkeep/agents-work-apps@0.65.0
+  - @inkeep/agents-email@0.65.0
+  - @inkeep/agents-mcp@0.65.0
+
 ## 0.64.10
 
 ### Patch Changes

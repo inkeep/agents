@@ -61,11 +61,16 @@ export const MetadataEditor: FC = () => {
   const { data: project } = useProjectQuery();
   const form = useFullAgentFormContext();
 
-  const isStatusUpdateEnabled = useWatch({ control: form.control, name: 'statusUpdates.enabled' });
-  const numEvents = useWatch({ control: form.control, name: 'statusUpdates.numEvents' });
-  const timeInSeconds = useWatch({ control: form.control, name: 'statusUpdates.timeInSeconds' });
-  const transferCountIs = useWatch({ control: form.control, name: 'stopWhen.transferCountIs' });
-  const models = useWatch({ control: form.control, name: 'models' });
+    const [isStatusUpdateEnabled, numEvents, timeInSeconds, transferCountIs, models] = useWatch({
+        control: form.control,
+        name: [
+            'statusUpdates.enabled',
+            'statusUpdates.numEvents',
+            'statusUpdates.timeInSeconds',
+            'stopWhen.transferCountIs',
+            'models',
+        ],
+    });
   const baseInherited = {
     model: project?.models.base?.model,
     providerOptions: project?.models.base?.providerOptions,
