@@ -29,6 +29,7 @@ import type { StreamHelper } from '../stream/stream-helpers.js';
 import { BufferingStreamHelper } from '../stream/stream-helpers.js';
 import { registerStreamHelper, unregisterStreamHelper } from '../stream/stream-registry.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
+import { extractDurableApprovalArtifact } from '../utils/durable-approval-artifact.js';
 import { mergeHeadersWithoutOverrides } from '../utils/merge-headers.js';
 import { firstWithModel, resolveModelConfig } from '../utils/model-resolver.js';
 import { tracer } from '../utils/tracer.js';
@@ -425,16 +426,19 @@ export class ExecutionHandler {
           continue;
         }
 
-        const firstArtifactData = (messageResponse.result as any)?.artifacts?.[0]?.parts?.[0]
-          ?.data as { type?: string; toolCallId?: string; toolName?: string; args?: unknown };
-        if (firstArtifactData?.type === 'durable-approval-required') {
+        const approvalData = extractDurableApprovalArtifact(
+          messageResponse.result,
+          { caller: 'executionHandler' },
+          logger
+        );
+        if (approvalData) {
           return {
             success: true,
             iterations,
             pendingApproval: {
-              toolCallId: firstArtifactData.toolCallId ?? '',
-              toolName: firstArtifactData.toolName ?? '',
-              args: firstArtifactData.args,
+              toolCallId: approvalData.toolCallId,
+              toolName: approvalData.toolName,
+              args: approvalData.args,
             },
           };
         }

@@ -19,6 +19,7 @@ import { getLogger } from '../../../logger';
 import type { A2ATask, A2ATaskResult } from '../a2a/types';
 import { agentSessionManager } from '../session/AgentSession';
 import { getUserIdFromContext, type SandboxConfig } from '../types/executionContext';
+import { buildDurableApprovalArtifact } from '../utils/durable-approval-artifact';
 import { resolveModelConfig } from '../utils/model-resolver';
 import {
   enhanceInternalRelation,
@@ -65,23 +66,14 @@ function buildDurableApprovalResult(pendingApproval: PendingDurableApproval): A2
   );
   return {
     status: { state: TaskState.Completed },
-    artifacts: [
+    artifacts: buildDurableApprovalArtifact(
       {
-        artifactId: generateId(),
-        parts: [
-          {
-            kind: 'data' as const,
-            data: {
-              type: 'durable-approval-required',
-              toolCallId: pendingApproval.toolCallId,
-              toolName: pendingApproval.toolName,
-              args: pendingApproval.args,
-            },
-          },
-        ],
-        createdAt: new Date().toISOString(),
+        toolCallId: pendingApproval.toolCallId,
+        toolName: pendingApproval.toolName,
+        args: pendingApproval.args,
       },
-    ],
+      generateId()
+    ),
   };
 }
 

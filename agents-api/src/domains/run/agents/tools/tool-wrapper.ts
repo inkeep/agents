@@ -5,6 +5,7 @@ import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import { agentSessionManager, type ToolCallData } from '../../session/AgentSession';
 import { generateToolId } from '../../utils/agent-operations';
+import { extractDurableApprovalArtifact } from '../../utils/durable-approval-artifact';
 import { isToolResultDenied } from '../../utils/tool-result';
 import type { AgentRunContext, AiSdkToolDefinition, ToolType } from '../agent-types';
 import { buildToolResultForConversationHistory } from '../generation/tool-result-for-conversation-history';
@@ -13,19 +14,6 @@ import { getRelationshipIdForTool } from './tool-utils';
 
 const DELEGATE_TOOL_PREFIX = 'delegate_to_';
 const TRANSFER_TOOL_PREFIX = 'transfer_to_';
-
-interface DurableApprovalData {
-  type: string;
-  toolCallId: string;
-  toolName: string;
-  args: unknown;
-  delegatedApproval?: {
-    toolCallId: string;
-    toolName: string;
-    args: unknown;
-    subAgentId: string;
-  };
-}
 
 const logger = getLogger('Agent');
 
@@ -207,68 +195,21 @@ export function wrapToolWithStreaming(
         const duration = Date.now() - startTime;
 
         if (ctx.durableWorkflowRunId && result && typeof result === 'object') {
-          const resultObj = result as Record<string, unknown>;
-          const taskResult = resultObj?.result as Record<string, unknown> | undefined;
+          const taskResult = (result as Record<string, unknown>)?.result;
+          const approvalData = extractDurableApprovalArtifact(
+            taskResult,
+            { parentToolName: toolName },
+            logger
+          );
 
-          const findApprovalRequired = (
-            parts: Array<Record<string, unknown>> | undefined
-          ): Record<string, unknown> | undefined => {
-            if (!Array.isArray(parts)) return undefined;
-            for (const part of parts) {
-              if (part?.kind === 'data') {
-                const data = part.data as Record<string, unknown> | undefined;
-                if (data?.type === 'durable-approval-required') return data;
-              }
-            }
-            return undefined;
-          };
-
-          const findApprovalInArtifacts = (
-            artifacts: Array<Record<string, unknown>> | undefined
-          ): Record<string, unknown> | undefined => {
-            if (!Array.isArray(artifacts)) return undefined;
-            for (const artifact of artifacts) {
-              const found = findApprovalRequired(
-                artifact?.parts as Array<Record<string, unknown>> | undefined
-              );
-              if (found) return found;
-            }
-            return undefined;
-          };
-
-          const approvalDataRaw =
-            findApprovalRequired(taskResult?.parts as Array<Record<string, unknown>> | undefined) ??
-            findApprovalInArtifacts(
-              taskResult?.artifacts as Array<Record<string, unknown>> | undefined
-            );
-
-          if (approvalDataRaw) {
-            const approvalData = approvalDataRaw as unknown as DurableApprovalData;
-            const delegatedToolCallId = approvalData.toolCallId;
-            const delegatedToolName = approvalData.toolName;
-
-            if (typeof delegatedToolCallId !== 'string' || !delegatedToolCallId) {
-              logger.error(
-                { approvalData, parentToolName: toolName },
-                'Malformed durable-approval-required artifact: invalid toolCallId'
-              );
-              return result;
-            }
-            if (typeof delegatedToolName !== 'string' || !delegatedToolName) {
-              logger.error(
-                { approvalData, parentToolName: toolName },
-                'Malformed durable-approval-required artifact: invalid toolName'
-              );
-              return result;
-            }
-
+          if (approvalData) {
             ctx.pendingDurableApproval = {
               toolCallId: effectiveToolCallId,
               toolName,
               args: resolvedArgs,
               delegatedApproval: {
-                toolCallId: delegatedToolCallId,
-                toolName: delegatedToolName,
+                toolCallId: approvalData.toolCallId,
+                toolName: approvalData.toolName,
                 args: approvalData.args,
                 subAgentId: toolName.replace(DELEGATE_TOOL_PREFIX, ''),
               },
