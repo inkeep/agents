@@ -813,6 +813,13 @@ export const TriggerInsertSchema = createInsertSchema(triggers, {
       .describe('Configuration for webhook signature verification'),
 });
 
+export const runAsUserIdsSchema = z
+  .array(z.string())
+  .optional()
+  .refine((ids) => !ids || new Set(ids).size === ids.length, {
+    message: 'runAsUserIds must not contain duplicates',
+  })
+  .describe('Array of user IDs to run this trigger as (multi-user)');
 // For updates, we create a schema without defaults so that {} is detected as empty
 // (TriggerInsertSchema has enabled.default(true) which would make {} parse to {enabled:true})
 // We use .removeDefault() to strip the default from enabled field
@@ -823,31 +830,24 @@ export const TriggerUpdateSchema = TriggerInsertSchema.extend({
 
 export const TriggerApiSelectSchema =
   createAgentScopedApiSchema(TriggerSelectSchema).openapi('Trigger');
-export const TriggerApiInsertSchema = createAgentScopedApiInsertSchema(TriggerInsertSchema)
+export const TriggerApiInsertBaseSchema = createAgentScopedApiInsertSchema(TriggerInsertSchema)
   .extend({
     id: ResourceIdSchema.optional(),
-    runAsUserIds: z
-      .array(z.string())
-      .optional()
-      .refine((ids) => !ids || new Set(ids).size === ids.length, {
-        message: 'runAsUserIds must not contain duplicates',
-      })
-      .describe('Array of user IDs to run this trigger as (multi-user)'),
+    runAsUserIds: runAsUserIdsSchema,
   })
   .omit({
     createdAt: true,
     updatedAt: true,
-  })
-  .refine((data) => !(data.runAsUserId && data.runAsUserIds), {
+  });
+export const TriggerApiInsertSchema = TriggerApiInsertBaseSchema.refine(
+  (data) => !(data.runAsUserId && data.runAsUserIds),
+  {
     message: 'Cannot specify both runAsUserId and runAsUserIds',
-  })
-  .openapi('TriggerCreate');
+  }
+).openapi('TriggerCreate');
 export const TriggerApiUpdateSchema = createAgentScopedApiUpdateSchema(TriggerUpdateSchema)
   .extend({
-    runAsUserIds: z
-      .array(z.string())
-      .optional()
-      .describe('Array of user IDs to run this trigger as (multi-user)'),
+    runAsUserIds: runAsUserIdsSchema,
   })
   .refine((data) => !(data.runAsUserId && data.runAsUserIds), {
     message: 'Cannot specify both runAsUserId and runAsUserIds',
@@ -1007,10 +1007,7 @@ export const ScheduledTriggerApiInsertBaseSchema = createAgentScopedApiInsertSch
 )
   .extend({
     id: ResourceIdSchema.optional(),
-    runAsUserIds: z
-      .array(z.string())
-      .optional()
-      .describe('Array of user IDs to run this trigger as (multi-user)'),
+    runAsUserIds: runAsUserIdsSchema,
     dispatchDelayMs: z
       .number()
       .int()
@@ -1041,10 +1038,7 @@ export const ScheduledTriggerApiUpdateSchema = createAgentScopedApiUpdateSchema(
   ScheduledTriggerUpdateSchema
 )
   .extend({
-    runAsUserIds: z
-      .array(z.string())
-      .optional()
-      .describe('Array of user IDs to run this trigger as (multi-user)'),
+    runAsUserIds: runAsUserIdsSchema,
     dispatchDelayMs: z
       .number()
       .int()
@@ -2570,7 +2564,7 @@ export const AgentWithinContextOfProjectSchemaBase = AgentApiInsertSchema.extend
   teamAgents: z.record(z.string(), TeamAgentSchema).optional(),
   functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(),
   functions: z.record(z.string(), FunctionApiInsertSchema).optional(),
-  triggers: z.record(z.string(), TriggerApiInsertSchema).optional(),
+  triggers: z.record(z.string(), TriggerApiInsertBaseSchema).optional(),
   contextConfig: z.optional(ContextConfigApiInsertSchema),
   statusUpdates: z.optional(StatusUpdateSchema),
   models: ModelSchema.optional(),
