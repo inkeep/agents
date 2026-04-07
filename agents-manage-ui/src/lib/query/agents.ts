@@ -9,7 +9,7 @@ const agentQueryKeys = {
   list: (tenantId: string, projectId: string) => ['agents', tenantId, projectId] as const,
 };
 
-export function useAgentsListQuery({
+function useAgentsListQuery({
   tenantId = '',
   projectId = '',
   enabled = true,
