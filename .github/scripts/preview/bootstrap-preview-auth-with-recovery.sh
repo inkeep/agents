@@ -7,7 +7,6 @@ source "${SCRIPT_DIR}/common.sh"
 
 require_env_vars \
   GITHUB_OUTPUT \
-  MANAGE_DB_URL \
   API_URL \
   SPICEDB_PRESHARED_KEY \
   INKEEP_AGENTS_MANAGE_UI_USERNAME \
@@ -31,6 +30,47 @@ require_env_vars \
 
 RECREATE_BACKUP_ENV_ID="${RECREATE_BACKUP_ENV_ID:-}"
 RECREATE_BACKUP_ENV_NAME="${RECREATE_BACKUP_ENV_NAME:-}"
+RUN_DB_URL="${RUN_DB_URL:-}"
+SPICEDB_ENDPOINT="${SPICEDB_ENDPOINT:-}"
+
+resolve_bootstrap_output_vars() {
+  local railway_env_name=""
+  local railway_env_id=""
+  local output_service_id=""
+  local output_service_env_json=""
+
+  if [ -n "${MANAGE_DB_URL:-}" ] && [ -n "${RUN_DB_URL:-}" ] && [ -n "${SPICEDB_ENDPOINT:-}" ]; then
+    return 0
+  fi
+
+  railway_env_name="$(pr_env_name "${PR_NUMBER}")"
+  preview_log "Resolving preview output variables from Railway environment ${railway_env_name}."
+  railway_env_id="$(railway_wait_for_environment_id "${RAILWAY_PROJECT_ID}" "${railway_env_name}" 10 2)"
+  output_service_id="$(railway_project_service_id "${RAILWAY_PROJECT_ID}" "${RAILWAY_OUTPUT_SERVICE}")"
+  if [ -z "${output_service_id}" ]; then
+    echo "Unable to resolve Railway output service ${RAILWAY_OUTPUT_SERVICE} in project ${RAILWAY_PROJECT_ID}." >&2
+    return 1
+  fi
+
+  output_service_env_json="$(
+    railway_variables_json "${RAILWAY_PROJECT_ID}" "${railway_env_id}" "${output_service_id}"
+  )"
+
+  if [ -z "${MANAGE_DB_URL:-}" ]; then
+    MANAGE_DB_URL="$(jq -r --arg key "${RAILWAY_MANAGE_DB_URL_KEY}" '.[$key] // empty' <<< "${output_service_env_json}")"
+  fi
+
+  if [ -z "${RUN_DB_URL:-}" ]; then
+    RUN_DB_URL="$(jq -r --arg key "${RAILWAY_RUN_DB_URL_KEY}" '.[$key] // empty' <<< "${output_service_env_json}")"
+  fi
+
+  if [ -z "${SPICEDB_ENDPOINT:-}" ]; then
+    SPICEDB_ENDPOINT="$(jq -r --arg key "${RAILWAY_SPICEDB_ENDPOINT_KEY}" '.[$key] // empty' <<< "${output_service_env_json}")"
+  fi
+
+  mask_env_vars MANAGE_DB_URL RUN_DB_URL SPICEDB_ENDPOINT
+  require_env_vars MANAGE_DB_URL RUN_DB_URL SPICEDB_ENDPOINT
+}
 
 write_bootstrap_outputs() {
   {
@@ -123,6 +163,8 @@ initial_log_file="$(mktemp)"
 retry_log_file="$(mktemp)"
 reprovision_output_file="$(mktemp)"
 trap 'rm -f "${initial_log_file}" "${retry_log_file}" "${reprovision_output_file}"' EXIT
+
+resolve_bootstrap_output_vars
 
 if run_bootstrap_once "${initial_log_file}"; then
   delete_recreate_backup_if_present

@@ -484,7 +484,7 @@ railway_wait_for_service_deployment_ready() {
   local sleep_seconds="${5:-4}"
   local max_redeploys="${6:-0}"
   local redeploy_count="0"
-  local attempt=""
+  local attempt="1"
   local env_id=""
   local service_id=""
   local service_instance_json=""
@@ -499,7 +499,7 @@ railway_wait_for_service_deployment_ready() {
     return 1
   fi
 
-  for attempt in $(seq 1 "${max_attempts}"); do
+  while [ "${attempt}" -le "${max_attempts}" ]; do
     service_instance_json="$(railway_service_instance_json_by_id "${env_id}" "${service_id}")" || return 1
     deployment_json="$(
       jq -c '
@@ -526,7 +526,7 @@ railway_wait_for_service_deployment_ready() {
           preview_log "Railway deployment for ${service_name} in ${env_name} is ${deployment_status}${deployment_id:+ (${deployment_id})}; auto-redeploy ${redeploy_count}/${max_redeploys}."
           if railway_service_instance_redeploy "${env_id}" "${service_id}" >/dev/null 2>&1; then
             preview_log "Redeploy triggered for ${service_name} in ${env_name}; restarting deployment wait loop."
-            attempt=0
+            attempt="1"
             sleep_with_jitter "${sleep_seconds}"
             continue
           fi
@@ -547,6 +547,7 @@ railway_wait_for_service_deployment_ready() {
       fi
       sleep_with_jitter "${sleep_seconds}"
     fi
+    attempt=$((attempt + 1))
   done
 
   echo "Railway deployment for ${service_name} in ${env_name} was not ready after ${max_attempts} attempts. Last observed status: ${deployment_status:-none}${deployment_id:+ (${deployment_id})}." >&2
