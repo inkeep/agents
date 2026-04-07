@@ -160,7 +160,8 @@ export async function buildToolResultForConversationHistory(
   toolCallId: string,
   conversationId: string,
   messageId: string,
-  taskId: string
+  taskId: string,
+  opts?: { skipArtifactCreation?: boolean }
 ): Promise<MessageContent> {
   const text = formatToolResultForConversationHistory(toolName, args, result, toolCallId);
   const parts = getToolResultPartsForConversationHistory(result);
@@ -182,5 +183,6 @@ export async function buildToolResultForConversationHistory(
     taskId,
     toolCallId,
     source: 'tool-result',
+    skipArtifactCreation: opts?.skipArtifactCreation,
   });
 }

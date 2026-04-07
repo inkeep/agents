@@ -240,7 +240,8 @@ export async function getDefaultTools(
       'get_reference_artifact',
       getArtifactTools(ctx),
       streamRequestId,
-      'tool'
+      'tool',
+      { skipArtifactCreation: true }
     );
   }
 

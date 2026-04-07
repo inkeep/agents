@@ -72,7 +72,7 @@ export async function inlineExternalPdfUrlParts(parts: Part[]): Promise<Part[]> 
 export async function buildPersistedMessageContent(
   text: string,
   parts: Part[],
-  ctx: PersistedMessageUploadContext
+  ctx: PersistedMessageUploadContext & { skipArtifactCreation?: boolean }
 ): Promise<MessageContent> {
   if (!hasFileParts(parts)) {
     return { text };
@@ -81,7 +81,9 @@ export async function buildPersistedMessageContent(
   try {
     const uploadedParts = await uploadPartsFiles(parts, ctx);
     const contentParts = makeMessageContentParts(uploadedParts);
-    const attachmentRefs = await createAttachmentArtifacts(uploadedParts, ctx);
+    const attachmentRefs = ctx.skipArtifactCreation
+      ? []
+      : await createAttachmentArtifacts(uploadedParts, ctx);
     const persistedParts = [
       ...contentParts,
       ...attachmentRefs.map((ref) => ({

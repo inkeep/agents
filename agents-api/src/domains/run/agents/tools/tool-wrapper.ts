@@ -62,7 +62,12 @@ export function wrapToolWithStreaming(
   toolDefinition: ToolSet[string],
   streamRequestId?: string,
   toolType?: ToolType,
-  options?: { needsApproval?: boolean; mcpServerId?: string; mcpServerName?: string }
+  options?: {
+    needsApproval?: boolean;
+    mcpServerId?: string;
+    mcpServerName?: string;
+    skipArtifactCreation?: boolean;
+  }
 ): ToolSet[string] {
   if (
     !toolDefinition ||
@@ -105,11 +110,14 @@ export function wrapToolWithStreaming(
 
       const isInternalTool =
         toolName.includes('save_tool_result') || toolName.startsWith('transfer_to_');
-      const isInternalToolForUi =
+      const hideToolFromUiStream =
         isInternalTool ||
         toolName.startsWith('delegate_to_') ||
         toolName === 'load_skill' ||
         toolName === 'get_reference_artifact';
+      const hideToolFromTraceEvents =
+        isInternalTool || toolName.startsWith('delegate_to_') || toolName === 'load_skill';
+      const hideToolFromConversationHistory = hideToolFromTraceEvents;
 
       const needsApproval = options?.needsApproval || false;
 
@@ -119,7 +127,7 @@ export function wrapToolWithStreaming(
       const effectiveToolCallId = preApprovedEntry?.originalToolCallId ?? toolCallId;
       const isPreApproved = !!preApprovedEntry;
 
-      if (streamRequestId && streamHelper && !isInternalToolForUi && !isPreApproved) {
+      if (streamRequestId && streamHelper && !hideToolFromUiStream && !isPreApproved) {
         const inputText = JSON.stringify(args ?? {});
 
         await streamHelper.writeToolInputStart({ toolCallId: effectiveToolCallId, toolName });
@@ -139,7 +147,7 @@ export function wrapToolWithStreaming(
         });
       }
 
-      if (streamRequestId && !isInternalToolForUi) {
+      if (streamRequestId && !hideToolFromTraceEvents) {
         const toolCallData: ToolCallData = {
           toolName,
           input: args,
@@ -193,7 +201,7 @@ export function wrapToolWithStreaming(
 
         const toolResultConversationId = ctx.conversationId;
 
-        if (streamRequestId && !isInternalToolForUi && toolResultConversationId) {
+        if (streamRequestId && !hideToolFromConversationHistory && toolResultConversationId) {
           try {
             const session = agentSessionManager.getSession(streamRequestId);
             const messageId = generateId();
@@ -208,7 +216,8 @@ export function wrapToolWithStreaming(
               effectiveToolCallId,
               toolResultConversationId,
               messageId,
-              taskId
+              taskId,
+              { skipArtifactCreation: options?.skipArtifactCreation }
             );
             await createMessage(runDbClient)({
               scopes: { tenantId: ctx.config.tenantId, projectId: ctx.config.projectId },
@@ -247,7 +256,7 @@ export function wrapToolWithStreaming(
           }
         }
 
-        if (streamRequestId && !isInternalToolForUi) {
+        if (streamRequestId && !hideToolFromTraceEvents) {
           agentSessionManager.recordEvent(streamRequestId, 'tool_result', ctx.config.id, {
             toolName,
             output: stripBinaryDataForObservability(result),
@@ -261,7 +270,7 @@ export function wrapToolWithStreaming(
 
         const isDeniedResult = isToolResultDenied(result);
 
-        if (streamRequestId && streamHelper && !isInternalToolForUi) {
+        if (streamRequestId && streamHelper && !hideToolFromUiStream) {
           if (isDeniedResult) {
             await streamHelper.writeToolOutputDenied({ toolCallId: effectiveToolCallId });
           } else {
@@ -282,7 +291,7 @@ export function wrapToolWithStreaming(
         const rootCause = unwrapError(error);
         const errorMessage = rootCause.message;
 
-        if (streamRequestId && !isInternalToolForUi) {
+        if (streamRequestId && !hideToolFromTraceEvents) {
           agentSessionManager.recordEvent(streamRequestId, 'tool_result', ctx.config.id, {
             toolName,
             output: null,
@@ -295,7 +304,7 @@ export function wrapToolWithStreaming(
           });
         }
 
-        if (streamRequestId && streamHelper && !isInternalToolForUi) {
+        if (streamRequestId && streamHelper && !hideToolFromUiStream) {
           await streamHelper.writeToolOutputError({
             toolCallId: effectiveToolCallId,
             errorText: errorMessage,
