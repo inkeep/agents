@@ -53,6 +53,71 @@ run_with_transient_spicedb_retry() {
   return 1
 }
 
+run_spicedb_datastore_migrate() {
+  local project_id="$1"
+  local env_name="$2"
+  local env_id="$3"
+  local spicedb_postgres_service_name="$4"
+  local spicedb_postgres_tcp_port="$5"
+  local spicedb_migrate_image="${SPICEDB_MIGRATE_IMAGE:-authzed/spicedb:v1.49.2}"
+  local spicedb_postgres_service_id=""
+  local spicedb_postgres_env_json=""
+  local proxy_domain=""
+  local proxy_port=""
+  local postgres_user=""
+  local postgres_password=""
+  local postgres_db=""
+  local datastore_conn_uri=""
+
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "Docker is required to run the SpiceDB datastore migration in preview CI." >&2
+    return 1
+  fi
+
+  spicedb_postgres_service_id="$(railway_project_service_id "${project_id}" "${spicedb_postgres_service_name}")"
+  if [ -z "${spicedb_postgres_service_id}" ]; then
+    echo "Unable to resolve Railway service ID for ${spicedb_postgres_service_name} in project ${project_id}." >&2
+    return 1
+  fi
+
+  railway_ensure_tcp_proxy "${project_id}" "${env_name}" "${spicedb_postgres_service_name}" "${spicedb_postgres_tcp_port}"
+  spicedb_postgres_env_json="$(
+    railway_variables_json "${project_id}" "${env_id}" "${spicedb_postgres_service_id}"
+  )"
+
+  proxy_domain="$(jq -r '.RAILWAY_TCP_PROXY_DOMAIN // empty' <<< "${spicedb_postgres_env_json}")"
+  proxy_port="$(jq -r '.RAILWAY_TCP_PROXY_PORT // empty' <<< "${spicedb_postgres_env_json}")"
+  postgres_user="$(jq -r '.POSTGRES_USER // empty' <<< "${spicedb_postgres_env_json}")"
+  postgres_password="$(jq -r '.POSTGRES_PASSWORD // empty' <<< "${spicedb_postgres_env_json}")"
+  postgres_db="$(jq -r '.POSTGRES_DB // empty' <<< "${spicedb_postgres_env_json}")"
+
+  if [ -z "${proxy_domain}" ] || [ -z "${proxy_port}" ] || [ -z "${postgres_user}" ] || [ -z "${postgres_password}" ] || [ -z "${postgres_db}" ]; then
+    echo "Unable to resolve SpiceDB Postgres proxy connection details for ${spicedb_postgres_service_name} in ${env_name}." >&2
+    return 1
+  fi
+
+  datastore_conn_uri="postgres://${postgres_user}:${postgres_password}@${proxy_domain}:${proxy_port}/${postgres_db}?sslmode=disable"
+  preview_log "Running SpiceDB datastore migration via ${spicedb_migrate_image} against ${spicedb_postgres_service_name} in ${env_name}."
+  docker run --rm "${spicedb_migrate_image}" datastore migrate head \
+    --datastore-engine postgres \
+    --datastore-conn-uri "${datastore_conn_uri}"
+}
+
+redeploy_railway_service() {
+  local project_id="$1"
+  local env_id="$2"
+  local service_name="$3"
+  local service_id=""
+
+  service_id="$(railway_project_service_id "${project_id}" "${service_name}")"
+  if [ -z "${service_id}" ]; then
+    echo "Unable to resolve Railway service ID for ${service_name} in project ${project_id}." >&2
+    return 1
+  fi
+
+  railway_service_instance_redeploy "${env_id}" "${service_id}" >/dev/null
+}
+
 if [ -z "${RUN_DB_URL:-}" ] || [ -z "${SPICEDB_ENDPOINT:-}" ]; then
   require_env_vars \
     RAILWAY_API_TOKEN \
@@ -91,6 +156,15 @@ export TENANT_ID="${TENANT_ID:-default}"
 export SPICEDB_READY_MAX_ATTEMPTS="${SPICEDB_READY_MAX_ATTEMPTS:-20}"
 export SPICEDB_READY_INTERVAL_MS="${SPICEDB_READY_INTERVAL_MS:-2000}"
 
+RAILWAY_ENV_NAME=""
+RAILWAY_ENV_ID=""
+if [ -n "${RAILWAY_API_TOKEN:-}" ] &&
+  [ -n "${RAILWAY_PROJECT_ID:-}" ] &&
+  [ -n "${PR_NUMBER:-}" ]; then
+  RAILWAY_ENV_NAME="$(pr_env_name "${PR_NUMBER}")"
+  RAILWAY_ENV_ID="$(railway_wait_for_environment_id "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" 10 2)"
+fi
+
 echo "::group::Run preview runtime migrations"
 preview_log "Running preview runtime migrations."
 pnpm db:run:migrate
@@ -99,12 +173,32 @@ echo "::endgroup::"
 if [ -n "${RAILWAY_API_TOKEN:-}" ] &&
   [ -n "${RAILWAY_PROJECT_ID:-}" ] &&
   [ -n "${RAILWAY_SPICEDB_SERVICE:-}" ] &&
-  [ -n "${PR_NUMBER:-}" ]; then
+  [ -n "${RAILWAY_SPICEDB_POSTGRES_SERVICE:-}" ] &&
+  [ -n "${RAILWAY_ENV_NAME:-}" ] &&
+  [ -n "${RAILWAY_ENV_ID:-}" ]; then
+  echo "::group::Run SpiceDB datastore migration"
+  preview_log "Running SpiceDB datastore migration for ${RAILWAY_SPICEDB_SERVICE} in ${RAILWAY_ENV_NAME} before gRPC readiness."
+  run_spicedb_datastore_migrate \
+    "${RAILWAY_PROJECT_ID}" \
+    "${RAILWAY_ENV_NAME}" \
+    "${RAILWAY_ENV_ID}" \
+    "${RAILWAY_SPICEDB_POSTGRES_SERVICE}" \
+    "${RAILWAY_SPICEDB_POSTGRES_TCP_PORT:-5432}"
+  echo "::endgroup::"
+
+  echo "::group::Redeploy Railway SpiceDB"
+  preview_log "Redeploying ${RAILWAY_SPICEDB_SERVICE} in ${RAILWAY_ENV_NAME} after datastore migration."
+  redeploy_railway_service \
+    "${RAILWAY_PROJECT_ID}" \
+    "${RAILWAY_ENV_ID}" \
+    "${RAILWAY_SPICEDB_SERVICE}"
+  echo "::endgroup::"
+
   echo "::group::Wait for Railway SpiceDB deployment"
-  preview_log "Waiting for Railway deployment state for ${RAILWAY_SPICEDB_SERVICE} in $(pr_env_name "${PR_NUMBER}") before probing gRPC readiness."
+  preview_log "Waiting for Railway deployment state for ${RAILWAY_SPICEDB_SERVICE} in ${RAILWAY_ENV_NAME} before probing gRPC readiness."
   railway_wait_for_service_deployment_ready \
     "${RAILWAY_PROJECT_ID}" \
-    "$(pr_env_name "${PR_NUMBER}")" \
+    "${RAILWAY_ENV_NAME}" \
     "${RAILWAY_SPICEDB_SERVICE}" \
     15 \
     4 \
@@ -127,6 +221,7 @@ if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
     echo "- Tenant: \`${TENANT_ID}\`"
     echo "- Admin email: \`${INKEEP_AGENTS_MANAGE_UI_USERNAME}\`"
     echo "- Runtime migrations: \`pnpm db:run:migrate\`"
+    echo "- SpiceDB datastore migration: \`docker run ${SPICEDB_MIGRATE_IMAGE:-authzed/spicedb:v1.49.2} datastore migrate head\`"
     echo "- Railway deployment gate: \`${RAILWAY_SPICEDB_SERVICE:-spicedb}\` latest deployment ready"
     echo "- SpiceDB readiness probe: \`tsx src/auth/wait-for-spicedb.ts\`"
     echo "- Auth seed: \`pnpm db:auth:init\`"
