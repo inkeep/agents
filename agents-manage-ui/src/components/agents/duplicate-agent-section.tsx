@@ -281,10 +281,10 @@ export function DuplicateAgentDialog({
               <Button disabled={isSubmitting} type="submit">
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="size-4 animate-spin" /> Copying...
+                    <Loader2 className="animate-spin" /> Copying...
                   </>
                 ) : (
-                  'Copy agent'
+                  'Duplicate agent'
                 )}
               </Button>
             </DialogFooter>
