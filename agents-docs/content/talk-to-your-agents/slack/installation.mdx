@@ -30,7 +30,6 @@ The Slack integration is only available for [Inkeep Enterprise](https://inkeep.c
 
     The bot requests the following permissions:
     - Read messages in channels where it's mentioned
-    - Join public channels
     - Post messages and replies
     - Read and write direct messages
     - Read and write group direct messages
@@ -83,10 +82,14 @@ The link button uses a short-lived JWT token (10 minutes) for security. If it ex
 
 ## Uninstalling
 
-To remove the Slack app from your workspace:
+### From the Inkeep dashboard
 
 1. Go to **Work Apps** → **Slack** in the dashboard
 2. Click the workspace options menu
 3. Select **Uninstall**
 
-This removes the bot from your workspace, deletes all user link mappings, and cleans up channel configurations.
+### From Slack
+
+If the app is uninstalled directly from Slack (via **Settings → Manage Apps**), Inkeep automatically detects the removal and cleans up all associated data.
+
+In both cases, uninstalling removes the bot from your workspace, deletes all user link mappings, and cleans up channel configurations.
