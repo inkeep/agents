@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { type Dispatch, type SetStateAction, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { z } from 'zod';
 import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 import { GenericInput } from '@/components/form/generic-input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
