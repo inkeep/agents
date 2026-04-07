@@ -87,6 +87,7 @@ Delegation relationships are used to **pass a task** from one Sub Agent to anoth
 - Results are returned to the source Sub Agent
 - The source Sub Agent continues processing
 - If a user redirects the task mid-delegation (e.g. by denying a tool call with a reason like "I want Tokyo instead"), the delegation response includes a note about the redirect so the parent Sub Agent has full context about how the task evolved
+- In [durable execution mode](/execution-modes), delegated Sub Agents can use tools that require [approval](/typescript-sdk/tools/tool-approvals). The approval request surfaces to the user, and the decision is passed back to the delegated Sub Agent so it can continue execution
 
 ```typescript
 // Sub Agents for specific tasks
