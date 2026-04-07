@@ -18,6 +18,7 @@ export interface CompressedArtifactInfo {
   summaryData?: Record<string, any>;
   name?: string;
   description?: string;
+  artifactType?: string;
 }
 
 /**

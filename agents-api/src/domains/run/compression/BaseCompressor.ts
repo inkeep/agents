@@ -220,6 +220,7 @@ export abstract class BaseCompressor {
         summaryData?: Record<string, any>;
         name?: string;
         description?: string;
+        artifactType?: string;
       }
     >
   > {
@@ -233,6 +234,7 @@ export abstract class BaseCompressor {
         summaryData?: Record<string, any>;
         name?: string;
         description?: string;
+        artifactType?: string;
       }
     >();
 
@@ -259,6 +261,7 @@ export abstract class BaseCompressor {
           summaryData: dataPart?.data?.summary ?? dataPart?.data,
           name: artifact.name,
           description: artifact.description,
+          artifactType: artifact.type,
         });
       }
     } catch (error) {
@@ -312,6 +315,7 @@ export abstract class BaseCompressor {
         summaryData?: Record<string, any>;
         name?: string;
         description?: string;
+        artifactType?: string;
       }
     >
   ): Promise<CompressedArtifactInfo | null> {
@@ -333,6 +337,7 @@ export abstract class BaseCompressor {
         summaryData: existing.summaryData,
         name: existing.name,
         description: existing.description,
+        artifactType: existing.artifactType,
       };
     }
 
@@ -453,6 +458,7 @@ export abstract class BaseCompressor {
       structureInfo: artifactData.summaryData._structureInfo,
       oversizedWarning: artifactData.summaryData._oversizedWarning,
       summaryData: artifactData.summaryData,
+      artifactType: artifactData.artifactType,
     };
   }
 
@@ -474,8 +480,11 @@ export abstract class BaseCompressor {
           } else if (block.type === 'tool-call') {
             nonToolResultChars +=
               JSON.stringify(block.input || {}).length + (block.toolName || '').length;
-          } else if (block.type === 'tool-result' && toolCallToArtifactMap?.[block.toolCallId]) {
-            numToolResults++;
+          } else if (block.type === 'tool-result') {
+            const info = toolCallToArtifactMap?.[block.toolCallId];
+            if (info && info.artifactType !== 'binary_attachment') {
+              numToolResults++;
+            }
           }
         }
       } else if (msg.content?.text) {
@@ -507,20 +516,36 @@ export abstract class BaseCompressor {
               // Intentionally skip tool results without artifact mappings (skipped/internal tools).
               // Only artifact-backed results are included so the distillation prompt stays compact.
               if (artifactInfo) {
-                const header = artifactInfo.name
-                  ? `[TOOL RESULT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}] "${artifactInfo.name}"`
-                  : `[TOOL RESULT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}]`;
-                const descriptionLine = artifactInfo.description
-                  ? `Description: ${artifactInfo.description}\n`
-                  : '';
-                const summary = artifactInfo.summaryData
-                  ? JSON.stringify(artifactInfo.summaryData)
-                  : '';
-                const truncated =
-                  perResultLimit && summary.length > perResultLimit
-                    ? `${summary.slice(0, perResultLimit)}...`
-                    : summary;
-                parts.push(`${header}\n${descriptionLine}${truncated}`);
+                if (artifactInfo.artifactType === 'binary_attachment') {
+                  const header = artifactInfo.name
+                    ? `[BINARY ATTACHMENT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}] "${artifactInfo.name}"`
+                    : `[BINARY ATTACHMENT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}]`;
+                  const descriptionLine = artifactInfo.description
+                    ? `Description: ${artifactInfo.description}\n`
+                    : '';
+                  const sd = artifactInfo.summaryData;
+                  const metaParts: string[] = [];
+                  if (sd?.mimeType) metaParts.push(`mimeType: ${sd.mimeType}`);
+                  if (sd?.binaryType) metaParts.push(`binaryType: ${sd.binaryType}`);
+                  if (sd?.filename) metaParts.push(`filename: ${sd.filename}`);
+                  const metaLine = metaParts.length > 0 ? `${metaParts.join(', ')}\n` : '';
+                  parts.push(`${header}\n${descriptionLine}${metaLine}`.trimEnd());
+                } else {
+                  const header = artifactInfo.name
+                    ? `[TOOL RESULT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}] "${artifactInfo.name}"`
+                    : `[TOOL RESULT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}]`;
+                  const descriptionLine = artifactInfo.description
+                    ? `Description: ${artifactInfo.description}\n`
+                    : '';
+                  const summary = artifactInfo.summaryData
+                    ? JSON.stringify(artifactInfo.summaryData)
+                    : '';
+                  const truncated =
+                    perResultLimit && summary.length > perResultLimit
+                      ? `${summary.slice(0, perResultLimit)}...`
+                      : summary;
+                  parts.push(`${header}\n${descriptionLine}${truncated}`);
+                }
               } else {
                 logger.debug(
                   { toolCallId: block.toolCallId, toolName: block.toolName },
