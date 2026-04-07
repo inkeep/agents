@@ -112,7 +112,7 @@ const AllowedProvidersSection: FC<{
     name: `${name}.allowedProviders`,
     shouldUnregister: true,
   });
-  const allowedProviders = allowedProvidersField.value;
+  const allowedProviders: string[] = allowedProvidersField.value;
   function onAllowedProvidersChange(providers: string[]) {
     allowedProvidersField.onChange(providers.length ? providers : undefined);
   }
@@ -277,7 +277,7 @@ const FallbackModelsSection: FC<{
   function onFallbackModelsChange(models: string[]) {
     fallbackModelsField.onChange(models.length ? models : undefined);
   }
-  const savedModels = fallbackModels ?? inheritedFallbackModels ?? [];
+  const savedModels: string[] = fallbackModels ?? inheritedFallbackModels ?? [];
   const isInherited = !fallbackModels && !!inheritedFallbackModels;
 
   return (
