@@ -13,6 +13,7 @@ import {
 } from '@inkeep/agents-core';
 import { trace } from '@opentelemetry/api';
 import type { ToolSet } from 'ai';
+import { z } from 'zod';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import { agentSessionManager, type ToolCallData } from '../../session/AgentSession';
@@ -23,20 +24,75 @@ import { buildToolResultForConversationHistory } from '../generation/tool-result
 import { buildToolResultForModelInput } from '../generation/tool-result-for-model-input';
 import { getRelationshipIdForTool } from './tool-utils';
 
-interface DurableApprovalData {
-  type: string;
-  toolCallId: string;
-  toolName: string;
-  args: unknown;
-  delegatedApproval?: {
-    toolCallId: string;
-    toolName: string;
-    args: unknown;
-    subAgentId: string;
-  };
-}
+const DurableApprovalSchema = z.object({
+  type: z.literal(DURABLE_APPROVAL_ARTIFACT_TYPE),
+  toolCallId: z.string().min(1),
+  toolName: z.string().min(1),
+  args: z.unknown(),
+});
+
+type DurableApprovalData = z.infer<typeof DurableApprovalSchema>;
 
 const logger = getLogger('Agent');
+
+function extractDurableApproval(
+  result: unknown,
+  parentToolName: string
+): DurableApprovalData | undefined {
+  if (!result || typeof result !== 'object') return undefined;
+
+  const resultObj = result as Record<string, unknown>;
+  const taskResult = resultObj?.result as Record<string, unknown> | undefined;
+  if (!taskResult) return undefined;
+
+  const candidates: unknown[] = [];
+
+  // Search parts directly on the task result
+  if (Array.isArray(taskResult.parts)) {
+    for (const part of taskResult.parts) {
+      if (part && typeof part === 'object' && (part as Record<string, unknown>).kind === 'data') {
+        candidates.push((part as Record<string, unknown>).data);
+      }
+    }
+  }
+
+  // Search parts nested inside artifacts
+  if (Array.isArray(taskResult.artifacts)) {
+    for (const artifact of taskResult.artifacts) {
+      if (artifact && typeof artifact === 'object' && Array.isArray((artifact as Record<string, unknown>).parts)) {
+        for (const part of (artifact as Record<string, unknown>).parts as unknown[]) {
+          if (part && typeof part === 'object' && (part as Record<string, unknown>).kind === 'data') {
+            candidates.push((part as Record<string, unknown>).data);
+          }
+        }
+      }
+    }
+  }
+
+  for (const candidate of candidates) {
+    const parsed = DurableApprovalSchema.safeParse(candidate);
+    if (parsed.success) {
+      return parsed.data;
+    }
+    // Log when we find something that looks like an approval but doesn't validate
+    if (
+      candidate &&
+      typeof candidate === 'object' &&
+      (candidate as Record<string, unknown>).type === DURABLE_APPROVAL_ARTIFACT_TYPE
+    ) {
+      logger.error(
+        {
+          parentToolName,
+          candidate,
+          validationErrors: parsed.error.issues,
+        },
+        'Found durable-approval-required artifact but it failed schema validation'
+      );
+    }
+  }
+
+  return undefined;
+}
 
 function chunkString(s: string, size = 16): string[] {
   const out: string[] = [];
@@ -215,6 +271,7 @@ export function wrapToolWithStreaming(
         const duration = Date.now() - startTime;
 
         if (ctx.durableWorkflowRunId && result && typeof result === 'object') {
+<<<<<<< HEAD
           const resultObj = result as Record<string, unknown>;
           const taskResult = resultObj?.result as Record<string, unknown> | undefined;
 
@@ -235,48 +292,15 @@ export function wrapToolWithStreaming(
             artifacts: Array<Record<string, unknown>> | undefined
           ): Record<string, unknown> | undefined => {
             if (!Array.isArray(artifacts)) return undefined;
-            for (const artifact of artifacts) {
-              const found = findApprovalRequired(
-                artifact?.parts as Array<Record<string, unknown>> | undefined
-              );
-              if (found) return found;
-            }
-            return undefined;
-          };
-
-          const approvalDataRaw =
-            findApprovalRequired(taskResult?.parts as Array<Record<string, unknown>> | undefined) ??
-            findApprovalInArtifacts(
-              taskResult?.artifacts as Array<Record<string, unknown>> | undefined
-            );
-
-          if (approvalDataRaw) {
-            const approvalData = approvalDataRaw as unknown as DurableApprovalData;
-            const delegatedToolCallId = approvalData.toolCallId;
-            const delegatedToolName = approvalData.toolName;
-
-            if (typeof delegatedToolCallId !== 'string' || !delegatedToolCallId) {
-              logger.error(
-                { approvalData, parentToolName: toolName },
-                'Malformed durable-approval-required artifact: invalid toolCallId'
-              );
-              return result;
-            }
-            if (typeof delegatedToolName !== 'string' || !delegatedToolName) {
-              logger.error(
-                { approvalData, parentToolName: toolName },
-                'Malformed durable-approval-required artifact: invalid toolName'
-              );
-              return result;
-            }
-
+          const approvalData = extractDurableApproval(result, toolName);
+          if (approvalData) {
             ctx.pendingDurableApproval = {
               toolCallId: toolCallId,
               toolName,
               args: resolvedArgs,
               delegatedApproval: {
-                toolCallId: delegatedToolCallId,
-                toolName: delegatedToolName,
+                toolCallId: approvalData.toolCallId,
+                toolName: approvalData.toolName,
                 args: approvalData.args,
                 subAgentId: toolName.replace(DELEGATE_TOOL_PREFIX, ''),
               },
