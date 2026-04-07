@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { File, Folder, Plus } from 'lucide-react';
+import { File, Folder, Info, Plus } from 'lucide-react';
 import NextLink from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type FC, useState } from 'react';
@@ -45,6 +45,7 @@ import {
   isSkillEntryFile,
   SKILL_ENTRY_FILE_PATH,
 } from '@/lib/utils/skill-files';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const resolver = zodResolver(SkillFileSchema);
 
@@ -325,6 +326,15 @@ export const SkillFileEditor: FC<SkillFileEditorProps> = ({
                           )}
                         />
                       </ButtonGroup>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="size-3" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          to create a folder append / in filename.{' '}
+                          <a href="link to docs">Learn more.</a>
+                        </TooltipContent>
+                      </Tooltip>
                       <FormMessage />
                     </FormItem>
                   )}
