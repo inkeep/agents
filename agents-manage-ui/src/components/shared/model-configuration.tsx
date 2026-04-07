@@ -351,6 +351,7 @@ export function ModelConfiguration<
   const { field: modelField } = useController({
     control,
     name: `${name}.model` as FieldPath<TFieldValues>,
+    shouldUnregister: true,
   });
   const value = modelField.value;
   const onModelChange = modelField.onChange;
@@ -365,6 +366,7 @@ export function ModelConfiguration<
   const { field: fallbackModelsField } = useController({
     control,
     name: `${name}.fallbackModels` as FieldPath<TFieldValues>,
+    shouldUnregister: true,
   });
   const fallbackModels = fallbackModelsField.value;
   function onFallbackModelsChange(models: string[]) {
@@ -374,6 +376,7 @@ export function ModelConfiguration<
   const { field: allowedProvidersField } = useController({
     control,
     name: `${name}.allowedProviders` as FieldPath<TFieldValues>,
+    shouldUnregister: true,
   });
   const allowedProviders = allowedProvidersField.value;
   function onAllowedProvidersChange(providers: string[]) {
@@ -397,7 +400,7 @@ export function ModelConfiguration<
   }
 
   function handleProviderOptionsChange(options: Record<string, any>) {
-    if (!options || Object.keys(options).length === 0) {
+    if (!Object.keys(options).length) {
       onProviderOptionsChange('');
       return;
     }
