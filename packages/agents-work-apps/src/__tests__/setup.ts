@@ -11,6 +11,7 @@ vi.mock('../logger.js', () => {
     error: vi.fn(),
     debug: vi.fn(),
     child: vi.fn().mockReturnThis(),
+    with: vi.fn().mockReturnThis(),
     getPinoInstance: vi.fn().mockReturnValue({
       info: vi.fn(),
       warn: vi.fn(),
@@ -32,6 +33,7 @@ vi.mock('../logger', () => {
     error: vi.fn(),
     debug: vi.fn(),
     child: vi.fn().mockReturnThis(),
+    with: vi.fn().mockReturnThis(),
     getPinoInstance: vi.fn().mockReturnValue({
       info: vi.fn(),
       warn: vi.fn(),

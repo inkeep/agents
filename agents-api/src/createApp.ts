@@ -13,7 +13,7 @@ import { runRoutes } from './domains/run';
 import { workAppsRoutes } from './domains/work-apps';
 import { env } from './env';
 import { flushBatchProcessor } from './instrumentation';
-import { getLogger } from './logger';
+import { getLogger, runWithLogContext } from './logger';
 import {
   authCorsConfig,
   defaultCorsConfig,
@@ -267,6 +267,30 @@ function createAgentsHono(config: AppConfig) {
   // Baggage middleware for execution API - extracts context from API key authentication
   app.use('/run/*', async (c, next) => {
     return executionBaggageMiddleware()(c, next);
+  });
+
+  // Logger ALS context for run routes
+  app.use('/run/*', async (c, next) => {
+    const ctx = c.get('executionContext' as keyof typeof c.var) as
+      | { tenantId: string; projectId: string; agentId: string }
+      | undefined;
+    if (ctx) {
+      return runWithLogContext(
+        { tenantId: ctx.tenantId, projectId: ctx.projectId, agentId: ctx.agentId },
+        () => next()
+      );
+    }
+    return next();
+  });
+
+  // Logger ALS context for manage routes
+  app.use('/manage/tenants/*', async (c, next) => {
+    const tenantId = c.get('tenantId');
+    if (tenantId) {
+      const projectId = c.req.param('projectId');
+      return runWithLogContext({ tenantId, ...(projectId && { projectId }) }, () => next());
+    }
+    return next();
   });
 
   // management routes
