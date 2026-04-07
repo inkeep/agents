@@ -40,6 +40,19 @@ jobs:
             echo "skip=false" >> $GITHUB_OUTPUT
           fi
 
+      # Generate a GitHub App token BEFORE checkout so that actions/checkout
+      # configures git's http.extraheader with the App token. This ensures
+      # subsequent pushes use the App identity and trigger downstream CI
+      # workflows. The default GITHUB_TOKEN's commits are ignored by GitHub
+      # to prevent infinite loops.
+      - name: Generate GitHub App Token
+        id: app-token
+        if: steps.pr-check.outputs.skip != 'true'
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        with:
+          app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
+          private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
+
       - name: Checkout code
         if: steps.pr-check.outputs.skip != 'true'
         id: checkout
@@ -49,23 +62,14 @@ jobs:
           # On PRs, check out the PR branch so we push back to it.
           # On push, check out the default ref (main).
           ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # Use the App token so git's extraheader authenticates as the App,
+          # ensuring pushes trigger downstream workflows.
+          token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
 
       - name: Log checkout failure
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'failure'
         run: |
           echo "::notice::Checkout failed — branch was likely deleted (PR merged). Skipping."
-
-      # Generate a GitHub App token so that auto-commits trigger downstream CI
-      # workflows. The default GITHUB_TOKEN's commits are ignored by GitHub to
-      # prevent infinite loops.
-      - name: Generate GitHub App Token
-        id: app-token
-        if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
-        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
-        with:
-          app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
-          private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
 
       - name: Setup Node.js
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
@@ -123,18 +127,11 @@ jobs:
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success' && steps.changes.outputs.has_changes == 'true'
         env:
           PUSH_REF: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
-          APP_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -u
           git commit -m "style: auto-format with biome"
-
-          # Use GitHub App token so the push triggers downstream CI workflows.
-          # The default GITHUB_TOKEN's commits are ignored by GitHub to prevent loops.
-          if [ -n "$APP_TOKEN" ]; then
-            git remote set-url origin "https://x-access-token:${APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          fi
 
           # Verify remote branch still exists before pushing
           if ! git ls-remote --exit-code --heads origin "$PUSH_REF" > /dev/null 2>&1; then
