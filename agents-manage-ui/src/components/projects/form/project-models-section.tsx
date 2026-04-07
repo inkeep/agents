@@ -7,12 +7,6 @@ import { CollapsibleSettings } from '@/components/agent/sidepane/collapsible-set
 import { SectionHeader } from '@/components/agent/sidepane/section';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
 import { InfoCard } from '@/components/ui/info-card';
-import {
-  azureModelProviderOptionsTemplate,
-  azureModelSummarizerProviderOptionsTemplate,
-  structuredOutputModelProviderOptionsTemplate,
-  summarizerModelProviderOptionsTemplate,
-} from '@/lib/templates';
 import { ModelInheritanceInfo } from './model-inheritance-info';
 import type { ProjectFormData, ProjectFormInputValues } from './validation';
 
@@ -36,12 +30,8 @@ function BaseModelSection({
     <ModelConfiguration
       control={control}
       name="models.base"
-      label="Base model"
-      description="Primary model for general agent responses"
-      placeholder="Select base model"
       canClear={false}
       isRequired
-      editorNamePrefix="project-base"
       disabled={disabled}
     />
   );
@@ -60,22 +50,13 @@ function StructuredOutputModelSection({
     <ModelConfiguration
       control={control}
       name="models.structuredOutput"
-      label="Structured output model"
-      description="Model for structured outputs and components (defaults to base model)"
-      placeholder="Select structured output model (optional)"
-      inheritedValue={base.model}
-      inheritedProviderOptions={base.providerOptions}
-      canClear={!disabled}
-      editorNamePrefix="project-structured"
-      getJsonPlaceholder={(model) => {
-        if (model?.startsWith('azure/')) {
-          return azureModelProviderOptionsTemplate;
-        }
-        return structuredOutputModelProviderOptionsTemplate;
+      inherited={{
+        model: base.model,
+        providerOptions: base.providerOptions,
+        fallbackModels: base.fallbackModels,
+        allowedProviders: base.allowedProviders,
       }}
       disabled={disabled}
-      inheritedFallbackModels={base.fallbackModels ?? undefined}
-      inheritedAllowedProviders={base.allowedProviders ?? undefined}
     />
   );
 }
@@ -93,22 +74,13 @@ function SummarizerModelSection({
     <ModelConfiguration
       control={control}
       name="models.summarizer"
-      label="Summarizer model"
-      description="Model for summarization tasks (defaults to base model)"
-      placeholder="Select summarizer model (optional)"
-      inheritedValue={base.model}
-      inheritedProviderOptions={base.providerOptions}
-      canClear
-      editorNamePrefix="project-summarizer"
-      getJsonPlaceholder={(model) => {
-        if (model?.startsWith('azure/')) {
-          return azureModelSummarizerProviderOptionsTemplate;
-        }
-        return summarizerModelProviderOptionsTemplate;
+      inherited={{
+        model: base.model,
+        providerOptions: base.providerOptions,
+        fallbackModels: base.fallbackModels,
+        allowedProviders: base.allowedProviders,
       }}
       disabled={disabled}
-      inheritedFallbackModels={base.fallbackModels ?? undefined}
-      inheritedAllowedProviders={base.allowedProviders ?? undefined}
     />
   );
 }
