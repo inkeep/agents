@@ -738,7 +738,7 @@ export function TriggerForm({
         name: data.name,
         description: data.description || undefined,
         enabled: data.enabled,
-        dispatchDelayMs: data.dispatchDelayMs || undefined,
+        dispatchDelayMs: data.dispatchDelayMs !== undefined ? data.dispatchDelayMs : undefined,
         // Send null to explicitly clear messageTemplate, undefined to keep existing
         messageTemplate:
           trimmedMessageTemplate === ''

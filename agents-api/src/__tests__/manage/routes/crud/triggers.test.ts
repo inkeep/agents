@@ -1419,7 +1419,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         scopes: { tenantId, projectId, agentId },
         triggerId: trigger.id,
       });
-      expect(updated!.enabled).toBe(false);
+      expect(updated?.enabled).toBe(false);
     });
 
     it('should clear legacy runAsUserId when setting users', async () => {
@@ -1461,7 +1461,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         scopes: { tenantId, projectId, agentId },
         triggerId,
       });
-      expect(updated!.runAsUserId).toBeNull();
+      expect(updated?.runAsUserId).toBeNull();
     });
 
     it('should call assertCanMutateTrigger with correct params', async () => {
@@ -1593,7 +1593,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         scopes: { tenantId, projectId, agentId },
         triggerId,
       });
-      expect(updated!.runAsUserId).toBeNull();
+      expect(updated?.runAsUserId).toBeNull();
     });
 
     it('should return 404 for non-existent trigger', async () => {
@@ -1663,7 +1663,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         scopes: { tenantId, projectId, agentId },
         triggerId: trigger.id,
       });
-      expect(updated!.enabled).toBe(false);
+      expect(updated?.enabled).toBe(false);
     });
 
     it('should migrate legacy runAsUserId before removing', async () => {
@@ -1704,8 +1704,8 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         scopes: { tenantId, projectId, agentId },
         triggerId,
       });
-      expect(updated!.enabled).toBe(false);
-      expect(updated!.runAsUserId).toBeNull();
+      expect(updated?.enabled).toBe(false);
+      expect(updated?.runAsUserId).toBeNull();
     });
 
     it('should return 404 when user is not associated with trigger', async () => {

@@ -829,6 +829,9 @@ export const TriggerApiInsertSchema = createAgentScopedApiInsertSchema(TriggerIn
     runAsUserIds: z
       .array(z.string())
       .optional()
+      .refine((ids) => !ids || new Set(ids).size === ids.length, {
+        message: 'runAsUserIds must not contain duplicates',
+      })
       .describe('Array of user IDs to run this trigger as (multi-user)'),
   })
   .omit({
