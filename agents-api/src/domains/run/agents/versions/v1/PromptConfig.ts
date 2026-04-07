@@ -749,21 +749,46 @@ ${creationInstructions}
   }
 
   private getToolChainingGuidance(): string {
-    return `TOOL CHAINING:
-When one tool's output feeds into another tool, use tool chaining. Never copy tool output inline — always tool-chain.
+    return `TOOL CHAINING — MANDATORY FOR ALL DATA FLOW BETWEEN TOOLS:
+Every tool's schema accepts tool chaining references on EVERY parameter — strings, numbers, booleans, objects, and arrays.
+When one tool's output feeds into another tool, you MUST pass a reference object instead of copying the value inline.
+This is not optional. The tool schemas are designed for this — every parameter has an anyOf that accepts { "${SENTINEL_KEY.TOOL}": "..." } objects.
+
+DECISION TREE — how to pass data between tools:
+┌─ Does the data come from a prior tool call or artifact?
+│  NO  → Pass the literal value directly
+│  YES ↓
+├─ Is the data stored as an artifact?
+│  YES → Use ARTIFACT REF: { "${SENTINEL_KEY.ARTIFACT}": "<artifact_id>", "${SENTINEL_KEY.TOOL}": "<tool_call_id>" }
+│  NO  ↓
+├─ Do you need the FULL output of the prior tool?
+│  YES → Use TOOL REF: { "${SENTINEL_KEY.TOOL}": "<tool_call_id>" }
+│  NO  ↓
+└─ Do you need a SPECIFIC FIELD from the prior tool's output?
+   YES → Use TOOL REF + SELECT: { "${SENTINEL_KEY.TOOL}": "<tool_call_id>", "${SENTINEL_KEY.SELECT}": "<jmespath>" }
 
 RULES:
-1. NEVER copy a tool result as a literal value into another tool call — always use a { "${SENTINEL_KEY.TOOL}": "call_id" } reference
-2. Dependent tools MUST be called sequentially (not batched) — the source result must exist first
-3. To derive the ${SENTINEL_KEY.SELECT} path, consult _structureHints.exampleSelectors (verified paths) or terminalPaths (all leaf fields)
+1. NEVER copy a tool result as a literal value into another tool call — always pass a reference object
+2. This applies even when the data is visible in your context — tool chaining is about correct data flow, not data visibility
+3. Dependent tools MUST be called sequentially (not batched) — the source result must exist first
+4. When a parameter expects a primitive (string, number, boolean) but the source is a complex object, you MUST use ${SENTINEL_KEY.SELECT} to drill down to the exact field
+5. To find the right ${SENTINEL_KEY.SELECT} path, consult _structureHints.exampleSelectors (verified paths) or terminalPaths (all leaf fields with types)
 
-SYNTAX:
-  { "${SENTINEL_KEY.TOOL}": "call_id" }                                    — tool-chain full output
-  { "${SENTINEL_KEY.TOOL}": "call_id", "${SENTINEL_KEY.SELECT}": "..." }   — tool-chain with JMESPath filter
-  { "${SENTINEL_KEY.ARTIFACT}": "id", "${SENTINEL_KEY.TOOL}": "call_id" }  — pass artifact data
-  { "${SENTINEL_KEY.ARTIFACT}": "id", "${SENTINEL_KEY.TOOL}": "call_id", "${SENTINEL_KEY.SELECT}": "..." } — pass filtered artifact data
-Use ${SENTINEL_KEY.SELECT} whenever you need a subset or a specific field — even a single string or number.
-⚠️ Only references tool calls from the current response turn.
+REFERENCE TYPES:
+
+1. TOOL REF — chain from a prior tool result:
+   { "${SENTINEL_KEY.TOOL}": "<tool_call_id>" }
+   Resolves to the full output of that tool call. Use when you need all the data.
+
+2. TOOL REF + SELECT — chain a specific field from a prior tool result:
+   { "${SENTINEL_KEY.TOOL}": "<tool_call_id>", "${SENTINEL_KEY.SELECT}": "<jmespath>" }
+   Resolves to the selected field only. Use when the parameter expects a specific value (string, number, boolean) or a subset of the data.
+
+3. ARTIFACT REF — chain from a saved artifact:
+   { "${SENTINEL_KEY.ARTIFACT}": "<artifact_id>", "${SENTINEL_KEY.TOOL}": "<tool_call_id>" }
+   Resolves to the full artifact data. Add "${SENTINEL_KEY.SELECT}" to extract a specific field.
+
+⚠️ References only work for tool calls from the current response turn.
 
 EXAMPLES:
   ❌ tool_a returns "some text" → tool_b({ "input": "some text" })
@@ -772,9 +797,12 @@ EXAMPLES:
   ❌ tool_a returns { "data": { "name": "..." } } → tool_b({ "name": "..." })
   ✅ tool_a (call_id: "call_a") → tool_b({ "name": { "${SENTINEL_KEY.TOOL}": "call_a", "${SENTINEL_KEY.SELECT}": "data.name" } })
 
+  ❌ search returns results → analyze({ "text": "<pasted content>" })
+  ✅ search (call_id: "call_s") → analyze({ "text": { "${SENTINEL_KEY.TOOL}": "call_s", "${SENTINEL_KEY.SELECT}": "results[0].content" } })
+
 PRIMITIVE RESULTS:
-Tool results shown as { "text": "hello", "_toolCallId": "call_a" } or { "value": 42, "_toolCallId": "call_a" }
-are display wrappers. { "${SENTINEL_KEY.TOOL}": "call_a" } resolves to the raw primitive ("hello" or 42), not the wrapper.
+Tool results shown as { "text": "hello", "_toolCallId": "call_a" }, { "value": 42, "_toolCallId": "call_a" }, or { "result": true, "_toolCallId": "call_a" }
+are display wrappers. { "${SENTINEL_KEY.TOOL}": "call_a" } resolves to the raw primitive (string, number, or boolean), not the wrapper object.
 
 ${SENTINEL_KEY.SELECT} JMESPATH PATTERNS:
   "items[?score > \`0.8\`]"              — filter array
