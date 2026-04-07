@@ -53,6 +53,8 @@ When a tool requires approval, you’ll see a `tool-approval-request` in the str
 
 See [Chat API](/talk-to-your-agents/chat-api#tool-approval) for the tool event payloads (including approval requests, tool inputs, and tool outputs).
 
+In [durable execution mode](/typescript-sdk/execution-modes), tool approvals also work for tools called by delegated sub-agents. When a delegated sub-agent invokes a tool that requires approval, the approval request surfaces to the end user. Once the user approves or denies, the decision is passed back to the delegated sub-agent and execution resumes.
+
 ### Denial reason propagation
 
 When a user denies a tool request with a `reason`, the agent receives the denial reason as a clean, human-readable string. This allows the agent to understand why the request was denied and adapt its behavior — for example, trying a different approach based on the user's feedback.
