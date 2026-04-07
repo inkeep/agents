@@ -1,10 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - main
-      - master
   pull_request:
     branches: ["*"]
   merge_group:
@@ -12,18 +8,35 @@ on:
 permissions:
   contents: read
   actions: read
+  pull-requests: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  ci:
-    if: ${{ github.event_name != 'push' || github.actor != 'github-merge-queue[bot]' }}
+  # Lightweight check on a cheap runner — avoids allocating expensive ubuntu-32gb
+  # runners and service containers just to skip everything on changeset PRs.
+  changeset-check:
+    runs-on: ubuntu-latest
+    outputs:
+      is_changeset: ${{ steps.check.outputs.is_changeset }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          sparse-checkout: .github/composite-actions/changeset-check
+          fetch-depth: 1
+      - uses: ./.github/composite-actions/changeset-check
+        id: check
+
+  ci-run:
+    needs: changeset-check
+    if: needs.changeset-check.outputs.is_changeset != 'true'
     runs-on: ubuntu-32gb
     timeout-minutes: 30
     permissions:
       contents: write
+      pull-requests: read
     env:
       TURBO_TELEMETRY_DISABLED: 1
       TURBO_CACHE_DIR: .turbo
@@ -33,52 +46,34 @@ jobs:
       GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
 
     steps:
-      - name: Check if changeset PR
-        id: changeset-check
-        run: |
-          if [ "$HEAD_REF" = "changeset-release/main" ]; then
-            echo "is_changeset=true" >> $GITHUB_OUTPUT
-            echo "Changeset PR detected — skipping CI checks"
-          else
-            echo "is_changeset=false" >> $GITHUB_OUTPUT
-          fi
-        env:
-          HEAD_REF: ${{ github.head_ref }}
-
       - name: Checkout code
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           ref: ${{ github.head_ref || github.ref }}
           fetch-depth: 0
 
       - name: Setup Node.js
-        if: steps.changeset-check.outputs.is_changeset != 'true'
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: 22.x
 
       - name: Setup pnpm
-        if: steps.changeset-check.outputs.is_changeset != 'true'
-        uses: pnpm/action-setup@c5ba7f7862a0f64c1b1a05fbac13e0b8e86ba08c # v4
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
         with:
-          version: 10.10.0
+          version: 10.33.0
           run_install: false
 
       - name: Get pnpm store directory
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         shell: bash
         run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
       # Create necessary directories for postinstall scripts
       - name: Prepare directories
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: |
           mkdir -p agents-docs/.source
           touch agents-docs/.source/index.ts
 
       - name: Setup pnpm cache
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ${{ env.STORE_PATH }}
@@ -86,7 +81,6 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Setup Turborepo cache
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .turbo
@@ -94,7 +88,6 @@ jobs:
           restore-keys: ${{ runner.os }}-turbo-
 
       - name: Setup Playwright cache
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cache/ms-playwright
@@ -102,10 +95,22 @@ jobs:
           restore-keys: playwright-${{ runner.os }}-
 
       - name: Install dependencies
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: pnpm install --frozen-lockfile
         env:
           HUSKY: 0
+
+      # Generate a GitHub App token so that auto-commits trigger downstream CI
+      # workflows. The default GITHUB_TOKEN's commits are ignored by GitHub to
+      # prevent infinite loops.
+      - name: Generate GitHub App Token
+        id: app-token
+        if: |
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        with:
+          app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
+          private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
 
       # Auto-update OpenAPI snapshot on PRs (skip fork PRs since GITHUB_TOKEN is read-only)
       # Gate: only run when files that affect the OpenAPI spec changed.
@@ -113,7 +118,6 @@ jobs:
       - name: Check for OpenAPI-affecting changes
         id: openapi-changes
         if: |
-          steps.changeset-check.outputs.is_changeset != 'true' &&
           github.event_name == 'pull_request' &&
           github.event.pull_request.head.repo.full_name == github.repository
         run: |
@@ -125,7 +129,7 @@ jobs:
           fi
 
       - name: Build dependencies for snapshot update
-        if: steps.changeset-check.outputs.is_changeset != 'true' && steps.openapi-changes.outputs.changed == 'true'
+        if: steps.openapi-changes.outputs.changed == 'true'
         run: pnpm exec turbo build --filter=@inkeep/agents-api...
         env:
           ENVIRONMENT: test
@@ -133,7 +137,7 @@ jobs:
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
 
       - name: Update OpenAPI snapshot
-        if: steps.changeset-check.outputs.is_changeset != 'true' && steps.openapi-changes.outputs.changed == 'true'
+        if: steps.openapi-changes.outputs.changed == 'true'
         run: pnpm --filter @inkeep/agents-api openapi:update-snapshot
         env:
           ENVIRONMENT: test
@@ -141,23 +145,47 @@ jobs:
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
 
       - name: Commit OpenAPI snapshot if changed
-        if: steps.changeset-check.outputs.is_changeset != 'true' && steps.openapi-changes.outputs.changed == 'true'
+        if: steps.openapi-changes.outputs.changed == 'true'
         run: |
+          # Use GitHub App token so the push triggers downstream CI workflows.
+          # The default GITHUB_TOKEN's commits are ignored by GitHub to prevent loops.
+          if [ -n "$APP_TOKEN" ]; then
+            git remote set-url origin "https://x-access-token:${APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          fi
           scripts/ci-commit-and-push.sh agents-api/__snapshots__/openapi.json "chore: update OpenAPI snapshot" "${{ github.head_ref }}"
+        env:
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Install Playwright
-        if: steps.changeset-check.outputs.is_changeset != 'true'
-        run: pnpx playwright install chromium --with-deps # install browsers + dependencies for Chromium only
+        run: pnpm --filter @inkeep/agents-manage-ui exec playwright install chromium --with-deps # install browsers + dependencies for Chromium only
+
+      - name: Start Playwright Docker server
+        run: |
+          docker run --rm --init -d --name playwright-server \
+            --network host \
+            mcr.microsoft.com/playwright:v1.58.0-noble \
+            /bin/sh -c "npx -y playwright@1.58.0 run-server --port 3100 --host 0.0.0.0"
+          echo "Waiting for Playwright server..."
+          for i in $(seq 1 30); do
+            if nc -z 127.0.0.1 3100 2>/dev/null; then
+              echo "Playwright server is ready!"
+              break
+            fi
+            sleep 1
+          done
+          if ! nc -z 127.0.0.1 3100 2>/dev/null; then
+            echo "::error::Playwright server failed to start within 30s"
+            docker logs playwright-server || true
+            exit 1
+          fi
 
       # Clean database files before running tests
       - name: Clean database files
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: |
           echo "Cleaning up any existing database files..."
           find . -name "*.db" -o -name "*.sqlite" | grep -v node_modules | xargs -r rm -f
 
       - name: Fetch main for migration lineage
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: |
           if git rev-parse --is-shallow-repository | grep -q true; then
             git fetch --no-tags --prune --unshallow origin
@@ -172,17 +200,11 @@ jobs:
           fi
 
       - name: Check migration lineage
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: pnpm check:migration-lineage
-
-      - name: Check migration regeneration
-        if: steps.changeset-check.outputs.is_changeset != 'true'
-        run: pnpm check:migration-regeneration
 
       # Run all CI checks in parallel with Turborepo
       # agents-docs build is excluded (causes OOM) — Vercel preview handles the Next.js build
       - name: Run CI checks
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         id: ci-check
         run: |
           pnpm exec turbo check --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'
@@ -193,19 +215,19 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=8192
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
+          PW_TEST_CONNECT_WS_ENDPOINT: ws://127.0.0.1:3100
           CI: true
           HUSKY: 0
 
       # Lint and typecheck agents-docs separately (build excluded above to avoid OOM)
       - name: Lint and typecheck agents-docs
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: |
           pnpm exec turbo run lint typecheck --filter=@inkeep/agents-docs
         env:
           CI: true
 
       - name: Upload Vitest Screenshots
-        if: failure() && steps.changeset-check.outputs.is_changeset != 'true'
+        if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: vitest-screenshots
@@ -214,20 +236,17 @@ jobs:
           include-hidden-files: true
 
       - name: Biome Format
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: pnpm format:check
 
       - name: Check env.ts descriptions
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: pnpm check:env-descriptions
 
       - name: Check for unused dependencies, exports, and types
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: pnpm knip
 
       # Create summary report
       - name: Create CI Summary
-        if: always() && steps.changeset-check.outputs.is_changeset != 'true'
+        if: always()
         run: |
           echo "## CI Run Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -244,10 +263,11 @@ jobs:
             echo "Run \`pnpm check\` locally to reproduce the CI checks." >> $GITHUB_STEP_SUMMARY
           fi
 
-  create-agents-e2e:
-    if: ${{ github.event_name != 'push' || github.actor != 'github-merge-queue[bot]' }}
+  create-agents-e2e-run:
+    needs: changeset-check
+    if: needs.changeset-check.outputs.is_changeset != 'true'
     runs-on: ubuntu-32gb
-    name: Create Agents E2E Tests
+    name: Create Agents E2E Tests (run)
 
     services:
       doltgres:
@@ -280,49 +300,31 @@ jobs:
           - 5433:5432
 
     steps:
-      - name: Check if changeset PR
-        id: changeset-check
-        run: |
-          if [ "$HEAD_REF" = "changeset-release/main" ]; then
-            echo "is_changeset=true" >> $GITHUB_OUTPUT
-            echo "Changeset PR detected — skipping E2E tests"
-          else
-            echo "is_changeset=false" >> $GITHUB_OUTPUT
-          fi
-        env:
-          HEAD_REF: ${{ github.head_ref }}
-
       - name: Checkout code
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Setup Node.js
-        if: steps.changeset-check.outputs.is_changeset != 'true'
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: 22.x
 
       - name: Setup pnpm
-        if: steps.changeset-check.outputs.is_changeset != 'true'
-        uses: pnpm/action-setup@c5ba7f7862a0f64c1b1a05fbac13e0b8e86ba08c # v4
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
         with:
-          version: 10.10.0
+          version: 10.33.0
           run_install: false
 
       - name: Get pnpm store directory
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         shell: bash
         run: |
           echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
       - name: Prepare directories
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: |
           mkdir -p agents-docs/.source
           touch agents-docs/.source/index.ts
 
       - name: Setup pnpm cache
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ${{ env.STORE_PATH }}
@@ -331,7 +333,6 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Setup Turborepo cache
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .turbo
@@ -340,13 +341,11 @@ jobs:
             ${{ runner.os }}-turbo-create-agents-e2e-
 
       - name: Install dependencies
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: pnpm install --frozen-lockfile
         env:
           HUSKY: 0
 
       - name: Cache Playwright browsers
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cache/ms-playwright
@@ -354,11 +353,9 @@ jobs:
           restore-keys: playwright-${{ runner.os }}-
 
       - name: Install Playwright
-        if: steps.changeset-check.outputs.is_changeset != 'true'
-        run: pnpx playwright install chromium --with-deps
+        run: pnpm --filter @inkeep/agents-manage-ui exec playwright install chromium --with-deps
 
       - name: Build create-agents and dependencies
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: |
           # Build all packages that the e2e test links to local versions
           # These need dist/ directories for subpath exports like ./factory
@@ -371,7 +368,6 @@ jobs:
 
       # Start SpiceDB (needs explicit `serve` subcommand, so can't use service container)
       - name: Start SpiceDB
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: |
           docker run -d --name spicedb \
             --network host \
@@ -390,14 +386,18 @@ jobs:
           done
 
       - name: Run database migrations
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: pnpm db:migrate
         env:
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
 
+      - name: Write SpiceDB schema
+        run: |
+          go install github.com/authzed/zed/cmd/zed@latest
+          export PATH="$(go env GOPATH)/bin:${PATH}"
+          zed schema write packages/agents-core/spicedb/schema.zed --insecure --endpoint localhost:50051 --token dev-secret-key
+
       - name: Run create-agents E2E tests
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: pnpm test:e2e --filter @inkeep/create-agents
         env:
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
@@ -409,7 +409,6 @@ jobs:
           SPICEDB_PRESHARED_KEY: dev-secret-key
 
       - name: Run agents-api integration tests
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: pnpm --filter @inkeep/agents-api test:integration
         env:
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
@@ -417,9 +416,34 @@ jobs:
           SPICEDB_PRESHARED_KEY: dev-secret-key
 
       - name: run agents-core integration tests
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: pnpm --filter @inkeep/agents-core test:integration
         env:
           INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
           INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
           SPICEDB_PRESHARED_KEY: dev-secret-key
+
+  # Gate jobs: satisfy required branch-protection checks even when the heavy
+  # jobs are skipped on changeset PRs. These always run on a cheap runner and
+  # only fail if the real job failed.
+  ci:
+    needs: [changeset-check, ci-run]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check result
+        run: |
+          if [ "${{ needs.ci-run.result }}" = "failure" ] || [ "${{ needs.ci-run.result }}" = "cancelled" ]; then
+            exit 1
+          fi
+
+  create-agents-e2e:
+    name: Create Agents E2E Tests
+    needs: [changeset-check, create-agents-e2e-run]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check result
+        run: |
+          if [ "${{ needs.create-agents-e2e-run.result }}" = "failure" ] || [ "${{ needs.create-agents-e2e-run.result }}" = "cancelled" ]; then
+            exit 1
+          fi

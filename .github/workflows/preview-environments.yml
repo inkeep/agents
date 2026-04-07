@@ -2,7 +2,7 @@ name: Preview Environments
 
 # Required GitHub Actions configuration
 # Secrets:
-# - RAILWAY_TOKEN
+# - RAILWAY_API_TOKEN (workspace or account API token)
 # - VERCEL_TOKEN
 # - VERCEL_ORG_ID
 # - VERCEL_API_PROJECT_ID
@@ -46,14 +46,20 @@ on:
         required: false
         default: false
         type: boolean
+      recreate_preview:
+        description: Delete and recreate the PR preview environment before provisioning
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
+  issues: write
   pull-requests: write
 
 concurrency:
   group: preview-environments-${{ github.event.pull_request.number || inputs.pr_number || github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   PREVIEW_BASE_DOMAIN: preview.inkeep.com
@@ -71,6 +77,7 @@ jobs:
       ui_url: ${{ steps.compute.outputs.ui_url }}
       is_internal_pr: ${{ steps.compute.outputs.is_internal_pr }}
       preview_enabled: ${{ steps.compute.outputs.preview_enabled }}
+      recreate_preview: ${{ steps.compute.outputs.recreate_preview }}
     steps:
       - name: Compute context
         id: compute
@@ -80,6 +87,7 @@ jobs:
           EVENT_PR_BRANCH: ${{ github.event.pull_request.head.ref }}
           INPUT_PR_NUMBER: ${{ inputs.pr_number }}
           INPUT_FORCE_ENABLE: ${{ inputs.force_enable }}
+          INPUT_RECREATE_PREVIEW: ${{ inputs.recreate_preview }}
           EVENT_REPO_FULL_NAME: ${{ github.event.pull_request.head.repo.full_name }}
           WORKFLOW_REPO_FULL_NAME: ${{ github.repository }}
           GITHUB_API_URL: ${{ github.api_url }}
@@ -131,12 +139,18 @@ jobs:
             PREVIEW_ENABLED="true"
           fi
 
+          RECREATE_PREVIEW="false"
+          if [ "${EVENT_NAME:-}" = "workflow_dispatch" ] && [ "${INPUT_RECREATE_PREVIEW:-false}" = "true" ]; then
+            RECREATE_PREVIEW="true"
+          fi
+
           echo "pr_number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
           echo "pr_branch=${PR_BRANCH}" >> "$GITHUB_OUTPUT"
           echo "api_url=${API_URL}" >> "$GITHUB_OUTPUT"
           echo "ui_url=${UI_URL}" >> "$GITHUB_OUTPUT"
           echo "is_internal_pr=${IS_INTERNAL_PR}" >> "$GITHUB_OUTPUT"
           echo "preview_enabled=${PREVIEW_ENABLED}" >> "$GITHUB_OUTPUT"
+          echo "recreate_preview=${RECREATE_PREVIEW}" >> "$GITHUB_OUTPUT"
 
       - name: Summary
         run: |
@@ -148,10 +162,11 @@ jobs:
             echo "- UI URL: \`${{ steps.compute.outputs.ui_url }}\`"
             echo "- Internal PR: \`${{ steps.compute.outputs.is_internal_pr }}\`"
             echo "- Preview flow enabled: \`${{ steps.compute.outputs.preview_enabled }}\`"
+            echo "- Manual recreate requested: \`${{ steps.compute.outputs.recreate_preview }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
   preview-disabled:
-    name: Preview Flow Disabled
+    name: Preview Disabled Notice (runs only when previews are off)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [compute-context]
@@ -168,6 +183,9 @@ jobs:
     name: Provision Tier 1 (Railway)
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    concurrency:
+      group: preview-railway-${{ vars.RAILWAY_PROJECT_ID || 'default' }}
+      cancel-in-progress: false
     needs: [compute-context]
     if: |
       needs.compute-context.outputs.preview_enabled == 'true' &&
@@ -181,14 +199,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli@4.31.0
-
       - name: Provision per-PR resources
         id: provision
         env:
           CI: true
-          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN || secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
           RAILWAY_TEMPLATE_ENVIRONMENT: ${{ vars.RAILWAY_TEMPLATE_ENVIRONMENT }}
           RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}
@@ -207,12 +222,13 @@ jobs:
           RAILWAY_SPICEDB_ENDPOINT_TEMPLATE: ${{ vars.RAILWAY_SPICEDB_ENDPOINT_TEMPLATE || '' }}
           SPICEDB_PRESHARED_KEY: ${{ secrets.PREVIEW_SPICEDB_PRESHARED_KEY }}
           PR_NUMBER: ${{ needs.compute-context.outputs.pr_number }}
+          RECREATE_PREVIEW_ENV: ${{ needs.compute-context.outputs.recreate_preview }}
         run: bash .github/scripts/preview/provision-railway.sh
 
   bootstrap-preview-auth:
     name: Bootstrap Preview Auth
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     needs: [compute-context, provision-tier1]
     if: |
       needs.compute-context.outputs.preview_enabled == 'true' &&
@@ -225,18 +241,16 @@ jobs:
       - name: Install
         uses: ./.github/composite-actions/install
 
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli@4.31.0
-
       - name: Seed preview admin user
         env:
           API_URL: ${{ needs.compute-context.outputs.api_url }}
           RUN_DB_URL: ${{ needs.provision-tier1.outputs.run_db_url }}
           SPICEDB_ENDPOINT: ${{ needs.provision-tier1.outputs.spicedb_endpoint }}
           SPICEDB_TLS_ENABLED: false
-          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN || secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
           RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}
+          RAILWAY_SPICEDB_SERVICE: ${{ vars.RAILWAY_SPICEDB_SERVICE || 'spicedb' }}
           RAILWAY_RUN_DB_URL_KEY: ${{ vars.RAILWAY_RUN_DB_URL_KEY || 'INKEEP_AGENTS_RUN_DATABASE_URL' }}
           RAILWAY_SPICEDB_ENDPOINT_KEY: ${{ vars.RAILWAY_SPICEDB_ENDPOINT_KEY || 'SPICEDB_ENDPOINT' }}
           SPICEDB_PRESHARED_KEY: ${{ secrets.PREVIEW_SPICEDB_PRESHARED_KEY }}
@@ -265,9 +279,6 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli@4.31.0
-
       - name: Upsert Vercel env vars for API + UI projects
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -284,7 +295,7 @@ jobs:
           BETTER_AUTH_SECRET: ${{ secrets.PREVIEW_BETTER_AUTH_SECRET }}
           SPICEDB_PRESHARED_KEY: ${{ secrets.PREVIEW_SPICEDB_PRESHARED_KEY }}
           CI: true
-          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN || secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
           RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}
           RAILWAY_MANAGE_DB_URL_KEY: ${{ vars.RAILWAY_MANAGE_DB_URL_KEY || 'INKEEP_AGENTS_MANAGE_DATABASE_URL' }}
@@ -356,8 +367,45 @@ jobs:
           echo "Smoke checks failed"
           exit 1
 
+      - name: Publish stable preview URLs
+        if: ${{ steps.smoke.outcome == 'success' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_API_URL: ${{ github.api_url }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ needs.compute-context.outputs.pr_number }}
+          API_URL: ${{ needs.compute-context.outputs.api_url }}
+          UI_URL: ${{ needs.compute-context.outputs.ui_url }}
+          API_DEPLOYMENT_URL: ${{ needs.configure-vercel-preview.outputs.api_deployment_url }}
+          UI_DEPLOYMENT_URL: ${{ needs.configure-vercel-preview.outputs.ui_deployment_url }}
+        run: bash .github/scripts/preview/comment-preview-urls.sh
+
   teardown-tier1:
-    name: Teardown Tier 1 (Railway)
+    name: Teardown Tier 1 (Railway, PR close only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: preview-railway-${{ vars.RAILWAY_PROJECT_ID || 'default' }}
+      cancel-in-progress: false
+    needs: [compute-context]
+    if: |
+      needs.compute-context.outputs.preview_enabled == 'true' &&
+      github.event.action == 'closed' &&
+      needs.compute-context.outputs.is_internal_pr == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Teardown per-PR resources
+        env:
+          CI: true
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN || secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+          PR_NUMBER: ${{ needs.compute-context.outputs.pr_number }}
+        run: bash .github/scripts/preview/teardown-railway.sh
+
+  teardown-vercel:
+    name: Teardown Vercel Preview Env Vars (PR close only)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [compute-context]
@@ -369,15 +417,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli@4.31.0
-
-      - name: Teardown per-PR resources
+      - name: Remove branch-scoped Vercel env vars
         env:
-          CI: true
-          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
-          RAILWAY_TEMPLATE_ENVIRONMENT: ${{ vars.RAILWAY_TEMPLATE_ENVIRONMENT }}
-          RAILWAY_OUTPUT_SERVICE: ${{ vars.RAILWAY_OUTPUT_SERVICE || 'agents-api' }}
-          PR_NUMBER: ${{ needs.compute-context.outputs.pr_number }}
-        run: bash .github/scripts/preview/teardown-railway.sh
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_API_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
+          VERCEL_MANAGE_UI_PROJECT_ID: ${{ secrets.VERCEL_MANAGE_UI_PROJECT_ID }}
+          PR_BRANCH: ${{ needs.compute-context.outputs.pr_branch }}
+        run: bash .github/scripts/preview/teardown-vercel-preview-env.sh
