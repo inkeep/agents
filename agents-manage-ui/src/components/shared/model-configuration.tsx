@@ -98,16 +98,24 @@ function getJsonPlaceholder({ model, slot }: { model?: string; slot: ModelConfig
 }
 
 const AllowedProvidersSection: FC<{
-  allowedProviders?: string[];
   inheritedAllowedProviders?: string[];
-  onAllowedProvidersChange: (providers: string[]) => void;
   disabled: boolean;
-}> = ({ allowedProviders, inheritedAllowedProviders, onAllowedProvidersChange, disabled }) => {
+  name: string;
+  control: Control<any>;
+}> = ({ inheritedAllowedProviders, disabled, name, control }) => {
   const [addOpen, setAddOpen] = useState(false);
   const [draggingId, setDraggingId] = useState('');
   const [dragOverId, setDragOverId] = useState('');
   const [specificMode, setSpecificMode] = useState(false);
-
+  const { field: allowedProvidersField } = useController({
+    control,
+    name: `${name}.allowedProviders`,
+    shouldUnregister: true,
+  });
+  const allowedProviders = allowedProvidersField.value;
+  function onAllowedProvidersChange(providers: string[]) {
+    allowedProvidersField.onChange(providers.length ? providers : undefined);
+  }
   const effectiveProviders = allowedProviders ?? inheritedAllowedProviders ?? [];
   const isInherited = !allowedProviders && !!inheritedAllowedProviders;
   const isSpecific = specificMode || effectiveProviders.length > 0;
@@ -257,7 +265,7 @@ const FallbackModelsSection: FC<{
   inheritedFallbackModels?: string[];
   disabled: boolean;
   name: string;
-  control: Control;
+  control: Control<any>;
 }> = ({ inheritedFallbackModels, disabled, name, control }) => {
   const [showPendingSelector, setShowPendingSelector] = useState(false);
   const { field: fallbackModelsField } = useController({
@@ -415,16 +423,6 @@ export function ModelConfiguration<
   const providerOptions = providerOptionsField.value;
   const onProviderOptionsChange = providerOptionsField.onChange;
 
-  const { field: allowedProvidersField } = useController({
-    control,
-    name: `${name}.allowedProviders` as FieldPath<TFieldValues>,
-    shouldUnregister: true,
-  });
-  const allowedProviders = allowedProvidersField.value;
-  function onAllowedProvidersChange(providers: string[]) {
-    allowedProvidersField.onChange(providers.length ? providers : undefined);
-  }
-
   const inheritedValue = inherited?.model;
   const inheritedProviderOptions = inherited?.providerOptions ?? '';
 
@@ -516,10 +514,10 @@ export function ModelConfiguration<
           {capabilities?.modelFallback?.enabled && isGatewayRoutable && (
             <>
               <AllowedProvidersSection
-                allowedProviders={allowedProviders}
                 inheritedAllowedProviders={inherited?.allowedProviders ?? undefined}
-                onAllowedProvidersChange={onAllowedProvidersChange}
                 disabled={disabled}
+                name={name}
+                control={control}
               />
               <FallbackModelsSection
                 inheritedFallbackModels={inherited?.fallbackModels ?? undefined}
