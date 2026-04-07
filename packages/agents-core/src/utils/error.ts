@@ -167,6 +167,8 @@ export const errorResponseSchema = z
 
 export type ErrorResponse = z.infer<typeof errorResponseSchema>;
 
+const STATIC_500_MESSAGE = 'An internal server error occurred. Please try again later.';
+
 export function createApiError({
   code,
   message,
@@ -184,16 +186,19 @@ export function createApiError({
   const title = getTitleFromCode(code);
   const _type = `${ERROR_DOCS_BASE_URL}#${code}`;
 
+  const externalMessage = status >= 500 ? STATIC_500_MESSAGE : message;
+
   const problemDetails: ProblemDetails = {
     title,
     status,
-    detail: message,
+    detail: externalMessage,
     code,
     ...(instance && { instance }),
     ...(requestId && { requestId }),
   };
 
-  const errorMessage = message.length > 100 ? `${message.substring(0, 97)}...` : message;
+  const errorMessage =
+    externalMessage.length > 100 ? `${externalMessage.substring(0, 97)}...` : externalMessage;
 
   const responseBody = {
     ...problemDetails,
@@ -244,7 +249,10 @@ export async function handleApiError(
       };
     }
 
-    if (error.status < 500) {
+    if (error.status >= 500) {
+      responseJson.detail = STATIC_500_MESSAGE;
+      responseJson.error.message = STATIC_500_MESSAGE;
+    } else {
       getLogger('core').info(
         {
           error,
@@ -260,21 +268,15 @@ export async function handleApiError(
     return responseJson;
   }
 
-  const sanitizedErrorMessage =
-    error instanceof Error
-      ? error.message.replace(/\b(password|token|key|secret|auth)\b/gi, '[REDACTED]')
-      : 'Unknown error';
-
   const problemDetails: ProblemDetails & { error: { code: ErrorCodes; message: string } } = {
-    // type: `${ERROR_DOCS_BASE_URL}#internal_server_error`,
     title: 'Internal Server Error',
     status: 500,
-    detail: `Server error occurred: ${sanitizedErrorMessage}`,
+    detail: STATIC_500_MESSAGE,
     code: 'internal_server_error',
     ...(requestId && { requestId }),
     error: {
       code: 'internal_server_error',
-      message: 'An internal server error occurred. Please try again later.',
+      message: STATIC_500_MESSAGE,
     },
   };
 
