@@ -10352,6 +10352,36 @@
         },
         "type": "object"
       },
+      "TriggerAuthenticationUpdate": {
+        "properties": {
+          "headers": {
+            "description": "Array of headers. Use keepExisting:true to preserve existing hashed value.",
+            "items": {
+              "properties": {
+                "keepExisting": {
+                  "description": "If true, keep the existing hashed value for this header",
+                  "type": "boolean"
+                },
+                "name": {
+                  "description": "Header name (e.g., X-API-Key, Authorization)",
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "value": {
+                  "description": "New header value (plaintext). If omitted, existing value is kept.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "TriggerCreate": {
         "properties": {
           "authentication": {
@@ -10734,7 +10764,7 @@
       "TriggerUpdate": {
         "properties": {
           "authentication": {
-            "$ref": "#/components/schemas/TriggerAuthenticationInput"
+            "$ref": "#/components/schemas/TriggerAuthenticationUpdate"
           },
           "createdAt": {
             "type": "string"
