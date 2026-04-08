@@ -1,4 +1,5 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
@@ -33,15 +34,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   };
 });
 
-vi.mock('../../../logger', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    with: vi.fn().mockReturnThis(),
-  }),
-  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
-}));
+vi.mock('../../../logger', () => createMockLoggerModule().module);
 
 vi.mock('../../../middleware/projectAccess', () => ({
   requireProjectPermission: () => async (_c: unknown, next: () => Promise<void>) => {

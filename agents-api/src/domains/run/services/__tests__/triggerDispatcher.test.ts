@@ -1,4 +1,5 @@
 import type { ScheduledTrigger } from '@inkeep/agents-core';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@inkeep/agents-core', () => ({
@@ -16,16 +17,7 @@ vi.mock('workflow/api', () => ({
   start: vi.fn(),
 }));
 
-vi.mock('../../../../logger', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn(),
-    debug: vi.fn(),
-    with: vi.fn().mockReturnThis(),
-  }),
-  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
-}));
+vi.mock('../../../../logger', () => createMockLoggerModule().module);
 
 vi.mock('../../workflow/functions/scheduledTriggerRunner', () => ({
   scheduledTriggerRunnerWorkflow: 'mock-workflow',
