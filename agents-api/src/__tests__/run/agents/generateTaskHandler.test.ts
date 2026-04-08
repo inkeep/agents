@@ -1,4 +1,5 @@
 import { getAppByIdForProject, type Part, parseEmbeddedJson, TaskState } from '@inkeep/agents-core';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { A2ATask } from '../../../domains/run/a2a/types';
 import { Agent } from '../../../domains/run/agents/Agent';
@@ -235,15 +236,7 @@ vi.mock('../../../domains/run/stream/stream-registry.js', () => ({
   getStreamHelper: vi.fn().mockReturnValue(undefined),
 }));
 
-vi.mock('../../../logger.js', () => ({
-  getLogger: vi.fn().mockReturnValue({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    with: vi.fn().mockReturnThis(),
-  }),
-  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
-}));
+vi.mock('../../../logger.js', () => createMockLoggerModule().module);
 
 function createMockExecutionContext(
   overrides: {

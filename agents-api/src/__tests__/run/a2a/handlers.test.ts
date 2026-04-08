@@ -1,4 +1,5 @@
 import { TaskState } from '@inkeep/agents-core';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import type { Context } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { a2aHandler } from '../../../domains/run/a2a/handlers';
@@ -35,15 +36,7 @@ vi.mock('../../../data/db/runDbClient', () => ({
   default: {},
 }));
 
-vi.mock('../../../logger.js', () => ({
-  getLogger: vi.fn().mockReturnValue({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    with: vi.fn().mockReturnThis(),
-  }),
-  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
-}));
+vi.mock('../../../logger.js', () => createMockLoggerModule().module);
 
 describe('A2A Handlers', () => {
   let mockAgent: RegisteredAgent;

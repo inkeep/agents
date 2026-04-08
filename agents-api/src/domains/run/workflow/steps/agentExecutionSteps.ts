@@ -1,5 +1,5 @@
 import type { FullExecutionContext, McpTool, Part, ResolvedRef } from '@inkeep/agents-core';
-import { SPAN_NAMES } from '@inkeep/agents-core';
+import { SPAN_NAMES, TRANSFER_TOOL_PREFIX } from '@inkeep/agents-core';
 import { context as otelContext, propagation } from '@opentelemetry/api';
 import { getWritable } from 'workflow';
 import { env } from '../../../../env';
@@ -671,7 +671,7 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
             );
           }
 
-          if (hasToolCallWithPrefix('transfer_to_')(response)) {
+          if (hasToolCallWithPrefix(TRANSFER_TOOL_PREFIX)(response)) {
             const transferReason =
               response.steps?.[response.steps.length - 1]?.text || response.text || '';
 
@@ -683,9 +683,9 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
               )?.toolCalls ?? [];
 
             const transferToolCall = lastStepToolCallsForTransfer.find((tc) =>
-              tc.toolName.startsWith('transfer_to_')
+              tc.toolName.startsWith(TRANSFER_TOOL_PREFIX)
             );
-            const targetSubAgentId = transferToolCall?.toolName.slice('transfer_to_'.length);
+            const targetSubAgentId = transferToolCall?.toolName.slice(TRANSFER_TOOL_PREFIX.length);
 
             logger.info(
               { targetSubAgentId, transferToolName: transferToolCall?.toolName },
@@ -969,9 +969,7 @@ export async function executeToolStep(params: ExecuteToolStepParams): Promise<Ex
 
           if (preApproved !== undefined) {
             agent.setApprovedToolCalls({
-              [toolName]: [
-                { approved: preApproved, reason: approvalReason, originalToolCallId: toolCallId },
-              ],
+              [toolCallId]: { approved: preApproved, reason: approvalReason },
             });
           }
 
@@ -1117,9 +1115,16 @@ export async function markWorkflowSuspendedStep(params: {
   projectId: string;
   workflowRunId: string;
   continuationStreamNamespace: string;
+  pendingToolApproval?: {
+    toolCallId: string;
+    toolName: string;
+    args: unknown;
+    isDelegated: boolean;
+  };
 }): Promise<void> {
   'use step';
-  const { tenantId, projectId, workflowRunId, continuationStreamNamespace } = params;
+  const { tenantId, projectId, workflowRunId, continuationStreamNamespace, pendingToolApproval } =
+    params;
 
   const { updateWorkflowExecutionStatus } = await import('@inkeep/agents-core');
   const { default: runDbClient } = await import('../../../../data/db/runDbClient');
@@ -1129,7 +1134,10 @@ export async function markWorkflowSuspendedStep(params: {
     projectId,
     id: workflowRunId,
     status: 'suspended',
-    metadata: { continuationStreamNamespace },
+    metadata: {
+      continuationStreamNamespace,
+      ...(pendingToolApproval ? { pendingToolApproval } : {}),
+    },
   });
 
   logger.info({ workflowRunId }, 'Workflow execution marked as suspended (awaiting tool approval)');
@@ -1151,6 +1159,7 @@ export async function markWorkflowResumingStep(params: {
     projectId,
     id: workflowRunId,
     status: 'running',
+    metadata: { pendingToolApproval: null },
   });
 
   logger.info({ workflowRunId }, 'Workflow execution marked as running (resuming after approval)');

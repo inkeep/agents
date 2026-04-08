@@ -152,9 +152,7 @@ export class Agent {
   }
 
   setApprovedToolCalls(
-    approvedToolCalls:
-      | Record<string, Array<{ approved: boolean; reason?: string; originalToolCallId?: string }>>
-      | undefined
+    approvedToolCalls: Record<string, { approved: boolean; reason?: string }> | undefined
   ) {
     this.ctx.approvedToolCalls = approvedToolCalls;
   }

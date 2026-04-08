@@ -241,6 +241,33 @@ All existing PUT update routes remain functional — they share the same handler
 - **Test Structure**: Tests must be in `__tests__` directories, named `*.test.ts`
 - **Coverage Requirements**: All new code paths must have test coverage
 
+#### Shared Test Mocks (`@inkeep/agents-core/test-utils`)
+
+Use the shared mock factories instead of defining inline mocks. This prevents drift when the real API changes.
+
+```typescript
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
+
+// Simple — just suppress logger noise (most common):
+vi.mock('../../logger', () => createMockLoggerModule().module);
+
+// When asserting on logger calls:
+const { mockLogger, module: loggerModule, clearAll } = createMockLoggerModule();
+vi.mock('../../logger', () => loggerModule);
+// In beforeEach: clearAll() — vi.clearAllMocks() does not reach nested mock fns
+
+// Edge case: static imports after vi.mock (TDZ issue) — use vi.hoisted container:
+const refs = vi.hoisted(() => ({ mockLogger: null as any }));
+vi.mock('../../logger', async () => {
+  const { createMockLoggerModule } = await import('@inkeep/agents-core/test-utils');
+  const result = createMockLoggerModule();
+  refs.mockLogger = result.mockLogger;
+  return result.module;
+});
+```
+
+**Do NOT** define inline logger mocks (`{ info: vi.fn(), warn: vi.fn(), ... }`) — use the factory.
+
 #### Example Test Structure
 ```typescript
 // src/builder/__tests__/myFeature.test.ts

@@ -1,3 +1,4 @@
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the ai package's tool function - must be before imports
@@ -207,17 +208,7 @@ vi.mock('../../../domains/run/a2a/client', () => ({
   })),
 }));
 
-// Mock the logger
-vi.mock('../../../logger.js', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    with: vi.fn().mockReturnThis(),
-  }),
-  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
-}));
+vi.mock('../../../logger.js', () => createMockLoggerModule().module);
 
 // Mock the env
 vi.mock('../../../env.js', () => ({

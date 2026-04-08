@@ -7,23 +7,14 @@ import {
   updateFullAgentServerSide,
 } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import manageDbClient from '../../../data/db/manageDbClient';
 import { createTestContextConfigData } from '../../utils/testHelpers';
 import { createTestSubAgentData } from '../../utils/testSubAgent';
 import { createTestTenantWithOrg } from '../../utils/testTenant';
 
-// Mock the logger to reduce noise in tests
-vi.mock('../../../logger', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn(),
-    with: vi.fn().mockReturnThis(),
-  }),
-  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
-}));
+vi.mock('../../../logger', () => createMockLoggerModule().module);
 
 describe('Agent Full Service Layer - Unit Tests', () => {
   // Helper function to create full agent data

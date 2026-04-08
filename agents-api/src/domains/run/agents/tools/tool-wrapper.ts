@@ -143,25 +143,24 @@ export function wrapToolWithStreaming(
       const needsApproval = options?.needsApproval || false;
 
       const preApprovedEntry = ctx.durableWorkflowRunId
-        ? ctx.approvedToolCalls?.[toolName]?.[0]
+        ? ctx.approvedToolCalls?.[toolCallId]
         : undefined;
-      const effectiveToolCallId = preApprovedEntry?.originalToolCallId ?? toolCallId;
       const isPreApproved = !!preApprovedEntry;
 
       if (streamRequestId && streamHelper && !isInternalToolForUi && !isPreApproved) {
         const inputText = JSON.stringify(args ?? {});
 
-        await streamHelper.writeToolInputStart({ toolCallId: effectiveToolCallId, toolName });
+        await streamHelper.writeToolInputStart({ toolCallId: toolCallId, toolName });
 
         for (const part of chunkString(inputText, 16)) {
           await streamHelper.writeToolInputDelta({
-            toolCallId: effectiveToolCallId,
+            toolCallId: toolCallId,
             inputTextDelta: part,
           });
         }
 
         await streamHelper.writeToolInputAvailable({
-          toolCallId: effectiveToolCallId,
+          toolCallId: toolCallId,
           toolName,
           input: args ?? {},
           providerMetadata: context?.providerMetadata,
@@ -172,7 +171,7 @@ export function wrapToolWithStreaming(
         const toolCallData: ToolCallData = {
           toolName,
           input: args,
-          toolCallId: effectiveToolCallId,
+          toolCallId: toolCallId,
           relationshipId,
           inDelegatedAgent: ctx.isDelegatedAgent,
         };
@@ -287,7 +286,7 @@ export function wrapToolWithStreaming(
             }
 
             ctx.pendingDurableApproval = {
-              toolCallId: effectiveToolCallId,
+              toolCallId: toolCallId,
               toolName,
               args: resolvedArgs,
               delegatedApproval: {
@@ -315,7 +314,7 @@ export function wrapToolWithStreaming(
               toolName,
               args,
               result,
-              effectiveToolCallId,
+              toolCallId,
               toolResultConversationId,
               messageId
             );
@@ -332,7 +331,7 @@ export function wrapToolWithStreaming(
                 metadata: {
                   a2a_metadata: {
                     toolName,
-                    toolCallId: effectiveToolCallId,
+                    toolCallId: toolCallId,
                     toolArgs: args,
                     toolOutput: result,
                     timestamp: Date.now(),
@@ -347,7 +346,7 @@ export function wrapToolWithStreaming(
               {
                 error,
                 toolName,
-                toolCallId: effectiveToolCallId,
+                toolCallId: toolCallId,
                 conversationId: toolResultConversationId,
               },
               'Failed to store tool result in conversation history'
@@ -363,7 +362,7 @@ export function wrapToolWithStreaming(
             {
               toolName,
               output: stripInternalFields(result),
-              toolCallId: effectiveToolCallId,
+              toolCallId: toolCallId,
               duration,
               relationshipId,
               needsApproval,
@@ -376,10 +375,10 @@ export function wrapToolWithStreaming(
 
         if (streamRequestId && streamHelper && !isInternalToolForUi) {
           if (isDeniedResult) {
-            await streamHelper.writeToolOutputDenied({ toolCallId: effectiveToolCallId });
+            await streamHelper.writeToolOutputDenied({ toolCallId: toolCallId });
           } else {
             await streamHelper.writeToolOutputAvailable({
-              toolCallId: effectiveToolCallId,
+              toolCallId: toolCallId,
               output: result,
             });
           }
@@ -403,7 +402,7 @@ export function wrapToolWithStreaming(
             {
               toolName,
               output: null,
-              toolCallId: effectiveToolCallId,
+              toolCallId: toolCallId,
               duration,
               error: errorMessage,
               relationshipId,
@@ -415,7 +414,7 @@ export function wrapToolWithStreaming(
 
         if (streamRequestId && streamHelper && !isInternalToolForUi) {
           await streamHelper.writeToolOutputError({
-            toolCallId: effectiveToolCallId,
+            toolCallId: toolCallId,
             errorText: errorMessage,
           });
         }

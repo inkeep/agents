@@ -45,41 +45,10 @@ export async function waitForToolApproval(
   if (ctx.durableWorkflowRunId) {
     const approvedToolCalls = ctx.approvedToolCalls;
     if (approvedToolCalls) {
-      const queue = approvedToolCalls[toolName];
-      const preApproved = queue?.shift();
-      if (queue?.length === 0) {
-        delete approvedToolCalls[toolName];
-      }
+      const preApproved = approvedToolCalls[toolCallId];
       if (preApproved !== undefined) {
-        if (preApproved.originalToolCallId && preApproved.originalToolCallId !== toolCallId) {
-          const deniedResult = tracer.startActiveSpan(
-            'tool.approval_denied',
-            {
-              attributes: {
-                ...baseSpanAttributes,
-                'tool.approval.reason': 'originalToolCallId mismatch',
-                'tool.approval.originalToolCallId': preApproved.originalToolCallId,
-              },
-            },
-            (denialSpan: Span) => {
-              logger.warn(
-                {
-                  toolName,
-                  toolCallId,
-                  originalToolCallId: preApproved.originalToolCallId,
-                },
-                'Durable approval rejected: originalToolCallId mismatch — tool call may have changed since approval'
-              );
-              denialSpan.setStatus({ code: SpanStatusCode.OK });
-              denialSpan.end();
-              return createDeniedToolResult(
-                toolCallId,
-                'Tool approval rejected: the tool call changed since it was approved.'
-              );
-            }
-          );
-          return { approved: false, deniedResult };
-        }
+        delete approvedToolCalls[toolCallId];
+
         if (!preApproved.approved) {
           const deniedResult = tracer.startActiveSpan(
             'tool.approval_denied',
@@ -126,12 +95,23 @@ export async function waitForToolApproval(
 
     const streamHelper = ctx.isDelegatedAgent ? undefined : ctx.streamHelper;
     if (streamHelper) {
-      await streamHelper.writeToolApprovalRequest({
-        approvalId: `aitxt-${toolCallId}`,
-        toolCallId,
-        toolName,
-        input: args as Record<string, unknown>,
-      });
+      try {
+        await streamHelper.writeToolApprovalRequest({
+          approvalId: `aitxt-${toolCallId}`,
+          toolCallId,
+          toolName,
+          input: args as Record<string, unknown>,
+        });
+      } catch (sseError) {
+        logger.warn(
+          {
+            toolCallId,
+            toolName,
+            error: sseError instanceof Error ? sseError.message : String(sseError),
+          },
+          'Failed to stream tool approval request to client — approval is persisted and recoverable via polling'
+        );
+      }
     }
 
     ctx.pendingDurableApproval = { toolCallId, toolName, args };

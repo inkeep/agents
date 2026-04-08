@@ -1,4 +1,5 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { jwtVerify } from 'jose';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -63,17 +64,7 @@ vi.mock('@inkeep/agents-work-apps/github', () => ({
   fetchInstallationRepositories: fetchInstallationRepositoriesMock,
 }));
 
-vi.mock('../../../logger', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    child: vi.fn().mockReturnThis(),
-    with: vi.fn().mockReturnThis(),
-  }),
-  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
-}));
+vi.mock('../../../logger', () => createMockLoggerModule().module);
 
 import githubRoutes, {
   STATE_JWT_AUDIENCE,
