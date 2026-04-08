@@ -145,7 +145,7 @@ export const createRefMiddleware = (
           logger.debug({ projectId }, 'Extracted projectId from request body');
         }
       } catch {
-        logger.debug({}, 'Could not extract projectId from body');
+        logger.debug('Could not extract projectId from body');
       }
     }
 

@@ -264,7 +264,7 @@ app.openapi(
       });
     } catch (err) {
       logger.error(
-        { tenantId, projectId, userId, error: err },
+        { userId, error: err },
         'Failed to clean up user from scheduled triggers after project removal'
       );
     }

@@ -219,8 +219,6 @@ describe('Conversation media route', () => {
     expect(loggerErrorMock).toHaveBeenCalledWith(
       expect.objectContaining({
         requestId: 'req-test-1',
-        tenantId: 'default',
-        projectId: 'test-project',
         conversationId: 'conv-1',
       }),
       'Failed to serve media'
