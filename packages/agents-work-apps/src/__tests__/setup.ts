@@ -4,9 +4,10 @@ import { migrate } from 'drizzle-orm/pglite/migrator';
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import runDbClient from '../db/runDbClient';
 
-// Mock the local logger module globally - this will be hoisted automatically by Vitest
-vi.mock('../logger.js', () => createMockLoggerModule().module);
-vi.mock('../logger', () => createMockLoggerModule().module);
+// Mock the local logger module globally — single instance shared across both path variants
+const loggerMock = createMockLoggerModule().module;
+vi.mock('../logger.js', () => loggerMock);
+vi.mock('../logger', () => loggerMock);
 
 // Initialize database schema for in-memory test databases using Drizzle migrations
 beforeAll(async () => {

@@ -5,9 +5,10 @@ import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import manageDbClient from '../data/db/manageDbClient';
 import runDbClient from '../data/db/runDbClient';
 
-// Mock the local logger module globally - this will be hoisted automatically by Vitest
-vi.mock('../logger.js', () => createMockLoggerModule().module);
-vi.mock('../logger', () => createMockLoggerModule().module);
+// Mock the local logger module globally — single instance shared across both path variants
+const loggerMock = createMockLoggerModule().module;
+vi.mock('../logger.js', () => loggerMock);
+vi.mock('../logger', () => loggerMock);
 
 // Mock only the manageDbPool module to avoid creating a real PostgreSQL pool during tests
 // This is necessary because manageDbPool.ts calls createAgentsManageDatabasePool at import time

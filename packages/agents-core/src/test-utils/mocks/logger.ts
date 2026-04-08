@@ -1,3 +1,10 @@
+/**
+ * Shared mock factories for the logger module.
+ *
+ * These utilities require `vitest` in the consumer's environment — they
+ * import `vi` from `vitest` to create mock functions. Only use in test files
+ * where vitest is already available as a devDependency.
+ */
 import { vi } from 'vitest';
 
 export interface MockLogger {
