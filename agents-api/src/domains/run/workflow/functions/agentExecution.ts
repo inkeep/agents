@@ -77,14 +77,20 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
       if (llmResult.type === 'tool_calls') {
         for (const toolCall of llmResult.toolCalls) {
           const continuationNs = `r${approvalRound + 1}`;
+          const hookToolCallId = llmResult.delegatedApproval?.toolCallId ?? toolCall.toolCallId;
           await markWorkflowSuspendedStep({
             tenantId: payload.tenantId,
             projectId: payload.projectId,
             workflowRunId,
             continuationStreamNamespace: continuationNs,
+            pendingToolApproval: {
+              toolCallId: hookToolCallId,
+              toolName: toolCall.toolName,
+              args: toolCall.args,
+              isDelegated: !!llmResult.delegatedApproval,
+            },
           });
 
-          const hookToolCallId = llmResult.delegatedApproval?.toolCallId ?? toolCall.toolCallId;
           const token = `tool-approval:${payload.conversationId}:${workflowRunId}:${hookToolCallId}`;
 
           console.info('[agentExecution] Creating tool approval hook', {

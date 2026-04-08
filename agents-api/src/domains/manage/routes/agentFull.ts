@@ -16,15 +16,12 @@ import {
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { clearWorkspaceConnectionCache } from '@inkeep/agents-work-apps/slack';
 import { HTTPException } from 'hono/http-exception';
-import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import {
   type ManageRouteHandler,
   openapiRegisterPutPatchRoutesForLegacy,
 } from '../../../utils/openapiDualRoute';
-
-const logger = getLogger('agentFull');
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
@@ -113,10 +110,7 @@ app.openapi(
     const { tenantId, projectId, agentId } = c.req.valid('param');
 
     try {
-      const agent: FullAgentDefinition | null = await getFullAgent(
-        db,
-        logger
-      )({
+      const agent: FullAgentDefinition | null = await getFullAgent(db)({
         scopes: { tenantId, projectId, agentId },
       });
 
@@ -200,10 +194,7 @@ const updateFullAgentHandler: ManageRouteHandler<typeof updateFullAgentRouteConf
       });
     }
 
-    const existingAgent: FullAgentDefinition | null = await getFullAgent(
-      db,
-      logger
-    )({
+    const existingAgent: FullAgentDefinition | null = await getFullAgent(db)({
       scopes: { tenantId, projectId, agentId },
     });
     const isCreate = !existingAgent;
@@ -263,10 +254,7 @@ app.openapi(
     const { tenantId, projectId, agentId } = c.req.valid('param');
 
     try {
-      const deleted = await deleteFullAgent(
-        db,
-        logger
-      )({
+      const deleted = await deleteFullAgent(db)({
         scopes: { tenantId, projectId, agentId },
       });
 
