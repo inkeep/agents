@@ -1,15 +1,16 @@
+import { DANGEROUS_PATTERNS } from '@inkeep/agents-core/utils/signature-validation';
 import * as jmespath from 'jmespath';
 import { ToolChainResolutionError } from '../artifacts/ArtifactParser';
+
+export function clearSelectorCache(): void {
+  selectorCache.clear();
+}
 
 /**
  * Strip internal fields (prefixed with _) from a tool result object.
  * Removes _structureHints, _toolCallId, etc. that are added for LLM context
  * but should not appear in traces, stored results, or downstream data.
  */
-export function clearSelectorCache(): void {
-  selectorCache.clear();
-}
-
 export function stripInternalFields<T>(data: T): T {
   if (data && typeof data === 'object' && !Array.isArray(data)) {
     return Object.fromEntries(Object.entries(data).filter(([key]) => !key.startsWith('_'))) as T;
@@ -20,15 +21,6 @@ export function stripInternalFields<T>(data: T): T {
 const selectorCache = new Map<string, string>();
 const SELECTOR_CACHE_MAX = 1000;
 const MAX_EXPRESSION_LENGTH = 1000;
-
-const DANGEROUS_PATTERNS: RegExp[] = [
-  /\$\{.*\}/,
-  /eval\s*\(/,
-  /function\s*\(/,
-  /constructor/,
-  /prototype/,
-  /__proto__/,
-];
 
 /**
  * Sanitize JMESPath selector to fix common LLM syntax issues.

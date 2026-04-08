@@ -25,7 +25,13 @@ function buildRefAwareInputSchema(inputSchema: unknown): {
     const baseInputSchema = makeBaseInputSchema(rawJson);
     const refAwareInputSchema = z.fromJSONSchema(makeRefAwareJsonSchema(rawJson));
     return { refAwareInputSchema, baseInputSchema };
-  } catch {
+  } catch (schemaError) {
+    logger.warn(
+      {
+        schemaError: schemaError instanceof Error ? schemaError.message : String(schemaError),
+      },
+      'Failed to build ref-aware schema for MCP tool; falling back to original schema'
+    );
     return {
       refAwareInputSchema: inputSchema as ReturnType<typeof z.fromJSONSchema>,
       baseInputSchema: undefined,

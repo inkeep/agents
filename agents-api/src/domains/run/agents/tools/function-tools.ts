@@ -89,8 +89,14 @@ export async function getFunctionTools(
       if (functionData.inputSchema) {
         try {
           baseInputSchema = makeBaseInputSchema(functionData.inputSchema);
-        } catch {
-          // baseInputSchema stays undefined — post-resolution validation will be skipped
+        } catch (schemaError) {
+          logger.warn(
+            {
+              functionToolName: functionToolDef.name,
+              schemaError: schemaError instanceof Error ? schemaError.message : String(schemaError),
+            },
+            'Failed to build base input schema; post-resolution validation will be skipped'
+          );
         }
         try {
           refAwareInputSchema = z.fromJSONSchema(makeRefAwareJsonSchema(functionData.inputSchema));

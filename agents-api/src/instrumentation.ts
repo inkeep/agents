@@ -97,7 +97,9 @@ class ToolResultSanitizer implements SpanProcessor {
           (span as any).attributes['ai.toolCall.result'] = JSON.stringify(parsed);
         }
       }
-    } catch {}
+    } catch {
+      // Expected for non-JSON tool results — leave span unchanged
+    }
   }
 
   async shutdown(): Promise<void> {}
