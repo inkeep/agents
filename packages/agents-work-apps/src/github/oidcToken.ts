@@ -113,7 +113,7 @@ export async function validateOidcToken(token: string): Promise<ValidateOidcToke
     };
   } catch (error) {
     if (error instanceof errors.JWTExpired) {
-      logger.warn({}, 'OIDC token has expired');
+      logger.warn('OIDC token has expired');
       return {
         success: false,
         errorType: 'expired',
@@ -151,7 +151,7 @@ export async function validateOidcToken(token: string): Promise<ValidateOidcToke
     }
 
     if (error instanceof errors.JWSSignatureVerificationFailed) {
-      logger.warn({}, 'Invalid OIDC token signature');
+      logger.warn('Invalid OIDC token signature');
       return {
         success: false,
         errorType: 'invalid_signature',
