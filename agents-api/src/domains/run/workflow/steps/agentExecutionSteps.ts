@@ -889,7 +889,7 @@ export async function executeToolStep(params: ExecuteToolStepParams): Promise<Ex
   } = payload;
 
   return runWithLogContext(
-    { requestId, currentSubAgentId, toolName, toolCallId, workflowRunId },
+    { requestId, currentSubAgentId, toolName, toolCallId, workflowRunId, conversationId },
     async () => {
       logger.info({ streamNamespace }, 'executeToolStep starting');
 
