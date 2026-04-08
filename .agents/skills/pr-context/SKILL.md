@@ -22,8 +22,8 @@ Use this context to:
 | **Author** | sarah_inkeep |
 | **Base** | `main` |
 | **Repo** | inkeep/agents |
-| **Head SHA** | `400427d20a8ddc2381150fc63f87f0a0ea3bb845` |
-| **Size** | 1 commits · +190/-180 · 8 files |
+| **Head SHA** | `b39e19c14ac87bb68c0f7dd4d327ff938f9529f7` |
+| **Size** | 2 commits · +200/-185 · 8 files |
 | **Labels** | _None — local review._ |
 | **Review state** | LOCAL |
 | **Diff mode** | `inline` — full tracked diff included below |
@@ -45,6 +45,7 @@ Commits reachable from HEAD and not in the target branch (oldest → newest). Lo
 
 ```
 400427d20 fixup! local-review: baseline (pre-review state)
+b39e19c14 fixup! local-review: address findings (pass 1)
 ```
 
 ## Changed Files
@@ -54,13 +55,13 @@ Per-file diff stats (for prioritizing review effort). Untracked files are listed
 ```
  agents-docs/package.json                           |   4 +-
  agents-manage-ui/package.json                      |   2 +-
- .../components/agent/playground/chat-widget.tsx    |  39 +----
+ .../components/agent/playground/chat-widget.tsx    |  47 ++----
  .../agent/playground/feedback-dialog.tsx           |  52 +------
- .../components/agent/playground/improve-dialog.tsx |  97 ++++++++++++
- .../src/components/feedback/feedback-table.tsx     | 165 +++++++++------------
+ .../components/agent/playground/improve-dialog.tsx | 102 +++++++++++++
+ .../src/components/feedback/feedback-table.tsx     | 167 +++++++++------------
  .../src/components/traces/filters/date-picker.tsx  |   9 +-
  agents-ui-demo/package.json                        |   2 +-
- 8 files changed, 190 insertions(+), 180 deletions(-)
+ 8 files changed, 200 insertions(+), 185 deletions(-)
 ```
 
 Full file list (including untracked files when present):
@@ -108,7 +109,7 @@ index fe3485f75..06306ba0d 100644
      "@nangohq/node": "^0.69.41",
      "@nangohq/types": "^0.69.41",
 diff --git a/agents-manage-ui/src/components/agent/playground/chat-widget.tsx b/agents-manage-ui/src/components/agent/playground/chat-widget.tsx
-index 61514cf6f..ffbaa61e8 100644
+index 61514cf6f..d8d72b6fd 100644
 --- a/agents-manage-ui/src/components/agent/playground/chat-widget.tsx
 +++ b/agents-manage-ui/src/components/agent/playground/chat-widget.tsx
 @@ -10,7 +10,7 @@ import { useRuntimeConfig } from '@/contexts/runtime-config';
@@ -120,7 +121,7 @@ index 61514cf6f..ffbaa61e8 100644
  
  interface ChatWidgetProps {
    agentId?: string;
-@@ -73,7 +73,7 @@ export function ChatWidget({
+@@ -73,15 +73,14 @@ export function ChatWidget({
    stopPolling,
    customHeaders,
    chatActivities,
@@ -129,9 +130,10 @@ index 61514cf6f..ffbaa61e8 100644
    hasHeadersError,
  }: ChatWidgetProps) {
    const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
-@@ -81,7 +81,6 @@ export function ChatWidget({
+   const copilotCtx = useCopilotContext();
    const { data: dataComponents } = useDataComponentsQuery();
-   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
+-  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
++  const [isImproveDialogOpen, setIsImproveDialogOpen] = useState(false);
    const [messageId, setMessageId] = useState<string | undefined>(undefined);
 -  const [feedbackType, setFeedbackType] = useState<'positive' | 'negative'>('negative');
    const {
@@ -175,20 +177,24 @@ index 61514cf6f..ffbaa61e8 100644
 -                          copilotCtx.openCopilot();
 -                          copilotCtx.setDynamicHeaders({ conversationId, messageId });
 +                          setMessageId(messageId);
-+                          setIsFeedbackDialogOpen(true);
++                          setIsImproveDialogOpen(true);
                          },
                        },
                      },
-@@ -317,14 +292,12 @@ export function ChatWidget({
+@@ -316,15 +291,13 @@ export function ChatWidget({
+           }}
          />
        </div>
-       {isFeedbackDialogOpen && (
+-      {isFeedbackDialogOpen && (
 -        <FeedbackDialog
-+        <ImproveDialog
-           isOpen={isFeedbackDialogOpen}
-           onOpenChange={setIsFeedbackDialogOpen}
+-          isOpen={isFeedbackDialogOpen}
+-          onOpenChange={setIsFeedbackDialogOpen}
 -          tenantId={tenantId}
 -          projectId={projectId}
++      {isImproveDialogOpen && (
++        <ImproveDialog
++          isOpen={isImproveDialogOpen}
++          onOpenChange={setIsImproveDialogOpen}
            conversationId={conversationId}
            messageId={messageId}
 -          initialType={feedbackType}
@@ -291,14 +297,15 @@ index bea0ace6c..c2f4b7fa0 100644
              </div>
 diff --git a/agents-manage-ui/src/components/agent/playground/improve-dialog.tsx b/agents-manage-ui/src/components/agent/playground/improve-dialog.tsx
 new file mode 100644
-index 000000000..0cd312e5c
+index 000000000..904d15095
 --- /dev/null
 +++ b/agents-manage-ui/src/components/agent/playground/improve-dialog.tsx
-@@ -0,0 +1,97 @@
+@@ -0,0 +1,102 @@
 +import { zodResolver } from '@hookform/resolvers/zod';
 +import { SparklesIcon } from 'lucide-react';
 +import type { Dispatch } from 'react';
 +import { useForm } from 'react-hook-form';
++import { toast } from 'sonner';
 +import { z } from 'zod';
 +import { GenericTextarea } from '@/components/form/generic-textarea';
 +import { Button } from '@/components/ui/button';
@@ -358,8 +365,12 @@ index 000000000..0cd312e5c
 +      setTimeout(() => {
 +        chatFunctionsREF.current?.submitMessage(feedback);
 +      }, 100);
++      onOpenChange(false);
++    } else {
++      toast.error('Copilot is not ready', {
++        description: 'Please try again in a moment.',
++      });
 +    }
-+    onOpenChange(false);
 +  });
 +
 +  return (
@@ -376,8 +387,8 @@ index 000000000..0cd312e5c
 +            <GenericTextarea
 +              control={form.control}
 +              name="feedback"
-+              label=""
-+              placeholder="What could have been better?"
++              label="What could have been better?"
++              placeholder="Describe how this response should be improved"
 +              className="min-h-[80px]"
 +            />
 +            <div className="flex justify-end gap-2">
@@ -393,7 +404,7 @@ index 000000000..0cd312e5c
 +  );
 +};
 diff --git a/agents-manage-ui/src/components/feedback/feedback-table.tsx b/agents-manage-ui/src/components/feedback/feedback-table.tsx
-index c3c357153..7c93ef376 100644
+index c3c357153..7eb61a53a 100644
 --- a/agents-manage-ui/src/components/feedback/feedback-table.tsx
 +++ b/agents-manage-ui/src/components/feedback/feedback-table.tsx
 @@ -26,6 +26,7 @@ import {
@@ -479,7 +490,7 @@ index c3c357153..7c93ef376 100644
 +            updateQuery({ type: next ?? '', page: 1 });
 +          }}
 +        >
-+          <TabsList className="">
++          <TabsList>
 +            <TabsTrigger value="all" className="gap-1.5 font-sans normal-case">
 +              All
 +              {!typeFilter && <span className="text-xs opacity-70">{pagination.total}</span>}
@@ -516,7 +527,7 @@ index c3c357153..7c93ef376 100644
          </div>
        </div>
  
-@@ -247,10 +215,11 @@ export function FeedbackTable({
+@@ -247,16 +215,17 @@ export function FeedbackTable({
          <TableHeader>
            <TableRow noHover>
              <TableHead className="w-[170px]">Created</TableHead>
@@ -529,6 +540,13 @@ index c3c357153..7c93ef376 100644
            </TableRow>
          </TableHeader>
          <TableBody>
+           {feedback.length === 0 && (
+             <TableRow noHover>
+-              <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
++              <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                 No feedback found matching your filters.
+               </TableCell>
+             </TableRow>
 @@ -267,46 +236,52 @@ export function FeedbackTable({
                : `/${tenantId}/projects/${projectId}/traces/conversations/${item.conversationId}`;
              return (

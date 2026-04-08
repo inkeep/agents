@@ -24,14 +24,14 @@ interface ImproveDialogProps {
   setShowTraces: Dispatch<boolean>;
 }
 
-const feedbackSchema = z.object({
+const improveSchema = z.object({
   feedback: z
     .string()
     .min(1, 'Please provide details about what could have been better.')
     .max(1000, 'Feedback must be less than 1000 characters'),
 });
 
-type FeedbackFormData = z.infer<typeof feedbackSchema>;
+type ImproveFormData = z.infer<typeof improveSchema>;
 
 export const ImproveDialog = ({
   isOpen,
@@ -45,11 +45,11 @@ export const ImproveDialog = ({
     openCopilot,
     setDynamicHeaders,
   } = useCopilotContext();
-  const form = useForm<FeedbackFormData>({
+  const form = useForm<ImproveFormData>({
     defaultValues: {
       feedback: '',
     },
-    resolver: zodResolver(feedbackSchema),
+    resolver: zodResolver(improveSchema),
   });
   const { isSubmitting } = form.formState;
 
@@ -74,9 +74,9 @@ export const ImproveDialog = ({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl!">
         <DialogHeader>
-          <DialogTitle>Feedback</DialogTitle>
+          <DialogTitle>Improve with AI</DialogTitle>
           <DialogDescription className="sr-only">
-            Provide feedback on the message.
+            Describe how this response should be improved. Your input will be sent to the copilot.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
