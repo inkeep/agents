@@ -97,7 +97,7 @@ function logServerError(
         ...getDatabaseErrorLogContext(err),
         message: errorMessage,
         stack: errorStack,
-        ...(cause && { dbError: cause }),
+        ...(cause && { errorCause: cause }),
         path,
         requestId,
       },
@@ -108,7 +108,7 @@ function logServerError(
       {
         ...getDatabaseErrorLogContext(err),
         message: errorMessage,
-        ...(cause && { dbError: cause }),
+        ...(cause && { errorCause: cause }),
         path,
         requestId,
         status,

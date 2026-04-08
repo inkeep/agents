@@ -100,6 +100,8 @@ export type CheckoutBranchResult = {
     error?: string;
     /** The merge commit hash if schema was synced */
     mergeCommitHash?: string;
+    /** Whether sync was skipped because another request holds the advisory lock */
+    skippedDueToLock?: boolean;
   };
 };
 
@@ -156,6 +158,7 @@ export const checkoutBranch =
         hadDifferences: schemaSyncResult.hadDifferences,
         error: schemaSyncResult.error,
         mergeCommitHash: schemaSyncResult.mergeCommitHash,
+        skippedDueToLock: schemaSyncResult.skippedDueToLock,
       },
     };
   };

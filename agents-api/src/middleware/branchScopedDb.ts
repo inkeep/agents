@@ -104,22 +104,21 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
         logger.info({ ref: resolvedRef.name, checkoutMs }, 'Slow checkoutBranch in branchScopedDb');
       }
 
-      // Retry schema sync if it was skipped due to lock contention
-      while (
-        checkoutResult.schemaSync.hadDifferences &&
-        !checkoutResult.schemaSync.performed &&
-        syncAttempts < MAX_SCHEMA_SYNC_RETRIES
-      ) {
+      // Retry schema sync only when skipped due to advisory lock contention.
+      // Other failure modes (merge conflicts, uncommitted changes) are not retryable.
+      while (checkoutResult.schemaSync.skippedDueToLock && syncAttempts < MAX_SCHEMA_SYNC_RETRIES) {
         syncAttempts++;
         logger.warn(
           {
             branch: resolvedRef.name,
-            error: checkoutResult.schemaSync.error,
+            reason: 'skipped due to lock contention',
             attempt: syncAttempts,
           },
           'Schema sync not performed, retrying'
         );
-        await new Promise((resolve) => setTimeout(resolve, 50 * syncAttempts));
+        await new Promise((resolve) =>
+          setTimeout(resolve, 50 * syncAttempts * (1 + Math.random() * 0.5))
+        );
         checkoutResult = await checkoutBranch(requestDb)({
           branchName: resolvedRef.name,
           syncSchema: true,
