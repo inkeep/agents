@@ -17,6 +17,7 @@ import { getRun, start } from 'workflow/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
+import { buildMessageAttachmentToolCallId } from '../services/blob-storage/attachment-artifacts';
 import { buildPersistedMessageContent } from '../services/blob-storage/file-upload-helpers';
 import type { Message } from '../types/chat';
 import { ImageContentItemSchema } from '../types/chat';
@@ -218,11 +219,17 @@ app.openapi(createExecutionRoute, async (c) => {
   const userMessage = extractTextFromParts(messageParts);
 
   const messageId = generateId();
+  const hasAttachedFiles = messageParts.some((part) => part.kind === 'file');
+  const attachmentTaskId = hasAttachedFiles ? `message_${messageId}` : undefined;
+
   const messageContent = await buildPersistedMessageContent(userMessage, messageParts, {
     tenantId,
     projectId,
     conversationId,
     messageId,
+    taskId: `message_${messageId}`,
+    toolCallId: buildMessageAttachmentToolCallId(messageId),
+    source: 'user-message',
   });
 
   const fullAgent = executionContext.project.agents[agentId];
@@ -247,6 +254,7 @@ app.openapi(createExecutionRoute, async (c) => {
       content: messageContent,
       visibility: 'user-facing',
       messageType: 'chat',
+      ...(attachmentTaskId ? { taskId: attachmentTaskId } : {}),
     },
   });
 

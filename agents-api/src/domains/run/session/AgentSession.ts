@@ -27,13 +27,15 @@ import { ArtifactService } from '../artifacts/ArtifactService';
 import {
   ARTIFACT_GENERATION_BACKOFF_INITIAL_MS,
   ARTIFACT_GENERATION_BACKOFF_MAX_MS,
-  ARTIFACT_GENERATION_MAX_RETRIES,
+  ARTIFACT_PENDING_MAX_WAIT_MS,
+  ARTIFACT_SAVE_RETRY_DELAY_MS,
   ARTIFACT_SESSION_MAX_PENDING,
   ARTIFACT_SESSION_MAX_PREVIOUS_SUMMARIES,
   STATUS_UPDATE_DEFAULT_INTERVAL_SECONDS,
   STATUS_UPDATE_DEFAULT_NUM_EVENTS,
 } from '../constants/execution-limits';
 import { getFormattedConversationHistory, getScopedHistory } from '../data/conversations';
+import { stripBinaryDataForObservability } from '../services/blob-storage/artifact-binary-sanitizer';
 import { getStreamHelper } from '../stream/stream-registry';
 import { defaultStatusSchemas } from '../utils/default-status-schemas';
 import { getModelContextWindow } from '../utils/model-context-utils';
@@ -219,9 +221,9 @@ export class AgentSession {
   private isTextStreaming: boolean = false;
   private isGeneratingUpdate: boolean = false;
   private pendingArtifacts = new Set<string>(); // Track pending artifact processing
-  private artifactProcessingErrors = new Map<string, number>(); // Track errors per artifact
-  private readonly MAX_ARTIFACT_RETRIES = ARTIFACT_GENERATION_MAX_RETRIES;
   private readonly MAX_PENDING_ARTIFACTS = ARTIFACT_SESSION_MAX_PENDING; // Prevent unbounded growth
+  private readonly MAX_ARTIFACT_RETRIES = 1;
+  private artifactProcessingErrors = new Map<string, number>();
   private scheduledTimeouts?: Set<ReturnType<typeof setTimeout>>; // Track scheduled timeouts for cleanup
   private artifactCache = new Map<string, any>(); // Cache artifacts created in this session
   private artifactService?: any; // Session-scoped ArtifactService instance
@@ -443,14 +445,14 @@ export class AgentSession {
           const artifactDataWithAgent = { ...artifactData, subAgentId };
           this.processArtifact(artifactDataWithAgent)
             .then(() => {
-              this.pendingArtifacts.delete(artifactId);
               this.artifactProcessingErrors.delete(artifactId);
+              this.pendingArtifacts.delete(artifactId);
             })
             .catch((error) => {
               const errorCount = (this.artifactProcessingErrors.get(artifactId) || 0) + 1;
               this.artifactProcessingErrors.set(artifactId, errorCount);
 
-              if (errorCount >= this.MAX_ARTIFACT_RETRIES) {
+              if (errorCount > this.MAX_ARTIFACT_RETRIES) {
                 this.pendingArtifacts.delete(artifactId);
                 this.logger.error(
                   {
@@ -469,8 +471,44 @@ export class AgentSession {
                     errorCount,
                     error: error instanceof Error ? error.message : 'Unknown error',
                   },
-                  'Artifact processing failed, may retry'
+                  'Artifact processing failed, retrying'
                 );
+
+                const retryTimeoutId = setTimeout(() => {
+                  if (this.isEnded) {
+                    this.pendingArtifacts.delete(artifactId);
+                    return;
+                  }
+
+                  this.processArtifact(artifactDataWithAgent)
+                    .then(() => {
+                      this.artifactProcessingErrors.delete(artifactId);
+                      this.pendingArtifacts.delete(artifactId);
+                    })
+                    .catch((retryError) => {
+                      this.artifactProcessingErrors.set(artifactId, errorCount + 1);
+                      this.pendingArtifacts.delete(artifactId);
+                      this.logger.error(
+                        {
+                          artifactId,
+                          errorCount: errorCount + 1,
+                          maxRetries: this.MAX_ARTIFACT_RETRIES,
+                          error: retryError instanceof Error ? retryError.message : 'Unknown error',
+                          stack: retryError instanceof Error ? retryError.stack : undefined,
+                        },
+                        'Artifact processing failed after retry, giving up'
+                      );
+                    });
+                }, ARTIFACT_SAVE_RETRY_DELAY_MS);
+
+                if (!this.scheduledTimeouts) {
+                  this.scheduledTimeouts = new Set();
+                }
+                this.scheduledTimeouts.add(retryTimeoutId);
+
+                setTimeout(() => {
+                  this.scheduledTimeouts?.delete(retryTimeoutId);
+                }, ARTIFACT_SAVE_RETRY_DELAY_MS + 1000);
               }
             });
         });
@@ -616,6 +654,25 @@ export class AgentSession {
     return this.isTextStreaming;
   }
 
+  async waitForPendingArtifacts(maxWaitTime = ARTIFACT_PENDING_MAX_WAIT_MS): Promise<void> {
+    if (this.pendingArtifacts.size === 0) return;
+
+    const startTime = Date.now();
+    while (this.pendingArtifacts.size > 0 && Date.now() - startTime < maxWaitTime) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    if (this.pendingArtifacts.size > 0) {
+      this.logger.warn(
+        {
+          pendingCount: this.pendingArtifacts.size,
+          pendingIds: Array.from(this.pendingArtifacts),
+        },
+        'Proceeding with pending artifacts still processing'
+      );
+    }
+  }
+
   /**
    * Clean up status update resources when session ends
    */
@@ -630,24 +687,7 @@ export class AgentSession {
     this.statusUpdateState = undefined;
 
     // Wait for pending artifacts to complete before cleaning up artifactService
-    if (this.pendingArtifacts.size > 0) {
-      const maxWaitTime = 10000; // 10 seconds max wait
-      const startTime = Date.now();
-
-      while (this.pendingArtifacts.size > 0 && Date.now() - startTime < maxWaitTime) {
-        await new Promise((resolve) => setTimeout(resolve, 100)); // Wait 100ms between checks
-      }
-
-      if (this.pendingArtifacts.size > 0) {
-        this.logger.warn(
-          {
-            pendingCount: this.pendingArtifacts.size,
-            pendingIds: Array.from(this.pendingArtifacts),
-          },
-          'Cleanup proceeding with pending artifacts still processing'
-        );
-      }
-    }
+    await this.waitForPendingArtifacts();
 
     // Clean up artifact tracking maps to prevent memory leaks
     this.pendingArtifacts.clear();
@@ -1343,7 +1383,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           'subAgent.id': artifactData.subAgentId || 'unknown',
           'subAgent.name': artifactData.subAgentName || 'unknown',
           'artifact.tool_call_id': artifactData.metadata?.toolCallId || 'unknown',
-          'artifact.data': JSON.stringify(artifactData.data, null, 2),
+          'artifact.data': JSON.stringify(stripBinaryDataForObservability(artifactData.data)),
           'tenant.id': artifactData.tenantId || 'unknown',
           'project.id': artifactData.projectId || 'unknown',
           'context.id': artifactData.contextId || 'unknown',
@@ -1550,9 +1590,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           } else {
             // Truncate artifact data based on model context limits (use 20% for data preview)
             const fullDataStr = JSON.stringify(
-              artifactData.data || artifactData.summaryData || {},
-              null,
-              2
+              stripBinaryDataForObservability(artifactData.data || artifactData.summaryData || {})
             );
             let truncatedData = fullDataStr;
 
@@ -1636,9 +1674,7 @@ Make the name extremely specific to what this tool call actually returned, not g
                   'artifact.type': artifactData.artifactType,
                   'artifact.summary': JSON.stringify(artifactData.summaryData, null, 2),
                   'artifact.full': JSON.stringify(
-                    artifactData.data || artifactData.summaryData,
-                    null,
-                    2
+                    stripBinaryDataForObservability(artifactData.data || artifactData.summaryData)
                   ),
                   'prompt.length': prompt.length,
                 },
@@ -1684,9 +1720,9 @@ Make the name extremely specific to what this tool call actually returned, not g
                       'artifact.description': result.output.description,
                       'artifact.summary': JSON.stringify(artifactData.summaryData, null, 2),
                       'artifact.full': JSON.stringify(
-                        artifactData.data || artifactData.summaryData,
-                        null,
-                        2
+                        stripBinaryDataForObservability(
+                          artifactData.data || artifactData.summaryData
+                        )
                       ),
                       'generation.name_length': result.output.name.length,
                       'generation.description_length': result.output.description.length,

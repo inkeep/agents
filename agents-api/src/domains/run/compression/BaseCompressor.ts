@@ -40,6 +40,33 @@ function stripStructureHints(value: unknown): unknown {
   return value;
 }
 
+function sanitizeBinaryPayloadsForTokenEstimation(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeBinaryPayloadsForTokenEstimation(item));
+  }
+
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  const record = value as Record<string, unknown>;
+  const sanitized: Record<string, unknown> = {};
+
+  for (const [key, nestedValue] of Object.entries(record)) {
+    sanitized[key] = sanitizeBinaryPayloadsForTokenEstimation(nestedValue);
+  }
+
+  const type = record.type;
+  if (
+    (type === 'image-data' || type === 'image' || type === 'file' || type === 'file-data') &&
+    typeof record.data === 'string'
+  ) {
+    sanitized.data = '[binary payload omitted for compression token estimation]';
+  }
+
+  return sanitized;
+}
+
 export interface CompressionConfig {
   hardLimit: number;
   safetyBuffer: number;
@@ -98,26 +125,32 @@ export abstract class BaseCompressor {
             total += this.estimateTokens(block.text || '');
           } else if (block.type === 'tool-call') {
             total += this.estimateTokens(
-              JSON.stringify({
-                toolCallId: block.toolCallId,
-                toolName: block.toolName,
-                input: block.input,
-              })
+              JSON.stringify(
+                sanitizeBinaryPayloadsForTokenEstimation({
+                  toolCallId: block.toolCallId,
+                  toolName: block.toolName,
+                  input: block.input,
+                })
+              )
             );
           } else if (block.type === 'tool-result') {
             total += this.estimateTokens(
-              JSON.stringify({
-                toolCallId: block.toolCallId,
-                toolName: block.toolName,
-                output: block.output,
-              })
+              JSON.stringify(
+                sanitizeBinaryPayloadsForTokenEstimation({
+                  toolCallId: block.toolCallId,
+                  toolName: block.toolName,
+                  output: block.output,
+                })
+              )
             );
           }
         }
       } else if (typeof msg.content === 'string') {
         total += this.estimateTokens(msg.content);
       } else if (msg.content) {
-        total += this.estimateTokens(JSON.stringify(msg.content));
+        total += this.estimateTokens(
+          JSON.stringify(sanitizeBinaryPayloadsForTokenEstimation(msg.content))
+        );
       }
       return total;
     }, 0);
@@ -148,6 +181,7 @@ export abstract class BaseCompressor {
     const toolCallIds = this.extractToolCallIds(messagesToProcess);
     const existingArtifacts = await this.findExistingArtifacts([...new Set(toolCallIds)]);
     const toolCallToArtifactMap: Record<string, CompressedArtifactInfo> = {};
+    let createdArtifacts = false;
 
     for (const message of messagesToProcess) {
       this.convertDatabaseFormatMessage(message);
@@ -157,9 +191,23 @@ export abstract class BaseCompressor {
             const artifactInfo = await this.processToolResult(block, session, existingArtifacts);
             if (artifactInfo) {
               toolCallToArtifactMap[block.toolCallId] = artifactInfo;
+              if (!existingArtifacts.has(block.toolCallId)) {
+                createdArtifacts = true;
+              }
             }
           }
         }
+      }
+    }
+
+    if (createdArtifacts) {
+      await session.waitForPendingArtifacts();
+
+      const refreshedArtifacts = await this.findExistingArtifacts(
+        Object.keys(toolCallToArtifactMap)
+      );
+      for (const [toolCallId, artifactInfo] of refreshedArtifacts.entries()) {
+        toolCallToArtifactMap[toolCallId] = artifactInfo;
       }
     }
 
@@ -172,11 +220,12 @@ export abstract class BaseCompressor {
       {
         artifactId: string;
         isOversized: boolean;
-        toolArgs?: unknown;
+        toolArgs?: Record<string, unknown>;
         toolName?: string;
         summaryData?: Record<string, any>;
         name?: string;
         description?: string;
+        artifactType?: string;
       }
     >
   > {
@@ -185,11 +234,12 @@ export abstract class BaseCompressor {
       {
         artifactId: string;
         isOversized: boolean;
-        toolArgs?: unknown;
+        toolArgs?: Record<string, unknown>;
         toolName?: string;
         summaryData?: Record<string, any>;
         name?: string;
         description?: string;
+        artifactType?: string;
       }
     >();
 
@@ -202,21 +252,22 @@ export abstract class BaseCompressor {
       });
 
       for (const artifact of artifacts) {
-        if (artifact.toolCallId) {
-          const dataPart = artifact.parts?.find(
-            (p): p is Extract<(typeof artifact.parts)[number], { kind: 'data' }> =>
-              p.kind === 'data'
-          );
-          result.set(artifact.toolCallId, {
-            artifactId: artifact.artifactId,
-            isOversized: (artifact.metadata?.isOversized as boolean) ?? false,
-            toolArgs: artifact.metadata?.toolArgs,
-            toolName: artifact.metadata?.toolName as string | undefined,
-            summaryData: dataPart?.data?.summary ?? dataPart?.data,
-            name: artifact.name,
-            description: artifact.description,
-          });
-        }
+        const toolCallId = artifact.toolCallId;
+        if (!toolCallId || result.has(toolCallId)) continue;
+
+        const dataPart = artifact.parts?.find(
+          (p): p is Extract<(typeof artifact.parts)[number], { kind: 'data' }> => p.kind === 'data'
+        );
+        result.set(toolCallId, {
+          artifactId: artifact.artifactId,
+          isOversized: (artifact.metadata?.isOversized as boolean) ?? false,
+          toolArgs: artifact.metadata?.toolArgs,
+          toolName: artifact.metadata?.toolName as string | undefined,
+          summaryData: dataPart?.data?.summary ?? dataPart?.data,
+          name: artifact.name,
+          description: artifact.description,
+          artifactType: artifact.type,
+        });
       }
     } catch (error) {
       logger.warn(
@@ -264,11 +315,12 @@ export abstract class BaseCompressor {
       {
         artifactId: string;
         isOversized: boolean;
-        toolArgs?: unknown;
+        toolArgs?: Record<string, unknown>;
         toolName?: string;
         summaryData?: Record<string, any>;
         name?: string;
         description?: string;
+        artifactType?: string;
       }
     >
   ): Promise<CompressedArtifactInfo | null> {
@@ -286,9 +338,11 @@ export abstract class BaseCompressor {
         artifactId: existing.artifactId,
         isOversized: existing.isOversized,
         toolArgs: existing.toolArgs as Record<string, unknown> | undefined,
+        toolName: existing.toolName,
         summaryData: existing.summaryData,
         name: existing.name,
         description: existing.description,
+        artifactType: existing.artifactType,
       };
     }
 
@@ -404,10 +458,12 @@ export abstract class BaseCompressor {
     return {
       artifactId,
       isOversized: artifactData.metadata.isOversized,
+      toolName: block.toolName,
       toolArgs: artifactData.metadata.toolArgs ?? undefined,
       structureInfo: artifactData.summaryData._structureInfo,
       oversizedWarning: artifactData.summaryData._oversizedWarning,
       summaryData: artifactData.summaryData,
+      artifactType: artifactData.artifactType,
     };
   }
 
@@ -429,8 +485,11 @@ export abstract class BaseCompressor {
           } else if (block.type === 'tool-call') {
             nonToolResultChars +=
               JSON.stringify(block.input || {}).length + (block.toolName || '').length;
-          } else if (block.type === 'tool-result' && toolCallToArtifactMap?.[block.toolCallId]) {
-            numToolResults++;
+          } else if (block.type === 'tool-result') {
+            const info = toolCallToArtifactMap?.[block.toolCallId];
+            if (info && info.artifactType !== 'binary_attachment') {
+              numToolResults++;
+            }
           }
         }
       } else if (msg.content?.text) {
@@ -462,20 +521,36 @@ export abstract class BaseCompressor {
               // Intentionally skip tool results without artifact mappings (skipped/internal tools).
               // Only artifact-backed results are included so the distillation prompt stays compact.
               if (artifactInfo) {
-                const header = artifactInfo.name
-                  ? `[TOOL RESULT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}] "${artifactInfo.name}"`
-                  : `[TOOL RESULT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}]`;
-                const descriptionLine = artifactInfo.description
-                  ? `Description: ${artifactInfo.description}\n`
-                  : '';
-                const summary = artifactInfo.summaryData
-                  ? JSON.stringify(artifactInfo.summaryData)
-                  : '';
-                const truncated =
-                  perResultLimit && summary.length > perResultLimit
-                    ? `${summary.slice(0, perResultLimit)}...`
-                    : summary;
-                parts.push(`${header}\n${descriptionLine}${truncated}`);
+                if (artifactInfo.artifactType === 'binary_attachment') {
+                  const header = artifactInfo.name
+                    ? `[BINARY ATTACHMENT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}] "${artifactInfo.name}"`
+                    : `[BINARY ATTACHMENT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}]`;
+                  const descriptionLine = artifactInfo.description
+                    ? `Description: ${artifactInfo.description}\n`
+                    : '';
+                  const sd = artifactInfo.summaryData;
+                  const metaParts: string[] = [];
+                  if (sd?.mimeType) metaParts.push(`mimeType: ${sd.mimeType}`);
+                  if (sd?.binaryType) metaParts.push(`binaryType: ${sd.binaryType}`);
+                  if (sd?.filename) metaParts.push(`filename: ${sd.filename}`);
+                  const metaLine = metaParts.length > 0 ? `${metaParts.join(', ')}\n` : '';
+                  parts.push(`${header}\n${descriptionLine}${metaLine}`.trimEnd());
+                } else {
+                  const header = artifactInfo.name
+                    ? `[TOOL RESULT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}] "${artifactInfo.name}"`
+                    : `[TOOL RESULT] ${block.toolName} [ARTIFACT: ${artifactInfo.artifactId}]`;
+                  const descriptionLine = artifactInfo.description
+                    ? `Description: ${artifactInfo.description}\n`
+                    : '';
+                  const summary = artifactInfo.summaryData
+                    ? JSON.stringify(artifactInfo.summaryData)
+                    : '';
+                  const truncated =
+                    perResultLimit && summary.length > perResultLimit
+                      ? `${summary.slice(0, perResultLimit)}...`
+                      : summary;
+                  parts.push(`${header}\n${descriptionLine}${truncated}`);
+                }
               } else {
                 logger.debug(
                   { toolCallId: block.toolCallId, toolName: block.toolName },
@@ -585,16 +660,16 @@ export abstract class BaseCompressor {
 
       if (!artifacts.length) return this.cumulativeSummary;
 
-      const nameMap = new Map<string, { name?: string; description?: string }>(
+      const artifactIdMap = new Map<string, { name?: string; description?: string }>(
         artifacts
-          .filter((a) => a.toolCallId && (a.name || a.description))
-          .map((a) => [a.toolCallId as string, { name: a.name, description: a.description }])
+          .filter((a) => a.artifactId && (a.name || a.description))
+          .map((a) => [a.artifactId, { name: a.name, description: a.description }])
       );
 
       const refreshed = {
         ...this.cumulativeSummary,
         related_artifacts: this.cumulativeSummary.related_artifacts.map((a) => {
-          const db = nameMap.get(a.tool_call_id);
+          const db = artifactIdMap.get(a.id);
           return db
             ? {
                 ...a,

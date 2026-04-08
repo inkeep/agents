@@ -1,5 +1,20 @@
 # @inkeep/agents-manage-ui
 
+## 0.66.0
+
+### Patch Changes
+
+- 98399ec: Add Improve with AI dialog to playground for copilot-assisted agent iteration
+  Tweak styling on feedback page
+  Bump agents-ui packages
+  Remove custom feedback on playground widget since latest version has feedback built in
+  Remove redundant feedback type in form
+- Updated dependencies [5596ecb]
+- Updated dependencies [63a1358]
+- Updated dependencies [01a960d]
+- Updated dependencies [4d0169b]
+  - @inkeep/agents-core@0.66.0
+
 ## 0.65.2
 
 ### Patch Changes
