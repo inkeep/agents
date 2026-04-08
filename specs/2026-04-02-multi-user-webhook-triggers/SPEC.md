@@ -115,7 +115,7 @@ webhook POST → processWebhook → resolve user list → N dispatchExecution ca
 1. After `processWebhook()` validates auth/signature/payload, query `trigger_users` join table
 2. If join table has users → fan out to N users
 3. If join table empty but `trigger.runAsUserId` set → legacy single-user path
-4. If neither → execute without user context (current behavior preserved — many webhook triggers legitimately have no user). Only auto-disabled triggers with empty user set (from last-user removal) are skipped.
+4. If neither → execute without user context (current behavior preserved — many webhook triggers legitimately have no user).
 5. Each execution gets its own `conversationId` and `invocationId`
 6. `dispatchDelayMs` stagger: each execution promise sleeps `position × dispatchDelayMs` before starting (same pattern as manual Run Now)
 
@@ -218,7 +218,7 @@ DELETE /triggers/{id}/users/{userId}
 ```
 - All operations within branch context (`withRef()`)
 - PUT uses delete-all + insert-new pattern (same as scheduled triggers)
-- If PUT/DELETE results in empty user set → auto-disable trigger
+- Triggers remain enabled even with an empty user set (they fall back to legacy `runAsUserId` or execute without user context)
 
 **Rerun (POST /{id}/rerun):**
 - Add optional `runAsUserId` to request body
@@ -232,7 +232,7 @@ DELETE /triggers/{id}/users/{userId}
 **User removed from project:**
 - Hook in `projectMembers.ts` DELETE endpoint (extends the existing cleanup we added for scheduled triggers)
 - Call `removeUserFromProjectTriggerUsers()` — removes from `trigger_users` for all triggers in that project
-- If last user removed → auto-disable trigger (`enabled = false`)
+- Trigger stays enabled after user removal (no auto-disable); it falls back to executing without user context
 - Operates within `withRef()` branch context for manage DB
 
 **User removed from org:**
@@ -276,12 +276,12 @@ All manage DB operations go through `withRef()`:
 | 3 | Fan-out on webhook invocation — same as scheduled trigger dispatch | LOCKED | Reversible | Each user gets independent execution. Webhook returns all invocation IDs. |
 | 4 | Response shape: always `{ invocations: [...] }` — breaking change | LOCKED | 1-way door (API) | Consistent shape regardless of user count. Single-user returns 1-element array. |
 | 5 | `dispatchDelayMs` on webhook triggers — same stagger pattern | LOCKED | Reversible | Promise-based delay (same as manual Run Now), not workflow sleep. |
-| 6 | Auto-disable on last user removed | LOCKED | Reversible | Consistent with scheduled trigger behavior (Decision 2 from prior spec). |
+| 6 | No auto-disable on empty user set | LOCKED | Reversible | Triggers can run without users (fall back to legacy `runAsUserId` or no-user context). Removing all users does not disable the trigger. |
 | 7 | Extend project member removal cleanup for webhook trigger_users | LOCKED | Reversible | Closes the same permission gap for webhook triggers. |
 | 8 | Authorization rules identical to scheduled triggers | LOCKED | 1-way door (security) | Non-admin can only include self. Admin required for delegation. |
 | 9 | Branch-scoped operations for all join table CRUD | LOCKED | N/A | Required by Doltgres architecture — not a choice. |
 | 10 | Webhook response always returns `{ invocations: [...] }` — breaking change | LOCKED | 1-way door (API) | Consistent shape. Single-user returns 1-element array. All consumers must update. |
-| 11 | No-user triggers execute without user context (backward compat) | LOCKED | Reversible | Many existing webhooks have no runAsUserId. Only auto-disabled (last-user-removed) triggers skip. |
+| 11 | No-user triggers execute without user context (backward compat) | LOCKED | Reversible | Many existing webhooks have no runAsUserId. Removing all users does not disable or skip the trigger. |
 | 12 | Best-effort 202 for partial failures — no all-or-nothing semantics | LOCKED | Reversible | 202 = accepted. Background failures update invocation status. Matches current single-user semantics. |
 | 13 | No idempotency on webhook dispatch — duplicate-on-retry accepted | DIRECTED | Reversible | Current behavior for single-user. X-Idempotency-Key is future work. |
 | 14 | Fan-out calls `dispatchExecution()` once per user; each call creates its own invocation before scheduling background execution | LOCKED | Reversible | Matches the current service abstraction. Keeps invocation creation and async execution coupled in one unit of work. |
