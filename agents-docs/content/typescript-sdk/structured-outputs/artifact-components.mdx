@@ -149,6 +149,22 @@ When an agent uses a tool:
 3. If created, the artifact is parsed according to the artifact component schema
 4. The artifact can be associated with any data components that reference this information
 
+
+## Binary Attachment Artifacts
+
+User-uploaded files and binary tool outputs (images, PDFs, etc.) are automatically registered as `binary_attachment` artifacts. Instead of storing binary content inline, these artifacts track files by reference to blob storage, keeping the conversation context lightweight.
+
+Preview fields for binary attachment artifacts contain metadata only — such as `filename`, `mimeType`, `binaryType`, and `source` — not the actual file contents.
+
+<Callout type="warning">
+  Agents should not infer or claim what a binary file contains based on preview metadata alone. The preview describes the file's format and origin, not its contents.
+</Callout>
+
+To access the actual binary content, agents can:
+
+- **Pass the artifact to a tool** — the tool receives the full artifact data including the resolved binary content
+- **Call `get_reference_artifact`** — retrieves the binary content on-demand and returns it as a model-consumable file or image part
+
 ## Artifacts vs Data Components
 
 **Artifacts** and **Data Components** are different:
