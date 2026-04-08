@@ -139,9 +139,7 @@ export class ExecutionHandler {
           }
         } catch (modelError) {
           logger.warn(
-            {
-              error: modelError instanceof Error ? modelError.message : 'Unknown error',
-            },
+            { error: modelError instanceof Error ? modelError.message : 'Unknown error' },
             'Failed to resolve models, using agent-level config'
           );
           summarizerModel = firstWithModel(
@@ -244,11 +242,10 @@ export class ExecutionHandler {
 
         logger.debug(
           {
-            timestamp: new Date(),
             executionType: 'create_initial_task',
             currentAgentId,
             taskId: Array.isArray(task) ? task[0]?.id : task?.id,
-            userMessage: userMessage.substring(0, 100), // Truncate for security
+            userMessage: userMessage.substring(0, 100),
           },
           'ExecutionHandler: Initial task created'
         );
@@ -419,7 +416,7 @@ export class ExecutionHandler {
 
           const firstArtifactData = (messageResponse.result as any)?.artifacts?.[0]?.parts?.[0]
             ?.data as { type?: string; toolCallId?: string; toolName?: string; args?: unknown };
-          if (firstArtifactData?.type === 'durable-approval-required') {
+          if (firstArtifactData?.type === DURABLE_APPROVAL_ARTIFACT_TYPE) {
             return {
               success: true,
               iterations,
@@ -640,7 +637,7 @@ export class ExecutionHandler {
                     resolvedRef,
                   }).catch((error) => {
                     logger.error(
-                      { error, resolvedRef },
+                      { error },
                       'Failed to trigger conversation evaluation (non-blocking)'
                     );
                   });
@@ -725,20 +722,6 @@ export class ExecutionHandler {
               }
             });
           }
-        }
-
-        const firstArtifactData = (messageResponse.result as any)?.artifacts?.[0]?.parts?.[0]
-          ?.data as { type?: string; toolCallId?: string; toolName?: string; args?: unknown };
-        if (firstArtifactData?.type === DURABLE_APPROVAL_ARTIFACT_TYPE) {
-          return {
-            success: true,
-            iterations,
-            pendingApproval: {
-              toolCallId: firstArtifactData.toolCallId ?? '',
-              toolName: firstArtifactData.toolName ?? '',
-              args: firstArtifactData.args,
-            },
-          };
         }
 
         // Max transfers reached
@@ -837,6 +820,6 @@ export class ExecutionHandler {
           }
         });
       }
-    });
+    }); // end runWithLogContext
   }
 }
