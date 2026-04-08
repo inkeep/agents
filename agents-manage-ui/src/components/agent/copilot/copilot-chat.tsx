@@ -116,7 +116,7 @@ export function CopilotChat() {
       }
 
       // Update project data in React Query cache so components using useProjectQuery get fresh data
-      const convertedProject = convertFullProjectToProject(fullProject, tenantId);
+      const convertedProject = convertFullProjectToProject(fullProject);
       queryClient.setQueryData(projectQueryKeys.detail(tenantId, projectId), convertedProject);
     } catch (error) {
       console.error('Failed to refresh agent graph:', error);

@@ -24,14 +24,11 @@ import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import { cn } from '@/lib/utils';
 
 interface ModelSelectorProps {
-  tooltip?: string;
-  label?: React.ReactNode;
   value: string;
   onValueChange: (value: string) => void;
   onProviderOptionsChange?: (options: Record<string, any>) => void;
   placeholder?: string;
   inheritedValue?: string;
-  isRequired?: boolean;
   canClear?: boolean;
   disabled?: boolean;
   gatewayOnly?: boolean;
@@ -40,14 +37,11 @@ interface ModelSelectorProps {
 }
 
 export const ModelSelector: FC<ModelSelectorProps> = ({
-  label = 'Model',
-  tooltip,
   value,
   onValueChange,
   onProviderOptionsChange,
   placeholder = 'Select a model...',
   inheritedValue,
-  isRequired = false,
   canClear = true,
   disabled = false,
   gatewayOnly = false,
@@ -114,226 +108,221 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
   })();
 
   return (
-    <div className="flex flex-col gap-2">
-      {label && <FieldLabel label={label} tooltip={tooltip} isRequired={isRequired} />}
-      <Popover
-        defaultOpen={defaultOpen}
-        open={open}
-        onOpenChange={
-          disabled
-            ? undefined
-            : (nextOpen) => {
-                setOpen(nextOpen);
-                if (!nextOpen && !value) {
-                  onClose?.();
-                }
+    <Popover
+      defaultOpen={defaultOpen}
+      open={open}
+      onOpenChange={
+        disabled
+          ? undefined
+          : (nextOpen) => {
+              setOpen(nextOpen);
+              if (!nextOpen && !value) {
+                onClose?.();
               }
-        }
+            }
+      }
+    >
+      <ButtonGroup className="w-full">
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            disabled={disabled}
+            className="justify-between flex-1"
+          >
+            {selectedModel ? (
+              <div className="truncate">
+                {selectedModel.prefix && (
+                  <span className="text-gray-400">{selectedModel.prefix}</span>
+                )}
+                {selectedModel.label}
+              </div>
+            ) : inheritedModel ? (
+              <div className="truncate text-muted-foreground">
+                <span className="italic">{inheritedModel.label}</span>
+                <span className="text-xs ml-1">(inherited)</span>
+              </div>
+            ) : (
+              <div className="text-muted-foreground">{placeholder}</div>
+            )}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        {selectedModel && canClear && !disabled && (
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              onValueChange('');
+            }}
+            aria-label="Clear model selection"
+            type="button"
+          >
+            <X />
+          </Button>
+        )}
+      </ButtonGroup>
+      <PopoverContent
+        className="p-0 w-(--radix-popover-trigger-width) transition-all duration-200 ease-in-out"
+        align="start"
+        side="bottom"
+        onWheel={(e) => {
+          e.stopPropagation(); // to make scroll work inside dialog https://github.com/radix-ui/primitives/issues/1159
+        }}
+        onTouchMove={(e) => {
+          e.stopPropagation(); // to make scroll work inside dialog https://github.com/radix-ui/primitives/issues/1159
+        }}
       >
-        <ButtonGroup className="w-full">
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={open}
-              disabled={disabled}
-              className="justify-between flex-1"
-            >
-              {selectedModel ? (
-                <div className="truncate">
-                  {selectedModel.prefix && (
-                    <span className="text-gray-400">{selectedModel.prefix}</span>
-                  )}
-                  {selectedModel.label}
-                </div>
-              ) : inheritedModel ? (
-                <div className="truncate text-muted-foreground">
-                  <span className="italic">{inheritedModel.label}</span>
-                  <span className="text-xs ml-1">(inherited)</span>
-                </div>
-              ) : (
-                <div className="text-muted-foreground">{placeholder}</div>
-              )}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          {selectedModel && canClear && !disabled && (
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => {
-                onValueChange('');
-              }}
-              aria-label="Clear model selection"
-              type="button"
-            >
-              <X />
-            </Button>
-          )}
-        </ButtonGroup>
-        <PopoverContent
-          className="p-0 w-(--radix-popover-trigger-width) transition-all duration-200 ease-in-out"
-          align="start"
-          side="bottom"
-          onWheel={(e) => {
-            e.stopPropagation(); // to make scroll work inside dialog https://github.com/radix-ui/primitives/issues/1159
-          }}
-          onTouchMove={(e) => {
-            e.stopPropagation(); // to make scroll work inside dialog https://github.com/radix-ui/primitives/issues/1159
-          }}
-        >
-          <Command>
-            <CommandInput placeholder="Search models or type custom model ID..." />
-            <CommandList className="max-h-64">
-              <CommandEmpty>
-                {(() => {
-                  // Only access document on the client side
-                  if (typeof document !== 'undefined') {
-                    const input = document.querySelector<HTMLInputElement>('[cmdk-input]');
-                    const searchValue = input?.value || '';
+        <Command>
+          <CommandInput placeholder="Search models or type custom model ID..." />
+          <CommandList className="max-h-64">
+            <CommandEmpty>
+              {(() => {
+                // Only access document on the client side
+                if (typeof document !== 'undefined') {
+                  const input = document.querySelector<HTMLInputElement>('[cmdk-input]');
+                  const searchValue = input?.value || '';
 
-                    if (searchValue.trim()) {
-                      return (
-                        <CommandItem
-                          className="flex items-center justify-between cursor-pointer text-foreground"
-                          value={searchValue}
-                          onSelect={() => {
-                            const modelValue = searchValue.trim();
-
-                            // Auto-add prefixes if they look like they belong to these services
-                            if (
-                              modelValue.includes('/') &&
-                              !modelValue.startsWith('openrouter/') &&
-                              !modelValue.startsWith('gateway/') &&
-                              !modelValue.startsWith('nim/') &&
-                              !modelValue.startsWith('custom/')
-                            ) {
-                              // Could be openrouter format, let user decide or add logic here
-                            }
-
-                            onValueChange(modelValue);
-                            setOpen(false);
-                          }}
-                        >
-                          Use "{searchValue}" as custom model
-                        </CommandItem>
-                      );
-                    }
-                  }
-
-                  return (
-                    <div className="p-2 text-muted-foreground text-sm">
-                      Type to search models or enter a custom model ID
-                    </div>
-                  );
-                })()}
-              </CommandEmpty>
-              {/* Predefined models */}
-              {Object.entries(modelOptions)
-                .filter(
-                  ([provider]) => !gatewayOnly || GATEWAY_ROUTABLE_PROVIDERS_SET.has(provider)
-                )
-                .map(([provider, models]) => (
-                  <CommandGroup key={provider} heading={provider}>
-                    {models.map((model) => (
+                  if (searchValue.trim()) {
+                    return (
                       <CommandItem
-                        key={model.value}
                         className="flex items-center justify-between cursor-pointer text-foreground"
-                        value={model.value}
-                        onSelect={(currentValue) => {
-                          onValueChange(currentValue === value ? '' : currentValue);
+                        value={searchValue}
+                        onSelect={() => {
+                          const modelValue = searchValue.trim();
+
+                          // Auto-add prefixes if they look like they belong to these services
+                          if (
+                            modelValue.includes('/') &&
+                            !modelValue.startsWith('openrouter/') &&
+                            !modelValue.startsWith('gateway/') &&
+                            !modelValue.startsWith('nim/') &&
+                            !modelValue.startsWith('custom/')
+                          ) {
+                            // Could be openrouter format, let user decide or add logic here
+                          }
+
+                          onValueChange(modelValue);
                           setOpen(false);
-                          setCustomModelInput('');
-                          setShowCustomInput(null);
                         }}
                       >
-                        {model.label}
-                        <Check
-                          className={cn(
-                            'ml-2 h-4 w-4',
-                            value === model.value ? 'opacity-100' : 'opacity-0'
-                          )}
-                        />
+                        Use "{searchValue}" as custom model
                       </CommandItem>
-                    ))}
-                  </CommandGroup>
-                ))}
-              {/* Custom OpenAI-compatible */}
-              {!gatewayOnly && (
-                <CommandGroup heading="Custom OpenAI-compatible">
-                  <CommandItem
-                    className="flex items-center justify-between cursor-pointer text-foreground"
-                    value="__custom__"
-                    onSelect={() => {
-                      setShowCustomInput('custom');
-                      setOpen(false);
-                      setCustomModelInput('');
-                    }}
-                  >
-                    Custom OpenAI-compatible ...
-                  </CommandItem>
+                    );
+                  }
+                }
+
+                return (
+                  <div className="p-2 text-muted-foreground text-sm">
+                    Type to search models or enter a custom model ID
+                  </div>
+                );
+              })()}
+            </CommandEmpty>
+            {/* Predefined models */}
+            {Object.entries(modelOptions)
+              .filter(([provider]) => !gatewayOnly || GATEWAY_ROUTABLE_PROVIDERS_SET.has(provider))
+              .map(([provider, models]) => (
+                <CommandGroup key={provider} heading={provider}>
+                  {models.map((model) => (
+                    <CommandItem
+                      key={model.value}
+                      className="flex items-center justify-between cursor-pointer text-foreground"
+                      value={model.value}
+                      onSelect={(currentValue) => {
+                        onValueChange(currentValue === value ? '' : currentValue);
+                        setOpen(false);
+                        setCustomModelInput('');
+                        setShowCustomInput(null);
+                      }}
+                    >
+                      {model.label}
+                      <Check
+                        className={cn(
+                          'ml-2 h-4 w-4',
+                          value === model.value ? 'opacity-100' : 'opacity-0'
+                        )}
+                      />
+                    </CommandItem>
+                  ))}
                 </CommandGroup>
-              )}
-              {/* LLM Gateway options */}
-              {!gatewayOnly && (
-                <CommandGroup heading="LLM Gateway">
-                  <CommandItem
-                    className="flex items-center justify-between cursor-pointer text-foreground"
-                    value="__openrouter__"
-                    onSelect={() => {
-                      setShowCustomInput('openrouter');
-                      setOpen(false);
-                      setCustomModelInput('');
-                      onValueChange('openrouter/...');
-                    }}
-                  >
-                    OpenRouter ...
-                  </CommandItem>
-                  <CommandItem
-                    className="flex items-center justify-between cursor-pointer text-foreground"
-                    value="__gateway__"
-                    onSelect={() => {
-                      setShowCustomInput('gateway');
-                      setOpen(false);
-                      setCustomModelInput('');
-                      onValueChange('gateway/...');
-                    }}
-                  >
-                    Vercel AI Gateway ...
-                  </CommandItem>
-                  <CommandItem
-                    className="flex items-center justify-between cursor-pointer text-foreground"
-                    value="__nim__"
-                    onSelect={() => {
-                      setShowCustomInput('nim');
-                      setOpen(false);
-                      setCustomModelInput('');
-                      onValueChange('nim/...');
-                    }}
-                  >
-                    NVIDIA NIM ...
-                  </CommandItem>
-                  <CommandItem
-                    className="flex items-center justify-between cursor-pointer text-foreground"
-                    value="__azure__"
-                    onSelect={() => {
-                      setShowCustomInput('azure');
-                      setOpen(false);
-                      setCustomModelInput('');
-                      setAzureDeploymentName('');
-                      setAzureResourceName('');
-                      setAzureBaseURL('');
-                      onValueChange('azure/...');
-                    }}
-                  >
-                    Azure ...
-                  </CommandItem>
-                </CommandGroup>
-              )}
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+              ))}
+            {/* Custom OpenAI-compatible */}
+            {!gatewayOnly && (
+              <CommandGroup heading="Custom OpenAI-compatible">
+                <CommandItem
+                  className="flex items-center justify-between cursor-pointer text-foreground"
+                  value="__custom__"
+                  onSelect={() => {
+                    setShowCustomInput('custom');
+                    setOpen(false);
+                    setCustomModelInput('');
+                  }}
+                >
+                  Custom OpenAI-compatible ...
+                </CommandItem>
+              </CommandGroup>
+            )}
+            {/* LLM Gateway options */}
+            {!gatewayOnly && (
+              <CommandGroup heading="LLM Gateway">
+                <CommandItem
+                  className="flex items-center justify-between cursor-pointer text-foreground"
+                  value="__openrouter__"
+                  onSelect={() => {
+                    setShowCustomInput('openrouter');
+                    setOpen(false);
+                    setCustomModelInput('');
+                    onValueChange('openrouter/...');
+                  }}
+                >
+                  OpenRouter ...
+                </CommandItem>
+                <CommandItem
+                  className="flex items-center justify-between cursor-pointer text-foreground"
+                  value="__gateway__"
+                  onSelect={() => {
+                    setShowCustomInput('gateway');
+                    setOpen(false);
+                    setCustomModelInput('');
+                    onValueChange('gateway/...');
+                  }}
+                >
+                  Vercel AI Gateway ...
+                </CommandItem>
+                <CommandItem
+                  className="flex items-center justify-between cursor-pointer text-foreground"
+                  value="__nim__"
+                  onSelect={() => {
+                    setShowCustomInput('nim');
+                    setOpen(false);
+                    setCustomModelInput('');
+                    onValueChange('nim/...');
+                  }}
+                >
+                  NVIDIA NIM ...
+                </CommandItem>
+                <CommandItem
+                  className="flex items-center justify-between cursor-pointer text-foreground"
+                  value="__azure__"
+                  onSelect={() => {
+                    setShowCustomInput('azure');
+                    setOpen(false);
+                    setCustomModelInput('');
+                    setAzureDeploymentName('');
+                    setAzureResourceName('');
+                    setAzureBaseURL('');
+                    onValueChange('azure/...');
+                  }}
+                >
+                  Azure ...
+                </CommandItem>
+              </CommandGroup>
+            )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
       {showCustomInput && showCustomInput !== 'azure' && (
         <Card className="p-3 gap-3">
           <div className="text-sm font-medium">
@@ -520,6 +509,6 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
           </div>
         </Card>
       )}
-    </div>
+    </Popover>
   );
 };

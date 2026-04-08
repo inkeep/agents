@@ -1,17 +1,14 @@
 import type { FullProjectDefinition } from '@inkeep/agents-core';
-import type { Project, ProjectModels } from '@/lib/types/project';
+import type { Project } from '@/lib/types/project';
 
 /**
  * Converts a FullProjectDefinition to a Project type.
  * Handles null/undefined cases for models and stopWhen.
  */
-export function convertFullProjectToProject(
-  fullProject: FullProjectDefinition,
-  tenantId: string
-): Project {
+export function convertFullProjectToProject(fullProject: FullProjectDefinition): Project {
   // Convert models - FullProjectDefinition has models: ProjectModel | null
   // Project requires models: ProjectModels with required base
-  let models: ProjectModels;
+  let models: Project['models'];
   if (fullProject.models?.base) {
     models = {
       base: fullProject.models.base,
@@ -40,7 +37,6 @@ export function convertFullProjectToProject(
   return {
     id: fullProject.id,
     projectId: fullProject.id,
-    tenantId,
     name: fullProject.name,
     description: fullProject.description || '',
     models,

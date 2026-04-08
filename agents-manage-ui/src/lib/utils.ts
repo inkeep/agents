@@ -2,6 +2,8 @@ import { type ClassValue, clsx } from 'clsx';
 import type { FieldPath } from 'react-hook-form';
 import { twMerge } from 'tailwind-merge';
 import { z } from 'zod';
+import type { FullAgentResponse } from '@/components/agent/form/validation';
+import type { Project } from '@/lib/types/project';
 
 export const css = String.raw;
 
@@ -68,4 +70,22 @@ export function serializeJson(value?: null | Record<string, unknown> | unknown[]
  */
 export function throwError(message: string): never {
   throw new Error(message);
+}
+export function serializeModels<
+  T extends NonNullable<FullAgentResponse['models']> | Project['models'],
+>(models: T) {
+  return {
+    base: {
+      ...models.base,
+      providerOptions: serializeJson(models.base?.providerOptions),
+    },
+    structuredOutput: {
+      ...models.structuredOutput,
+      providerOptions: serializeJson(models.structuredOutput?.providerOptions),
+    },
+    summarizer: {
+      ...models.summarizer,
+      providerOptions: serializeJson(models.summarizer?.providerOptions),
+    },
+  };
 }

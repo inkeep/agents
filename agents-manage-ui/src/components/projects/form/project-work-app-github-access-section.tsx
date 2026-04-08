@@ -1,13 +1,13 @@
 'use client';
 
-import { Building2, ChevronRight, ExternalLink, Github, RefreshCw, User } from 'lucide-react';
+import { Building2, ExternalLink, Github, RefreshCw, User } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { CollapsibleSettings } from '@/components/agent/sidepane/collapsible-settings';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Dialog,
   DialogContent,
@@ -55,7 +55,6 @@ export function ProjectWorkAppGitHubAccessSection({
   projectId,
   disabled = false,
 }: ProjectWorkAppGitHubAccessSectionProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [accessConfig, setAccessConfig] = useState<WorkAppGitHubProjectAccess | null>(null);
   const [hasInstallations, setHasInstallations] = useState(false);
@@ -139,90 +138,79 @@ export function ProjectWorkAppGitHubAccessSection({
         </p>
       </div>
 
-      <Collapsible
-        open={isOpen}
-        onOpenChange={setIsOpen}
-        className="border rounded-md bg-background"
-      >
-        <CollapsibleTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="flex items-center justify-start gap-2 w-full group p-0 h-auto hover:!bg-transparent transition-colors py-2 px-4"
-          >
-            <ChevronRight className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-90" />
+      <CollapsibleSettings
+        title={
+          <>
             Configure GitHub access
             <span className="ml-auto text-muted-foreground font-normal">
               {accessConfig?.mode === 'all'
                 ? 'All repositories'
                 : `${accessConfig?.repositories.length || 0} selected`}
             </span>
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-4 mt-4 data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=open]:animate-[collapsible-down_200ms_ease-out] overflow-hidden px-4 pb-6">
-          <div className="rounded-lg border bg-muted/30 p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Github className="size-5 text-muted-foreground" />
-                <div>
-                  <p className="text-sm font-medium">
-                    {accessConfig?.mode === 'all' ? 'All repositories' : 'Selected repositories'}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {accessConfig?.mode === 'all'
-                      ? 'This project can access all repositories from connected GitHub organizations'
-                      : `This project can access ${accessConfig?.repositories.length || 0} ${accessConfig?.repositories.length === 1 ? 'repository' : 'repositories'}`}
-                  </p>
-                </div>
+          </>
+        }
+      >
+        <div className="rounded-lg border bg-muted/30 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Github className="size-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">
+                  {accessConfig?.mode === 'all' ? 'All repositories' : 'Selected repositories'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {accessConfig?.mode === 'all'
+                    ? 'This project can access all repositories from connected GitHub organizations'
+                    : `This project can access ${accessConfig?.repositories.length || 0} ${accessConfig?.repositories.length === 1 ? 'repository' : 'repositories'}`}
+                </p>
               </div>
-              {!disabled && (
-                <Button variant="outline" size="sm" onClick={() => setDialogOpen(true)}>
-                  Configure Access
-                </Button>
-              )}
             </div>
+            {!disabled && (
+              <Button variant="outline" size="sm" onClick={() => setDialogOpen(true)}>
+                Configure Access
+              </Button>
+            )}
           </div>
+        </div>
 
-          {accessConfig?.mode === 'selected' && accessConfig.repositories.length > 0 && (
-            <div className="rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow noHover>
-                    <TableHead>Repository</TableHead>
-                    <TableHead>Visibility</TableHead>
+        {accessConfig?.mode === 'selected' && accessConfig.repositories.length > 0 && (
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow noHover>
+                  <TableHead>Repository</TableHead>
+                  <TableHead>Visibility</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {accessConfig.repositories.map((repo: WorkAppGitHubRepository) => (
+                  <TableRow key={repo.id} noHover>
+                    <TableCell>
+                      <a
+                        href={`https://github.com/${repo.repositoryFullName}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 hover:underline"
+                      >
+                        <span className="font-medium">{repo.repositoryName}</span>
+                        <span className="text-muted-foreground text-xs">
+                          {repo.repositoryFullName.split('/')[0]}
+                        </span>
+                        <ExternalLink className="size-3 text-muted-foreground" />
+                      </a>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={repo.private ? 'code' : 'success'}>
+                        {repo.private ? 'Private' : 'Public'}
+                      </Badge>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {accessConfig.repositories.map((repo: WorkAppGitHubRepository) => (
-                    <TableRow key={repo.id} noHover>
-                      <TableCell>
-                        <a
-                          href={`https://github.com/${repo.repositoryFullName}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 hover:underline"
-                        >
-                          <span className="font-medium">{repo.repositoryName}</span>
-                          <span className="text-muted-foreground text-xs">
-                            {repo.repositoryFullName.split('/')[0]}
-                          </span>
-                          <ExternalLink className="size-3 text-muted-foreground" />
-                        </a>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={repo.private ? 'code' : 'success'}>
-                          {repo.private ? 'Private' : 'Public'}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CollapsibleContent>
-      </Collapsible>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CollapsibleSettings>
 
       {dialogOpen && (
         <ConfigureAccessDialog

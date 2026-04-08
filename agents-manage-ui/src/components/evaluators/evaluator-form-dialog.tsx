@@ -269,7 +269,6 @@ export function EvaluatorFormDialog({
               >
                 {(field) => (
                   <ModelSelector
-                    label=""
                     placeholder="Select model"
                     value={field.value || ''}
                     onValueChange={field.onChange}

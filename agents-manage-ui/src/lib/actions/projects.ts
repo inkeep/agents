@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import type { ProjectFormData } from '@/components/projects/form/validation';
+import type { ProjectOutput } from '@/components/projects/form/validation';
 import { createProject, deleteProject, updateProject } from '../api/projects';
 import { ApiError } from '../types/errors';
 import type { Project } from '../types/project';
@@ -12,7 +12,7 @@ import type { ActionResult } from './types';
  */
 export async function createProjectAction(
   tenantId: string,
-  project: ProjectFormData
+  project: ProjectOutput
 ): Promise<ActionResult<Project>> {
   try {
     const result = await createProject(tenantId, project);
@@ -43,7 +43,7 @@ export async function createProjectAction(
 export async function updateProjectAction(
   tenantId: string,
   projectId: string,
-  project: ProjectFormData
+  project: ProjectOutput
 ): Promise<ActionResult<Project>> {
   try {
     const result = await updateProject(tenantId, projectId, project);

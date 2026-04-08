@@ -3,8 +3,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 interface AzureConfigurationSectionProps {
-  providerOptions: Record<string, unknown> | string | undefined;
-  onProviderOptionsChange: (value: string | undefined) => void;
+  providerOptions: Record<string, unknown> | string;
+  onProviderOptionsChange: (value: string) => void;
   disabled?: boolean;
 }
 
@@ -32,7 +32,7 @@ export function AzureConfigurationSection({
     });
 
     const finalValue =
-      Object.keys(updatedOptions).length > 0 ? JSON.stringify(updatedOptions, null, 2) : undefined;
+      Object.keys(updatedOptions).length > 0 ? JSON.stringify(updatedOptions, null, 2) : '';
     onProviderOptionsChange(finalValue);
   };
 

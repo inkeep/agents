@@ -9,11 +9,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { DeleteProjectConfirmation } from './delete-project-confirmation';
 import { EditProjectDialog } from './edit-project-dialog';
-import type { ProjectFormData } from './form/validation';
+import type { ProjectOutput } from './form/validation';
 
 interface ProjectItemMenuProps {
   projectName?: string;
-  projectData: ProjectFormData;
+  projectData: ProjectOutput;
   tenantId: string;
 }
 

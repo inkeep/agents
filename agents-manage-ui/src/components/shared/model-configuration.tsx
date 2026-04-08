@@ -2,12 +2,20 @@
 
 import { GATEWAY_ROUTABLE_PROVIDERS_SET } from '@inkeep/agents-core/client-exports';
 import { GripVertical, Plus, X } from 'lucide-react';
-import { type FC, useId, useState } from 'react';
+import { type FC, type ReactNode, useId, useState } from 'react';
 import { type Control, type FieldPath, type FieldValues, useController } from 'react-hook-form';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandItem, CommandList } from '@/components/ui/command';
+import {
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -90,16 +98,24 @@ function getJsonPlaceholder({ model, slot }: { model?: string; slot: ModelConfig
 }
 
 const AllowedProvidersSection: FC<{
-  allowedProviders?: string[];
   inheritedAllowedProviders?: string[];
-  onAllowedProvidersChange: (providers: string[]) => void;
   disabled: boolean;
-}> = ({ allowedProviders, inheritedAllowedProviders, onAllowedProvidersChange, disabled }) => {
+  name: string;
+  control: Control<any>;
+}> = ({ inheritedAllowedProviders, disabled, name, control }) => {
   const [addOpen, setAddOpen] = useState(false);
   const [draggingId, setDraggingId] = useState('');
   const [dragOverId, setDragOverId] = useState('');
   const [specificMode, setSpecificMode] = useState(false);
-
+  const { field: allowedProvidersField } = useController({
+    control,
+    name: `${name}.allowedProviders`,
+    shouldUnregister: true,
+  });
+  const allowedProviders: string[] = allowedProvidersField.value;
+  function onAllowedProvidersChange(providers: string[]) {
+    allowedProvidersField.onChange(providers.length ? providers : undefined);
+  }
   const effectiveProviders = allowedProviders ?? inheritedAllowedProviders ?? [];
   const isInherited = !allowedProviders && !!inheritedAllowedProviders;
   const isSpecific = specificMode || effectiveProviders.length > 0;
@@ -246,12 +262,21 @@ const AllowedProvidersSection: FC<{
 };
 
 const FallbackModelsSection: FC<{
-  fallbackModels?: string[];
   inheritedFallbackModels?: string[];
-  onFallbackModelsChange: (models: string[]) => void;
   disabled: boolean;
-}> = ({ fallbackModels, inheritedFallbackModels, onFallbackModelsChange, disabled }) => {
+  name: string;
+  control: Control<any>;
+}> = ({ inheritedFallbackModels, disabled, name, control }) => {
   const [showPendingSelector, setShowPendingSelector] = useState(false);
+  const { field: fallbackModelsField } = useController({
+    control,
+    name: `${name}.fallbackModels`,
+    shouldUnregister: true,
+  });
+  const fallbackModels: string[] = fallbackModelsField.value;
+  function onFallbackModelsChange(models: string[]) {
+    fallbackModelsField.onChange(models.length ? models : undefined);
+  }
   const savedModels = fallbackModels ?? inheritedFallbackModels ?? [];
   const isInherited = !fallbackModels && !!inheritedFallbackModels;
 
@@ -398,28 +423,8 @@ export function ModelConfiguration<
   const providerOptions = providerOptionsField.value;
   const onProviderOptionsChange = providerOptionsField.onChange;
 
-  const { field: fallbackModelsField } = useController({
-    control,
-    name: `${name}.fallbackModels` as FieldPath<TFieldValues>,
-    shouldUnregister: true,
-  });
-  const fallbackModels = fallbackModelsField.value;
-  function onFallbackModelsChange(models: string[]) {
-    fallbackModelsField.onChange(models.length ? models : undefined);
-  }
-
-  const { field: allowedProvidersField } = useController({
-    control,
-    name: `${name}.allowedProviders` as FieldPath<TFieldValues>,
-    shouldUnregister: true,
-  });
-  const allowedProviders = allowedProvidersField.value;
-  function onAllowedProvidersChange(providers: string[]) {
-    allowedProvidersField.onChange(providers.length ? providers : undefined);
-  }
-
   const inheritedValue = inherited?.model;
-  const inheritedProviderOptions = inherited?.providerOptions;
+  const inheritedProviderOptions = inherited?.providerOptions ?? '';
 
   function handleModelChange(modelValue: string) {
     const previousEffectiveModel = value || inheritedValue;
@@ -446,11 +451,6 @@ export function ModelConfiguration<
     onProviderOptionsChange(jsonString);
   }
 
-  // Handle both string (from JSON editors) and object (from ModelSelector) inputs
-  function handleProviderOptionsStringChange(nextValue = '') {
-    onProviderOptionsChange(nextValue);
-  }
-
   const effectiveModel = value || inheritedValue;
   const effectiveProviderOptions = value ? providerOptions : inheritedProviderOptions;
   const isUsingInheritedOptions = !value && !!inheritedValue;
@@ -463,22 +463,21 @@ export function ModelConfiguration<
   const providerOptionsId = useId();
   return (
     <div className="space-y-4">
-      <div className="relative space-y-2">
-        <ModelSelector
-          value={value || ''}
-          onValueChange={handleModelChange}
-          onProviderOptionsChange={handleProviderOptionsChange}
-          inheritedValue={inheritedValue}
-          label={label ?? MODEL_CONFIGURATION_LABELS[slot]}
-          placeholder={MODEL_CONFIGURATION_PLACEHOLDERS[slot]}
-          canClear={canClear}
-          isRequired={isRequired}
-          disabled={disabled}
-        />
-        <p className="text-xs text-muted-foreground">
-          {description ?? MODEL_CONFIGURATION_DESCRIPTIONS[slot]}
-        </p>
-      </div>
+      <MyForm control={control} name={`${name}.model` as FieldPath<TFieldValues>}>
+        <FormLabel isRequired={isRequired}>{label ?? MODEL_CONFIGURATION_LABELS[slot]}</FormLabel>
+        <FormControl>
+          <ModelSelector
+            value={value || ''}
+            onValueChange={handleModelChange}
+            onProviderOptionsChange={handleProviderOptionsChange}
+            inheritedValue={inheritedValue}
+            placeholder={MODEL_CONFIGURATION_PLACEHOLDERS[slot]}
+            canClear={canClear}
+            disabled={disabled}
+          />
+        </FormControl>
+        <FormDescription>{description ?? MODEL_CONFIGURATION_DESCRIPTIONS[slot]}</FormDescription>
+      </MyForm>
 
       {effectiveModel && (
         <>
@@ -486,56 +485,75 @@ export function ModelConfiguration<
             /* Azure Configuration Fields */
             <AzureConfigurationSection
               providerOptions={effectiveProviderOptions}
-              onProviderOptionsChange={handleProviderOptionsStringChange}
+              onProviderOptionsChange={onProviderOptionsChange}
               disabled={disabled || isUsingInheritedOptions}
             />
           )}
-          <div className="space-y-2">
-            <FieldLabel
-              id={providerOptionsId}
-              label={
-                isUsingInheritedOptions ? (
-                  <span className="text-muted-foreground italic">
-                    Provider options <span className="text-xs">(inherited)</span>
-                  </span>
-                ) : (
-                  'Provider options'
-                )
-              }
-            />
-            <StandaloneJsonEditor
-              name={providerOptionsId}
-              onChange={handleProviderOptionsStringChange}
-              value={
-                typeof effectiveProviderOptions === 'string'
-                  ? effectiveProviderOptions
-                  : effectiveProviderOptions
-                    ? JSON.stringify(effectiveProviderOptions, null, 2)
-                    : ''
-              }
-              placeholder={jsonPlaceholder}
-              customTemplate={jsonPlaceholder}
-              readOnly={disabled || isUsingInheritedOptions}
-            />
-          </div>
+          <MyForm control={control} name={`${name}.providerOptions` as FieldPath<TFieldValues>}>
+            <FormLabel>
+              Provider options
+              {isUsingInheritedOptions && (
+                <i className="text-xs text-muted-foreground"> (inherited)</i>
+              )}
+            </FormLabel>
+            <FormControl>
+              <StandaloneJsonEditor
+                name={providerOptionsId}
+                onChange={onProviderOptionsChange}
+                value={
+                  typeof effectiveProviderOptions === 'string'
+                    ? effectiveProviderOptions
+                    : JSON.stringify(effectiveProviderOptions, null, 2)
+                }
+                placeholder={jsonPlaceholder}
+                customTemplate={jsonPlaceholder}
+                readOnly={disabled || isUsingInheritedOptions}
+              />
+            </FormControl>
+          </MyForm>
           {capabilities?.modelFallback?.enabled && isGatewayRoutable && (
             <>
               <AllowedProvidersSection
-                allowedProviders={allowedProviders}
                 inheritedAllowedProviders={inherited?.allowedProviders ?? undefined}
-                onAllowedProvidersChange={onAllowedProvidersChange}
                 disabled={disabled}
+                name={name}
+                control={control}
               />
               <FallbackModelsSection
-                fallbackModels={fallbackModels}
                 inheritedFallbackModels={inherited?.fallbackModels ?? undefined}
-                onFallbackModelsChange={onFallbackModelsChange}
                 disabled={disabled}
+                name={name}
+                control={control}
               />
             </>
           )}
         </>
       )}
     </div>
+  );
+}
+
+interface MyFormProps<TFieldValues extends FieldValues, TTransformedValues extends FieldValues> {
+  control: Control<TFieldValues, unknown, TTransformedValues>;
+  name: FieldPath<TFieldValues>;
+  children: ReactNode;
+}
+
+function MyForm<TFieldValues extends FieldValues, TTransformedValues extends FieldValues>({
+  control,
+  name,
+  children,
+}: MyFormProps<TFieldValues, TTransformedValues>) {
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={() => (
+        <FormItem>
+          {children}
+          <FormMessage />
+        </FormItem>
+      )}
+    />
   );
 }

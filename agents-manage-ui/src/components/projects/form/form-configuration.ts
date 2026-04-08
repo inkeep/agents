@@ -3,9 +3,9 @@ import {
   DEFAULT_ANTHROPIC_STRUCTURED_OUTPUT_MODEL,
   DEFAULT_ANTHROPIC_SUMMARIZER_MODEL,
 } from '@/components/agent/configuration/model-options';
-import type { ProjectFormInputValues } from './validation';
+import type { ProjectInput } from './validation';
 
-export const defaultValues: ProjectFormInputValues = {
+export const initialData: ProjectInput = {
   id: '',
   name: '',
   description: '',
@@ -23,5 +23,4 @@ export const defaultValues: ProjectFormInputValues = {
       providerOptions: '',
     },
   },
-  stopWhen: undefined,
 };

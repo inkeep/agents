@@ -8,10 +8,10 @@ import { CollapsibleSettings } from '@/components/agent/sidepane/collapsible-set
 import { SectionHeader } from '@/components/agent/sidepane/section';
 import { GenericInput } from '@/components/form/generic-input';
 import { InfoCard } from '@/components/ui/info-card';
-import type { ProjectFormData, ProjectFormInputValues } from './validation';
+import type { ProjectInput, ProjectOutput } from './validation';
 
 interface ProjectStopWhenSectionProps {
-  control: Control<ProjectFormInputValues, unknown, ProjectFormData>;
+  control: Control<ProjectInput, unknown, ProjectOutput>;
   disabled?: boolean;
 }
 
@@ -35,7 +35,6 @@ export function ProjectStopWhenSection({ control, disabled }: ProjectStopWhenSec
         title="Execution limits"
         description="Set default execution limits that will be inherited by agents and sub agents in this project."
       />
-
       <CollapsibleSettings
         open={isOpen}
         onOpenChange={setIsOpen}
@@ -73,24 +72,19 @@ export function ProjectStopWhenSection({ control, disabled }: ProjectStopWhenSec
         <InfoCard title="How inheritance works:" Icon={Info}>
           <ul className="space-y-1.5 list-disc list-outside pl-4">
             <li>
-              <span className="font-medium">transferCountIs</span>: Project → Agent only
-              (agent-level limit)
+              <b>transferCountIs</b>: Project → Agent only (agent-level limit)
             </li>
             <li>
-              <span className="font-medium">stepCountIs</span>: Project → Agent only (agent-level
-              limit)
+              <b>stepCountIs</b>: Project → Agent only (agent-level limit)
             </li>
             <li>
-              <span className="font-medium">Explicit settings</span> always take precedence over
-              inherited values
+              <b>Explicit settings</b> always take precedence over inherited values
             </li>
             <li>
-              <span className="font-medium">Default fallback</span>: transferCountIs = 10 if no
-              value is set
+              <b>Default fallback</b>: transferCountIs = 10 if no value is set
             </li>
             <li>
-              <span className="font-medium">Error limit</span> is hardcoded to 3 errors across all
-              levels
+              <b>Error limit</b> is hardcoded to 3 errors across all levels
             </li>
           </ul>
         </InfoCard>
