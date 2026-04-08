@@ -198,13 +198,16 @@ export function wrapToolWithStreaming(
         if (artifactParser && validationSchema?.safeParse && resolvedChanged) {
           const validation = validationSchema.safeParse(resolvedArgs);
           if (!validation.success) {
-            const mismatchDetails = Object.entries(resolvedArgs as Record<string, unknown>)
-              .map(([key, val]) => {
-                const actualType =
-                  val === null ? 'null' : Array.isArray(val) ? 'array' : typeof val;
-                return `"${key}" resolved to ${actualType}`;
-              })
-              .join(', ');
+            const mismatchDetails =
+              resolvedArgs && typeof resolvedArgs === 'object' && !Array.isArray(resolvedArgs)
+                ? Object.entries(resolvedArgs as Record<string, unknown>)
+                    .map(([key, val]) => {
+                      const actualType =
+                        val === null ? 'null' : Array.isArray(val) ? 'array' : typeof val;
+                      return `"${key}" resolved to ${actualType}`;
+                    })
+                    .join(', ')
+                : `resolved to ${Array.isArray(resolvedArgs) ? 'array' : typeof resolvedArgs}`;
             throw new Error(
               `Tool chaining $select resolved to the wrong type for '${toolName}'. ` +
                 `${mismatchDetails}. ${validation.error.message}. ` +

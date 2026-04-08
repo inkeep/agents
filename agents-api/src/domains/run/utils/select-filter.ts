@@ -6,6 +6,10 @@ import { ToolChainResolutionError } from '../artifacts/ArtifactParser';
  * Removes _structureHints, _toolCallId, etc. that are added for LLM context
  * but should not appear in traces, stored results, or downstream data.
  */
+export function clearSelectorCache(): void {
+  selectorCache.clear();
+}
+
 export function stripInternalFields<T>(data: T): T {
   if (data && typeof data === 'object' && !Array.isArray(data)) {
     return Object.fromEntries(Object.entries(data).filter(([key]) => !key.startsWith('_'))) as T;

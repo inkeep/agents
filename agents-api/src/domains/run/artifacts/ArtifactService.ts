@@ -16,7 +16,11 @@ import {
   extractFullFields,
   extractPreviewFields,
 } from '../utils/schema-validation';
-import { stripInternalFields } from '../utils/select-filter';
+import {
+  clearSelectorCache,
+  sanitizeJMESPathSelector,
+  stripInternalFields,
+} from '../utils/select-filter';
 import { detectOversizedArtifact } from './artifact-utils';
 
 const logger = getLogger('ArtifactService');
@@ -77,15 +81,10 @@ export interface ArtifactServiceContext {
  */
 export class ArtifactService {
   private createdArtifacts: Map<string, any> = new Map();
-  private static selectorCache = new Map<string, string>();
-
   constructor(private context: ArtifactServiceContext) {}
 
-  /**
-   * Clear static caches to prevent memory leaks between sessions
-   */
   static clearCaches(): void {
-    ArtifactService.selectorCache.clear();
+    clearSelectorCache();
   }
 
   /**
@@ -215,7 +214,7 @@ export class ArtifactService {
     const toolResultData = this.getToolResultFull(request.toolCallId);
 
     try {
-      let sanitizedBaseSelector = this.sanitizeJMESPathSelector(request.baseSelector);
+      let sanitizedBaseSelector = sanitizeJMESPathSelector(request.baseSelector);
 
       // Strip 'result.' prefix if it exists (tool results don't have this wrapper)
       if (sanitizedBaseSelector.startsWith('result.')) {
@@ -849,36 +848,6 @@ export class ArtifactService {
   }
 
   /**
-   * Sanitize JMESPath selector to fix common syntax issues (with caching)
-   */
-  private sanitizeJMESPathSelector(selector: string): string {
-    const cached = ArtifactService.selectorCache.get(selector);
-    if (cached !== undefined) {
-      return cached;
-    }
-
-    let sanitized = selector.replace(/=="([^"]*)"/g, "=='$1'");
-
-    sanitized = sanitized.replace(
-      /\[\?(\w+)\s*~\s*contains\(@,\s*"([^"]*)"\)\]/g,
-      '[?contains($1, `$2`)]'
-    );
-
-    sanitized = sanitized.replace(
-      /\[\?(\w+)\s*~\s*contains\(@,\s*'([^']*)'\)\]/g,
-      '[?contains($1, `$2`)]'
-    );
-
-    sanitized = sanitized.replace(/\s*~\s*/g, ' ');
-
-    if (ArtifactService.selectorCache.size < 1000) {
-      ArtifactService.selectorCache.set(selector, sanitized);
-    }
-
-    return sanitized;
-  }
-
-  /**
    * Save an already-created artifact directly to the database
    * Used by AgentSession to save artifacts after name/description generation
    */
@@ -1044,7 +1013,7 @@ export class ArtifactService {
 
           if (customSelector) {
             // Use custom JMESPath selector
-            const sanitizedSelector = this.sanitizeJMESPathSelector(customSelector);
+            const sanitizedSelector = sanitizeJMESPathSelector(customSelector);
             rawValue = jmespath.search(item, sanitizedSelector);
           } else {
             // Default to direct field access
