@@ -1,3 +1,4 @@
+import { SESSION_EVENT_AGENT_REASONING, TRANSFER_TOOL_PREFIX } from '@inkeep/agents-core';
 import { getLogger } from '../../../../logger';
 import type { MidGenerationCompressor } from '../../compression/MidGenerationCompressor';
 import { agentSessionManager } from '../../session/AgentSession';
@@ -202,7 +203,7 @@ export async function handleStopWhenConditions(
     try {
       await agentSessionManager.recordEvent(
         ctx.streamRequestId ?? '',
-        'agent_reasoning',
+        SESSION_EVENT_AGENT_REASONING,
         ctx.config.id,
         {
           parts: [{ type: 'text', content: last.text }],
@@ -232,7 +233,7 @@ export async function handleStopWhenConditions(
     const currentStep = steps[steps.length - 1];
     if (currentStep && 'toolCalls' in currentStep && currentStep.toolCalls) {
       const hasTransferTool = currentStep.toolCalls.some((tc: any) =>
-        tc.toolName.startsWith('transfer_to_')
+        tc.toolName.startsWith(TRANSFER_TOOL_PREFIX)
       );
 
       if (hasTransferTool) {
@@ -246,7 +247,6 @@ export async function handleStopWhenConditions(
     logger.warn(
       {
         subAgentId: ctx.config.id,
-        agentId: ctx.config.agentId,
         stepsCompleted: steps.length,
         maxSteps,
         conversationId: ctx.conversationId,

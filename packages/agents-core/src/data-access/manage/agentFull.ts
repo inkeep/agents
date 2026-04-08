@@ -10,6 +10,7 @@ import {
 import type { FullAgentDefinition, FullAgentSelectWithRelationIds } from '../../types/entities';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/utility';
 import { deriveRelationId, generateId } from '../../utils/conversations';
+import { getLogger } from '../../utils/logger';
 import { validateAgentStructure, validateAndTypeAgentData } from '../../validation/agentFull';
 import {
   deleteAgent,
@@ -59,21 +60,12 @@ import {
 import { upsertSubAgentToolRelation } from './tools';
 import { deleteTrigger, listTriggers, upsertTrigger } from './triggers';
 
-export interface AgentLogger {
-  info(obj: Record<string, any>, msg?: string): void;
-  error(obj: Record<string, any>, msg?: string): void;
-}
-
-const defaultLogger: AgentLogger = {
-  info: () => {},
-  error: () => {},
-};
+const logger = getLogger('agentFull');
 
 async function syncSubAgentSkills(
   db: AgentsManageDatabaseClient,
   scopes: AgentScopeConfig,
-  subAgentsMap: FullAgentDefinition['subAgents'],
-  logger: AgentLogger
+  subAgentsMap: FullAgentDefinition['subAgents']
 ) {
   await db.delete(subAgentSkills).where(agentScopedWhere(subAgentSkills, scopes));
 
@@ -108,7 +100,6 @@ async function syncSubAgentSkills(
  */
 async function applyExecutionLimitsInheritance(
   db: AgentsManageDatabaseClient,
-  logger: AgentLogger,
   scopes: ProjectScopeConfig,
   agentData: FullAgentDefinition
 ): Promise<void> {
@@ -206,7 +197,7 @@ async function applyExecutionLimitsInheritance(
  * This function creates a complete agent with all agents, tools, and relationships.
  */
 export const createFullAgentServerSide =
-  (db: AgentsManageDatabaseClient, logger: AgentLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient) =>
   async (
     scopes: ProjectScopeConfig,
     agentData: FullAgentDefinition
@@ -217,15 +208,14 @@ export const createFullAgentServerSide =
 
     validateAgentStructure(typed);
 
-    await applyExecutionLimitsInheritance(db, logger, { tenantId, projectId }, typed);
+    await applyExecutionLimitsInheritance(db, { tenantId, projectId }, typed);
 
     try {
       logger.info(
-        {},
         'CredentialReferences are project-scoped - skipping credential reference creation in agent'
       );
 
-      logger.info({}, 'MCP Tools are project-scoped - skipping tool creation in agent');
+      logger.info('MCP Tools are project-scoped - skipping tool creation in agent');
 
       let finalAgentId: string;
       try {
@@ -315,13 +305,9 @@ export const createFullAgentServerSide =
         }
       }
 
-      logger.info(
-        {},
-        'DataComponents are project-scoped - skipping dataComponent creation in agent'
-      );
+      logger.info('DataComponents are project-scoped - skipping dataComponent creation in agent');
 
       logger.info(
-        {},
         'ArtifactComponents are project-scoped - skipping artifactComponent creation in agent'
       );
 
@@ -490,7 +476,7 @@ export const createFullAgentServerSide =
       logger.info({ subAgentCount }, 'All sub-agents created/updated successfully');
 
       // External agents are project-scoped and managed at the project level.
-      logger.info({}, 'External agents are project-scoped and managed at the project level.');
+      logger.info('External agents are project-scoped and managed at the project level.');
 
       const agentToolPromises: Promise<void>[] = [];
 
@@ -600,7 +586,7 @@ export const createFullAgentServerSide =
       }
 
       await Promise.all(agentDataComponentPromises);
-      logger.info({}, 'All agent-data component relations created');
+      logger.info('All agent-data component relations created');
 
       const agentArtifactComponentPromises: Promise<void>[] = [];
 
@@ -635,7 +621,7 @@ export const createFullAgentServerSide =
       }
 
       await Promise.all(agentArtifactComponentPromises);
-      logger.info({}, 'All agent-artifact component relations created');
+      logger.info('All agent-artifact component relations created');
 
       const subAgentRelationPromises: Promise<void>[] = [];
       const subAgentExternalAgentRelationPromises: Promise<void>[] = [];
@@ -799,12 +785,7 @@ export const createFullAgentServerSide =
       await Promise.all(subAgentRelationPromises);
       await Promise.all(subAgentExternalAgentRelationPromises);
       await Promise.all(subAgentTeamAgentRelationPromises);
-      await syncSubAgentSkills(
-        db,
-        { tenantId, projectId, agentId: finalAgentId },
-        typed.subAgents,
-        logger
-      );
+      await syncSubAgentSkills(db, { tenantId, projectId, agentId: finalAgentId }, typed.subAgents);
       logger.info(
         { subAgentRelationCount: subAgentRelationPromises.length },
         'All sub-agent relations created'
@@ -840,7 +821,7 @@ export const createFullAgentServerSide =
  * This function updates a complete agent with all agents, tools, and relationships.
  */
 export const updateFullAgentServerSide =
-  (db: AgentsManageDatabaseClient, logger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient) =>
   async (
     scopes: ProjectScopeConfig,
     agentData: FullAgentDefinition
@@ -864,12 +845,7 @@ export const updateFullAgentServerSide =
 
     validateAgentStructure(typedAgentDefinition);
 
-    await applyExecutionLimitsInheritance(
-      db,
-      logger,
-      { tenantId, projectId },
-      typedAgentDefinition
-    );
+    await applyExecutionLimitsInheritance(db, { tenantId, projectId }, typedAgentDefinition);
 
     try {
       const existingAgent = await getAgentById(db)({
@@ -881,17 +857,16 @@ export const updateFullAgentServerSide =
           { agentId: typedAgentDefinition.id },
           'Agent does not exist, creating new agent'
         );
-        return createFullAgentServerSide(db, logger)(scopes, agentData);
+        return createFullAgentServerSide(db)(scopes, agentData);
       }
 
       const existingAgentModels = existingAgent.models;
 
       logger.info(
-        {},
         'CredentialReferences are project-scoped - skipping credential reference update in agent'
       );
 
-      logger.info({}, 'MCP Tools are project-scoped - skipping tool creation in agent update');
+      logger.info('MCP Tools are project-scoped - skipping tool creation in agent update');
 
       let finalAgentId: string;
       try {
@@ -989,9 +964,8 @@ export const updateFullAgentServerSide =
         }
       }
 
-      logger.info({}, 'DataComponents are project-scoped - skipping dataComponent update in agent');
+      logger.info('DataComponents are project-scoped - skipping dataComponent update in agent');
       logger.info(
-        {},
         'ArtifactComponents are project-scoped - skipping artifactComponent update in agent'
       );
 
@@ -1338,7 +1312,7 @@ export const updateFullAgentServerSide =
       }
 
       // External agents are project-scoped and managed at the project level.
-      logger.info({}, 'External agents are project-scoped and managed at the project level.');
+      logger.info('External agents are project-scoped and managed at the project level.');
 
       const incomingSubAgentIds = new Set(Object.keys(typedAgentDefinition.subAgents));
 
@@ -1915,8 +1889,7 @@ export const updateFullAgentServerSide =
       await syncSubAgentSkills(
         db,
         { tenantId, projectId, agentId: typedAgentDefinition.id },
-        typedAgentDefinition.subAgents,
-        logger
+        typedAgentDefinition.subAgents
       );
 
       // Retrieve and return the updated agent
@@ -1941,7 +1914,7 @@ export const updateFullAgentServerSide =
  * Get a complete agent definition by ID
  */
 export const getFullAgent =
-  (db: AgentsManageDatabaseClient, logger: AgentLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig }): Promise<FullAgentDefinition | null> => {
     const { scopes } = params;
     const { tenantId, projectId } = scopes;
@@ -1982,7 +1955,7 @@ export const getFullAgent =
   };
 
 export const getFullAgentWithRelationIds =
-  (db: AgentsManageDatabaseClient, logger: AgentLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig }): Promise<FullAgentSelectWithRelationIds | null> => {
     const { scopes } = params;
     const { tenantId, projectId } = scopes;
@@ -2029,7 +2002,7 @@ export const getFullAgentWithRelationIds =
  * Delete a complete agent and cascade to all related entities
  */
 export const deleteFullAgent =
-  (db: AgentsManageDatabaseClient, logger: AgentLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig }): Promise<boolean> => {
     const { tenantId, projectId, agentId } = params.scopes;
 

@@ -6530,6 +6530,61 @@
           }
         ]
       },
+      "PendingApprovalsResponse": {
+        "properties": {
+          "approval": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PendingToolApproval"
+              },
+              {
+                "properties": {
+                  "updatedAt": {
+                    "type": "string"
+                  },
+                  "workflowRunId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "workflowRunId",
+                  "updatedAt"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "hasPending": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "hasPending"
+        ],
+        "type": "object"
+      },
+      "PendingToolApproval": {
+        "properties": {
+          "args": {
+            "nullable": true
+          },
+          "isDelegated": {
+            "type": "boolean"
+          },
+          "toolCallId": {
+            "type": "string"
+          },
+          "toolName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "toolCallId",
+          "toolName",
+          "isDelegated"
+        ],
+        "type": "object"
+      },
       "PowChallengeResponse": {
         "properties": {
           "algorithm": {
@@ -45996,6 +46051,106 @@
           }
         ],
         "summary": "Get Conversation",
+        "tags": [
+          "Conversations"
+        ],
+        "x-authz": {
+          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
+        }
+      }
+    },
+    "/run/v1/conversations/{conversationId}/pending-approvals": {
+      "get": {
+        "description": "Discover pending tool approval requests for a conversation. Use this to recover approval state when an SSE stream is interrupted or on page load.",
+        "operationId": "get-conversation-pending-approvals",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversationId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PendingApprovalsResponse"
+                }
+              }
+            },
+            "description": "Pending approval status for the conversation"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Pending Approvals",
         "tags": [
           "Conversations"
         ],

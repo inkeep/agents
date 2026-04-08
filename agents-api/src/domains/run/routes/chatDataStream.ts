@@ -1,5 +1,7 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  APPROVAL_NEEDED_EVENT,
+  APPROVAL_RESOLVED_EVENT,
   buildConversationMetadata,
   type CredentialStoreRegistry,
   commonGetErrorResponses,
@@ -15,6 +17,7 @@ import {
   type Part,
   PartSchema,
   setActiveAgentForConversation,
+  TOOL_APPROVAL_HOOK_PREFIX,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
@@ -166,7 +169,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
             const toolCallId = approvalPart.toolCallId as string;
             const approved = !!approvalPart.approval?.approved;
             const reason = approvalPart.approval?.reason as string | undefined;
-            const token = `tool-approval:${conversationId}:${durableExecution.id}:${toolCallId}`;
+            const token = `${TOOL_APPROVAL_HOOK_PREFIX}${conversationId}:${durableExecution.id}:${toolCallId}`;
             try {
               await toolApprovalHook.resume(token, {
                 approved,
@@ -568,7 +571,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
             const seenOutputs = new Set<string>();
 
             unsubscribe = toolApprovalUiBus.subscribe(requestId, async (event) => {
-              if (event.type === 'approval-needed') {
+              if (event.type === APPROVAL_NEEDED_EVENT) {
                 if (seenToolCalls.has(event.toolCallId)) return;
                 seenToolCalls.add(event.toolCallId);
 
@@ -598,7 +601,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
                   toolName: event.toolName,
                   input: event.input as Record<string, unknown>,
                 });
-              } else if (event.type === 'approval-resolved') {
+              } else if (event.type === APPROVAL_RESOLVED_EVENT) {
                 if (seenOutputs.has(event.toolCallId)) return;
                 seenOutputs.add(event.toolCallId);
 

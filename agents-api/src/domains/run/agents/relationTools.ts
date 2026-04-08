@@ -4,6 +4,7 @@ import {
   type CredentialStoreRegistry,
   CredentialStuffer,
   createMessage,
+  DELEGATE_TOOL_PREFIX,
   type FullExecutionContext,
   generateId,
   generateServiceToken,
@@ -11,6 +12,10 @@ import {
   getMcpToolById,
   headers,
   type McpTool,
+  RELATION_TYPE_DELEGATE,
+  SESSION_EVENT_DELEGATION_RETURNED,
+  SESSION_EVENT_DELEGATION_SENT,
+  SESSION_EVENT_TRANSFER,
   SPAN_KEYS,
   TemplateEngine,
   withRef,
@@ -254,7 +259,7 @@ export const createTransferToAgentTool = ({
       );
 
       if (streamRequestId) {
-        agentSessionManager.recordEvent(streamRequestId, 'transfer', callingAgentId, {
+        agentSessionManager.recordEvent(streamRequestId, SESSION_EVENT_TRANSFER, callingAgentId, {
           fromSubAgent: callingAgentId,
           targetSubAgent: transferConfig.id ?? 'unknown',
           reason: `Transfer to ${transferConfig.name || transferConfig.id}`,
@@ -320,7 +325,7 @@ export function createDelegateToAgentTool({
       if (metadata.streamRequestId) {
         agentSessionManager.recordEvent(
           metadata.streamRequestId,
-          'delegation_sent',
+          SESSION_EVENT_DELEGATION_SENT,
           callingAgentId,
           {
             delegationId,
@@ -441,13 +446,10 @@ export function createDelegateToAgentTool({
         ...(agentRunContext?.delegatedToolApproval
           ? {
               approved_tool_calls: JSON.stringify({
-                [agentRunContext.delegatedToolApproval.toolName]: [
-                  {
-                    approved: agentRunContext.delegatedToolApproval.approved,
-                    reason: agentRunContext.delegatedToolApproval.reason,
-                    originalToolCallId: agentRunContext.delegatedToolApproval.toolCallId,
-                  },
-                ],
+                [agentRunContext.delegatedToolApproval.toolCallId]: {
+                  approved: agentRunContext.delegatedToolApproval.approved,
+                  reason: agentRunContext.delegatedToolApproval.reason,
+                },
               }),
             }
           : {}),
@@ -506,7 +508,7 @@ export function createDelegateToAgentTool({
       if (sessionId && context?.toolCallId) {
         const toolResult = {
           toolCallId: context.toolCallId,
-          toolName: `delegate_to_${delegateConfig.config.id}`,
+          toolName: `${DELEGATE_TOOL_PREFIX}${delegateConfig.config.id}`,
           args: input,
           result: response.result,
           timestamp: Date.now(),
@@ -517,7 +519,7 @@ export function createDelegateToAgentTool({
       if (metadata.streamRequestId) {
         agentSessionManager.recordEvent(
           metadata.streamRequestId,
-          'delegation_returned',
+          SESSION_EVENT_DELEGATION_RETURNED,
           callingAgentId,
           {
             delegationId,
@@ -645,7 +647,7 @@ export async function buildTransferRelationConfig(
         baseUrl: rel.externalAgent.baseUrl,
         headers: rel.headers || undefined,
         credentialReferenceId: rel.externalAgent.credentialReferenceId,
-        relationType: 'delegate',
+        relationType: RELATION_TYPE_DELEGATE,
       },
     })
   );

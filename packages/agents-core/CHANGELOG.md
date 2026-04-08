@@ -1,5 +1,13 @@
 # @inkeep/agents-core
 
+## 0.65.2
+
+### Patch Changes
+
+- fa18f84: Return static error message for all 500-level API responses to prevent information leakage
+- 34e1d67: Fix Doltgres error logging to surface root cause details, redact SQL bind params, and re-throw auto-commit failures to prevent silent data loss
+- 93eb31e: Add scoped logger context via AsyncLocalStorage for automatic request-level field propagation
+
 ## 0.65.1
 
 ### Patch Changes

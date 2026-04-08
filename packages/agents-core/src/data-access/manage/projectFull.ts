@@ -44,9 +44,7 @@ import { createProject, deleteProject, getProject, updateProject } from './proje
 import { listSkillsWithFiles, upsertSkill } from './skills';
 import { deleteTool, listTools, upsertTool } from './tools';
 
-const defaultLogger = getLogger('projectFull');
-
-export type ProjectLogger = ReturnType<typeof getLogger>;
+const logger = getLogger('projectFull');
 
 /**
  * Validate and type the project data
@@ -60,7 +58,7 @@ function validateAndTypeProjectData(projectData: any): FullProjectDefinition {
  * This function creates a complete project with all agent and their nested resources.
  */
 export const createFullProjectServerSide =
-  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     projectData: FullProjectDefinition;
@@ -414,7 +412,7 @@ export const createFullProjectServerSide =
               credentialReferences: typed.credentialReferences || {},
               statusUpdates: agentData.statusUpdates === null ? undefined : agentData.statusUpdates,
             };
-            await createFullAgentServerSide(db, logger)(
+            await createFullAgentServerSide(db)(
               { tenantId, projectId: typed.id },
               agentDataWithoutSubAgents
             );
@@ -474,7 +472,7 @@ export const createFullProjectServerSide =
                 subAgents: agentData.subAgents, // Include all sub-agents with their relationships
               };
 
-              await updateFullAgentServerSide(db, logger)(
+              await updateFullAgentServerSide(db)(
                 { tenantId, projectId: typed.id },
                 updateData as any
               );
@@ -516,10 +514,7 @@ export const createFullProjectServerSide =
 
       logger.info({ projectId: typed.id }, 'Full project created successfully');
 
-      const fullProject = await getFullProject(
-        db,
-        logger
-      )({
+      const fullProject = await getFullProject(db)({
         scopes: { tenantId, projectId: typed.id },
       });
 
@@ -546,7 +541,7 @@ export const createFullProjectServerSide =
  * This function updates a complete project with all agent and their nested resources.
  */
 export const updateFullProjectServerSide =
-  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     projectData: FullProjectDefinition;
@@ -575,10 +570,7 @@ export const updateFullProjectServerSide =
 
       if (!existingProject) {
         logger.info({ projectId: typed.id }, 'Project not found, creating new project');
-        return await createFullProjectServerSide(
-          db,
-          logger
-        )({
+        return await createFullProjectServerSide(db)({
           scopes: { tenantId, projectId: typed.id },
           projectData,
         });
@@ -1118,10 +1110,7 @@ export const updateFullProjectServerSide =
       for (const agent of existingAgents) {
         if (!incomingAgentIds.has(agent.id)) {
           try {
-            await deleteFullAgent(
-              db,
-              logger
-            )({
+            await deleteFullAgent(db)({
               scopes: { tenantId, projectId: typed.id, agentId: agent.id },
             });
             deletedAgentCount++;
@@ -1168,7 +1157,7 @@ export const updateFullProjectServerSide =
               credentialReferences: typed.credentialReferences || {},
               statusUpdates: agentData.statusUpdates === null ? undefined : agentData.statusUpdates,
             };
-            await updateFullAgentServerSide(db, logger)(
+            await updateFullAgentServerSide(db)(
               { tenantId, projectId: typed.id },
               agentDataWithProjectResources
             );
@@ -1211,10 +1200,7 @@ export const updateFullProjectServerSide =
 
       logger.info({ projectId: typed.id }, 'Full project updated successfully');
 
-      const fullProject = await getFullProject(
-        db,
-        logger
-      )({
+      const fullProject = await getFullProject(db)({
         scopes: { tenantId, projectId: typed.id },
       });
 
@@ -1240,7 +1226,7 @@ export const updateFullProjectServerSide =
  * Get a complete project definition with all nested resources
  */
 const getFullProjectInternal =
-  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     includeRelationIds?: boolean;
@@ -1522,32 +1508,32 @@ const getFullProjectInternal =
   };
 
 export const getFullProject =
-  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<FullProjectSelect | null> => {
     const { scopes } = params;
-    return getFullProjectInternal(
-      db,
-      logger
-    )({ scopes, includeRelationIds: false }) as Promise<FullProjectSelect | null>;
+    return getFullProjectInternal(db)({
+      scopes,
+      includeRelationIds: false,
+    }) as Promise<FullProjectSelect | null>;
   };
 
 export const getFullProjectWithRelationIds =
-  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
   }): Promise<FullProjectSelectWithRelationIds | null> => {
     const { scopes } = params;
-    return getFullProjectInternal(
-      db,
-      logger
-    )({ scopes, includeRelationIds: true }) as Promise<FullProjectSelectWithRelationIds | null>;
+    return getFullProjectInternal(db)({
+      scopes,
+      includeRelationIds: true,
+    }) as Promise<FullProjectSelectWithRelationIds | null>;
   };
 
 /**
  * Delete a complete project and cascade to all related entities
  */
 export const deleteFullProject =
-  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<boolean> => {
     const { scopes } = params;
     const { tenantId, projectId } = scopes;
@@ -1555,10 +1541,7 @@ export const deleteFullProject =
     logger.info({ tenantId, projectId }, 'Deleting full project and related entities');
 
     try {
-      const project = await getFullProject(
-        db,
-        logger
-      )({
+      const project = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
 
@@ -1581,10 +1564,7 @@ export const deleteFullProject =
           try {
             logger.info({ tenantId, projectId, agentId }, 'Deleting agent from project');
 
-            await deleteFullAgent(
-              db,
-              logger
-            )({
+            await deleteFullAgent(db)({
               scopes: { tenantId, projectId, agentId },
             });
 

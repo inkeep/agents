@@ -161,7 +161,7 @@ async function recordConversationStep(params: {
   } catch (error) {
     if (isForeignKeyViolation(error)) {
       logger.warn(
-        { tenantId, projectId, datasetItemId, datasetRunId, conversationId },
+        { datasetItemId, datasetRunId, conversationId },
         'Conversation does not exist, skipping relation creation'
       );
     } else {
@@ -386,7 +386,7 @@ async function filterEvaluatorsByAgentStep(params: {
 
   if (!resolvedRef) {
     logger.warn(
-      { tenantId, projectId, agentId, ref: params.ref },
+      { ref: params.ref },
       'Failed to resolve ref for evaluator agent scoping — skipping all evaluators'
     );
     return [];

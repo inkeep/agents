@@ -8,6 +8,7 @@
  * - Successful streaming flow
  */
 
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockFetch } = vi.hoisted(() => ({
@@ -28,14 +29,7 @@ vi.mock('../../env', () => ({
   },
 }));
 
-vi.mock('../../logger', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
+vi.mock('../../logger', () => createMockLoggerModule().module);
 
 import { getInProcessFetch } from '@inkeep/agents-core';
 import { streamAgentResponse } from '../../slack/services/events/streaming';

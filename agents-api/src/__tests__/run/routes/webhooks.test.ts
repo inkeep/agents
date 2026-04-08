@@ -1,27 +1,10 @@
 import { createHmac } from 'node:crypto';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import type { Context } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock logger
-vi.mock('../../../logger.js', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    child: vi.fn().mockReturnThis(),
-  }),
-}));
-
-vi.mock('../../../logger', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    child: vi.fn().mockReturnThis(),
-  }),
-}));
+vi.mock('../../../logger.js', () => createMockLoggerModule().module);
+vi.mock('../../../logger', () => createMockLoggerModule().module);
 
 // Create hoisted mocks for @inkeep/agents-core
 const {

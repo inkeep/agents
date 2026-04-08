@@ -4,6 +4,7 @@ import type {
   McpTool,
   MessageType,
 } from '@inkeep/agents-core';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { JSONSchema } from 'zod/v4/core';
 import { Agent, type AgentConfig } from '../../../domains/run/agents/Agent';
@@ -366,15 +367,7 @@ vi.mock('@opentelemetry/api', () => ({
   },
 }));
 
-// Mock the logger
-vi.mock('../../../logger.js', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-  }),
-}));
+vi.mock('../../../logger.js', () => createMockLoggerModule().module);
 
 // Mock the SystemPromptBuilder
 vi.mock('../../../domains/run/agents/SystemPromptBuilder.js', () => ({

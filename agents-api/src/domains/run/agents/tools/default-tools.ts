@@ -1,4 +1,5 @@
 import { z } from '@hono/zod-openapi';
+import { LOAD_SKILL_TOOL } from '@inkeep/agents-core';
 import { type Tool, type ToolSet, tool } from 'ai';
 import { getLogger } from '../../../../logger';
 import type { ArtifactFullData } from '../../artifacts/ArtifactService';
@@ -143,11 +144,15 @@ export function getArtifactTools(ctx: AgentRunContext): Tool<any, any> {
       const artifactService = agentSessionManager.getArtifactService(streamRequestId);
 
       if (!artifactService) {
-        logger.warn({ artifactId, toolCallId, streamRequestId }, 'ArtifactService not found for session');
+        logger.warn(
+          { artifactId, toolCallId, streamRequestId },
+          'ArtifactService not found for session'
+        );
         return {
           artifactId,
           status: 'unavailable',
-          reason: 'Artifact service is not available for this session. The artifact cannot be retrieved.',
+          reason:
+            'Artifact service is not available for this session. The artifact cannot be retrieved.',
         };
       }
 
@@ -257,19 +262,16 @@ export async function getDefaultTools(
 
   const hasOnDemandSkills = ctx.config.skills?.some((skill) => !skill.alwaysLoaded);
   if (hasOnDemandSkills) {
-    defaultTools.load_skill = wrapToolWithStreaming(
+    defaultTools[LOAD_SKILL_TOOL] = wrapToolWithStreaming(
       ctx,
-      'load_skill',
+      LOAD_SKILL_TOOL,
       createLoadSkillTool(ctx),
       streamRequestId,
       'tool'
     );
   }
 
-  logger.info(
-    { agentId: ctx.config.id, streamRequestId },
-    'Adding compress_context tool to defaultTools'
-  );
+  logger.info({ streamRequestId }, 'Adding compress_context tool to defaultTools');
   defaultTools.compress_context = tool({
     description:
       'Manually compress the current conversation context to save space. Use when shifting topics, completing major tasks, or when context feels cluttered.',
@@ -283,7 +285,6 @@ export async function getDefaultTools(
     execute: async ({ reason }) => {
       logger.info(
         {
-          agentId: ctx.config.id,
           streamRequestId,
           reason,
         },
@@ -303,7 +304,7 @@ export async function getDefaultTools(
     },
   });
 
-  logger.info('getDefaultTools returning tools:', Object.keys(defaultTools).join(', '));
+  logger.info({ tools: Object.keys(defaultTools) }, 'getDefaultTools returning tools');
   return defaultTools;
 }
 
@@ -319,10 +320,7 @@ export async function agentHasArtifactComponents(ctx: AgentRunContext): Promise<
       (subAgent) => (subAgent.artifactComponents?.length ?? 0) > 0
     );
   } catch (error) {
-    logger.error(
-      { error, agentId: ctx.config.agentId },
-      'Failed to check agent artifact components'
-    );
+    logger.error({ error }, 'Failed to check agent artifact components');
     return false;
   }
 }

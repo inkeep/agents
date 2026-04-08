@@ -1,4 +1,4 @@
-import { parseEmbeddedJson, unwrapError } from '@inkeep/agents-core';
+import { parseEmbeddedJson, SESSION_EVENT_ERROR, unwrapError } from '@inkeep/agents-core';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { type ToolSet, tool } from 'ai';
 import { getLogger } from '../../../../logger';
@@ -36,9 +36,6 @@ export async function getMcpTools(
           {
             toolName: mcpTools[i].name,
             toolId: mcpTools[i].id,
-            tenantId: ctx.config.tenantId,
-            projectId: ctx.config.projectId,
-            agentId: ctx.config.agentId,
             error: result.reason instanceof Error ? result.reason.message : String(result.reason),
           },
           'MCP tool failed to load — skipping this tool and continuing with others'
@@ -140,18 +137,23 @@ export async function getMcpTools(
 
               if (streamRequestId) {
                 const relationshipId = getRelationshipIdForTool(ctx, toolName, 'mcp');
-                agentSessionManager.recordEvent(streamRequestId, 'error', ctx.config.id, {
-                  message: `MCP tool "${toolName}" failed: ${errorMessage}`,
-                  code: 'mcp_tool_error',
-                  severity: 'error',
-                  context: {
-                    toolName,
-                    toolCallId,
-                    errorMessage,
+                agentSessionManager.recordEvent(
+                  streamRequestId,
+                  SESSION_EVENT_ERROR,
+                  ctx.config.id,
+                  {
+                    message: `MCP tool "${toolName}" failed: ${errorMessage}`,
+                    code: 'mcp_tool_error',
+                    severity: 'error',
+                    context: {
+                      toolName,
+                      toolCallId,
+                      errorMessage,
+                      relationshipId,
+                    },
                     relationshipId,
-                  },
-                  relationshipId,
-                });
+                  }
+                );
               }
 
               const activeSpan = trace.getActiveSpan();

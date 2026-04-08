@@ -208,7 +208,7 @@ app.openapi(
 
         if (!scopedEvaluatorIds.length) {
           logger.info(
-            { conversationId, agentId },
+            { conversationId },
             'All evaluators filtered out by agent scoping for conversation'
           );
           continue;
@@ -230,13 +230,7 @@ app.openapi(
       await Promise.all(workflowPromises);
 
       logger.info(
-        {
-          tenantId,
-          projectId,
-          conversationIds: triggeredConversationIds,
-          evaluatorIds,
-          evaluationRunId,
-        },
+        { conversationIds: triggeredConversationIds, evaluatorIds, evaluationRunId },
         'Conversation evaluations triggered'
       );
 
@@ -250,10 +244,7 @@ app.openapi(
         202
       ) as any;
     } catch (error) {
-      logger.error(
-        { error, tenantId, projectId, conversationIds },
-        'Failed to trigger conversation evaluations'
-      );
+      logger.error({ error, conversationIds }, 'Failed to trigger conversation evaluations');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -308,7 +299,7 @@ app.openapi(
     const { evaluationJobConfigId, evaluatorIds, jobFilters } = c.req.valid('json');
 
     logger.info(
-      { tenantId, projectId, evaluationJobConfigId, evaluatorCount: evaluatorIds.length },
+      { evaluationJobConfigId, evaluatorCount: evaluatorIds.length },
       'Triggering evaluation job'
     );
 
@@ -324,15 +315,7 @@ app.openapi(
         });
 
       logger.info(
-        {
-          tenantId,
-          projectId,
-          evaluationJobConfigId,
-          evaluationRunId,
-          conversationCount,
-          queued,
-          failed,
-        },
+        { evaluationJobConfigId, evaluationRunId, conversationCount, queued, failed },
         'Evaluation job triggered successfully'
       );
 
@@ -346,10 +329,7 @@ app.openapi(
         202
       );
     } catch (err) {
-      logger.error(
-        { err, tenantId, projectId, evaluationJobConfigId },
-        'Failed to trigger evaluation job'
-      );
+      logger.error({ err, evaluationJobConfigId }, 'Failed to trigger evaluation job');
       return c.json(
         { error: 'Failed to trigger evaluation job', message: (err as Error).message },
         500
