@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
 import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
+import { describe, expect, it, vi } from 'vitest';
 import { generateAppCredential } from '../../utils/apiKeys';
 
 vi.mock('../../env.js', () => ({

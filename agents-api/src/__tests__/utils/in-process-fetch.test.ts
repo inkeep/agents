@@ -1,5 +1,5 @@
-import { trace } from '@opentelemetry/api';
 import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
+import { trace } from '@opentelemetry/api';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@opentelemetry/api', () => ({

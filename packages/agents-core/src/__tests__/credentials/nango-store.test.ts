@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NangoCredentialStore } from '../../credential-stores/nango-store';
 
 vi.mock('../../logger.js', () => createMockLoggerModule().module);

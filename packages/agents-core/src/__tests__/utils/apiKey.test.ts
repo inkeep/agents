@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   extractPublicId,
   generateApiKey,

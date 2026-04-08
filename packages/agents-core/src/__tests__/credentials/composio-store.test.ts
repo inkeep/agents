@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ComposioCredentialStore } from '../../credential-stores/composio-store';
 import { CredentialStoreType } from '../../types';
 

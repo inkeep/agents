@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { TemplateEngine } from '../../context/TemplateEngine';
 import { CredentialStoreRegistry } from '../../credential-stores/CredentialStoreRegistry';
 import {

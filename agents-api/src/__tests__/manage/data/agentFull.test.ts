@@ -6,8 +6,8 @@ import {
   getFullAgent,
   updateFullAgentServerSide,
 } from '@inkeep/agents-core';
-import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import manageDbClient from '../../../data/db/manageDbClient';
 import { createTestContextConfigData } from '../../utils/testHelpers';
