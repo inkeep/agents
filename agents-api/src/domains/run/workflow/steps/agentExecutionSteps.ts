@@ -440,299 +440,259 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
     outputFormat,
   } = payload;
 
-  return runWithLogContext({ requestId, currentSubAgentId, workflowRunId, conversationId }, async () => {
-    logger.info(
-      {
-        isFirstMessage,
-        streamNamespace,
-        taskId,
-        isPostApproval,
-        denialRedirectCount: denialRedirects?.length,
-      },
-      'callLlmStep starting'
-    );
+  return runWithLogContext(
+    { requestId, currentSubAgentId, workflowRunId, conversationId },
+    async () => {
+      logger.info(
+        {
+          isFirstMessage,
+          streamNamespace,
+          taskId,
+          isPostApproval,
+          denialRedirectCount: denialRedirects?.length,
+        },
+        'callLlmStep starting'
+      );
 
-    const { createMessage, generateId, updateTask } = await import('@inkeep/agents-core');
-    const { default: runDbClient } = await import('../../../../data/db/runDbClient');
-    const { WritableBackedHonoSSEStream, WritableBackedVercelWriter } = await import(
-      '../../stream/durable-stream-helper'
-    );
-    const { createSSEStreamHelper, createVercelStreamHelper } = await import(
-      '../../stream/stream-helpers'
-    );
-    const { registerStreamHelper, unregisterStreamHelper } = await import(
-      '../../stream/stream-registry'
-    );
-    const { agentSessionManager } = await import('../../session/AgentSession');
-    const { agentInitializingOp, completionOp, errorOp } = await import(
-      '../../utils/agent-operations'
-    );
-    const { executeTransfer } = await import('../../a2a/transfer');
-    const { triggerConversationEvaluation } = await import(
-      '../../../evals/services/conversationEvaluation'
-    );
-    const { hasToolCallWithPrefix } = await import('../../agents/agent-types');
+      const { createMessage, generateId, updateTask } = await import('@inkeep/agents-core');
+      const { default: runDbClient } = await import('../../../../data/db/runDbClient');
+      const { WritableBackedHonoSSEStream, WritableBackedVercelWriter } = await import(
+        '../../stream/durable-stream-helper'
+      );
+      const { createSSEStreamHelper, createVercelStreamHelper } = await import(
+        '../../stream/stream-helpers'
+      );
+      const { registerStreamHelper, unregisterStreamHelper } = await import(
+        '../../stream/stream-registry'
+      );
+      const { agentSessionManager } = await import('../../session/AgentSession');
+      const { agentInitializingOp, completionOp, errorOp } = await import(
+        '../../utils/agent-operations'
+      );
+      const { executeTransfer } = await import('../../a2a/transfer');
+      const { triggerConversationEvaluation } = await import(
+        '../../../evals/services/conversationEvaluation'
+      );
+      const { hasToolCallWithPrefix } = await import('../../agents/agent-types');
 
-    const { agent, executionContext } = await buildAgentForStep({
-      tenantId,
-      projectId,
-      agentId,
-      currentSubAgentId,
-      resolvedRef: payload.resolvedRef,
-      forwardedHeaders,
-      userId: payload.userId,
-    });
+      const { agent, executionContext } = await buildAgentForStep({
+        tenantId,
+        projectId,
+        agentId,
+        currentSubAgentId,
+        resolvedRef: payload.resolvedRef,
+        forwardedHeaders,
+        userId: payload.userId,
+      });
 
-    const timestamp = Math.floor(Date.now() / 1000);
-    const writable = getWritable<Uint8Array>(streamNamespace ? { namespace: streamNamespace } : {});
-    let closeable:
-      | InstanceType<typeof WritableBackedHonoSSEStream>
-      | InstanceType<typeof WritableBackedVercelWriter>;
-    let sseHelper:
-      | ReturnType<typeof createSSEStreamHelper>
-      | ReturnType<typeof createVercelStreamHelper>;
+      const timestamp = Math.floor(Date.now() / 1000);
+      const writable = getWritable<Uint8Array>(
+        streamNamespace ? { namespace: streamNamespace } : {}
+      );
+      let closeable:
+        | InstanceType<typeof WritableBackedHonoSSEStream>
+        | InstanceType<typeof WritableBackedVercelWriter>;
+      let sseHelper:
+        | ReturnType<typeof createSSEStreamHelper>
+        | ReturnType<typeof createVercelStreamHelper>;
 
-    if (outputFormat === 'vercel') {
-      const vercelWriter = new WritableBackedVercelWriter(writable);
-      closeable = vercelWriter;
-      sseHelper = createVercelStreamHelper(vercelWriter);
-      logger.debug('callLlmStep: using Vercel stream writer');
-    } else {
-      const writableStream = new WritableBackedHonoSSEStream(writable);
-      closeable = writableStream;
-      sseHelper = createSSEStreamHelper(writableStream, requestId, timestamp);
-      logger.debug('callLlmStep: using SSE stream writer');
-    }
+      if (outputFormat === 'vercel') {
+        const vercelWriter = new WritableBackedVercelWriter(writable);
+        closeable = vercelWriter;
+        sseHelper = createVercelStreamHelper(vercelWriter);
+        logger.debug('callLlmStep: using Vercel stream writer');
+      } else {
+        const writableStream = new WritableBackedHonoSSEStream(writable);
+        closeable = writableStream;
+        sseHelper = createSSEStreamHelper(writableStream, requestId, timestamp);
+        logger.debug('callLlmStep: using SSE stream writer');
+      }
 
-    agent.streamRequestId = requestId;
-    agent.runContext.streamHelper = sseHelper;
-    agent.setConversationId(conversationId);
-    agent.setDurableWorkflowRunId(workflowRunId);
+      agent.streamRequestId = requestId;
+      agent.runContext.streamHelper = sseHelper;
+      agent.setConversationId(conversationId);
+      agent.setDurableWorkflowRunId(workflowRunId);
 
-    if (denialRedirects && denialRedirects.length > 0) {
-      agent.runContext.taskDenialRedirects.push(...denialRedirects);
-    }
+      if (denialRedirects && denialRedirects.length > 0) {
+        agent.runContext.taskDenialRedirects.push(...denialRedirects);
+      }
 
-    registerStreamHelper(requestId, sseHelper);
-    agentSessionManager.createSession(requestId, executionContext, conversationId);
-    if (emitOperations) {
-      agentSessionManager.enableEmitOperations(requestId);
-    }
+      registerStreamHelper(requestId, sseHelper);
+      agentSessionManager.createSession(requestId, executionContext, conversationId);
+      if (emitOperations) {
+        agentSessionManager.enableEmitOperations(requestId);
+      }
 
-    logger.debug({ conversationId }, 'callLlmStep: session and stream registered');
+      logger.debug({ conversationId }, 'callLlmStep: session and stream registered');
 
-    let isTerminal = false;
+      let isTerminal = false;
 
-    const bag = (propagation.getBaggage(otelContext.active()) ?? propagation.createBaggage())
-      .setEntry('conversation.id', { value: conversationId })
-      .setEntry('tenant.id', { value: tenantId })
-      .setEntry('project.id', { value: projectId })
-      .setEntry('agent.id', { value: agentId });
-    const ctxWithBaggage = propagation.setBaggage(otelContext.active(), bag);
+      const bag = (propagation.getBaggage(otelContext.active()) ?? propagation.createBaggage())
+        .setEntry('conversation.id', { value: conversationId })
+        .setEntry('tenant.id', { value: tenantId })
+        .setEntry('project.id', { value: projectId })
+        .setEntry('agent.id', { value: agentId });
+      const ctxWithBaggage = propagation.setBaggage(otelContext.active(), bag);
 
-    return otelContext.with(ctxWithBaggage, async () => {
-      try {
-        if (isFirstMessage && emitOperations) {
-          await sseHelper.writeOperation(agentInitializingOp(requestId, agentId));
-        }
-
-        let postApprovalText: string | undefined;
-        if (isPostApproval) {
-          if (denialRedirects && denialRedirects.length > 0) {
-            const sanitize = (s: string) => s.replace(/\n/g, ' ').slice(0, 200);
-            const redirectSummary = denialRedirects
-              .map((d) => `- ${d.toolName}: ${sanitize(d.reason)}`)
-              .join('\n');
-            postApprovalText = `The user denied one or more tool calls. Here is what was denied and why:\n${redirectSummary}\nThe tool results above reflect the denial. Respond to the user acknowledging their redirect.`;
-          } else {
-            postApprovalText =
-              'Continue the conversation. The tool results above contain the information needed to respond to the user.';
-          }
-        }
-
-        const userParts: Part[] = postApprovalText
-          ? [{ kind: 'text', text: postApprovalText }]
-          : isFirstMessage && messageParts && messageParts.length > 0
-            ? messageParts
-            : [{ kind: 'text', text: userMessage }];
-
-        const runtimeContext = {
-          contextId: conversationId,
-          metadata: {
-            conversationId,
-            threadId: conversationId,
-            taskId,
-            streamRequestId: requestId,
-            apiKey: executionContext.apiKey,
-          },
-        };
-
-        logger.debug({ userPartsCount: userParts.length }, 'callLlmStep: calling agent.generate');
-
-        let response: Awaited<ReturnType<typeof agent.generate>> | undefined;
+      return otelContext.with(ctxWithBaggage, async () => {
         try {
-          response = await agent.generate(userParts, runtimeContext);
-        } catch (generateError: unknown) {
-          if (!agent.runContext.pendingDurableApproval) {
-            throw generateError;
+          if (isFirstMessage && emitOperations) {
+            await sseHelper.writeOperation(agentInitializingOp(requestId, agentId));
           }
-          logger.info(
-            {
-              error: generateError instanceof Error ? generateError.message : String(generateError),
-              errorName: generateError instanceof Error ? generateError.name : undefined,
-            },
-            'callLlmStep: agent.generate threw during durable approval flow, continuing with pending approval'
-          );
-        }
 
-        if (response) {
-          logger.info(
-            {
-              finishReason: response.finishReason,
-              stepCount: response.steps?.length,
-              hasText: !!response.text,
-              hasPendingApproval: !!agent.runContext.pendingDurableApproval,
-            },
-            'callLlmStep: agent.generate completed'
-          );
-        }
-
-        const pendingApproval = agent.runContext.pendingDurableApproval;
-        if (pendingApproval) {
-          logger.info(
-            {
-              toolName: pendingApproval.toolName,
-              toolCallId: pendingApproval.toolCallId,
-              isDelegated: !!pendingApproval.delegatedApproval,
-            },
-            'callLlmStep: tool needs approval, suspending'
-          );
-
-          if (pendingApproval.delegatedApproval) {
-            const da = pendingApproval.delegatedApproval;
-            try {
-              await sseHelper.writeToolInputStart({
-                toolCallId: da.toolCallId,
-                toolName: da.toolName,
-              });
-              const inputText = JSON.stringify(da.args ?? {});
-              for (let i = 0; i < inputText.length; i += 16) {
-                await sseHelper.writeToolInputDelta({
-                  toolCallId: da.toolCallId,
-                  inputTextDelta: inputText.slice(i, i + 16),
-                });
-              }
-              await sseHelper.writeToolInputAvailable({
-                toolCallId: da.toolCallId,
-                toolName: da.toolName,
-                input: (da.args ?? {}) as Record<string, unknown>,
-              });
-              await sseHelper.writeToolApprovalRequest({
-                approvalId: `aitxt-${da.toolCallId}`,
-                toolCallId: da.toolCallId,
-                toolName: da.toolName,
-                input: (da.args ?? {}) as Record<string, unknown>,
-              });
-            } catch (sseError) {
-              logger.error(
-                { error: sseError, toolCallId: da.toolCallId, toolName: da.toolName },
-                'Failed to stream delegated approval request — workflow will suspend but client may not see approval UI'
-              );
-              throw new Error(
-                `Failed to deliver delegated approval request for ${da.toolName}: ${sseError instanceof Error ? sseError.message : String(sseError)}`
-              );
+          let postApprovalText: string | undefined;
+          if (isPostApproval) {
+            if (denialRedirects && denialRedirects.length > 0) {
+              const sanitize = (s: string) => s.replace(/\n/g, ' ').slice(0, 200);
+              const redirectSummary = denialRedirects
+                .map((d) => `- ${d.toolName}: ${sanitize(d.reason)}`)
+                .join('\n');
+              postApprovalText = `The user denied one or more tool calls. Here is what was denied and why:\n${redirectSummary}\nThe tool results above reflect the denial. Respond to the user acknowledging their redirect.`;
+            } else {
+              postApprovalText =
+                'Continue the conversation. The tool results above contain the information needed to respond to the user.';
             }
           }
 
-          isTerminal = true;
-          return {
-            type: 'tool_calls' as const,
-            toolCalls: [
-              {
-                toolCallId: pendingApproval.toolCallId,
-                toolName: pendingApproval.toolName,
-                args: pendingApproval.args,
-              },
-            ],
-            ...(pendingApproval.delegatedApproval
-              ? { delegatedApproval: pendingApproval.delegatedApproval }
-              : {}),
-          };
-        }
+          const userParts: Part[] = postApprovalText
+            ? [{ kind: 'text', text: postApprovalText }]
+            : isFirstMessage && messageParts && messageParts.length > 0
+              ? messageParts
+              : [{ kind: 'text', text: userMessage }];
 
-        if (!response) {
-          throw new Error(
-            'agent.generate() produced no response and no pending approval was found'
-          );
-        }
-
-        if (hasToolCallWithPrefix('transfer_to_')(response)) {
-          const transferReason =
-            response.steps?.[response.steps.length - 1]?.text || response.text || '';
-
-          const lastStepToolCallsForTransfer =
-            (
-              response.steps?.at(-1) as
-                | { toolCalls?: Array<{ toolCallId: string; toolName: string; args: unknown }> }
-                | undefined
-            )?.toolCalls ?? [];
-
-          const transferToolCall = lastStepToolCallsForTransfer.find((tc) =>
-            tc.toolName.startsWith('transfer_to_')
-          );
-          const targetSubAgentId = transferToolCall?.toolName.slice('transfer_to_'.length);
-
-          logger.info(
-            { targetSubAgentId, transferToolName: transferToolCall?.toolName },
-            'callLlmStep: transfer detected'
-          );
-
-          if (targetSubAgentId) {
-            await createMessage(runDbClient)({
-              scopes: { tenantId, projectId },
-              data: {
-                id: generateId(),
-                conversationId,
-                role: 'agent',
-                content: {
-                  text: transferReason,
-                  parts: [{ kind: 'text', text: transferReason }],
-                },
-                visibility: 'user-facing',
-                messageType: 'chat',
-                fromSubAgentId: currentSubAgentId,
-                taskId,
-              },
-            });
-
-            await executeTransfer({
-              projectId,
-              tenantId,
+          const runtimeContext = {
+            contextId: conversationId,
+            metadata: {
+              conversationId,
               threadId: conversationId,
-              agentId,
-              targetSubAgentId,
-              ref: payload.resolvedRef,
-            });
+              taskId,
+              streamRequestId: requestId,
+              apiKey: executionContext.apiKey,
+            },
+          };
 
-            return { type: 'transfer' as const, targetSubAgentId };
+          logger.debug({ userPartsCount: userParts.length }, 'callLlmStep: calling agent.generate');
+
+          let response: Awaited<ReturnType<typeof agent.generate>> | undefined;
+          try {
+            response = await agent.generate(userParts, runtimeContext);
+          } catch (generateError: unknown) {
+            if (!agent.runContext.pendingDurableApproval) {
+              throw generateError;
+            }
+            logger.info(
+              {
+                error:
+                  generateError instanceof Error ? generateError.message : String(generateError),
+                errorName: generateError instanceof Error ? generateError.name : undefined,
+              },
+              'callLlmStep: agent.generate threw during durable approval flow, continuing with pending approval'
+            );
           }
-        }
 
-        const textContent =
-          response.steps?.[response.steps.length - 1]?.text || response.text || '';
+          if (response) {
+            logger.info(
+              {
+                finishReason: response.finishReason,
+                stepCount: response.steps?.length,
+                hasText: !!response.text,
+                hasPendingApproval: !!agent.runContext.pendingDurableApproval,
+              },
+              'callLlmStep: agent.generate completed'
+            );
+          }
 
-        return await tracer.startActiveSpan(
-          SPAN_NAMES.EXECUTION_HANDLER_EXECUTE,
-          {},
-          async (span) => {
-            try {
-              span.setAttributes({
-                'ai.response.content': textContent || 'No response content',
-                'ai.response.timestamp': new Date().toISOString(),
-                'subAgent.name': agent.runContext.config.name,
-                'subAgent.id': currentSubAgentId,
-              });
+          const pendingApproval = agent.runContext.pendingDurableApproval;
+          if (pendingApproval) {
+            logger.info(
+              {
+                toolName: pendingApproval.toolName,
+                toolCallId: pendingApproval.toolCallId,
+                isDelegated: !!pendingApproval.delegatedApproval,
+              },
+              'callLlmStep: tool needs approval, suspending'
+            );
 
+            if (pendingApproval.delegatedApproval) {
+              const da = pendingApproval.delegatedApproval;
+              try {
+                await sseHelper.writeToolInputStart({
+                  toolCallId: da.toolCallId,
+                  toolName: da.toolName,
+                });
+                const inputText = JSON.stringify(da.args ?? {});
+                for (let i = 0; i < inputText.length; i += 16) {
+                  await sseHelper.writeToolInputDelta({
+                    toolCallId: da.toolCallId,
+                    inputTextDelta: inputText.slice(i, i + 16),
+                  });
+                }
+                await sseHelper.writeToolInputAvailable({
+                  toolCallId: da.toolCallId,
+                  toolName: da.toolName,
+                  input: (da.args ?? {}) as Record<string, unknown>,
+                });
+                await sseHelper.writeToolApprovalRequest({
+                  approvalId: `aitxt-${da.toolCallId}`,
+                  toolCallId: da.toolCallId,
+                  toolName: da.toolName,
+                  input: (da.args ?? {}) as Record<string, unknown>,
+                });
+              } catch (sseError) {
+                logger.error(
+                  { error: sseError, toolCallId: da.toolCallId, toolName: da.toolName },
+                  'Failed to stream delegated approval request — workflow will suspend but client may not see approval UI'
+                );
+                throw new Error(
+                  `Failed to deliver delegated approval request for ${da.toolName}: ${sseError instanceof Error ? sseError.message : String(sseError)}`
+                );
+              }
+            }
+
+            isTerminal = true;
+            return {
+              type: 'tool_calls' as const,
+              toolCalls: [
+                {
+                  toolCallId: pendingApproval.toolCallId,
+                  toolName: pendingApproval.toolName,
+                  args: pendingApproval.args,
+                },
+              ],
+              ...(pendingApproval.delegatedApproval
+                ? { delegatedApproval: pendingApproval.delegatedApproval }
+                : {}),
+            };
+          }
+
+          if (!response) {
+            throw new Error(
+              'agent.generate() produced no response and no pending approval was found'
+            );
+          }
+
+          if (hasToolCallWithPrefix('transfer_to_')(response)) {
+            const transferReason =
+              response.steps?.[response.steps.length - 1]?.text || response.text || '';
+
+            const lastStepToolCallsForTransfer =
+              (
+                response.steps?.at(-1) as
+                  | { toolCalls?: Array<{ toolCallId: string; toolName: string; args: unknown }> }
+                  | undefined
+              )?.toolCalls ?? [];
+
+            const transferToolCall = lastStepToolCallsForTransfer.find((tc) =>
+              tc.toolName.startsWith('transfer_to_')
+            );
+            const targetSubAgentId = transferToolCall?.toolName.slice('transfer_to_'.length);
+
+            logger.info(
+              { targetSubAgentId, transferToolName: transferToolCall?.toolName },
+              'callLlmStep: transfer detected'
+            );
+
+            if (targetSubAgentId) {
               await createMessage(runDbClient)({
                 scopes: { tenantId, projectId },
                 data: {
@@ -740,15 +700,8 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
                   conversationId,
                   role: 'agent',
                   content: {
-                    text: textContent,
-                    parts: response.formattedContent?.parts?.map(
-                      (part: { kind: string; text?: string; data?: unknown }) => ({
-                        kind: part.kind,
-                        text: part.kind === 'text' ? part.text : undefined,
-                        data:
-                          part.kind === 'data' ? (part.data as Record<string, unknown>) : undefined,
-                      })
-                    ) || [{ kind: 'text', text: textContent }],
+                    text: transferReason,
+                    parts: [{ kind: 'text', text: transferReason }],
                   },
                   visibility: 'user-facing',
                   messageType: 'chat',
@@ -757,110 +710,165 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
                 },
               });
 
-              await updateTask(runDbClient)({
-                taskId,
-                scopes: { tenantId, projectId },
-                data: {
-                  status: 'completed',
-                  metadata: {
-                    completed_at: new Date().toISOString(),
-                    response: { text: textContent, hasText: !!textContent },
-                  },
-                },
-              });
-
-              if (emitOperations) {
-                await sseHelper.writeOperation(completionOp(currentSubAgentId, 1));
-              }
-              await sseHelper.complete();
-
-              triggerConversationEvaluation({
-                tenantId,
+              await executeTransfer({
                 projectId,
-                conversationId,
-                resolvedRef: payload.resolvedRef,
-              }).catch((evalError) => {
-                logger.error(
-                  { error: evalError, conversationId },
-                  'Failed to trigger conversation evaluation (non-blocking)'
-                );
+                tenantId,
+                threadId: conversationId,
+                agentId,
+                targetSubAgentId,
+                ref: payload.resolvedRef,
               });
 
-              logger.info('callLlmStep: completion');
-              isTerminal = true;
-              return { type: 'completion' as const };
-            } finally {
-              span.end();
+              return { type: 'transfer' as const, targetSubAgentId };
             }
           }
-        );
-      } catch (error) {
-        const rootCause = error instanceof Error ? error : new Error(String(error));
-        logger.error(
-          { error: rootCause.message, stack: rootCause.stack },
-          'callLlmStep: error during execution'
-        );
 
-        isTerminal = true;
-        return await tracer.startActiveSpan(
-          SPAN_NAMES.EXECUTION_HANDLER_EXECUTE,
-          {},
-          async (span) => {
-            try {
-              span.setAttributes({
-                'ai.response.content':
-                  'Hmm.. It seems I might be having some issues right now. Please clear the chat and try again.',
-                'ai.response.timestamp': new Date().toISOString(),
-                'subAgent.name': agent.runContext.config.name,
-                'subAgent.id': currentSubAgentId,
-              });
-              setSpanWithError(span, rootCause);
+          const textContent =
+            response.steps?.[response.steps.length - 1]?.text || response.text || '';
 
+          return await tracer.startActiveSpan(
+            SPAN_NAMES.EXECUTION_HANDLER_EXECUTE,
+            {},
+            async (span) => {
               try {
-                await sseHelper.writeOperation(
-                  errorOp(`Execution error: ${rootCause.message}`, currentSubAgentId || 'system')
-                );
-                await sseHelper.complete();
-              } catch (streamErr) {
-                logger.warn({ error: streamErr }, 'Failed to write error to SSE stream');
-              }
+                span.setAttributes({
+                  'ai.response.content': textContent || 'No response content',
+                  'ai.response.timestamp': new Date().toISOString(),
+                  'subAgent.name': agent.runContext.config.name,
+                  'subAgent.id': currentSubAgentId,
+                });
 
-              try {
+                await createMessage(runDbClient)({
+                  scopes: { tenantId, projectId },
+                  data: {
+                    id: generateId(),
+                    conversationId,
+                    role: 'agent',
+                    content: {
+                      text: textContent,
+                      parts: response.formattedContent?.parts?.map(
+                        (part: { kind: string; text?: string; data?: unknown }) => ({
+                          kind: part.kind,
+                          text: part.kind === 'text' ? part.text : undefined,
+                          data:
+                            part.kind === 'data'
+                              ? (part.data as Record<string, unknown>)
+                              : undefined,
+                        })
+                      ) || [{ kind: 'text', text: textContent }],
+                    },
+                    visibility: 'user-facing',
+                    messageType: 'chat',
+                    fromSubAgentId: currentSubAgentId,
+                    taskId,
+                  },
+                });
+
                 await updateTask(runDbClient)({
                   taskId,
                   scopes: { tenantId, projectId },
                   data: {
-                    status: 'failed',
+                    status: 'completed',
                     metadata: {
-                      failed_at: new Date().toISOString(),
-                      error: rootCause.message,
+                      completed_at: new Date().toISOString(),
+                      response: { text: textContent, hasText: !!textContent },
                     },
                   },
                 });
-              } catch (taskErr) {
-                logger.warn({ error: taskErr, taskId }, 'Failed to update task status to failed');
-              }
 
-              throw error;
-            } finally {
-              span.end();
+                if (emitOperations) {
+                  await sseHelper.writeOperation(completionOp(currentSubAgentId, 1));
+                }
+                await sseHelper.complete();
+
+                triggerConversationEvaluation({
+                  tenantId,
+                  projectId,
+                  conversationId,
+                  resolvedRef: payload.resolvedRef,
+                }).catch((evalError) => {
+                  logger.error(
+                    { error: evalError, conversationId },
+                    'Failed to trigger conversation evaluation (non-blocking)'
+                  );
+                });
+
+                logger.info('callLlmStep: completion');
+                isTerminal = true;
+                return { type: 'completion' as const };
+              } finally {
+                span.end();
+              }
             }
+          );
+        } catch (error) {
+          const rootCause = error instanceof Error ? error : new Error(String(error));
+          logger.error(
+            { error: rootCause.message, stack: rootCause.stack },
+            'callLlmStep: error during execution'
+          );
+
+          isTerminal = true;
+          return await tracer.startActiveSpan(
+            SPAN_NAMES.EXECUTION_HANDLER_EXECUTE,
+            {},
+            async (span) => {
+              try {
+                span.setAttributes({
+                  'ai.response.content':
+                    'Hmm.. It seems I might be having some issues right now. Please clear the chat and try again.',
+                  'ai.response.timestamp': new Date().toISOString(),
+                  'subAgent.name': agent.runContext.config.name,
+                  'subAgent.id': currentSubAgentId,
+                });
+                setSpanWithError(span, rootCause);
+
+                try {
+                  await sseHelper.writeOperation(
+                    errorOp(`Execution error: ${rootCause.message}`, currentSubAgentId || 'system')
+                  );
+                  await sseHelper.complete();
+                } catch (streamErr) {
+                  logger.warn({ error: streamErr }, 'Failed to write error to SSE stream');
+                }
+
+                try {
+                  await updateTask(runDbClient)({
+                    taskId,
+                    scopes: { tenantId, projectId },
+                    data: {
+                      status: 'failed',
+                      metadata: {
+                        failed_at: new Date().toISOString(),
+                        error: rootCause.message,
+                      },
+                    },
+                  });
+                } catch (taskErr) {
+                  logger.warn({ error: taskErr, taskId }, 'Failed to update task status to failed');
+                }
+
+                throw error;
+              } finally {
+                span.end();
+              }
+            }
+          );
+        } finally {
+          await agentSessionManager.endSession(requestId);
+          unregisterStreamHelper(requestId);
+          await agent.cleanup();
+          if (isTerminal) {
+            await closeable.close();
+            logger.debug('callLlmStep: stream closed (terminal)');
+          } else {
+            closeable.releaseLock();
+            logger.debug('callLlmStep: stream lock released (non-terminal)');
           }
-        );
-      } finally {
-        await agentSessionManager.endSession(requestId);
-        unregisterStreamHelper(requestId);
-        await agent.cleanup();
-        if (isTerminal) {
-          await closeable.close();
-          logger.debug('callLlmStep: stream closed (terminal)');
-        } else {
-          closeable.releaseLock();
-          logger.debug('callLlmStep: stream lock released (non-terminal)');
         }
-      }
-    });
-  });
+      });
+    }
+  );
 }
 
 export async function executeToolStep(params: ExecuteToolStepParams): Promise<ExecuteToolResult> {
