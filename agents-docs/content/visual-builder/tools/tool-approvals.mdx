@@ -100,7 +100,7 @@ For function tools, approval applies to the entire tool since each function tool
 
 When a tool with approval enabled is invoked:
 
-1. The agent pauses execution and emits a `tool-approval-request` event in the response stream
+1. The agent pauses execution and emits a `tool-approval-request` event in the response stream. In [Durable mode](/visual-builder/execution-modes#durable-mode), the approval state is persisted to workflow metadata, making it recoverable after stream disconnection via the [pending approvals endpoint](/talk-to-your-agents/chat-api#recovering-pending-approvals).
 2. Your client UI displays the approval request to the user (tool name, inputs, etc.)
 3. The user approves or denies the request
 4. If approved, the tool executes and the agent continues
