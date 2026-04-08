@@ -26,6 +26,7 @@ Durable mode wraps agent execution in a workflow with persistent checkpoints. Ea
 - Execution state is persisted to the workflow backend
 - If the server crashes, the workflow can resume from the last completed step
 - Tool approval suspends the workflow until the user responds, then resumes
+- Pending tool approvals are persisted to workflow metadata and can be recovered via the [pending approvals endpoint](/talk-to-your-agents/chat-api#recovering-pending-approvals) after stream disconnection or page refresh
 - Stream data is persisted by the workflow runtime for client reconnection
 - Higher time-to-first-byte (~2s) due to workflow step transitions
 
