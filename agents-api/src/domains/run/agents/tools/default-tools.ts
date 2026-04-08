@@ -143,12 +143,22 @@ export function getArtifactTools(ctx: AgentRunContext): Tool<any, any> {
       const artifactService = agentSessionManager.getArtifactService(streamRequestId);
 
       if (!artifactService) {
-        throw new Error(`ArtifactService not found for session ${streamRequestId}`);
+        logger.warn({ artifactId, toolCallId, streamRequestId }, 'ArtifactService not found for session');
+        return {
+          artifactId,
+          status: 'unavailable',
+          reason: 'Artifact service is not available for this session. The artifact cannot be retrieved.',
+        };
       }
 
       const artifactData = await artifactService.getArtifactFull(artifactId, toolCallId);
       if (!artifactData) {
-        throw new Error(`Artifact ${artifactId} with toolCallId ${toolCallId} not found`);
+        logger.warn({ artifactId, toolCallId, streamRequestId }, 'Artifact not found');
+        return {
+          artifactId,
+          status: 'not_found',
+          reason: `Artifact ${artifactId} was not found. It may not have been saved yet or the toolCallId may be incorrect.`,
+        };
       }
 
       if (artifactData.metadata?.isOversized || artifactData.metadata?.retrievalBlocked) {
