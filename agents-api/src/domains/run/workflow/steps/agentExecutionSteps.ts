@@ -440,7 +440,7 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
     outputFormat,
   } = payload;
 
-  return runWithLogContext({ requestId, currentSubAgentId, workflowRunId }, async () => {
+  return runWithLogContext({ requestId, currentSubAgentId, workflowRunId, conversationId }, async () => {
     logger.info(
       {
         isFirstMessage,
