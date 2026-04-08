@@ -1,5 +1,5 @@
 import type { FullExecutionContext, McpTool, Part, ResolvedRef } from '@inkeep/agents-core';
-import { SPAN_NAMES } from '@inkeep/agents-core';
+import { SPAN_NAMES, TRANSFER_TOOL_PREFIX } from '@inkeep/agents-core';
 import { context as otelContext, propagation } from '@opentelemetry/api';
 import { getWritable } from 'workflow';
 import { env } from '../../../../env';
@@ -675,7 +675,7 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
         throw new Error('agent.generate() produced no response and no pending approval was found');
       }
 
-      if (hasToolCallWithPrefix('transfer_to_')(response)) {
+      if (hasToolCallWithPrefix(TRANSFER_TOOL_PREFIX)(response)) {
         const transferReason =
           response.steps?.[response.steps.length - 1]?.text || response.text || '';
 
@@ -687,9 +687,9 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
           )?.toolCalls ?? [];
 
         const transferToolCall = lastStepToolCallsForTransfer.find((tc) =>
-          tc.toolName.startsWith('transfer_to_')
+          tc.toolName.startsWith(TRANSFER_TOOL_PREFIX)
         );
-        const targetSubAgentId = transferToolCall?.toolName.slice('transfer_to_'.length);
+        const targetSubAgentId = transferToolCall?.toolName.slice(TRANSFER_TOOL_PREFIX.length);
 
         logger.info(
           { currentSubAgentId, targetSubAgentId, transferToolName: transferToolCall?.toolName },
