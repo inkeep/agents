@@ -568,6 +568,11 @@ app.openapi(
       throw createApiError({ code: 'not_found', message: 'Conversation not found' });
     }
 
+    const endUserId = executionContext.metadata?.endUserId;
+    if (conversation.userId && conversation.userId !== endUserId) {
+      throw createApiError({ code: 'not_found', message: 'Conversation not found' });
+    }
+
     const execution = await getWorkflowExecutionByConversation(runDbClient)({
       tenantId,
       projectId,
