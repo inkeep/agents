@@ -10,7 +10,7 @@ import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useTempApiKey } from '@/hooks/use-temp-api-key';
 import { useDataComponentsQuery } from '@/lib/query/data-components';
 import { css } from '@/lib/utils';
-import { FeedbackDialog } from './feedback-dialog';
+import { ImproveDialog } from './improve-dialog';
 
 interface ChatWidgetProps {
   agentId?: string;
@@ -73,7 +73,7 @@ export function ChatWidget({
   stopPolling,
   customHeaders,
   chatActivities,
-  setShowTraces: _setShowTraces,
+  setShowTraces,
   hasHeadersError,
 }: ChatWidgetProps) {
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
@@ -81,7 +81,6 @@ export function ChatWidget({
   const { data: dataComponents } = useDataComponentsQuery();
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [messageId, setMessageId] = useState<string | undefined>(undefined);
-  const [feedbackType, setFeedbackType] = useState<'positive' | 'negative'>('negative');
   const {
     apiKey: tempApiKey,
     appId: playgroundAppId,
@@ -248,30 +247,6 @@ export function ChatWidget({
               ...customHeaders,
             },
             messageActions: [
-              {
-                label: '',
-                icon: { builtIn: 'LuThumbsUp' },
-                action: {
-                  type: 'invoke_message_callback',
-                  callback({ messageId }) {
-                    setMessageId(messageId);
-                    setFeedbackType('positive');
-                    setIsFeedbackDialogOpen(true);
-                  },
-                },
-              },
-              {
-                label: '',
-                icon: { builtIn: 'LuThumbsDown' },
-                action: {
-                  type: 'invoke_message_callback',
-                  callback({ messageId }) {
-                    setMessageId(messageId);
-                    setFeedbackType('negative');
-                    setIsFeedbackDialogOpen(true);
-                  },
-                },
-              },
               ...(copilotCtx.isCopilotConfigured
                 ? [
                     {
@@ -280,8 +255,8 @@ export function ChatWidget({
                       action: {
                         type: 'invoke_message_callback' as const,
                         callback({ messageId }: { messageId?: string }) {
-                          copilotCtx.openCopilot();
-                          copilotCtx.setDynamicHeaders({ conversationId, messageId });
+                          setMessageId(messageId);
+                          setIsFeedbackDialogOpen(true);
                         },
                       },
                     },
@@ -317,14 +292,12 @@ export function ChatWidget({
         />
       </div>
       {isFeedbackDialogOpen && (
-        <FeedbackDialog
+        <ImproveDialog
           isOpen={isFeedbackDialogOpen}
           onOpenChange={setIsFeedbackDialogOpen}
-          tenantId={tenantId}
-          projectId={projectId}
           conversationId={conversationId}
           messageId={messageId}
-          initialType={feedbackType}
+          setShowTraces={setShowTraces}
         />
       )}
     </div>
