@@ -6,7 +6,7 @@ import {
 } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 import { getFunctionToolGraphKey, getMcpGraphKey } from '@/features/agent/domain/graph-keys';
-import { serializeJson } from '@/lib/utils';
+import { serializeJson, serializeModels } from '@/lib/utils';
 import { StringToJsonSchema } from '@/lib/validation';
 
 const OriginalContextConfigSchema =
@@ -302,22 +302,6 @@ export function apiToFormValues(data: FullAgentResponse) {
 
       sharedFunctionToolPolicies.set(canUseItem.toolId, mergedPolicies);
     }
-  }
-  function serializeModels(models: NonNullable<typeof data.models>) {
-    return {
-      base: {
-        ...models.base,
-        providerOptions: serializeJson(models.base?.providerOptions),
-      },
-      structuredOutput: {
-        ...models.structuredOutput,
-        providerOptions: serializeJson(models.structuredOutput?.providerOptions),
-      },
-      summarizer: {
-        ...models.summarizer,
-        providerOptions: serializeJson(models.summarizer?.providerOptions),
-      },
-    };
   }
 
   return {
