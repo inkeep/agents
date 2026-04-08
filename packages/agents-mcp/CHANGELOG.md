@@ -1,5 +1,7 @@
 # @inkeep/agents-mcp
 
+## 0.66.0
+
 ## 0.65.2
 
 ### Patch Changes

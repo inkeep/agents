@@ -1,5 +1,23 @@
 # @inkeep/agents-api
 
+## 0.66.0
+
+### Patch Changes
+
+- 9b60e24: Add pending approval polling endpoint and graceful SSE failure handling for durable tool approvals
+- 2dbefca: Register binary attachment artifacts for executions API and unify persisted upload context
+- 63a1358: Migrate logger calls to use scoped context — remove repeated ambient fields, adopt string-only logger calls
+- 0318750: Fix approval queue ordering by keying on toolCallId instead of toolName
+- 2dbefca: Fix `get_reference_artifact` to hydrate blob-backed binary artifacts into model-usable file parts. This allows agents to inspect referenced binary artifacts instead of only seeing blob metadata.
+- Updated dependencies [5596ecb]
+- Updated dependencies [63a1358]
+- Updated dependencies [01a960d]
+- Updated dependencies [4d0169b]
+  - @inkeep/agents-core@0.66.0
+  - @inkeep/agents-work-apps@0.66.0
+  - @inkeep/agents-email@0.66.0
+  - @inkeep/agents-mcp@0.66.0
+
 ## 0.65.2
 
 ### Patch Changes
