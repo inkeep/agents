@@ -34,6 +34,7 @@ import { manageRefMiddleware, runRefMiddleware, writeProtectionMiddleware } from
 import { sessionContext } from './middleware/sessionAuth';
 import { executionBaggageMiddleware } from './middleware/tracing';
 import { setupOpenAPIRoutes } from './openapi';
+import { cleanupStaleWorkflowsHandler } from './routes/cleanupStaleWorkflows';
 import { cleanupStreamChunksHandler } from './routes/cleanupStreamChunks';
 import { healthChecksHandler } from './routes/healthChecks';
 import { restartWorkflowHandler } from './routes/restartScheduler';
@@ -223,6 +224,9 @@ function createAgentsHono(config: AppConfig) {
 
   // Vercel cron - cleanup expired stream chunks
   app.route('/', cleanupStreamChunksHandler);
+
+  // Vercel cron - cleanup stale suspended workflows
+  app.route('/', cleanupStaleWorkflowsHandler);
 
   // Authentication middleware for protected manage routes
   app.use('/manage/tenants/*', manageBearerOrSessionAuth());

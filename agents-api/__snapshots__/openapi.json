@@ -10972,6 +10972,24 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/cron/cleanup-stale-workflows": {
+      "get": {
+        "description": "Called by Vercel Cron to fail workflows suspended longer than 30 minutes. Auth via CRON_SECRET or INKEEP_AGENTS_RUN_API_BYPASS_SECRET.",
+        "responses": {
+          "200": {
+            "description": "Cleanup completed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [],
+        "summary": "Clean up stale suspended workflows",
+        "tags": [
+          "Workflows"
+        ]
+      }
+    },
     "/api/cron/cleanup-stream-chunks": {
       "get": {
         "description": "Called by Vercel Cron to delete stream chunks older than 5 minutes. Auth via CRON_SECRET or INKEEP_AGENTS_RUN_API_BYPASS_SECRET.",
@@ -45040,114 +45058,6 @@
         "summary": "Reconnect to execution stream",
         "tags": [
           "Executions"
-        ],
-        "x-authz": {
-          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
-        }
-      }
-    },
-    "/run/api/workflows/cleanup-stale": {
-      "post": {
-        "description": "Finds workflows that have been suspended longer than the configured timeout and marks them as failed.",
-        "operationId": "cleanup-stale-workflows",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "limit": {
-                    "default": 100,
-                    "description": "Maximum number of stale workflows to clean up",
-                    "exclusiveMinimum": true,
-                    "maximum": 1000,
-                    "minimum": 0,
-                    "type": "integer"
-                  },
-                  "timeoutMinutes": {
-                    "default": 30,
-                    "description": "Minutes after which a suspended workflow is considered stale",
-                    "exclusiveMinimum": true,
-                    "minimum": 0,
-                    "type": "integer"
-                  }
-                },
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "cleanedUp": {
-                      "type": "number"
-                    },
-                    "failed": {
-                      "type": "number"
-                    },
-                    "total": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "cleanedUp",
-                    "failed",
-                    "total"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Cleanup results"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Invalid request"
-          },
-          "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Internal server error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Clean up stale suspended workflows",
-        "tags": [
-          "Workflows"
         ],
         "x-authz": {
           "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."

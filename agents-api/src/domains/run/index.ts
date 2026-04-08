@@ -9,7 +9,6 @@ import executionsRoutes from './routes/executions';
 import feedbackRoutes from './routes/feedback';
 import mcpRoutes from './routes/mcp';
 import webhookRoutes from './routes/webhooks';
-import workflowCleanupRoutes from './routes/workflowCleanup';
 
 export function createRunRoutes() {
   const app = new OpenAPIHono<{ Variables: AppVariables }>();
@@ -23,7 +22,6 @@ export function createRunRoutes() {
   app.route('/agents', agentRoutes);
   app.route('/auth', authRoutes);
   app.route('/', webhookRoutes);
-  app.route('/api', workflowCleanupRoutes);
 
   return app;
 }
