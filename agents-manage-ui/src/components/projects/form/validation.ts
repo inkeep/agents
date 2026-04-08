@@ -1,4 +1,4 @@
-import { ProjectApiInsertSchema, transformToJson } from '@inkeep/agents-core/client-exports';
+import { ProjectApiInsertSchema } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 import { StringToJsonSchema } from '@/lib/validation';
 
