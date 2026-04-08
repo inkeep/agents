@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import {
   extractPublicId,
   generateApiKey,
@@ -16,12 +17,7 @@ vi.mock('../../env.js', () => ({
   },
 }));
 
-// Mock the logger module
-vi.mock('../../logger.js', () => ({
-  getLogger: vi.fn(() => ({
-    error: vi.fn(),
-  })),
-}));
+vi.mock('../../logger.js', () => createMockLoggerModule().module);
 
 describe('API Key Utilities', () => {
   beforeEach(() => {

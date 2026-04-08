@@ -122,6 +122,10 @@
       "types": "./dist/setup/index.d.ts",
       "import": "./dist/setup/index.js"
     },
+    "./test-utils": {
+      "types": "./dist/test-utils/index.d.ts",
+      "import": "./dist/test-utils/index.js"
+    },
     "./drizzle": "./drizzle/",
     "./package.json": "./package.json"
   },

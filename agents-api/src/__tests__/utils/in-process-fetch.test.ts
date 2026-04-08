@@ -1,4 +1,5 @@
 import { trace } from '@opentelemetry/api';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@opentelemetry/api', () => ({
@@ -7,16 +8,7 @@ vi.mock('@opentelemetry/api', () => ({
   },
 }));
 
-vi.mock('../../logger', () => ({
-  getLogger: () => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    with: vi.fn().mockReturnThis(),
-  }),
-  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
-}));
+vi.mock('../../logger', () => createMockLoggerModule().module);
 
 describe('in-process-fetch', () => {
   beforeEach(() => {

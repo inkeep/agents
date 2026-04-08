@@ -2,6 +2,7 @@
  * Tests for Slack event handler utilities
  */
 
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   extractApiErrorMessage,
@@ -75,14 +76,7 @@ vi.mock('../../env', () => ({
   },
 }));
 
-vi.mock('../../logger', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
+vi.mock('../../logger', () => createMockLoggerModule().module);
 
 vi.mock('../../slack/services/nango', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../slack/services/nango')>();

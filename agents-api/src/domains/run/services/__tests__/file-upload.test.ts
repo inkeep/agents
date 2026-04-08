@@ -1,24 +1,14 @@
 import type { FilePart, Part, TextPart } from '@inkeep/agents-core';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { downloadExternalFile } from '../blob-storage/external-file-downloader';
 import { normalizeInlineFileBytes } from '../blob-storage/file-content-security';
 import { BlockedInlineFileExceedingError } from '../blob-storage/file-security-errors';
 import { makeMessageContentParts, uploadPartsFiles } from '../blob-storage/file-upload';
 
-const logger = vi.hoisted(() => ({
-  debug: vi.fn(),
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-  with: vi.fn().mockReturnThis(),
-}));
-
 const mockUpload = vi.fn();
 
-vi.mock('../../../../logger', () => ({
-  getLogger: () => logger,
-  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
-}));
+vi.mock('../../../../logger', () => createMockLoggerModule().module);
 
 vi.mock('../blob-storage/index', () => ({
   getBlobStorageProvider: () => ({

@@ -1,33 +1,41 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Store original env values
 const originalEnv = { ...process.env };
 
-// Hoist mocks so they're available when vi.mock runs
-const { mockEnv, mockLogger } = vi.hoisted(() => ({
-  mockEnv: {
-    GITHUB_APP_ID: undefined as string | undefined,
-    GITHUB_APP_PRIVATE_KEY: undefined as string | undefined,
-    GITHUB_WEBHOOK_SECRET: undefined as string | undefined,
-    GITHUB_STATE_SIGNING_SECRET: undefined as string | undefined,
-    GITHUB_APP_NAME: undefined as string | undefined,
-  },
-  mockLogger: {
+const { mockEnv, mockLogger } = vi.hoisted(() => {
+  const mockLogger = {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  },
-}));
+    debug: vi.fn(),
+    child: vi.fn(),
+    with: vi.fn(),
+    getPinoInstance: vi.fn(),
+  };
+  mockLogger.child.mockReturnValue(mockLogger);
+  mockLogger.with.mockReturnValue(mockLogger);
+  return {
+    mockEnv: {
+      GITHUB_APP_ID: undefined as string | undefined,
+      GITHUB_APP_PRIVATE_KEY: undefined as string | undefined,
+      GITHUB_WEBHOOK_SECRET: undefined as string | undefined,
+      GITHUB_STATE_SIGNING_SECRET: undefined as string | undefined,
+      GITHUB_APP_NAME: undefined as string | undefined,
+    },
+    mockLogger,
+  };
+});
 
 vi.mock('../../env', () => ({
   env: mockEnv,
 }));
 
 vi.mock('../../logger', () => ({
-  getLogger: () => mockLogger,
+  getLogger: vi.fn(() => mockLogger),
+  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
+  withRequestContext: vi.fn(async (_id: any, fn: any) => await fn()),
 }));
 
-// Import after mocks are set up
 import {
   clearConfigCache,
   getGitHubAppConfig,

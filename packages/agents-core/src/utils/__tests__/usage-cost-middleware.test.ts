@@ -1,15 +1,9 @@
 import { type Span, trace } from '@opentelemetry/api';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { SPAN_KEYS } from '../../constants/otel-attributes';
 
-vi.mock('../logger', () => ({
-  getLogger: () => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
+vi.mock('../logger', () => createMockLoggerModule().module);
 
 const mockSetAttribute = vi.fn();
 const mockSpan: Partial<Span> = { setAttribute: mockSetAttribute };

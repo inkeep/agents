@@ -1,52 +1,12 @@
 import { getLogger } from '@inkeep/agents-core';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import runDbClient from '../db/runDbClient';
 
 // Mock the local logger module globally - this will be hoisted automatically by Vitest
-vi.mock('../logger.js', () => {
-  const mockLogger = {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    child: vi.fn().mockReturnThis(),
-    with: vi.fn().mockReturnThis(),
-    getPinoInstance: vi.fn().mockReturnValue({
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-      debug: vi.fn(),
-      child: vi.fn().mockReturnThis(),
-    }),
-  };
-  return {
-    getLogger: vi.fn(() => mockLogger),
-    withRequestContext: vi.fn(async (_id, fn) => await fn()),
-  };
-});
-
-vi.mock('../logger', () => {
-  const mockLogger = {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    child: vi.fn().mockReturnThis(),
-    with: vi.fn().mockReturnThis(),
-    getPinoInstance: vi.fn().mockReturnValue({
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-      debug: vi.fn(),
-      child: vi.fn().mockReturnThis(),
-    }),
-  };
-  return {
-    getLogger: vi.fn(() => mockLogger),
-    withRequestContext: vi.fn(async (_id, fn) => await fn()),
-  };
-});
+vi.mock('../logger.js', () => createMockLoggerModule().module);
+vi.mock('../logger', () => createMockLoggerModule().module);
 
 // Initialize database schema for in-memory test databases using Drizzle migrations
 beforeAll(async () => {

@@ -1,3 +1,4 @@
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
@@ -12,16 +13,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
 
 vi.mock('../../../data/db/runDbClient', () => ({ default: {} }));
 
-vi.mock('../../../logger', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    with: vi.fn().mockReturnThis(),
-  }),
-  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
-}));
+vi.mock('../../../logger', () => createMockLoggerModule().module);
 
 vi.mock('../../../domains/run/compression/ConversationCompressor', () => ({
   ConversationCompressor: vi.fn(),

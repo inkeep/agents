@@ -8,6 +8,7 @@ import {
   type MessageMetadata,
   updateConversation,
 } from '@inkeep/agents-core';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock generateId to return predictable IDs
@@ -33,16 +34,7 @@ vi.mock('../../../data/db/runDbClient', () => ({
   },
 }));
 
-vi.mock('../../../logger', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    with: vi.fn().mockReturnThis(),
-  }),
-  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
-}));
+vi.mock('../../../logger', () => createMockLoggerModule().module);
 
 // Import runDbClient after mocking
 import runDbClient from '../../../data/db/runDbClient';
