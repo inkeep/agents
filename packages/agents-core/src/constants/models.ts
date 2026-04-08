@@ -84,10 +84,16 @@ export const GOOGLE_MODELS = {
   GEMINI_2_0_FLASH_LITE: 'google/gemini-2.0-flash-lite',
 } as const;
 
+export const MINIMAX_MODELS = {
+  MINIMAX_M2_7: 'minimax/MiniMax-M2.7',
+  MINIMAX_M2_7_HIGHSPEED: 'minimax/MiniMax-M2.7-highspeed',
+} as const;
+
 export type AnthropicModel = (typeof ANTHROPIC_MODELS)[keyof typeof ANTHROPIC_MODELS];
 export type OpenAIModel = (typeof OPENAI_MODELS)[keyof typeof OPENAI_MODELS];
 export type GoogleModel = (typeof GOOGLE_MODELS)[keyof typeof GOOGLE_MODELS];
-export type ModelName = AnthropicModel | OpenAIModel | GoogleModel;
+export type MinimaxModel = (typeof MINIMAX_MODELS)[keyof typeof MINIMAX_MODELS];
+export type ModelName = AnthropicModel | OpenAIModel | GoogleModel | MinimaxModel;
 
 export const GATEWAY_ROUTABLE_PROVIDERS_SET: ReadonlySet<string> = new Set([
   'anthropic',

@@ -27,6 +27,15 @@ const nimDefault = createOpenAICompatible({
   },
 });
 
+// MiniMax default provider instance (OpenAI-compatible)
+const minimaxDefault = createOpenAICompatible({
+  name: 'minimax',
+  baseURL: 'https://api.minimax.io/v1',
+  headers: {
+    Authorization: `Bearer ${process.env.MINIMAX_API_KEY}`,
+  },
+});
+
 /**
  * Factory for creating AI SDK language models from configuration
  * Supports multiple providers and AI Gateway integration
@@ -77,6 +86,17 @@ export class ModelFactory {
           ...config,
         };
         return createOpenAICompatible(nimConfig);
+      }
+      case 'minimax': {
+        const minimaxConfig = {
+          name: 'minimax',
+          baseURL: 'https://api.minimax.io/v1',
+          headers: {
+            Authorization: `Bearer ${process.env.MINIMAX_API_KEY}`,
+          },
+          ...config,
+        };
+        return createOpenAICompatible(minimaxConfig);
       }
       case 'custom': {
         if (!config.baseURL && !config.baseUrl) {
@@ -241,6 +261,9 @@ export class ModelFactory {
         case 'nim':
           model = nimDefault(modelName);
           break;
+        case 'minimax':
+          model = minimaxDefault(modelName);
+          break;
         case 'mock':
           return createMockModel(modelName) as unknown as LanguageModel;
         case 'custom':
@@ -251,7 +274,7 @@ export class ModelFactory {
           throw new Error(
             `Unsupported provider: ${provider}. ` +
               `Supported providers are: ${ModelFactory.BUILT_IN_PROVIDERS.join(', ')}. ` +
-              `To access other models, use OpenRouter (openrouter/model-id), Vercel AI Gateway (gateway/model-id), NVIDIA NIM (nim/model-id), or Custom OpenAI-compatible (custom/model-id).`
+              `To access other models, use OpenRouter (openrouter/model-id), Vercel AI Gateway (gateway/model-id), NVIDIA NIM (nim/model-id), MiniMax (minimax/model-id), or Custom OpenAI-compatible (custom/model-id).`
           );
       }
     }
@@ -273,6 +296,7 @@ export class ModelFactory {
     'openrouter',
     'gateway',
     'nim',
+    'minimax',
     'custom',
     'mock',
   ] as const;

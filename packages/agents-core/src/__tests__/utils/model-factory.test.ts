@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { MINIMAX_MODELS } from '../../constants/models';
 import { ModelFactory } from '../../utils/model-factory';
 import type { ModelSettings } from '../../validation/schemas';
 
@@ -16,6 +17,7 @@ describe('ModelFactory', () => {
     delete process.env.AZURE_OPENAI_API_KEY;
     delete process.env.CUSTOM_LLM_API_KEY;
     delete process.env.NIM_API_KEY;
+    delete process.env.MINIMAX_API_KEY;
   });
 
   describe('parseModelString', () => {
@@ -72,6 +74,22 @@ describe('ModelFactory', () => {
       expect(result).toEqual({
         provider: 'nim',
         modelName: 'nvidia/llama-3.3-nemotron',
+      });
+    });
+
+    test('should parse minimax model string', () => {
+      const result = ModelFactory.parseModelString('minimax/MiniMax-M2.7');
+      expect(result).toEqual({
+        provider: 'minimax',
+        modelName: 'MiniMax-M2.7',
+      });
+    });
+
+    test('should parse minimax highspeed model string', () => {
+      const result = ModelFactory.parseModelString('minimax/MiniMax-M2.7-highspeed');
+      expect(result).toEqual({
+        provider: 'minimax',
+        modelName: 'MiniMax-M2.7-highspeed',
       });
     });
 
@@ -555,6 +573,51 @@ describe('ModelFactory', () => {
       const gateway = (result.providerOptions as any).gateway;
       expect(gateway.order).toEqual(['anthropic', 'openai']);
       expect(gateway.models).toEqual(['openai/gpt-5.2']);
+    });
+  });
+
+  describe('MiniMax Model Creation', () => {
+    test('should create MiniMax model without API key env', () => {
+      const config: ModelSettings = {
+        model: 'minimax/MiniMax-M2.7',
+      };
+
+      const model = ModelFactory.createModel(config);
+      expect(model).toBeDefined();
+    });
+
+    test('should create MiniMax highspeed model', () => {
+      const config: ModelSettings = {
+        model: 'minimax/MiniMax-M2.7-highspeed',
+      };
+
+      const model = ModelFactory.createModel(config);
+      expect(model).toBeDefined();
+    });
+
+    test('should create MiniMax model with MINIMAX_API_KEY env', () => {
+      process.env.MINIMAX_API_KEY = 'test-minimax-key';
+
+      const config: ModelSettings = {
+        model: 'minimax/MiniMax-M2.7',
+      };
+
+      const model = ModelFactory.createModel(config);
+      expect(model).toBeDefined();
+    });
+
+    test('should parse MINIMAX_MODELS constants correctly', () => {
+      expect(MINIMAX_MODELS.MINIMAX_M2_7).toBe('minimax/MiniMax-M2.7');
+      expect(MINIMAX_MODELS.MINIMAX_M2_7_HIGHSPEED).toBe('minimax/MiniMax-M2.7-highspeed');
+    });
+
+    test('should create MiniMax model using MINIMAX_MODELS constant', () => {
+      const config: ModelSettings = {
+        model: MINIMAX_MODELS.MINIMAX_M2_7,
+      };
+
+      const model = ModelFactory.createModel(config);
+      expect(model).toBeDefined();
     });
   });
 
