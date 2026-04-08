@@ -273,11 +273,11 @@ const FallbackModelsSection: FC<{
     name: `${name}.fallbackModels`,
     shouldUnregister: true,
   });
-  const fallbackModels = fallbackModelsField.value;
+  const fallbackModels: string[] = fallbackModelsField.value;
   function onFallbackModelsChange(models: string[]) {
     fallbackModelsField.onChange(models.length ? models : undefined);
   }
-  const savedModels: string[] = fallbackModels ?? inheritedFallbackModels ?? [];
+  const savedModels = fallbackModels ?? inheritedFallbackModels ?? [];
   const isInherited = !fallbackModels && !!inheritedFallbackModels;
 
   return (
