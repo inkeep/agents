@@ -5,7 +5,7 @@ import {
 } from '@inkeep/agents-core';
 import type { Span } from '@opentelemetry/api';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
-import { getLogger } from '../../../../logger';
+import { getLogger, runWithLogContext } from '../../../../logger';
 import { pendingToolApprovalManager } from '../../session/PendingToolApprovalManager';
 import { toolApprovalUiBus } from '../../session/ToolApprovalUiBus';
 import { createDeniedToolResult } from '../../utils/tool-result';
@@ -23,7 +23,21 @@ export async function waitForToolApproval(
 ): Promise<
   { approved: false; deniedResult: unknown } | { approved: true } | { approved: 'pending' }
 > {
-  logger.info({ toolName, toolCallId, args }, 'Tool requires approval - waiting for user response');
+  return runWithLogContext({ toolCallId, toolName }, () =>
+    waitForToolApprovalInner(ctx, toolCallId, toolName, args, providerMetadata)
+  );
+}
+
+async function waitForToolApprovalInner(
+  ctx: AgentRunContext,
+  toolCallId: string,
+  toolName: string,
+  args: unknown,
+  providerMetadata: unknown
+): Promise<
+  { approved: false; deniedResult: unknown } | { approved: true } | { approved: 'pending' }
+> {
+  logger.info({ args }, 'Tool requires approval - waiting for user response');
 
   const currentSpan = trace.getActiveSpan();
   if (currentSpan) {
@@ -60,7 +74,7 @@ export async function waitForToolApproval(
             },
             (denialSpan: Span) => {
               logger.info(
-                { toolName, toolCallId, reason: preApproved.reason },
+                { reason: preApproved.reason },
                 'Tool execution denied (durable pre-approved decision)'
               );
               denialSpan.setStatus({ code: SpanStatusCode.OK });
@@ -75,7 +89,7 @@ export async function waitForToolApproval(
           'tool.approval_approved',
           { attributes: baseSpanAttributes },
           (approvedSpan: Span) => {
-            logger.info({ toolName, toolCallId }, 'Tool approved (durable pre-approved decision)');
+            logger.info('Tool approved (durable pre-approved decision)');
             approvedSpan.setStatus({ code: SpanStatusCode.OK });
             approvedSpan.end();
           }
@@ -104,11 +118,7 @@ export async function waitForToolApproval(
         });
       } catch (sseError) {
         logger.warn(
-          {
-            toolCallId,
-            toolName,
-            error: sseError instanceof Error ? sseError.message : String(sseError),
-          },
+          { error: sseError instanceof Error ? sseError.message : String(sseError) },
           'Failed to stream tool approval request to client — approval is persisted and recoverable via polling'
         );
       }
@@ -179,10 +189,7 @@ export async function waitForToolApproval(
         },
       },
       (denialSpan: Span) => {
-        logger.info(
-          { toolName, toolCallId, reason: approvalResult.reason },
-          'Tool execution denied by user'
-        );
+        logger.info({ reason: approvalResult.reason }, 'Tool execution denied by user');
         denialSpan.setStatus({ code: SpanStatusCode.OK });
         denialSpan.end();
         return createDeniedToolResult(toolCallId, approvalResult.reason);
@@ -196,7 +203,7 @@ export async function waitForToolApproval(
     'tool.approval_approved',
     { attributes: baseSpanAttributes },
     (approvedSpan: Span) => {
-      logger.info({ toolName, toolCallId }, 'Tool approved, continuing with execution');
+      logger.info('Tool approved, continuing with execution');
       approvedSpan.setStatus({ code: SpanStatusCode.OK });
       approvedSpan.end();
     }
@@ -239,34 +246,33 @@ export async function parseAndCheckApproval<T>(
 ): Promise<
   { args: T; denied: false; pendingApproval?: true } | { args: T; denied: true; result: unknown }
 > {
-  let processedArgs: T;
-  try {
-    processedArgs = parseEmbeddedJson(args);
-    if (JSON.stringify(args) !== JSON.stringify(processedArgs)) {
+  return runWithLogContext({ toolCallId, toolName }, async () => {
+    let processedArgs: T;
+    try {
+      processedArgs = parseEmbeddedJson(args);
+      if (JSON.stringify(args) !== JSON.stringify(processedArgs)) {
+        logger.warn('Fixed stringified JSON parameters (indicates schema ambiguity)');
+      }
+    } catch (error) {
       logger.warn(
-        { toolName, toolCallId },
-        'Fixed stringified JSON parameters (indicates schema ambiguity)'
+        { error: (error as Error).message },
+        'Failed to parse embedded JSON, using original args'
       );
+      processedArgs = args;
     }
-  } catch (error) {
-    logger.warn(
-      { toolName, toolCallId, error: (error as Error).message },
-      'Failed to parse embedded JSON, using original args'
-    );
-    processedArgs = args;
-  }
 
-  if (needsApproval) {
-    const approval = await waitForToolApproval(ctx, toolCallId, toolName, args, providerMetadata);
-    if (approval.approved === 'pending') {
-      return { args: processedArgs, denied: false, pendingApproval: true };
+    if (needsApproval) {
+      const approval = await waitForToolApproval(ctx, toolCallId, toolName, args, providerMetadata);
+      if (approval.approved === 'pending') {
+        return { args: processedArgs, denied: false, pendingApproval: true };
+      }
+      if (!approval.approved) {
+        const deniedResult = approval.deniedResult as { reason?: string } | undefined;
+        recordDenial(ctx, toolName, toolCallId, deniedResult?.reason);
+        return { args: processedArgs, denied: true, result: approval.deniedResult };
+      }
     }
-    if (!approval.approved) {
-      const deniedResult = approval.deniedResult as { reason?: string } | undefined;
-      recordDenial(ctx, toolName, toolCallId, deniedResult?.reason);
-      return { args: processedArgs, denied: true, result: approval.deniedResult };
-    }
-  }
 
-  return { args: processedArgs, denied: false };
+    return { args: processedArgs, denied: false };
+  });
 }

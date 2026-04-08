@@ -14,7 +14,7 @@ import {
 import { trace } from '@opentelemetry/api';
 import type { ToolSet } from 'ai';
 import runDbClient from '../../../../data/db/runDbClient';
-import { getLogger } from '../../../../logger';
+import { getLogger, runWithLogContext } from '../../../../logger';
 import { agentSessionManager, type ToolCallData } from '../../session/AgentSession';
 import { generateToolId } from '../../utils/agent-operations';
 import { isToolResultDenied } from '../../utils/tool-result';
@@ -104,308 +104,307 @@ export function wrapToolWithStreaming(
     execute: async (args: any, context?: any) => {
       const startTime = Date.now();
       const toolCallId = context?.toolCallId || generateToolId();
-      const streamHelper = ctx.isDelegatedAgent ? undefined : ctx.streamHelper;
 
-      const activeSpan = trace.getActiveSpan();
-      if (activeSpan) {
-        const attributes: Record<string, any> = {
-          'conversation.id': ctx.conversationId,
-          'tool.purpose': toolDefinition.description || 'No description provided',
-          'ai.toolType': toolType || 'unknown',
-          'subAgent.name': ctx.config.name || 'unknown',
-          'subAgent.id': ctx.config.id || 'unknown',
-          'agent.id': ctx.config.agentId || 'unknown',
-        };
+      return runWithLogContext({ toolName, toolCallId }, async () => {
+        const streamHelper = ctx.isDelegatedAgent ? undefined : ctx.streamHelper;
 
-        if (options?.mcpServerId) {
-          attributes['ai.toolCall.mcpServerId'] = options.mcpServerId;
+        const activeSpan = trace.getActiveSpan();
+        if (activeSpan) {
+          const attributes: Record<string, any> = {
+            'conversation.id': ctx.conversationId,
+            'tool.purpose': toolDefinition.description || 'No description provided',
+            'ai.toolType': toolType || 'unknown',
+            'subAgent.name': ctx.config.name || 'unknown',
+            'subAgent.id': ctx.config.id || 'unknown',
+            'agent.id': ctx.config.agentId || 'unknown',
+          };
+
+          if (options?.mcpServerId) {
+            attributes['ai.toolCall.mcpServerId'] = options.mcpServerId;
+          }
+          if (options?.mcpServerName) {
+            attributes['ai.toolCall.mcpServerName'] = options.mcpServerName;
+          }
+
+          activeSpan.setAttributes(attributes);
         }
-        if (options?.mcpServerName) {
-          attributes['ai.toolCall.mcpServerName'] = options.mcpServerName;
-        }
 
-        activeSpan.setAttributes(attributes);
-      }
+        const isInternalTool =
+          toolName.includes(SAVE_TOOL_RESULT_TOOL) || toolName.startsWith(TRANSFER_TOOL_PREFIX);
+        const isInternalToolForUi =
+          isInternalTool ||
+          toolName.startsWith(DELEGATE_TOOL_PREFIX) ||
+          toolName === LOAD_SKILL_TOOL;
 
-      const isInternalTool =
-        toolName.includes(SAVE_TOOL_RESULT_TOOL) || toolName.startsWith(TRANSFER_TOOL_PREFIX);
-      const isInternalToolForUi =
-        isInternalTool || toolName.startsWith(DELEGATE_TOOL_PREFIX) || toolName === LOAD_SKILL_TOOL;
+        // In durable workflows, delegate_to_ tool results must be stored in
+        // conversation history so the next callLlmStep sees the delegation outcome
+        // and doesn't re-delegate in a loop.
+        const isDurableDelegation =
+          !!ctx.durableWorkflowRunId && toolName.startsWith(DELEGATE_TOOL_PREFIX);
+        const skipHistoryStorage = isInternalToolForUi && !isDurableDelegation;
 
-      // In durable workflows, delegate_to_ tool results must be stored in
-      // conversation history so the next callLlmStep sees the delegation outcome
-      // and doesn't re-delegate in a loop.
-      const isDurableDelegation =
-        !!ctx.durableWorkflowRunId && toolName.startsWith(DELEGATE_TOOL_PREFIX);
-      const skipHistoryStorage = isInternalToolForUi && !isDurableDelegation;
+        const needsApproval = options?.needsApproval || false;
 
-      const needsApproval = options?.needsApproval || false;
+        const preApprovedEntry = ctx.durableWorkflowRunId
+          ? ctx.approvedToolCalls?.[toolCallId]
+          : undefined;
+        const isPreApproved = !!preApprovedEntry;
 
-      const preApprovedEntry = ctx.durableWorkflowRunId
-        ? ctx.approvedToolCalls?.[toolCallId]
-        : undefined;
-      const isPreApproved = !!preApprovedEntry;
+        if (streamRequestId && streamHelper && !isInternalToolForUi && !isPreApproved) {
+          const inputText = JSON.stringify(args ?? {});
 
-      if (streamRequestId && streamHelper && !isInternalToolForUi && !isPreApproved) {
-        const inputText = JSON.stringify(args ?? {});
+          await streamHelper.writeToolInputStart({ toolCallId: toolCallId, toolName });
 
-        await streamHelper.writeToolInputStart({ toolCallId: toolCallId, toolName });
+          for (const part of chunkString(inputText, 16)) {
+            await streamHelper.writeToolInputDelta({
+              toolCallId: toolCallId,
+              inputTextDelta: part,
+            });
+          }
 
-        for (const part of chunkString(inputText, 16)) {
-          await streamHelper.writeToolInputDelta({
+          await streamHelper.writeToolInputAvailable({
             toolCallId: toolCallId,
-            inputTextDelta: part,
+            toolName,
+            input: args ?? {},
+            providerMetadata: context?.providerMetadata,
           });
         }
 
-        await streamHelper.writeToolInputAvailable({
-          toolCallId: toolCallId,
-          toolName,
-          input: args ?? {},
-          providerMetadata: context?.providerMetadata,
-        });
-      }
+        if (streamRequestId && !isInternalToolForUi) {
+          const toolCallData: ToolCallData = {
+            toolName,
+            input: args,
+            toolCallId: toolCallId,
+            relationshipId,
+            inDelegatedAgent: ctx.isDelegatedAgent,
+          };
 
-      if (streamRequestId && !isInternalToolForUi) {
-        const toolCallData: ToolCallData = {
-          toolName,
-          input: args,
-          toolCallId: toolCallId,
-          relationshipId,
-          inDelegatedAgent: ctx.isDelegatedAgent,
-        };
-
-        if (needsApproval) {
-          toolCallData.needsApproval = true;
-          toolCallData.conversationId = ctx.conversationId;
-        }
-
-        await agentSessionManager.recordEvent(
-          streamRequestId,
-          SESSION_EVENT_TOOL_CALL,
-          ctx.config.id,
-          toolCallData
-        );
-      }
-
-      try {
-        const artifactParser = streamRequestId
-          ? agentSessionManager.getArtifactParser(streamRequestId)
-          : null;
-        const parsedArgsForResolution = artifactParser ? parseEmbeddedJson(args) : args;
-        const resolvedArgs = artifactParser
-          ? await artifactParser.resolveArgs(parsedArgsForResolution)
-          : args;
-
-        const parameters = (toolDefinition as AiSdkToolDefinition).parameters;
-        if (artifactParser && parameters?.safeParse) {
-          const resolvedChanged =
-            JSON.stringify(parsedArgsForResolution) !== JSON.stringify(resolvedArgs);
-          if (resolvedChanged) {
-            const validation = parameters.safeParse(resolvedArgs);
-            if (!validation.success) {
-              throw new Error(
-                `Resolved tool args failed schema validation for '${toolName}': ${validation.error.message}`
-              );
-            }
+          if (needsApproval) {
+            toolCallData.needsApproval = true;
+            toolCallData.conversationId = ctx.conversationId;
           }
+
+          await agentSessionManager.recordEvent(
+            streamRequestId,
+            SESSION_EVENT_TOOL_CALL,
+            ctx.config.id,
+            toolCallData
+          );
         }
 
-        const result = await originalExecute(resolvedArgs, context);
-        const duration = Date.now() - startTime;
+        try {
+          const artifactParser = streamRequestId
+            ? agentSessionManager.getArtifactParser(streamRequestId)
+            : null;
+          const parsedArgsForResolution = artifactParser ? parseEmbeddedJson(args) : args;
+          const resolvedArgs = artifactParser
+            ? await artifactParser.resolveArgs(parsedArgsForResolution)
+            : args;
 
-        if (ctx.durableWorkflowRunId && result && typeof result === 'object') {
-          const resultObj = result as Record<string, unknown>;
-          const taskResult = resultObj?.result as Record<string, unknown> | undefined;
-
-          const findApprovalRequired = (
-            parts: Array<Record<string, unknown>> | undefined
-          ): Record<string, unknown> | undefined => {
-            if (!Array.isArray(parts)) return undefined;
-            for (const part of parts) {
-              if (part?.kind === 'data') {
-                const data = part.data as Record<string, unknown> | undefined;
-                if (data?.type === DURABLE_APPROVAL_ARTIFACT_TYPE) return data;
+          const parameters = (toolDefinition as AiSdkToolDefinition).parameters;
+          if (artifactParser && parameters?.safeParse) {
+            const resolvedChanged =
+              JSON.stringify(parsedArgsForResolution) !== JSON.stringify(resolvedArgs);
+            if (resolvedChanged) {
+              const validation = parameters.safeParse(resolvedArgs);
+              if (!validation.success) {
+                throw new Error(
+                  `Resolved tool args failed schema validation for '${toolName}': ${validation.error.message}`
+                );
               }
             }
-            return undefined;
-          };
+          }
 
-          const findApprovalInArtifacts = (
-            artifacts: Array<Record<string, unknown>> | undefined
-          ): Record<string, unknown> | undefined => {
-            if (!Array.isArray(artifacts)) return undefined;
-            for (const artifact of artifacts) {
-              const found = findApprovalRequired(
-                artifact?.parts as Array<Record<string, unknown>> | undefined
-              );
-              if (found) return found;
-            }
-            return undefined;
-          };
+          const result = await originalExecute(resolvedArgs, context);
+          const duration = Date.now() - startTime;
 
-          const approvalDataRaw =
-            findApprovalRequired(taskResult?.parts as Array<Record<string, unknown>> | undefined) ??
-            findApprovalInArtifacts(
-              taskResult?.artifacts as Array<Record<string, unknown>> | undefined
-            );
+          if (ctx.durableWorkflowRunId && result && typeof result === 'object') {
+            const resultObj = result as Record<string, unknown>;
+            const taskResult = resultObj?.result as Record<string, unknown> | undefined;
 
-          if (approvalDataRaw) {
-            const approvalData = approvalDataRaw as unknown as DurableApprovalData;
-            const delegatedToolCallId = approvalData.toolCallId;
-            const delegatedToolName = approvalData.toolName;
-
-            if (typeof delegatedToolCallId !== 'string' || !delegatedToolCallId) {
-              logger.error(
-                { approvalData, parentToolName: toolName },
-                'Malformed durable-approval-required artifact: invalid toolCallId'
-              );
-              return result;
-            }
-            if (typeof delegatedToolName !== 'string' || !delegatedToolName) {
-              logger.error(
-                { approvalData, parentToolName: toolName },
-                'Malformed durable-approval-required artifact: invalid toolName'
-              );
-              return result;
-            }
-
-            ctx.pendingDurableApproval = {
-              toolCallId: toolCallId,
-              toolName,
-              args: resolvedArgs,
-              delegatedApproval: {
-                toolCallId: delegatedToolCallId,
-                toolName: delegatedToolName,
-                args: approvalData.args,
-                subAgentId: toolName.replace(DELEGATE_TOOL_PREFIX, ''),
-              },
+            const findApprovalRequired = (
+              parts: Array<Record<string, unknown>> | undefined
+            ): Record<string, unknown> | undefined => {
+              if (!Array.isArray(parts)) return undefined;
+              for (const part of parts) {
+                if (part?.kind === 'data') {
+                  const data = part.data as Record<string, unknown> | undefined;
+                  if (data?.type === DURABLE_APPROVAL_ARTIFACT_TYPE) return data;
+                }
+              }
+              return undefined;
             };
+
+            const findApprovalInArtifacts = (
+              artifacts: Array<Record<string, unknown>> | undefined
+            ): Record<string, unknown> | undefined => {
+              if (!Array.isArray(artifacts)) return undefined;
+              for (const artifact of artifacts) {
+                const found = findApprovalRequired(
+                  artifact?.parts as Array<Record<string, unknown>> | undefined
+                );
+                if (found) return found;
+              }
+              return undefined;
+            };
+
+            const approvalDataRaw =
+              findApprovalRequired(
+                taskResult?.parts as Array<Record<string, unknown>> | undefined
+              ) ??
+              findApprovalInArtifacts(
+                taskResult?.artifacts as Array<Record<string, unknown>> | undefined
+              );
+
+            if (approvalDataRaw) {
+              const approvalData = approvalDataRaw as unknown as DurableApprovalData;
+              const delegatedToolCallId = approvalData.toolCallId;
+              const delegatedToolName = approvalData.toolName;
+
+              if (typeof delegatedToolCallId !== 'string' || !delegatedToolCallId) {
+                logger.error(
+                  { approvalData },
+                  'Malformed durable-approval-required artifact: invalid toolCallId'
+                );
+                return result;
+              }
+              if (typeof delegatedToolName !== 'string' || !delegatedToolName) {
+                logger.error(
+                  { approvalData },
+                  'Malformed durable-approval-required artifact: invalid toolName'
+                );
+                return result;
+              }
+
+              ctx.pendingDurableApproval = {
+                toolCallId: toolCallId,
+                toolName,
+                args: resolvedArgs,
+                delegatedApproval: {
+                  toolCallId: delegatedToolCallId,
+                  toolName: delegatedToolName,
+                  args: approvalData.args,
+                  subAgentId: toolName.replace(DELEGATE_TOOL_PREFIX, ''),
+                },
+              };
+              return result;
+            }
+          }
+
+          if (ctx.pendingDurableApproval) {
             return result;
           }
-        }
 
-        if (ctx.pendingDurableApproval) {
-          return result;
-        }
+          const toolResultConversationId = ctx.conversationId;
 
-        const toolResultConversationId = ctx.conversationId;
-
-        if (streamRequestId && !skipHistoryStorage && toolResultConversationId) {
-          try {
-            const messageId = generateId();
-            const messageContent = await buildToolResultForConversationHistory(
-              ctx,
-              toolName,
-              args,
-              result,
-              toolCallId,
-              toolResultConversationId,
-              messageId
-            );
-            await createMessage(runDbClient)({
-              scopes: { tenantId: ctx.config.tenantId, projectId: ctx.config.projectId },
-              data: {
-                id: messageId,
-                conversationId: toolResultConversationId,
-                role: 'assistant',
-                content: messageContent,
-                visibility: 'internal',
-                messageType: 'tool-result',
-                fromSubAgentId: ctx.config.id,
-                metadata: {
-                  a2a_metadata: {
-                    toolName,
-                    toolCallId: toolCallId,
-                    toolArgs: args,
-                    toolOutput: result,
-                    timestamp: Date.now(),
-                    delegationId: ctx.delegationId,
-                    isDelegated: ctx.isDelegatedAgent,
+          if (streamRequestId && !skipHistoryStorage && toolResultConversationId) {
+            try {
+              const messageId = generateId();
+              const messageContent = await buildToolResultForConversationHistory(
+                ctx,
+                toolName,
+                args,
+                result,
+                toolCallId,
+                toolResultConversationId,
+                messageId
+              );
+              await createMessage(runDbClient)({
+                scopes: { tenantId: ctx.config.tenantId, projectId: ctx.config.projectId },
+                data: {
+                  id: messageId,
+                  conversationId: toolResultConversationId,
+                  role: 'assistant',
+                  content: messageContent,
+                  visibility: 'internal',
+                  messageType: 'tool-result',
+                  fromSubAgentId: ctx.config.id,
+                  metadata: {
+                    a2a_metadata: {
+                      toolName,
+                      toolCallId: toolCallId,
+                      toolArgs: args,
+                      toolOutput: result,
+                      timestamp: Date.now(),
+                      delegationId: ctx.delegationId,
+                      isDelegated: ctx.isDelegatedAgent,
+                    },
                   },
                 },
-              },
-            });
-          } catch (error) {
-            logger.warn(
+              });
+            } catch (error) {
+              logger.warn({ error }, 'Failed to store tool result in conversation history');
+            }
+          }
+
+          if (streamRequestId && !isInternalToolForUi) {
+            agentSessionManager.recordEvent(
+              streamRequestId,
+              SESSION_EVENT_TOOL_RESULT,
+              ctx.config.id,
               {
-                error,
                 toolName,
+                output: result,
                 toolCallId: toolCallId,
-                conversationId: toolResultConversationId,
-              },
-              'Failed to store tool result in conversation history'
+                duration,
+                relationshipId,
+                needsApproval,
+                inDelegatedAgent: ctx.isDelegatedAgent,
+              }
             );
           }
-        }
 
-        if (streamRequestId && !isInternalToolForUi) {
-          agentSessionManager.recordEvent(
-            streamRequestId,
-            SESSION_EVENT_TOOL_RESULT,
-            ctx.config.id,
-            {
-              toolName,
-              output: result,
-              toolCallId: toolCallId,
-              duration,
-              relationshipId,
-              needsApproval,
-              inDelegatedAgent: ctx.isDelegatedAgent,
+          const isDeniedResult = isToolResultDenied(result);
+
+          if (streamRequestId && streamHelper && !isInternalToolForUi) {
+            if (isDeniedResult) {
+              await streamHelper.writeToolOutputDenied({ toolCallId: toolCallId });
+            } else {
+              await streamHelper.writeToolOutputAvailable({
+                toolCallId: toolCallId,
+                output: result,
+              });
             }
-          );
-        }
+          }
 
-        const isDeniedResult = isToolResultDenied(result);
-
-        if (streamRequestId && streamHelper && !isInternalToolForUi) {
           if (isDeniedResult) {
-            await streamHelper.writeToolOutputDenied({ toolCallId: toolCallId });
-          } else {
-            await streamHelper.writeToolOutputAvailable({
+            return result.reason ?? 'Tool call was denied by the user.';
+          }
+
+          return result;
+        } catch (error) {
+          const duration = Date.now() - startTime;
+          const rootCause = unwrapError(error);
+          const errorMessage = rootCause.message;
+
+          if (streamRequestId && !isInternalToolForUi) {
+            agentSessionManager.recordEvent(
+              streamRequestId,
+              SESSION_EVENT_TOOL_RESULT,
+              ctx.config.id,
+              {
+                toolName,
+                output: null,
+                toolCallId: toolCallId,
+                duration,
+                error: errorMessage,
+                relationshipId,
+                needsApproval,
+                inDelegatedAgent: ctx.isDelegatedAgent,
+              }
+            );
+          }
+
+          if (streamRequestId && streamHelper && !isInternalToolForUi) {
+            await streamHelper.writeToolOutputError({
               toolCallId: toolCallId,
-              output: result,
+              errorText: errorMessage,
             });
           }
+
+          throw rootCause;
         }
-
-        if (isDeniedResult) {
-          return result.reason ?? 'Tool call was denied by the user.';
-        }
-
-        return result;
-      } catch (error) {
-        const duration = Date.now() - startTime;
-        const rootCause = unwrapError(error);
-        const errorMessage = rootCause.message;
-
-        if (streamRequestId && !isInternalToolForUi) {
-          agentSessionManager.recordEvent(
-            streamRequestId,
-            SESSION_EVENT_TOOL_RESULT,
-            ctx.config.id,
-            {
-              toolName,
-              output: null,
-              toolCallId: toolCallId,
-              duration,
-              error: errorMessage,
-              relationshipId,
-              needsApproval,
-              inDelegatedAgent: ctx.isDelegatedAgent,
-            }
-          );
-        }
-
-        if (streamRequestId && streamHelper && !isInternalToolForUi) {
-          await streamHelper.writeToolOutputError({
-            toolCallId: toolCallId,
-            errorText: errorMessage,
-          });
-        }
-
-        throw rootCause;
-      }
+      });
     },
   };
 }

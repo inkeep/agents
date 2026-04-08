@@ -514,6 +514,65 @@ Any code in `agents-api` or `agents-work-apps` that makes **internal A2A calls o
 | Calling an **external** service or third-party API | Global `fetch` |
 | Test environments (falls back automatically) | Either (auto-fallback) |
 
+### Logger: Scoped Context Pattern
+All logger calls must use the scoped context pattern powered by AsyncLocalStorage (ALS). This eliminates repetitive context fields (`tenantId`, `projectId`, `agentId`, etc.) from individual log calls — middleware and `runWithLogContext` wrappers provide them automatically.
+
+**Core APIs** (from `@inkeep/agents-core`, re-exported via `agents-api/src/logger.ts`):
+
+| API | Purpose |
+|---|---|
+| `getLogger(name)` | Get a module-scoped logger. Automatically resolves ALS context at call time. |
+| `runWithLogContext(bindings, fn)` | Create a child ALS scope — all logger calls inside `fn` inherit `bindings`. |
+| `logger.with(bindings)` | Snapshot logger for class members — captures ALS context at creation + adds `bindings`. |
+
+**Three patterns for new code:**
+
+```typescript
+// Pattern 1: Route handlers / middleware — context set by middleware in createApp.ts
+// tenantId, projectId, agentId are already in ALS. Just log the per-call fields.
+const logger = getLogger('myModule');
+logger.info({ count: 5 }, 'Processing items');  // tenantId/projectId auto-included
+logger.info('Simple message');                   // string-only overload also works
+
+// Pattern 2: Service functions / workflow steps — add operation-level context
+function processItem({ tenantId, projectId, itemId }) {
+  return runWithLogContext({ tenantId, projectId, itemId }, () => {
+    logger.info('Starting');    // tenantId + projectId + itemId auto-included
+    logger.info('Done');        // no need to repeat in every call
+  });
+}
+
+// Pattern 3: Class members — snapshot at construction
+class MyService {
+  private logger: PinoLogger;
+  constructor(sessionId: string) {
+    this.logger = getLogger('MyService').with({ sessionId });
+  }
+  doWork() {
+    this.logger.info('Working');  // sessionId + ALS context included
+  }
+}
+```
+
+**What NOT to do:**
+```typescript
+// BAD: manually repeating ambient context in every call
+logger.info({ tenantId, projectId, agentId, toolName }, 'message');
+
+// GOOD: let ALS provide ambient fields, only pass per-call data
+logger.info({ extraData }, 'message');
+// or just:
+logger.info('message');
+```
+
+**When to use `runWithLogContext`:**
+| Scenario | Use |
+|---|---|
+| Function receives IDs that appear in all its log calls | Wrap body in `runWithLogContext({ id1, id2 }, () => { ... })` |
+| Middleware already set the context (route handlers) | Just call `logger.info(...)` — context is inherited |
+| Class with long-lived context | `this.logger = getLogger('Name').with({ id })` in constructor |
+| Outside any request scope (scripts, tests) | Falls back to base logger — no crash, just no ambient context |
+
 ### Route Authorization Pattern (`createProtectedRoute`)
 All API routes in `agents-api` **must** use `createProtectedRoute()` from `@inkeep/agents-core/middleware` instead of the plain `createRoute()` from `@hono/zod-openapi`. This is enforced by Biome lint rules and ensures every route has explicit authorization metadata (`x-authz`) in the OpenAPI spec.
 
