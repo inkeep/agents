@@ -30,7 +30,7 @@ export type AgentExecutionPayload = {
 
 /**
  * Hook for tool approval: external systems resume this to approve/deny a tool call.
- * Token format: `tool-approval:${conversationId}:${workflowRunId}:${toolCallId}`
+ * Token format: `${TOOL_APPROVAL_HOOK_PREFIX}${conversationId}:${workflowRunId}:${toolCallId}`
  */
 export const toolApprovalHook = defineHook<
   { approved: boolean; reason?: string },

@@ -41,6 +41,7 @@ vi.mock('@inkeep/agents-core', () => ({
   getTask: getTaskMock,
   getLedgerArtifacts: getLedgerArtifactsMock,
   upsertLedgerArtifact: upsertLedgerArtifactMock,
+  SESSION_EVENT_ARTIFACT_SAVED: 'artifact_saved',
   // Add stubs for exports needed by transitive dependencies
   createAgentsRunDatabaseClient: vi.fn(() => 'mock-run-db-client'),
   createAgentsManageDatabaseClient: vi.fn(() => 'mock-manage-db-client'),
@@ -75,7 +76,9 @@ vi.mock('../../../../logger', () => ({
     error: vi.fn(),
     debug: vi.fn(),
     child: vi.fn().mockReturnThis(),
+    with: vi.fn().mockReturnThis(),
   })),
+  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
 }));
 
 // Mock schema-validation to prevent @inkeep/agents-core/utils imports

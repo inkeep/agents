@@ -241,7 +241,7 @@ app.openapi(
       await validateRunAsUserId({ runAsUserId, callerId, tenantId, projectId, tenantRole });
     }
 
-    logger.debug({ tenantId, projectId, agentId, triggerId: id }, 'Creating trigger');
+    logger.debug({ triggerId: id }, 'Creating trigger');
 
     // Validate credential reference exists if provided
     if (body.signingSecretCredentialReferenceId) {
@@ -424,7 +424,7 @@ app.openapi(
       });
     }
 
-    logger.debug({ tenantId, projectId, agentId, triggerId: id }, 'Updating trigger');
+    logger.debug({ triggerId: id }, 'Updating trigger');
 
     // Validate credential reference exists if provided
     if (body.signingSecretCredentialReferenceId) {
@@ -579,7 +579,7 @@ app.openapi(
       });
     }
 
-    logger.debug({ tenantId, projectId, agentId, triggerId: id }, 'Deleting trigger');
+    logger.debug({ triggerId: id }, 'Deleting trigger');
 
     // First check if the trigger exists
     const existing = await getTriggerById(db)({
@@ -659,10 +659,7 @@ app.openapi(
     const { tenantId, projectId, agentId, id: triggerId } = c.req.valid('param');
     const { page, limit, status, from, to } = c.req.valid('query');
 
-    logger.debug(
-      { tenantId, projectId, agentId, triggerId, status, from, to },
-      'Listing trigger invocations'
-    );
+    logger.debug({ triggerId, status, from, to }, 'Listing trigger invocations');
 
     const result = await listTriggerInvocationsPaginated(runDbClient)({
       scopes: { tenantId, projectId, agentId },
@@ -719,10 +716,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, agentId, id: triggerId, invocationId } = c.req.valid('param');
 
-    logger.debug(
-      { tenantId, projectId, agentId, triggerId, invocationId },
-      'Getting trigger invocation'
-    );
+    logger.debug({ triggerId, invocationId }, 'Getting trigger invocation');
 
     const invocation = await getTriggerInvocationById(runDbClient)({
       scopes: { tenantId, projectId, agentId },
@@ -810,7 +804,7 @@ app.openapi(
       });
     }
 
-    logger.info({ tenantId, projectId, agentId, triggerId }, 'Rerunning trigger');
+    logger.info({ triggerId }, 'Rerunning trigger');
 
     const trigger = await getTriggerById(db)({
       scopes: { tenantId, projectId, agentId },
@@ -856,7 +850,7 @@ app.openapi(
       const errorMessage = error instanceof Error ? error.message : String(error);
       const errorStack = error instanceof Error ? error.stack : undefined;
       logger.error(
-        { err: errorMessage, errorStack, tenantId, projectId, agentId, triggerId },
+        { err: errorMessage, errorStack, triggerId },
         'Failed to dispatch trigger rerun execution'
       );
       throw createApiError({
@@ -865,10 +859,7 @@ app.openapi(
       });
     }
 
-    logger.info(
-      { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
-      'Trigger rerun dispatched'
-    );
+    logger.info({ triggerId, invocationId, conversationId }, 'Trigger rerun dispatched');
 
     return c.json({ success: true, invocationId, conversationId }, 202);
   }

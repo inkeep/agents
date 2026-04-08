@@ -10,12 +10,14 @@ const logger = vi.hoisted(() => ({
   info: vi.fn(),
   warn: vi.fn(),
   error: vi.fn(),
+  with: vi.fn().mockReturnThis(),
 }));
 
 const mockUpload = vi.fn();
 
 vi.mock('../../../../logger', () => ({
   getLogger: () => logger,
+  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
 }));
 
 vi.mock('../blob-storage/index', () => ({

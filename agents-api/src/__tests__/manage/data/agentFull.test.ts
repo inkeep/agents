@@ -20,7 +20,9 @@ vi.mock('../../../logger', () => ({
     debug: vi.fn(),
     error: vi.fn(),
     warn: vi.fn(),
+    with: vi.fn().mockReturnThis(),
   }),
+  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
 }));
 
 describe('Agent Full Service Layer - Unit Tests', () => {

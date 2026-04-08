@@ -4,7 +4,12 @@ import {
   estimateTokens as estimateTokensUtil,
   GENERATION_TYPES,
   getLedgerArtifacts,
+  LOAD_SKILL_TOOL,
+  SAVE_TOOL_RESULT_TOOL,
+  SESSION_EVENT_ARTIFACT_SAVED,
+  SESSION_EVENT_COMPRESSION,
   SPAN_KEYS,
+  TRANSFER_TOOL_PREFIX,
   updateLedgerArtifactParts,
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
@@ -293,10 +298,10 @@ export abstract class BaseCompressor {
   private shouldSkipToolCall(toolName: string): boolean {
     return (
       toolName === 'get_reference_artifact' ||
-      toolName === 'load_skill' ||
+      toolName === LOAD_SKILL_TOOL ||
       toolName === 'thinking_complete' ||
-      toolName?.includes('save_tool_result') ||
-      toolName?.startsWith('transfer_to_')
+      toolName?.includes(SAVE_TOOL_RESULT_TOOL) ||
+      toolName?.startsWith(TRANSFER_TOOL_PREFIX)
     );
   }
 
@@ -393,7 +398,7 @@ export abstract class BaseCompressor {
 
     const artifactData = this.buildArtifactData(artifactId, block, toolResultData);
 
-    session.recordEvent('artifact_saved', this.sessionId, artifactData);
+    session.recordEvent(SESSION_EVENT_ARTIFACT_SAVED, this.sessionId, artifactData);
     this.processedToolCalls.add(block.toolCallId);
 
     return {
@@ -628,7 +633,7 @@ export abstract class BaseCompressor {
   protected recordCompressionEvent(eventData: CompressionEventData): void {
     const session = agentSessionManager.getSession(this.sessionId);
     if (session) {
-      session.recordEvent('compression', this.sessionId, eventData);
+      session.recordEvent(SESSION_EVENT_COMPRESSION, this.sessionId, eventData);
     }
   }
 

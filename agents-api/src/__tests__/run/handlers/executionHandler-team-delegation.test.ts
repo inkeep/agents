@@ -72,7 +72,9 @@ vi.mock('../../../logger.js', () => ({
     error: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
+    with: vi.fn().mockReturnThis(),
   }),
+  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
 }));
 
 vi.mock('../../../instrumentation.js', () => ({

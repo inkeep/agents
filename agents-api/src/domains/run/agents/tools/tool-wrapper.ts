@@ -1,4 +1,16 @@
-import { createMessage, generateId, parseEmbeddedJson, unwrapError } from '@inkeep/agents-core';
+import {
+  createMessage,
+  DELEGATE_TOOL_PREFIX,
+  DURABLE_APPROVAL_ARTIFACT_TYPE,
+  generateId,
+  LOAD_SKILL_TOOL,
+  parseEmbeddedJson,
+  SAVE_TOOL_RESULT_TOOL,
+  SESSION_EVENT_TOOL_CALL,
+  SESSION_EVENT_TOOL_RESULT,
+  TRANSFER_TOOL_PREFIX,
+  unwrapError,
+} from '@inkeep/agents-core';
 import { trace } from '@opentelemetry/api';
 import type { ToolSet } from 'ai';
 import runDbClient from '../../../../data/db/runDbClient';
@@ -11,9 +23,6 @@ import type { AgentRunContext, AiSdkToolDefinition, ToolType } from '../agent-ty
 import { buildToolResultForConversationHistory } from '../generation/tool-result-for-conversation-history';
 import { buildToolResultForModelInput } from '../generation/tool-result-for-model-input';
 import { getRelationshipIdForTool } from './tool-utils';
-
-const DELEGATE_TOOL_PREFIX = 'delegate_to_';
-const TRANSFER_TOOL_PREFIX = 'transfer_to_';
 
 interface DurableApprovalData {
   type: string;
@@ -120,9 +129,9 @@ export function wrapToolWithStreaming(
       }
 
       const isInternalTool =
-        toolName.includes('save_tool_result') || toolName.startsWith(TRANSFER_TOOL_PREFIX);
+        toolName.includes(SAVE_TOOL_RESULT_TOOL) || toolName.startsWith(TRANSFER_TOOL_PREFIX);
       const isInternalToolForUi =
-        isInternalTool || toolName.startsWith(DELEGATE_TOOL_PREFIX) || toolName === 'load_skill';
+        isInternalTool || toolName.startsWith(DELEGATE_TOOL_PREFIX) || toolName === LOAD_SKILL_TOOL;
 
       // In durable workflows, delegate_to_ tool results must be stored in
       // conversation history so the next callLlmStep sees the delegation outcome
@@ -175,7 +184,7 @@ export function wrapToolWithStreaming(
 
         await agentSessionManager.recordEvent(
           streamRequestId,
-          'tool_call',
+          SESSION_EVENT_TOOL_CALL,
           ctx.config.id,
           toolCallData
         );
@@ -232,7 +241,7 @@ export function wrapToolWithStreaming(
             for (const part of parts) {
               if (part?.kind === 'data') {
                 const data = part.data as Record<string, unknown> | undefined;
-                if (data?.type === 'durable-approval-required') return data;
+                if (data?.type === DURABLE_APPROVAL_ARTIFACT_TYPE) return data;
               }
             }
             return undefined;
@@ -347,15 +356,20 @@ export function wrapToolWithStreaming(
         }
 
         if (streamRequestId && !isInternalToolForUi) {
-          agentSessionManager.recordEvent(streamRequestId, 'tool_result', ctx.config.id, {
-            toolName,
-            output: stripInternalFields(result),
-            toolCallId: effectiveToolCallId,
-            duration,
-            relationshipId,
-            needsApproval,
-            inDelegatedAgent: ctx.isDelegatedAgent,
-          });
+          agentSessionManager.recordEvent(
+            streamRequestId,
+            SESSION_EVENT_TOOL_RESULT,
+            ctx.config.id,
+            {
+              toolName,
+              output: stripInternalFields(result),
+              toolCallId: effectiveToolCallId,
+              duration,
+              relationshipId,
+              needsApproval,
+              inDelegatedAgent: ctx.isDelegatedAgent,
+            }
+          );
         }
 
         const isDeniedResult = isToolResultDenied(result);
@@ -382,16 +396,21 @@ export function wrapToolWithStreaming(
         const errorMessage = rootCause.message;
 
         if (streamRequestId && !isInternalToolForUi) {
-          agentSessionManager.recordEvent(streamRequestId, 'tool_result', ctx.config.id, {
-            toolName,
-            output: null,
-            toolCallId: effectiveToolCallId,
-            duration,
-            error: errorMessage,
-            relationshipId,
-            needsApproval,
-            inDelegatedAgent: ctx.isDelegatedAgent,
-          });
+          agentSessionManager.recordEvent(
+            streamRequestId,
+            SESSION_EVENT_TOOL_RESULT,
+            ctx.config.id,
+            {
+              toolName,
+              output: null,
+              toolCallId: effectiveToolCallId,
+              duration,
+              error: errorMessage,
+              relationshipId,
+              needsApproval,
+              inDelegatedAgent: ctx.isDelegatedAgent,
+            }
+          );
         }
 
         if (streamRequestId && streamHelper && !isInternalToolForUi) {

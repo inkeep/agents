@@ -58,7 +58,7 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
   // Get connection pool from dbClient
   const pool = getPoolFromClient(manageDbClient);
   if (!pool) {
-    logger.error({}, 'Could not get connection pool from dbClient');
+    logger.error('Could not get connection pool from dbClient');
     c.set('db', manageDbClient);
     await next();
     return;

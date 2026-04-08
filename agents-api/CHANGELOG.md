@@ -1,5 +1,24 @@
 # @inkeep/agents-api
 
+## 0.65.2
+
+### Patch Changes
+
+- 867b0f5: Fix durable approval replay: validate originalToolCallId before applying pre-approved decisions
+- ce94912: dispatched triggers without requiring user associations
+- 93eb31e: Add log context middleware for automatic tenantId/projectId/agentId propagation via AsyncLocalStorage
+- 34e1d67: Fix Doltgres error logging to surface root cause details, redact SQL bind params, and re-throw auto-commit failures to prevent silent data loss
+- a951178: Fix tool denial context lost across durable workflow steps
+- Updated dependencies [b33134a]
+- Updated dependencies [50f57fa]
+- Updated dependencies [fa18f84]
+- Updated dependencies [34e1d67]
+- Updated dependencies [93eb31e]
+  - @inkeep/agents-mcp@0.65.2
+  - @inkeep/agents-work-apps@0.65.2
+  - @inkeep/agents-core@0.65.2
+  - @inkeep/agents-email@0.65.2
+
 ## 0.65.1
 
 ### Patch Changes

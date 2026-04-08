@@ -111,7 +111,7 @@ app.openapi(
     try {
       const sessionTenantId = c.get('tenantId') as string | undefined;
       if (!sessionTenantId) {
-        logger.warn({}, 'No tenantId in session context — cannot list workspaces');
+        logger.warn('No tenantId in session context — cannot list workspaces');
         return c.json({ workspaces: [] });
       }
 

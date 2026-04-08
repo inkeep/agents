@@ -1,5 +1,18 @@
 # @inkeep/agents-manage-ui
 
+## 0.65.2
+
+### Patch Changes
+
+- 259797c: Fix `useFormState` reactivity under React Compiler by isolating proxy-backed error reads
+- ebdd24f: fix timezone calculation for datasets and evaluators
+- 1f1b4b9: Auto-replace spaces with dashes in skill name input
+- 1a504c7: Add nested folder documentation and info tooltip for skill file paths
+- Updated dependencies [fa18f84]
+- Updated dependencies [34e1d67]
+- Updated dependencies [93eb31e]
+  - @inkeep/agents-core@0.65.2
+
 ## 0.65.1
 
 ### Patch Changes
