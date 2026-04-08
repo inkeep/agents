@@ -1,6 +1,6 @@
 import { Writable } from 'node:stream';
 import { context } from '@opentelemetry/api';
-import { type LogRecord, SeverityNumber, logs } from '@opentelemetry/api-logs';
+import { type LogRecord, logs, SeverityNumber } from '@opentelemetry/api-logs';
 
 const PINO_TO_OTEL_SEVERITY: Record<number, SeverityNumber> = {
   10: SeverityNumber.TRACE,

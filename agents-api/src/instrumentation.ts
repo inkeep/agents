@@ -1,3 +1,4 @@
+import { flushOTelLogs, setupOTelLogProvider } from '@inkeep/agents-core';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import {
   ALLOW_ALL_BAGGAGE_KEYS,
@@ -19,7 +20,6 @@ import {
   type SpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
-import { setupOTelLogProvider, flushOTelLogs } from '@inkeep/agents-core';
 import { env } from './env';
 import { getLogger } from './logger';
 
@@ -114,10 +114,7 @@ export async function startOpenTelemetrySDK(): Promise<void> {
 
 export async function flushBatchProcessor(): Promise<void> {
   try {
-    await Promise.all([
-      defaultBatchProcessor.forceFlush(),
-      flushOTelLogs(),
-    ]);
+    await Promise.all([defaultBatchProcessor.forceFlush(), flushOTelLogs()]);
   } catch (error) {
     logger.warn({ error }, 'Failed to flush batch processor');
   }
