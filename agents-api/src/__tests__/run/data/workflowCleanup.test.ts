@@ -55,7 +55,7 @@ describe('getStaleWorkflowExecutions', () => {
 
     const staleBefore = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const result = await getStaleWorkflowExecutions(runDbClient)({
-      tenantId,
+      scopes: { tenantId },
       staleBefore,
     });
 
@@ -81,7 +81,7 @@ describe('getStaleWorkflowExecutions', () => {
 
     const staleBefore = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const result = await getStaleWorkflowExecutions(runDbClient)({
-      tenantId,
+      scopes: { tenantId },
       staleBefore,
     });
 
@@ -100,7 +100,7 @@ describe('getStaleWorkflowExecutions', () => {
 
     const staleBefore = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const result = await getStaleWorkflowExecutions(runDbClient)({
-      tenantId,
+      scopes: { tenantId },
       staleBefore,
       limit: 1,
     });
@@ -119,7 +119,7 @@ describe('getStaleWorkflowExecutions', () => {
 
     const staleBefore = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const result = await getStaleWorkflowExecutions(runDbClient)({
-      tenantId,
+      scopes: { tenantId },
       staleBefore,
     });
 
@@ -146,7 +146,7 @@ describe('getStaleWorkflowExecutions', () => {
 
     const staleBefore = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const result = await getStaleWorkflowExecutions(runDbClient)({
-      tenantId,
+      scopes: { tenantId },
       staleBefore,
     });
 
@@ -160,7 +160,7 @@ describe('getStaleWorkflowExecutions', () => {
 
     const staleBefore = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const result = await getStaleWorkflowExecutions(runDbClient)({
-      tenantId: freshTenant,
+      scopes: { tenantId: freshTenant },
       staleBefore,
     });
 

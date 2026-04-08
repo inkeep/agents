@@ -2,6 +2,7 @@ import { and, asc, desc, eq, lte } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { workflowExecutions } from '../../db/runtime/runtime-schema';
 import type { WorkflowExecutionInsert, WorkflowExecutionSelect } from '../../types/index';
+import type { TenantScopeConfig } from '../../types/utility';
 
 export const createWorkflowExecution =
   (db: AgentsRunDatabaseClient) =>
@@ -68,7 +69,7 @@ export const getWorkflowExecutionByConversation =
 export const getStaleWorkflowExecutions =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
-    tenantId: string;
+    scopes: TenantScopeConfig;
     staleBefore: string;
     limit?: number;
   }): Promise<WorkflowExecutionSelect[]> => {
@@ -77,7 +78,7 @@ export const getStaleWorkflowExecutions =
       .from(workflowExecutions)
       .where(
         and(
-          eq(workflowExecutions.tenantId, params.tenantId),
+          eq(workflowExecutions.tenantId, params.scopes.tenantId),
           eq(workflowExecutions.status, 'suspended'),
           lte(workflowExecutions.updatedAt, params.staleBefore)
         )

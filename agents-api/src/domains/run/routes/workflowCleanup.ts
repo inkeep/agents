@@ -95,7 +95,7 @@ app.openapi(
     const staleBefore = new Date(Date.now() - timeoutMinutes * 60 * 1000).toISOString();
 
     const staleExecutions = await getStaleWorkflowExecutions(runDbClient)({
-      tenantId,
+      scopes: { tenantId },
       staleBefore,
       limit,
     });
