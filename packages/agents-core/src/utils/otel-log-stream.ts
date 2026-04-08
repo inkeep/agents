@@ -29,7 +29,11 @@ function toAnyValue(value: unknown): string | number | boolean | null | undefine
 }
 
 export class OTelLogStream extends Writable {
-  private otelLogger = logs.getLogger('pino-bridge');
+  private emitErrorLogged = false;
+
+  private get otelLogger() {
+    return logs.getLogger('pino-bridge');
+  }
 
   constructor() {
     super({ objectMode: false, decodeStrings: false });
@@ -40,15 +44,15 @@ export class OTelLogStream extends Writable {
     _encoding: BufferEncoding,
     callback: (error?: Error | null) => void
   ): void {
-    try {
-      const str = typeof chunk === 'string' ? chunk : chunk.toString();
-      for (const line of str.split('\n')) {
-        if (!line.trim()) continue;
+    const str = typeof chunk === 'string' ? chunk : chunk.toString();
+    for (const line of str.split('\n')) {
+      if (!line.trim()) continue;
+      try {
         const parsed = JSON.parse(line);
         this.emitLogRecord(parsed);
+      } catch {
+        // Skip unparseable lines (partial chunks, non-JSON preamble)
       }
-    } catch {
-      // Silently skip unparseable lines
     }
     callback();
   }
@@ -71,6 +75,13 @@ export class OTelLogStream extends Writable {
       context: context.active(),
     };
 
-    this.otelLogger.emit(record);
+    try {
+      this.otelLogger.emit(record);
+    } catch (error) {
+      if (!this.emitErrorLogged) {
+        this.emitErrorLogged = true;
+        console.warn('OTelLogStream: failed to emit log record, further errors suppressed', error);
+      }
+    }
   }
 }

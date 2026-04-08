@@ -1,4 +1,4 @@
-import { flushOTelLogs, setupOTelLogProvider } from '@inkeep/agents-core';
+import { flushOTelLogs, setupOTelLogProvider, shutdownOTelLogProvider } from '@inkeep/agents-core';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import {
   ALLOW_ALL_BAGGAGE_KEYS,
@@ -119,3 +119,12 @@ export async function flushBatchProcessor(): Promise<void> {
     logger.warn({ error }, 'Failed to flush batch processor');
   }
 }
+
+export async function shutdownOpenTelemetry(): Promise<void> {
+  await Promise.all([defaultSDK.shutdown(), shutdownOTelLogProvider()]);
+}
+
+// Flush all buffered telemetry on SIGTERM (Vercel Fluid Compute sends SIGTERM ~5s before SIGKILL)
+process.on('SIGTERM', () => {
+  shutdownOpenTelemetry().catch(() => {});
+});
