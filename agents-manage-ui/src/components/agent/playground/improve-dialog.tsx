@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { SparklesIcon } from 'lucide-react';
 import type { Dispatch } from 'react';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import { z } from 'zod';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
@@ -61,8 +62,12 @@ export const ImproveDialog = ({
       setTimeout(() => {
         chatFunctionsREF.current?.submitMessage(feedback);
       }, 100);
+      onOpenChange(false);
+    } else {
+      toast.error('Copilot is not ready', {
+        description: 'Please try again in a moment.',
+      });
     }
-    onOpenChange(false);
   });
 
   return (
@@ -79,8 +84,8 @@ export const ImproveDialog = ({
             <GenericTextarea
               control={form.control}
               name="feedback"
-              label=""
-              placeholder="What could have been better?"
+              label="What could have been better?"
+              placeholder="Describe how this response should be improved"
               className="min-h-[80px]"
             />
             <div className="flex justify-end gap-2">

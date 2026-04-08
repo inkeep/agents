@@ -79,7 +79,7 @@ export function ChatWidget({
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const copilotCtx = useCopilotContext();
   const { data: dataComponents } = useDataComponentsQuery();
-  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
+  const [isImproveDialogOpen, setIsImproveDialogOpen] = useState(false);
   const [messageId, setMessageId] = useState<string | undefined>(undefined);
   const {
     apiKey: tempApiKey,
@@ -256,7 +256,7 @@ export function ChatWidget({
                         type: 'invoke_message_callback' as const,
                         callback({ messageId }: { messageId?: string }) {
                           setMessageId(messageId);
-                          setIsFeedbackDialogOpen(true);
+                          setIsImproveDialogOpen(true);
                         },
                       },
                     },
@@ -291,10 +291,10 @@ export function ChatWidget({
           }}
         />
       </div>
-      {isFeedbackDialogOpen && (
+      {isImproveDialogOpen && (
         <ImproveDialog
-          isOpen={isFeedbackDialogOpen}
-          onOpenChange={setIsFeedbackDialogOpen}
+          isOpen={isImproveDialogOpen}
+          onOpenChange={setIsImproveDialogOpen}
           conversationId={conversationId}
           messageId={messageId}
           setShowTraces={setShowTraces}

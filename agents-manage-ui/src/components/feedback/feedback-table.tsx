@@ -164,7 +164,7 @@ export function FeedbackTable({
             updateQuery({ type: next ?? '', page: 1 });
           }}
         >
-          <TabsList className="">
+          <TabsList>
             <TabsTrigger value="all" className="gap-1.5 font-sans normal-case">
               All
               {!typeFilter && <span className="text-xs opacity-70">{pagination.total}</span>}
@@ -225,7 +225,7 @@ export function FeedbackTable({
         <TableBody>
           {feedback.length === 0 && (
             <TableRow noHover>
-              <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+              <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                 No feedback found matching your filters.
               </TableCell>
             </TableRow>
