@@ -27,6 +27,8 @@ require_env_vars \
 
 RAILWAY_ENV_NAME="$(pr_env_name "${PR_NUMBER}")"
 RECREATE_PREVIEW_ENV="${RECREATE_PREVIEW_ENV:-false}"
+RECREATE_BACKUP_ENV_ID=""
+RECREATE_BACKUP_ENV_NAME=""
 
 preview_log "Resolving Railway template environment and service IDs for ${RAILWAY_ENV_NAME}."
 RAILWAY_TEMPLATE_ENV_ID="$(railway_wait_for_environment_id "${RAILWAY_PROJECT_ID}" "${RAILWAY_TEMPLATE_ENVIRONMENT}" 5 1)"
@@ -87,19 +89,60 @@ create_preview_environment() {
   return 1
 }
 
+build_recreate_backup_env_name() {
+  local suffix=""
+
+  if [ -n "${GITHUB_RUN_ID:-}" ]; then
+    suffix="${GITHUB_RUN_ID}"
+    if [ -n "${GITHUB_RUN_ATTEMPT:-}" ]; then
+      suffix="${suffix}-${GITHUB_RUN_ATTEMPT}"
+    fi
+  else
+    suffix="$(date +%s)"
+  fi
+
+  printf 'backup-pr-%s-%s' "${PR_NUMBER}" "${suffix}"
+}
+
+restore_recreate_backup_environment() {
+  if [ -z "${RECREATE_BACKUP_ENV_ID}" ] || [ -z "${RECREATE_BACKUP_ENV_NAME}" ]; then
+    return 0
+  fi
+
+  preview_log "Restoring recreate backup ${RECREATE_BACKUP_ENV_NAME} back to ${RAILWAY_ENV_NAME}."
+  if ! railway_environment_rename_by_id "${RECREATE_BACKUP_ENV_ID}" "${RAILWAY_ENV_NAME}" >/dev/null; then
+    echo "Failed to restore recreate backup ${RECREATE_BACKUP_ENV_NAME} back to ${RAILWAY_ENV_NAME}. Manual intervention required." >&2
+    return 1
+  fi
+  RECREATE_BACKUP_ENV_NAME=""
+  RECREATE_BACKUP_ENV_ID=""
+}
+
 ENV_EXISTS="$(railway_env_exists_count "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}")"
 
 if [ "${RECREATE_PREVIEW_ENV}" = "true" ] && [ "${ENV_EXISTS}" != "0" ]; then
-  preview_log "Manual recreate requested for ${RAILWAY_ENV_NAME}; deleting the existing Railway environment first."
+  preview_log "Manual recreate requested for ${RAILWAY_ENV_NAME}; renaming the existing Railway environment to a backup first."
   EXISTING_ENV_ID="$(railway_wait_for_environment_id "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" 10 2)"
-  railway_environment_delete_by_id "${EXISTING_ENV_ID}" >/dev/null
-  railway_wait_for_environment_absent "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" 20 3
+  RECREATE_BACKUP_ENV_NAME="$(build_recreate_backup_env_name)"
+  if ! railway_environment_rename_by_id "${EXISTING_ENV_ID}" "${RECREATE_BACKUP_ENV_NAME}" >/dev/null; then
+    echo "Failed to rename ${RAILWAY_ENV_NAME} to backup ${RECREATE_BACKUP_ENV_NAME}. Cannot proceed with recreate." >&2
+    exit 1
+  fi
+  RECREATE_BACKUP_ENV_ID="${EXISTING_ENV_ID}"
   ENV_EXISTS="0"
 fi
 
 if [ "${ENV_EXISTS}" = "0" ]; then
   if ! create_preview_environment; then
     if ! railway_wait_for_environment_id "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" 20 4 >/dev/null; then
+      if [ -n "${RECREATE_BACKUP_ENV_ID}" ]; then
+        if ! restore_recreate_backup_environment; then
+          echo "Failed to create Railway environment ${RAILWAY_ENV_NAME}, and restoring the previous preview environment also failed. Manual intervention required." >&2
+          exit 1
+        fi
+        echo "Failed to create Railway environment ${RAILWAY_ENV_NAME}; restored the previous preview environment." >&2
+        exit 1
+      fi
       echo "Failed to create Railway environment ${RAILWAY_ENV_NAME}."
       exit 1
     fi
@@ -294,6 +337,8 @@ validate_spicedb_preshared_key
 echo "manage_db_url=${MANAGE_DB_URL}" >> "${GITHUB_OUTPUT}"
 echo "run_db_url=${RUN_DB_URL}" >> "${GITHUB_OUTPUT}"
 echo "spicedb_endpoint=${SPICEDB_ENDPOINT}" >> "${GITHUB_OUTPUT}"
+echo "recreate_backup_env_id=${RECREATE_BACKUP_ENV_ID}" >> "${GITHUB_OUTPUT}"
+echo "recreate_backup_env_name=${RECREATE_BACKUP_ENV_NAME}" >> "${GITHUB_OUTPUT}"
 
 {
   echo "## Tier 1 Provisioning"
@@ -308,4 +353,7 @@ echo "spicedb_endpoint=${SPICEDB_ENDPOINT}" >> "${GITHUB_OUTPUT}"
   echo "- Resolved run DB URL: ✅"
   echo "- Resolved SpiceDB endpoint: ✅"
   echo "- Preview SpiceDB auth key matches GitHub secret: ✅"
+  if [ -n "${RECREATE_BACKUP_ENV_NAME}" ]; then
+    echo "- Recreate backup env retained until bootstrap succeeds: \`${RECREATE_BACKUP_ENV_NAME}\`"
+  fi
 } >> "${GITHUB_STEP_SUMMARY}"
