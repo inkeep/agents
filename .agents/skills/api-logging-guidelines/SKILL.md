@@ -11,17 +11,40 @@ Comprehensive guidance for appropriate use of logging in API routes to maintain 
 
 ## Core Principles
 
-### 1. Avoid Redundant Logging
+### 1. Use Scoped Logger Context (ALS)
 
-**DON'T log what's already logged by middleware:**
+The codebase uses **AsyncLocalStorage (ALS)** to automatically propagate context fields through the call stack. Middleware sets `tenantId`, `projectId`, `agentId` at the request level. Functions should use `runWithLogContext()` to add operation-level context (e.g., `toolCallId`, `toolName`, `workflowRunId`).
+
+**DON'T manually repeat ambient context in every log call:**
 ```typescript
-// ❌ BAD - Request details are already logged by middleware
-logger.info({ tenantId, projectId }, 'Getting project details');
+// ❌ BAD - tenantId, projectId, toolName are already in ALS context
+logger.info({ tenantId, projectId, toolName, toolCallId }, 'Processing tool call');
 ```
+
+**DO rely on ALS context and only pass per-call data:**
+```typescript
+// ✅ GOOD - ambient fields auto-included from ALS
+logger.info({ duration: 1234 }, 'Processing complete');
+logger.info('Simple status message');
+```
+
+**DO wrap functions in `runWithLogContext` when they receive IDs used across multiple log calls:**
+```typescript
+// ✅ GOOD - set context once, all nested log calls inherit it
+function processTool(toolCallId: string, toolName: string) {
+  return runWithLogContext({ toolCallId, toolName }, async () => {
+    logger.info('Starting');     // toolCallId + toolName auto-included
+    logger.warn('Retrying');     // toolCallId + toolName auto-included
+    logger.info('Complete');     // toolCallId + toolName auto-included
+  });
+}
+```
+
+### 2. Avoid Redundant Logging
 
 **DO rely on request middleware logging:**
 - Request/response middleware already logs: method, path, status, duration, path params
-- These logs include tenant/project IDs from the URL path
+- ALS middleware provides tenant/project/agent IDs on every log line automatically
 - Adding duplicate logs creates noise without value
 
 ### 2. Log Level Guidelines
@@ -35,21 +58,19 @@ logger.info({ tenantId, projectId }, 'Getting project details');
 
 ### 3. What TO Log
 
-**Log these important events:**
+**Log these important events (ambient context comes from ALS automatically):**
 
 ```typescript
-// ✅ GOOD - Important business event
+// ✅ GOOD - Important business event (tenantId/projectId from ALS)
 logger.info({
-  userId,
   oldPlan: 'free',
   newPlan: 'pro',
   mrr: 99
 }, 'User upgraded subscription');
 
-// ✅ GOOD - Error with context
+// ✅ GOOD - Error with per-call context (tenantId from ALS)
 logger.error({
   error,
-  tenantId,
   webhookUrl,
   attemptNumber: 3
 }, 'Webhook delivery failed after retries');
@@ -57,14 +78,12 @@ logger.error({
 // ✅ GOOD - Security-relevant event
 logger.warn({
   ip: c.req.header('x-forwarded-for'),
-  userId,
   attemptedResource
 }, 'Unauthorized access attempt');
 
 // ✅ GOOD - Performance issue
 logger.warn({
   duration: 5234,
-  query,
   resultCount: 10000
 }, 'Slow query detected');
 ```
@@ -209,42 +228,31 @@ if (process.env.NODE_ENV === 'development') {
 
 ## Migration Strategy
 
-When refactoring existing verbose logging:
+When refactoring existing verbose logging to the scoped context pattern:
 
-1. **Identify redundant logs**: Remove logs that duplicate middleware logging
-2. **Downgrade routine operations**: Move routine operations from INFO to DEBUG
-3. **Enhance error logs**: Add more context to error logs
-4. **Add business event logs**: Ensure important business events are logged
-5. **Review log levels**: Ensure each log uses the appropriate level
+1. **Wrap functions in `runWithLogContext`**: If a function receives IDs that appear in every log call, wrap the body
+2. **Strip ambient fields from log calls**: Remove `tenantId`, `projectId`, `agentId`, `toolName`, `toolCallId`, etc. that are now in ALS
+3. **Use string-only overloads**: When a log call has no per-call data, use `logger.info('message')` instead of `logger.info({}, 'message')`
+4. **Use `.with()` for class members**: `this.logger = getLogger('Name').with({ sessionId })` in constructors
 
 ### Before:
 ```typescript
-router.get('/:id', async (c) => {
-  const { id } = c.req.param();
-  logger.info({ id }, 'Getting item by ID');  // Redundant
-
-  const item = await getItem(id);
-  logger.info({ item }, 'Retrieved item');     // Too verbose
-
-  return c.json(item);
-});
+function processItem(tenantId: string, projectId: string, itemId: string) {
+  logger.info({ tenantId, projectId, itemId }, 'Starting');
+  logger.info({ tenantId, projectId, itemId }, 'Validating');
+  logger.info({ tenantId, projectId, itemId }, 'Complete');
+}
 ```
 
 ### After:
 ```typescript
-router.get('/:id', async (c) => {
-  const { id } = c.req.param();
-
-  try {
-    const item = await getItem(id);
-    // No logging needed - routine successful operation
-    return c.json(item);
-  } catch (error) {
-    // Only log errors
-    logger.error({ error, id }, 'Failed to retrieve item');
-    return c.json({ error: 'Item not found' }, 404);
-  }
-});
+function processItem(tenantId: string, projectId: string, itemId: string) {
+  return runWithLogContext({ tenantId, projectId, itemId }, () => {
+    logger.info('Starting');
+    logger.info('Validating');
+    logger.info('Complete');
+  });
+}
 ```
 
 ---
