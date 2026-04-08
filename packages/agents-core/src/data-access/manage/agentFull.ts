@@ -57,7 +57,7 @@ import {
   upsertSubAgentTeamAgentRelation,
 } from './subAgentTeamAgentRelations';
 import { upsertSubAgentToolRelation } from './tools';
-import { deleteTrigger, listTriggers, upsertTrigger } from './triggers';
+import { deleteTrigger, listTriggers, setTriggerUsers, upsertTrigger } from './triggers';
 
 export interface AgentLogger {
   info(msg: string): void;
@@ -424,16 +424,26 @@ export const createFullAgentServerSide =
           async ([triggerId, triggerData]) => {
             try {
               logger.info({ agentId: finalAgentId, triggerId }, 'Creating trigger in agent');
+              const { runAsUserIds, ...triggerInsertData } = triggerData as typeof triggerData & {
+                runAsUserIds?: string[];
+              };
               await upsertTrigger(db)({
                 scopes: { tenantId, projectId, agentId: finalAgentId },
                 data: {
-                  ...triggerData,
+                  ...triggerInsertData,
                   id: triggerId,
                   tenantId,
                   projectId,
                   agentId: finalAgentId,
                 },
               });
+              if (runAsUserIds && runAsUserIds.length > 0) {
+                await setTriggerUsers(db)({
+                  scopes: { tenantId, projectId, agentId: finalAgentId },
+                  triggerId,
+                  userIds: runAsUserIds,
+                });
+              }
               logger.info({ agentId: finalAgentId, triggerId }, 'Trigger created successfully');
             } catch (error) {
               logger.error(
@@ -1131,16 +1141,26 @@ export const updateFullAgentServerSide =
           async ([triggerId, triggerData]) => {
             try {
               logger.info({ agentId: finalAgentId, triggerId }, 'Updating trigger in agent');
+              const { runAsUserIds, ...triggerInsertData } = triggerData as typeof triggerData & {
+                runAsUserIds?: string[];
+              };
               await upsertTrigger(db)({
                 scopes: { tenantId, projectId, agentId: finalAgentId },
                 data: {
-                  ...triggerData,
+                  ...triggerInsertData,
                   id: triggerId,
                   tenantId,
                   projectId,
                   agentId: finalAgentId,
                 },
               });
+              if (runAsUserIds !== undefined) {
+                await setTriggerUsers(db)({
+                  scopes: { tenantId, projectId, agentId: finalAgentId },
+                  triggerId,
+                  userIds: runAsUserIds,
+                });
+              }
               logger.info({ agentId: finalAgentId, triggerId }, 'Trigger updated successfully');
             } catch (error) {
               logger.error(
