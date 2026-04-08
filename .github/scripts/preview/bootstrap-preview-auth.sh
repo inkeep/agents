@@ -68,6 +68,7 @@ run_spicedb_datastore_migrate() {
   local postgres_password=""
   local postgres_db=""
   local datastore_conn_uri=""
+  local migrate_timeout_seconds="${SPICEDB_MIGRATE_TIMEOUT_SECONDS:-300}"
 
   if ! command -v docker >/dev/null 2>&1; then
     echo "Docker is required to run the SpiceDB datastore migration in preview CI." >&2
@@ -96,9 +97,11 @@ run_spicedb_datastore_migrate() {
     return 1
   fi
 
+  echo "::add-mask::${postgres_password}"
   datastore_conn_uri="postgres://${postgres_user}:${postgres_password}@${proxy_domain}:${proxy_port}/${postgres_db}?sslmode=disable"
+  echo "::add-mask::${datastore_conn_uri}"
   preview_log "Running SpiceDB datastore migration via ${spicedb_migrate_image} against ${spicedb_postgres_service_name} in ${env_name}."
-  docker run --rm "${spicedb_migrate_image}" datastore migrate head \
+  timeout "${migrate_timeout_seconds}" docker run --rm "${spicedb_migrate_image}" datastore migrate head \
     --datastore-engine postgres \
     --datastore-conn-uri "${datastore_conn_uri}"
 }

@@ -491,6 +491,8 @@ railway_wait_for_service_deployment_ready() {
   local deployment_json=""
   local deployment_id=""
   local deployment_status=""
+  local redeploy_error_file=""
+  local redeploy_error=""
 
   env_id="$(railway_wait_for_environment_id "${project_id}" "${env_name}" 10 2)" || return 1
   service_id="$(railway_project_service_id "${project_id}" "${service_name}")"
@@ -522,15 +524,20 @@ railway_wait_for_service_deployment_ready() {
         ;;
       FAILED|CRASHED|REMOVED)
         if [ "${max_redeploys}" -gt 0 ] && [ "${redeploy_count}" -lt "${max_redeploys}" ]; then
-          redeploy_count=$((redeploy_count + 1))
-          preview_log "Railway deployment for ${service_name} in ${env_name} is ${deployment_status}${deployment_id:+ (${deployment_id})}; auto-redeploy ${redeploy_count}/${max_redeploys}."
-          if railway_service_instance_redeploy "${env_id}" "${service_id}" >/dev/null 2>&1; then
+          preview_log "Railway deployment for ${service_name} in ${env_name} is ${deployment_status}${deployment_id:+ (${deployment_id})}; attempting auto-redeploy $((redeploy_count + 1))/${max_redeploys}."
+          redeploy_error_file="$(mktemp)"
+          if railway_service_instance_redeploy "${env_id}" "${service_id}" >/dev/null 2>"${redeploy_error_file}"; then
+            redeploy_count=$((redeploy_count + 1))
+            rm -f "${redeploy_error_file}"
+            # A redeploy starts a fresh deployment cycle, so restart the wait budget from attempt 1.
             preview_log "Redeploy triggered for ${service_name} in ${env_name}; restarting deployment wait loop."
             attempt="1"
             sleep_with_jitter "${sleep_seconds}"
             continue
           fi
-          preview_log "Auto-redeploy API call failed for ${service_name} in ${env_name}."
+          redeploy_error="$(cat "${redeploy_error_file}")"
+          rm -f "${redeploy_error_file}"
+          preview_log "Auto-redeploy API call failed for ${service_name} in ${env_name}: ${redeploy_error:-unknown error}"
         fi
         echo "Railway deployment for ${service_name} in ${env_name} entered terminal status ${deployment_status}${deployment_id:+ (${deployment_id})}." >&2
         return 1

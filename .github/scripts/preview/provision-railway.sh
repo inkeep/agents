@@ -110,7 +110,10 @@ restore_recreate_backup_environment() {
   fi
 
   preview_log "Restoring recreate backup ${RECREATE_BACKUP_ENV_NAME} back to ${RAILWAY_ENV_NAME}."
-  railway_environment_rename_by_id "${RECREATE_BACKUP_ENV_ID}" "${RAILWAY_ENV_NAME}" >/dev/null
+  if ! railway_environment_rename_by_id "${RECREATE_BACKUP_ENV_ID}" "${RAILWAY_ENV_NAME}" >/dev/null; then
+    echo "Failed to restore recreate backup ${RECREATE_BACKUP_ENV_NAME} back to ${RAILWAY_ENV_NAME}. Manual intervention required." >&2
+    return 1
+  fi
   RECREATE_BACKUP_ENV_NAME=""
   RECREATE_BACKUP_ENV_ID=""
 }
@@ -121,7 +124,10 @@ if [ "${RECREATE_PREVIEW_ENV}" = "true" ] && [ "${ENV_EXISTS}" != "0" ]; then
   preview_log "Manual recreate requested for ${RAILWAY_ENV_NAME}; renaming the existing Railway environment to a backup first."
   EXISTING_ENV_ID="$(railway_wait_for_environment_id "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" 10 2)"
   RECREATE_BACKUP_ENV_NAME="$(build_recreate_backup_env_name)"
-  railway_environment_rename_by_id "${EXISTING_ENV_ID}" "${RECREATE_BACKUP_ENV_NAME}" >/dev/null
+  if ! railway_environment_rename_by_id "${EXISTING_ENV_ID}" "${RECREATE_BACKUP_ENV_NAME}" >/dev/null; then
+    echo "Failed to rename ${RAILWAY_ENV_NAME} to backup ${RECREATE_BACKUP_ENV_NAME}. Cannot proceed with recreate." >&2
+    exit 1
+  fi
   RECREATE_BACKUP_ENV_ID="${EXISTING_ENV_ID}"
   ENV_EXISTS="0"
 fi
@@ -130,7 +136,10 @@ if [ "${ENV_EXISTS}" = "0" ]; then
   if ! create_preview_environment; then
     if ! railway_wait_for_environment_id "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" 20 4 >/dev/null; then
       if [ -n "${RECREATE_BACKUP_ENV_ID}" ]; then
-        restore_recreate_backup_environment
+        if ! restore_recreate_backup_environment; then
+          echo "Failed to create Railway environment ${RAILWAY_ENV_NAME}, and restoring the previous preview environment also failed. Manual intervention required." >&2
+          exit 1
+        fi
         echo "Failed to create Railway environment ${RAILWAY_ENV_NAME}; restored the previous preview environment." >&2
         exit 1
       fi

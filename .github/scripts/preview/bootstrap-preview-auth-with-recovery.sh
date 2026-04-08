@@ -149,22 +149,33 @@ restore_recreate_backup_if_present() {
   current_env_id="$(railway_environment_id "${RAILWAY_PROJECT_ID}" "${env_name}")"
   if [ -n "${current_env_id}" ]; then
     preview_log "Deleting failed replacement Railway environment ${env_name} before restoring ${RECREATE_BACKUP_ENV_NAME}."
-    railway_environment_delete_by_id "${current_env_id}" >/dev/null
-    railway_wait_for_environment_absent "${RAILWAY_PROJECT_ID}" "${env_name}" 10 2
+    if ! railway_environment_delete_by_id "${current_env_id}" >/dev/null; then
+      echo "Failed to delete replacement Railway environment ${env_name} before restoring ${RECREATE_BACKUP_ENV_NAME}. Manual intervention required." >&2
+      return 1
+    fi
+    if ! railway_wait_for_environment_absent "${RAILWAY_PROJECT_ID}" "${env_name}" 10 2; then
+      echo "Replacement Railway environment ${env_name} did not disappear before restore. Manual intervention required." >&2
+      return 1
+    fi
   fi
 
   preview_log "Restoring recreate backup ${RECREATE_BACKUP_ENV_NAME} back to ${env_name}."
-  railway_environment_rename_by_id "${RECREATE_BACKUP_ENV_ID}" "${env_name}" >/dev/null
+  if ! railway_environment_rename_by_id "${RECREATE_BACKUP_ENV_ID}" "${env_name}" >/dev/null; then
+    echo "Failed to restore recreate backup ${RECREATE_BACKUP_ENV_NAME} back to ${env_name}. Manual intervention required." >&2
+    return 1
+  fi
   RECREATE_BACKUP_ENV_ID=""
   RECREATE_BACKUP_ENV_NAME=""
 }
 
 PREVIEW_ENV_RECREATED="false"
 BOOTSTRAP_STEP_OUTPUT_FILE="${GITHUB_OUTPUT}"
+BOOTSTRAP_STEP_SUMMARY_FILE="${GITHUB_STEP_SUMMARY:-}"
 initial_log_file="$(mktemp)"
 retry_log_file="$(mktemp)"
 reprovision_output_file="$(mktemp)"
-trap 'rm -f "${initial_log_file}" "${retry_log_file}" "${reprovision_output_file}"' EXIT
+reprovision_summary_file="$(mktemp)"
+trap 'rm -f "${initial_log_file}" "${retry_log_file}" "${reprovision_output_file}" "${reprovision_summary_file}"' EXIT
 
 resolve_bootstrap_output_vars
 
@@ -175,7 +186,10 @@ if run_bootstrap_once "${initial_log_file}"; then
 fi
 
 if ! bootstrap_failure_requires_recreate "${initial_log_file}"; then
-  restore_recreate_backup_if_present
+  preview_log "Bootstrap failure did not match a recoverable stale-preview signature."
+  if ! restore_recreate_backup_if_present; then
+    preview_log "Bootstrap failed and the recreate backup could not be restored automatically."
+  fi
   preview_log "Bootstrap failed with a non-recoverable error. Leaving the current preview environment intact."
   exit 1
 fi
@@ -183,15 +197,19 @@ fi
 preview_log "Detected recoverable preview environment failure for $(pr_env_name "${PR_NUMBER}"); recreating the Railway environment once."
 export RECREATE_PREVIEW_ENV="true"
 export GITHUB_OUTPUT="${reprovision_output_file}"
+export GITHUB_STEP_SUMMARY="${reprovision_summary_file}"
 bash "${SCRIPT_DIR}/provision-railway.sh"
 export GITHUB_OUTPUT="${BOOTSTRAP_STEP_OUTPUT_FILE}"
+export GITHUB_STEP_SUMMARY="${BOOTSTRAP_STEP_SUMMARY_FILE}"
 load_reprovision_outputs "${reprovision_output_file}"
 mask_env_vars MANAGE_DB_URL RUN_DB_URL SPICEDB_ENDPOINT
 PREVIEW_ENV_RECREATED="true"
 
 preview_log "Retrying preview auth bootstrap after recreating $(pr_env_name "${PR_NUMBER}")."
 if ! run_bootstrap_once "${retry_log_file}"; then
-  restore_recreate_backup_if_present
+  if ! restore_recreate_backup_if_present; then
+    preview_log "Bootstrap still failed after recreate, and the previous preview environment could not be restored automatically."
+  fi
   preview_log "Bootstrap still failed after recreating $(pr_env_name "${PR_NUMBER}")."
   exit 1
 fi
