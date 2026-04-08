@@ -268,7 +268,7 @@ app.openapi(createExecutionRoute, async (c) => {
     },
   ]);
 
-  logger.info({ runId: run.runId, conversationId, agentId }, 'Durable execution started');
+  logger.info({ runId: run.runId, conversationId }, 'Durable execution started');
 
   c.header('Content-Type', 'text/event-stream');
   c.header('Cache-Control', 'no-cache');

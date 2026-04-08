@@ -153,10 +153,7 @@ export async function getDefaultTools(
     );
   }
 
-  logger.info(
-    { agentId: ctx.config.id, streamRequestId },
-    'Adding compress_context tool to defaultTools'
-  );
+  logger.info({ streamRequestId }, 'Adding compress_context tool to defaultTools');
   defaultTools.compress_context = tool({
     description:
       'Manually compress the current conversation context to save space. Use when shifting topics, completing major tasks, or when context feels cluttered.',
@@ -170,7 +167,6 @@ export async function getDefaultTools(
     execute: async ({ reason }) => {
       logger.info(
         {
-          agentId: ctx.config.id,
           streamRequestId,
           reason,
         },
@@ -190,7 +186,7 @@ export async function getDefaultTools(
     },
   });
 
-  logger.info('getDefaultTools returning tools:', Object.keys(defaultTools).join(', '));
+  logger.info({ tools: Object.keys(defaultTools) }, 'getDefaultTools returning tools');
   return defaultTools;
 }
 
@@ -206,10 +202,7 @@ export async function agentHasArtifactComponents(ctx: AgentRunContext): Promise<
       (subAgent) => (subAgent.artifactComponents?.length ?? 0) > 0
     );
   } catch (error) {
-    logger.error(
-      { error, agentId: ctx.config.agentId },
-      'Failed to check agent artifact components'
-    );
+    logger.error({ error }, 'Failed to check agent artifact components');
     return false;
   }
 }

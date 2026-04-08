@@ -132,7 +132,6 @@ export function handleGenerationError(ctx: AgentRunContext, error: unknown, span
   const errorToThrow = error instanceof Error ? error : new Error(String(error));
   logger.error(
     {
-      agentId: ctx.config.id,
       errorMessage: errorToThrow.message,
       errorStack: errorToThrow.stack,
       errorName: errorToThrow.name,
@@ -266,7 +265,7 @@ export async function runGenerate(
             dataComponentsSchema = buildDataComponentsSchema(ctx);
           } catch (err) {
             logger.error(
-              { agentId: ctx.config.id, err },
+              { err },
               'Failed to build data components schema — continuing without structured output'
             );
           }
@@ -299,7 +298,6 @@ export async function runGenerate(
 
         logger.info(
           {
-            agentId: ctx.config.id,
             hasStructuredOutput,
             shouldStream,
           },
@@ -324,7 +322,6 @@ export async function runGenerate(
 
         logger.info(
           {
-            agentId: ctx.config.id,
             hasOutput: !!rawResponse.output,
             dataComponentsCount:
               (rawResponse.output as { dataComponents?: unknown[] } | undefined)?.dataComponents
@@ -341,7 +338,6 @@ export async function runGenerate(
 
           logger.info(
             {
-              agentId: ctx.config.id,
               dataComponentsCount: response.output?.dataComponents?.length || 0,
               dataComponentNames: response.output?.dataComponents?.map((dc: any) => dc.name) || [],
             },
@@ -366,7 +362,6 @@ export async function runGenerate(
 
           logger.warn(
             {
-              agentId: ctx.config.id,
               finishReason: response.finishReason,
               conversationId: conversationIdForSpan,
             },

@@ -6,13 +6,13 @@ import runDbClient from '../data/db/runDbClient';
 
 // Mock the local logger module globally - this will be hoisted automatically by Vitest
 vi.mock('../logger.js', () => {
-  const mockLogger = {
+  const mockLogger: Record<string, any> = {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
-    child: vi.fn().mockReturnThis(),
-    with: vi.fn().mockReturnThis(),
+    child: vi.fn(),
+    with: vi.fn(),
     getPinoInstance: vi.fn().mockReturnValue({
       info: vi.fn(),
       warn: vi.fn(),
@@ -21,6 +21,8 @@ vi.mock('../logger.js', () => {
       child: vi.fn().mockReturnThis(),
     }),
   };
+  mockLogger.child.mockReturnValue(mockLogger);
+  mockLogger.with.mockReturnValue(mockLogger);
   return {
     getLogger: vi.fn(() => mockLogger),
     runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
@@ -29,13 +31,13 @@ vi.mock('../logger.js', () => {
 });
 
 vi.mock('../logger', () => {
-  const mockLogger = {
+  const mockLogger: Record<string, any> = {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
-    child: vi.fn().mockReturnThis(),
-    with: vi.fn().mockReturnThis(),
+    child: vi.fn(),
+    with: vi.fn(),
     getPinoInstance: vi.fn().mockReturnValue({
       info: vi.fn(),
       warn: vi.fn(),
@@ -44,6 +46,8 @@ vi.mock('../logger', () => {
       child: vi.fn().mockReturnThis(),
     }),
   };
+  mockLogger.child.mockReturnValue(mockLogger);
+  mockLogger.with.mockReturnValue(mockLogger);
   return {
     getLogger: vi.fn(() => mockLogger),
     runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),

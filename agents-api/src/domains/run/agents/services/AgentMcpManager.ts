@@ -88,7 +88,7 @@ export class AgentMcpManager {
           };
         } else {
           logger.warn(
-            { toolId: tool.id, userId },
+            { toolId: tool.id },
             'User-scoped tool has no credential connected for this user'
           );
         }

@@ -280,14 +280,14 @@ export async function validateHeaders({
 }): Promise<ContextValidationResult> {
   try {
     const { tenantId, projectId, agentId, project } = executionContext;
-    logger.info({ tenantId, projectId, agentId }, 'Validating headers');
+    logger.info('Validating headers');
     const agent = project.agents[agentId];
 
     const contextConfig = agent.contextConfig;
-    logger.info({ contextConfig }, 'Context config found');
+    logger.debug({ contextConfig }, 'Context config found');
 
     if (!contextConfig) {
-      logger.info({ agentId }, 'No context config found for agent, skipping validation');
+      logger.info('No context config found for agent, skipping validation');
       return {
         valid: true,
         errors: [],
@@ -352,8 +352,6 @@ export async function validateHeaders({
   } catch (error) {
     logger.error(
       {
-        tenantId: executionContext.tenantId,
-        agentId: executionContext.agentId,
         error: error instanceof Error ? error.message : 'Unknown error',
       },
       'Failed to validate headers'
@@ -408,8 +406,6 @@ export async function contextValidationMiddleware(c: Context, next: Next) {
     if (!validationResult.valid) {
       logger.warn(
         {
-          tenantId,
-          agentId,
           errors: validationResult.errors,
         },
         'Headers validation failed'
@@ -425,8 +421,6 @@ export async function contextValidationMiddleware(c: Context, next: Next) {
 
     logger.debug(
       {
-        tenantId,
-        agentId,
         contextKeys: Object.keys(validationResult.validatedContext || {}),
       },
       'Request context validation successful'

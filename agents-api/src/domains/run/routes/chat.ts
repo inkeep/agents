@@ -210,13 +210,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
     const executionContext = c.get('executionContext');
     const { tenantId, projectId, agentId } = executionContext;
 
-    getLogger('chat').debug(
-      {
-        tenantId,
-        agentId,
-      },
-      'Extracted chat parameters from API key context'
-    );
+    getLogger('chat').debug('Extracted chat parameters from API key context');
 
     const body = c.get('requestBody') || {};
     const conversationId = body.conversationId || getConversationId();
@@ -467,7 +461,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
           },
         ]);
 
-        logger.info({ runId: run.runId, conversationId, agentId }, 'Durable execution started');
+        logger.info({ runId: run.runId, conversationId }, 'Durable execution started');
 
         c.header('Content-Type', 'text/event-stream');
         c.header('Cache-Control', 'no-cache');
