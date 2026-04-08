@@ -1392,7 +1392,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       expect(rows.map((r) => r.userId).sort()).toEqual(['new-user-1', 'new-user-2']);
     });
 
-    it('should disable trigger when setting users to empty array', async () => {
+    it('should keep trigger enabled when setting users to empty array', async () => {
       const tenantId = await createTestTenantWithOrg('users-put-disable');
       const { agentId, projectId } = await createTestAgent(tenantId);
       const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
@@ -1419,7 +1419,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         scopes: { tenantId, projectId, agentId },
         triggerId: trigger.id,
       });
-      expect(updated?.enabled).toBe(false);
+      expect(updated?.enabled).toBe(true);
     });
 
     it('should clear legacy runAsUserId when setting users', async () => {
@@ -1639,7 +1639,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       expect(body.data).toEqual(['user-b']);
     });
 
-    it('should disable trigger when removing the last user', async () => {
+    it('should keep trigger enabled when removing the last user', async () => {
       const tenantId = await createTestTenantWithOrg('users-delete-last');
       const { agentId, projectId } = await createTestAgent(tenantId);
       const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
@@ -1663,7 +1663,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         scopes: { tenantId, projectId, agentId },
         triggerId: trigger.id,
       });
-      expect(updated?.enabled).toBe(false);
+      expect(updated?.enabled).toBe(true);
     });
 
     it('should migrate legacy runAsUserId before removing', async () => {
@@ -1704,7 +1704,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         scopes: { tenantId, projectId, agentId },
         triggerId,
       });
-      expect(updated?.enabled).toBe(false);
+      expect(updated?.enabled).toBe(true);
       expect(updated?.runAsUserId).toBeNull();
     });
 

@@ -944,7 +944,6 @@ app.openapi(
         triggerId: id,
         data: {
           runAsUserId: null,
-          ...(userIds.length === 0 ? { enabled: false } : {}),
         },
       });
     });
@@ -1153,7 +1152,6 @@ app.openapi(
         triggerId: id,
         data: {
           runAsUserId: null,
-          ...(remainingUserIds.length === 0 ? { enabled: false } : {}),
         },
       });
     });
