@@ -501,9 +501,9 @@ export function ModelConfiguration<
                 name={providerOptionsId}
                 onChange={onProviderOptionsChange}
                 value={
-                  typeof effectiveProviderOptions === 'object'
-                    ? JSON.stringify(effectiveProviderOptions, null, 2)
-                    : effectiveProviderOptions
+                  typeof effectiveProviderOptions === 'string'
+                    ? effectiveProviderOptions
+                    : JSON.stringify(effectiveProviderOptions, null, 2)
                 }
                 placeholder={jsonPlaceholder}
                 customTemplate={jsonPlaceholder}

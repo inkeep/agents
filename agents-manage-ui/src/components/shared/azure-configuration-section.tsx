@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 
 interface AzureConfigurationSectionProps {
   providerOptions: Record<string, unknown> | string;
-  onProviderOptionsChange: (value: string) => void;
+  onProviderOptionsChange: (value: string | undefined) => void;
   disabled?: boolean;
 }
 
@@ -14,9 +14,9 @@ export function AzureConfigurationSection({
   disabled = false,
 }: AzureConfigurationSectionProps) {
   const providerOptionsObj =
-    providerOptions && typeof providerOptions === 'string'
-      ? JSON.parse(providerOptions)
-      : providerOptions;
+    typeof providerOptions === 'string'
+      ? JSON.parse(providerOptions || '{}')
+      : providerOptions || {};
 
   const handleFieldChange = (field: string, value: string) => {
     const updatedOptions = {
@@ -25,15 +25,14 @@ export function AzureConfigurationSection({
     };
 
     // Remove undefined values to keep JSON clean
-    for (const key of Object.keys(updatedOptions)) {
+    Object.keys(updatedOptions).forEach((key) => {
       if (updatedOptions[key] === undefined) {
         delete updatedOptions[key];
       }
-    }
+    });
 
-    const finalValue = Object.keys(updatedOptions).length
-      ? JSON.stringify(updatedOptions, null, 2)
-      : '';
+    const finalValue =
+      Object.keys(updatedOptions).length > 0 ? JSON.stringify(updatedOptions, null, 2) : undefined;
     onProviderOptionsChange(finalValue);
   };
 
