@@ -509,4 +509,101 @@ app.openapi(resumeConversationStreamRoute, async (c) => {
   return new Response(null, { status: 204 });
 });
 
+const PendingToolApprovalSchema = z
+  .object({
+    toolCallId: z.string(),
+    toolName: z.string(),
+    args: z.unknown().optional(),
+    isDelegated: z.boolean(),
+  })
+  .openapi('PendingToolApproval');
+
+const PendingApprovalsResponseSchema = z
+  .object({
+    hasPending: z.boolean(),
+    approval: PendingToolApprovalSchema.extend({
+      workflowRunId: z.string(),
+      updatedAt: z.string(),
+    }).optional(),
+  })
+  .openapi('PendingApprovalsResponse');
+
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/{conversationId}/pending-approvals',
+    summary: 'Get Pending Approvals',
+    description:
+      'Discover pending tool approval requests for a conversation. Use this to recover approval state when an SSE stream is interrupted or on page load.',
+    operationId: 'get-conversation-pending-approvals',
+    tags: ['Conversations'],
+    security: [{ bearerAuth: [] }],
+    permission: inheritedRunApiKeyAuth(),
+    request: {
+      params: z.object({ conversationId: z.string() }),
+    },
+    responses: {
+      200: {
+        description: 'Pending approval status for the conversation',
+        content: {
+          'application/json': {
+            schema: PendingApprovalsResponseSchema,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const executionContext = c.get('executionContext');
+    const { tenantId, projectId } = executionContext;
+    const { conversationId } = c.req.valid('param');
+
+    const conversation = await getConversation(runDbClient)({
+      scopes: { tenantId, projectId },
+      conversationId,
+    });
+
+    if (!conversation) {
+      throw createApiError({ code: 'not_found', message: 'Conversation not found' });
+    }
+
+    const endUserId = executionContext.metadata?.endUserId;
+    if (conversation.userId && conversation.userId !== endUserId) {
+      throw createApiError({ code: 'not_found', message: 'Conversation not found' });
+    }
+
+    const execution = await getWorkflowExecutionByConversation(runDbClient)({
+      tenantId,
+      projectId,
+      conversationId,
+    });
+
+    if (!execution || execution.status !== 'suspended') {
+      return c.json({ hasPending: false });
+    }
+
+    const metadata = execution.metadata as Record<string, unknown> | null;
+    const parsed = PendingToolApprovalSchema.safeParse(metadata?.pendingToolApproval);
+
+    if (!parsed.success) {
+      return c.json({ hasPending: false });
+    }
+
+    const pendingToolApproval = parsed.data;
+
+    return c.json({
+      hasPending: true,
+      approval: {
+        toolCallId: pendingToolApproval.toolCallId,
+        toolName: pendingToolApproval.toolName,
+        args: pendingToolApproval.args,
+        isDelegated: pendingToolApproval.isDelegated,
+        workflowRunId: execution.id,
+        updatedAt: execution.updatedAt,
+      },
+    });
+  }
+);
+
 export default app;

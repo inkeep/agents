@@ -126,12 +126,23 @@ export async function waitForToolApproval(
 
     const streamHelper = ctx.isDelegatedAgent ? undefined : ctx.streamHelper;
     if (streamHelper) {
-      await streamHelper.writeToolApprovalRequest({
-        approvalId: `aitxt-${toolCallId}`,
-        toolCallId,
-        toolName,
-        input: args as Record<string, unknown>,
-      });
+      try {
+        await streamHelper.writeToolApprovalRequest({
+          approvalId: `aitxt-${toolCallId}`,
+          toolCallId,
+          toolName,
+          input: args as Record<string, unknown>,
+        });
+      } catch (sseError) {
+        logger.warn(
+          {
+            toolCallId,
+            toolName,
+            error: sseError instanceof Error ? sseError.message : String(sseError),
+          },
+          'Failed to stream tool approval request to client — approval is persisted and recoverable via polling'
+        );
+      }
     }
 
     ctx.pendingDurableApproval = { toolCallId, toolName, args };
