@@ -77,7 +77,7 @@ vi.mock('../../agentFullClient.js', () => ({
 
 describe('Agent Builder Refactor - Integration Tests', () => {
   it.skip('should use the new agent endpoint for initialization', async () => {
-    const tenantId = createTestTenantId('agent-refactor');
+    createTestTenantId('agent-refactor');
 
     // Spy on the createFullAgentServerSide function to verify it's being called
     const createFullAgentSpy = vi.spyOn(agentFullModule, 'createFullAgentServerSide');
