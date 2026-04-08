@@ -404,12 +404,9 @@ export const createTaskHandler = (
           ? typeof approvedToolCallsRaw === 'string'
             ? (JSON.parse(approvedToolCallsRaw) as Record<
                 string,
-                Array<{ approved: boolean; reason?: string; originalToolCallId?: string }>
+                { approved: boolean; reason?: string }
               >)
-            : (approvedToolCallsRaw as Record<
-                string,
-                Array<{ approved: boolean; reason?: string; originalToolCallId?: string }>
-              >)
+            : (approvedToolCallsRaw as Record<string, { approved: boolean; reason?: string }>)
           : undefined;
 
       agent.setDurableWorkflowRunId(durableWorkflowRunId);
