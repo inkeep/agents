@@ -5,7 +5,7 @@ import {
 } from '@/components/agent/configuration/model-options';
 import type { ProjectInput } from './validation';
 
-export const defaultValues: ProjectInput = {
+export const initialData: ProjectInput = {
   id: '',
   name: '',
   description: '',

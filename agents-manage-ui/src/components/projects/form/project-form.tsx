@@ -11,44 +11,47 @@ import { Form } from '@/components/ui/form';
 import { Separator } from '@/components/ui/separator';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { createProjectAction, updateProjectAction } from '@/lib/actions/projects';
-import { cn, isRequired } from '@/lib/utils';
-import { defaultValues } from './form-configuration';
+import { cn, isRequired, serializeModels } from '@/lib/utils';
+import { initialData } from './form-configuration';
 import { ProjectModelsSection } from './project-models-section';
 import { ProjectStopWhenSection } from './project-stopwhen-section';
 import { ProjectWorkAppGitHubAccessSection } from './project-work-app-github-access-section';
-import { type ProjectInput, ProjectSchema } from './validation';
+import { type ProjectOutput, ProjectSchema } from './validation';
 
 interface ProjectFormProps {
   tenantId: string;
   projectId?: string;
   onSuccess?: (projectId: string) => void;
   onCancel?: () => void;
-  initialData?: ProjectInput;
+  defaultValues?: ProjectOutput;
   readOnly?: boolean;
   className?: string;
 }
 
-const createDefaultValues = (initialData?: ProjectInput) => {
+function createDefaultValues(data?: ProjectOutput) {
+  if (!data) {
+    return initialData;
+  }
+
   return {
-    ...initialData,
-    // Handle null values from database - if an object field is null, validation will fail so we need to set it to an empty object
-    stopWhen: initialData?.stopWhen || {},
-    models: initialData?.models || { base: { model: '' } },
+    ...data,
+    models: serializeModels(data.models),
+    stopWhen: data.stopWhen ?? undefined,
   };
-};
+}
 
 export function ProjectForm({
   tenantId,
   projectId,
   onSuccess,
   onCancel,
-  initialData,
+  defaultValues,
   readOnly = false,
   className,
 }: ProjectFormProps) {
   const form = useForm({
     resolver: zodResolver(ProjectSchema),
-    defaultValues: initialData ? createDefaultValues(initialData) : defaultValues,
+    defaultValues: createDefaultValues(defaultValues),
     mode: 'onChange',
   });
 

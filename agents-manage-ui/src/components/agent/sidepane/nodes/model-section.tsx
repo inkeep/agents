@@ -10,14 +10,14 @@ import {
   getModelInheritanceStatus,
   InheritanceIndicator,
 } from '@/components/ui/inheritance-indicator';
-import type { ProjectModels } from '@/lib/types/project';
+import type { Project } from '@/lib/types/project';
 import { CollapsibleSettings } from '../collapsible-settings';
 import { SectionHeader } from '../section';
 
 interface ModelSectionProps {
   control: Control<FullAgentFormInputValues, unknown, FullAgentFormValues>;
   basePath: 'models' | `subAgents.${string}.models`;
-  projectModels?: ProjectModels;
+  projectModels?: Project['models'];
   agentModels?: AgentModels;
 }
 

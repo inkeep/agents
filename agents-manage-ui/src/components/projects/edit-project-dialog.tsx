@@ -10,11 +10,11 @@ import {
 } from '@/components/ui/dialog';
 import { fetchProjectPermissions } from '@/lib/api/projects';
 import { ProjectForm } from './form/project-form';
-import type { ProjectInput } from './form/validation';
+import type { ProjectOutput } from './form/validation';
 
 interface EditProjectDialogProps {
   tenantId: string;
-  projectData: ProjectInput;
+  projectData: ProjectOutput;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
 }
@@ -55,14 +55,14 @@ export function EditProjectDialog({
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>{readOnly ? '' : 'Edit project'}</DialogTitle>
+          <DialogTitle>{!readOnly && 'Edit project'}</DialogTitle>
           <DialogDescription className="sr-only">
             {readOnly ? 'View project details.' : 'Edit project details.'}
           </DialogDescription>
         </DialogHeader>
         <ProjectForm
           projectId={projectData.id}
-          initialData={projectData}
+          defaultValues={projectData}
           tenantId={tenantId}
           onSuccess={handleSuccess}
           onCancel={handleCancel}

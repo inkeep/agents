@@ -1,21 +1,11 @@
-import type {
-  ModelSettings,
-  StopWhen as ProjectStopWhen,
-} from '@inkeep/agents-core/client-exports';
-
-export interface ProjectModels {
-  base: ModelSettings;
-  structuredOutput?: ModelSettings;
-  summarizer?: ModelSettings;
-}
+import type { ProjectApiSelect, StopWhen as ProjectStopWhen } from '@inkeep/agents-core';
 
 export interface Project {
-  id?: string; // Backend field
+  id: string;
   projectId: string; // Frontend field (mapped from id)
-  tenantId: string;
   name: string;
   description: string;
-  models: ProjectModels;
+  models: NonNullable<ProjectApiSelect['models']>;
   stopWhen?: ProjectStopWhen;
   createdAt: string;
   updatedAt: string;

@@ -1,6 +1,5 @@
 import FullPageError from '@/components/errors/full-page-error';
 import { ProjectForm } from '@/components/projects/form/project-form';
-import type { ProjectInput } from '@/components/projects/form/validation';
 import { fetchProject, fetchProjectPermissions } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
@@ -12,7 +11,7 @@ export default async function SettingsPage({
   const { tenantId, projectId } = await params;
 
   try {
-    const [projectData, permissions] = await Promise.all([
+    const [{ data }, permissions] = await Promise.all([
       fetchProject(tenantId, projectId),
       fetchProjectPermissions(tenantId, projectId),
     ]);
@@ -20,13 +19,8 @@ export default async function SettingsPage({
     return (
       <ProjectForm
         className="max-w-2xl mx-auto"
-        projectId={projectData.data.id}
-        initialData={
-          {
-            ...projectData.data,
-            id: projectData.data.id as string,
-          } as ProjectInput
-        }
+        projectId={projectId}
+        defaultValues={data}
         tenantId={tenantId}
         readOnly={!permissions.canEdit}
       />
