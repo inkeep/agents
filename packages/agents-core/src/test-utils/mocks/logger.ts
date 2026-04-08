@@ -13,7 +13,6 @@ export interface MockLogger {
 export interface MockLoggerModule {
   getLogger: ReturnType<typeof vi.fn>;
   runWithLogContext: ReturnType<typeof vi.fn>;
-  withRequestContext: ReturnType<typeof vi.fn>;
 }
 
 export interface MockLoggerResult {
@@ -49,7 +48,6 @@ export function createMockLoggerModule(): MockLoggerResult {
   const module: MockLoggerModule = {
     getLogger: vi.fn(() => mockLogger),
     runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
-    withRequestContext: vi.fn(async (_id: any, fn: any) => await fn()),
   };
   return {
     mockLogger,
