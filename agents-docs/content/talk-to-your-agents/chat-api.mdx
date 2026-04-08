@@ -217,6 +217,34 @@ If a tool is configured with `needsApproval: true`, the run pauses and the strea
 
 To continue the run, your client must approve/deny the pending tool call. See [Tool approvals](/typescript-sdk/tools/tool-approvals).
 
+### Recovering pending approvals
+
+If the SSE stream disconnects before the client receives a `tool-approval-request` event, or if the user refreshes the page while an approval is pending, you can poll for pending approvals:
+
+**Endpoint:** `GET /run/v1/conversations/{conversationId}/pending-approvals`
+
+**Response:**
+
+```json
+{
+  "hasPending": true,
+  "approval": {
+    "toolCallId": "call_abc123def456",
+    "toolName": "get_weather_forecast",
+    "args": { "city": "San Francisco" },
+    "isDelegated": false,
+    "workflowRunId": "wf_xyz789",
+    "updatedAt": "2024-01-15T10:30:00.000Z"
+  }
+}
+```
+
+When `hasPending` is `false`, the `approval` field is omitted. Use this endpoint on page load or after SSE reconnection to restore the approval UI state.
+
+<Note>
+  This endpoint only returns pending approvals for agents running in [Durable mode](/visual-builder/execution-modes#durable-mode). In Classic mode, pending approvals are request-scoped and not recoverable after stream disconnection.
+</Note>
+
 ### Tool input & output events
 
 Depending on UI needs, the stream may include tool input and tool output events.
