@@ -198,10 +198,35 @@ If no one responds to an approval request within the timeout period, the request
   tools.
 </Note>
 
+## Recovering pending approvals
+
+If the SSE stream disconnects or the user refreshes the page while an approval is pending, poll the pending approvals endpoint to restore state:
+
+```typescript
+const response = await fetch(
+  `/run/v1/conversations/${conversationId}/pending-approvals`,
+  { headers: { Authorization: `Bearer ${apiKey}` } }
+);
+const { hasPending, approval } = await response.json();
+
+if (hasPending && approval) {
+  // Restore the approval UI with:
+  // - approval.toolCallId
+  // - approval.toolName
+  // - approval.args (the tool input)
+  // - approval.isDelegated (true if delegated to another agent)
+}
+```
+
+<Note>
+  Pending approval recovery requires [Durable execution mode](/visual-builder/execution-modes#durable-mode). In Classic mode, approvals are request-scoped and lost on stream disconnection.
+</Note>
+
 ## Related docs
 
 - [Chat API](/talk-to-your-agents/chat-api)
 - [Data operations](/typescript-sdk/data-operations)
 - [Using the Slack App](/talk-to-your-agents/slack/commands)
+- [Execution modes](/visual-builder/execution-modes)
 
 </SkillRule>
