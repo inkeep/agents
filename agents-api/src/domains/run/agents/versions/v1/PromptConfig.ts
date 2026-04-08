@@ -408,6 +408,11 @@ ARTIFACT MANAGEMENT:
 
 Artifacts have three modes of use. Each surfaces a different amount of data:
 
+SPECIAL CASE: binary_attachment artifacts
+- User-uploaded files and tool-produced files may appear as artifacts of type "binary_attachment".
+- Their preview usually includes metadata only (for example filename, mimeType, binaryType, source), not the file contents.
+- Do not infer file contents from preview metadata alone.
+
 1. CREATE — extract and save data from a tool result as a citable artifact:
    Format: <${ARTIFACT_TAG.CREATE} id="unique-id" tool="tool_call_id" type="TypeName" base="selector.path" details='{"key":"jmespath_selector"}' />
    ⚠️ Do not create artifacts from ${ARTIFACT_TOOL.GET_REFERENCE} results — only from original research tools.
@@ -415,6 +420,8 @@ Artifacts have three modes of use. Each surfaces a different amount of data:
 2. REFERENCE IN TEXT — cite a saved artifact inline in your response:
    Format: <${ARTIFACT_TAG.REF} id="artifact-id" tool="tool_call_id" />
    ⚠️ PREVIEW FIELDS ONLY. Only the preview fields appear in your context — you cannot see full fields this way.
+   If an artifact is a binary_attachment and you only have preview metadata, do not claim what the file contains beyond that metadata.
+   If you need the actual contents, either pass the artifact to a capable tool or call ${ARTIFACT_TOOL.GET_REFERENCE}.
 
 3. PASS TO A TOOL — supply a saved artifact as a tool argument:
    Format: { "${SENTINEL_KEY.ARTIFACT}": "artifact-id", "${SENTINEL_KEY.TOOL}": "tool_call_id" }
@@ -422,6 +429,7 @@ Artifacts have three modes of use. Each surfaces a different amount of data:
    Use the exact artifactId and toolCallId from when the artifact was created.
    ⚠️ available_artifacts lists artifacts from PRIOR turns only. Artifacts you create during THIS response are equally valid — use the id and tool values from your own ${ARTIFACT_TAG.CREATE} tag.
    See AVAILABLE ARTIFACT TYPES for the exact preview vs full schema breakdown per type.
+   If a downstream tool can accept the artifact reference, pass { "${SENTINEL_KEY.ARTIFACT}": "artifact-id", "${SENTINEL_KEY.TOOL}": "tool_call_id" } instead of recreating or paraphrasing the file.
    ❌ NEVER reconstruct or copy artifact data inline as a tool argument:
       { "artifactArg": { "field1": "...", "field2": "..." }, "param2": "value" }
    ✅ ALWAYS pass the reference instead:
@@ -532,15 +540,23 @@ ARTIFACT USAGE:
 
 You cannot create artifacts, but you can use existing ones in two ways:
 
+SPECIAL CASE: binary_attachment artifacts
+- User-uploaded files and tool-produced files may appear as artifacts of type "binary_attachment".
+- Their preview usually includes metadata only (for example filename, mimeType, binaryType, source), not the file contents.
+- Do not infer file contents from preview metadata alone.
+
 1. REFERENCE IN TEXT — cite a saved artifact inline in your response:
    Format: <${ARTIFACT_TAG.REF} id="artifact-id" tool="tool_call_id" />
    ⚠️ PREVIEW FIELDS ONLY. Only the preview fields appear in your context — you cannot see full fields this way.
+   If an artifact is a binary_attachment and you only have preview metadata, do not claim what the file contains beyond that metadata.
+   If you need the actual contents, either pass the artifact to a capable tool or call ${ARTIFACT_TOOL.GET_REFERENCE}.
 
 2. PASS TO A TOOL — supply a saved artifact as a tool argument:
    Format: { "${SENTINEL_KEY.ARTIFACT}": "artifact-id", "${SENTINEL_KEY.TOOL}": "tool_call_id" }
    ✅ FULL FIELDS. The system resolves this to the complete artifact data before the tool executes — all fields, including those not visible in your context. The tool receives everything.
    Use the exact artifactId and toolCallId from when the artifact was created.
    ⚠️ available_artifacts lists artifacts from PRIOR turns only. Artifacts you just received in this conversation (e.g. from a delegation) are equally valid — use the id and tool values shown in the artifact reference.
+   If a downstream tool can accept the artifact reference, pass { "${SENTINEL_KEY.ARTIFACT}": "artifact-id", "${SENTINEL_KEY.TOOL}": "tool_call_id" } instead of recreating or paraphrasing the file.
    ❌ NEVER reconstruct or copy artifact data inline as a tool argument:
       { "artifactArg": { "field1": "...", "field2": "..." }, "param2": "value" }
    ✅ ALWAYS pass the reference instead:

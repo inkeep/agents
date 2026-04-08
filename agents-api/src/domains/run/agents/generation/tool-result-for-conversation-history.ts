@@ -102,9 +102,6 @@ function mapMcpContentItemToConversationHistoryPart(item: any): Part | null {
         bytes: item.data,
         ...(typeof item.mimeType === 'string' ? { mimeType: item.mimeType } : {}),
       },
-      metadata: {
-        type: 'image',
-      },
     };
   }
 
@@ -115,9 +112,28 @@ function mapMcpContentItemToConversationHistoryPart(item: any): Part | null {
         uri: item.url,
         ...(typeof item.mimeType === 'string' ? { mimeType: item.mimeType } : {}),
       },
-      metadata: {
-        type: 'image',
+    };
+  }
+
+  if (item.type === 'file' && typeof item.data === 'string') {
+    return {
+      kind: 'file',
+      file: {
+        bytes: item.data,
+        ...(typeof item.mimeType === 'string' ? { mimeType: item.mimeType } : {}),
       },
+      ...(typeof item.filename === 'string' ? { metadata: { filename: item.filename } } : {}),
+    };
+  }
+
+  if (item.type === 'file' && typeof item.url === 'string') {
+    return {
+      kind: 'file',
+      file: {
+        uri: item.url,
+        ...(typeof item.mimeType === 'string' ? { mimeType: item.mimeType } : {}),
+      },
+      ...(typeof item.filename === 'string' ? { metadata: { filename: item.filename } } : {}),
     };
   }
 
@@ -146,7 +162,9 @@ export async function buildToolResultForConversationHistory(
   result: any,
   toolCallId: string,
   conversationId: string,
-  messageId: string
+  messageId: string,
+  taskId: string,
+  opts?: { skipArtifactCreation?: boolean }
 ): Promise<MessageContent> {
   const text = formatToolResultForConversationHistory(toolName, args, result, toolCallId);
   const parts = getToolResultPartsForConversationHistory(result);
@@ -165,5 +183,9 @@ export async function buildToolResultForConversationHistory(
     projectId: ctx.config.projectId,
     conversationId,
     messageId,
+    taskId,
+    toolCallId,
+    source: 'tool-result',
+    skipArtifactCreation: opts?.skipArtifactCreation,
   });
 }

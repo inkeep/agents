@@ -15,6 +15,10 @@ import {
   inlineExternalPdfUrlParts,
 } from '../blob-storage/file-upload-helpers';
 
+vi.mock('../blob-storage/attachment-artifacts', () => ({
+  createAttachmentArtifacts: vi.fn().mockResolvedValue([]),
+}));
+
 vi.mock('../blob-storage/file-upload', () => ({
   hasFileParts: vi.fn(),
   uploadPartsFiles: vi.fn(),
@@ -30,9 +34,16 @@ const ctx = {
   projectId: 'project',
   conversationId: 'conversation',
   messageId: 'message',
+  taskId: 'message_message',
+  toolCallId: 'message_attachment:message',
+  source: 'user-message' as const,
 };
 
 describe('buildPersistedMessageContent', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('returns text-only content when there are no file parts', async () => {
     vi.mocked(hasFileParts).mockReturnValueOnce(false);
     const textPart: TextPart = { kind: 'text', text: 'hello' };
@@ -51,7 +62,6 @@ describe('buildPersistedMessageContent', () => {
     vi.mocked(makeMessageContentParts).mockReturnValueOnce([
       { kind: 'file', data: 'blob://a', metadata: {} },
     ]);
-
     const inputFilePart: FilePart = { kind: 'file', file: { uri: 'https://example.com/img.png' } };
     const result = await buildPersistedMessageContent('hello', [inputFilePart], ctx);
     expect(result).toEqual({
