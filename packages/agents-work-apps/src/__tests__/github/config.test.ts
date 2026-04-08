@@ -33,7 +33,6 @@ vi.mock('../../env', () => ({
 vi.mock('../../logger', () => ({
   getLogger: vi.fn(() => mockLogger),
   runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
-  withRequestContext: vi.fn(async (_id: any, fn: any) => await fn()),
 }));
 
 import {
