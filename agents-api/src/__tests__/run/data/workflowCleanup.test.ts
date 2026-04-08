@@ -120,7 +120,7 @@ describe('getStaleWorkflowExecutions', () => {
 
     for (let i = 1; i < result.length; i++) {
       expect(new Date(result[i].updatedAt).getTime()).toBeGreaterThanOrEqual(
-        new Date(result[i - 1].updatedAt).getTime(),
+        new Date(result[i - 1].updatedAt).getTime()
       );
     }
   });
