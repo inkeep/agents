@@ -1,5 +1,17 @@
 # @inkeep/agents-core
 
+## 0.66.0
+
+### Minor Changes
+
+- 5596ecb: Remove logger dependency injection from agentFull and projectFull data access functions. Agent CRUD operations now log via module-scope logger instead of silently swallowing logs. Removes exported `AgentLogger` interface and `ProjectLogger` type (zero external consumers).
+
+### Patch Changes
+
+- 63a1358: Migrate logger calls to use scoped context — remove repeated ambient fields, adopt string-only logger calls
+- 01a960d: Extract repeated string literals into shared constant modules for tool names, approval events, workflow tokens, session events, and relation types
+- 4d0169b: Add createMockLoggerModule factory in test-utils export for shared test mocks
+
 ## 0.65.2
 
 ### Patch Changes
