@@ -41,6 +41,7 @@ vi.mock('@inkeep/agents-core', () => ({
   getTask: getTaskMock,
   getLedgerArtifacts: getLedgerArtifactsMock,
   upsertLedgerArtifact: upsertLedgerArtifactMock,
+  SESSION_EVENT_ARTIFACT_SAVED: 'artifact_saved',
   // Add stubs for exports needed by transitive dependencies
   createAgentsRunDatabaseClient: vi.fn(() => 'mock-run-db-client'),
   createAgentsManageDatabaseClient: vi.fn(() => 'mock-manage-db-client'),

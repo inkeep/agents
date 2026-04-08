@@ -67,7 +67,7 @@ export function DatasetItemsTable({
       sortingFn: 'datetime',
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">
-          {formatDateTimeTable(row.original.updatedAt)}
+          {formatDateTimeTable(row.original.updatedAt, { local: true })}
         </span>
       ),
     },

@@ -4,7 +4,9 @@ import {
   type FilePart,
   GENERATION_TYPES,
   type Part,
+  SESSION_EVENT_AGENT_GENERATE,
   SPAN_KEYS,
+  TRANSFER_TOOL_PREFIX,
 } from '@inkeep/agents-core';
 import type { Span } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
@@ -346,7 +348,7 @@ export async function runGenerate(
             'Processing response with data components'
           );
           textResponse = JSON.stringify(response.output, null, 2);
-        } else if (hasToolCallWithPrefix('transfer_to_')(response)) {
+        } else if (hasToolCallWithPrefix(TRANSFER_TOOL_PREFIX)(response)) {
           textResponse = response.steps[response.steps.length - 1].text || '';
         } else {
           textResponse = response.text || '';
@@ -392,18 +394,23 @@ export async function runGenerate(
         if (streamRequestId) {
           const generationType = response.object ? 'object_generation' : 'text_generation';
 
-          agentSessionManager.recordEvent(streamRequestId, 'agent_generate', ctx.config.id, {
-            parts: (formattedResponse.formattedContent?.parts || []).map((part: any) => ({
-              type:
-                part.kind === 'text'
-                  ? ('text' as const)
-                  : part.kind === 'data'
-                    ? ('tool_result' as const)
-                    : ('text' as const),
-              content: part.text || JSON.stringify(part.data),
-            })),
-            generationType,
-          });
+          agentSessionManager.recordEvent(
+            streamRequestId,
+            SESSION_EVENT_AGENT_GENERATE,
+            ctx.config.id,
+            {
+              parts: (formattedResponse.formattedContent?.parts || []).map((part: any) => ({
+                type:
+                  part.kind === 'text'
+                    ? ('text' as const)
+                    : part.kind === 'data'
+                      ? ('tool_result' as const)
+                      : ('text' as const),
+                content: part.text || JSON.stringify(part.data),
+              })),
+              generationType,
+            }
+          );
         }
 
         if (compressor) {

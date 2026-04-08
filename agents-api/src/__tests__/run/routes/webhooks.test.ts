@@ -3,25 +3,35 @@ import type { Context } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock logger
-vi.mock('../../../logger.js', () => ({
-  getLogger: () => ({
+vi.mock('../../../logger.js', () => {
+  const mockLogger = {
     info: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
     warn: vi.fn(),
     child: vi.fn().mockReturnThis(),
-  }),
-}));
+    with: vi.fn().mockReturnThis(),
+  };
+  return {
+    getLogger: () => mockLogger,
+    runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
+  };
+});
 
-vi.mock('../../../logger', () => ({
-  getLogger: () => ({
+vi.mock('../../../logger', () => {
+  const mockLogger = {
     info: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
     warn: vi.fn(),
     child: vi.fn().mockReturnThis(),
-  }),
-}));
+    with: vi.fn().mockReturnThis(),
+  };
+  return {
+    getLogger: () => mockLogger,
+    runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
+  };
+});
 
 // Create hoisted mocks for @inkeep/agents-core
 const {

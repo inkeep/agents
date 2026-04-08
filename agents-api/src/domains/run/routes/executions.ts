@@ -9,6 +9,7 @@ import {
   getConversationId,
   getWorkflowExecution,
   PartSchema,
+  TOOL_APPROVAL_HOOK_PREFIX,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
 import { stream } from 'hono/streaming';
@@ -370,7 +371,7 @@ app.openapi(approveToolCallRoute, async (c) => {
     throw createApiError({ code: 'not_found', message: 'Execution not found' });
   }
 
-  const token = `tool-approval:${execution.conversationId}:${executionId}:${toolCallId}`;
+  const token = `${TOOL_APPROVAL_HOOK_PREFIX}${execution.conversationId}:${executionId}:${toolCallId}`;
 
   try {
     await toolApprovalHook.resume(token, {

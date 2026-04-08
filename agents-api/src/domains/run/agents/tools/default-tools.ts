@@ -1,4 +1,5 @@
 import { z } from '@hono/zod-openapi';
+import { LOAD_SKILL_TOOL } from '@inkeep/agents-core';
 import { type Tool, type ToolSet, tool } from 'ai';
 import { getLogger } from '../../../../logger';
 import { formatOversizedRetrievalReason } from '../../artifacts/artifact-utils';
@@ -143,9 +144,9 @@ export async function getDefaultTools(
 
   const hasOnDemandSkills = ctx.config.skills?.some((skill) => !skill.alwaysLoaded);
   if (hasOnDemandSkills) {
-    defaultTools.load_skill = wrapToolWithStreaming(
+    defaultTools[LOAD_SKILL_TOOL] = wrapToolWithStreaming(
       ctx,
-      'load_skill',
+      LOAD_SKILL_TOOL,
       createLoadSkillTool(ctx),
       streamRequestId,
       'tool'

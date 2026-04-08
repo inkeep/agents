@@ -1,5 +1,7 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  APPROVAL_NEEDED_EVENT,
+  APPROVAL_RESOLVED_EVENT,
   buildConversationMetadata,
   type CredentialStoreRegistry,
   createApiError,
@@ -504,7 +506,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
           const seenOutputs = new Set<string>();
 
           unsubscribe = toolApprovalUiBus.subscribe(requestId, async (event) => {
-            if (event.type === 'approval-needed') {
+            if (event.type === APPROVAL_NEEDED_EVENT) {
               if (seenToolCalls.has(event.toolCallId)) return;
               seenToolCalls.add(event.toolCallId);
 
@@ -532,7 +534,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
                 approvalId: event.approvalId,
                 toolCallId: event.toolCallId,
               });
-            } else if (event.type === 'approval-resolved') {
+            } else if (event.type === APPROVAL_RESOLVED_EVENT) {
               if (seenOutputs.has(event.toolCallId)) return;
               seenOutputs.add(event.toolCallId);
 

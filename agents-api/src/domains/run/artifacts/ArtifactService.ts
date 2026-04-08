@@ -4,6 +4,7 @@ import {
   getLedgerArtifacts,
   getTask,
   listTaskIdsByContextId,
+  SESSION_EVENT_ARTIFACT_SAVED,
   upsertLedgerArtifact,
 } from '@inkeep/agents-core';
 import jmespath from 'jmespath';
@@ -750,7 +751,7 @@ export class ArtifactService {
     if (this.context.streamRequestId && effectiveAgentId && this.context.taskId) {
       await agentSessionManager.recordEvent(
         this.context.streamRequestId,
-        'artifact_saved',
+        SESSION_EVENT_ARTIFACT_SAVED,
         effectiveAgentId,
         {
           artifactId: request.artifactId,

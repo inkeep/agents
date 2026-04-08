@@ -2,6 +2,7 @@ import {
   AGENT_EXECUTION_TRANSFER_COUNT_DEFAULT,
   createMessage,
   createTask,
+  DURABLE_APPROVAL_ARTIFACT_TYPE,
   type FullExecutionContext,
   generateId,
   generateServiceToken,
@@ -427,7 +428,7 @@ export class ExecutionHandler {
 
         const firstArtifactData = (messageResponse.result as any)?.artifacts?.[0]?.parts?.[0]
           ?.data as { type?: string; toolCallId?: string; toolName?: string; args?: unknown };
-        if (firstArtifactData?.type === 'durable-approval-required') {
+        if (firstArtifactData?.type === DURABLE_APPROVAL_ARTIFACT_TYPE) {
           return {
             success: true,
             iterations,
