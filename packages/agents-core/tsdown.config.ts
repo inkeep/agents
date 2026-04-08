@@ -8,7 +8,12 @@ export default defineConfig((options) => {
     dts: !options.watch,
     format: 'esm',
     entry: ['src/**/*.ts', '!**/__tests__', '!**/*.test.ts'],
-    external: ['@napi-rs/keyring', 'typescript'],
+    external: [
+      '@napi-rs/keyring',
+      'typescript',
+      '@opentelemetry/sdk-logs',
+      '@opentelemetry/exporter-logs-otlp-http',
+    ],
     unbundle: true,
   };
 });
