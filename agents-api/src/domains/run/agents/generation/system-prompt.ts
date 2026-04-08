@@ -27,7 +27,7 @@ export async function getResolvedContext(
     const project = ctx.executionContext.project;
 
     if (!ctx.config.contextConfigId) {
-      logger.debug({ agentId: ctx.config.agentId }, 'No context config found for agent');
+      logger.debug('No context config found for agent');
       return null;
     }
 
@@ -97,7 +97,6 @@ export async function getPrompt(ctx: AgentRunContext): Promise<string | undefine
   } catch (error) {
     logger.warn(
       {
-        agentId: ctx.config.agentId,
         error: error instanceof Error ? error.message : 'Unknown error',
       },
       'Failed to get agent prompt'
@@ -323,7 +322,6 @@ export async function buildSystemPrompt(
 
   logger.info(
     {
-      agentId: ctx.config.id,
       hasStructuredOutput,
       excludeDataComponents,
       includeDataComponents,

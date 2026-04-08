@@ -16,7 +16,9 @@ vi.mock('../../../../logger', () => ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
+    with: vi.fn().mockReturnThis(),
   }),
+  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
 }));
 
 describe('Streaming Integration Tests', () => {

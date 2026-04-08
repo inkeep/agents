@@ -116,7 +116,7 @@ app.openapi(triggerWebhookRoute, async (c) => {
   const { tenantId, projectId, agentId, triggerId } = c.req.valid('param');
   const resolvedRef = c.get('resolvedRef');
 
-  logger.info({ tenantId, projectId, agentId, triggerId }, 'Processing trigger webhook');
+  logger.info({ triggerId }, 'Processing trigger webhook');
 
   const rawBody = await c.req.text();
 

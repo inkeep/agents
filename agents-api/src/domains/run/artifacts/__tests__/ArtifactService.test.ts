@@ -76,7 +76,9 @@ vi.mock('../../../../logger', () => ({
     error: vi.fn(),
     debug: vi.fn(),
     child: vi.fn().mockReturnThis(),
+    with: vi.fn().mockReturnThis(),
   })),
+  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
 }));
 
 // Mock schema-validation to prevent @inkeep/agents-core/utils imports

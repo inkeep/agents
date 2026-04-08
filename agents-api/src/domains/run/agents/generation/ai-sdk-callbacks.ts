@@ -247,7 +247,6 @@ export async function handleStopWhenConditions(
     logger.warn(
       {
         subAgentId: ctx.config.id,
-        agentId: ctx.config.agentId,
         stepsCompleted: steps.length,
         maxSteps,
         conversationId: ctx.conversationId,

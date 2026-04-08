@@ -60,7 +60,9 @@ import { upsertSubAgentToolRelation } from './tools';
 import { deleteTrigger, listTriggers, upsertTrigger } from './triggers';
 
 export interface AgentLogger {
+  info(msg: string): void;
   info(obj: Record<string, any>, msg?: string): void;
+  error(msg: string): void;
   error(obj: Record<string, any>, msg?: string): void;
 }
 
@@ -221,11 +223,10 @@ export const createFullAgentServerSide =
 
     try {
       logger.info(
-        {},
         'CredentialReferences are project-scoped - skipping credential reference creation in agent'
       );
 
-      logger.info({}, 'MCP Tools are project-scoped - skipping tool creation in agent');
+      logger.info('MCP Tools are project-scoped - skipping tool creation in agent');
 
       let finalAgentId: string;
       try {
@@ -315,13 +316,9 @@ export const createFullAgentServerSide =
         }
       }
 
-      logger.info(
-        {},
-        'DataComponents are project-scoped - skipping dataComponent creation in agent'
-      );
+      logger.info('DataComponents are project-scoped - skipping dataComponent creation in agent');
 
       logger.info(
-        {},
         'ArtifactComponents are project-scoped - skipping artifactComponent creation in agent'
       );
 
@@ -490,7 +487,7 @@ export const createFullAgentServerSide =
       logger.info({ subAgentCount }, 'All sub-agents created/updated successfully');
 
       // External agents are project-scoped and managed at the project level.
-      logger.info({}, 'External agents are project-scoped and managed at the project level.');
+      logger.info('External agents are project-scoped and managed at the project level.');
 
       const agentToolPromises: Promise<void>[] = [];
 
@@ -600,7 +597,7 @@ export const createFullAgentServerSide =
       }
 
       await Promise.all(agentDataComponentPromises);
-      logger.info({}, 'All agent-data component relations created');
+      logger.info('All agent-data component relations created');
 
       const agentArtifactComponentPromises: Promise<void>[] = [];
 
@@ -635,7 +632,7 @@ export const createFullAgentServerSide =
       }
 
       await Promise.all(agentArtifactComponentPromises);
-      logger.info({}, 'All agent-artifact component relations created');
+      logger.info('All agent-artifact component relations created');
 
       const subAgentRelationPromises: Promise<void>[] = [];
       const subAgentExternalAgentRelationPromises: Promise<void>[] = [];
@@ -887,11 +884,10 @@ export const updateFullAgentServerSide =
       const existingAgentModels = existingAgent.models;
 
       logger.info(
-        {},
         'CredentialReferences are project-scoped - skipping credential reference update in agent'
       );
 
-      logger.info({}, 'MCP Tools are project-scoped - skipping tool creation in agent update');
+      logger.info('MCP Tools are project-scoped - skipping tool creation in agent update');
 
       let finalAgentId: string;
       try {
@@ -989,9 +985,8 @@ export const updateFullAgentServerSide =
         }
       }
 
-      logger.info({}, 'DataComponents are project-scoped - skipping dataComponent update in agent');
+      logger.info('DataComponents are project-scoped - skipping dataComponent update in agent');
       logger.info(
-        {},
         'ArtifactComponents are project-scoped - skipping artifactComponent update in agent'
       );
 
@@ -1338,7 +1333,7 @@ export const updateFullAgentServerSide =
       }
 
       // External agents are project-scoped and managed at the project level.
-      logger.info({}, 'External agents are project-scoped and managed at the project level.');
+      logger.info('External agents are project-scoped and managed at the project level.');
 
       const incomingSubAgentIds = new Set(Object.keys(typedAgentDefinition.subAgents));
 

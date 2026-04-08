@@ -18,7 +18,9 @@ vi.mock('../../../logger', () => ({
     debug: vi.fn(),
     warn: vi.fn(),
     error: loggerErrorMock,
+    with: vi.fn().mockReturnThis(),
   }),
+  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
 }));
 
 vi.mock('../../../middleware/projectAccess', () => ({
@@ -217,8 +219,6 @@ describe('Conversation media route', () => {
     expect(loggerErrorMock).toHaveBeenCalledWith(
       expect.objectContaining({
         requestId: 'req-test-1',
-        tenantId: 'default',
-        projectId: 'test-project',
         conversationId: 'conv-1',
       }),
       'Failed to serve media'

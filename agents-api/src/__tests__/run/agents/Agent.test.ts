@@ -359,7 +359,9 @@ vi.mock('../../../logger.js', () => ({
     error: vi.fn(),
     debug: vi.fn(),
     warn: vi.fn(),
+    with: vi.fn().mockReturnThis(),
   }),
+  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
 }));
 
 // Mock the SystemPromptBuilder

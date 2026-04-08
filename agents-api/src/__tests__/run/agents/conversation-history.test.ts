@@ -3,7 +3,14 @@ import { describe, expect, it, vi } from 'vitest';
 const { downloadMock } = vi.hoisted(() => ({ downloadMock: vi.fn() }));
 
 vi.mock('../../../../logger', () => ({
-  getLogger: () => ({ warn: vi.fn(), info: vi.fn(), debug: vi.fn(), error: vi.fn() }),
+  getLogger: () => ({
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+    error: vi.fn(),
+    with: vi.fn().mockReturnThis(),
+  }),
+  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
 }));
 
 vi.mock('../../../domains/run/services/blob-storage', async (importOriginal) => {

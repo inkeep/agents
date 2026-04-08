@@ -39,7 +39,9 @@ vi.mock('../../../logger', () => ({
     warn: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
+    with: vi.fn().mockReturnThis(),
   }),
+  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
 }));
 
 // Import runDbClient after mocking

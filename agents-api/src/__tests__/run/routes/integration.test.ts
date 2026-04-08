@@ -171,12 +171,15 @@ vi.mock('../../../logger.js', () => {
     error: vi.fn(),
     debug: vi.fn(),
     child: vi.fn(),
+    with: vi.fn(),
   };
-  // Make child return itself for chaining
+  // Make child and with return itself for chaining
   mockLogger.child.mockReturnValue(mockLogger);
+  mockLogger.with.mockReturnValue(mockLogger);
 
   return {
     getLogger: () => mockLogger,
+    runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
   };
 });
 
