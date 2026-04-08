@@ -129,7 +129,7 @@ describe('GET /run/v1/conversations/:conversationId/pending-approvals', () => {
     expect(body.approval.args).toEqual({ query: 'test' });
     expect(body.approval.isDelegated).toBe(false);
     expect(body.approval.workflowRunId).toBe(wfId);
-    expect(body.approval.suspendedAt).toBeDefined();
+    expect(body.approval.updatedAt).toBeDefined();
   });
 
   it('should return pending approval for delegated approval', async () => {

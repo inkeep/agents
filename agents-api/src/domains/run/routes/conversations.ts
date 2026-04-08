@@ -523,7 +523,7 @@ const PendingApprovalsResponseSchema = z
     hasPending: z.boolean(),
     approval: PendingToolApprovalSchema.extend({
       workflowRunId: z.string(),
-      suspendedAt: z.string(),
+      updatedAt: z.string(),
     }).optional(),
   })
   .openapi('PendingApprovalsResponse');
@@ -595,7 +595,7 @@ app.openapi(
         args: pendingToolApproval.args,
         isDelegated: pendingToolApproval.isDelegated,
         workflowRunId: execution.id,
-        suspendedAt: execution.updatedAt,
+        updatedAt: execution.updatedAt,
       },
     });
   }

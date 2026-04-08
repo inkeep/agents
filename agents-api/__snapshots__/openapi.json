@@ -6539,7 +6539,7 @@
               },
               {
                 "properties": {
-                  "suspendedAt": {
+                  "updatedAt": {
                     "type": "string"
                   },
                   "workflowRunId": {
@@ -6548,7 +6548,7 @@
                 },
                 "required": [
                   "workflowRunId",
-                  "suspendedAt"
+                  "updatedAt"
                 ],
                 "type": "object"
               }
