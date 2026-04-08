@@ -279,7 +279,7 @@ export async function validateHeaders({
   credentialStores?: CredentialStoreRegistry;
 }): Promise<ContextValidationResult> {
   try {
-    const { tenantId, projectId, agentId, project } = executionContext;
+    const { agentId, project } = executionContext;
     logger.info('Validating headers');
     const agent = project.agents[agentId];
 

@@ -37,7 +37,7 @@ async function handleContextConfigChange(
   newContextConfigId: string,
   credentialStores?: CredentialStoreRegistry
 ): Promise<void> {
-  const { tenantId, projectId, agentId } = executionContext;
+  const { tenantId, projectId } = executionContext;
   const conversation = await getConversation(runDbClient)({
     scopes: { tenantId, projectId },
     conversationId,
