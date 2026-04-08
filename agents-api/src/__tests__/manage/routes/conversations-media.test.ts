@@ -2,7 +2,8 @@ import { OpenAPIHono } from '@hono/zod-openapi';
 import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const downloadMock = vi.fn();
+const downloadMock = vi.hoisted(() => vi.fn());
+const { mockLogger, module: loggerModule } = vi.hoisted(() => createMockLoggerModule());
 
 vi.mock('../../../domains/run/services/blob-storage', () => ({
   getBlobStorageProvider: () => ({
@@ -10,8 +11,7 @@ vi.mock('../../../domains/run/services/blob-storage', () => ({
   }),
 }));
 
-const { mockLogger, module: loggerModule } = createMockLoggerModule();
-vi.mock('../../../logger', () => loggerModule);
+vi.mock('../../../logger.js', () => loggerModule);
 
 vi.mock('../../../middleware/projectAccess', () => ({
   requireProjectPermission: () => async (_c: { json: unknown }, next: () => Promise<void>) => {
