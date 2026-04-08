@@ -826,6 +826,8 @@ export const runAsUserIdsSchema = z
 export const TriggerUpdateSchema = TriggerInsertSchema.extend({
   // Override enabled to remove the default so {} doesn't become {enabled: true}
   enabled: z.boolean().optional().describe('Whether the trigger is enabled'),
+  // Override authentication to use the update schema that supports keepExisting
+  authentication: TriggerAuthenticationUpdateSchema.optional(),
 }).partial();
 
 export const TriggerApiSelectSchema =
