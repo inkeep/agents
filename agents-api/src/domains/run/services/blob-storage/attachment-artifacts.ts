@@ -1,6 +1,7 @@
 import { type Artifact, addLedgerArtifacts, type Part } from '@inkeep/agents-core';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
+import { isTextDocumentMimeType } from '../../utils/text-document-attachments';
 import type { MessageAttachmentArtifactSource, PersistedMessageUploadContext } from './file-upload';
 import { isBlobUri } from './index';
 
@@ -68,6 +69,11 @@ export async function createAttachmentArtifacts(
     const filename =
       typeof part.metadata?.filename === 'string' ? part.metadata.filename : undefined;
     const mimeType = file.mimeType || 'application/octet-stream';
+
+    if (isTextDocumentMimeType(mimeType)) {
+      continue;
+    }
+
     const binaryType = getBinaryType(mimeType);
     const contentHash = extractContentHashFromBlobUri(file.uri);
     const artifactId = contentHash
