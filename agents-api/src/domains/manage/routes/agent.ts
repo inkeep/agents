@@ -8,24 +8,30 @@ import {
   commonGetErrorResponses,
   createAgent,
   createApiError,
+  dbResultToMcpTool,
   deleteAgent,
   ErrorResponseSchema,
   generateId,
   getAgentById,
   getAgentSubAgentInfos,
   getFullAgentDefinition,
+  getToolById,
   listAgentsPaginated,
+  listAgentToolRelations,
   PaginationQueryParamsSchema,
   RelatedAgentInfoListResponse,
+  type SubAgentToolRelationSelect,
   TenantProjectAgentParamsSchema,
   TenantProjectAgentSubAgentParamsSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
+  ToolStatusSchema,
   throwIfUniqueConstraintError,
   updateAgent,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { clearWorkspaceConnectionCache } from '@inkeep/agents-work-apps/slack';
+import { z } from 'zod';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import {
@@ -201,6 +207,111 @@ app.openapi(
     }
 
     return c.json({ data: fullAgent });
+  }
+);
+
+const AgentToolStatusItemSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    status: ToolStatusSchema,
+    lastError: z.string().nullable(),
+    expiresAt: z.string().nullable(),
+    imageUrl: z.string().nullable(),
+    subAgentIds: z.array(z.string()),
+  })
+  .openapi('AgentToolStatusItem');
+
+const AgentToolStatusResponseSchema = z
+  .object({
+    data: z.array(AgentToolStatusItemSchema),
+  })
+  .openapi('AgentToolStatusResponse');
+
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/{agentId}/tool-status',
+    summary: 'Get Tool Status for Agent',
+    description:
+      'Returns a deduped list of MCP tools used by any sub-agent of the given agent, with live health status. Probes each unique MCP server once.',
+    operationId: 'get-agent-tool-status',
+    tags: ['Agents', 'Tools'],
+    permission: requireProjectPermission('view'),
+    request: {
+      params: TenantProjectAgentParamsSchema,
+      query: z.object({
+        status: ToolStatusSchema.optional(),
+      }),
+    },
+    responses: {
+      200: {
+        description: 'Agent tool status retrieved successfully',
+        content: {
+          'application/json': {
+            schema: AgentToolStatusResponseSchema,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId, agentId } = c.req.valid('param');
+    const { status: statusFilter } = c.req.valid('query');
+    const credentialStores = c.get('credentialStores');
+    const userId = c.get('userId');
+
+    const agent = await getAgentById(db)({
+      scopes: { tenantId, projectId, agentId },
+    });
+    if (!agent) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Agent not found',
+      });
+    }
+
+    const relationsResult = await listAgentToolRelations(db)({
+      scopes: { tenantId, projectId, agentId },
+      pagination: { page: 1, limit: 100 },
+    });
+    const relations = relationsResult.data as SubAgentToolRelationSelect[];
+
+    const subAgentIdsByToolId = new Map<string, Set<string>>();
+    for (const relation of relations) {
+      const set = subAgentIdsByToolId.get(relation.toolId) ?? new Set<string>();
+      set.add(relation.subAgentId);
+      subAgentIdsByToolId.set(relation.toolId, set);
+    }
+
+    const uniqueToolIds = Array.from(subAgentIdsByToolId.keys());
+
+    const probedTools = await Promise.all(
+      uniqueToolIds.map(async (toolId) => {
+        const tool = await getToolById(db)({ scopes: { tenantId, projectId }, toolId });
+        if (!tool) {
+          return null;
+        }
+        return dbResultToMcpTool(tool, db, credentialStores, undefined, userId);
+      })
+    );
+
+    const data = probedTools
+      .filter((tool): tool is NonNullable<typeof tool> => tool !== null)
+      .map((tool) => ({
+        id: tool.id,
+        name: tool.name,
+        status: tool.status,
+        lastError: tool.lastError ?? null,
+        expiresAt: tool.expiresAt ?? null,
+        imageUrl: tool.imageUrl ?? null,
+        subAgentIds: Array.from(subAgentIdsByToolId.get(tool.id) ?? []),
+      }))
+      .filter((tool) => (statusFilter ? tool.status === statusFilter : true));
+
+    return c.json({ data });
   }
 );
 
