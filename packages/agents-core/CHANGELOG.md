@@ -1,5 +1,7 @@
 # @inkeep/agents-core
 
+## 0.66.1
+
 ## 0.66.0
 
 ### Minor Changes
