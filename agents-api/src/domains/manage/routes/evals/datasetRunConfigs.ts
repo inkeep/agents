@@ -440,6 +440,23 @@ app.openapi(
         })
       );
 
+      const rawRef = c.req.query('ref') || c.req.header('x-inkeep-ref');
+      const effectiveRef = branchName || (rawRef && rawRef !== 'main' ? rawRef : undefined);
+
+      logger.info(
+        {
+          tenantId,
+          projectId,
+          runConfigId,
+          datasetRunId,
+          branchName,
+          rawRef,
+          effectiveRef,
+          resolvedRefName: c.get('resolvedRef')?.name,
+        },
+        'Queueing dataset run items with ref'
+      );
+
       await queueDatasetRunItems({
         tenantId,
         projectId,
@@ -447,7 +464,7 @@ app.openapi(
         items,
         evaluatorIds,
         evaluationRunId,
-        ref: branchName,
+        ref: effectiveRef,
       });
 
       logger.info(

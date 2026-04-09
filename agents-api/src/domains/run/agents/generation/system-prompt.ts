@@ -193,7 +193,9 @@ export async function buildSystemPrompt(
 ): Promise<AssembleResult> {
   const conversationId = runtimeContext?.metadata?.conversationId || runtimeContext?.contextId;
 
-  const resolvedContext = conversationId ? await getResolvedContext(ctx, conversationId) : null;
+  const resolvedContext = conversationId
+    ? await getResolvedContext(ctx, conversationId, ctx.config.forwardedHeaders)
+    : null;
 
   // ctx.config.prompt is the SUB-AGENT's own instructions (becomes corePrompt / <core_instructions>).
   // This is distinct from the overarching agent system's prompt fetched via getPrompt() below — not a duplicate.

@@ -18,6 +18,7 @@ import {
   LucideHexagon,
   MessageSquare,
   Settings,
+  Sparkles,
   Users,
   Workflow,
   Zap,
@@ -227,6 +228,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           title: STATIC_LABELS.evaluations,
           url: `/${tenantId}/projects/${projectId}/evaluations`,
           icon: BarChart3,
+        },
+        {
+          title: 'Improvements',
+          url: `/${tenantId}/projects/${projectId}/improvements`,
+          icon: Sparkles,
         },
         ...(costTrackingEnabled
           ? [

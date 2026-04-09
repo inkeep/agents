@@ -193,19 +193,34 @@ export async function handleStopWhenConditions(
   ctx: AgentRunContext,
   steps: any[]
 ): Promise<boolean> {
+  const lastStep = steps.at(-1);
+  const stepFinishReason = lastStep?.finishReason;
+  const stepToolCalls = lastStep?.toolCalls?.map((tc: any) => tc.toolName) ?? [];
+
+  logger.info(
+    {
+      agentId: ctx.config.id,
+      stepCount: steps.length,
+      lastStepFinishReason: stepFinishReason,
+      lastStepToolCalls: stepToolCalls,
+      pendingDurableApproval: !!ctx.pendingDurableApproval,
+    },
+    'stopWhen callback invoked'
+  );
+
   if (ctx.pendingDurableApproval) {
+    logger.info({ agentId: ctx.config.id }, 'stopWhen → true (pendingDurableApproval)');
     return true;
   }
 
-  const last = steps.at(-1);
-  if (last && 'text' in last && last.text) {
+  if (lastStep && 'text' in lastStep && lastStep.text) {
     try {
       await agentSessionManager.recordEvent(
         ctx.streamRequestId ?? '',
         'agent_reasoning',
         ctx.config.id,
         {
-          parts: [{ type: 'text', content: last.text }],
+          parts: [{ type: 'text', content: lastStep.text }],
         }
       );
     } catch (error) {
@@ -213,8 +228,8 @@ export async function handleStopWhenConditions(
     }
   }
 
-  if (last?.content && last.content.length > 0) {
-    const lastContent = last.content[last.content.length - 1];
+  if (lastStep?.content && lastStep.content.length > 0) {
+    const lastContent = lastStep.content[lastStep.content.length - 1];
     if (lastContent.type === 'tool-error') {
       const error = lastContent.error;
       if (
@@ -223,6 +238,7 @@ export async function handleStopWhenConditions(
         'name' in error &&
         error.name === 'connection_refused'
       ) {
+        logger.info({ agentId: ctx.config.id }, 'stopWhen → true (connection_refused)');
         return true;
       }
     }
@@ -236,6 +252,10 @@ export async function handleStopWhenConditions(
       );
 
       if (hasTransferTool) {
+        logger.info(
+          { agentId: ctx.config.id, transferTools: stepToolCalls },
+          'stopWhen → true (transfer tool detected)'
+        );
         return true;
       }
     }
@@ -273,8 +293,10 @@ export async function handleStopWhenConditions(
       }
     );
 
+    logger.info({ agentId: ctx.config.id, maxSteps }, 'stopWhen → true (maxSteps)');
     return true;
   }
 
+  logger.info({ agentId: ctx.config.id, stepCount: steps.length }, 'stopWhen → false (continue)');
   return false;
 }

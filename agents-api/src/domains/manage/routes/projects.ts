@@ -308,8 +308,6 @@ app.openapi(
     const { tenantId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    // Update project config in config DB (versioned)
-    // The branch-scoped-db middleware handles checking out the right branch
     const project = await updateProject(db)({
       scopes: { tenantId, projectId: id },
       data: body,

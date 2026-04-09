@@ -1,8 +1,11 @@
 import type { StreamTextResult, ToolSet } from 'ai';
+import { getLogger } from '../../../../logger';
 import type { IncrementalStreamParser } from '../../stream/IncrementalStreamParser';
 import type { AgentRunContext, ResolvedGenerationResponse } from '../agent-types';
 import { resolveGenerationResponse } from '../agent-types';
 import { setupStreamParser } from './stream-parser';
+
+const logger = getLogger('StreamHandler');
 
 export async function handleStreamGeneration(
   ctx: AgentRunContext,
@@ -20,7 +23,7 @@ export async function handleStreamGeneration(
       }
     }
   } else {
-    await processStreamEvents(streamResult, parser);
+    await processStreamEvents(ctx, streamResult, parser);
   }
 
   await parser.finalize();
@@ -45,26 +48,49 @@ export async function handleStreamGeneration(
 }
 
 export async function processStreamEvents(
+  ctx: AgentRunContext,
   streamResult: StreamTextResult<ToolSet, any>,
   parser: IncrementalStreamParser
 ): Promise<void> {
+  let currentStepToolCalls: string[] = [];
+
   for await (const event of streamResult.fullStream) {
     switch (event.type) {
       case 'text-delta':
         await parser.processTextChunk(event.text);
         break;
       case 'tool-call':
+        currentStepToolCalls.push((event as any).toolName ?? 'unknown');
         parser.markToolResult();
         break;
       case 'tool-result':
         parser.markToolResult();
         break;
-      case 'finish':
-        if (event.finishReason === 'tool-calls') {
+      case 'finish': {
+        const finishEvent = event as any;
+        logger.info(
+          {
+            agentId: ctx.config.id,
+            finishReason: finishEvent.finishReason,
+            toolCalls: currentStepToolCalls,
+            usage: finishEvent.usage,
+          },
+          'Stream finish event'
+        );
+        currentStepToolCalls = [];
+        if (finishEvent.finishReason === 'tool-calls') {
           parser.markToolResult();
         }
         break;
+      }
       case 'error': {
+        logger.error(
+          {
+            agentId: ctx.config.id,
+            error: event.error instanceof Error ? event.error.message : JSON.stringify(event.error),
+          },
+          'Stream error event'
+        );
         if (event.error instanceof Error) {
           throw event.error;
         }
@@ -76,4 +102,9 @@ export async function processStreamEvents(
       }
     }
   }
+
+  logger.info(
+    { agentId: ctx.config.id },
+    'Stream processing complete'
+  );
 }

@@ -320,6 +320,7 @@ export class ExecutionHandler {
           'x-inkeep-project-id': projectId,
           'x-inkeep-agent-id': agentId,
           'x-inkeep-sub-agent-id': currentAgentId,
+          ...(resolvedRef ? { 'x-inkeep-ref': resolvedRef.name } : {}),
           ...(runAsUserId ? { 'x-inkeep-run-as-user-id': runAsUserId } : {}),
         };
 

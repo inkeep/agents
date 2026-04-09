@@ -257,6 +257,7 @@ const ConversationBoundsResponse = z
     data: z.object({
       createdAt: z.string(),
       updatedAt: z.string(),
+      metadata: z.record(z.unknown()).nullable().optional(),
     }),
   })
   .openapi('ConversationBoundsResponse');
@@ -300,6 +301,7 @@ app.openapi(
       data: {
         createdAt: conversation.createdAt,
         updatedAt: conversation.updatedAt,
+        metadata: conversation.metadata ?? null,
       },
     });
   }

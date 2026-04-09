@@ -4,7 +4,9 @@ import {
   ArrowUpRight,
   ChevronLeft,
   ChevronRight,
+  Loader2,
   MessageSquare,
+  Sparkles,
   ThumbsDown,
   ThumbsUp,
   Trash2,
@@ -12,12 +14,14 @@ import {
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
+import { toast } from 'sonner';
 import { DeleteFeedbackConfirmation } from '@/components/feedback/delete-feedback-confirmation';
 import EmptyState from '@/components/layout/empty-state';
 import { AgentFilter } from '@/components/traces/filters/agent-filter';
 import { DatePickerWithPresets } from '@/components/traces/filters/date-picker';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
   TableBody,
@@ -26,6 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { triggerImprovementAction } from '@/lib/actions/improvements';
 import type { Feedback } from '@/lib/api/feedback';
 import { formatDateTimeTable } from '@/lib/utils/format-date';
 
@@ -67,6 +72,48 @@ export function FeedbackTable({
     filters.type
   );
   const [deleteFeedbackId, setDeleteFeedbackId] = React.useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+  const [isTriggering, setIsTriggering] = React.useState(false);
+
+  const toggleFeedback = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (selectedIds.size === feedback.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(feedback.map((f) => f.id)));
+    }
+  };
+
+  const handleTriggerImprovement = () => {
+    if (selectedIds.size === 0) return;
+    setIsTriggering(true);
+    triggerImprovementAction(tenantId, projectId, Array.from(selectedIds))
+      .then((result) => {
+        if (result.success && result.data) {
+          const branchEncoded = encodeURIComponent(result.data.branchName);
+          router.push(
+            `/${tenantId}/projects/${projectId}/improvements/${branchEncoded}?status=running&conversationId=${result.data.conversationId}`
+          );
+        } else {
+          toast.error(result.error || 'Failed to trigger improvement');
+        }
+      })
+      .catch((error) => {
+        toast.error(error instanceof Error ? error.message : 'Failed to trigger improvement');
+      })
+      .then(() => setIsTriggering(false));
+  };
 
   React.useEffect(() => {
     setTypeFilter(filters.type);
@@ -240,12 +287,34 @@ export function FeedbackTable({
               Clear
             </Button>
           )}
+
+          {selectedIds.size > 0 && (
+            <Button
+              size="sm"
+              onClick={handleTriggerImprovement}
+              disabled={isTriggering}
+            >
+              {isTriggering ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              Run Improvement ({selectedIds.size})
+            </Button>
+          )}
         </div>
       </div>
 
       <Table containerClassName="rounded-lg border">
         <TableHeader>
           <TableRow noHover>
+            <TableHead className="w-10">
+              <Checkbox
+                checked={feedback.length > 0 && selectedIds.size === feedback.length}
+                onCheckedChange={toggleAll}
+                aria-label="Select all"
+              />
+            </TableHead>
             <TableHead className="w-[170px]">Created</TableHead>
             <TableHead className="w-[130px]">Agent</TableHead>
             <TableHead className="w-[90px]">Type</TableHead>
@@ -256,7 +325,7 @@ export function FeedbackTable({
         <TableBody>
           {feedback.length === 0 && (
             <TableRow noHover>
-              <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+              <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                 No feedback found matching your filters.
               </TableCell>
             </TableRow>
@@ -267,6 +336,13 @@ export function FeedbackTable({
               : `/${tenantId}/projects/${projectId}/traces/conversations/${item.conversationId}`;
             return (
               <TableRow key={item.id}>
+                <TableCell>
+                  <Checkbox
+                    checked={selectedIds.has(item.id)}
+                    onCheckedChange={() => toggleFeedback(item.id)}
+                    aria-label={`Select feedback ${item.id}`}
+                  />
+                </TableCell>
                 <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
                   {formatDateTimeTable(item.createdAt, { local: true })}
                 </TableCell>

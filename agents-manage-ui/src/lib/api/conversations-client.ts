@@ -17,23 +17,45 @@ export interface ConversationHistoryResponse {
   };
 }
 
-/**
- * Fetches conversation history from the API
- */
+export interface ConversationBoundsResponse {
+  data: {
+    id: string;
+    metadata?: Record<string, unknown> | null;
+    createdAt?: string;
+    updatedAt?: string;
+  };
+}
+
 export async function fetchConversationHistory(
   tenantId: string,
   projectId: string,
   conversationId: string,
-  options?: { limit?: number }
+  options?: { limit?: number; includeInternal?: boolean }
 ): Promise<ConversationHistoryResponse['data'] | null> {
   try {
     const limit = options?.limit ?? 200;
+    const includeInternal = options?.includeInternal ?? true;
     const response = await makeManagementApiRequest<ConversationHistoryResponse>(
-      `tenants/${tenantId}/projects/${projectId}/conversations/${conversationId}?limit=${limit}`
+      `tenants/${tenantId}/projects/${projectId}/conversations/${conversationId}?limit=${limit}&includeInternal=${includeInternal ? 1 : 0}`
     );
     return response.data;
   } catch (error) {
     console.warn('Failed to fetch conversation history:', error);
+    return null;
+  }
+}
+
+export async function fetchConversationBounds(
+  tenantId: string,
+  projectId: string,
+  conversationId: string
+): Promise<ConversationBoundsResponse['data'] | null> {
+  try {
+    const response = await makeManagementApiRequest<ConversationBoundsResponse>(
+      `tenants/${tenantId}/projects/${projectId}/conversations/${conversationId}/bounds`
+    );
+    return response.data;
+  } catch {
     return null;
   }
 }

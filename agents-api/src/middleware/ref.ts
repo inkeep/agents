@@ -129,7 +129,7 @@ export const createRefMiddleware = (
   } = options;
 
   return async (c: Context, next: Next) => {
-    const ref = c.req.query('ref');
+    const ref = c.req.query('ref') || c.req.header('x-inkeep-ref') || undefined;
     const path = c.req.path;
     const pathSplit = path.split('/');
 
@@ -209,7 +209,12 @@ async function resolveProjectRef(
   ref: string | undefined
 ): Promise<ResolvedRef> {
   const projectMain = getProjectScopedRef(tenantId, projectId, 'main');
-  const projectScopedRef = ref ? getProjectScopedRef(tenantId, projectId, ref) : projectMain;
+  const projectPrefix = `${tenantId}_${projectId}_`;
+  const projectScopedRef = ref
+    ? ref.startsWith(projectPrefix)
+      ? ref
+      : getProjectScopedRef(tenantId, projectId, ref)
+    : projectMain;
 
   if (ref && ref !== 'main') {
     let refResult = await resolveRef(db)(projectScopedRef);
@@ -284,7 +289,8 @@ async function resolveTenantRef(
   const tenantMain = `${tenantId}_main`;
 
   if (ref && ref !== 'main') {
-    const tenantScopedRef = `${tenantId}_${ref}`;
+    const tenantPrefix = `${tenantId}_`;
+    const tenantScopedRef = ref.startsWith(tenantPrefix) ? ref : `${tenantId}_${ref}`;
     let refResult = await resolveRef(db)(tenantScopedRef);
 
     if (!refResult) {
