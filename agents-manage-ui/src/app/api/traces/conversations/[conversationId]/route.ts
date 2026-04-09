@@ -158,7 +158,17 @@ async function signozQuery(
     );
     return { results };
   } catch (e) {
-    logger.error({ error: e }, 'SigNoz query error');
+    const err = e as { message?: string; name?: string; code?: unknown; cause?: { code?: string; message?: string } };
+    logger.error(
+      {
+        errorName: err?.name,
+        errorMessage: err?.message,
+        errorCode: err?.code,
+        causeCode: err?.cause?.code,
+        causeMessage: err?.cause?.message,
+      },
+      'SigNoz query error'
+    );
 
     if (e instanceof TypeError) {
       throw new Error(`SigNoz service unavailable: ${e.message}`);
@@ -1533,11 +1543,19 @@ export async function GET(
     });
   } catch (error) {
     const logger = getLogger('conversation-details');
-    logger.error({ error }, 'Error fetching conversation details');
-
-    // Provide more specific error responses based on the error type
     const errorMessage =
       error instanceof Error ? error.message : 'Failed to fetch conversation details';
+    const err = error as { message?: string; name?: string; code?: unknown; cause?: { code?: string; message?: string } };
+    logger.error(
+      {
+        errorName: err?.name,
+        errorMessage: err?.message,
+        errorCode: err?.code,
+        causeCode: err?.cause?.code,
+        causeMessage: err?.cause?.message,
+      },
+      'Error fetching conversation details'
+    );
 
     if (errorMessage.includes('SIGNOZ_API_KEY is not configured')) {
       return NextResponse.json({ error: errorMessage }, { status: 501 });
