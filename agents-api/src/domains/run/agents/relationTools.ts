@@ -446,9 +446,10 @@ export function createDelegateToAgentTool({
         ...(agentRunContext?.delegatedToolApproval
           ? {
               approved_tool_calls: JSON.stringify({
-                [agentRunContext.delegatedToolApproval.toolCallId]: {
+                [agentRunContext.delegatedToolApproval.toolName]: {
                   approved: agentRunContext.delegatedToolApproval.approved,
                   reason: agentRunContext.delegatedToolApproval.reason,
+                  originalToolCallId: agentRunContext.delegatedToolApproval.toolCallId,
                 },
               }),
             }

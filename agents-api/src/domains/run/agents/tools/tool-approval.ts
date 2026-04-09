@@ -45,9 +45,12 @@ export async function waitForToolApproval(
   if (ctx.durableWorkflowRunId) {
     const approvedToolCalls = ctx.approvedToolCalls;
     if (approvedToolCalls) {
-      const preApproved = approvedToolCalls[toolCallId];
+      // Look up by toolCallId first, then fall back to toolName (for delegated approvals
+      // where the toolCallId changes across re-executions but the toolName stays the same).
+      const preApproved = approvedToolCalls[toolCallId] ?? approvedToolCalls[toolName];
       if (preApproved !== undefined) {
         delete approvedToolCalls[toolCallId];
+        delete approvedToolCalls[toolName];
 
         if (!preApproved.approved) {
           const deniedResult = tracer.startActiveSpan(
