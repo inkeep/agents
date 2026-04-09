@@ -2814,6 +2814,84 @@ class SigNozStatsAPI {
     }
   }
 
+  async getUsageCostPerDay(
+    startTime: number,
+    endTime: number,
+    projectId?: string
+  ): Promise<Array<{ date: string; cost: number }>> {
+    try {
+      const filterItems = buildScopedFilterItems('all-usage', projectId);
+
+      const traceIdGroupBy = [
+        {
+          name: SPAN_KEYS.TRACE_ID,
+          fieldDataType: FIELD_DATA_TYPES.STRING,
+          fieldContext: FIELD_CONTEXTS.SPAN,
+        },
+      ];
+
+      const makeQuery = (name: string, expression: string) => ({
+        type: QUERY_TYPES.BUILDER_QUERY,
+        spec: {
+          name,
+          signal: SIGNALS.TRACES,
+          aggregations: [{ expression }],
+          filter: { expression: buildFilterExpression(filterItems) },
+          groupBy: traceIdGroupBy,
+          order: [],
+          stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+          limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+          disabled: QUERY_DEFAULTS.DISABLED,
+        },
+      });
+
+      const payload = {
+        start: startTime,
+        end: endTime,
+        requestType: REQUEST_TYPES.SCALAR,
+        ...(projectId && { projectId }),
+        compositeQuery: {
+          queries: [
+            makeQuery('costByTrace', `sum(${SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD})`),
+            makeQuery('timestampByTrace', `min(${SPAN_KEYS.TIMESTAMP})`),
+          ],
+        },
+      };
+
+      const resp = await this.makeRequest(payload, projectId);
+      const costSeries = this.extractSeries(resp, 'costByTrace');
+      const tsSeries = this.extractSeries(resp, 'timestampByTrace');
+
+      const tsByTraceId = new Map<string, number>();
+      for (const s of tsSeries) {
+        const id = s.labels?.[SPAN_KEYS.TRACE_ID];
+        if (!id) continue;
+        const ms = timestampMsFromSeries(s);
+        if (ms) tsByTraceId.set(id, ms);
+      }
+
+      const buckets = new Map<string, number>();
+      for (const s of costSeries) {
+        const id = s.labels?.[SPAN_KEYS.TRACE_ID];
+        if (!id) continue;
+        const ms = tsByTraceId.get(id);
+        if (!ms) continue;
+        const cost = numberFromSeries(s);
+        const d = new Date(ms);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        buckets.set(key, (buckets.get(key) ?? 0) + cost);
+      }
+
+      return datesRange(startTime, endTime).map((date) => ({
+        date,
+        cost: buckets.get(date) ?? 0,
+      }));
+    } catch (e) {
+      console.error('getUsageCostPerDay error:', { startTime, endTime, projectId, error: e });
+      return datesRange(startTime, endTime).map((date) => ({ date, cost: 0 }));
+    }
+  }
+
   private buildUsageCostPayload(start: number, end: number, groupBy: string, projectId?: string) {
     const baseItems: Array<{ key: string; op: string; value: unknown }> = [
       {
