@@ -254,6 +254,27 @@ const extractText = functionTool({
 
 When the agent calls `fetch-page` and then `extract-text`, it passes the HTML output directly into the next call. The intermediate HTML never surfaces to the user. Design tools meant to be used in sequence so their return types match the input types of downstream tools.
 
+### Filtering with `$select`
+
+When chaining tool outputs, you can add a `$select` field to extract specific data from the result using [JMESPath](https://jmespath.org/) expressions. This is useful when a downstream tool expects a specific field but the source tool returns a larger object.
+
+```json
+// Extract a specific field from a tool result
+{ "$tool": "call_abc123", "$select": "documents[0].title" }
+
+// Extract from an artifact
+{ "$artifact": "doc-id", "$tool": "call_xyz789", "$select": "content.text" }
+```
+
+Supported JMESPath syntax includes:
+
+- **Dot notation** — `user.name` extracts nested fields
+- **Array indexing** — `items[0]` gets the first element
+- **Array slicing** — `items[:5]` gets the first five elements
+- **Projections** — `items[*].name` extracts the `name` field from every item
+
+If the selector matches nothing, the system returns an error describing the available data shape so the agent can adjust the expression.
+
 ### Best Practices
 
 - **Keep functions focused** - Each function should do one thing well
