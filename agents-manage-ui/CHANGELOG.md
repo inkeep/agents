@@ -1,5 +1,13 @@
 # @inkeep/agents-manage-ui
 
+## 0.66.1
+
+### Patch Changes
+
+- e6f0111: Fix authentication return URL validation to reject backslash-based redirect bypasses that could send users off-site after login.
+- 7383bf1: logging for traces
+  - @inkeep/agents-core@0.66.1
+
 ## 0.66.0
 
 ### Patch Changes
