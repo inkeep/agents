@@ -140,6 +140,30 @@ const summarizeTool = functionTool({
 });
 ```
 
+### Filtering Artifact Data with `$select`
+
+When passing an artifact to a tool, you can include a `$select` field to extract specific fields using a [JMESPath](https://jmespath.org/) expression. The filtering happens at resolution time, before the data reaches the downstream tool. This is useful when a tool parameter expects a primitive or a subset of the artifact's data.
+
+```json
+// Pass only the title string from an artifact
+{ "$artifact": "citation-123", "$tool": "call_abc", "$select": "title" }
+
+// Extract nested content text
+{ "$artifact": "doc-456", "$tool": "call_xyz", "$select": "content[0].text" }
+
+// Also works with ephemeral tool-result references
+{ "$tool": "call_abc", "$select": "items[*].name" }
+```
+
+Common JMESPath patterns:
+
+- `fieldName` — extract a top-level field
+- `parent.child` — extract nested fields
+- `items[0]` — get the first array element
+- `items[*].name` — extract a field from every array item
+
+The system auto-strips the `result.` prefix if present, so paths from `_structureHints` selectors work directly. If the selector matches nothing, the error message includes the available data shape to help debug.
+
 ## Artifact Creation
 
 When an agent uses a tool:
