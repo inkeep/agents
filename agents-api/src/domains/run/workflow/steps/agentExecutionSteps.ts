@@ -989,7 +989,7 @@ export async function executeToolStep(params: ExecuteToolStepParams): Promise<Ex
                 toolName: params.delegatedApproval.toolName,
                 toolCallId: params.delegatedApproval.toolCallId,
                 reason:
-                  params.delegatedApprovalDecision.reason ?? 'The user denied this tool call.',
+                  params.delegatedApprovalDecision.reason ?? 'Tool call was denied by the user.',
               });
             }
           }
