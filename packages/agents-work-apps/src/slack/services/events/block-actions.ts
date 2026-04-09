@@ -563,7 +563,13 @@ export async function consumeApprovalContinuationStream(params: {
     }
   } catch (error) {
     logger.warn(
-      { error: error instanceof Error ? error.message : String(error), channel, threadTs },
+      {
+        error: error instanceof Error ? error.message : String(error),
+        channel,
+        threadTs,
+        conversationId,
+        agentId,
+      },
       'Error reading approval continuation stream'
     );
     if (fullText.length === 0) {
@@ -577,22 +583,34 @@ export async function consumeApprovalContinuationStream(params: {
     }
   } finally {
     clearTimeout(timeoutId);
+    reader.cancel().catch(() => {});
   }
 
   if (fullText.length > 0) {
     const slackText = markdownToMrkdwn(fullText);
+    const SLACK_SECTION_LIMIT = 3000;
+    const truncatedText =
+      slackText.length > SLACK_SECTION_LIMIT
+        ? `${slackText.slice(0, SLACK_SECTION_LIMIT - 3)}...`
+        : slackText;
+
     await slackClient.chat
       .postMessage({
         channel,
         ...threadParam,
         text: slackText,
         blocks: [
-          { type: 'section', text: { type: 'mrkdwn', text: slackText } },
+          { type: 'section', text: { type: 'mrkdwn', text: truncatedText } },
           createContextBlock({ agentName }),
         ],
       })
       .catch((e) =>
         logger.warn({ error: e, channel, threadTs }, 'Failed to post approval continuation result')
       );
+
+    logger.info(
+      { channel, threadTs, conversationId, responseLength: fullText.length },
+      'Approval continuation stream completed'
+    );
   }
 }
