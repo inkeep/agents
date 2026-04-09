@@ -2,4 +2,4 @@
 "@inkeep/agents-api": patch
 ---
 
-Patched attachments bug
+Fix text file artifacts being returned as base64-encoded file parts instead of decoded text content
