@@ -1053,5 +1053,16 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       );
       expect(res.status).toBe(404);
     });
+
+    it('should return 400 for invalid status query param', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-tool-status-invalid');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { agentId } = await createTestAgent({ tenantId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/tool-status?status=bogus`
+      );
+      expect(res.status).toBe(400);
+    });
   });
 });

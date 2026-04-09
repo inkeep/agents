@@ -20,7 +20,6 @@ import {
   listAgentToolRelations,
   PaginationQueryParamsSchema,
   RelatedAgentInfoListResponse,
-  type SubAgentToolRelationSelect,
   TenantProjectAgentParamsSchema,
   TenantProjectAgentSubAgentParamsSchema,
   TenantProjectIdParamsSchema,
@@ -222,11 +221,11 @@ const AgentToolStatusItemSchema = z
   })
   .openapi('AgentToolStatusItem');
 
-const AgentToolStatusResponseSchema = z
+const AgentToolStatusListResponseSchema = z
   .object({
     data: z.array(AgentToolStatusItemSchema),
   })
-  .openapi('AgentToolStatusResponse');
+  .openapi('AgentToolStatusListResponse');
 
 app.openapi(
   createProtectedRoute({
@@ -249,7 +248,7 @@ app.openapi(
         description: 'Agent tool status retrieved successfully',
         content: {
           'application/json': {
-            schema: AgentToolStatusResponseSchema,
+            schema: AgentToolStatusListResponseSchema,
           },
         },
       },
@@ -273,33 +272,46 @@ app.openapi(
       });
     }
 
-    const relationsResult = await listAgentToolRelations(db)({
-      scopes: { tenantId, projectId, agentId },
-      pagination: { page: 1, limit: 100 },
-    });
-    const relations = relationsResult.data as SubAgentToolRelationSelect[];
-
     const subAgentIdsByToolId = new Map<string, Set<string>>();
-    for (const relation of relations) {
-      const set = subAgentIdsByToolId.get(relation.toolId) ?? new Set<string>();
-      set.add(relation.subAgentId);
-      subAgentIdsByToolId.set(relation.toolId, set);
+    let page = 1;
+    let hasMore = true;
+    while (hasMore) {
+      const relationsResult = await listAgentToolRelations(db)({
+        scopes: { tenantId, projectId, agentId },
+        pagination: { page, limit: 100 },
+      });
+      for (const relation of relationsResult.data) {
+        const set = subAgentIdsByToolId.get(relation.toolId) ?? new Set<string>();
+        set.add(relation.subAgentId);
+        subAgentIdsByToolId.set(relation.toolId, set);
+      }
+      hasMore = page < relationsResult.pagination.pages;
+      page++;
     }
 
     const uniqueToolIds = Array.from(subAgentIdsByToolId.keys());
 
-    const probedTools = await Promise.all(
-      uniqueToolIds.map(async (toolId) => {
-        const tool = await getToolById(db)({ scopes: { tenantId, projectId }, toolId });
-        if (!tool) {
-          return null;
+    const PROBE_CONCURRENCY = 5;
+    const probedTools: Awaited<ReturnType<typeof dbResultToMcpTool>>[] = [];
+    for (let i = 0; i < uniqueToolIds.length; i += PROBE_CONCURRENCY) {
+      const batch = uniqueToolIds.slice(i, i + PROBE_CONCURRENCY);
+      const results = await Promise.allSettled(
+        batch.map(async (toolId) => {
+          const tool = await getToolById(db)({ scopes: { tenantId, projectId }, toolId });
+          if (!tool) {
+            return null;
+          }
+          return dbResultToMcpTool(tool, db, credentialStores, undefined, userId);
+        })
+      );
+      for (const r of results) {
+        if (r.status === 'fulfilled' && r.value !== null) {
+          probedTools.push(r.value);
         }
-        return dbResultToMcpTool(tool, db, credentialStores, undefined, userId);
-      })
-    );
+      }
+    }
 
     const data = probedTools
-      .filter((tool): tool is NonNullable<typeof tool> => tool !== null)
       .map((tool) => ({
         id: tool.id,
         name: tool.name,
