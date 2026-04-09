@@ -17,6 +17,7 @@ export * from './logger';
 export * from './mcp-client';
 export * from './mock-provider';
 export * from './model-factory';
+export * from './otel-log-provider';
 export * from './pow';
 export * from './retry';
 export * from './schema-conversion';

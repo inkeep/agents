@@ -173,6 +173,12 @@ const envSchema = z
       .optional()
       .default(64)
       .describe('OpenTelemetry batch span processor max export batch size'),
+    OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: z
+      .string()
+      .optional()
+      .describe(
+        'OTLP endpoint for exporting logs to any OTLP-compatible backend (e.g., SigNoz, Grafana)'
+      ),
 
     // Sentry (Error Monitoring)
     SENTRY_DSN: z

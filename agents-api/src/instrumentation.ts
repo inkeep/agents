@@ -1,3 +1,4 @@
+import { flushOTelLogs, setupOTelLogProvider, shutdownOTelLogProvider } from '@inkeep/agents-core';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import {
   ALLOW_ALL_BAGGAGE_KEYS,
@@ -90,7 +91,7 @@ export const defaultSDK = new NodeSDK({
   instrumentations: defaultInstrumentations,
 });
 
-export function startOpenTelemetrySDK(): void {
+export async function startOpenTelemetrySDK(): Promise<void> {
   try {
     defaultSDK.start();
   } catch (error) {
@@ -107,12 +108,23 @@ export function startOpenTelemetrySDK(): void {
     }
     throw error;
   }
+
+  await setupOTelLogProvider();
 }
 
 export async function flushBatchProcessor(): Promise<void> {
   try {
-    await defaultBatchProcessor.forceFlush();
+    await Promise.all([defaultBatchProcessor.forceFlush(), flushOTelLogs()]);
   } catch (error) {
     logger.warn({ error }, 'Failed to flush batch processor');
   }
 }
+
+export async function shutdownOpenTelemetry(): Promise<void> {
+  await Promise.all([defaultSDK.shutdown(), shutdownOTelLogProvider()]);
+}
+
+// Flush all buffered telemetry on SIGTERM (Vercel Fluid Compute sends SIGTERM ~5s before SIGKILL)
+process.on('SIGTERM', () => {
+  shutdownOpenTelemetry().catch(() => {});
+});

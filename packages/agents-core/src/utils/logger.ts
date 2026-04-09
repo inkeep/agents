@@ -7,22 +7,17 @@ import type {
 } from 'pino';
 import pino from 'pino';
 import pinoPretty from 'pino-pretty';
+import { OTelLogStream } from './otel-log-stream';
 
-/**
- * Determines whether log output should be colorized.
- *
- * Checks in order:
- * 1. NO_COLOR env var (standard: https://no-color.org/) - if set to any non-empty value, disables colors
- * 2. Falls back to process.stdout.isTTY (colors enabled for interactive terminals)
- */
 function shouldColorize(): boolean {
-  // NO_COLOR standard: any non-empty value disables colors
   if (process.env.NO_COLOR && process.env.NO_COLOR !== '') {
     return false;
   }
-
-  // Default: colorize only if stdout is a TTY (interactive terminal)
   return process.stdout.isTTY ?? false;
+}
+
+function isStructuredMode(): boolean {
+  return !!(process.env.VERCEL || process.env.NODE_ENV === 'production');
 }
 
 const loggerStorage = new AsyncLocalStorage<PinoLoggerInstance>();
@@ -103,18 +98,21 @@ export class PinoLogger {
 
     if (this.transportConfigs.length > 0) {
       this.pinoInstance = pino(this.options, pino.transport({ targets: this.transportConfigs }));
+    } else if (isStructuredMode()) {
+      const streams: pino.StreamEntry[] = [
+        { level: (this.options.level ?? 'info') as pino.Level, stream: process.stdout },
+        { level: (this.options.level ?? 'info') as pino.Level, stream: new OTelLogStream() },
+      ];
+      this.pinoInstance = pino(this.options, pino.multistream(streams));
     } else {
-      // Use pino-pretty stream directly instead of transport
       try {
         const prettyStream = pinoPretty({
           colorize: shouldColorize(),
           translateTime: 'HH:MM:ss',
           ignore: 'pid,hostname',
         });
-
         this.pinoInstance = pino(this.options, prettyStream);
       } catch (error) {
-        // Fall back to standard pino if pino-pretty fails
         console.warn('Warning: pino-pretty failed, using standard JSON output:', error);
         this.pinoInstance = pino(this.options);
       }
@@ -133,25 +131,28 @@ export class PinoLogger {
 
     this.alsChildCache = new WeakMap();
 
-    if (this.transportConfigs.length === 0) {
-      // Use pino-pretty stream directly instead of transport (same as constructor)
+    if (this.transportConfigs.length > 0) {
+      const multiTransport: TransportMultiOptions = { targets: this.transportConfigs };
+      const pinoTransport = pino.transport(multiTransport);
+      this.pinoInstance = pino(this.options, pinoTransport);
+    } else if (isStructuredMode()) {
+      const streams: pino.StreamEntry[] = [
+        { level: (this.options.level ?? 'info') as pino.Level, stream: process.stdout },
+        { level: (this.options.level ?? 'info') as pino.Level, stream: new OTelLogStream() },
+      ];
+      this.pinoInstance = pino(this.options, pino.multistream(streams));
+    } else {
       try {
         const prettyStream = pinoPretty({
           colorize: shouldColorize(),
           translateTime: 'HH:MM:ss',
           ignore: 'pid,hostname',
         });
-
         this.pinoInstance = pino(this.options, prettyStream);
       } catch (error) {
-        // Fall back to standard pino if pino-pretty fails
         console.warn('Warning: pino-pretty failed, using standard JSON output:', error);
         this.pinoInstance = pino(this.options);
       }
-    } else {
-      const multiTransport: TransportMultiOptions = { targets: this.transportConfigs };
-      const pinoTransport = pino.transport(multiTransport);
-      this.pinoInstance = pino(this.options, pinoTransport);
     }
   }
 
