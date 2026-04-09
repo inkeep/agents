@@ -161,13 +161,16 @@ async function signozQuery(
     const err = e as {
       message?: string;
       name?: string;
+      stack?: string;
       code?: unknown;
       cause?: { code?: string; message?: string };
     };
     logger.error(
       {
+        error: e,
         errorName: err?.name,
         errorMessage: err?.message,
+        errorStack: err?.stack,
         errorCode: err?.code,
         causeCode: err?.cause?.code,
         causeMessage: err?.cause?.message,
@@ -1553,13 +1556,16 @@ export async function GET(
     const err = error as {
       message?: string;
       name?: string;
+      stack?: string;
       code?: unknown;
       cause?: { code?: string; message?: string };
     };
     logger.error(
       {
+        error,
         errorName: err?.name,
         errorMessage: err?.message,
+        errorStack: err?.stack,
         errorCode: err?.code,
         causeCode: err?.cause?.code,
         causeMessage: err?.cause?.message,
