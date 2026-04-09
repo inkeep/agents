@@ -1,5 +1,20 @@
 # @inkeep/agents-api
 
+## 0.67.0
+
+### Minor Changes
+
+- 757ac77: Add multi-user webhook triggers with per-user dispatch delay and invocation tracking.
+
+### Patch Changes
+
+- 4e0f7c4: Improve tool chaining with ref-aware schemas, better error messages, and shared schema description constants
+- Updated dependencies [757ac77]
+  - @inkeep/agents-core@0.67.0
+  - @inkeep/agents-work-apps@0.67.0
+  - @inkeep/agents-email@0.67.0
+  - @inkeep/agents-mcp@0.67.0
+
 ## 0.66.1
 
 ### Patch Changes
