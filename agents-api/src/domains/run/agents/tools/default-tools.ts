@@ -116,8 +116,7 @@ async function makeHydratedReferenceArtifactResult(artifactData: ArtifactFullDat
 
 export function getArtifactTools(ctx: AgentRunContext): Tool<any, any> {
   return tool({
-    description:
-      'Retrieves the complete data of an existing artifact. NOTE: To pass an artifact to a tool you do NOT need to call this — use the { "$artifact": "id", "$tool": "toolCallId" } sentinel and the system resolves the full data automatically. summary_data in available_artifacts already contains all preview fields. Only call this when you specifically need the actual value of a non-preview field that is not visible in summary_data. Use this when you need to inspect a binary artifact yourself; for images this may provide visual input, and for other files it may provide file input. Do not call this just to forward the artifact into another tool.',
+    description: `Retrieves the complete data of an existing artifact. Do not use get_reference_artifact to pass data to another tool — tool-chain instead: { "${SENTINEL_KEY.ARTIFACT}": "id", "${SENTINEL_KEY.TOOL}": "toolCallId" } or { "${SENTINEL_KEY.TOOL}": "toolCallId", "${SENTINEL_KEY.SELECT}": "..." }. summary_data in available_artifacts already contains all preview fields. Only call this when you specifically need the actual value of a non-preview field that is not visible in summary_data, or to inspect a binary artifact yourself (images may provide visual input, other files may provide file input).`,
     inputSchema: z.object({
       artifactId: z.string().describe('The unique identifier of the artifact to get.'),
       toolCallId: z.string().describe('The tool call ID associated with this artifact.'),

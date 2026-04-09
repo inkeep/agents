@@ -18,6 +18,7 @@ import { getLogger } from '../../../../logger';
 import { stripBinaryDataForObservability } from '../../services/blob-storage/artifact-binary-sanitizer';
 import { agentSessionManager, type ToolCallData } from '../../session/AgentSession';
 import { generateToolId } from '../../utils/agent-operations';
+import { stripInternalFields } from '../../utils/select-filter';
 import { isToolResultDenied } from '../../utils/tool-result';
 import type { AgentRunContext, AiSdkToolDefinition, ToolType } from '../agent-types';
 import { buildToolResultForConversationHistory } from '../generation/tool-result-for-conversation-history';
@@ -208,17 +209,31 @@ export function wrapToolWithStreaming(
           ? await artifactParser.resolveArgs(parsedArgsForResolution)
           : args;
 
-        const parameters = (toolDefinition as AiSdkToolDefinition).parameters;
-        if (artifactParser && parameters?.safeParse) {
-          const resolvedChanged =
-            JSON.stringify(parsedArgsForResolution) !== JSON.stringify(resolvedArgs);
-          if (resolvedChanged) {
-            const validation = parameters.safeParse(resolvedArgs);
-            if (!validation.success) {
-              throw new Error(
-                `Resolved tool args failed schema validation for '${toolName}': ${validation.error.message}`
-              );
-            }
+        const aiToolDef = toolDefinition as AiSdkToolDefinition;
+        const validationSchema = aiToolDef.baseInputSchema ?? aiToolDef.parameters;
+        const resolvedChanged =
+          JSON.stringify(parsedArgsForResolution) !== JSON.stringify(resolvedArgs);
+
+        if (artifactParser && validationSchema?.safeParse && resolvedChanged) {
+          const validation = validationSchema.safeParse(resolvedArgs);
+          if (!validation.success) {
+            const mismatchDetails =
+              resolvedArgs && typeof resolvedArgs === 'object' && !Array.isArray(resolvedArgs)
+                ? Object.entries(resolvedArgs as Record<string, unknown>)
+                    .map(([key, val]) => {
+                      const actualType =
+                        val === null ? 'null' : Array.isArray(val) ? 'array' : typeof val;
+                      return `"${key}" resolved to ${actualType}`;
+                    })
+                    .join(', ')
+                : `resolved to ${Array.isArray(resolvedArgs) ? 'array' : typeof resolvedArgs}`;
+            throw new Error(
+              `Tool chaining $select resolved to the wrong type for '${toolName}'. ` +
+                `${mismatchDetails}. ${validation.error.message}. ` +
+                `Your $select expression likely returns an object or array where the tool expects a primitive (string/number/boolean). ` +
+                `Drill deeper in your $select path — e.g. add ".text", ".name", or ".id" to extract the specific field. ` +
+                `Check _structureHints.terminalPaths in the source tool result for leaf fields.`
+            );
           }
         }
 
@@ -364,7 +379,7 @@ export function wrapToolWithStreaming(
             ctx.config.id,
             {
               toolName,
-              output: stripBinaryDataForObservability(result),
+              output: stripBinaryDataForObservability(stripInternalFields(result)),
               toolCallId: toolCallId,
               duration,
               relationshipId,

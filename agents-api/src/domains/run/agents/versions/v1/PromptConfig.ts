@@ -8,12 +8,14 @@ import {
   V1_BREAKDOWN_SCHEMA,
 } from '@inkeep/agents-core';
 import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
+
 import systemPromptTemplate from '../../../../../../templates/v1/prompt/system-prompt.xml?raw';
 import toolTemplate from '../../../../../../templates/v1/prompt/tool.xml?raw';
 import artifactTemplate from '../../../../../../templates/v1/shared/artifact.xml?raw';
-import artifactRetrievalGuidance from '../../../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
+import artifactRetrievalGuidance from '../../../../../../templates/v1/shared/artifact-retrieval-guidance.md?raw';
 import dataComponentTemplate from '../../../../../../templates/v1/shared/data-component.xml?raw';
 import dataComponentsTemplate from '../../../../../../templates/v1/shared/data-components.xml?raw';
+
 import { ArtifactCreateSchema } from '../../../artifacts/artifact-component-schema';
 import { ARTIFACT_TAG, ARTIFACT_TOOL, SENTINEL_KEY } from '../../../constants/artifact-syntax';
 import {
@@ -423,16 +425,19 @@ SPECIAL CASE: binary_attachment artifacts
    If an artifact is a binary_attachment and you only have preview metadata, do not claim what the file contains beyond that metadata.
    If you need the actual contents, either pass the artifact to a capable tool or call ${ARTIFACT_TOOL.GET_REFERENCE}.
 
-3. PASS TO A TOOL — supply a saved artifact as a tool argument:
+3. TOOL CHAIN TO A TOOL (PREFERRED) — the way data flows between tools:
    Format: { "${SENTINEL_KEY.ARTIFACT}": "artifact-id", "${SENTINEL_KEY.TOOL}": "tool_call_id" }
-   ✅ FULL FIELDS. The system resolves this to the complete artifact data before the tool executes — all fields, including those not visible in your context. The tool receives everything.
+   With filter: { "${SENTINEL_KEY.ARTIFACT}": "artifact-id", "${SENTINEL_KEY.TOOL}": "tool_call_id", "${SENTINEL_KEY.SELECT}": "jmespath" }
+   The system resolves and passes the data automatically. Use this regardless of whether the data is visible in context — tool chaining is about how data flows between tools, not about data visibility.
    Use the exact artifactId and toolCallId from when the artifact was created.
    ⚠️ available_artifacts lists artifacts from PRIOR turns only. Artifacts you create during THIS response are equally valid — use the id and tool values from your own ${ARTIFACT_TAG.CREATE} tag.
    See AVAILABLE ARTIFACT TYPES for the exact preview vs full schema breakdown per type.
    If a downstream tool can accept the artifact reference, pass { "${SENTINEL_KEY.ARTIFACT}": "artifact-id", "${SENTINEL_KEY.TOOL}": "tool_call_id" } instead of recreating or paraphrasing the file.
+   ❌ Never copy tool output inline — always tool-chain.
+   ❌ Do not use ${ARTIFACT_TOOL.GET_REFERENCE} to pass data to another tool — tool-chain instead.
    ❌ NEVER reconstruct or copy artifact data inline as a tool argument:
       { "artifactArg": { "field1": "...", "field2": "..." }, "param2": "value" }
-   ✅ ALWAYS pass the reference instead:
+   ✅ ALWAYS tool-chain the reference:
       { "artifactArg": { "${SENTINEL_KEY.ARTIFACT}": "artifact-id", "${SENTINEL_KEY.TOOL}": "toolu_abc123" }, "param2": "value" }
 
 CREATING ARTIFACTS (${ARTIFACT_TAG.CREATE}) — JMESPATH SELECTOR RULES:
@@ -551,15 +556,18 @@ SPECIAL CASE: binary_attachment artifacts
    If an artifact is a binary_attachment and you only have preview metadata, do not claim what the file contains beyond that metadata.
    If you need the actual contents, either pass the artifact to a capable tool or call ${ARTIFACT_TOOL.GET_REFERENCE}.
 
-2. PASS TO A TOOL — supply a saved artifact as a tool argument:
+2. TOOL CHAIN TO A TOOL (PREFERRED) — the way data flows between tools:
    Format: { "${SENTINEL_KEY.ARTIFACT}": "artifact-id", "${SENTINEL_KEY.TOOL}": "tool_call_id" }
-   ✅ FULL FIELDS. The system resolves this to the complete artifact data before the tool executes — all fields, including those not visible in your context. The tool receives everything.
+   With filter: { "${SENTINEL_KEY.ARTIFACT}": "artifact-id", "${SENTINEL_KEY.TOOL}": "tool_call_id", "${SENTINEL_KEY.SELECT}": "jmespath" }
+   The system resolves and passes the data automatically. Use this regardless of whether the data is visible in context — tool chaining is about how data flows between tools, not about data visibility.
    Use the exact artifactId and toolCallId from when the artifact was created.
    ⚠️ available_artifacts lists artifacts from PRIOR turns only. Artifacts you just received in this conversation (e.g. from a delegation) are equally valid — use the id and tool values shown in the artifact reference.
    If a downstream tool can accept the artifact reference, pass { "${SENTINEL_KEY.ARTIFACT}": "artifact-id", "${SENTINEL_KEY.TOOL}": "tool_call_id" } instead of recreating or paraphrasing the file.
+   ❌ Never copy tool output inline — always tool-chain.
+   ❌ Do not use ${ARTIFACT_TOOL.GET_REFERENCE} to pass data to another tool — tool-chain instead.
    ❌ NEVER reconstruct or copy artifact data inline as a tool argument:
       { "artifactArg": { "field1": "...", "field2": "..." }, "param2": "value" }
-   ✅ ALWAYS pass the reference instead:
+   ✅ ALWAYS tool-chain the reference:
       { "artifactArg": { "${SENTINEL_KEY.ARTIFACT}": "artifact-id", "${SENTINEL_KEY.TOOL}": "toolu_abc123" }, "param2": "value" }
 
 EXAMPLE TEXT RESPONSE:
@@ -612,10 +620,10 @@ IMPORTANT GUIDELINES:
     DISPLAYED to user — ${ARTIFACT_TAG.REF} in text shows only preview fields:
     ${JSON.stringify(previewShape, null, 2)}
 
-    PASSED to tools — { "${SENTINEL_KEY.ARTIFACT}": "...", "${SENTINEL_KEY.TOOL}": "..." } as a tool argument resolves to all captured fields:
+    TOOL CHAINING (PREFERRED) — { "${SENTINEL_KEY.ARTIFACT}": "...", "${SENTINEL_KEY.TOOL}": "..." } as a tool argument. Add "${SENTINEL_KEY.SELECT}" to filter. Always tool-chain when data flows to another tool, regardless of whether the value is already visible in context:
     ${JSON.stringify(fullShape, null, 2)}
 
-    RETRIEVED explicitly — ${ARTIFACT_TOOL.GET_REFERENCE} tool returns all captured fields:
+    RETRIEVED explicitly (ONLY when you need to read the data yourself) — ${ARTIFACT_TOOL.GET_REFERENCE} tool returns all captured fields. Do not use ${ARTIFACT_TOOL.GET_REFERENCE} to pass data to another tool — tool-chain instead:
     ${JSON.stringify(fullShape, null, 2)}`;
         }
 
@@ -738,9 +746,8 @@ ${creationInstructions}
     const schemas = typeSchemaMap?.[artifactType];
     const typeSchema = schemas
       ? `DISPLAYED to user via ${ARTIFACT_TAG.REF} (preview fields only): ${JSON.stringify(schemas.previewShape)}
-    PASSED to tools via { "${SENTINEL_KEY.ARTIFACT}": "...", "${SENTINEL_KEY.TOOL}": "..." } (all fields): ${JSON.stringify(schemas.fullShape)}
-    RETRIEVED via ${ARTIFACT_TOOL.GET_REFERENCE} (all fields): ${JSON.stringify(schemas.fullShape)}
-    Note: ${ARTIFACT_TAG.CREATE} captured all fields at creation time.`
+    TOOL CHAINING (PREFERRED) via { "${SENTINEL_KEY.ARTIFACT}": "...", "${SENTINEL_KEY.TOOL}": "..." } (add "${SENTINEL_KEY.SELECT}" to filter). Always tool-chain when data flows to another tool, even for values already visible in context: ${JSON.stringify(schemas.fullShape)}
+    RETRIEVED via ${ARTIFACT_TOOL.GET_REFERENCE} (only when you need to read the data yourself — do not use get_reference_artifact to pass data to another tool, tool-chain instead): ${JSON.stringify(schemas.fullShape)}`
       : 'Schema not available';
 
     artifactXml = artifactXml.replace('{{ARTIFACT_NAME}}', artifact.name || '');
@@ -756,77 +763,67 @@ ${creationInstructions}
   }
 
   private getToolChainingGuidance(): string {
-    return `TOOL RESULT CHAINING:
-Any tool argument can reference the raw output of a previous tool call using { "${SENTINEL_KEY.TOOL}": "tool_call_id" }.
-The system resolves this to the complete raw output of that tool call before executing the next tool.
+    return `TOOL CHAINING — MANDATORY FOR ALL DATA FLOW BETWEEN TOOLS:
+Every tool's schema accepts tool chaining references on EVERY parameter — strings, numbers, booleans, objects, and arrays.
+When one tool's output feeds into another tool, you MUST pass a reference object instead of copying the value inline.
+This is not optional. The tool schemas are designed for this — every parameter has an anyOf that accepts { "${SENTINEL_KEY.TOOL}": "..." } objects.
 
-🚨 MANDATORY: When a tool's output is the direct input to the next tool, you MUST use { "${SENTINEL_KEY.TOOL}": "call_id" }.
-NEVER read a tool result and copy its value as a literal string or object into the next tool call.
+DECISION TREE — how to pass data between tools:
+┌─ Does the data come from a prior tool call or artifact?
+│  NO  → Pass the literal value directly
+│  YES ↓
+├─ Is the data stored as an artifact?
+│  YES → Use ARTIFACT REF: { "${SENTINEL_KEY.ARTIFACT}": "<artifact_id>", "${SENTINEL_KEY.TOOL}": "<tool_call_id>" }
+│  NO  ↓
+├─ Do you need the FULL output of the prior tool?
+│  YES → Use TOOL REF: { "${SENTINEL_KEY.TOOL}": "<tool_call_id>" }
+│  NO  ↓
+└─ Do you need a SPECIFIC FIELD from the prior tool's output?
+   YES → Use TOOL REF + SELECT: { "${SENTINEL_KEY.TOOL}": "<tool_call_id>", "${SENTINEL_KEY.SELECT}": "<jmespath>" }
 
-❌ WRONG — copying tool output inline:
-  Call tool_a → returns "some text"
-  Call tool_b with { "input": "some text" }  ← you copied the value manually
+RULES:
+1. NEVER copy a tool result as a literal value into another tool call — always pass a reference object
+2. This applies even when the data is visible in your context — tool chaining is about correct data flow, not data visibility
+3. Dependent tools MUST be called sequentially (not batched) — the source result must exist first
+4. When a parameter expects a primitive (string, number, boolean) but the source is a complex object, you MUST use ${SENTINEL_KEY.SELECT} to drill down to the exact field
+5. To find the right ${SENTINEL_KEY.SELECT} path, consult _structureHints.exampleSelectors (verified paths) or terminalPaths (all leaf fields with types)
 
-✅ CORRECT — referencing the previous call:
-  Call tool_a → returns "some text" (tool_call_id: "call_a_xyz")
-  Call tool_b with { "input": { "${SENTINEL_KEY.TOOL}": "call_a_xyz" } }  ← system resolves it automatically
+REFERENCE TYPES:
 
-HOW PRIMITIVE RESULTS APPEAR vs. WHAT { "${SENTINEL_KEY.TOOL}" } RESOLVES TO:
-When a tool returns a primitive (string, number, boolean), the result appears in the conversation
-wrapped for display purposes — e.g. { "text": "...", "_toolCallId": "call_a_xyz" } for strings
-or { "value": 42, "_toolCallId": "call_a_xyz" } for numbers. This wrapper is display-only.
-{ "${SENTINEL_KEY.TOOL}": "call_a_xyz" } resolves to the raw primitive itself — not the wrapper object.
+1. TOOL REF — chain from a prior tool result:
+   { "${SENTINEL_KEY.TOOL}": "<tool_call_id>" }
+   Resolves to the full output of that tool call. Use when you need all the data.
 
-  Call tool_a → result shown as { "value": 42, "_toolCallId": "call_a_xyz" }
-  tool_b with { "input": { "${SENTINEL_KEY.TOOL}": "call_a_xyz" } } receives: 42  ← raw number, not the wrapper
+2. TOOL REF + SELECT — chain a specific field from a prior tool result:
+   { "${SENTINEL_KEY.TOOL}": "<tool_call_id>", "${SENTINEL_KEY.SELECT}": "<jmespath>" }
+   Resolves to the selected field only. Use when the parameter expects a specific value (string, number, boolean) or a subset of the data.
 
-  Call tool_a → result shown as { "text": "hello", "_toolCallId": "call_a_xyz" }
-  tool_b with { "input": { "${SENTINEL_KEY.TOOL}": "call_a_xyz" } } receives: "hello"  ← raw string, not the wrapper
+3. ARTIFACT REF — chain from a saved artifact:
+   { "${SENTINEL_KEY.ARTIFACT}": "<artifact_id>", "${SENTINEL_KEY.TOOL}": "<tool_call_id>" }
+   Resolves to the full artifact data. Add "${SENTINEL_KEY.SELECT}" to extract a specific field.
 
-Pipeline example:
-  Step 1: tool_a({ "arg": "value" }) → (tool_call_id: "call_a")
-  Step 2: tool_b({ "input": { "${SENTINEL_KEY.TOOL}": "call_a" }, "other": "value" })
+⚠️ References only work for tool calls from the current response turn.
 
-WHEN THE PREVIOUS TOOL RETURNS A COMPLEX OBJECT:
-{ "${SENTINEL_KEY.TOOL}": "call_id" } passes the entire raw output. If the next tool needs only a specific field,
-use an intermediate extraction step — never read the value and copy it inline.
+EXAMPLES:
+  ❌ tool_a returns "some text" → tool_b({ "input": "some text" })
+  ✅ tool_a (call_id: "call_a") → tool_b({ "input": { "${SENTINEL_KEY.TOOL}": "call_a" } })
 
-  Step 1: tool_a(...)  → returns { "results": [...], "text": "..." }  (call_id: "call_a")
-  Step 2: extract({ "source": { "${SENTINEL_KEY.TOOL}": "call_a" }, ... })  → returns "..."  (call_id: "call_b")
-  Step 3: tool_b({ "input": { "${SENTINEL_KEY.TOOL}": "call_b" } })  ← receives the extracted value
+  ❌ tool_a returns { "data": { "name": "..." } } → tool_b({ "name": "..." })
+  ✅ tool_a (call_id: "call_a") → tool_b({ "name": { "${SENTINEL_KEY.TOOL}": "call_a", "${SENTINEL_KEY.SELECT}": "data.name" } })
 
-❌ WRONG — reading a field and copying it inline:
-  tool_a returns { "text": "some content" }
-  tool_b({ "input": "some content" })  ← you copied the value manually
+  ❌ search returns results → analyze({ "text": "<pasted content>" })
+  ✅ search (call_id: "call_s") → analyze({ "text": { "${SENTINEL_KEY.TOOL}": "call_s", "${SENTINEL_KEY.SELECT}": "results[0].content" } })
 
-✅ CORRECT — extract first, then reference:
-  tool_a(...)  (call_id: "call_a")
-  extract({ "source": { "${SENTINEL_KEY.TOOL}": "call_a" }, ... })  (call_id: "call_b")
-  tool_b({ "input": { "${SENTINEL_KEY.TOOL}": "call_b" } })
+PRIMITIVE RESULTS:
+Tool results shown as { "text": "hello", "_toolCallId": "call_a" }, { "value": 42, "_toolCallId": "call_a" }, or { "result": true, "_toolCallId": "call_a" }
+are display wrappers. { "${SENTINEL_KEY.TOOL}": "call_a" } resolves to the raw primitive (string, number, or boolean), not the wrapper object.
 
-This is different from artifact passing:
-- { "${SENTINEL_KEY.TOOL}": "call_id" } — raw output pipe; no artifact exists or is needed; intermediate data never surfaces to the user
-- { "${SENTINEL_KEY.ARTIFACT}": "id", "${SENTINEL_KEY.TOOL}": "call_id" } — passes a structured object you explicitly extracted and saved from a tool result
-
-When to use each:
-✅ Use { "${SENTINEL_KEY.TOOL}": "call_id" } when the next tool can accept the full output of the previous tool
-✅ Use an intermediate extraction step when you need only a specific field from a complex output
-✅ Use { "${SENTINEL_KEY.ARTIFACT}": "id", "${SENTINEL_KEY.TOOL}": "call_id" } when you have already created an artifact and want to pass its full structured data to a tool
-⚠️ Only references tool calls from the current response turn
-
-AFTER AN EXTRACTION STEP — reference the extraction's call_id, not the original source:
-  source_tool(...)  (call_id: "call_source")
-  extract({ "data": { "${SENTINEL_KEY.TOOL}": "call_source" }, ... })  (call_id: "call_extract")
-  next_tool({ "input": { "${SENTINEL_KEY.TOOL}": "call_extract" } })  ← use call_extract, NOT call_source
-
-❌ WRONG — referencing the original source after extraction:
-  next_tool({ "input": { "${SENTINEL_KEY.TOOL}": "call_source" } })  ← skips the extraction, passes the full object again
-
-IF AN EXTRACTION RETURNED A PRIMITIVE — pipe it directly to the next tool. Do NOT run another
-extraction step on it. An extraction applied to a plain string or number returns null.
-  extract(...)  → returns "some string"  (call_id: "call_extract")
-  next_tool({ "input": { "${SENTINEL_KEY.TOOL}": "call_extract" } })  ← correct, receives the string directly
-  ❌ extract({ "data": { "${SENTINEL_KEY.TOOL}": "call_extract" }, ... })  ← wrong, cannot extract from a primitive`;
+${SENTINEL_KEY.SELECT} JMESPATH PATTERNS:
+  "items[?score > \`0.8\`]"              — filter array
+  "items[].{title: title, url: url}"    — project fields
+  "data | length(@)"                    — aggregate
+  "items[0]"                            — first element
+  "data.results[0].content.text"        — extract nested string`;
   }
 
   private escapeXml(value: string): string {
