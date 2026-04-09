@@ -6,18 +6,26 @@
 import { getInProcessFetch, signSlackUserToken } from '@inkeep/agents-core';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
-import { SlackStrings } from '../../i18n';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
-import { buildToolApprovalDoneBlocks, ToolApprovalButtonValueSchema } from '../blocks';
+import { lookupAgentName } from '../agent-resolution';
+import {
+  buildToolApprovalBlocks,
+  buildToolApprovalDoneBlocks,
+  createContextBlock,
+  type ToolApprovalButtonValue,
+  ToolApprovalButtonValueSchema,
+} from '../blocks';
 import { getSlackClient } from '../client';
 import { buildAgentSelectorModal, buildMessageShortcutModal, type ModalMetadata } from '../modals';
 import { findWorkspaceConnectionByTeamId } from '../nango';
 import type { InlineSelectorMetadata } from './app-mention';
+import { SlackStrings } from '../../i18n';
 import {
   fetchAgentsForProject,
   fetchProjectsForTenant,
   findCachedUserMapping,
   getChannelAgentConfig,
+  markdownToMrkdwn,
   sendResponseUrlMessage,
 } from './utils';
 
@@ -147,6 +155,26 @@ export async function handleToolApproval(params: {
       }
 
       logger.info({ toolCallId, conversationId, approved, slackUserId }, 'Tool approval processed');
+
+      // In durable mode, the approval response is an SSE stream containing the
+      // continuation (tool execution result + final LLM response). Consume it and
+      // post the result back to the Slack thread.
+      const contentType = approvalResponse.headers.get('content-type') || '';
+      if (approvalResponse.body && contentType.includes('text/event-stream')) {
+        const agentName = (await lookupAgentName(tenantId, projectId, agentId)) || agentId;
+        await consumeApprovalContinuationStream({
+          response: approvalResponse,
+          slackClient,
+          channel: buttonValue.channel,
+          threadTs: buttonValue.threadTs,
+          agentName,
+          conversationId,
+          projectId,
+          agentId,
+          slackUserId,
+        });
+      }
+
       span.end();
     } catch (error) {
       if (error instanceof Error) setSpanWithError(span, error);
@@ -424,4 +452,147 @@ export async function handleMessageShortcut(params: {
       span.end();
     }
   });
+}
+
+const CONTINUATION_TIMEOUT_MS = 120_000;
+
+/**
+ * Consume the SSE continuation stream returned after a durable tool approval.
+ * Accumulates text-delta events and posts the final result to the Slack thread.
+ * If the continuation triggers another tool approval (chained/delegated), posts
+ * the approval buttons — the next button click will recursively enter this flow.
+ */
+export async function consumeApprovalContinuationStream(params: {
+  response: Response;
+  slackClient: ReturnType<typeof getSlackClient>;
+  channel: string;
+  threadTs?: string;
+  agentName: string;
+  conversationId: string;
+  projectId: string;
+  agentId: string;
+  slackUserId: string;
+}): Promise<void> {
+  const {
+    response,
+    slackClient,
+    channel,
+    threadTs,
+    agentName,
+    conversationId,
+    projectId,
+    agentId,
+    slackUserId,
+  } = params;
+  const threadParam = threadTs ? { thread_ts: threadTs } : {};
+
+  if (!response.body) return;
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let fullText = '';
+  const toolCallIdToName = new Map<string, string>();
+  const toolCallIdToInput = new Map<string, Record<string, unknown>>();
+
+  const timeoutId = setTimeout(() => {
+    reader.cancel().catch(() => {});
+  }, CONTINUATION_TIMEOUT_MS);
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const jsonStr = line.slice(6).trim();
+        if (!jsonStr || jsonStr === '[DONE]') continue;
+
+        try {
+          const data = JSON.parse(jsonStr);
+
+          if (data.type === 'text-delta' && data.delta) {
+            fullText += data.delta;
+          } else if (data.type === 'tool-input-available' && data.toolCallId && data.toolName) {
+            toolCallIdToName.set(String(data.toolCallId), String(data.toolName));
+            if (data.input && typeof data.input === 'object') {
+              toolCallIdToInput.set(String(data.toolCallId), data.input as Record<string, unknown>);
+            }
+          } else if (data.type === 'tool-approval-request' && data.toolCallId && conversationId) {
+            const toolCallId: string = data.toolCallId;
+            const toolName = toolCallIdToName.get(toolCallId) || 'Tool';
+            const input = toolCallIdToInput.get(toolCallId);
+
+            const buttonValue: ToolApprovalButtonValue = {
+              toolCallId,
+              conversationId,
+              projectId,
+              agentId,
+              slackUserId,
+              channel,
+              threadTs,
+              toolName,
+            };
+
+            await slackClient.chat
+              .postMessage({
+                channel,
+                ...threadParam,
+                text: `Tool approval required: \`${toolName}\``,
+                blocks: buildToolApprovalBlocks({
+                  toolName,
+                  input,
+                  buttonValue: JSON.stringify(buttonValue),
+                }),
+              })
+              .catch((e) =>
+                logger.warn({ error: e, toolCallId }, 'Failed to post chained approval message')
+              );
+
+            clearTimeout(timeoutId);
+          }
+        } catch {
+          // skip invalid JSON lines in SSE stream
+        }
+      }
+    }
+  } catch (error) {
+    logger.warn(
+      { error: error instanceof Error ? error.message : String(error), channel, threadTs },
+      'Error reading approval continuation stream'
+    );
+    if (fullText.length === 0) {
+      await slackClient.chat
+        .postMessage({
+          channel,
+          ...threadParam,
+          text: '_Something went wrong while processing the tool result. Please try again._',
+        })
+        .catch((e) => logger.warn({ error: e }, 'Failed to post continuation error message'));
+    }
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (fullText.length > 0) {
+    const slackText = markdownToMrkdwn(fullText);
+    await slackClient.chat
+      .postMessage({
+        channel,
+        ...threadParam,
+        text: slackText,
+        blocks: [
+          { type: 'section', text: { type: 'mrkdwn', text: slackText } },
+          createContextBlock({ agentName }),
+        ],
+      })
+      .catch((e) =>
+        logger.warn({ error: e, channel, threadTs }, 'Failed to post approval continuation result')
+      );
+  }
 }
