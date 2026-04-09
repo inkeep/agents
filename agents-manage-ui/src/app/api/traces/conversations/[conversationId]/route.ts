@@ -158,7 +158,12 @@ async function signozQuery(
     );
     return { results };
   } catch (e) {
-    const err = e as { message?: string; name?: string; code?: unknown; cause?: { code?: string; message?: string } };
+    const err = e as {
+      message?: string;
+      name?: string;
+      code?: unknown;
+      cause?: { code?: string; message?: string };
+    };
     logger.error(
       {
         errorName: err?.name,
@@ -1545,7 +1550,12 @@ export async function GET(
     const logger = getLogger('conversation-details');
     const errorMessage =
       error instanceof Error ? error.message : 'Failed to fetch conversation details';
-    const err = error as { message?: string; name?: string; code?: unknown; cause?: { code?: string; message?: string } };
+    const err = error as {
+      message?: string;
+      name?: string;
+      code?: unknown;
+      cause?: { code?: string; message?: string };
+    };
     logger.error(
       {
         errorName: err?.name,
