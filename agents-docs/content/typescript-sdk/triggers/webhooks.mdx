@@ -199,7 +199,8 @@ Header values are securely hashed before storage. The original values are never 
 | `authentication` | `object` | No | Header-based authentication configuration |
 | `signingSecret` | `string` | No | HMAC-SHA256 secret for signature verification |
 | `outputTransform` | `object` | No | Payload transformation configuration |
-| `runAsUserId` | `string` | No | User ID whose identity and credentials are used during execution |
+| `runAsUserIds` | `string[]` | No | Array of user IDs whose identities and credentials are used during execution. Each user gets a separate invocation. |
+| `dispatchDelayMs` | `number` | No | Optional delay in milliseconds between each per-user execution to smooth out downstream rate limits |
 
 ### Authentication Configuration
 
@@ -343,21 +344,22 @@ For services like GitHub that sign webhooks, you often don't need header authent
 
 ## User-Scoped Execution
 
-By default, webhook triggers execute without a user identity — tools with user-scoped credentials will fail. Setting `runAsUserId` makes the trigger execute as a specific user, enabling access to their connected credentials (e.g., per-user OAuth tokens for GitHub, Slack, or Jira).
+By default, webhook triggers execute without a user identity — tools with user-scoped credentials will fail. Setting `runAsUserIds` makes the trigger execute as one or more specific users, enabling access to their connected credentials (e.g., per-user OAuth tokens for GitHub, Slack, or Jira). Each selected user gets a separate execution and invocation record for every webhook request.
 
 ```typescript
 trigger({
   id: "github-pr-review",
   name: "GitHub PR Review",
   messageTemplate: "New PR opened: {{title}}",
-  runAsUserId: "user_abc123",
+  runAsUserIds: ["user_abc123", "user_def456"],
+  dispatchDelayMs: 500, // 500ms delay between each user's execution
 });
 ```
 
 ### Permission Rules
 
-- Any user with `edit` permission can set `runAsUserId` to themselves.
-- Org admins and owners can set `runAsUserId` to any user in the organization.
+- Any user with `edit` permission can include themselves in `runAsUserIds`.
+- Org admins and owners can include any user in the organization in `runAsUserIds`.
 
 ## Webhook URL
 
@@ -375,6 +377,7 @@ Every webhook invocation is tracked with:
 
 - **Invocation ID** - Unique identifier for the invocation
 - **Status** - `pending`, `success`, or `failed`
+- **Run As User** - Which user identity this invocation executed as
 - **Request Payload** - Original webhook payload
 - **Transformed Payload** - Payload after transformation
 - **Conversation ID** - ID of the conversation created
