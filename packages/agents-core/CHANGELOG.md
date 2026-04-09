@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.67.0
+
+### Minor Changes
+
+- 757ac77: Add multi-user webhook triggers with per-user dispatch delay and invocation tracking.
+
 ## 0.66.1
 
 ## 0.66.0

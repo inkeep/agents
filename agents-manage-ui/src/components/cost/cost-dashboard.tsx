@@ -53,6 +53,7 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
   const [summaryByType, setSummaryByType] = useState<UsageSummaryRow[]>([]);
   const [summaryByProvider, setSummaryByProvider] = useState<UsageSummaryRow[]>([]);
   const [events, setEvents] = useState<SigNozUsageEvent[]>([]);
+  const [chartData, setChartData] = useState<Array<{ date: string; cost: number }>>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -63,12 +64,13 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
         const start = new Date(startTime).getTime();
         const end = new Date(endTime).getTime();
 
-        const [byModel, byAgent, byType, byProvider, eventsList] = await Promise.all([
+        const [byModel, byAgent, byType, byProvider, eventsList, costPerDay] = await Promise.all([
           client.getUsageCostSummary(start, end, 'model', projectId),
           client.getUsageCostSummary(start, end, 'agent', projectId),
           client.getUsageCostSummary(start, end, 'generation_type', projectId),
           client.getUsageCostSummary(start, end, 'provider', projectId),
           client.getUsageEventsList(start, end, projectId, undefined, 200),
+          client.getUsageCostPerDay(start, end, projectId),
         ]);
 
         setSummaryByModel(byModel);
@@ -76,6 +78,7 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
         setSummaryByType(byType);
         setSummaryByProvider(byProvider);
         setEvents(eventsList);
+        setChartData(costPerDay);
       } catch (error) {
         console.error('Failed to fetch usage data:', error);
       }
@@ -94,17 +97,6 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
     }),
     { totalTokens: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCost: 0, totalEvents: 0 }
   );
-
-  const buckets = new Map<string, number>();
-  for (const event of events) {
-    if (!event.timestamp) continue;
-    const date = new Date(event.timestamp);
-    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    buckets.set(key, (buckets.get(key) ?? 0) + event.estimatedCostUsd);
-  }
-  const chartData = [...buckets.entries()]
-    .map(([date, cost]) => ({ date, cost }))
-    .sort((a, b) => a.date.localeCompare(b.date));
 
   return (
     <>
