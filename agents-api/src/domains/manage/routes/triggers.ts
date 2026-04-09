@@ -1,21 +1,30 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  AddTriggerUserRequestSchema,
+  canUseProjectStrict,
   commonGetErrorResponses,
   createApiError,
-  createTrigger,
+  createTriggerUser,
+  createTriggerWithUsers,
   DateTimeFilterQueryParamsSchema,
   deleteTrigger,
+  deleteTriggerUser,
   errorSchemaFactory,
   generateId,
   getCredentialReference,
   getTriggerById,
   getTriggerInvocationById,
+  getTriggerUsers,
+  getTriggerUsersBatch,
   hashAuthenticationHeaders,
   listTriggerInvocationsPaginated,
   listTriggersPaginated,
   type OrgRole,
+  OrgRoles,
   PaginationQueryParamsSchema,
   PartSchema,
+  SetTriggerUsersRequestSchema,
+  setTriggerUsers,
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   TriggerApiInsertSchema,
@@ -23,6 +32,7 @@ import {
   TriggerInvocationListResponse,
   TriggerInvocationResponse,
   TriggerInvocationStatusEnum,
+  TriggerUsersResponseSchema,
   TriggerWithWebhookUrlListResponse,
   TriggerWithWebhookUrlResponse,
   TriggerWithWebhookUrlWithWarningResponse,
@@ -36,7 +46,11 @@ import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
 import { speakeasyOffsetLimitPagination } from '../../../utils/speakeasy';
 import { dispatchExecution } from '../../run/services/TriggerService';
-import { assertCanMutateTrigger, validateRunAsUserId } from './triggerHelpers';
+import {
+  assertCanMutateTrigger,
+  validateRunAsUserId,
+  validateRunAsUserIds,
+} from './triggerHelpers';
 
 const logger = getLogger('triggers');
 
@@ -54,6 +68,87 @@ function generateWebhookUrl(params: {
 }): string {
   const { baseUrl, tenantId, projectId, agentId, triggerId } = params;
   return `${baseUrl}/run/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}`;
+}
+
+function getResponseRunAsUserId(params: {
+  legacyRunAsUserId?: string | null;
+  runAsUserIds: string[];
+}): string | null {
+  const { legacyRunAsUserId, runAsUserIds } = params;
+
+  if (runAsUserIds.length > 1) return null;
+  if (runAsUserIds.length === 1) return runAsUserIds[0] ?? null;
+  return legacyRunAsUserId ?? null;
+}
+
+type TriggerResponseInput = {
+  id: string;
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  runAsUserId?: string | null;
+};
+
+function buildTriggerResponse<T extends TriggerResponseInput>(params: {
+  trigger: T;
+  runAsUserIds: string[];
+  webhookUrl: string;
+}) {
+  const { trigger, runAsUserIds, webhookUrl } = params;
+
+  const { tenantId: _tid, projectId: _pid, agentId: _aid, ...triggerWithoutScopes } = trigger;
+
+  return {
+    ...triggerWithoutScopes,
+    runAsUserId: getResponseRunAsUserId({
+      legacyRunAsUserId: trigger.runAsUserId,
+      runAsUserIds,
+    }),
+    runAsUserIds,
+    userCount: runAsUserIds.length,
+    webhookUrl,
+  };
+}
+
+async function getEffectiveTriggerUserIds(params: {
+  db: ManageAppVariables['db'];
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  triggerId: string;
+  legacyRunAsUserId?: string | null;
+}): Promise<string[]> {
+  const rows = await getTriggerUsers(params.db)({
+    scopes: {
+      tenantId: params.tenantId,
+      projectId: params.projectId,
+      agentId: params.agentId,
+    },
+    triggerId: params.triggerId,
+  });
+
+  if (rows.length > 0) {
+    return rows.map((row) => row.userId);
+  }
+
+  return params.legacyRunAsUserId ? [params.legacyRunAsUserId] : [];
+}
+
+function validateRunNowDelegation(params: {
+  runAsUserId?: string;
+  callerId: string;
+  tenantRole: OrgRole;
+}): void {
+  const { runAsUserId, callerId, tenantRole } = params;
+  if (!runAsUserId || runAsUserId === callerId) return;
+
+  const isAdmin = tenantRole === OrgRoles.OWNER || tenantRole === OrgRoles.ADMIN;
+  if (!isAdmin) {
+    throw createApiError({
+      code: 'forbidden',
+      message: 'Only org admins or owners can rerun triggers as a different user.',
+    });
+  }
 }
 
 /**
@@ -95,12 +190,16 @@ app.openapi(
       pagination: { page, limit },
     });
 
-    // Add webhookUrl to each trigger and exclude sensitive scope fields
-    const dataWithWebhookUrl = result.data.map((trigger) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { tenantId: _tid, projectId: _pid, agentId: _aid, ...triggerWithoutScopes } = trigger;
-      return {
-        ...triggerWithoutScopes,
+    const usersByTriggerId = await getTriggerUsersBatch(db)({
+      scopes: { tenantId, projectId, agentId },
+      triggerIds: result.data.map((trigger) => trigger.id),
+    });
+
+    const dataWithWebhookUrl = result.data.map((trigger) =>
+      buildTriggerResponse({
+        trigger,
+        runAsUserIds:
+          usersByTriggerId.get(trigger.id) ?? (trigger.runAsUserId ? [trigger.runAsUserId] : []),
         webhookUrl: generateWebhookUrl({
           baseUrl: apiBaseUrl,
           tenantId,
@@ -108,8 +207,8 @@ app.openapi(
           agentId,
           triggerId: trigger.id,
         }),
-      };
-    });
+      })
+    );
 
     return c.json({
       data: dataWithWebhookUrl,
@@ -161,12 +260,19 @@ app.openapi(
       });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { tenantId: _tid, projectId: _pid, agentId: _aid, ...triggerWithoutScopes } = trigger;
+    const runAsUserIds = await getEffectiveTriggerUserIds({
+      db,
+      tenantId,
+      projectId,
+      agentId,
+      triggerId: id,
+      legacyRunAsUserId: trigger.runAsUserId,
+    });
 
     return c.json({
-      data: {
-        ...triggerWithoutScopes,
+      data: buildTriggerResponse({
+        trigger,
+        runAsUserIds,
         webhookUrl: generateWebhookUrl({
           baseUrl: apiBaseUrl,
           tenantId,
@@ -174,7 +280,7 @@ app.openapi(
           agentId,
           triggerId: trigger.id,
         }),
-      },
+      }),
     });
   }
 );
@@ -227,11 +333,27 @@ app.openapi(
     }
 
     const id = body.id || generateId();
+    const runAsUserIds = body.runAsUserIds;
 
     // Normalize empty runAsUserId to null
     const runAsUserId = body.runAsUserId || null;
 
-    if (runAsUserId) {
+    if (!callerId && (runAsUserId || (runAsUserIds && runAsUserIds.length > 0))) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Authenticated user ID is required when setting runAsUserId or runAsUserIds',
+      });
+    }
+
+    if (runAsUserIds && runAsUserIds.length > 0) {
+      await validateRunAsUserIds({
+        runAsUserIds,
+        callerId,
+        tenantId,
+        projectId,
+        tenantRole,
+      });
+    } else if (runAsUserId) {
       if (!callerId) {
         throw createApiError({
           code: 'bad_request',
@@ -278,34 +400,42 @@ app.openapi(
       hashedAuthentication = { headers: hashedHeaders };
     }
 
-    const trigger = await createTrigger(db)({
-      ...body,
-      id,
-      tenantId,
-      projectId,
-      agentId,
-      enabled: body.enabled !== undefined ? body.enabled : true,
-      authentication: hashedAuthentication as any,
-      signatureVerification: body.signatureVerification as any,
-      runAsUserId,
-      createdBy: callerId || null,
-    });
+    const effectiveRunAsUserIds = runAsUserIds?.length
+      ? runAsUserIds
+      : runAsUserId
+        ? [runAsUserId]
+        : [];
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { tenantId: _tid, projectId: _pid, agentId: _aid, ...triggerWithoutScopes } = trigger;
+    const trigger = await createTriggerWithUsers(db)({
+      trigger: {
+        ...body,
+        id,
+        tenantId,
+        projectId,
+        agentId,
+        enabled: body.enabled !== undefined ? body.enabled : true,
+        authentication: hashedAuthentication as any,
+        signatureVerification: body.signatureVerification as any,
+        runAsUserId: null,
+        dispatchDelayMs: body.dispatchDelayMs ?? null,
+        createdBy: callerId || null,
+      },
+      userIds: effectiveRunAsUserIds,
+    });
 
     const hasNoAuth =
       !body.authentication || !(body.authentication as { headers?: unknown[] }).headers?.length;
     const hasNoSignatureVerification = !body.signatureVerification;
     const warning =
-      runAsUserId && hasNoAuth && hasNoSignatureVerification
+      effectiveRunAsUserIds.length > 0 && hasNoAuth && hasNoSignatureVerification
         ? 'This trigger will authenticate on behalf of the specified users. Please configure authentication or signature verification to ensure the trigger is secure.'
         : undefined;
 
     return c.json(
       {
-        data: {
-          ...triggerWithoutScopes,
+        data: buildTriggerResponse({
+          trigger,
+          runAsUserIds: effectiveRunAsUserIds,
           webhookUrl: generateWebhookUrl({
             baseUrl: apiBaseUrl,
             tenantId,
@@ -313,7 +443,7 @@ app.openapi(
             agentId,
             triggerId: trigger.id,
           }),
-        },
+        }),
         ...(warning && { warning }),
       },
       201
@@ -381,19 +511,45 @@ app.openapi(
       });
     }
 
+    const existingRunAsUserIds = await getEffectiveTriggerUserIds({
+      db,
+      tenantId,
+      projectId,
+      agentId,
+      triggerId: id,
+      legacyRunAsUserId: existingForAuth.runAsUserId,
+    });
+
     assertCanMutateTrigger({
       trigger: {
         createdBy: existingForAuth.createdBy ?? null,
         runAsUserId: existingForAuth.runAsUserId ?? null,
+        runAsUserIds: existingRunAsUserIds,
       },
       callerId,
       tenantRole,
     });
 
+    const runAsUserIds = body.runAsUserIds;
     // Normalize empty runAsUserId to null
     const runAsUserId = body.runAsUserId !== undefined ? body.runAsUserId || null : undefined;
 
-    if (runAsUserId && runAsUserId !== existingForAuth.runAsUserId) {
+    if (!callerId && (runAsUserId || (runAsUserIds && runAsUserIds.length > 0))) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Authenticated user ID is required when setting runAsUserId or runAsUserIds',
+      });
+    }
+
+    if (runAsUserIds && runAsUserIds.length > 0) {
+      await validateRunAsUserIds({
+        runAsUserIds,
+        callerId,
+        tenantId,
+        projectId,
+        tenantRole,
+      });
+    } else if (runAsUserId && runAsUserId !== existingForAuth.runAsUserId) {
       if (!callerId) {
         throw createApiError({
           code: 'bad_request',
@@ -415,7 +571,9 @@ app.openapi(
       body.authentication !== undefined ||
       body.signingSecretCredentialReferenceId !== undefined ||
       body.signatureVerification !== undefined ||
-      body.runAsUserId !== undefined;
+      body.runAsUserId !== undefined ||
+      body.runAsUserIds !== undefined ||
+      body.dispatchDelayMs !== undefined;
 
     if (!hasUpdateFields) {
       throw createApiError({
@@ -493,15 +651,34 @@ app.openapi(
       hashedAuthentication = body.authentication;
     }
 
-    const updatedTrigger = await updateTrigger(db)({
-      scopes: { tenantId, projectId, agentId },
-      triggerId: id,
-      data: {
-        ...body,
-        authentication: hashedAuthentication as any,
-        signatureVerification: body.signatureVerification as any,
-        ...(runAsUserId !== undefined && { runAsUserId }),
-      },
+    const updatedTrigger = await db.transaction(async (tx) => {
+      const updated = await updateTrigger(tx)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId: id,
+        data: {
+          ...body,
+          authentication: hashedAuthentication as any,
+          signatureVerification: body.signatureVerification as any,
+          ...(runAsUserId !== undefined || runAsUserIds !== undefined ? { runAsUserId: null } : {}),
+          ...(body.dispatchDelayMs !== undefined ? { dispatchDelayMs: body.dispatchDelayMs } : {}),
+        },
+      });
+
+      if (runAsUserIds !== undefined) {
+        await setTriggerUsers(tx)({
+          scopes: { tenantId, projectId, agentId },
+          triggerId: id,
+          userIds: runAsUserIds,
+        });
+      } else if (runAsUserId !== undefined) {
+        await setTriggerUsers(tx)({
+          scopes: { tenantId, projectId, agentId },
+          triggerId: id,
+          userIds: runAsUserId ? [runAsUserId] : [],
+        });
+      }
+
+      return updated;
     });
 
     if (!updatedTrigger) {
@@ -511,27 +688,28 @@ app.openapi(
       });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const {
-      tenantId: _tid,
-      projectId: _pid,
-      agentId: _aid,
-      ...triggerWithoutScopes
-    } = updatedTrigger;
+    const effectiveRunAsUserIds =
+      runAsUserIds !== undefined
+        ? runAsUserIds
+        : runAsUserId !== undefined
+          ? runAsUserId
+            ? [runAsUserId]
+            : []
+          : existingRunAsUserIds;
 
-    const effectiveRunAsUserId = updatedTrigger.runAsUserId;
     const effectiveAuth = updatedTrigger.authentication as { headers?: unknown[] } | null;
     const effectiveSigVerification = updatedTrigger.signatureVerification;
     const hasNoAuthAfterUpdate = !effectiveAuth || !effectiveAuth.headers?.length;
     const hasNoSigVerAfterUpdate = !effectiveSigVerification;
     const updateWarning =
-      effectiveRunAsUserId && hasNoAuthAfterUpdate && hasNoSigVerAfterUpdate
+      effectiveRunAsUserIds.length > 0 && hasNoAuthAfterUpdate && hasNoSigVerAfterUpdate
         ? 'This trigger will authenticate on behalf of the specified users. Please configure authentication or signature verification to ensure the trigger is secure.'
         : undefined;
 
     return c.json({
-      data: {
-        ...triggerWithoutScopes,
+      data: buildTriggerResponse({
+        trigger: updatedTrigger,
+        runAsUserIds: effectiveRunAsUserIds,
         webhookUrl: generateWebhookUrl({
           baseUrl: apiBaseUrl,
           tenantId,
@@ -539,7 +717,7 @@ app.openapi(
           agentId,
           triggerId: updatedTrigger.id,
         }),
-      },
+      }),
       ...(updateWarning && { warning: updateWarning }),
     });
   }
@@ -594,10 +772,20 @@ app.openapi(
       });
     }
 
+    const existingRunAsUserIds = await getEffectiveTriggerUserIds({
+      db,
+      tenantId,
+      projectId,
+      agentId,
+      triggerId: id,
+      legacyRunAsUserId: existing.runAsUserId,
+    });
+
     assertCanMutateTrigger({
       trigger: {
         createdBy: existing.createdBy ?? null,
         runAsUserId: existing.runAsUserId ?? null,
+        runAsUserIds: existingRunAsUserIds,
       },
       callerId,
       tenantRole,
@@ -609,6 +797,366 @@ app.openapi(
     });
 
     return c.body(null, 204);
+  }
+);
+
+const TriggerUserIdParamsSchema = TenantProjectAgentIdParamsSchema.extend({
+  userId: z.string().describe('User ID'),
+});
+
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/{id}/users',
+    summary: 'List Trigger Users',
+    operationId: 'list-trigger-users',
+    tags: ['Triggers'],
+    permission: requireProjectPermission('view'),
+    request: {
+      params: TenantProjectAgentIdParamsSchema,
+    },
+    responses: {
+      200: {
+        description: 'List of users associated with this trigger',
+        content: {
+          'application/json': {
+            schema: TriggerUsersResponseSchema,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
+
+    const existing = await getTriggerById(db)({
+      scopes: { tenantId, projectId, agentId },
+      triggerId: id,
+    });
+
+    if (!existing) {
+      throw createApiError({ code: 'not_found', message: 'Trigger not found' });
+    }
+
+    const runAsUserIds = await getEffectiveTriggerUserIds({
+      db,
+      tenantId,
+      projectId,
+      agentId,
+      triggerId: id,
+      legacyRunAsUserId: existing.runAsUserId,
+    });
+
+    return c.json({ data: runAsUserIds });
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'put',
+    path: '/{id}/users',
+    summary: 'Set Trigger Users',
+    operationId: 'set-trigger-users',
+    tags: ['Triggers'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: TenantProjectAgentIdParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: SetTriggerUsersRequestSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Trigger users replaced successfully',
+        content: {
+          'application/json': {
+            schema: TriggerUsersResponseSchema,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
+    const { userIds } = c.req.valid('json');
+    const callerId = c.get('userId') ?? '';
+    const tenantRole = c.get('tenantRole') as OrgRole;
+
+    if (!tenantRole) {
+      throw createApiError({ code: 'unauthorized', message: 'Missing tenant role' });
+    }
+
+    const existing = await getTriggerById(db)({
+      scopes: { tenantId, projectId, agentId },
+      triggerId: id,
+    });
+
+    if (!existing) {
+      throw createApiError({ code: 'not_found', message: 'Trigger not found' });
+    }
+
+    const existingRunAsUserIds = await getEffectiveTriggerUserIds({
+      db,
+      tenantId,
+      projectId,
+      agentId,
+      triggerId: id,
+      legacyRunAsUserId: existing.runAsUserId,
+    });
+
+    assertCanMutateTrigger({
+      trigger: {
+        createdBy: existing.createdBy ?? null,
+        runAsUserId: existing.runAsUserId ?? null,
+        runAsUserIds: existingRunAsUserIds,
+      },
+      callerId,
+      tenantRole,
+    });
+
+    if (userIds.length > 0) {
+      await validateRunAsUserIds({
+        runAsUserIds: userIds,
+        callerId,
+        tenantId,
+        projectId,
+        tenantRole,
+      });
+    }
+
+    await db.transaction(async (tx) => {
+      await setTriggerUsers(tx)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId: id,
+        userIds,
+      });
+
+      await updateTrigger(tx)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId: id,
+        data: {
+          runAsUserId: null,
+        },
+      });
+    });
+
+    return c.json({ data: userIds });
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'post',
+    path: '/{id}/users',
+    summary: 'Add User to Trigger',
+    operationId: 'add-trigger-user',
+    tags: ['Triggers'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: TenantProjectAgentIdParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: AddTriggerUserRequestSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      201: {
+        description: 'User added to trigger successfully',
+        content: {
+          'application/json': {
+            schema: TriggerUsersResponseSchema,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId, agentId, id } = c.req.valid('param');
+    const { userId } = c.req.valid('json');
+    const callerId = c.get('userId') ?? '';
+    const tenantRole = c.get('tenantRole') as OrgRole;
+
+    if (!tenantRole) {
+      throw createApiError({ code: 'unauthorized', message: 'Missing tenant role' });
+    }
+
+    const existing = await getTriggerById(db)({
+      scopes: { tenantId, projectId, agentId },
+      triggerId: id,
+    });
+
+    if (!existing) {
+      throw createApiError({ code: 'not_found', message: 'Trigger not found' });
+    }
+
+    const existingRunAsUserIds = await getEffectiveTriggerUserIds({
+      db,
+      tenantId,
+      projectId,
+      agentId,
+      triggerId: id,
+      legacyRunAsUserId: existing.runAsUserId,
+    });
+
+    assertCanMutateTrigger({
+      trigger: {
+        createdBy: existing.createdBy ?? null,
+        runAsUserId: existing.runAsUserId ?? null,
+        runAsUserIds: existingRunAsUserIds,
+      },
+      callerId,
+      tenantRole,
+    });
+
+    await validateRunAsUserIds({
+      runAsUserIds: [userId],
+      callerId,
+      tenantId,
+      projectId,
+      tenantRole,
+    });
+
+    await db.transaction(async (tx) => {
+      if (existing.runAsUserId && existingRunAsUserIds.length === 1) {
+        await setTriggerUsers(tx)({
+          scopes: { tenantId, projectId, agentId },
+          triggerId: id,
+          userIds: existingRunAsUserIds,
+        });
+      }
+
+      await createTriggerUser(tx)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId: id,
+        userId,
+      });
+
+      await updateTrigger(tx)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId: id,
+        data: {
+          runAsUserId: null,
+        },
+      });
+    });
+
+    const rows = await getTriggerUsers(db)({
+      scopes: { tenantId, projectId, agentId },
+      triggerId: id,
+    });
+
+    return c.json({ data: rows.map((row) => row.userId) }, 201);
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'delete',
+    path: '/{id}/users/{userId}',
+    summary: 'Remove User from Trigger',
+    operationId: 'remove-trigger-user',
+    tags: ['Triggers'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: TriggerUserIdParamsSchema,
+    },
+    responses: {
+      200: {
+        description: 'User removed from trigger successfully',
+        content: {
+          'application/json': {
+            schema: TriggerUsersResponseSchema,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId, agentId, id, userId } = c.req.valid('param');
+    const callerId = c.get('userId') ?? '';
+    const tenantRole = c.get('tenantRole') as OrgRole;
+
+    if (!tenantRole) {
+      throw createApiError({ code: 'unauthorized', message: 'Missing tenant role' });
+    }
+
+    const existing = await getTriggerById(db)({
+      scopes: { tenantId, projectId, agentId },
+      triggerId: id,
+    });
+
+    if (!existing) {
+      throw createApiError({ code: 'not_found', message: 'Trigger not found' });
+    }
+
+    const existingRunAsUserIds = await getEffectiveTriggerUserIds({
+      db,
+      tenantId,
+      projectId,
+      agentId,
+      triggerId: id,
+      legacyRunAsUserId: existing.runAsUserId,
+    });
+
+    assertCanMutateTrigger({
+      trigger: {
+        createdBy: existing.createdBy ?? null,
+        runAsUserId: existing.runAsUserId ?? null,
+        runAsUserIds: existingRunAsUserIds,
+      },
+      callerId,
+      tenantRole,
+    });
+
+    if (!existingRunAsUserIds.includes(userId)) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'User is not associated with this trigger',
+      });
+    }
+
+    const remainingUserIds = existingRunAsUserIds.filter((idValue) => idValue !== userId);
+
+    await db.transaction(async (tx) => {
+      if (existing.runAsUserId && existingRunAsUserIds.length === 1) {
+        await setTriggerUsers(tx)({
+          scopes: { tenantId, projectId, agentId },
+          triggerId: id,
+          userIds: existingRunAsUserIds,
+        });
+      }
+
+      await deleteTriggerUser(tx)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId: id,
+        userId,
+      });
+
+      await updateTrigger(tx)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId: id,
+        data: {
+          runAsUserId: null,
+        },
+      });
+    });
+
+    return c.json({ data: remainingUserIds });
   }
 );
 
@@ -768,6 +1316,10 @@ app.openapi(
                 .array(PartSchema)
                 .optional()
                 .describe('Optional structured message parts (from original trace)'),
+              runAsUserId: z
+                .string()
+                .optional()
+                .describe('Specific associated user to rerun this trigger as'),
             }),
           },
         },
@@ -794,7 +1346,11 @@ app.openapi(
     const db = c.get('db');
     const resolvedRef = c.get('resolvedRef');
     const { tenantId, projectId, agentId, id: triggerId } = c.req.valid('param');
-    const { userMessage, messageParts: rawMessageParts } = c.req.valid('json');
+    const {
+      userMessage,
+      messageParts: rawMessageParts,
+      runAsUserId: requestedRunAsUserId,
+    } = c.req.valid('json');
     const callerId = c.get('userId') ?? '';
     const tenantRole = c.get('tenantRole') as OrgRole;
     if (!tenantRole) {
@@ -818,16 +1374,60 @@ app.openapi(
       });
     }
 
-    if (trigger.runAsUserId) {
-      assertCanMutateTrigger({ trigger, callerId, tenantRole });
-    }
-
     if (!trigger.enabled) {
       throw createApiError({
         code: 'conflict',
         message: 'Trigger is disabled',
       });
     }
+
+    const triggerUserIds = await getEffectiveTriggerUserIds({
+      db,
+      tenantId,
+      projectId,
+      agentId,
+      triggerId,
+      legacyRunAsUserId: trigger.runAsUserId,
+    });
+
+    let runAsUserId: string | undefined;
+    if (triggerUserIds.length > 0) {
+      if (requestedRunAsUserId) {
+        if (!triggerUserIds.includes(requestedRunAsUserId)) {
+          throw createApiError({
+            code: 'bad_request',
+            message: 'runAsUserId is not associated with this trigger',
+          });
+        }
+        runAsUserId = requestedRunAsUserId;
+      } else if (triggerUserIds.length > 1) {
+        throw createApiError({
+          code: 'bad_request',
+          message: 'Multi-user trigger requires runAsUserId for rerun',
+        });
+      } else {
+        runAsUserId = triggerUserIds[0];
+      }
+    } else if (requestedRunAsUserId) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'runAsUserId is not associated with this trigger',
+      });
+    }
+
+    const callerCanUse = await canUseProjectStrict({ userId: callerId, tenantId, projectId });
+    if (!callerCanUse) {
+      throw createApiError({
+        code: 'forbidden',
+        message: 'You no longer have permission to use this project',
+      });
+    }
+
+    validateRunNowDelegation({
+      runAsUserId,
+      callerId,
+      tenantRole,
+    });
 
     const messageParts = rawMessageParts ?? [{ kind: 'text' as const, text: userMessage }];
 
@@ -844,7 +1444,7 @@ app.openapi(
         transformedPayload: undefined,
         messageParts,
         userMessageText: userMessage,
-        runAsUserId: trigger.runAsUserId ?? undefined,
+        runAsUserId,
       }));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);

@@ -1,9 +1,13 @@
 import {
+  createApiError,
   createCredentialReference,
   createFullAgentServerSide,
   createTrigger,
   createTriggerInvocation,
+  createTriggerUser,
   generateId,
+  getTriggerById,
+  getTriggerUsers,
 } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -14,13 +18,28 @@ import { makeRequest } from '../../../utils/testRequest';
 import { createTestSubAgentData } from '../../../utils/testSubAgent';
 import { createTestTenantWithOrg } from '../../../utils/testTenant';
 
-const { dispatchExecutionMock, assertCanMutateTriggerMock } = vi.hoisted(() => ({
+const {
+  dispatchExecutionMock,
+  assertCanMutateTriggerMock,
+  canUseProjectStrictMock,
+  validateRunAsUserIdsMock,
+} = vi.hoisted(() => ({
   dispatchExecutionMock: vi.fn().mockResolvedValue({
     invocationId: 'test-invocation-id',
     conversationId: 'test-conversation-id',
   }),
   assertCanMutateTriggerMock: vi.fn(),
+  canUseProjectStrictMock: vi.fn().mockResolvedValue(true),
+  validateRunAsUserIdsMock: vi.fn().mockResolvedValue(undefined),
 }));
+
+vi.mock('@inkeep/agents-core', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...(actual as Record<string, unknown>),
+    canUseProjectStrict: canUseProjectStrictMock,
+  };
+});
 
 vi.mock('../../../../domains/run/services/TriggerService', async (importOriginal) => {
   const actual =
@@ -37,13 +56,19 @@ vi.mock('../../../../domains/manage/routes/triggerHelpers', async (importOrigina
   return {
     ...actual,
     assertCanMutateTrigger: assertCanMutateTriggerMock,
+    validateRunAsUserIds: validateRunAsUserIdsMock,
   };
 });
 
 describe('Trigger CRUD Routes - Integration Tests', () => {
   beforeEach(() => {
-    dispatchExecutionMock.mockClear();
-    assertCanMutateTriggerMock.mockClear();
+    dispatchExecutionMock.mockReset().mockResolvedValue({
+      invocationId: 'test-invocation-id',
+      conversationId: 'test-conversation-id',
+    });
+    assertCanMutateTriggerMock.mockReset();
+    canUseProjectStrictMock.mockReset().mockResolvedValue(true);
+    validateRunAsUserIdsMock.mockReset().mockResolvedValue(undefined);
   });
 
   // Helper function to create full agent data
@@ -1248,65 +1273,50 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
     });
   });
 
-  describe('POST /{id}/rerun', () => {
-    it('should forward runAsUserId to dispatchExecution and call assertCanMutateTrigger when trigger has runAsUserId', async () => {
-      const tenantId = await createTestTenantWithOrg('rerun-with-user');
+  describe('GET /{id}/users', () => {
+    it('should return empty array for trigger with no users', async () => {
+      const tenantId = await createTestTenantWithOrg('users-list-empty');
       const { agentId, projectId } = await createTestAgent(tenantId);
+      const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
 
-      const triggerId = `trigger-${generateId(6)}`;
-      const runAsUserId = `user-${generateId(6)}`;
-      await createTrigger(manageDbClient)({
-        id: triggerId,
-        tenantId,
-        projectId,
-        agentId,
-        name: 'User-scoped Trigger',
-        description: 'Test trigger with runAsUserId',
-        enabled: true,
-        runAsUserId,
-        createdBy: null,
-        authentication: null,
-        signatureVerification: null,
-        signingSecretCredentialReferenceId: null,
-        inputSchema: null,
-        outputTransform: null,
-        messageTemplate: 'Hello {{name}}',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/users`
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.data).toEqual([]);
+    });
+
+    it('should return trigger_users rows', async () => {
+      const tenantId = await createTestTenantWithOrg('users-list');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+      const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
+
+      await createTriggerUser(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId: trigger.id,
+        userId: 'user-a',
+      });
+      await createTriggerUser(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId: trigger.id,
+        userId: 'user-b',
       });
 
       const res = await makeRequest(
-        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}/rerun`,
-        {
-          method: 'POST',
-          body: JSON.stringify({ userMessage: 'test message' }),
-        }
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/users`
       );
 
-      expect(res.status).toBe(202);
+      expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.success).toBe(true);
-
-      expect(assertCanMutateTriggerMock).toHaveBeenCalledOnce();
-      const guardArgs = assertCanMutateTriggerMock.mock.calls[0][0];
-      expect(guardArgs.trigger.runAsUserId).toBe(runAsUserId);
-
-      expect(dispatchExecutionMock).toHaveBeenCalledOnce();
-      const callArgs = dispatchExecutionMock.mock.calls[0][0];
-      expect(callArgs.runAsUserId).toBe(runAsUserId);
-      expect(callArgs.triggerId).toBe(triggerId);
-      expect(callArgs.tenantId).toBe(tenantId);
-      expect(callArgs.projectId).toBe(projectId);
-      expect(callArgs.agentId).toBe(agentId);
+      expect(body.data).toHaveLength(2);
+      expect(body.data).toContain('user-a');
+      expect(body.data).toContain('user-b');
     });
 
-    it('should return 403 when non-admin caller is not the runAsUserId or createdBy', async () => {
-      const { createApiError } = await import('@inkeep/agents-core');
-      assertCanMutateTriggerMock.mockImplementationOnce(() => {
-        throw createApiError({ code: 'forbidden', message: 'forbidden' });
-      });
-
-      const tenantId = await createTestTenantWithOrg('rerun-forbidden');
+    it('should fall back to legacy runAsUserId when no trigger_users rows exist', async () => {
+      const tenantId = await createTestTenantWithOrg('users-list-legacy');
       const { agentId, projectId } = await createTestAgent(tenantId);
 
       const triggerId = `trigger-${generateId(6)}`;
@@ -1315,11 +1325,11 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         tenantId,
         projectId,
         agentId,
-        name: 'Other User Trigger',
+        name: 'Legacy Trigger',
         description: null,
         enabled: true,
-        runAsUserId: 'other-user-id',
-        createdBy: 'other-user-id',
+        runAsUserId: 'legacy-user',
+        createdBy: null,
         authentication: null,
         signatureVerification: null,
         signingSecretCredentialReferenceId: null,
@@ -1331,6 +1341,466 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       });
 
       const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}/users`
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.data).toEqual(['legacy-user']);
+    });
+
+    it('should return 404 for non-existent trigger', async () => {
+      const tenantId = await createTestTenantWithOrg('users-list-404');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/non-existent/users`
+      );
+
+      expect(res.status).toBe(404);
+    });
+  });
+
+  describe('PUT /{id}/users', () => {
+    it('should replace all trigger users', async () => {
+      const tenantId = await createTestTenantWithOrg('users-put-replace');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+      const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
+
+      await createTriggerUser(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId: trigger.id,
+        userId: 'old-user',
+      });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/users`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ userIds: ['new-user-1', 'new-user-2'] }),
+        }
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.data).toEqual(['new-user-1', 'new-user-2']);
+
+      const rows = await getTriggerUsers(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId: trigger.id,
+      });
+      expect(rows.map((r) => r.userId).sort()).toEqual(['new-user-1', 'new-user-2']);
+    });
+
+    it('should keep trigger enabled when setting users to empty array', async () => {
+      const tenantId = await createTestTenantWithOrg('users-put-disable');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+      const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
+
+      await createTriggerUser(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId: trigger.id,
+        userId: 'user-1',
+      });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/users`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ userIds: [] }),
+        }
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.data).toEqual([]);
+
+      const updated = await getTriggerById(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId: trigger.id,
+      });
+      expect(updated?.enabled).toBe(true);
+    });
+
+    it('should clear legacy runAsUserId when setting users', async () => {
+      const tenantId = await createTestTenantWithOrg('users-put-legacy');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+
+      const triggerId = `trigger-${generateId(6)}`;
+      await createTrigger(manageDbClient)({
+        id: triggerId,
+        tenantId,
+        projectId,
+        agentId,
+        name: 'Legacy Trigger',
+        description: null,
+        enabled: true,
+        runAsUserId: 'legacy-user',
+        createdBy: null,
+        authentication: null,
+        signatureVerification: null,
+        signingSecretCredentialReferenceId: null,
+        inputSchema: null,
+        outputTransform: null,
+        messageTemplate: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}/users`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ userIds: ['new-user'] }),
+        }
+      );
+
+      expect(res.status).toBe(200);
+
+      const updated = await getTriggerById(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId,
+      });
+      expect(updated?.runAsUserId).toBeNull();
+    });
+
+    it('should call assertCanMutateTrigger with correct params', async () => {
+      const tenantId = await createTestTenantWithOrg('users-put-authz');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+      const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
+
+      await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/users`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ userIds: ['user-1'] }),
+        }
+      );
+
+      expect(assertCanMutateTriggerMock).toHaveBeenCalledOnce();
+      expect(assertCanMutateTriggerMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          trigger: expect.objectContaining({
+            createdBy: expect.any(String),
+          }),
+        })
+      );
+    });
+
+    it('should return 403 when assertCanMutateTrigger rejects', async () => {
+      const tenantId = await createTestTenantWithOrg('users-put-forbidden');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+      const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
+
+      assertCanMutateTriggerMock.mockImplementation(() => {
+        throw createApiError({ code: 'forbidden', message: 'Not allowed' });
+      });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/users`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ userIds: ['user-1'] }),
+        }
+      );
+
+      expect(res.status).toBe(403);
+    });
+
+    it('should return 404 for non-existent trigger', async () => {
+      const tenantId = await createTestTenantWithOrg('users-put-404');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/non-existent/users`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ userIds: ['user-1'] }),
+        }
+      );
+
+      expect(res.status).toBe(404);
+    });
+  });
+
+  describe('POST /{id}/users', () => {
+    it('should add a user to a trigger', async () => {
+      const tenantId = await createTestTenantWithOrg('users-add');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+      const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
+
+      await createTriggerUser(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId: trigger.id,
+        userId: 'existing-user',
+      });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/users`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ userId: 'new-user' }),
+        }
+      );
+
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.data).toHaveLength(2);
+      expect(body.data).toContain('existing-user');
+      expect(body.data).toContain('new-user');
+    });
+
+    it('should migrate legacy runAsUserId to trigger_users when adding first user', async () => {
+      const tenantId = await createTestTenantWithOrg('users-add-legacy');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+
+      const triggerId = `trigger-${generateId(6)}`;
+      await createTrigger(manageDbClient)({
+        id: triggerId,
+        tenantId,
+        projectId,
+        agentId,
+        name: 'Legacy Trigger',
+        description: null,
+        enabled: true,
+        runAsUserId: 'legacy-user',
+        createdBy: null,
+        authentication: null,
+        signatureVerification: null,
+        signingSecretCredentialReferenceId: null,
+        inputSchema: null,
+        outputTransform: null,
+        messageTemplate: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}/users`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ userId: 'new-user' }),
+        }
+      );
+
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.data).toHaveLength(2);
+      expect(body.data).toContain('legacy-user');
+      expect(body.data).toContain('new-user');
+
+      const updated = await getTriggerById(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId,
+      });
+      expect(updated?.runAsUserId).toBeNull();
+    });
+
+    it('should return 404 for non-existent trigger', async () => {
+      const tenantId = await createTestTenantWithOrg('users-add-404');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/non-existent/users`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ userId: 'user-1' }),
+        }
+      );
+
+      expect(res.status).toBe(404);
+    });
+  });
+
+  describe('DELETE /{id}/users/{userId}', () => {
+    it('should remove a user from a trigger', async () => {
+      const tenantId = await createTestTenantWithOrg('users-delete');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+      const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
+
+      await createTriggerUser(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId: trigger.id,
+        userId: 'user-a',
+      });
+      await createTriggerUser(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId: trigger.id,
+        userId: 'user-b',
+      });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/users/user-a`,
+        { method: 'DELETE' }
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.data).toEqual(['user-b']);
+    });
+
+    it('should keep trigger enabled when removing the last user', async () => {
+      const tenantId = await createTestTenantWithOrg('users-delete-last');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+      const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
+
+      await createTriggerUser(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId: trigger.id,
+        userId: 'only-user',
+      });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/users/only-user`,
+        { method: 'DELETE' }
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.data).toEqual([]);
+
+      const updated = await getTriggerById(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId: trigger.id,
+      });
+      expect(updated?.enabled).toBe(true);
+    });
+
+    it('should migrate legacy runAsUserId before removing', async () => {
+      const tenantId = await createTestTenantWithOrg('users-delete-legacy');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+
+      const triggerId = `trigger-${generateId(6)}`;
+      await createTrigger(manageDbClient)({
+        id: triggerId,
+        tenantId,
+        projectId,
+        agentId,
+        name: 'Legacy Trigger',
+        description: null,
+        enabled: true,
+        runAsUserId: 'legacy-user',
+        createdBy: null,
+        authentication: null,
+        signatureVerification: null,
+        signingSecretCredentialReferenceId: null,
+        inputSchema: null,
+        outputTransform: null,
+        messageTemplate: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}/users/legacy-user`,
+        { method: 'DELETE' }
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.data).toEqual([]);
+
+      const updated = await getTriggerById(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId,
+      });
+      expect(updated?.enabled).toBe(true);
+      expect(updated?.runAsUserId).toBeNull();
+    });
+
+    it('should return 404 when user is not associated with trigger', async () => {
+      const tenantId = await createTestTenantWithOrg('users-delete-not-found');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+      const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
+
+      await createTriggerUser(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId: trigger.id,
+        userId: 'user-a',
+      });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/users/non-existent-user`,
+        { method: 'DELETE' }
+      );
+
+      expect(res.status).toBe(404);
+    });
+
+    it('should return 403 when assertCanMutateTrigger rejects', async () => {
+      const tenantId = await createTestTenantWithOrg('users-delete-forbidden');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+      const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
+
+      await createTriggerUser(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId: trigger.id,
+        userId: 'user-a',
+      });
+
+      assertCanMutateTriggerMock.mockImplementation(() => {
+        throw createApiError({ code: 'forbidden', message: 'Not allowed' });
+      });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/users/user-a`,
+        { method: 'DELETE' }
+      );
+
+      expect(res.status).toBe(403);
+    });
+
+    it('should return 404 for non-existent trigger', async () => {
+      const tenantId = await createTestTenantWithOrg('users-delete-trigger-404');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/non-existent/users/user-a`,
+        { method: 'DELETE' }
+      );
+
+      expect(res.status).toBe(404);
+    });
+  });
+
+  describe('POST /{id}/rerun', () => {
+    it('should require runAsUserId for multi-user trigger reruns and forward it to dispatchExecution', async () => {
+      const tenantId = await createTestTenantWithOrg('rerun-with-user');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+
+      const triggerId = `trigger-${generateId(6)}`;
+      await createTrigger(manageDbClient)({
+        id: triggerId,
+        tenantId,
+        projectId,
+        agentId,
+        name: 'Multi-user Trigger',
+        description: 'Test trigger with trigger_users rows',
+        enabled: true,
+        runAsUserId: null,
+        createdBy: null,
+        authentication: null,
+        signatureVerification: null,
+        signingSecretCredentialReferenceId: null,
+        inputSchema: null,
+        outputTransform: null,
+        messageTemplate: 'Hello {{name}}',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      await createTriggerUser(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId,
+        userId: 'user-1',
+      });
+      await createTriggerUser(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId,
+        userId: 'user-2',
+      });
+
+      const missingRunAsRes = await makeRequest(
         `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}/rerun`,
         {
           method: 'POST',
@@ -1338,11 +1808,74 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
         }
       );
 
-      expect(res.status).toBe(403);
+      expect(missingRunAsRes.status).toBe(400);
+      const missingBody = await missingRunAsRes.json();
+      expect(missingBody.error.message).toBe('Multi-user trigger requires runAsUserId for rerun');
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}/rerun`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ userMessage: 'test message', runAsUserId: 'user-2' }),
+        }
+      );
+
+      expect(res.status).toBe(202);
+      const body = await res.json();
+      expect(body.success).toBe(true);
+
+      expect(dispatchExecutionMock).toHaveBeenCalledOnce();
+      const callArgs = dispatchExecutionMock.mock.calls[0][0];
+      expect(callArgs.runAsUserId).toBe('user-2');
+      expect(callArgs.triggerId).toBe(triggerId);
+      expect(callArgs.tenantId).toBe(tenantId);
+      expect(callArgs.projectId).toBe(projectId);
+      expect(callArgs.agentId).toBe(agentId);
+    });
+
+    it('should return 400 when requested runAsUserId is not associated with the trigger', async () => {
+      const tenantId = await createTestTenantWithOrg('rerun-invalid-user');
+      const { agentId, projectId } = await createTestAgent(tenantId);
+
+      const triggerId = `trigger-${generateId(6)}`;
+      await createTrigger(manageDbClient)({
+        id: triggerId,
+        tenantId,
+        projectId,
+        agentId,
+        name: 'Multi-user Trigger',
+        description: null,
+        enabled: true,
+        runAsUserId: null,
+        createdBy: null,
+        authentication: null,
+        signatureVerification: null,
+        signingSecretCredentialReferenceId: null,
+        inputSchema: null,
+        outputTransform: null,
+        messageTemplate: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      await createTriggerUser(manageDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId,
+        userId: 'user-1',
+      });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}/rerun`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ userMessage: 'test message', runAsUserId: 'user-2' }),
+        }
+      );
+
+      expect(res.status).toBe(400);
       expect(dispatchExecutionMock).not.toHaveBeenCalled();
     });
 
-    it('should not call assertCanMutateTrigger when trigger has no runAsUserId', async () => {
+    it('should rerun without user context when trigger has no associated user', async () => {
       const tenantId = await createTestTenantWithOrg('rerun-no-user');
       const { agentId, projectId } = await createTestAgent(tenantId);
       const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
@@ -1356,8 +1889,6 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       );
 
       expect(res.status).toBe(202);
-      expect(assertCanMutateTriggerMock).not.toHaveBeenCalled();
-
       expect(dispatchExecutionMock).toHaveBeenCalledOnce();
       const callArgs = dispatchExecutionMock.mock.calls[0][0];
       expect(callArgs.runAsUserId).toBeUndefined();

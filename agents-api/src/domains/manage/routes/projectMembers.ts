@@ -7,6 +7,7 @@ import {
   listProjectMembers,
   ProjectRoles,
   removeUserFromProjectScheduledTriggers,
+  removeUserFromProjectTriggerUsers,
   revokeProjectAccess,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
@@ -266,6 +267,20 @@ app.openapi(
       logger.error(
         { userId, error: err },
         'Failed to clean up user from scheduled triggers after project removal'
+      );
+    }
+
+    try {
+      const db = c.get('db');
+      await removeUserFromProjectTriggerUsers(db)({
+        tenantId,
+        projectId,
+        userId,
+      });
+    } catch (err) {
+      logger.error(
+        { tenantId, projectId, userId, error: err },
+        'Failed to clean up user from webhook triggers after project removal'
       );
     }
 

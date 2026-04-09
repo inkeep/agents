@@ -685,12 +685,23 @@ export type ComponentJoin = z.infer<typeof ComponentJoinSchema>;
 export type SignatureValidationOptions = z.infer<typeof SignatureValidationOptionsSchema>;
 
 export const TriggerInvocationStatusEnum = z.enum(['pending', 'success', 'failed']);
+export const maxWebhookDispatchDelayMs = 600_000;
 
 export const TriggerSelectSchema = registerFieldSchemas(
   createSelectSchema(triggers).extend({
     signingSecretCredentialReferenceId: z.string().nullable().optional(),
     signatureVerification: SignatureVerificationConfigSchema.nullable().optional(),
     runAsUserId: UserIdSchema.nullable().optional().describe('User ID to run the webhook as'),
+    dispatchDelayMs: z
+      .number()
+      .int()
+      .min(0)
+      .max(maxWebhookDispatchDelayMs)
+      .nullable()
+      .optional()
+      .describe(
+        `Delay in ms between dispatching each user execution (0-${maxWebhookDispatchDelayMs})`
+      ),
     createdBy: UserIdSchema.nullable()
       .optional()
       .describe('User ID of the user who created this trigger'),
@@ -716,6 +727,16 @@ export const TriggerInsertSchema = createInsertSchema(triggers, {
   signingSecretCredentialReferenceId: () =>
     z.string().optional().describe('Reference to credential containing signing secret'),
   runAsUserId: () => UserIdSchema.nullable().optional().describe('User ID to run the webhook as'),
+  dispatchDelayMs: () =>
+    z
+      .number()
+      .int()
+      .min(0)
+      .max(maxWebhookDispatchDelayMs)
+      .optional()
+      .describe(
+        `Delay in ms between dispatching each user execution (0-${maxWebhookDispatchDelayMs})`
+      ),
   createdBy: () =>
     UserIdSchema.nullable().optional().describe('User ID of the user who created this trigger'),
   signatureVerification: () =>
@@ -792,37 +813,61 @@ export const TriggerInsertSchema = createInsertSchema(triggers, {
       .describe('Configuration for webhook signature verification'),
 });
 
+export const runAsUserIdsSchema = z
+  .array(z.string())
+  .optional()
+  .refine((ids) => !ids || new Set(ids).size === ids.length, {
+    message: 'runAsUserIds must not contain duplicates',
+  })
+  .describe('Array of user IDs to run this trigger as (multi-user)');
 // For updates, we create a schema without defaults so that {} is detected as empty
 // (TriggerInsertSchema has enabled.default(true) which would make {} parse to {enabled:true})
 // We use .removeDefault() to strip the default from enabled field
 export const TriggerUpdateSchema = TriggerInsertSchema.extend({
   // Override enabled to remove the default so {} doesn't become {enabled: true}
   enabled: z.boolean().optional().describe('Whether the trigger is enabled'),
+  // Override authentication to use the update schema that supports keepExisting
+  authentication: TriggerAuthenticationUpdateSchema.optional(),
 }).partial();
 
 export const TriggerApiSelectSchema =
   createAgentScopedApiSchema(TriggerSelectSchema).openapi('Trigger');
-export const TriggerApiInsertSchema = createAgentScopedApiInsertSchema(TriggerInsertSchema)
+export const TriggerApiInsertBaseSchema = createAgentScopedApiInsertSchema(TriggerInsertSchema)
   .extend({
     id: ResourceIdSchema.optional(),
+    runAsUserIds: runAsUserIdsSchema,
   })
   .omit({
     createdAt: true,
     updatedAt: true,
+  });
+export const TriggerApiInsertSchema = TriggerApiInsertBaseSchema.refine(
+  (data) => !(data.runAsUserId && data.runAsUserIds),
+  {
+    message: 'Cannot specify both runAsUserId and runAsUserIds',
+  }
+).openapi('TriggerCreate');
+export const TriggerApiUpdateSchema = createAgentScopedApiUpdateSchema(TriggerUpdateSchema)
+  .extend({
+    runAsUserIds: runAsUserIdsSchema,
   })
-  .openapi('TriggerCreate');
-export const TriggerApiUpdateSchema =
-  createAgentScopedApiUpdateSchema(TriggerUpdateSchema).openapi('TriggerUpdate');
+  .refine((data) => !(data.runAsUserId && data.runAsUserIds), {
+    message: 'Cannot specify both runAsUserId and runAsUserIds',
+  })
+  .openapi('TriggerUpdate');
 
 // Extended Trigger schema with webhookUrl (for manage API responses)
 // Note: This extends the base TriggerApiSelectSchema to add the computed webhookUrl field
 export const TriggerWithWebhookUrlSchema = TriggerApiSelectSchema.extend({
+  runAsUserIds: z.array(z.string()).describe('User IDs associated with this trigger'),
+  userCount: z.number().int().describe('Number of associated users'),
   webhookUrl: z.string().describe('Fully qualified webhook URL for this trigger'),
 }).openapi('TriggerWithWebhookUrl');
 
 // Trigger Invocation schemas
 export const TriggerInvocationSelectSchema = createSelectSchema(triggerInvocations).extend({
   ref: ResolvedRefSchema.nullable().optional(),
+  runAsUserId: UserIdSchema.nullable().optional().describe('User ID used for this invocation'),
 });
 
 export const TriggerInvocationInsertSchema = createInsertSchema(triggerInvocations, {
@@ -833,8 +878,28 @@ export const TriggerInvocationInsertSchema = createInsertSchema(triggerInvocatio
   requestPayload: () => z.record(z.string(), z.unknown()).describe('Original webhook payload'),
   transformedPayload: () =>
     z.record(z.string(), z.unknown()).optional().describe('Transformed payload'),
+  runAsUserId: () =>
+    UserIdSchema.nullable().optional().describe('User ID used for this invocation'),
   errorMessage: () => z.string().optional().describe('Error message if status is failed'),
 });
+
+export const SetTriggerUsersRequestSchema = z
+  .object({
+    userIds: z.array(z.string()).describe('User IDs to set on this trigger'),
+  })
+  .openapi('SetTriggerUsersRequest');
+
+export const AddTriggerUserRequestSchema = z
+  .object({
+    userId: z.string().describe('User ID to add to this trigger'),
+  })
+  .openapi('AddTriggerUserRequest');
+
+export const TriggerUsersResponseSchema = z
+  .object({
+    data: z.array(z.string()).describe('User IDs associated with this trigger'),
+  })
+  .openapi('TriggerUsersResponse');
 
 export const TriggerInvocationUpdateSchema = TriggerInvocationInsertSchema.partial();
 
@@ -863,7 +928,7 @@ export const CronExpressionSchema = z
   .describe('Cron expression in standard 5-field format (minute hour day month weekday)')
   .openapi('CronExpression');
 
-export const maxDispatchDelayMs = 600_000;
+export const maxScheduledTriggerDispatchDelayMs = 600_000;
 
 export const ScheduledTriggerSelectSchema = createSelectSchema(scheduledTriggers).extend({
   payload: z.record(z.string(), z.unknown()).nullable().optional(),
@@ -944,17 +1009,16 @@ export const ScheduledTriggerApiInsertBaseSchema = createAgentScopedApiInsertSch
 )
   .extend({
     id: ResourceIdSchema.optional(),
-    runAsUserIds: z
-      .array(z.string())
-      .optional()
-      .describe('Array of user IDs to run this trigger as (multi-user)'),
+    runAsUserIds: runAsUserIdsSchema,
     dispatchDelayMs: z
       .number()
       .int()
       .min(0)
-      .max(maxDispatchDelayMs)
+      .max(maxScheduledTriggerDispatchDelayMs)
       .optional()
-      .describe('Delay in ms between dispatching each user workflow max 10 minutes'),
+      .describe(
+        `Delay in ms between dispatching each user workflow (0-${maxScheduledTriggerDispatchDelayMs})`
+      ),
   })
   .openapi('ScheduledTriggerInsertBase');
 
@@ -976,18 +1040,17 @@ export const ScheduledTriggerApiUpdateSchema = createAgentScopedApiUpdateSchema(
   ScheduledTriggerUpdateSchema
 )
   .extend({
-    runAsUserIds: z
-      .array(z.string())
-      .optional()
-      .describe('Array of user IDs to run this trigger as (multi-user)'),
+    runAsUserIds: runAsUserIdsSchema,
     dispatchDelayMs: z
       .number()
       .int()
       .min(0)
-      .max(maxDispatchDelayMs)
+      .max(maxScheduledTriggerDispatchDelayMs)
       .nullable()
       .optional()
-      .describe(`Delay in ms between dispatching each user workflow (0-${maxDispatchDelayMs})`),
+      .describe(
+        `Delay in ms between dispatching each user workflow (0-${maxScheduledTriggerDispatchDelayMs})`
+      ),
   })
   .openapi('ScheduledTriggerUpdate');
 
@@ -2503,7 +2566,7 @@ export const AgentWithinContextOfProjectSchemaBase = AgentApiInsertSchema.extend
   teamAgents: z.record(z.string(), TeamAgentSchema).optional(),
   functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(),
   functions: z.record(z.string(), FunctionApiInsertSchema).optional(),
-  triggers: z.record(z.string(), TriggerApiInsertSchema).optional(),
+  triggers: z.record(z.string(), TriggerApiInsertBaseSchema).optional(),
   contextConfig: z.optional(ContextConfigApiInsertSchema),
   statusUpdates: z.optional(StatusUpdateSchema),
   models: ModelSchema.optional(),

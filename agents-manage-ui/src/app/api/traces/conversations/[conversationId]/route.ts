@@ -305,6 +305,7 @@ function buildConversationPayloads(
         sf(SPAN_KEYS.INVOCATION_ENTRY_POINT, str, attr),
         sf(SPAN_KEYS.TRIGGER_ID, str, attr),
         sf(SPAN_KEYS.TRIGGER_INVOCATION_ID, str, attr),
+        sf(SPAN_KEYS.TRIGGER_RUN_AS_USER_ID, str, attr),
       ]
     ),
     buildQueryEnvelope(
@@ -653,6 +654,7 @@ export async function GET(
     let invocationEntryPoint: string | null = null;
     let triggerId: string | null = null;
     let triggerInvocationId: string | null = null;
+    let triggerRunAsUserId: string | null = null;
     for (const s of userMessageSpans) {
       agentId = getString(s, SPAN_KEYS.AGENT_ID, '') || null;
       agentName = getString(s, SPAN_KEYS.AGENT_NAME, '') || null;
@@ -662,6 +664,7 @@ export async function GET(
         invocationEntryPoint = getString(s, SPAN_KEYS.INVOCATION_ENTRY_POINT, '') || null;
         triggerId = getString(s, SPAN_KEYS.TRIGGER_ID, '') || null;
         triggerInvocationId = getString(s, SPAN_KEYS.TRIGGER_INVOCATION_ID, '') || null;
+        triggerRunAsUserId = getString(s, SPAN_KEYS.TRIGGER_RUN_AS_USER_ID, '') || null;
       }
       if (agentId || agentName) break;
     }
@@ -1548,6 +1551,7 @@ export async function GET(
       invocationEntryPoint,
       triggerId,
       triggerInvocationId,
+      triggerRunAsUserId,
     });
   } catch (error) {
     const logger = getLogger('conversation-details');

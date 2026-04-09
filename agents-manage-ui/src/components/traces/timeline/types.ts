@@ -234,6 +234,8 @@ export interface ConversationDetail {
   invocationEntryPoint?: string | null;
   triggerId?: string | null;
   triggerInvocationId?: string | null;
+  triggerRunAsUserId?: string | null;
+  triggerBatchId?: string | null;
 }
 
 export const TOOL_TYPES = {

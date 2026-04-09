@@ -26,10 +26,12 @@ import {
   getCredentialStoreLookupKeyFromRetrievalParams,
   getFullProjectWithRelationIds,
   getTriggerById,
+  getTriggerUsers,
   getUserProfile,
   getWaitUntil,
   interpolateTemplate,
   JsonTransformer,
+  maxScheduledTriggerDispatchDelayMs,
   setActiveAgentForConversation,
   updateTriggerInvocationStatus,
   verifySignatureWithConfig,
@@ -73,7 +75,14 @@ export type TriggerWebhookParams = {
 };
 
 export type TriggerWebhookResult =
-  | { success: true; invocationId: string; conversationId: string }
+  | {
+      success: true;
+      invocations: Array<{
+        invocationId: string;
+        conversationId: string;
+        runAsUserId: string | null;
+      }>;
+    }
   | {
       success: false;
       error: string;
@@ -89,26 +98,29 @@ export async function processWebhook(params: TriggerWebhookParams): Promise<Trig
   const { tenantId, projectId, agentId, triggerId, resolvedRef, rawBody, honoContext } = params;
 
   return runWithLogContext({ tenantId, projectId, agentId, triggerId }, async () => {
-    // 1. Load and validate trigger
-    const trigger = await loadTrigger({ tenantId, projectId, agentId, triggerId, resolvedRef });
-    if (!trigger) {
+    const loadedTrigger = await loadTrigger({
+      tenantId,
+      projectId,
+      agentId,
+      triggerId,
+      resolvedRef,
+    });
+    if (!loadedTrigger) {
       return { success: false, error: `Trigger ${triggerId} not found`, status: 404 } as const;
     }
+    const { trigger, runAsUserIds } = loadedTrigger;
 
     if (!trigger.enabled) {
       return { success: false, error: 'Trigger is disabled', status: 404 } as const;
     }
 
-    // 2. Parse payload
     const payload: Record<string, unknown> = rawBody ? JSON.parse(rawBody) : {};
 
-    // 3. Verify authentication
     const authResult = await verifyAuthentication(trigger, honoContext);
     if (!authResult.success) {
       return authResult;
     }
 
-    // 4. Verify signature
     const signatureResult = await verifySignature({
       trigger,
       tenantId,
@@ -121,13 +133,11 @@ export async function processWebhook(params: TriggerWebhookParams): Promise<Trig
       return signatureResult;
     }
 
-    // 5. Validate payload against schema
     const validationResult = validatePayload(trigger, payload);
     if (!validationResult.success) {
       return validationResult;
     }
 
-    // 6. Transform payload
     const transformResult = await transformPayload(trigger, payload, {
       tenantId,
       projectId,
@@ -138,24 +148,63 @@ export async function processWebhook(params: TriggerWebhookParams): Promise<Trig
     }
     const transformedPayload = transformResult.payload;
 
-    // 7. Build message
     const { messageParts, userMessageText } = buildMessage(trigger, transformedPayload, triggerId);
 
-    // 8. Create invocation record and dispatch async execution
-    const { invocationId, conversationId } = await dispatchExecution({
-      tenantId,
-      projectId,
-      agentId,
-      triggerId,
-      resolvedRef,
-      payload,
-      transformedPayload,
-      messageParts,
-      userMessageText,
-      runAsUserId: trigger.runAsUserId ?? undefined,
-    });
+    const executionUsers =
+      runAsUserIds.length > 0 ? runAsUserIds : trigger.runAsUserId ? [trigger.runAsUserId] : [null];
 
-    return { success: true, invocationId, conversationId };
+    const batchId = executionUsers.length > 1 ? generateId() : undefined;
+
+    const invocations = (
+      await Promise.all(
+        executionUsers.map(async (runAsUserId, index) => {
+          try {
+            const { invocationId, conversationId } = await dispatchExecution({
+              tenantId,
+              projectId,
+              agentId,
+              triggerId,
+              resolvedRef,
+              payload,
+              transformedPayload,
+              messageParts,
+              userMessageText,
+              runAsUserId: runAsUserId ?? undefined,
+              batchId,
+              delayBeforeExecutionMs: (trigger.dispatchDelayMs ?? 0) * index,
+            });
+
+            return {
+              invocationId,
+              conversationId,
+              runAsUserId,
+            };
+          } catch (error) {
+            logger.error(
+              {
+                runAsUserId,
+                error:
+                  error instanceof Error
+                    ? { message: error.message, stack: error.stack }
+                    : String(error),
+              },
+              'Failed to dispatch trigger execution for user'
+            );
+            return null;
+          }
+        })
+      )
+    ).filter((invocation): invocation is NonNullable<typeof invocation> => invocation !== null);
+
+    if (invocations.length === 0) {
+      return {
+        success: false,
+        error: 'All dispatch executions failed',
+        status: 500 as const,
+      };
+    }
+
+    return { success: true, invocations };
   });
 }
 
@@ -169,10 +218,23 @@ async function loadTrigger(params: {
   const { tenantId, projectId, agentId, triggerId, resolvedRef } = params;
 
   return await withRef(manageDbPool, resolvedRef, (db) =>
-    getTriggerById(db)({
-      scopes: { tenantId, projectId, agentId },
-      triggerId,
-    })
+    Promise.all([
+      getTriggerById(db)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId,
+      }),
+      getTriggerUsers(db)({
+        scopes: { tenantId, projectId, agentId },
+        triggerId,
+      }),
+    ]).then(([trigger, users]) =>
+      trigger
+        ? {
+            trigger,
+            runAsUserIds: users.map((user) => user.userId),
+          }
+        : undefined
+    )
   );
 }
 
@@ -507,6 +569,8 @@ export async function dispatchExecution(params: {
   messageParts: Part[];
   userMessageText: string;
   runAsUserId?: string;
+  batchId?: string;
+  delayBeforeExecutionMs?: number;
   forwardedHeaders?: Record<string, string>;
 }): Promise<{ invocationId: string; conversationId: string }> {
   const {
@@ -520,6 +584,8 @@ export async function dispatchExecution(params: {
     messageParts,
     userMessageText,
     runAsUserId,
+    batchId,
+    delayBeforeExecutionMs,
   } = params;
 
   const conversationId = getConversationId();
@@ -528,7 +594,6 @@ export async function dispatchExecution(params: {
   return runWithLogContext(
     { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
     async () => {
-      // Create invocation record (status: pending)
       // Note: transformedPayload can be any JSON value (object, array, primitive) from JMESPath transforms
       await createTriggerInvocation(runDbClient)({
         id: invocationId,
@@ -537,32 +602,43 @@ export async function dispatchExecution(params: {
         projectId,
         agentId,
         conversationId,
+        runAsUserId,
+        batchId,
         ref: resolvedRef,
         status: 'pending',
         requestPayload: payload,
         transformedPayload: transformedPayload as Record<string, unknown> | undefined,
       });
 
-      logger.info('Trigger invocation created');
+      logger.info({}, 'Trigger invocation created');
 
       // Wrap agent execution in a single promise protected by waitUntil
       // The trigger.message_received span is created inside executeAgentAsync
       const dispatchedAt = Date.now();
       logger.info({ dispatchedAt }, 'Trigger execution dispatched and starting execution');
-      const executionPromise = executeAgentAsync({
-        tenantId,
-        projectId,
-        agentId,
-        triggerId,
-        invocationId,
-        conversationId,
-        userMessage: userMessageText,
-        messageParts,
-        resolvedRef,
-        dispatchedAt,
-        runAsUserId,
-        forwardedHeaders: params.forwardedHeaders,
-      });
+
+      //Note: This is a best-effort implementation. If use-cases require a large amount of users to be executed, this should be replaced with a queue/workflow-backed design.
+      const executionPromise = (async () => {
+        if (delayBeforeExecutionMs && delayBeforeExecutionMs > 0) {
+          await new Promise((resolve) => setTimeout(resolve, delayBeforeExecutionMs));
+        }
+
+        return executeAgentAsync({
+          tenantId,
+          projectId,
+          agentId,
+          triggerId,
+          invocationId,
+          conversationId,
+          userMessage: userMessageText,
+          messageParts,
+          resolvedRef,
+          dispatchedAt,
+          runAsUserId,
+          batchId,
+          forwardedHeaders: params.forwardedHeaders,
+        });
+      })();
 
       // Attach error handling so failures are always logged and invocation status is updated to failed
       const safeExecutionPromise = executionPromise.catch(async (error) => {
@@ -588,15 +664,16 @@ export async function dispatchExecution(params: {
       // In other environments, the promise runs in the background
       const waitUntil = await getWaitUntil();
       if (waitUntil) {
-        logger.info('Calling waitUntil with execution promise');
+        logger.info({}, 'Calling waitUntil with execution promise');
         waitUntil(safeExecutionPromise);
       } else {
         logger.warn(
+          {},
           'waitUntil is NOT available — background execution will be abandoned on serverless'
         );
       }
 
-      logger.info('Async execution dispatched');
+      logger.info({}, 'Async execution dispatched');
 
       return { invocationId, conversationId };
     }
@@ -618,6 +695,7 @@ export async function executeAgentAsync(
     resolvedRef: ResolvedRef;
     dispatchedAt?: number;
     runAsUserId?: string;
+    batchId?: string;
     forwardedHeaders?: Record<string, string>;
     invocationType?: 'trigger' | 'scheduled_trigger';
     datasetRunId?: string;
@@ -640,6 +718,7 @@ export async function executeAgentAsync(
     resolvedRef,
     dispatchedAt,
     runAsUserId,
+    batchId,
     messages,
     datasetRunId,
     forwardedHeaders,
@@ -649,7 +728,7 @@ export async function executeAgentAsync(
   return runWithLogContext(
     { tenantId, projectId, agentId, triggerId, invocationId, conversationId },
     async () => {
-      logger.info('executeAgentAsync: starting');
+      logger.info({}, 'executeAgentAsync: starting');
       let userMessage: string;
       let messageParts: Part[];
 
@@ -671,7 +750,7 @@ export async function executeAgentAsync(
 
       logger.info({ dispatchDelayMs }, 'executeAgentAsync: started, loading project');
 
-      if (dispatchDelayMs !== undefined && dispatchDelayMs > 5000) {
+      if (dispatchDelayMs !== undefined && dispatchDelayMs > maxScheduledTriggerDispatchDelayMs) {
         logger.warn(
           {
             dispatchDelayMs,
@@ -694,19 +773,19 @@ export async function executeAgentAsync(
       logger.info({ hasProject: !!project, loadProjectMs }, 'executeAgentAsync: project loaded');
 
       if (!project) {
-        logger.error('Project not found for trigger execution');
+        logger.error({}, 'Project not found for trigger execution');
         throw new Error(`Project ${projectId} not found`);
       }
 
       // Find the agent's default sub-agent
       const agent = project.agents?.[agentId];
       if (!agent) {
-        logger.error('Agent not found in project for trigger execution');
+        logger.error({}, 'Agent not found in project for trigger execution');
         throw new Error(`Agent ${agentId} not found in project`);
       }
       const defaultSubAgentId = agent.defaultSubAgentId;
       if (!defaultSubAgentId) {
-        logger.error('Agent has no default sub-agent configured');
+        logger.error({}, 'Agent has no default sub-agent configured');
         throw new Error(`Agent ${agentId} has no default sub-agent configured`);
       }
 
@@ -803,7 +882,7 @@ export async function executeAgentAsync(
         .setEntry('agent.name', { value: agentName });
       const ctxWithBaggage = propagation.setBaggage(otelContext.active(), baggage);
 
-      logger.info('executeAgentAsync: starting tracer span');
+      logger.info({}, 'executeAgentAsync: starting tracer span');
 
       // Execute the agent in a new trace root with baggage
       return tracer.startActiveSpan(
@@ -819,7 +898,11 @@ export async function executeAgentAsync(
             'trigger.invocation.id': invocationId,
             'conversation.id': conversationId,
             'invocation.type': invocationType,
-            ...(runAsUserId && { 'user.id': runAsUserId, 'trigger.run_as_user_id': runAsUserId }),
+            ...(runAsUserId && {
+              'user.id': runAsUserId,
+              'trigger.run_as_user_id': runAsUserId,
+            }),
+            ...(batchId && { 'trigger.batch_id': batchId }),
           },
         },
         ctxWithBaggage,
@@ -841,13 +924,15 @@ export async function executeAgentAsync(
                 'message.content': userMessage,
                 'message.timestamp': new Date().toISOString(),
                 'message.parts': JSON.stringify(messageParts),
+                ...(runAsUserId && { 'trigger.run_as_user_id': runAsUserId }),
+                ...(batchId && { 'trigger.batch_id': batchId }),
               },
             },
             otelContext.active() // Explicitly use current context with execute_async as parent
           );
           messageSpan.end();
           await flushBatchProcessor();
-          logger.info('Starting async trigger execution');
+          logger.info({}, 'Starting async trigger execution');
 
           try {
             // Create conversation and set active agent
@@ -969,7 +1054,7 @@ export async function executeAgentAsync(
 
             span.setStatus({ code: SpanStatusCode.OK });
 
-            logger.info('Async trigger execution completed successfully');
+            logger.info({}, 'Async trigger execution completed successfully');
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             const errorStack = error instanceof Error ? error.stack : undefined;

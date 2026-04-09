@@ -246,6 +246,13 @@
       "when": 1775524239493,
       "tag": "0034_simple_sphinx",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1775524239494,
+      "tag": "0035_many_steel_serpent",
+      "breakpoints": true
     }
   ]
 }

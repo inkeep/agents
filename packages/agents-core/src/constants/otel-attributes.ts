@@ -132,6 +132,8 @@ export const SPAN_KEYS = {
   INVOCATION_ENTRY_POINT: 'invocation.entryPoint',
   TRIGGER_ID: 'trigger.id',
   TRIGGER_INVOCATION_ID: 'trigger.invocation.id',
+  TRIGGER_RUN_AS_USER_ID: 'trigger.run_as_user_id',
+  TRIGGER_BATCH_ID: 'trigger.batch_id',
 
   // Artifact processing attributes
   ARTIFACT_ID: 'artifact.id',
