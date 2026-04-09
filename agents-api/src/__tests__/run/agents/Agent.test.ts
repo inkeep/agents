@@ -1899,6 +1899,188 @@ describe('Agent tool result persistence', () => {
     });
   });
 
+  test('get_reference_artifact hydrates text/plain artifacts into a decoded text content part', async () => {
+    const fileBody = 'Important Context:\nphone number: 123-456-7890\n';
+    vi.mocked(getBlobStorageProvider).mockReturnValue({
+      download: vi.fn().mockResolvedValue({
+        data: new TextEncoder().encode(fileBody),
+        contentType: 'text/plain',
+      }),
+    } as any);
+
+    const artifactService = {
+      getArtifactFull: vi.fn().mockResolvedValue({
+        artifactId: 'art-text-1',
+        toolCallId: 'tool-1',
+        name: 'context',
+        description: 'text attachment',
+        type: 'binary_attachment',
+        data: {
+          blobUri: 'blob://v1/t_test/media/p_test/conv/c_1/m_1/sha256-abc.txt',
+          mimeType: 'text/plain',
+          binaryType: 'file',
+          filename: 'context.txt',
+        },
+      }),
+    };
+
+    const { agentSessionManager } = await import('../../../domains/run/session/AgentSession.js');
+    vi.mocked(agentSessionManager.getArtifactService).mockReturnValue(artifactService as any);
+
+    const runContext = makeRunContext();
+    runContext.streamRequestId = 'stream-123';
+
+    const tool = getArtifactTools(runContext as any) as any;
+
+    const result = await tool.execute(
+      {
+        artifactId: 'art-text-1',
+        toolCallId: 'tool-1',
+      },
+      undefined
+    );
+
+    expect(artifactService.getArtifactFull).toHaveBeenCalledWith('art-text-1', 'tool-1');
+    expect(result.content).toHaveLength(2);
+    expect(result.content[0]).toEqual({
+      type: 'text',
+      text: JSON.stringify({
+        artifactId: 'art-text-1',
+        name: 'context',
+        description: 'text attachment',
+        type: 'binary_attachment',
+        mimeType: 'text/plain',
+        binaryType: 'file',
+      }),
+    });
+    expect(result.content[1]).toEqual({
+      type: 'text',
+      text:
+        '<attached_file filename="context.txt" media_type="text/plain">\n' +
+        `${fileBody}\n` +
+        '</attached_file>',
+    });
+    expect(result.content.some((part: any) => part.type === 'file')).toBe(false);
+  });
+
+  test('get_reference_artifact from default tools: toModelOutput maps hydrated text/plain to text parts', async () => {
+    const fileBody = 'line one\nline two\n';
+    vi.mocked(getBlobStorageProvider).mockReturnValue({
+      download: vi.fn().mockResolvedValue({
+        data: new TextEncoder().encode(fileBody),
+        contentType: 'text/plain',
+      }),
+    } as any);
+
+    const artifactService = {
+      getArtifactFull: vi.fn().mockResolvedValue({
+        artifactId: 'art-text-2',
+        toolCallId: 'tool-1',
+        name: 'notes',
+        description: 'markdown notes',
+        type: 'binary_attachment',
+        data: {
+          blobUri: 'blob://v1/t_test/media/p_test/conv/c_1/m_1/sha256-def.md',
+          mimeType: 'text/markdown',
+          binaryType: 'file',
+          filename: 'notes.md',
+        },
+      }),
+    };
+
+    const { agentSessionManager } = await import('../../../domains/run/session/AgentSession.js');
+    vi.mocked(agentSessionManager.getArtifactService).mockReturnValue(artifactService as any);
+
+    const runContext = makeRunContext();
+    runContext.streamRequestId = 'stream-123';
+    runContext.executionContext.project.agents[runContext.config.agentId].subAgents[
+      runContext.config.id
+    ].artifactComponents = [
+      {
+        id: 'artifact-component',
+        name: 'ArtifactComponent',
+        description: 'Test artifact component',
+      },
+    ];
+
+    const tools = await getDefaultTools(runContext as any, 'stream-123');
+    const tool = tools.get_reference_artifact as any;
+
+    const hydratedResult = await tool.execute(
+      {
+        artifactId: 'art-text-2',
+        toolCallId: 'tool-1',
+      },
+      {
+        toolCallId: 'toolu_reference_artifact',
+      }
+    );
+
+    const modelOutput = tool.toModelOutput({ output: hydratedResult });
+    expect(modelOutput.type).toBe('content');
+    for (const part of modelOutput.value) {
+      expect(part.type).toBe('text');
+    }
+    expect(
+      modelOutput.value.some(
+        (part: any) =>
+          part.type === 'text' &&
+          part.text.includes('<attached_file filename="notes.md" media_type="text/markdown">') &&
+          part.text.includes('line one\nline two')
+      )
+    ).toBe(true);
+  });
+
+  test('get_reference_artifact falls back to file-data when text decode fails', async () => {
+    vi.mocked(getBlobStorageProvider).mockReturnValue({
+      download: vi.fn().mockResolvedValue({
+        data: Uint8Array.from([0x01, 0x02, 0x03]),
+        contentType: 'text/plain',
+      }),
+    } as any);
+
+    const artifactService = {
+      getArtifactFull: vi.fn().mockResolvedValue({
+        artifactId: 'art-text-3',
+        toolCallId: 'tool-1',
+        name: 'corrupt',
+        description: 'mislabeled text',
+        type: 'binary_attachment',
+        data: {
+          blobUri: 'blob://v1/t_test/media/p_test/conv/c_1/m_1/sha256-ghi.txt',
+          mimeType: 'text/plain',
+          binaryType: 'file',
+          filename: 'corrupt.txt',
+        },
+      }),
+    };
+
+    const { agentSessionManager } = await import('../../../domains/run/session/AgentSession.js');
+    vi.mocked(agentSessionManager.getArtifactService).mockReturnValue(artifactService as any);
+
+    const runContext = makeRunContext();
+    runContext.streamRequestId = 'stream-123';
+
+    const tool = getArtifactTools(runContext as any) as any;
+
+    const result = await tool.execute(
+      {
+        artifactId: 'art-text-3',
+        toolCallId: 'tool-1',
+      },
+      undefined
+    );
+
+    expect(result.content).toHaveLength(2);
+    expect(result.content[0].type).toBe('text');
+    expect(result.content[1]).toEqual({
+      type: 'file',
+      data: Buffer.from(Uint8Array.from([0x01, 0x02, 0x03])).toString('base64'),
+      mimeType: 'text/plain',
+      filename: 'sha256-ghi.txt',
+    });
+  });
+
   test('prepends _toolCallId and _structureHints as a text part for MCP content results', () => {
     const structureHints = { terminalPaths: ['result.foo[string]'] };
 
