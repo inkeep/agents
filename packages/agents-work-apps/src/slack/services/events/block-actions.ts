@@ -6,6 +6,7 @@
 import { getInProcessFetch, signSlackUserToken } from '@inkeep/agents-core';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
+import { SlackStrings } from '../../i18n';
 import { SLACK_SPAN_KEYS, SLACK_SPAN_NAMES, setSpanWithError, tracer } from '../../tracer';
 import { lookupAgentName } from '../agent-resolution';
 import {
@@ -19,7 +20,6 @@ import { getSlackClient } from '../client';
 import { buildAgentSelectorModal, buildMessageShortcutModal, type ModalMetadata } from '../modals';
 import { findWorkspaceConnectionByTeamId } from '../nango';
 import type { InlineSelectorMetadata } from './app-mention';
-import { SlackStrings } from '../../i18n';
 import {
   fetchAgentsForProject,
   fetchProjectsForTenant,
