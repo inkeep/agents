@@ -980,6 +980,18 @@ export async function executeToolStep(params: ExecuteToolStepParams): Promise<Ex
               approved: params.delegatedApprovalDecision.approved,
               reason: params.delegatedApprovalDecision.reason,
             };
+
+            // For denials, record the redirect on the parent agent so it survives
+            // the delegation boundary. The delegated agent's denial runs in a separate
+            // A2A context and doesn't populate the parent's taskDenialRedirects.
+            if (!params.delegatedApprovalDecision.approved) {
+              agent.runContext.taskDenialRedirects.push({
+                toolName: params.delegatedApproval.toolName,
+                toolCallId: params.delegatedApproval.toolCallId,
+                reason:
+                  params.delegatedApprovalDecision.reason ?? 'Tool call was denied by the user.',
+              });
+            }
           }
 
           const sessionId = requestId;
