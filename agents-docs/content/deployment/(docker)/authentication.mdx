@@ -142,6 +142,32 @@ Authentication is enabled by default. Configure the required environment variabl
   </Step>
 </Steps>
 
+## OAuth Provider (OIDC)
+
+The platform can act as an OAuth 2.1 / OpenID Connect authorization server, allowing external applications to authenticate users through Inkeep.
+
+### Discovery Endpoints
+
+OIDC-compatible discovery metadata is available at:
+
+- `{your-app-url}/.well-known/openid-configuration` — OpenID Connect discovery document
+- `{your-app-url}/.well-known/oauth-authorization-server/*` — OAuth 2.1 authorization server metadata
+
+External OAuth clients can use these endpoints to automatically configure the authorization code flow.
+
+### Access Token Claims
+
+Access tokens issued by the OAuth provider include custom claims for downstream clients:
+
+| Claim | Description |
+|-------|-------------|
+| `https://inkeep.com/tenantId` | The user's organization ID |
+| `https://inkeep.com/email` | The user's email address |
+
+<Note>
+  For users belonging to multiple organizations, the `tenantId` claim contains the ID of their earliest organization by membership date. A dedicated org-selection flow is not yet available.
+</Note>
+
 ## Troubleshooting
 
 ### "Invalid credentials" on first login
