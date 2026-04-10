@@ -1,8 +1,8 @@
 'use client';
 
 import { AlertCircleIcon, Loader2, ShieldCheck } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
-import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 import { InkeepIcon } from '@/components/icons/inkeep';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -18,12 +18,22 @@ const SCOPE_LABELS: Record<string, string> = {
 };
 
 function ConsentForm() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const { isAuthenticated, isLoading: isSessionLoading } = useAuthSession();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // If the user lands here unauthenticated (e.g. session expired),
+  // bounce to the login page preserving the OAuth query params so
+  // the flow can resume after sign-in.
+  useEffect(() => {
+    if (!isSessionLoading && !isAuthenticated) {
+      router.replace(`/login?${searchParams.toString()}`);
+    }
+  }, [isSessionLoading, isAuthenticated, router, searchParams]);
 
   const clientName = searchParams.get('client_name') || 'An application';
   const scope = searchParams.get('scope') || '';
@@ -48,7 +58,7 @@ function ConsentForm() {
       const data = await response.json();
 
       if (data.redirect && data.url) {
-        window.location.href = data.url;
+        window.location.assign(data.url);
       } else if (!response.ok) {
         setError(data.error_description || 'Consent request failed');
         setIsSubmitting(false);
@@ -59,20 +69,10 @@ function ConsentForm() {
     }
   };
 
-  if (isSessionLoading) {
+  if (isSessionLoading || !isAuthenticated) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="size-4 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-sm text-muted-foreground">
-          You must be signed in to authorize an application.
-        </p>
       </div>
     );
   }
