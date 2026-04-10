@@ -158,6 +158,10 @@ If auto-login isn't working when you open `http://localhost:3000`:
 - **Connection timeouts**:
     - Ensure network connectivity and firewall settings allow connections
 
+<Tip>
+  For programmatic monitoring, use the [Get Tool Status for Agent](/api-reference/agents#get-tool-status-for-agent) endpoint to retrieve MCP tool health across all sub-agents. It returns each tool's `status` (`healthy`, `unhealthy`, `unknown`, `needs_auth`, `unavailable`), `lastError`, and which `subAgentIds` use the tool. Use the optional `?status=` query parameter to filter by a specific status.
+</Tip>
+
 ### AI Provider Configuration Problems
 
 - **AI Provider key not defined or invalid**:
