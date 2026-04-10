@@ -20,8 +20,8 @@ import {
 import { normalizeInlineFileBytes } from '../../services/blob-storage/file-content-security';
 import { UnsupportedTextAttachmentSourceError } from '../../services/blob-storage/file-security-errors';
 import {
+  buildDecodedTextAttachmentBlock,
   buildTextAttachmentBlock,
-  decodeTextDocumentBytes,
   isTextDocumentMimeType,
 } from '../../utils/text-document-attachments';
 import type { AgentRunContext, AiSdkContentPart } from '../agent-types';
@@ -131,11 +131,10 @@ async function buildTextAttachmentPart(
 ): Promise<AiSdkContentPart> {
   const filename = typeof part.metadata?.filename === 'string' ? part.metadata.filename : undefined;
   const file = part.file;
-  let content: string;
+  let bytes: Uint8Array;
 
   if ('bytes' in file && file.bytes) {
-    const normalized = await normalizeInlineFileBytes(file);
-    content = decodeTextDocumentBytes(normalized.data);
+    bytes = (await normalizeInlineFileBytes(file)).data;
   } else if ('uri' in file && file.uri && isBlobUri(file.uri)) {
     let downloaded: BlobStorageDownloadResult;
     try {
@@ -150,26 +149,23 @@ async function buildTextAttachmentPart(
         text: buildTextAttachmentBlock({ mimeType, content: '[Attachment unavailable]', filename }),
       };
     }
-    try {
-      content = decodeTextDocumentBytes(downloaded.data);
-    } catch (err) {
-      logger.warn(
-        { err, uri: file.uri, mimeType, failureKind: 'decode' },
-        'Failed to decode text attachment from blob storage'
-      );
-      return {
-        type: 'text',
-        text: buildTextAttachmentBlock({ mimeType, content: '[Attachment unavailable]', filename }),
-      };
-    }
+    bytes = downloaded.data;
   } else {
     throw new UnsupportedTextAttachmentSourceError(mimeType);
   }
 
-  return {
-    type: 'text',
-    text: buildTextAttachmentBlock({ mimeType, content, filename }),
-  };
+  try {
+    return {
+      type: 'text',
+      text: buildDecodedTextAttachmentBlock({ data: bytes, mimeType, filename }),
+    };
+  } catch (err) {
+    logger.warn({ err, mimeType, failureKind: 'decode' }, 'Failed to decode text attachment');
+    return {
+      type: 'text',
+      text: buildTextAttachmentBlock({ mimeType, content: '[Attachment unavailable]', filename }),
+    };
+  }
 }
 
 export async function buildInitialMessages(

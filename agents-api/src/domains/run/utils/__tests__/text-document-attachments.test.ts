@@ -4,6 +4,7 @@ import {
   TextDocumentControlCharacterError,
 } from '../../services/blob-storage/file-security-errors';
 import {
+  buildDecodedTextAttachmentBlock,
   buildTextAttachmentBlock,
   decodeTextDocumentBytes,
   getDefaultTextDocumentFilename,
@@ -84,6 +85,57 @@ describe('text-document-attachments', () => {
       });
 
       expect(result).toContain('filename="file\\"with\\"quotes.txt"');
+    });
+  });
+
+  describe('buildDecodedTextAttachmentBlock', () => {
+    it('decodes bytes and wraps in attached_file', () => {
+      const result = buildDecodedTextAttachmentBlock({
+        data: new TextEncoder().encode('hello world\n'),
+        mimeType: 'text/markdown',
+        filename: 'notes.md',
+      });
+
+      expect(result).toBe(
+        '<attached_file filename="notes.md" media_type="text/markdown">\nhello world\n\n</attached_file>'
+      );
+    });
+
+    it('matches the output of decode + buildTextAttachmentBlock composed manually', () => {
+      const bytes = new TextEncoder().encode('Important Context:\nphone number: 123-456-7890\n');
+
+      const viaHelper = buildDecodedTextAttachmentBlock({
+        data: bytes,
+        mimeType: 'text/plain',
+        filename: 'context.txt',
+      });
+      const viaCompose = buildTextAttachmentBlock({
+        mimeType: 'text/plain',
+        content: decodeTextDocumentBytes(bytes),
+        filename: 'context.txt',
+      });
+
+      expect(viaHelper).toBe(viaCompose);
+    });
+
+    it('throws InvalidUtf8TextDocumentError on invalid UTF-8', () => {
+      expect(() =>
+        buildDecodedTextAttachmentBlock({
+          data: Uint8Array.from([0xc3, 0x28]),
+          mimeType: 'text/plain',
+          filename: 'bad.txt',
+        })
+      ).toThrow(InvalidUtf8TextDocumentError);
+    });
+
+    it('throws TextDocumentControlCharacterError on disallowed control characters', () => {
+      expect(() =>
+        buildDecodedTextAttachmentBlock({
+          data: Uint8Array.from(Buffer.from(`before${String.fromCharCode(0x01)}after`, 'utf8')),
+          mimeType: 'text/plain',
+          filename: 'bad.txt',
+        })
+      ).toThrow(TextDocumentControlCharacterError);
     });
   });
 });
