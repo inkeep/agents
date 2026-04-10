@@ -8,6 +8,10 @@ import { getModelAwareCompressionConfig } from '../../compression/BaseCompressor
 import { SENTINEL_KEY } from '../../constants/artifact-syntax';
 import { fromBlobUri, getBlobStorageProvider, isBlobUri } from '../../services/blob-storage';
 import { agentSessionManager } from '../../session/AgentSession';
+import {
+  buildDecodedTextAttachmentBlock,
+  isTextDocumentMimeType,
+} from '../../utils/text-document-attachments';
 import type { AgentRunContext } from '../agent-types';
 import { wrapToolWithStreaming } from './tool-wrapper';
 
@@ -17,6 +21,7 @@ type BlobBackedArtifactData = {
   blobUri: string;
   mimeType?: string;
   binaryType?: string;
+  filename?: string;
 };
 
 function isBlobBackedArtifactData(value: unknown): value is BlobBackedArtifactData {
@@ -61,6 +66,47 @@ async function makeHydratedReferenceArtifactResult(artifactData: ArtifactFullDat
     const blob = await storage.download(fromBlobUri(artifactData.data.blobUri));
     const mimeType = artifactData.data.mimeType || blob.contentType || 'application/octet-stream';
     const filename = artifactData.data.blobUri.split('/').at(-1);
+    const resolvedFilename = artifactData.data.filename ?? filename;
+
+    if (isTextDocumentMimeType(mimeType)) {
+      try {
+        const attachmentBlock = buildDecodedTextAttachmentBlock({
+          data: blob.data,
+          mimeType,
+          filename: resolvedFilename,
+        });
+        return {
+          artifactId: artifactData.artifactId,
+          name: artifactData.name,
+          description: artifactData.description,
+          type: artifactData.type,
+          data: artifactData.data,
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                ...metadataContent,
+                mimeType,
+              }),
+            },
+            {
+              type: 'text',
+              text: attachmentBlock,
+            },
+          ],
+        };
+      } catch (err) {
+        logger.warn(
+          {
+            artifactId: artifactData.artifactId,
+            mimeType,
+            err,
+          },
+          'Failed to decode text document artifact; falling back to file-data delivery'
+        );
+        // intentional fall-through to the type: 'file' base64 path below
+      }
+    }
 
     return {
       artifactId: artifactData.artifactId,
