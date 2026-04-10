@@ -85,7 +85,7 @@ describe('PromptConfig — artifact type and schema in generated XML', () => {
     const typeSchemaMatch = result.prompt.match(/<type_schema>([\s\S]*?)<\/type_schema>/);
     expect(typeSchemaMatch).not.toBeNull();
     expect(typeSchemaMatch?.[1]).toContain('DISPLAYED to user');
-    expect(typeSchemaMatch?.[1]).toContain('PASSED to tools');
+    expect(typeSchemaMatch?.[1]).toContain('TOOL CHAINING');
   });
 
   test('type_schema preview contains only inPreview fields', () => {
@@ -101,7 +101,7 @@ describe('PromptConfig — artifact type and schema in generated XML', () => {
     const typeSchemaMatch = result.prompt.match(/<type_schema>([\s\S]*?)<\/type_schema>/);
     const typeSchemaContent = typeSchemaMatch?.[1] ?? '';
     const previewIndex = typeSchemaContent.indexOf('DISPLAYED to user');
-    const fullIndex = typeSchemaContent.indexOf('PASSED to tools');
+    const fullIndex = typeSchemaContent.indexOf('TOOL CHAINING');
     const previewSection = typeSchemaContent.slice(previewIndex, fullIndex);
     expect(previewSection).toContain('"title"');
     expect(previewSection).toContain('"summary"');
@@ -121,7 +121,7 @@ describe('PromptConfig — artifact type and schema in generated XML', () => {
     const result = builder.buildSystemPrompt(config);
     const typeSchemaMatch = result.prompt.match(/<type_schema>([\s\S]*?)<\/type_schema>/);
     const typeSchemaContent = typeSchemaMatch?.[1] ?? '';
-    const fullIndex = typeSchemaContent.indexOf('PASSED to tools');
+    const fullIndex = typeSchemaContent.indexOf('TOOL CHAINING');
     const fullSection = typeSchemaContent.slice(fullIndex);
     expect(fullSection).toContain('"title"');
     expect(fullSection).toContain('"summary"');

@@ -1,0 +1,56 @@
+import { cache } from 'react';
+import { buildTree, findNodeByPath } from '@/components/skills/tree-utils';
+import { fetchSkill, fetchSkills } from '@/lib/api/skills';
+import {
+  buildSkillFileRouteAliases,
+  flattenSkillFiles,
+  resolveSkillFileFromRoute,
+} from '@/lib/utils/skill-files';
+
+async function $fetchSkillsPageData(tenantId: string, projectId: string) {
+  const { data } = await fetchSkills(tenantId, projectId);
+  const skillDetails = await Promise.all(
+    data.map((skill) => fetchSkill(tenantId, projectId, skill.id))
+  );
+  const files = flattenSkillFiles(skillDetails);
+
+  return {
+    files,
+    treeNodes: buildTree(files),
+    fileRouteAliases: buildSkillFileRouteAliases(files),
+  };
+}
+
+export const fetchSkillsPageData = cache($fetchSkillsPageData);
+
+export async function resolveSkillFilePageData(
+  tenantId: string,
+  projectId: string,
+  fileSlug: string[] = []
+) {
+  const data = await fetchSkillsPageData(tenantId, projectId);
+  const slug = decodeURIComponent(fileSlug.join('/'));
+  const selectedFile = resolveSkillFileFromRoute(data.files, slug);
+
+  return {
+    ...data,
+    selectedFile,
+  };
+}
+
+export async function resolveSkillFolderPageData(
+  tenantId: string,
+  projectId: string,
+  folderSlug?: string[]
+) {
+  const data = await fetchSkillsPageData(tenantId, projectId);
+
+  const selectedFolder = folderSlug
+    ? findNodeByPath(data.treeNodes, decodeURIComponent(folderSlug.join('/')))
+    : null;
+
+  return {
+    ...data,
+    selectedFolder,
+  };
+}

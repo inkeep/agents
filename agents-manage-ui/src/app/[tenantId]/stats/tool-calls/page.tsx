@@ -2,7 +2,7 @@
 
 import { ArrowLeft, CheckCircle, Layers, Wrench } from 'lucide-react';
 import NextLink from 'next/link';
-import { use, useEffect, useMemo, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
 import { StatCard } from '@/components/traces/charts/stat-card';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
@@ -27,7 +27,7 @@ export default function AllProjectsToolCallsBreakdown({
   params,
 }: PageProps<'/[tenantId]/stats/tool-calls'>) {
   const { tenantId } = use(params);
-
+  const [CURRENT_TIME] = useState(() => Date.now());
   const backLink = `/${tenantId}/stats`;
 
   const { timeRange, customStartDate, customEndDate, setTimeRange, setCustomDateRange } =
@@ -63,8 +63,8 @@ export default function AllProjectsToolCallsBreakdown({
     }
   };
 
-  const { startTime, endTime } = useMemo(() => {
-    const currentEndTime = Date.now();
+  const { startTime, endTime } = (() => {
+    const currentEndTime = CURRENT_TIME;
 
     if (timeRange === CUSTOM) {
       if (customStartDate && customEndDate) {
@@ -72,7 +72,7 @@ export default function AllProjectsToolCallsBreakdown({
         const [ey, em, ed] = customEndDate.split('-').map(Number);
         const startDate = new Date(sy, (sm || 1) - 1, sd || 1, 0, 0, 0, 0);
         const endDate = new Date(ey, (em || 1) - 1, ed || 1, 23, 59, 59, 999);
-        const clampedEndMs = Math.min(endDate.getTime(), Date.now() - 1);
+        const clampedEndMs = Math.min(endDate.getTime(), CURRENT_TIME - 1);
 
         return {
           startTime: startDate.getTime(),
@@ -91,7 +91,7 @@ export default function AllProjectsToolCallsBreakdown({
       startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
       endTime: currentEndTime,
     };
-  }, [timeRange, customStartDate, customEndDate]);
+  })();
 
   // Fetch tool calls data
   useEffect(() => {
@@ -119,22 +119,18 @@ export default function AllProjectsToolCallsBreakdown({
       } catch (err) {
         console.error('Error fetching tool calls data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch tool calls data');
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     fetchData();
   }, [selectedProjectId, startTime, endTime, tenantId]);
 
   // Create a map of project IDs to names
-  const projectNameMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const project of projects) {
-      map.set(project.projectId, project.name);
-    }
-    return map;
-  }, [projects]);
+  const projectNameMap = new Map<string, string>();
+  for (const project of projects) {
+    projectNameMap.set(project.projectId, project.name);
+  }
 
   const totalMCPCalls = projectStats.reduce((sum, item) => sum + item.totalMCPCalls, 0);
   const totalToolErrors = toolCalls.reduce((sum, item) => sum + item.errorCount, 0);

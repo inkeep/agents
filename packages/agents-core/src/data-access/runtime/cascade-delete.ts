@@ -7,6 +7,7 @@ import {
   datasetRun,
   evaluationRun,
   scheduledTriggerInvocations,
+  scheduledTriggers,
   tasks,
   triggerInvocations,
   workAppGitHubMcpToolAccessMode,
@@ -43,6 +44,7 @@ export type CascadeDeleteResult = {
   slackWorkspaceDefaultsCleared: number;
   appsDeleted: number;
   appDefaultsCleared: number;
+  scheduledTriggersDeleted: number;
 };
 
 /**
@@ -57,8 +59,9 @@ export const cascadeDeleteByBranch =
   async (params: {
     scopes: ProjectScopeConfig;
     fullBranchName: string;
+    ref: string;
   }): Promise<CascadeDeleteResult> => {
-    const { scopes, fullBranchName } = params;
+    const { scopes, fullBranchName, ref } = params;
 
     // Delete contextCache entries for this branch
     // (also cascades when conversations are deleted, but some may be orphaned)
@@ -137,6 +140,18 @@ export const cascadeDeleteByBranch =
       )
       .returning();
 
+    // Delete scheduled triggers for this branch
+    const scheduledTriggersResult = await db
+      .delete(scheduledTriggers)
+      .where(
+        and(
+          eq(scheduledTriggers.tenantId, scopes.tenantId),
+          eq(scheduledTriggers.projectId, scopes.projectId),
+          eq(scheduledTriggers.ref, ref)
+        )
+      )
+      .returning();
+
     return {
       conversationsDeleted: conversationsResult.length,
       tasksDeleted: tasksResult.length,
@@ -150,12 +165,13 @@ export const cascadeDeleteByBranch =
       slackWorkspaceDefaultsCleared: 0,
       appsDeleted: 0,
       appDefaultsCleared: 0,
+      scheduledTriggersDeleted: scheduledTriggersResult.length,
     };
   };
 
 /**
- * Delete all runtime entities for a project on a specific branch.
- * Used when deleting a project from a branch.
+ * Delete all runtime entities for a project across all branches.
+ * Used when deleting a project entirely.
  * PostgreSQL cascades handle: messages, taskRelations, ledgerArtifacts
  *
  * @param db - Runtime database client
@@ -163,84 +179,60 @@ export const cascadeDeleteByBranch =
  */
 export const cascadeDeleteByProject =
   (db: AgentsRunDatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    fullBranchName: string;
-  }): Promise<CascadeDeleteResult> => {
-    const { scopes, fullBranchName } = params;
+  async (params: { scopes: ProjectScopeConfig }): Promise<CascadeDeleteResult> => {
+    const { scopes } = params;
 
-    // Delete contextCache for this project on this branch
+    // Delete contextCache for this project (across all branches)
     const contextCacheResult = await db
       .delete(contextCache)
-      .where(
-        and(
-          projectScopedWhere(contextCache, scopes),
-          sql`${contextCache.ref}->>'name' = ${fullBranchName}`
-        )
-      )
+      .where(projectScopedWhere(contextCache, scopes))
       .returning();
 
-    // Delete conversations for this project on this branch (cascades to messages)
+    // Delete conversations for this project (cascades to messages)
     const conversationsResult = await db
       .delete(conversations)
-      .where(
-        and(
-          projectScopedWhere(conversations, scopes),
-          sql`${conversations.ref}->>'name' = ${fullBranchName}`
-        )
-      )
+      .where(projectScopedWhere(conversations, scopes))
       .returning();
 
-    // Delete tasks for this project on this branch (cascades to ledgerArtifacts, taskRelations)
-    const tasksResult = await db
-      .delete(tasks)
-      .where(and(projectScopedWhere(tasks, scopes), sql`${tasks.ref}->>'name' = ${fullBranchName}`))
-      .returning();
+    // Delete tasks for this project (cascades to ledgerArtifacts, taskRelations)
+    const tasksResult = await db.delete(tasks).where(projectScopedWhere(tasks, scopes)).returning();
 
-    // Delete trigger invocations for this project on this branch
+    // Delete trigger invocations for this project
     const triggerInvocationsResult = await db
       .delete(triggerInvocations)
       .where(
         and(
           eq(triggerInvocations.tenantId, scopes.tenantId),
-          eq(triggerInvocations.projectId, scopes.projectId),
-          sql`${triggerInvocations.ref}->>'name' = ${fullBranchName}`
+          eq(triggerInvocations.projectId, scopes.projectId)
         )
       )
       .returning();
 
-    // Delete scheduled trigger invocations for this project on this branch
     const scheduledTriggerInvocationsResult = await db
       .delete(scheduledTriggerInvocations)
       .where(
         and(
           eq(scheduledTriggerInvocations.tenantId, scopes.tenantId),
-          eq(scheduledTriggerInvocations.projectId, scopes.projectId),
-          sql`${scheduledTriggerInvocations.ref}->>'name' = ${fullBranchName}`
+          eq(scheduledTriggerInvocations.projectId, scopes.projectId)
         )
       )
       .returning();
 
-    // Delete dataset runs for this project on this branch (cascades to datasetRunConversationRelations)
+    // Delete dataset runs for this project (cascades to datasetRunConversationRelations)
     const datasetRunsResult = await db
       .delete(datasetRun)
       .where(
-        and(
-          eq(datasetRun.tenantId, scopes.tenantId),
-          eq(datasetRun.projectId, scopes.projectId),
-          sql`${datasetRun.ref}->>'name' = ${fullBranchName}`
-        )
+        and(eq(datasetRun.tenantId, scopes.tenantId), eq(datasetRun.projectId, scopes.projectId))
       )
       .returning();
 
-    // Delete evaluation runs for this project on this branch (cascades to evaluationResult)
+    // Delete evaluation runs for this project (cascades to evaluationResult)
     const evaluationRunsResult = await db
       .delete(evaluationRun)
       .where(
         and(
           eq(evaluationRun.tenantId, scopes.tenantId),
-          eq(evaluationRun.projectId, scopes.projectId),
-          sql`${evaluationRun.ref}->>'name' = ${fullBranchName}`
+          eq(evaluationRun.projectId, scopes.projectId)
         )
       )
       .returning();
@@ -275,6 +267,17 @@ export const cascadeDeleteByProject =
 
     clearDevConfigWorkspaceDefaultsByProject(scopes.projectId);
 
+    // Delete scheduled triggers for this project
+    const scheduledTriggersResult = await db
+      .delete(scheduledTriggers)
+      .where(
+        and(
+          eq(scheduledTriggers.tenantId, scopes.tenantId),
+          eq(scheduledTriggers.projectId, scopes.projectId)
+        )
+      )
+      .returning();
+
     return {
       conversationsDeleted: conversationsResult.length,
       tasksDeleted: tasksResult.length,
@@ -288,6 +291,7 @@ export const cascadeDeleteByProject =
       slackWorkspaceDefaultsCleared,
       appsDeleted,
       appDefaultsCleared,
+      scheduledTriggersDeleted: scheduledTriggersResult.length,
     };
   };
 
@@ -417,6 +421,18 @@ export const cascadeDeleteByAgent =
 
     clearDevConfigWorkspaceDefaultsByAgent(scopes.projectId, scopes.agentId);
 
+    // Delete scheduled triggers for this agent
+    const scheduledTriggersResult = await db
+      .delete(scheduledTriggers)
+      .where(
+        and(
+          eq(scheduledTriggers.tenantId, scopes.tenantId),
+          eq(scheduledTriggers.projectId, scopes.projectId),
+          eq(scheduledTriggers.agentId, scopes.agentId)
+        )
+      )
+      .returning();
+
     return {
       conversationsDeleted,
       tasksDeleted,
@@ -430,6 +446,7 @@ export const cascadeDeleteByAgent =
       slackWorkspaceDefaultsCleared,
       appsDeleted: 0,
       appDefaultsCleared,
+      scheduledTriggersDeleted: scheduledTriggersResult.length,
     };
   };
 
@@ -513,6 +530,7 @@ export const cascadeDeleteBySubAgent =
       slackWorkspaceDefaultsCleared: 0,
       appsDeleted: 0,
       appDefaultsCleared: 0,
+      scheduledTriggersDeleted: 0,
     };
   };
 

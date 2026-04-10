@@ -1,5 +1,195 @@
 # @inkeep/ai-sdk-provider
 
+## 0.67.0
+
+### Patch Changes
+
+- Updated dependencies [757ac77]
+  - @inkeep/agents-core@0.67.0
+
+## 0.66.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.66.1
+
+## 0.66.0
+
+### Patch Changes
+
+- Updated dependencies [5596ecb]
+- Updated dependencies [63a1358]
+- Updated dependencies [01a960d]
+- Updated dependencies [4d0169b]
+  - @inkeep/agents-core@0.66.0
+
+## 0.65.2
+
+### Patch Changes
+
+- Updated dependencies [fa18f84]
+- Updated dependencies [34e1d67]
+- Updated dependencies [93eb31e]
+  - @inkeep/agents-core@0.65.2
+
+## 0.65.1
+
+### Patch Changes
+
+- Updated dependencies [3735393]
+- Updated dependencies [dbee04b]
+  - @inkeep/agents-core@0.65.1
+
+## 0.65.0
+
+### Patch Changes
+
+- Updated dependencies [e332202]
+  - @inkeep/agents-core@0.65.0
+
+## 0.64.10
+
+### Patch Changes
+
+- @inkeep/agents-core@0.64.10
+
+## 0.64.9
+
+### Patch Changes
+
+- @inkeep/agents-core@0.64.9
+
+## 0.64.8
+
+### Patch Changes
+
+- @inkeep/agents-core@0.64.8
+
+## 0.64.7
+
+### Patch Changes
+
+- @inkeep/agents-core@0.64.7
+
+## 0.64.6
+
+### Patch Changes
+
+- Updated dependencies [09c6eb0]
+- Updated dependencies [3237c45]
+- Updated dependencies [528f69c]
+- Updated dependencies [6fddd34]
+  - @inkeep/agents-core@0.64.6
+
+## 0.64.5
+
+### Patch Changes
+
+- Updated dependencies [e91d67b]
+  - @inkeep/agents-core@0.64.5
+
+## 0.64.4
+
+### Patch Changes
+
+- @inkeep/agents-core@0.64.4
+
+## 0.64.3
+
+### Patch Changes
+
+- Updated dependencies [7aa1fac]
+- Updated dependencies [4ace590]
+  - @inkeep/agents-core@0.64.3
+
+## 0.64.2
+
+### Patch Changes
+
+- Updated dependencies [f099221]
+  - @inkeep/agents-core@0.64.2
+
+## 0.64.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.64.1
+
+## 0.64.0
+
+### Patch Changes
+
+- Updated dependencies [47915b3]
+- Updated dependencies [2ebe1c4]
+- Updated dependencies [68a55f5]
+- Updated dependencies [abc3b5d]
+  - @inkeep/agents-core@0.64.0
+
+## 0.63.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.63.3
+
+## 0.63.2
+
+### Patch Changes
+
+- Updated dependencies [dc818c0]
+- Updated dependencies [dc818c0]
+  - @inkeep/agents-core@0.63.2
+
+## 0.63.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.63.1
+
+## 0.63.0
+
+### Patch Changes
+
+- Updated dependencies [0f77d00]
+  - @inkeep/agents-core@0.63.0
+
+## 0.62.2
+
+### Patch Changes
+
+- Updated dependencies [f614c56]
+  - @inkeep/agents-core@0.62.2
+
+## 0.62.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.62.1
+
+## 0.62.0
+
+### Patch Changes
+
+- Updated dependencies [ce9c516]
+  - @inkeep/agents-core@0.62.0
+
+## 0.61.0
+
+### Patch Changes
+
+- Updated dependencies [12722d9]
+- Updated dependencies [f4a9c69]
+  - @inkeep/agents-core@0.61.0
+
+## 0.60.0
+
+### Patch Changes
+
+- Updated dependencies [2eaebb3]
+- Updated dependencies [c0018a6]
+- Updated dependencies [ed10886]
+- Updated dependencies [b1199eb]
+  - @inkeep/agents-core@0.60.0
+
 ## 0.59.4
 
 ### Patch Changes

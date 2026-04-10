@@ -9,6 +9,7 @@
  * - Channel + query → streams response
  */
 
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleAppMention } from '../../slack/services/events/app-mention';
 
@@ -75,14 +76,7 @@ vi.mock('../../env', () => ({
   },
 }));
 
-vi.mock('../../logger', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
+vi.mock('../../logger', () => createMockLoggerModule().module);
 
 vi.mock('../../slack/i18n', () => ({
   SlackStrings: {

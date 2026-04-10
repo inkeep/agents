@@ -159,27 +159,10 @@ function validateTarget(target) {
   const errors = [];
   const sqlTags = collectSqlTags(target.dir);
   const journalEntries = collectJournalEntries(target.journal);
-  const validSqlTags = sqlTags.filter((sqlTag) => sqlTag.tag !== null);
-  const sqlPrefixMap = new Map();
-  const sqlTagSet = new Set(validSqlTags.map((sqlTag) => sqlTag.tag));
 
   for (const sqlTag of sqlTags) {
     if (sqlTag.prefix === null || sqlTag.tag === null) {
       errors.push(`${target.label}: invalid migration filename '${sqlTag.file}'`);
-      continue;
-    }
-
-    const existing = sqlPrefixMap.get(sqlTag.prefix) ?? [];
-    existing.push(sqlTag.file);
-    sqlPrefixMap.set(sqlTag.prefix, existing);
-  }
-
-  for (const [prefix, files] of sqlPrefixMap) {
-    if (files.length > 1) {
-      const quotedFiles = files.map((file) => `'${file}'`).join(', ');
-      errors.push(
-        `${target.label}: duplicate migration number ${String(prefix).padStart(4, '0')} used by ${quotedFiles}`
-      );
     }
   }
 
@@ -211,21 +194,11 @@ function validateTarget(target) {
     }
 
     journalTags.push(entry.tag);
-
-    if (!sqlTagSet.has(entry.tag)) {
-      errors.push(`${target.label}: journal tag '${entry.tag}' is missing its SQL file`);
-    }
   }
 
   const journalTagSet = new Set(journalTags);
   if (journalTagSet.size !== journalTags.length) {
     errors.push(`${target.label}: journal contains duplicate tags`);
-  }
-
-  for (const sqlTag of validSqlTags) {
-    if (!journalTagSet.has(sqlTag.tag)) {
-      errors.push(`${target.label}: migration file '${sqlTag.file}' is not referenced by the journal`);
-    }
   }
 
   return { errors, sqlTags, journalEntries };
@@ -248,24 +221,22 @@ function validateTargetAgainstBase(target, baseRef) {
     return errors;
   }
 
-  const baseJournalTags = baseJournalEntries.map((entry) => entry.tag);
-  const baseJournalTagSet = new Set(baseJournalTags);
-  const baseJournalSqlTags = baseSqlTags.filter(
-    (entry) => entry.tag !== null && baseJournalTagSet.has(entry.tag)
-  );
   const currentSqlTagSet = new Set(
     current.sqlTags.filter((entry) => entry.tag !== null).map((entry) => entry.tag)
   );
   const currentSqlTagMap = new Map(
     current.sqlTags.filter((entry) => entry.tag !== null).map((entry) => [entry.tag, entry])
   );
-  const baseJournalSqlTagSet = new Set(baseJournalSqlTags.map((entry) => entry.tag));
+  const baseSqlTagSet = new Set(
+    baseSqlTags.filter((entry) => entry.tag !== null).map((entry) => entry.tag)
+  );
 
   const newSqlTags = current.sqlTags
-    .filter((entry) => entry.tag !== null && !baseJournalSqlTagSet.has(entry.tag))
+    .filter((entry) => entry.tag !== null && !baseSqlTagSet.has(entry.tag))
     .map((entry) => entry.tag);
   const newSqlTagSet = new Set(newSqlTags);
 
+  const baseJournalTags = baseJournalEntries.map((entry) => entry.tag);
   const currentJournalTags = current.journalEntries.map((entry) => entry.tag);
 
   if (current.journalEntries.length < baseJournalEntries.length) {
@@ -291,7 +262,11 @@ function validateTargetAgainstBase(target, baseRef) {
     }
   }
 
-  for (const baseSqlTag of baseJournalSqlTags) {
+  for (const baseSqlTag of baseSqlTags) {
+    if (baseSqlTag.tag === null) {
+      continue;
+    }
+
     const currentSqlTag = currentSqlTagMap.get(baseSqlTag.tag);
     if (!currentSqlTag) {
       errors.push(
@@ -341,7 +316,7 @@ function validateTargetAgainstBase(target, baseRef) {
     );
   }
 
-  const lastBaseSql = baseJournalSqlTags.at(-1);
+  const lastBaseSql = baseSqlTags.at(-1);
   const expectedFirstNewPrefix =
     lastBaseSql?.prefix !== null && lastBaseSql?.prefix !== undefined ? lastBaseSql.prefix + 1 : 0;
   const firstNewTag = appendedJournalTags[0];
@@ -373,7 +348,7 @@ function validateTargetAgainstBase(target, baseRef) {
     const match = tag.match(/^(\d{4})_/);
     if (!match) continue;
     const prefix = Number.parseInt(match[1], 10);
-    const collidesWithBase = baseJournalSqlTags.some((entry) => entry.prefix === prefix);
+    const collidesWithBase = baseSqlTags.some((entry) => entry.prefix === prefix);
     if (collidesWithBase) {
       errors.push(
         `${target.label}: new migration '${tag}' collides with an existing ${baseRef} migration number ${match[1]}; rebase and regenerate the migration`

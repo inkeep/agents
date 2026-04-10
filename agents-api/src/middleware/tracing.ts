@@ -27,7 +27,7 @@ export const executionBaggageMiddleware = () =>
 
     if (!executionContext) {
       // No API key context, skip baggage setup
-      logger.debug({}, 'Empty execution context');
+      logger.debug('Empty execution context');
       return next();
     }
 
@@ -56,7 +56,7 @@ export const executionBaggageMiddleware = () =>
     );
 
     if (!Object.keys(entries).length) {
-      logger.debug({}, 'Empty entries for baggage');
+      logger.debug('Empty entries for baggage');
       return next();
     }
 

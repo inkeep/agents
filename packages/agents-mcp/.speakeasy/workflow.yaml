@@ -3,7 +3,7 @@ speakeasyVersion: latest
 sources:
     Inkeep Agents API:
         inputs:
-            - location: https://api.pilot.inkeep.com/openapi.json
+            - location: https://api.agents.inkeep.com/openapi.json
         output: .speakeasy/out.openapi.yaml
         registry:
             location: registry.speakeasyapi.dev/inkeep/inkeep/inkeep-agents-api

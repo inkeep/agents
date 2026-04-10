@@ -1,3 +1,4 @@
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { TemplateEngine } from '../../context/TemplateEngine';
 import { CredentialStoreRegistry } from '../../credential-stores/CredentialStoreRegistry';
@@ -14,15 +15,7 @@ import {
   MCPTransportType,
 } from '../../types/index';
 
-// Mock logger from utils
-vi.mock('../../utils/logger.js', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-  }),
-}));
+vi.mock('../../utils/logger.js', () => createMockLoggerModule().module);
 
 // Mock TemplateEngine
 vi.mock('../../context/TemplateEngine.js', () => ({

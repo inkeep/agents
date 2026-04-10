@@ -1,7 +1,7 @@
 import { type Edge, useNodesData, useReactFlow } from '@xyflow/react';
 import { Spline, Trash2 } from 'lucide-react';
-import { useCallback } from 'react';
 import { toast } from 'sonner';
+import { isNodeType, NodeType } from '@/components/agent/configuration/node-types';
 import { DashedSplineIcon } from '@/components/icons/dashed-spline';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { getCycleErrorMessage, wouldCreateCycle } from '@/lib/utils/cycle-detection';
@@ -124,20 +125,49 @@ interface EdgeEditorProps {
 
 function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
   const { updateEdgeData, setEdges, deleteElements, getEdges } = useReactFlow();
+  const form = useFullAgentFormContext();
 
   const {
     data: { canEdit },
   } = useProjectPermissionsQuery();
 
-  const deleteEdge = useCallback(() => {
+  function deleteEdge() {
     deleteElements({ edges: [{ id: selectedEdge.id }] });
-  }, [selectedEdge.id]);
+  }
 
   const sourceNode = useNodesData(selectedEdge.source);
   const targetNode = useNodesData(selectedEdge.target);
   const { markUnsaved } = useAgentActions();
 
   const isSelfLoop = selectedEdge.source === selectedEdge.target;
+
+  function getNodeLabel(node: typeof sourceNode | typeof targetNode) {
+    if (!node) {
+      return;
+    }
+
+    if (isNodeType(node, NodeType.SubAgent)) {
+      return form.getValues(`subAgents.${node.id}.name`);
+    }
+
+    if (isNodeType(node, NodeType.ExternalAgent)) {
+      return form.getValues(`externalAgents.${node.data.externalAgentId}.name`);
+    }
+
+    if (isNodeType(node, NodeType.TeamAgent)) {
+      return form.getValues(`teamAgents.${node.data.teamAgentId}.name`);
+    }
+
+    if (isNodeType(node, NodeType.MCP)) {
+      return form.getValues(`tools.${node.data.toolId}.name`);
+    }
+
+    if (isNodeType(node, NodeType.FunctionTool)) {
+      return form.getValues(`functionTools.${node.data.toolId}.name`);
+    }
+
+    return node.id;
+  }
 
   const checkForCycle = (delegateId: string): boolean => {
     const source =
@@ -149,15 +179,13 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
     const otherEdges = allEdges.filter((edge) => edge.id !== selectedEdge.id);
 
     if (wouldCreateCycle(otherEdges, { source, target })) {
-      const sourceName =
-        (sourceNode?.data.name as string) || (sourceNode?.data.id as string) || 'Sub Agent';
-      const targetName =
-        (targetNode?.data.name as string) || (targetNode?.data.id as string) || 'Sub Agent';
+      const sourceName = getNodeLabel(sourceNode);
+      const targetName = getNodeLabel(targetNode);
       const sourceLabel = delegateId === 'delegateSourceToTarget' ? sourceName : targetName;
       const targetLabel = delegateId === 'delegateSourceToTarget' ? targetName : sourceName;
 
       toast.error('Circular Delegation Detected', {
-        description: getCycleErrorMessage(sourceLabel, targetLabel),
+        description: getCycleErrorMessage(sourceLabel ?? '', targetLabel ?? ''),
       });
       return true;
     }
@@ -243,10 +271,8 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
     updateRelationships(newRelationships);
   };
 
-  const sourceName =
-    (sourceNode?.data.name as string) || (sourceNode?.data.id as string) || 'Sub Agent';
-  const targetName =
-    (targetNode?.data.name as string) || (targetNode?.data.id as string) || 'Sub Agent';
+  const sourceName = getNodeLabel(sourceNode);
+  const targetName = getNodeLabel(targetNode);
 
   const transferOptions = isSelfLoop
     ? [

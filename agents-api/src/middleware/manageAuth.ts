@@ -72,7 +72,7 @@ export const manageBearerAuth = () =>
       env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET &&
       token === env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET
     ) {
-      logger.info({}, 'Bypass secret authenticated successfully');
+      logger.info('Bypass secret authenticated successfully');
 
       // Set system user context for bypass authentication
       c.set('userId', 'system');

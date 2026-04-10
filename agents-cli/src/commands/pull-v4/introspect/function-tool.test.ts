@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import type { ProjectPaths } from '../introspect-generator';
 import { introspectGenerate } from '../introspect-generator';
+import { buildComponentFileName } from '../utils';
 import { cleanupTestEnvironment, createTestEnvironment } from './test-helpers';
 
 describe('pull-v4 introspect generator', () => {
@@ -34,7 +35,7 @@ describe('pull-v4 introspect generator', () => {
           subAgents: {
             nfbsyhwenholyhw1l4fdq: {
               id: 'nfbsyhwenholyhw1l4fdq',
-              name: '',
+              name: 'test1',
               canDelegateTo: [
                 {
                   externalAgentId: 'DBDeFYIGS6UYcmDltDpzT',
@@ -122,7 +123,7 @@ describe('pull-v4 introspect generator', () => {
     const subAgentPath = path.join(
       projectPaths.agentsDir,
       'sub-agents',
-      'nfbsyhwenholyhw1l4fdq.ts'
+      buildComponentFileName('nfbsyhwenholyhw1l4fdq', 'test1')
     );
     const { default: subAgentFile } = await import(`${subAgentPath}?raw`);
     expect(subAgentFile).toContain("import { testAgent } from '../../external-agents/test';");
@@ -148,7 +149,7 @@ describe('pull-v4 introspect generator', () => {
           subAgents: {
             nfbsyhwenholyhw1l4fdq: {
               id: 'nfbsyhwenholyhw1l4fdq',
-              name: '',
+              name: 'test2',
               description: '',
               prompt: '',
               models: { base: { model: 'openai/gpt-5.2' } },
@@ -302,7 +303,12 @@ describe('pull-v4 introspect generator', () => {
     const toolPath = path.join(projectPaths.toolsDir, 'function-tool.ts');
     expect(fs.existsSync(toolPath)).toBe(true);
 
-    const subAgentFilePath = path.join(testDir, 'agents/sub-agents/nfbsyhwenholyhw1l4fdq.ts');
+    const subAgentFilePath = path.join(
+      testDir,
+      'agents',
+      'sub-agents',
+      buildComponentFileName('nfbsyhwenholyhw1l4fdq', 'test2')
+    );
     const { default: subAgentFile } = await import(`${subAgentFilePath}?raw`);
     expect(subAgentFile).toContain("import { functionTool } from '../../tools/function-tool'");
     expect(subAgentFile).toContain(

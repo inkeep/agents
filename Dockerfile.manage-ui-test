@@ -23,9 +23,9 @@ RUN corepack enable
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY agents-manage-ui/package.json agents-manage-ui/
+COPY packages/agents-core/package.json packages/agents-core/
 COPY patches/ patches/
-
 
 RUN pnpm install --frozen-lockfile
 
-CMD ["bash", "-lc", "pnpm --filter @inkeep/agents-manage-ui test .browser.test.tsx"]
+CMD ["bash", "-lc", "pnpm --filter @inkeep/agents-manage-ui test .browser.test."]

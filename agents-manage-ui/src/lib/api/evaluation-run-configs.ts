@@ -10,7 +10,6 @@
 import { cache } from 'react';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface EvaluationRunConfig {
   id: string;
@@ -46,9 +45,6 @@ export async function fetchEvaluationRunConfigs(
   tenantId: string,
   projectId: string
 ): Promise<ListResponse<EvaluationRunConfig>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<ListResponse<EvaluationRunConfig>>(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluation-run-configs`
   );
@@ -62,9 +58,6 @@ async function $fetchEvaluationRunConfig(
   projectId: string,
   configId: string
 ): Promise<EvaluationRunConfig> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<EvaluationRunConfig>>(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluation-run-configs/${configId}`
   );
@@ -82,9 +75,6 @@ export async function createEvaluationRunConfig(
   projectId: string,
   config: EvaluationRunConfigInsert
 ): Promise<EvaluationRunConfig> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<EvaluationRunConfig>>(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluation-run-configs`,
     {
@@ -105,9 +95,6 @@ export async function updateEvaluationRunConfig(
   configId: string,
   config: EvaluationRunConfigUpdate
 ): Promise<EvaluationRunConfig> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<EvaluationRunConfig>>(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluation-run-configs/${configId}`,
     {
@@ -127,9 +114,6 @@ export async function deleteEvaluationRunConfig(
   projectId: string,
   configId: string
 ): Promise<void> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   await makeManagementApiRequest(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluation-run-configs/${configId}`,
     {

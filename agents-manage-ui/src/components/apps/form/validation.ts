@@ -1,3 +1,4 @@
+import { ALLOWED_DOMAIN_PATTERN } from '@inkeep/agents-core/client-exports';
 import { z } from 'zod';
 
 export const APP_TYPE_OPTIONS = [
@@ -13,12 +14,6 @@ export const APP_TYPE_OPTIONS = [
   },
 ] as const;
 
-// Duplicated from @inkeep/agents-core/validation/schemas — cannot import from
-// the barrel export here because it pulls in server-only modules (pg, dns, fs)
-// that break the Next.js client bundle.
-const ALLOWED_DOMAIN_PATTERN =
-  /^(\*|\*\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*(:\d{1,5})?)$/;
-
 function validateDomainList(val: string | undefined) {
   if (val === undefined) return true;
   const domains = val
@@ -32,27 +27,29 @@ function validateDomainList(val: string | undefined) {
 const DOMAIN_VALIDATION_MESSAGE =
   'Enter valid domains separated by commas (e.g. "example.com, *.example.com"). At least one domain is required for web client apps.';
 
-export const AppCreateFormSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  description: z.string().optional(),
-  defaultAgentId: z.string().optional(),
-  prompt: z.string().optional(),
+const webClientFields = {
   allowedDomains: z
     .string()
     .optional()
     .refine(validateDomainList, { message: DOMAIN_VALIDATION_MESSAGE }),
+  audience: z.string().optional(),
+};
+
+export const AppCreateFormSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  description: z.string().optional(),
+  defaultAgentId: z.string().min(1, 'Default agent is required'),
+  prompt: z.string().optional(),
+  ...webClientFields,
 });
 
 export const AppUpdateFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
-  defaultAgentId: z.string().optional(),
+  defaultAgentId: z.string().min(1, 'Default agent is required'),
   prompt: z.string().optional(),
   enabled: z.boolean(),
-  allowedDomains: z
-    .string()
-    .optional()
-    .refine(validateDomainList, { message: DOMAIN_VALIDATION_MESSAGE }),
+  ...webClientFields,
 });
 
 export type AppCreateFormInput = z.infer<typeof AppCreateFormSchema>;

@@ -161,8 +161,16 @@ app.openapi(
       type: 'web_client';
       webClient: {
         allowedDomains: string[];
+        allowAnonymous?: boolean;
       };
     };
+
+    if (config.webClient.allowAnonymous === false) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Anonymous sessions are disabled for this app. Authentication is required.',
+      });
+    }
 
     const origin = c.req.header('Origin');
     if (!validateOrigin(origin, config.webClient.allowedDomains)) {
@@ -180,6 +188,8 @@ app.openapi(
 
     const secret = getAnonJwtSecret();
     let anonUserId: string | undefined;
+    let refreshTenantId: string | null | undefined;
+    let refreshProjectId: string | null | undefined;
 
     const authHeader = c.req.header('Authorization');
     if (authHeader?.startsWith('Bearer ')) {
@@ -196,6 +206,8 @@ app.openapi(
           payload.sub.startsWith('anon_')
         ) {
           anonUserId = payload.sub;
+          refreshTenantId = typeof payload.tid === 'string' ? payload.tid : null;
+          refreshProjectId = typeof payload.pid === 'string' ? payload.pid : null;
         } else {
           logger.debug(
             { appId, tokenApp: payload.app, tokenType: payload.type },
@@ -222,14 +234,17 @@ app.openapi(
       anonUserId = `anon_${crypto.randomUUID()}`;
     }
 
+    const tenantId = isRefresh ? (refreshTenantId ?? appRecord.tenantId) : appRecord.tenantId;
+    const projectId = isRefresh ? (refreshProjectId ?? appRecord.projectId) : appRecord.projectId;
+
     const lifetimeSeconds = env.INKEEP_ANON_SESSION_LIFETIME_SECONDS;
     const now = Math.floor(Date.now() / 1000);
     const exp = now + lifetimeSeconds;
     const expiresAt = new Date(exp * 1000).toISOString();
 
     const token = await new SignJWT({
-      tid: appRecord.tenantId,
-      pid: appRecord.projectId,
+      tid: tenantId,
+      pid: projectId,
       app: appId,
       type: 'anonymous',
     })

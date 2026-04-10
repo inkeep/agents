@@ -50,7 +50,7 @@ app.openapi(
       });
       return c.json({ data: relations as any }) as any;
     } catch (error) {
-      logger.error({ error, tenantId, projectId, configId }, 'Failed to list evaluator relations');
+      logger.error({ error, configId }, 'Failed to list evaluator relations');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -102,13 +102,10 @@ app.openapi(
         evaluatorId,
       } as any);
 
-      logger.info({ tenantId, projectId, configId, evaluatorId }, 'Evaluator relation created');
+      logger.info({ configId, evaluatorId }, 'Evaluator relation created');
       return c.json({ data: created as any }, 201) as any;
     } catch (error) {
-      logger.error(
-        { error, tenantId, projectId, configId, evaluatorId },
-        'Failed to create evaluator relation'
-      );
+      logger.error({ error, configId, evaluatorId }, 'Failed to create evaluator relation');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -157,13 +154,10 @@ app.openapi(
         ) as any;
       }
 
-      logger.info({ tenantId, projectId, configId, evaluatorId }, 'Evaluator relation deleted');
+      logger.info({ configId, evaluatorId }, 'Evaluator relation deleted');
       return c.body(null, 204) as any;
     } catch (error) {
-      logger.error(
-        { error, tenantId, projectId, configId, evaluatorId },
-        'Failed to delete evaluator relation'
-      );
+      logger.error({ error, configId, evaluatorId }, 'Failed to delete evaluator relation');
       return c.json(
         createApiError({
           code: 'internal_server_error',

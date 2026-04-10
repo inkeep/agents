@@ -1,3 +1,4 @@
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import { generateAppCredential } from '../../utils/apiKeys';
 
@@ -7,11 +8,7 @@ vi.mock('../../env.js', () => ({
   },
 }));
 
-vi.mock('../../logger.js', () => ({
-  getLogger: vi.fn(() => ({
-    error: vi.fn(),
-  })),
-}));
+vi.mock('../../logger.js', () => createMockLoggerModule().module);
 
 describe('App Credential Utilities', () => {
   describe('generateAppCredential', () => {

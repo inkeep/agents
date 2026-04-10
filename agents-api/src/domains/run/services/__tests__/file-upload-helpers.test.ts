@@ -1,7 +1,10 @@
 import type { FilePart, TextPart } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { downloadExternalFile } from '../blob-storage/external-file-downloader';
-import { PdfUrlIngestionError } from '../blob-storage/file-security-errors';
+import {
+  BlockedInlineFileExceedingError,
+  PdfUrlIngestionError,
+} from '../blob-storage/file-security-errors';
 import {
   hasFileParts,
   makeMessageContentParts,
@@ -11,6 +14,10 @@ import {
   buildPersistedMessageContent,
   inlineExternalPdfUrlParts,
 } from '../blob-storage/file-upload-helpers';
+
+vi.mock('../blob-storage/attachment-artifacts', () => ({
+  createAttachmentArtifacts: vi.fn().mockResolvedValue([]),
+}));
 
 vi.mock('../blob-storage/file-upload', () => ({
   hasFileParts: vi.fn(),
@@ -27,9 +34,16 @@ const ctx = {
   projectId: 'project',
   conversationId: 'conversation',
   messageId: 'message',
+  taskId: 'message_message',
+  toolCallId: 'message_attachment:message',
+  source: 'user-message' as const,
 };
 
 describe('buildPersistedMessageContent', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('returns text-only content when there are no file parts', async () => {
     vi.mocked(hasFileParts).mockReturnValueOnce(false);
     const textPart: TextPart = { kind: 'text', text: 'hello' };
@@ -48,7 +62,6 @@ describe('buildPersistedMessageContent', () => {
     vi.mocked(makeMessageContentParts).mockReturnValueOnce([
       { kind: 'file', data: 'blob://a', metadata: {} },
     ]);
-
     const inputFilePart: FilePart = { kind: 'file', file: { uri: 'https://example.com/img.png' } };
     const result = await buildPersistedMessageContent('hello', [inputFilePart], ctx);
     expect(result).toEqual({
@@ -64,6 +77,19 @@ describe('buildPersistedMessageContent', () => {
     const inputFilePart: FilePart = { kind: 'file', file: { uri: 'https://example.com/img.png' } };
     const result = await buildPersistedMessageContent('hello', [inputFilePart], ctx);
     expect(result).toEqual({ text: 'hello' });
+  });
+
+  it('rethrows file validation errors from uploadPartsFiles', async () => {
+    vi.mocked(hasFileParts).mockReturnValueOnce(true);
+    vi.mocked(uploadPartsFiles).mockRejectedValueOnce(
+      new BlockedInlineFileExceedingError(256 * 1024)
+    );
+
+    const inputFilePart: FilePart = { kind: 'file', file: { uri: 'https://example.com/img.png' } };
+
+    await expect(
+      buildPersistedMessageContent('hello', [inputFilePart], ctx)
+    ).rejects.toBeInstanceOf(BlockedInlineFileExceedingError);
   });
 });
 

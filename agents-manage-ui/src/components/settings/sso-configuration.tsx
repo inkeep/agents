@@ -4,7 +4,7 @@ import type { SSOPlugin } from '@better-auth/sso';
 import type { AllowedAuthMethod } from '@inkeep/agents-core/auth/auth-types';
 import { parseAllowedAuthMethods } from '@inkeep/agents-core/auth/auth-types';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -53,7 +53,7 @@ export function useSSOProviders(organizationId: string | undefined) {
   const [providers, setProviders] = useState<SSOProviderInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchProviders = useCallback(async () => {
+  async function fetchProviders() {
     if (!organizationId) {
       setProviders([]);
       setLoading(false);
@@ -80,14 +80,16 @@ export function useSSOProviders(organizationId: string | undefined) {
       }
     } catch {
       setProviders([]);
-    } finally {
-      setLoading(false);
     }
-  }, [authClient, organizationId]);
+    setLoading(false);
+  }
 
   useEffect(() => {
     fetchProviders();
-  }, [fetchProviders]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchProviders,
+  ]);
 
   return { providers, loading, refetch: fetchProviders };
 }
@@ -202,7 +204,7 @@ export function RegisterSSOForm({
     scopes: DEFAULT_OIDC_SCOPES.join(', '),
   });
 
-  const providerId = useMemo(() => generateProviderId(organizationSlug), [organizationSlug]);
+  const providerId = generateProviderId(organizationSlug);
   const callbackUrl = buildCallbackUrl(PUBLIC_INKEEP_AGENTS_API_URL, providerId);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -262,9 +264,8 @@ export function RegisterSSOForm({
       onRegistered();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to register SSO provider');
-    } finally {
-      setIsSubmitting(false);
     }
+    setIsSubmitting(false);
   };
 
   return (
@@ -521,9 +522,8 @@ export function EditSSOForm({
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update SSO provider');
-    } finally {
-      setIsSubmitting(false);
     }
+    setIsSubmitting(false);
   };
 
   return (

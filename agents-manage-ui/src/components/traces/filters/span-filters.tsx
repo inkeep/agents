@@ -1,5 +1,5 @@
 import { ChevronRight, Plus, X } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -49,10 +49,10 @@ export function SpanFilters({
   const [availableSpanNames, setAvailableSpanNames] = useState<string[]>([]);
   const [spanNamesLoading, setSpanNamesLoading] = useState(false);
   const hasFetchedRef = useRef(false);
-  const lastFetchParamsRef = useRef<string>('');
+  const lastFetchParamsRef = useRef('');
   const isFetchingRef = useRef(false);
 
-  const fetchSpanNames = useCallback(async () => {
+  async function fetchSpanNames() {
     if (!startTime || !endTime || !tenantId) return;
     if (isFetchingRef.current) return; // Guard against concurrent fetches
 
@@ -77,11 +77,10 @@ export function SpanFilters({
     } catch (error) {
       console.error('Failed to fetch span names:', error);
       setAvailableSpanNames([]);
-    } finally {
-      isFetchingRef.current = false;
-      setSpanNamesLoading(false);
     }
-  }, [startTime, endTime, selectedAgent, projectId, tenantId]);
+    isFetchingRef.current = false;
+    setSpanNamesLoading(false);
+  }
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Intentionally reset ref when filter params change to trigger re-fetch
   useEffect(() => {
@@ -92,16 +91,17 @@ export function SpanFilters({
     if (totalFilters > 0 && !hasFetchedRef.current) {
       fetchSpanNames();
     }
-  }, [totalFilters, fetchSpanNames]);
+  }, [
+    totalFilters,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchSpanNames,
+  ]);
 
-  const handleOpenChange = useCallback(
-    (open: boolean) => {
-      if (open && !hasFetchedRef.current) {
-        fetchSpanNames();
-      }
-    },
-    [fetchSpanNames]
-  );
+  function handleOpenChange(open: boolean) {
+    if (open && !hasFetchedRef.current) {
+      fetchSpanNames();
+    }
+  }
 
   return (
     <Collapsible

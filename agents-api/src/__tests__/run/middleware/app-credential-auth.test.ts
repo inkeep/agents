@@ -34,33 +34,37 @@ const { getAnonJwtSecretMock } = vi.hoisted(() => ({
   getAnonJwtSecretMock: vi.fn().mockReturnValue(new TextEncoder().encode('test-anon-secret')),
 }));
 
-vi.mock('@inkeep/agents-core', () => ({
-  validateAndGetApiKey: validateAndGetApiKeyMock,
-  getAppById: getAppByIdMock,
-  validateOrigin: validateOriginMock,
-  updateAppLastUsed: updateAppLastUsedMock,
-  verifyServiceToken: verifyServiceTokenMock,
-  isSlackUserToken: isSlackUserTokenMock,
-  verifySlackUserToken: verifySlackUserTokenMock,
-  verifyTempToken: verifyTempTokenMock,
-  canUseProjectStrict: canUseProjectStrictMock,
-  validateTargetAgent: validateTargetAgentMock,
-  verifyPoW: verifyPoWMock,
-  getPoWErrorMessage: (error: string) => {
-    const messages: Record<string, string> = {
-      pow_expired: 'Proof-of-work challenge has expired. Please request a new challenge.',
-      pow_required: 'Proof-of-work challenge solution is required.',
-      pow_invalid: 'Proof-of-work challenge solution is invalid.',
-    };
-    return messages[error] ?? 'Unknown PoW error';
-  },
-  getLogger: () => ({
-    debug: vi.fn(),
-    error: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-  }),
-}));
+vi.mock('@inkeep/agents-core', async () => {
+  const actual = await vi.importActual<typeof import('@inkeep/agents-core')>('@inkeep/agents-core');
+  return {
+    createApiError: actual.createApiError,
+    validateAndGetApiKey: validateAndGetApiKeyMock,
+    getAppById: getAppByIdMock,
+    validateOrigin: validateOriginMock,
+    updateAppLastUsed: updateAppLastUsedMock,
+    verifyServiceToken: verifyServiceTokenMock,
+    isSlackUserToken: isSlackUserTokenMock,
+    verifySlackUserToken: verifySlackUserTokenMock,
+    verifyTempToken: verifyTempTokenMock,
+    canUseProjectStrict: canUseProjectStrictMock,
+    validateTargetAgent: validateTargetAgentMock,
+    verifyPoW: verifyPoWMock,
+    getPoWErrorMessage: (error: string) => {
+      const messages: Record<string, string> = {
+        pow_expired: 'Proof-of-work challenge has expired. Please request a new challenge.',
+        pow_required: 'Proof-of-work challenge solution is required.',
+        pow_invalid: 'Proof-of-work challenge solution is invalid.',
+      };
+      return messages[error] ?? 'Unknown PoW error';
+    },
+    getLogger: () => ({
+      debug: vi.fn(),
+      error: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+    }),
+  };
+});
 
 vi.mock('jose', () => ({
   jwtVerify: jwtVerifyMock,
@@ -189,9 +193,10 @@ describe('App Credential Authentication', () => {
         },
       });
 
-      expect(res.status).toBe(401);
-      const body = await res.text();
-      expect(body).toContain('Invalid Token');
+      expect(res.status).toBe(403);
+      const body = await res.json();
+      expect(body.code).toBe('forbidden');
+      expect(body.detail).toBe('Origin not allowed for this app');
     });
 
     it('should reject when JWT app claim does not match', async () => {
@@ -370,9 +375,10 @@ describe('App Credential Authentication', () => {
       verifyPoWMock.mockResolvedValueOnce({ ok: false, error: 'pow_required' });
 
       app.use('*', apiKeyAuth());
-      app.get('/', (c) => c.text('OK'));
+      app.post('/', (c) => c.text('OK'));
 
       const res = await app.request('/', {
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${VALID_ANON_JWT}`,
           'x-inkeep-app-id': 'app-id-1',
@@ -392,9 +398,10 @@ describe('App Credential Authentication', () => {
       verifyPoWMock.mockResolvedValueOnce({ ok: false, error: 'pow_invalid' });
 
       app.use('*', apiKeyAuth());
-      app.get('/', (c) => c.text('OK'));
+      app.post('/', (c) => c.text('OK'));
 
       const res = await app.request('/', {
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${VALID_ANON_JWT}`,
           'x-inkeep-app-id': 'app-id-1',
@@ -414,9 +421,10 @@ describe('App Credential Authentication', () => {
       verifyPoWMock.mockResolvedValueOnce({ ok: false, error: 'pow_expired' });
 
       app.use('*', apiKeyAuth());
-      app.get('/', (c) => c.text('OK'));
+      app.post('/', (c) => c.text('OK'));
 
       const res = await app.request('/', {
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${VALID_ANON_JWT}`,
           'x-inkeep-app-id': 'app-id-1',
@@ -431,7 +439,7 @@ describe('App Credential Authentication', () => {
       );
     });
 
-    it('should succeed when PoW passes', async () => {
+    it('should succeed when PoW passes on POST', async () => {
       const appRecord = makeWebClientApp();
       getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
       validateOriginMock.mockReturnValue(true);
@@ -447,10 +455,41 @@ describe('App Credential Authentication', () => {
       });
 
       app.use('*', apiKeyAuth());
-      app.get('/', (c) => {
+      app.post('/', (c) => {
         const ctx = (c as any).get('executionContext');
         return c.json(ctx);
       });
+
+      const res = await app.request('/', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${VALID_ANON_JWT}`,
+          'x-inkeep-app-id': 'app-id-1',
+          'x-inkeep-agent-id': 'agent-1',
+          Origin: 'https://help.customer.com',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(verifyPoWMock).toHaveBeenCalled();
+    });
+
+    it('should skip PoW for GET requests (e.g. stream resume)', async () => {
+      const appRecord = makeWebClientApp();
+      getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
+      validateOriginMock.mockReturnValue(true);
+      jwtVerifyMock.mockResolvedValueOnce({
+        payload: {
+          sub: 'anon_test-uuid',
+          app: 'app-id-1',
+          tid: 'tenant_1',
+          pid: 'project_1',
+          type: 'anonymous',
+        },
+      });
+
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => c.text('OK'));
 
       const res = await app.request('/', {
         headers: {
@@ -462,7 +501,7 @@ describe('App Credential Authentication', () => {
       });
 
       expect(res.status).toBe(200);
-      expect(verifyPoWMock).toHaveBeenCalled();
+      expect(verifyPoWMock).not.toHaveBeenCalled();
     });
 
     it('should not call verifyPoW for non-web_client app types', async () => {

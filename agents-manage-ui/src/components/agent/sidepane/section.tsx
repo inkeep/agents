@@ -25,15 +25,18 @@ export function SectionHeader({
   title,
   description,
   titleTooltip,
+  children,
 }: {
   title: string;
   description: string;
   titleTooltip?: React.ReactNode;
+  children?: React.ReactNode;
 }) {
   return (
     <div className="space-y-1.5">
       <SectionTitle title={title} tooltip={titleTooltip} />
       <SectionDescription description={description} />
+      {children}
     </div>
   );
 }

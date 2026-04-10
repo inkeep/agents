@@ -13,7 +13,6 @@ import type { ArtifactComponentOutput } from '@/components/artifact-components/f
 import type { ListResponse, SingleResponse } from '../types/response';
 // Configuration for the API client
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Re-export types from core package for convenience
 // Props can be null/undefined for optional artifact components
@@ -26,9 +25,6 @@ async function $fetchArtifactComponents(
   tenantId: string,
   projectId: string
 ): Promise<ListResponse<ArtifactComponent>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<ListResponse<ArtifactComponentApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/artifact-components?limit=100`
   );
@@ -45,9 +41,6 @@ async function $fetchArtifactComponent(
   projectId: string,
   artifactComponentId: string
 ): Promise<ArtifactComponent> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<ArtifactComponentApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`
   );
@@ -64,9 +57,6 @@ export async function createArtifactComponent(
   projectId: string,
   artifactComponent: ArtifactComponentOutput
 ): Promise<ArtifactComponent> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<ArtifactComponentApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/artifact-components`,
     {
@@ -86,9 +76,6 @@ export async function updateArtifactComponent(
   projectId: string,
   artifactComponent: ArtifactComponentApiUpdate & { id: string }
 ): Promise<ArtifactComponent> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<ArtifactComponentApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponent.id}`,
     {
@@ -108,9 +95,6 @@ export async function deleteArtifactComponent(
   projectId: string,
   artifactComponentId: string
 ): Promise<void> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   await makeManagementApiRequest(
     `tenants/${tenantId}/projects/${projectId}/artifact-components/${artifactComponentId}`,
     {

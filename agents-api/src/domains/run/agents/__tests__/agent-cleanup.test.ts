@@ -1,14 +1,8 @@
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Agent } from '../Agent';
 
-vi.mock('../../../../logger', () => ({
-  getLogger: () => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
+vi.mock('../../../../logger', () => createMockLoggerModule().module);
 
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual: any = await importOriginal();
