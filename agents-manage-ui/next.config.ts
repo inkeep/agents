@@ -1,7 +1,7 @@
-import { withSentryConfig } from '@sentry/nextjs';
-import type { NextConfig } from 'next';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { withSentryConfig } from '@sentry/nextjs';
+import type { NextConfig } from 'next';
 
 // Load environment files from project root during development
 // This allows the Next.js app to read .env files from the workspace root in development
