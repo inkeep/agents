@@ -302,89 +302,89 @@ async function syncPublicPr() {
 
   let hasStagedChanges = false;
   if (!metadataOnlyAction) {
-      const patch = await githubRequest({
-        token: publicToken,
-        path: `/repos/${publicRepo}/pulls/${publicPrNumber}`,
-        accept: "application/vnd.github.patch",
-      });
+    const patch = await githubRequest({
+      token: publicToken,
+      path: `/repos/${publicRepo}/pulls/${publicPrNumber}`,
+      accept: "application/vnd.github.patch",
+    });
 
-      if (!patch.trim()) {
+    if (!patch.trim()) {
+      await upsertIssueComment({
+        token: publicToken,
+        repo: publicRepo,
+        issueNumber: publicPrNumber,
+        body: buildPublicComment({
+          publicPr,
+          status: "no-op",
+          details: "GitHub returned an empty patch, so there was nothing to port.",
+        }),
+      });
+      return;
+    }
+
+    const tempDir = mkdtempSync(path.join(tmpdir(), "public-pr-bridge-"));
+    const patchFile = path.join(tempDir, "public-pr.patch");
+    writeFileSync(patchFile, prefixPatchPaths(patch, mirrorPath), "utf8");
+
+    try {
+      run("git", ["-C", internalRepoDir, "fetch", "origin", internalBaseRef, "--prune"]);
+      run("git", ["-C", internalRepoDir, "checkout", "-B", branchName, `origin/${internalBaseRef}`]);
+
+      try {
+        run("git", ["-C", internalRepoDir, "apply", "--index", "--3way", patchFile]);
+      } catch (error) {
         await upsertIssueComment({
           token: publicToken,
           repo: publicRepo,
           issueNumber: publicPrNumber,
           body: buildPublicComment({
             publicPr,
-            status: "no-op",
-            details: "GitHub returned an empty patch, so there was nothing to port.",
+            status: "failed",
+            details: `Patch application failed. The diff could not be applied cleanly. Please rebase your PR on the latest main.`,
           }),
         });
-        return;
+        throw error;
       }
 
-      const tempDir = mkdtempSync(path.join(tmpdir(), "public-pr-bridge-"));
-      const patchFile = path.join(tempDir, "public-pr.patch");
-      writeFileSync(patchFile, prefixPatchPaths(patch, mirrorPath), "utf8");
-
-      try {
-        run("git", ["-C", internalRepoDir, "fetch", "origin", internalBaseRef, "--prune"]);
-        run("git", ["-C", internalRepoDir, "checkout", "-B", branchName, `origin/${internalBaseRef}`]);
-
+      hasStagedChanges = (() => {
         try {
-          run("git", ["-C", internalRepoDir, "apply", "--index", "--3way", patchFile]);
-        } catch (error) {
-          await upsertIssueComment({
-            token: publicToken,
-            repo: publicRepo,
-            issueNumber: publicPrNumber,
-            body: buildPublicComment({
-              publicPr,
-              status: "failed",
-              details: `Patch application failed. The diff could not be applied cleanly. Please rebase your PR on the latest main.`,
-            }),
-          });
-          throw error;
+          run("git", ["-C", internalRepoDir, "diff", "--cached", "--quiet"]);
+          return false;
+        } catch {
+          return true;
         }
+      })();
 
-        hasStagedChanges = (() => {
-          try {
-            run("git", ["-C", internalRepoDir, "diff", "--cached", "--quiet"]);
-            return false;
-          } catch {
-            return true;
-          }
-        })();
+      if (hasStagedChanges) {
+        run("git", ["-C", internalRepoDir, "config", "user.name", "Inkeep Public PR Bridge"]);
+        run("git", ["-C", internalRepoDir, "config", "user.email", "public-pr-bridge@inkeep.com"]);
 
-        if (hasStagedChanges) {
-          run("git", ["-C", internalRepoDir, "config", "user.name", "Inkeep Public PR Bridge"]);
-          run("git", ["-C", internalRepoDir, "config", "user.email", "public-pr-bridge@inkeep.com"]);
+        const authorEmail = `${publicPr.user.id}+${publicPr.user.login}@users.noreply.github.com`;
+        run("git", [
+          "-C",
+          internalRepoDir,
+          "commit",
+          "--author",
+          `${publicPr.user.login} <${authorEmail}>`,
+          "-m",
+          `chore(sync): mirror ${publicRepo}#${publicPr.number}`,
+        ]);
 
-          const authorEmail = `${publicPr.user.id}+${publicPr.user.login}@users.noreply.github.com`;
-          run("git", [
-            "-C",
-            internalRepoDir,
-            "commit",
-            "--author",
-            `${publicPr.user.login} <${authorEmail}>`,
-            "-m",
-            `chore(sync): mirror ${publicRepo}#${publicPr.number}`,
-          ]);
-
-          run("git", [
-            "-C",
-            internalRepoDir,
-            "push",
-            "--force-with-lease",
-            "--set-upstream",
-            "origin",
-            branchName,
-          ]);
-        }
-      } finally {
-        rmSync(tempDir, { recursive: true, force: true });
+        run("git", [
+          "-C",
+          internalRepoDir,
+          "push",
+          "--force-with-lease",
+          "--set-upstream",
+          "origin",
+          branchName,
+        ]);
       }
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
 
-      internalPr = await findOpenInternalPr({
+    internalPr = await findOpenInternalPr({
         token: internalToken,
         repo: internalRepo,
         owner: internalOwner,
