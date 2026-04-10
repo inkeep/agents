@@ -9,7 +9,6 @@ interface JsonEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'uri
 }
 
 export const JsonEditor: FC<JsonEditorProps> = ({ editorOptions, children, uri, ...props }) => {
-  'use memo';
   const id = useId();
 
   return (

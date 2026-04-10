@@ -25,7 +25,7 @@ interface NewAgentDialogContentProps extends NewAgentItemProps {
 
 const NewAgentDialogContent = ({ tenantId, projectId, onSuccess }: NewAgentDialogContentProps) => {
   return (
-    <DialogContent>
+    <DialogContent className="sm:max-w-xl">
       <DialogHeader>
         <DialogTitle>New Agent</DialogTitle>
         <DialogDescription className="sr-only">Create a new agent.</DialogDescription>

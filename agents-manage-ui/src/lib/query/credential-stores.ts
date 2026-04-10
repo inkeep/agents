@@ -5,7 +5,6 @@ import { useParams } from 'next/navigation';
 import { type CredentialStoreStatus, listCredentialStores } from '@/lib/api/credentialStores';
 
 export function useCredentialStoresQuery({ enabled = true }: { enabled?: boolean } = {}) {
-  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
   if (!tenantId || !projectId) {

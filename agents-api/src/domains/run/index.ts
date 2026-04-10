@@ -5,6 +5,8 @@ import authRoutes from './routes/auth';
 import chatRoutes from './routes/chat';
 import chatDataRoutes from './routes/chatDataStream';
 import conversationRoutes from './routes/conversations';
+import executionsRoutes from './routes/executions';
+import feedbackRoutes from './routes/feedback';
 import mcpRoutes from './routes/mcp';
 import webhookRoutes from './routes/webhooks';
 
@@ -13,7 +15,9 @@ export function createRunRoutes() {
 
   app.route('/v1/chat', chatRoutes);
   app.route('/v1/conversations', conversationRoutes);
+  app.route('/v1/feedback', feedbackRoutes);
   app.route('/api', chatDataRoutes);
+  app.route('/api', executionsRoutes);
   app.route('/v1/mcp', mcpRoutes);
   app.route('/agents', agentRoutes);
   app.route('/auth', authRoutes);

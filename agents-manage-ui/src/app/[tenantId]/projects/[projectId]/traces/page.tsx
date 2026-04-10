@@ -9,7 +9,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { use, useEffect, useMemo, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { AreaChartCard } from '@/components/traces/charts/area-chart-card';
 import { StatCard } from '@/components/traces/charts/stat-card';
 import { ConversationStatsCard } from '@/components/traces/conversation-stats/conversation-stats-card';
@@ -39,6 +39,7 @@ export default function TracesOverview({
 }: PageProps<'/[tenantId]/projects/[projectId]/traces'>) {
   const router = useRouter();
   const { tenantId, projectId } = use(params);
+  const [CURRENT_TIME] = useState(() => Date.now());
   const searchParams = useSearchParams();
   const {
     timeRange: selectedTimeRange,
@@ -63,8 +64,8 @@ export default function TracesOverview({
   const [activityLoading, setActivityLoading] = useState(true);
 
   // Calculate time range based on selection
-  const { startTime, endTime } = useMemo(() => {
-    const currentEndTime = Date.now() - 1; // Clamp to now-1ms to satisfy backend validation
+  const { startTime, endTime } = (() => {
+    const currentEndTime = CURRENT_TIME - 1; // Clamp to now-1ms to satisfy backend validation
 
     if (selectedTimeRange === CUSTOM) {
       // Use custom dates if provided
@@ -98,7 +99,7 @@ export default function TracesOverview({
       startTime: calculatedStart,
       endTime: currentEndTime,
     };
-  }, [selectedTimeRange, customStartDate, customEndDate]);
+  })();
   // URL state management is now handled by useUrlFilterState hook
 
   // Debounce search query to avoid too many API calls
@@ -110,16 +111,13 @@ export default function TracesOverview({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const spanFilters = useMemo<SpanFilterOptions | undefined>(() => {
-    if (!spanName && attributes.length === 0) {
-      return undefined;
-    }
-    const filters = {
-      spanName: spanName || undefined,
-      attributes: attributes.length > 0 ? attributes : undefined,
-    };
-    return filters;
-  }, [spanName, attributes]);
+  const spanFilters: SpanFilterOptions | undefined =
+    !spanName && attributes.length === 0
+      ? undefined
+      : {
+          spanName: spanName || undefined,
+          attributes: attributes.length > 0 ? attributes : undefined,
+        };
 
   const { stats, loading, error, pagination, aggregateStats } = useConversationStats({
     startTime,
@@ -150,9 +148,8 @@ export default function TracesOverview({
       } catch (e) {
         console.error('Failed to fetch conversation activity:', e);
         setActivityData([]);
-      } finally {
-        setActivityLoading(false);
       }
+      setActivityLoading(false);
     };
     if (startTime && endTime && tenantId) {
       fetchActivity();

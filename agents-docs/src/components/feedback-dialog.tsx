@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 
 const FEEDBACK_URL = '/api/feedback';
 
@@ -15,19 +15,19 @@ type Status = 'idle' | 'submitting' | 'success' | 'error';
 
 export function FeedbackDialog() {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [mood, setMood] = useState<string>('');
+  const [mood, setMood] = useState('');
   const [message, setMessage] = useState('');
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const pathname = usePathname();
 
-  const open = useCallback(() => {
+  function open() {
     dialogRef.current?.showModal();
-  }, []);
+  }
 
-  const close = useCallback(() => {
+  function close() {
     dialogRef.current?.close();
-  }, []);
+  }
 
   useEffect(() => {
     const dialog = dialogRef.current;

@@ -39,7 +39,6 @@ const defaultValues: CredentialFormData = {
 };
 
 export function CredentialForm({ onCreateCredential }: CredentialFormProps) {
-  'use memo';
   const [shouldLinkToServer, setShouldLinkToServer] = useState(false);
   const [shouldLinkToExternalAgent, setShouldLinkToExternalAgent] = useState(false);
 
@@ -47,8 +46,10 @@ export function CredentialForm({ onCreateCredential }: CredentialFormProps) {
     resolver: zodResolver(credentialFormSchema),
     defaultValues: defaultValues,
   });
-  const credentialStoreId = useWatch({ control: form.control, name: 'credentialStoreId' });
-  const credentialStoreType = useWatch({ control: form.control, name: 'credentialStoreType' });
+  const [credentialStoreId, credentialStoreType] = useWatch({
+    control: form.control,
+    name: ['credentialStoreId', 'credentialStoreType'],
+  });
 
   const { isSubmitting } = form.formState;
   const { data: externalAgents, isFetching: externalAgentsLoading } = useExternalAgentsQuery();
@@ -121,7 +122,7 @@ export function CredentialForm({ onCreateCredential }: CredentialFormProps) {
     setShouldLinkToExternalAgent(checked === true);
   };
 
-  const onSubmit = async (data: CredentialFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     const isInvalidServerSelection =
       shouldLinkToServer && (data.selectedTool === 'loading' || data.selectedTool === 'error');
     const isInvalidExternalAgentSelection =
@@ -149,7 +150,7 @@ export function CredentialForm({ onCreateCredential }: CredentialFormProps) {
       console.error('Failed to create credential:', err);
       toast(err instanceof Error ? err.message : 'Failed to create credential');
     }
-  };
+  });
 
   const serverOptions = [
     ...(toolsLoading
@@ -210,7 +211,7 @@ export function CredentialForm({ onCreateCredential }: CredentialFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={onSubmit} className="space-y-8">
         {/* Credential Details Section */}
         <div className="space-y-8">
           <GenericInput

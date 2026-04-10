@@ -19,6 +19,7 @@ import {
   messages,
   organization,
   scheduledTriggerInvocations,
+  scheduledTriggers,
   tasks,
   triggerInvocations,
   workAppGitHubInstallations,
@@ -62,6 +63,7 @@ describe('Cascade Delete Utilities', () => {
     await db.delete(tasks);
     await db.delete(triggerInvocations);
     await db.delete(scheduledTriggerInvocations);
+    await db.delete(scheduledTriggers);
     await db.delete(evaluationRun);
     await db.delete(datasetRun);
     await db.delete(apiKeys);
@@ -151,6 +153,16 @@ describe('Cascade Delete Utilities', () => {
         ref: branch1Ref,
       });
 
+      const schedTrig1Id = generateId();
+      await db.insert(scheduledTriggers).values({
+        tenantId,
+        projectId,
+        agentId,
+        id: schedTrig1Id,
+        name: 'branch1-trigger',
+        ref: 'branch1',
+      });
+
       // Create entities on branch2
       const conv2Id = generateId();
       const task2Id = generateId();
@@ -208,10 +220,21 @@ describe('Cascade Delete Utilities', () => {
         ref: branch2Ref,
       });
 
+      const schedTrig2Id = generateId();
+      await db.insert(scheduledTriggers).values({
+        tenantId,
+        projectId,
+        agentId,
+        id: schedTrig2Id,
+        name: 'branch2-trigger',
+        ref: 'branch2',
+      });
+
       // Delete branch1
       const result = await cascadeDeleteByBranch(db)({
         scopes: { tenantId, projectId },
         fullBranchName: branch1Ref.name,
+        ref: 'branch1',
       });
 
       // Verify branch1 entities are deleted
@@ -222,6 +245,7 @@ describe('Cascade Delete Utilities', () => {
       expect(result.scheduledTriggerInvocationsDeleted).toBe(1);
       expect(result.datasetRunsDeleted).toBe(1);
       expect(result.evaluationRunsDeleted).toBe(1);
+      expect(result.scheduledTriggersDeleted).toBe(1);
 
       // Verify branch2 entities still exist
       const remainingConvs = await db
@@ -260,11 +284,18 @@ describe('Cascade Delete Utilities', () => {
         .from(evaluationRun)
         .where(eq(evaluationRun.projectId, projectId));
       expect(remainingEvalRuns).toHaveLength(1);
+
+      const remainingSchedTrigs = await db
+        .select()
+        .from(scheduledTriggers)
+        .where(eq(scheduledTriggers.projectId, projectId));
+      expect(remainingSchedTrigs).toHaveLength(1);
+      expect(remainingSchedTrigs[0].id).toBe(schedTrig2Id);
     });
   });
 
   describe('cascadeDeleteByProject', () => {
-    it('should delete all runtime entities for a project on a specific branch', async () => {
+    it('should delete all runtime entities for a project across all branches', async () => {
       const project1 = 'project-1';
       const project2 = 'project-2';
 
@@ -324,7 +355,7 @@ describe('Cascade Delete Utilities', () => {
         ref: branch1Ref,
       });
 
-      // Create entities for project1 on branch2 (should NOT be deleted)
+      // Create entities for project1 on branch2 (should also be deleted by project-wide cascade)
       const conv1Branch2Id = generateId();
       await db.insert(conversations).values({
         tenantId,
@@ -354,23 +385,22 @@ describe('Cascade Delete Utilities', () => {
       // Delete project1 on branch1
       const result = await cascadeDeleteByProject(db)({
         scopes: { tenantId, projectId: project1 },
-        fullBranchName: branch1Ref.name,
       });
 
-      // Verify project1 branch1 entities are deleted
-      expect(result.conversationsDeleted).toBe(1);
+      // Verify ALL project1 entities are deleted (across all branches)
+      expect(result.conversationsDeleted).toBe(2);
       expect(result.tasksDeleted).toBe(1);
       expect(result.triggerInvocationsDeleted).toBe(1);
       expect(result.scheduledTriggerInvocationsDeleted).toBe(1);
       expect(result.datasetRunsDeleted).toBe(1);
       expect(result.evaluationRunsDeleted).toBe(1);
 
-      // Verify project1 branch2 entities still exist
+      // Verify project1 branch2 entities are also deleted
       const project1Branch2Convs = await db
         .select()
         .from(conversations)
         .where(and(eq(conversations.projectId, project1), eq(conversations.id, conv1Branch2Id)));
-      expect(project1Branch2Convs).toHaveLength(1);
+      expect(project1Branch2Convs).toHaveLength(0);
 
       // Verify project2 entities still exist
       const project2Convs = await db
@@ -413,7 +443,6 @@ describe('Cascade Delete Utilities', () => {
 
       const result = await cascadeDeleteByProject(db)({
         scopes: { tenantId, projectId: project1 },
-        fullBranchName: branch1Ref.name,
       });
 
       expect(result.slackChannelConfigsDeleted).toBe(1);
@@ -450,7 +479,6 @@ describe('Cascade Delete Utilities', () => {
       // Delete project (API keys are branch-agnostic)
       const result = await cascadeDeleteByProject(db)({
         scopes: { tenantId, projectId },
-        fullBranchName: branch1Ref.name,
       });
 
       expect(result.apiKeysDeleted).toBe(2);

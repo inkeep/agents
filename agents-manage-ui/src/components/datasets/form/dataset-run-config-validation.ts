@@ -6,5 +6,3 @@ export const datasetRunConfigSchema = z.object({
   agentIds: z.array(z.string()).default([]),
   evaluatorIds: z.array(z.string()).default([]),
 });
-
-export type DatasetRunConfigFormData = z.infer<typeof datasetRunConfigSchema>;

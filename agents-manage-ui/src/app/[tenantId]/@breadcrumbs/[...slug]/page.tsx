@@ -1,7 +1,7 @@
 import type { Metadata, ResolvingMetadata } from 'next';
-import Link from 'next/link';
 import type { FC } from 'react';
 import { getJobName } from '@/app/[tenantId]/projects/[projectId]/evaluations/jobs/[configId]/page';
+import { BreadcrumbNav } from '@/components/layout/breadcrumb-nav';
 import { STATIC_LABELS } from '@/constants/theme';
 import { getFullAgent } from '@/lib/api/agent-full-client';
 import { fetchArtifactComponent } from '@/lib/api/artifact-components';
@@ -14,10 +14,8 @@ import { fetchExternalAgent } from '@/lib/api/external-agents';
 import { fetchWorkAppGitHubInstallationDetail } from '@/lib/api/github';
 import { fetchProject } from '@/lib/api/projects';
 import { getScheduledTrigger } from '@/lib/api/scheduled-triggers';
-import { fetchSkill } from '@/lib/api/skills';
 import { fetchMCPTool } from '@/lib/api/tools';
 import { fetchNangoProviders } from '@/lib/mcp-tools/nango';
-import { cn } from '@/lib/utils';
 import { getErrorCode, getStatusCodeFromErrorCode } from '@/lib/utils/error-serialization';
 
 type LabelKey = keyof typeof STATIC_LABELS;
@@ -101,10 +99,6 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
       const result = await getFullAgent(tenantId, projectId, agentId);
       return result.data.name;
     },
-    async skills(id) {
-      const result = await fetchSkill(tenantId, projectId, id);
-      return result.name;
-    },
     async 'scheduled-triggers'(id) {
       const trigger = await getScheduledTrigger(tenantId, projectId, slug[3], id);
       return trigger.name;
@@ -168,29 +162,11 @@ async function getCrumbs(params: BreadcrumbsProps['params']) {
 
 const BreadcrumbSlot: FC<BreadcrumbsProps> = async ({ params }) => {
   const crumbs = await getCrumbs(params);
-  return crumbs.map(({ label, href }, idx, arr) => {
-    const isLast = idx === arr.length - 1;
-    return (
-      <li
-        key={href}
-        aria-current={isLast ? 'page' : undefined}
-        className={cn(
-          'shrink-0',
-          isLast
-            ? 'font-medium text-foreground'
-            : 'after:ml-2 after:content-["›"] after:text-muted-foreground/60'
-        )}
-      >
-        {isLast ? (
-          label
-        ) : (
-          <Link href={href} className="hover:text-foreground">
-            {label}
-          </Link>
-        )}
-      </li>
-    );
-  });
+  return crumbs.map(({ label, href }, idx, arr) => (
+    <BreadcrumbNav.Item key={href} href={href} isLast={idx === arr.length - 1} separator="›">
+      {label}
+    </BreadcrumbNav.Item>
+  ));
 };
 
 export async function generateMetadata(

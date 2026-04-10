@@ -14,6 +14,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { useMonacoActions } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
 
 export function GenericPromptEditor<
@@ -36,11 +37,14 @@ export function GenericPromptEditor<
   readOnly?: boolean;
   uri?: ComponentProps<typeof PromptEditor>['uri'];
 }) {
-  'use memo';
   const [open, onOpenChange] = useState(false);
   const $uri = props.uri ?? `${name}.template`;
   const uri = `${open ? 'expanded-' : ''}${$uri}` as const;
+  const { getEditorByUri } = useMonacoActions();
 
+  function focusEditor() {
+    getEditorByUri(uri)?.focus();
+  }
   return (
     <FormField
       control={control}
@@ -49,7 +53,7 @@ export function GenericPromptEditor<
         <FormItem>
           <Editor.Dialog open={open} onOpenChange={onOpenChange} label={label}>
             <div className="flex">
-              <FormLabel isRequired={isRequired} className="inline-flex grow">
+              <FormLabel isRequired={isRequired} className="inline-flex grow" onClick={focusEditor}>
                 {label}
               </FormLabel>
               {uri.endsWith('.template') && !readOnly && <AddVariableAction uri={uri} />}

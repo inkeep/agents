@@ -9,7 +9,6 @@
 
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 interface ModelSettings {
   model?: string;
@@ -65,13 +64,14 @@ export interface EvaluatorUpdate {
  */
 export async function fetchEvaluators(
   tenantId: string,
-  projectId: string
+  projectId: string,
+  { agentId }: { agentId?: string } = {}
 ): Promise<ListResponse<Evaluator>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
+  const params = new URLSearchParams();
+  if (agentId) params.set('agentId', agentId);
+  const qs = params.toString();
   return makeManagementApiRequest<ListResponse<Evaluator>>(
-    `tenants/${tenantId}/projects/${projectId}/evals/evaluators`
+    `tenants/${tenantId}/projects/${projectId}/evals/evaluators${qs ? `?${qs}` : ''}`
   );
 }
 
@@ -83,9 +83,6 @@ export async function createEvaluator(
   projectId: string,
   evaluator: EvaluatorInsert
 ): Promise<Evaluator> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<Evaluator>>(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluators`,
     {
@@ -106,9 +103,6 @@ export async function updateEvaluator(
   evaluatorId: string,
   evaluator: EvaluatorUpdate
 ): Promise<Evaluator> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<Evaluator>>(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluators/${evaluatorId}`,
     {
@@ -128,9 +122,6 @@ export async function deleteEvaluator(
   projectId: string,
   evaluatorId: string
 ): Promise<void> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   await makeManagementApiRequest(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluators/${evaluatorId}`,
     {

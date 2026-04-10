@@ -6,6 +6,11 @@ export {
 } from './authz-meta';
 export { createProtectedRoute } from './create-protected-route';
 export {
+  type EntitlementMeta,
+  getEntitlementMeta,
+  registerEntitlementMeta,
+} from './entitlement-meta';
+export {
   inheritedAuth,
   inheritedManageTenantAuth,
   inheritedRunApiKeyAuth,

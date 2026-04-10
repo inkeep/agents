@@ -1,3 +1,4 @@
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildRelationsForDescription,
@@ -8,6 +9,7 @@ import {
   getArtifactComponentsForSubAgent,
   getDataComponentsForSubAgent,
   getExternalAgentRelationsForTargetSubAgent,
+  getSkillsForSubAgent,
   getSubAgentFromProject,
   getSubAgentRelations,
   getToolsForSubAgent,
@@ -15,15 +17,7 @@ import {
   parseDelegateRelations,
 } from '../project';
 
-// Mock the logger
-vi.mock('../../logger', () => ({
-  getLogger: () => ({
-    warn: vi.fn(),
-    info: vi.fn(),
-    debug: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
+vi.mock('../../logger', () => createMockLoggerModule().module);
 
 // Mock generateDescriptionWithRelationData
 const mockGenerateDescriptionWithRelationData = vi
@@ -653,6 +647,100 @@ describe('project helpers', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0]?.name).toBe('Artifact Component 1');
+    });
+  });
+
+  describe('getSkillsForSubAgent', () => {
+    it('should attach project skill files to the sub-agent skill payload', () => {
+      const subAgent = createMockSubAgent({
+        skills: [
+          {
+            id: 'weather-safety-guardrails',
+            subAgentSkillId: 'sub-agent-skill-1',
+            name: 'weather-safety-guardrails',
+            description: 'Safety rules.',
+            content: 'Always check the weather.',
+            metadata: null,
+            index: 0,
+            alwaysLoaded: false,
+          },
+        ],
+      });
+      const project = createMockProject({
+        skills: {
+          'weather-safety-guardrails': {
+            files: [
+              {
+                filePath: 'SKILL.md',
+                content: 'Skill entry content',
+              },
+              {
+                filePath: 'reference/safety-checklist.txt',
+                content: 'Check weather alerts',
+              },
+            ],
+          },
+        },
+      });
+
+      const result = getSkillsForSubAgent({ project, subAgent });
+
+      expect(result).toEqual([
+        {
+          id: 'weather-safety-guardrails',
+          subAgentSkillId: 'sub-agent-skill-1',
+          name: 'weather-safety-guardrails',
+          description: 'Safety rules.',
+          content: 'Always check the weather.',
+          metadata: null,
+          index: 0,
+          alwaysLoaded: false,
+          files: [
+            {
+              filePath: 'SKILL.md',
+              content: 'Skill entry content',
+            },
+            {
+              filePath: 'reference/safety-checklist.txt',
+              content: 'Check weather alerts',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should default missing project skill files to an empty array', () => {
+      const subAgent = createMockSubAgent({
+        skills: [
+          {
+            id: 'weather-safety-guardrails',
+            subAgentSkillId: 'sub-agent-skill-1',
+            name: 'weather-safety-guardrails',
+            description: 'Safety rules.',
+            content: 'Always check the weather.',
+            metadata: null,
+            index: 0,
+            alwaysLoaded: false,
+          },
+        ],
+      });
+      const project = createMockProject();
+
+      const result = getSkillsForSubAgent({ project, subAgent });
+
+      expect(result).toEqual([
+        {
+          id: 'weather-safety-guardrails',
+          subAgentSkillId: 'sub-agent-skill-1',
+          name: 'weather-safety-guardrails',
+          description: 'Safety rules.',
+          content: 'Always check the weather.',
+          metadata: null,
+          index: 0,
+          alwaysLoaded: false,
+          files: [],
+        },
+      ]);
     });
   });
 

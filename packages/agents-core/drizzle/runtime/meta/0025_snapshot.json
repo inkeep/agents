@@ -1,6 +1,6 @@
 {
-  "id": "6a27f3f4-dfe7-4a3d-b705-bf04124d8b45",
-  "prevId": "aed8320f-0737-4399-92c1-db038ccabe6b",
+  "id": "077fbc00-78ca-4743-ad71-c5233248443c",
+  "prevId": "9dc3e813-268e-4093-8338-cb04bc5ff68a",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -336,12 +336,6 @@
         "default_agent_id": {
           "name": "default_agent_id",
           "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "prompt": {
-          "name": "prompt",
-          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -1756,12 +1750,6 @@
         },
         "preferred_auth_method": {
           "name": "preferred_auth_method",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "allowed_auth_methods": {
-          "name": "allowed_auth_methods",
           "type": "text",
           "primaryKey": false,
           "notNull": false

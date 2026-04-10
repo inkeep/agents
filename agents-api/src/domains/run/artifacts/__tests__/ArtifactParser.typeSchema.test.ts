@@ -1,4 +1,5 @@
 import type { ArtifactComponentApiInsert } from '@inkeep/agents-core';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ArtifactParser, ToolChainResolutionError } from '../ArtifactParser';
 
@@ -31,19 +32,20 @@ vi.mock('@inkeep/agents-core', () => ({
     debug: vi.fn(),
     child: vi.fn().mockReturnThis(),
   })),
+  getTracer: vi.fn(() => ({
+    startSpan: vi.fn(),
+    startActiveSpan: vi.fn((_name: string, fn: (span: any) => any) =>
+      fn({ end: vi.fn(), setStatus: vi.fn(), setAttribute: vi.fn() })
+    ),
+  })),
+  setSpanWithError: vi.fn(),
+  upsertLedgerArtifact: vi.fn(() => vi.fn()),
+  generateId: vi.fn(() => 'mock-id'),
 }));
 
 vi.mock('../../../../data/db/runDbClient', () => ({ default: 'mock-run-db-client' }));
 
-vi.mock('../../../../logger', () => ({
-  getLogger: vi.fn(() => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    child: vi.fn().mockReturnThis(),
-  })),
-}));
+vi.mock('../../../../logger', () => createMockLoggerModule().module);
 
 vi.mock('../../agents/services/ToolSessionManager', () => ({
   toolSessionManager: toolSessionManagerMock,

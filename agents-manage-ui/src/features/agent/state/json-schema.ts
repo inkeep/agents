@@ -660,6 +660,5 @@ export {
   useJsonSchemaStore,
   useJsonSchemaActions,
   type TypeValues,
-  type JsonSchemaStateData,
   type FieldObject,
 };

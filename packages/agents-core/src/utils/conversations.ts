@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { customAlphabet } from 'nanoid';
+import type { BaseExecutionContext, ConversationMetadata } from '../types/utility';
 
 // This ensures IDs are always lowercase and never start with a hyphen
 export const generateId = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 21);
@@ -29,4 +30,26 @@ export function deriveRelationId(...parts: string[]): string {
  */
 export function getConversationId(): string {
   return generateId();
+}
+
+export function buildConversationMetadata(
+  executionContext: BaseExecutionContext,
+  userProperties?: Record<string, unknown>
+): ConversationMetadata | undefined {
+  const meta = executionContext.metadata;
+  const isAuthenticated = meta?.authMethod === 'app_credential_web_client_authenticated';
+
+  const result: ConversationMetadata = {};
+
+  if (userProperties) {
+    result.userContext = userProperties;
+  }
+  if (meta?.verifiedClaims) {
+    result.verifiedClaims = meta.verifiedClaims;
+  }
+  if (isAuthenticated && meta?.endUserId) {
+    result.externalUserId = meta.endUserId;
+  }
+
+  return Object.keys(result).length > 0 ? result : undefined;
 }

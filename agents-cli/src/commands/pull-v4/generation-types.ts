@@ -15,6 +15,7 @@ export interface ProjectPaths {
   credentialsDir: string;
   contextConfigsDir: string;
   externalAgentsDir: string;
+  skillsDir: string;
 }
 
 export interface GenerationContext {
@@ -31,10 +32,12 @@ export interface GenerationRecord<TPayload> {
   payload: TPayload;
 }
 
+export type GenerationOutput = SourceFile | string;
+
 export interface GenerationTask<TPayload> {
   type: string;
   collect: (context: GenerationContext) => GenerationRecord<TPayload>[];
-  generate: (payload: TPayload) => SourceFile;
+  generate: (payload: TPayload) => GenerationOutput;
 }
 
 export type SubAgentReferenceOverrideType =

@@ -2,6 +2,7 @@
 
 import { Loader2, UserPlus, X } from 'lucide-react';
 import { type FC, useRef, useState } from 'react';
+import type { UseProjectAccessResult } from '@/components/access/hooks/use-project-access';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +11,7 @@ import { useAuthSession } from '@/hooks/use-auth';
 import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { PrincipalAvatar } from './principal-avatar';
 import { ProjectRoleSelector } from './project-role-selector';
-import type { AccessPrincipal, AccessRole, PrincipalType } from './types';
+import type { AccessPrincipal, AccessRole } from './types';
 
 /**
  * Configuration for the explicit members section
@@ -46,18 +47,13 @@ interface ResourceMembersPageProps {
   /** Configuration for the explicit members section */
   membersConfig: MembersConfig;
   /** Callback when adding a principal */
-  onAdd: (principalId: string, principalType: PrincipalType, role: string) => Promise<void>;
+  onAdd: UseProjectAccessResult['addPrincipal'];
   /** Callback to refresh the data */
   onRefresh?: () => Promise<void>;
   /** Callback when changing a principal's role */
-  onRoleChange: (
-    principalId: string,
-    principalType: PrincipalType,
-    oldRole: string,
-    newRole: string
-  ) => Promise<void>;
+  onRoleChange: UseProjectAccessResult['changeRole'];
   /** Callback when removing a principal */
-  onRemove: (principalId: string, principalType: PrincipalType, role: string) => Promise<void>;
+  onRemove: UseProjectAccessResult['removePrincipal'];
   /** Loading state */
   isLoading?: boolean;
   /** Adding/mutating state */

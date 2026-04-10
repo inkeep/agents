@@ -1,0 +1,101 @@
+---
+title: S3 Blob Storage
+sidebarTitle: Add S3 Storage
+description: Configure S3 for file attachment storage with presigned URL delivery
+keywords: S3, blob storage, presigned URLs, file attachments, media delivery
+icon: LuDatabase
+---
+
+## Overview
+
+The Inkeep Agent Framework stores file attachments (images, PDFs, documents) uploaded during conversations. By default, files are stored on the local filesystem. For production deployments, configure S3 (or an S3-compatible service) for durable storage with presigned URL delivery.
+
+When S3 is configured, media URLs in conversation responses are **presigned S3 URLs** — clients fetch files directly from S3 with no proxy overhead. This provides:
+- **Zero-proxy delivery** — clients talk directly to S3, no function invocations for media reads
+- **Domain isolation** — media is served from `*.s3.amazonaws.com`, separate from your API domain
+- **Time-limited access** — presigned URLs expire after 2 hours (configurable via `BLOB_STORAGE_PRESIGNED_URL_EXPIRY_SECONDS`)
+
+When S3 is not configured, the framework falls back to Vercel Blob (if `BLOB_READ_WRITE_TOKEN` is set) or the local filesystem. Both Vercel Blob and local storage serve files through a server-side media proxy rather than presigned URLs.
+
+## Step 1: Create an S3 Bucket
+
+Create a private S3 bucket in your preferred AWS region. No public access or special bucket policies are required — all access uses presigned URLs generated server-side.
+
+```bash
+aws s3 mb s3://your-media-bucket --region us-east-1
+```
+
+## Step 2: Create IAM Credentials
+
+Create an IAM user or role with the following permissions on your bucket:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": "arn:aws:s3:::your-media-bucket/*"
+    }
+  ]
+}
+```
+
+## Step 3: Configure Environment Variables
+
+Add the following to your `.env` file:
+
+```bash
+BLOB_STORAGE_S3_BUCKET=your-media-bucket
+BLOB_STORAGE_S3_REGION=us-east-1
+BLOB_STORAGE_S3_ACCESS_KEY_ID=your-access-key-id
+BLOB_STORAGE_S3_SECRET_ACCESS_KEY=your-secret-access-key
+```
+
+All four variables are required when S3 is enabled.
+
+### S3-Compatible Services
+
+For S3-compatible services, set `BLOB_STORAGE_S3_ENDPOINT` and enable path-style access where required:
+
+| Service | `BLOB_STORAGE_S3_ENDPOINT` | `BLOB_STORAGE_S3_FORCE_PATH_STYLE` |
+|---|---|---|
+| **Cloudflare R2** | `https://<account-id>.r2.cloudflarestorage.com` | Not needed (virtual-hosted style) |
+| **DigitalOcean Spaces** | `https://<region>.digitaloceanspaces.com` | Not needed |
+| **Backblaze B2** | `https://s3.<region>.backblazeb2.com` | `true` |
+
+### Optional: Presigned URL Expiry
+
+By default, presigned URLs expire after 2 hours (7200 seconds). To customize:
+
+```bash
+BLOB_STORAGE_PRESIGNED_URL_EXPIRY_SECONDS=900  # 15 minutes
+```
+
+Accepted range: 60–604800 (1 minute to 7 days).
+
+## Storage Backend Priority
+
+The framework selects a storage backend based on which environment variables are set:
+
+| Priority | Backend | Condition |
+|---|---|---|
+| 1 | **S3** | `BLOB_STORAGE_S3_BUCKET` is set |
+| 2 | **Vercel Blob** | `BLOB_READ_WRITE_TOKEN` is set |
+| 3 | **Local filesystem** | Neither is set (default, local dev only) |
+
+<Callout type="warning">
+Changing the storage backend after files have been uploaded will make previously stored files inaccessible. Plan your storage backend before going to production.
+</Callout>
+
+## How It Works
+
+1. When a user sends a file attachment in a chat message, the file is uploaded to S3 using the configured credentials
+2. The file's location is stored in the database as an internal blob URI
+3. When conversation history is retrieved, blob URIs are resolved to presigned S3 URLs (default 2-hour expiry, configurable via `BLOB_STORAGE_PRESIGNED_URL_EXPIRY_SECONDS`)
+4. Clients fetch files directly from S3 using the presigned URL — no proxy needed
