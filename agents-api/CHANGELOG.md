@@ -1,5 +1,35 @@
 # @inkeep/agents-api
 
+## 0.67.3
+
+### Patch Changes
+
+- ab65543: Fix text file artifacts being returned as base64-encoded file parts instead of decoded text content
+  - @inkeep/agents-core@0.67.3
+  - @inkeep/agents-email@0.67.3
+  - @inkeep/agents-mcp@0.67.3
+  - @inkeep/agents-work-apps@0.67.3
+
+## 0.67.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.67.2
+- @inkeep/agents-email@0.67.2
+- @inkeep/agents-mcp@0.67.2
+- @inkeep/agents-work-apps@0.67.2
+
+## 0.67.1
+
+### Patch Changes
+
+- 2bf0d15: Add GET /agents/{agentId}/tool-status endpoint returning deduped MCP tool health per agent
+- ad12123: Skip artifact creation for text document attachments that are already inlined into the prompt
+  - @inkeep/agents-core@0.67.1
+  - @inkeep/agents-email@0.67.1
+  - @inkeep/agents-mcp@0.67.1
+  - @inkeep/agents-work-apps@0.67.1
+
 ## 0.67.0
 
 ### Minor Changes

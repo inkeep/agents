@@ -1,7 +1,8 @@
-import { generateId } from '@inkeep/agents-core';
+import { generateId, MCPTransportType } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it } from 'vitest';
 import manageDbClient from '../../../../data/db/manageDbClient';
+import { createTestAgentToolRelationData } from '../../../utils/testHelpers';
 import { makeRequest } from '../../../utils/testRequest';
 import { createTestSubAgentData } from '../../../utils/testSubAgent';
 import { createTestTenantWithOrg } from '../../../utils/testTenant';
@@ -893,6 +894,175 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       expect(body.data.subAgents[subAgentId].canTransferTo).toEqual([]);
       expect(body.data.subAgents[subAgentId].canDelegateTo).toEqual([]);
       expect(body.data.subAgents[subAgentId].canUse).toEqual([]);
+    });
+  });
+
+  describe('GET /{agentId}/tool-status', () => {
+    const createTestTool = async ({
+      tenantId,
+      suffix = '',
+    }: {
+      tenantId: string;
+      suffix?: string;
+    }) => {
+      const toolData = {
+        id: generateId(),
+        name: `Test MCP Tool${suffix}`,
+        description: `Test MCP tool description${suffix}`,
+        config: {
+          type: 'mcp' as const,
+          mcp: {
+            server: {
+              url: 'https://api.example.com/mcp',
+              timeout: 5000,
+            },
+            transport: {
+              type: MCPTransportType.streamableHttp,
+              requestInit: {},
+            },
+            activeTools: ['test-function'],
+          },
+        },
+      };
+      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/tools`, {
+        method: 'POST',
+        body: JSON.stringify(toolData),
+      });
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      return body.data.id as string;
+    };
+
+    const linkToolToSubAgent = async ({
+      tenantId,
+      agentId,
+      subAgentId,
+      toolId,
+    }: {
+      tenantId: string;
+      agentId: string;
+      subAgentId: string;
+      toolId: string;
+    }) => {
+      const relationData = createTestAgentToolRelationData({ agentId, subAgentId, toolId });
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations`,
+        {
+          method: 'POST',
+          body: JSON.stringify(relationData),
+        }
+      );
+      expect(res.status).toBe(201);
+    };
+
+    it('should return empty list when agent has no sub-agent tool relations', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-tool-status-empty');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { agentId } = await createTestAgent({ tenantId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/tool-status`
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.data).toEqual([]);
+    });
+
+    it('should dedupe tools shared across sub-agents and aggregate subAgentIds', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-tool-status-dedupe');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { agentId } = await createTestAgent({ tenantId });
+
+      const { subAgentId: subAgent1 } = await createTestSubAgent({
+        tenantId,
+        agentId,
+        suffix: ' One',
+      });
+      const { subAgentId: subAgent2 } = await createTestSubAgent({
+        tenantId,
+        agentId,
+        suffix: ' Two',
+      });
+
+      // SubAgent1: Linear + Asana ; SubAgent2: Asana + Hubspot
+      const linearId = await createTestTool({ tenantId, suffix: ' Linear' });
+      const asanaId = await createTestTool({ tenantId, suffix: ' Asana' });
+      const hubspotId = await createTestTool({ tenantId, suffix: ' Hubspot' });
+
+      await linkToolToSubAgent({ tenantId, agentId, subAgentId: subAgent1, toolId: linearId });
+      await linkToolToSubAgent({ tenantId, agentId, subAgentId: subAgent1, toolId: asanaId });
+      await linkToolToSubAgent({ tenantId, agentId, subAgentId: subAgent2, toolId: asanaId });
+      await linkToolToSubAgent({ tenantId, agentId, subAgentId: subAgent2, toolId: hubspotId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/tool-status`
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+
+      // 3 unique tools, not 4
+      expect(body.data).toHaveLength(3);
+      const byId = new Map<string, any>(body.data.map((t: any) => [t.id, t]));
+
+      expect(byId.get(linearId).subAgentIds).toEqual([subAgent1]);
+      expect(byId.get(hubspotId).subAgentIds).toEqual([subAgent2]);
+      expect(byId.get(asanaId).subAgentIds.sort()).toEqual([subAgent1, subAgent2].sort());
+
+      // Live probe runs against an unreachable URL → unhealthy (or needs_auth)
+      for (const item of body.data) {
+        expect(item.status).toBeDefined();
+        expect(item).toHaveProperty('lastError');
+      }
+    });
+
+    it('should filter by status when ?status= is provided', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-tool-status-filter');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { agentId } = await createTestAgent({ tenantId });
+      const { subAgentId } = await createTestSubAgent({ tenantId, agentId });
+      const toolId = await createTestTool({ tenantId });
+      await linkToolToSubAgent({ tenantId, agentId, subAgentId, toolId });
+
+      // Discover what status the probe assigned (test URL → not 'healthy')
+      const allRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/tool-status`
+      );
+      const allBody = await allRes.json();
+      const actualStatus = allBody.data[0].status;
+
+      const matchRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/tool-status?status=${actualStatus}`
+      );
+      expect(matchRes.status).toBe(200);
+      expect((await matchRes.json()).data).toHaveLength(1);
+
+      const missRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/tool-status?status=healthy`
+      );
+      expect(missRes.status).toBe(200);
+      expect((await missRes.json()).data).toEqual([]);
+    });
+
+    it('should return 404 when agent does not exist', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-tool-status-404');
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/non-existent-agent/tool-status`
+      );
+      expect(res.status).toBe(404);
+    });
+
+    it('should return 400 for invalid status query param', async () => {
+      const tenantId = await createTestTenantWithOrg('agent-tool-status-invalid');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { agentId } = await createTestAgent({ tenantId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/tool-status?status=bogus`
+      );
+      expect(res.status).toBe(400);
     });
   });
 });
