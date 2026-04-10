@@ -25,6 +25,7 @@ import { UNKNOWN_VALUE } from '@/constants/signoz';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { getSigNozStatsClient, type TokenUsageResult } from '@/lib/api/signoz-stats';
 import { useProjectsQuery } from '@/lib/query/projects';
+import { getTimeRangeBounds } from '@/lib/utils/time-range';
 
 function formatTokenCount(count: number): string {
   if (count >= 1_000_000) {
@@ -80,35 +81,15 @@ export default function AllProjectsAICallsBreakdown({
     }
   };
 
-  const { startTime, endTime } = (() => {
-    const currentEndTime = CURRENT_TIME;
-
-    if (timeRange === CUSTOM) {
-      if (customStartDate && customEndDate) {
-        const [sy, sm, sd] = customStartDate.split('-').map(Number);
-        const [ey, em, ed] = customEndDate.split('-').map(Number);
-        const startDate = new Date(sy, (sm || 1) - 1, sd || 1, 0, 0, 0, 0);
-        const endDate = new Date(ey, (em || 1) - 1, ed || 1, 23, 59, 59, 999);
-        const clampedEndMs = Math.min(endDate.getTime(), CURRENT_TIME - 1);
-
-        return {
-          startTime: startDate.getTime(),
-          endTime: clampedEndMs,
-        };
-      }
-      const hoursBack = TIME_RANGES['30d'].hours;
-      return {
-        startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
-        endTime: currentEndTime,
-      };
-    }
-
-    const hoursBack = TIME_RANGES[timeRange as keyof typeof TIME_RANGES]?.hours || 24 * 30;
-    return {
-      startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
-      endTime: currentEndTime,
-    };
-  })();
+  const { startTime, endTime } = getTimeRangeBounds({
+    timeRange,
+    customRangeKey: CUSTOM,
+    customStartDate,
+    customEndDate,
+    timeRanges: TIME_RANGES,
+    fallbackTimeRange: '30d',
+    now: CURRENT_TIME,
+  });
 
   // Fetch AI calls by project
   useEffect(() => {

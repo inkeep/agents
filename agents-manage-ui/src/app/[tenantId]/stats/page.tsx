@@ -39,6 +39,7 @@ import {
 } from '@/hooks/use-traces';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { useProjectsQuery } from '@/lib/query/projects';
+import { getTimeRangeBounds } from '@/lib/utils/time-range';
 
 const TIME_RANGES = {
   '24h': { label: 'Last 24 hours', hours: 24 },
@@ -64,38 +65,15 @@ export default function ProjectsStatsPage({ params }: PageProps<'/[tenantId]/sta
   const { data: projects, isFetching: projectsLoading } = useProjectsQuery({ tenantId });
 
   // Calculate time range based on selection
-  const { startTime, endTime } = (() => {
-    const currentEndTime = CURRENT_TIME - 1;
-
-    if (selectedTimeRange === CUSTOM) {
-      if (customStartDate && customEndDate) {
-        const [sy, sm, sd] = customStartDate.split('-').map(Number);
-        const [ey, em, ed] = customEndDate.split('-').map(Number);
-        const startDate = new Date(sy, (sm || 1) - 1, sd || 1, 0, 0, 0, 0);
-        const endDate = new Date(ey, (em || 1) - 1, ed || 1, 23, 59, 59, 999);
-        const clampedEndMs = Math.min(endDate.getTime(), currentEndTime);
-
-        return {
-          startTime: startDate.getTime(),
-          endTime: clampedEndMs,
-        };
-      }
-      const hoursBack = TIME_RANGES['30d'].hours;
-      return {
-        startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
-        endTime: currentEndTime,
-      };
-    }
-
-    const hoursBack =
-      TIME_RANGES[selectedTimeRange as keyof typeof TIME_RANGES]?.hours || TIME_RANGES['30d'].hours;
-    const calculatedStart = currentEndTime - hoursBack * 60 * 60 * 1000;
-
-    return {
-      startTime: calculatedStart,
-      endTime: currentEndTime,
-    };
-  })();
+  const { startTime, endTime } = getTimeRangeBounds({
+    timeRange: selectedTimeRange,
+    customRangeKey: CUSTOM,
+    customStartDate,
+    customEndDate,
+    timeRanges: TIME_RANGES,
+    fallbackTimeRange: '30d',
+    now: CURRENT_TIME,
+  });
 
   // Memoize projectIds to prevent new array reference on every render
   const projectIds = selectedProjectId ? [selectedProjectId] : undefined;

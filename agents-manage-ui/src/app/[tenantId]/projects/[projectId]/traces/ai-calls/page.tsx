@@ -25,6 +25,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { UNKNOWN_VALUE } from '@/constants/signoz';
 import { type TimeRange, useAICallsQueryState } from '@/hooks/use-ai-calls-query-state';
 import { getSigNozStatsClient, type TokenUsageResult } from '@/lib/api/signoz-stats';
+import { getTimeRangeBounds } from '@/lib/utils/time-range';
 
 function formatTokenCount(count: number): string {
   if (count >= 1_000_000) {
@@ -102,40 +103,15 @@ export default function AICallsBreakdown({
   };
 
   // Calculate time range based on selection
-  const { startTime, endTime } = (() => {
-    const currentEndTime = CURRENT_TIME;
-
-    if (timeRange === 'custom') {
-      // Use custom dates if provided
-      if (customStartDate && customEndDate) {
-        // Parse the YYYY-MM-DD inputs as local dates to avoid UTC offset issues
-        const [sy, sm, sd] = customStartDate.split('-').map(Number);
-        const [ey, em, ed] = customEndDate.split('-').map(Number);
-        const startDate = new Date(sy, (sm || 1) - 1, sd || 1, 0, 0, 0, 0);
-        const endDate = new Date(ey, (em || 1) - 1, ed || 1, 23, 59, 59, 999);
-
-        // Clamp end to now-1ms to satisfy backend validation (end cannot be in the future)
-        const clampedEndMs = Math.min(endDate.getTime(), CURRENT_TIME - 1);
-
-        return {
-          startTime: startDate.getTime(),
-          endTime: clampedEndMs,
-        };
-      }
-      // Default to 30 days if custom dates not set
-      const hoursBack = TIME_RANGES['30d'].hours;
-      return {
-        startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
-        endTime: currentEndTime,
-      };
-    }
-
-    const hoursBack = TIME_RANGES[timeRange as keyof typeof TIME_RANGES]?.hours || 24 * 30;
-    return {
-      startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
-      endTime: currentEndTime,
-    };
-  })();
+  const { startTime, endTime } = getTimeRangeBounds({
+    timeRange,
+    customRangeKey: CUSTOM,
+    customStartDate,
+    customEndDate,
+    timeRanges: TIME_RANGES,
+    fallbackTimeRange: '30d',
+    now: CURRENT_TIME,
+  });
 
   // Fetch AI calls by agent and model
   useEffect(() => {
