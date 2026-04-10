@@ -48,9 +48,21 @@ function LoginForm() {
 
   const lastMethod = authClient.getLastUsedLoginMethod();
 
+  // Detect OAuth authorization flow: better-auth's oauthProvider passes signed
+  // query params (client_id, redirect_uri, state, code_challenge, sig, etc.)
+  // when redirecting unauthenticated users to the login page. After login,
+  // we must redirect back to the authorize endpoint with those same params
+  // so the OAuth flow can resume and issue the authorization code.
+  const isOAuthFlow = searchParams.has('client_id');
+  const oauthAuthorizeUrl = isOAuthFlow
+    ? `${PUBLIC_INKEEP_AGENTS_API_URL}/api/auth/oauth2/authorize?${searchParams.toString()}`
+    : null;
+
   useEffect(() => {
     if (!isSessionLoading && isAuthenticated) {
-      if (invitationId) {
+      if (oauthAuthorizeUrl) {
+        window.location.href = oauthAuthorizeUrl;
+      } else if (invitationId) {
         router.replace(`/accept-invitation/${invitationId}`);
       } else if (returnUrl && isValidReturnUrl(returnUrl)) {
         router.replace(returnUrl);
@@ -58,14 +70,23 @@ function LoginForm() {
         router.replace('/');
       }
     }
-  }, [isAuthenticated, isSessionLoading, invitationId, returnUrl, router]);
+  }, [isAuthenticated, isSessionLoading, invitationId, returnUrl, oauthAuthorizeUrl, router]);
 
   const getRedirectUrl = (): string => {
+    if (oauthAuthorizeUrl) return oauthAuthorizeUrl;
     if (invitationId) return `/accept-invitation/${invitationId}`;
     return getSafeReturnUrl(returnUrl, '/');
   };
 
   function getFullCallbackURL() {
+    if (typeof window === 'undefined') return '/';
+    if (oauthAuthorizeUrl) {
+      // After SSO/Google login, redirect back to the OAuth authorize endpoint
+      // so the flow can resume and issue the authorization code.
+      // We route through the login page which will detect the session and redirect.
+      return `${window.location.origin}/login?${searchParams.toString()}`;
+    }
+
     const baseURL = window.location.origin;
     const params = new URLSearchParams();
     if (invitationId) params.set('invitation', invitationId);
@@ -166,7 +187,12 @@ function LoginForm() {
         });
       }
 
-      router.replace(getRedirectUrl());
+      const redirect = getRedirectUrl();
+      if (oauthAuthorizeUrl) {
+        window.location.href = redirect;
+      } else {
+        router.replace(redirect);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed');
       setIsLoading(false);

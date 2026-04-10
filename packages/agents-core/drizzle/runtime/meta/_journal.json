@@ -253,6 +253,13 @@
       "when": 1775524239494,
       "tag": "0035_many_steel_serpent",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1775838949041,
+      "tag": "0036_swift_hammerhead",
+      "breakpoints": true
     }
   ]
 }
