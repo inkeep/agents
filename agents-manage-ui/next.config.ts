@@ -40,7 +40,6 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_CI: process.env.CI,
   },
   output: 'standalone',
-  outputFileTracingRoot: path.resolve(configDir, '..'),
   reactCompiler: {
     // Fail the build on any compiler diagnostic
     panicThreshold: 'all_errors',
