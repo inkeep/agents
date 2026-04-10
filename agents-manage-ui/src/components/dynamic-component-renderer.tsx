@@ -1,7 +1,6 @@
 'use client';
 
 import * as LucideIcons from 'lucide-react';
-import { useMemo } from 'react';
 import * as ErrorBoundary from 'react-error-boundary';
 import { useRunner } from 'react-runner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -55,17 +54,14 @@ function fallbackRender({ error }: { error: Error }) {
 }
 
 export function DynamicComponentRenderer({ code, props }: DynamicComponentRendererProps) {
-  const transformedCode = useMemo(() => transformCode(code, props), [code, props]);
-  const scope = useMemo(
-    () => ({
-      fallbackRender,
-      import: {
-        'lucide-react': LucideIcons,
-        'react-error-boundary': ErrorBoundary,
-      },
-    }),
-    []
-  );
+  const transformedCode = transformCode(code, props);
+  const scope = {
+    fallbackRender,
+    import: {
+      'lucide-react': LucideIcons,
+      'react-error-boundary': ErrorBoundary,
+    },
+  };
 
   const { element } = useRunner({
     code: transformedCode,

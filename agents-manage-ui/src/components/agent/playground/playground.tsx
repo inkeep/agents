@@ -1,15 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Bug, X } from 'lucide-react';
-import { type Dispatch, useEffect, useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useParams } from 'next/navigation';
+import { type Dispatch, useEffect, useState } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { TimelineWrapper } from '@/components/traces/timeline/timeline-wrapper';
 import { Button } from '@/components/ui/button';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useCopilotContext } from '@/contexts/copilot';
+import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
-
 import { useChatActivitiesPolling } from '@/hooks/use-chat-activities-polling';
 import {
   copyFullTraceToClipboard,
@@ -20,9 +21,6 @@ import { ChatWidget } from './chat-widget';
 import { CustomHeadersDialog } from './custom-headers-dialog';
 
 interface PlaygroundProps {
-  agentId: string;
-  projectId: string;
-  tenantId: string;
   setShowPlayground: (show: boolean) => void;
   closeSidePane: () => void;
   showTraces: boolean;
@@ -30,19 +28,25 @@ interface PlaygroundProps {
 }
 
 export const Playground = ({
-  agentId,
-  projectId,
-  tenantId,
   closeSidePane,
   setShowPlayground,
   showTraces,
   setShowTraces,
 }: PlaygroundProps) => {
+  const { tenantId, projectId, agentId } = useParams<{
+    tenantId: string;
+    projectId: string;
+    agentId: string;
+  }>();
   const { setIsOpen: setIsCopilotOpen } = useCopilotContext();
   const { resetPlaygroundConversationId } = useAgentActions();
   const conversationId = useAgentStore(({ playgroundConversationId }) => playgroundConversationId);
   const [customHeaders, setCustomHeaders] = useState<Record<string, string> | undefined>(undefined);
-  const headersSchemaString = useAgentStore(({ metadata }) => metadata.contextConfig.headersSchema);
+  const fullAgentForm = useFullAgentFormContext();
+  const headersSchemaString = useWatch({
+    control: fullAgentForm.control,
+    name: 'contextConfig.headersSchema',
+  });
   const [isCustomHeadersModalOpen, setIsCustomHeadersModalOpen] = useState(false);
 
   useEffect(() => {
@@ -50,7 +54,7 @@ export const Playground = ({
     return () => resetPlaygroundConversationId();
   }, []);
 
-  const headersTemplate = useMemo(() => {
+  const headersTemplate = (() => {
     if (!headersSchemaString) return undefined;
     try {
       const schema = JSON.parse(headersSchemaString);
@@ -61,16 +65,12 @@ export const Playground = ({
     } catch {
       return undefined;
     }
-  }, [headersSchemaString]);
+  })();
 
-  const resolver = useMemo(
-    () =>
-      zodResolver(
-        z.strictObject({
-          headers: createCustomHeadersSchema(headersSchemaString),
-        })
-      ),
-    [headersSchemaString]
+  const resolver = zodResolver(
+    z.strictObject({
+      headers: createCustomHeadersSchema(headersSchemaString),
+    })
   );
 
   const form = useForm({
@@ -124,10 +124,9 @@ export const Playground = ({
       toast.error('Failed to copy trace', {
         description: err instanceof Error ? err.message : 'An unknown error occurred',
       });
-    } finally {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      setIsCopying(false);
     }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    setIsCopying(false);
   };
 
   const handleCopySummarizedTrace = async () => {
@@ -149,10 +148,9 @@ export const Playground = ({
       toast.error('Failed to copy trace', {
         description: err instanceof Error ? err.message : 'An unknown error occurred',
       });
-    } finally {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      setIsCopying(false);
     }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    setIsCopying(false);
   };
 
   const hasHeadersError = !!form.formState.errors.headers?.message;

@@ -5,7 +5,6 @@ import { cache } from 'react';
 import type { ListResponse, SingleResponse } from '../types/response';
 // Default configuration
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Use Omit to make id optional for creation, and add metadata field
 type CreateMCPToolRequest = Omit<ToolApiInsert, 'id'> & {
@@ -32,9 +31,6 @@ export async function fetchMCPTools(
     skipDiscovery?: boolean;
   }
 ): Promise<McpTool[]> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const { page = 1, pageSize = 100, status, skipDiscovery } = options ?? {};
 
   const params = new URLSearchParams({
@@ -62,9 +58,6 @@ export async function fetchMCPTools(
  * Get a single MCP tool by ID
  */
 async function $fetchMCPTool(tenantId: string, projectId: string, id: string): Promise<McpTool> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<McpTool>>(
     `tenants/${tenantId}/projects/${projectId}/tools/${id}`
   );
@@ -82,9 +75,6 @@ export async function createMCPTool(
   projectId: string,
   data: CreateMCPToolRequest
 ): Promise<McpTool> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<McpTool>>(
     `tenants/${tenantId}/projects/${projectId}/tools`,
     {
@@ -105,9 +95,6 @@ export async function updateMCPTool(
   id: string,
   data: Partial<CreateMCPToolRequest>
 ): Promise<McpTool> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<McpTool>>(
     `tenants/${tenantId}/projects/${projectId}/tools/${id}`,
     {
@@ -127,9 +114,6 @@ export async function deleteMCPTool(
   projectId: string,
   id: string
 ): Promise<void> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   await makeManagementApiRequest<void>(`tenants/${tenantId}/projects/${projectId}/tools/${id}`, {
     method: 'DELETE',
   });

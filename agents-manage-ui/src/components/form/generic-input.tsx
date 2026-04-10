@@ -17,6 +17,8 @@ interface GenericInputProps<FV extends FieldValues, TV = FieldValues> {
   disabled?: boolean;
   description?: ReactNode;
   isRequired?: boolean;
+  tooltip?: string;
+  transformValue?: (value: string) => string | number | null;
 }
 
 export function GenericInput<
@@ -33,7 +35,16 @@ export function GenericInput<
   disabled,
   description,
   isRequired = false,
+  tooltip,
+  transformValue,
 }: GenericInputProps<TFieldValues, TTransformedValues>) {
+  const transform =
+    transformValue ??
+    (type === 'number'
+      ? // For number inputs, convert empty string to null, otherwise parse as number
+        (value) => (value === '' ? null : Number(value))
+      : (value) => value);
+
   return (
     <FormFieldWrapper
       control={control}
@@ -41,6 +52,7 @@ export function GenericInput<
       label={label}
       description={description}
       isRequired={isRequired}
+      tooltip={tooltip}
     >
       {(field) => (
         <FormControl>
@@ -53,13 +65,7 @@ export function GenericInput<
             {...field}
             value={field.value ?? ''}
             onChange={(e) => {
-              const value = e.target.value;
-              if (type === 'number') {
-                // For number inputs, convert empty string to null, otherwise parse as number
-                field.onChange(value === '' ? null : Number(value));
-              } else {
-                field.onChange(value);
-              }
+              field.onChange(transform(e.target.value));
             }}
           />
         </FormControl>

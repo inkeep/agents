@@ -30,7 +30,7 @@ export function EditAgentDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="!max-w-2xl">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Edit agent</DialogTitle>
           <DialogDescription className="sr-only">Edit agent details.</DialogDescription>

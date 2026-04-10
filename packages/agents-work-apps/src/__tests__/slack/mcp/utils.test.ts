@@ -1,3 +1,4 @@
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../env', () => ({
@@ -6,14 +7,7 @@ vi.mock('../../../env', () => ({
   },
 }));
 
-vi.mock('../../../logger', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  }),
-}));
+vi.mock('../../../logger', () => createMockLoggerModule().module);
 
 describe('slack mcp utils', () => {
   describe('validateChannelAccess', () => {

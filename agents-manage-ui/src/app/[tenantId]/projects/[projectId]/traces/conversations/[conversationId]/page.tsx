@@ -6,26 +6,34 @@ import {
   ArrowLeft,
   Coins,
   ExternalLink as ExternalLinkIcon,
+  Timer,
   TriangleAlert,
 } from 'lucide-react';
 import NextLink from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { FeedbackDialog } from '@/components/agent/playground/feedback-dialog';
 import { MCPBreakdownCard } from '@/components/traces/mcp-breakdown-card';
 import { SignozLink } from '@/components/traces/signoz-link';
 import { InfoRow } from '@/components/traces/timeline/blocks';
 import { TimelineWrapper } from '@/components/traces/timeline/timeline-wrapper';
-import type { ConversationDetail as ConversationDetailType } from '@/components/traces/timeline/types';
+import {
+  ACTIVITY_TYPES,
+  type ConversationDetail as ConversationDetailType,
+} from '@/components/traces/timeline/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
+import { GENERATION_TYPES } from '@/constants/signoz';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { hasConversationFeedbackAction } from '@/lib/actions/feedback';
 import { rerunScheduledTriggerInvocationAction } from '@/lib/actions/scheduled-triggers';
 import { rerunTriggerAction } from '@/lib/actions/triggers';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
+import { throwError } from '@/lib/utils';
 import { formatDateTime, formatDuration } from '@/lib/utils/format-date';
 import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
 import {
@@ -40,6 +48,8 @@ export default function ConversationDetail({
   const backLink = `/${tenantId}/projects/${projectId}/traces` as const;
 
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const highlightMessageId = searchParams.get('messageId');
   const [conversation, setConversation] = useState<ConversationDetailType | null>(null);
   const [usageEvents, setUsageEvents] = useState<
     Array<{
@@ -56,6 +66,12 @@ export default function ConversationDetail({
   const [error, setError] = useState<string | null>(null);
   const [isCopying, setIsCopying] = useState(false);
   const [isRerunning, setIsRerunning] = useState(false);
+  const [feedbackDialog, setFeedbackDialog] = useState<{
+    open: boolean;
+    messageId?: string;
+    type?: 'positive' | 'negative';
+  }>({ open: false });
+  const [hasFeedback, setHasFeedback] = useState(false);
   const { PUBLIC_SIGNOZ_URL, PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
   const isCloudDeployment = PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true';
 
@@ -78,10 +94,9 @@ export default function ConversationDetail({
       toast.error('Failed to copy trace', {
         description: err instanceof Error ? err.message : 'An unknown error occurred',
       });
-    } finally {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      setIsCopying(false);
     }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    setIsCopying(false);
   };
 
   const handleCopySummarizedTrace = async () => {
@@ -103,14 +118,15 @@ export default function ConversationDetail({
       toast.error('Failed to copy trace', {
         description: err instanceof Error ? err.message : 'An unknown error occurred',
       });
-    } finally {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      setIsCopying(false);
     }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    setIsCopying(false);
   };
 
   const handleRerunTrigger = async () => {
     if (!conversation?.triggerId || !conversation?.agentId) return;
+
+    const triggerRunAsUserId = conversation.triggerRunAsUserId ?? undefined;
 
     const isScheduledTrigger = conversation.invocationType === 'scheduled_trigger';
 
@@ -143,10 +159,8 @@ export default function ConversationDetail({
         toast.error('Failed to rerun scheduled trigger', {
           description: err instanceof Error ? err.message : 'An unknown error occurred',
         });
-      } finally {
-        setIsRerunning(false);
       }
-      return;
+      setIsRerunning(false);
     }
 
     const userMessageActivity = conversation.activities?.find(
@@ -180,6 +194,7 @@ export default function ConversationDetail({
         {
           userMessage: userMessageActivity.messageContent,
           messageParts,
+          runAsUserId: triggerRunAsUserId,
         }
       );
 
@@ -204,9 +219,8 @@ export default function ConversationDetail({
       toast.error('Failed to rerun trigger', {
         description: err instanceof Error ? err.message : 'An unknown error occurred',
       });
-    } finally {
-      setIsRerunning(false);
     }
+    setIsRerunning(false);
   };
 
   useEffect(() => {
@@ -219,25 +233,35 @@ export default function ConversationDetail({
         const start = new Date('2020-01-01T00:00:00Z').getTime();
         const end = Date.now();
 
-        const [traceResponse, eventsResult] = await Promise.allSettled([
+        const [traceResponse, eventsResult, feedbackResult] = await Promise.allSettled([
           fetch(
             `/api/traces/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`
           ),
           client.getUsageEventsList(start, end, projectId, conversationId, 200),
+          hasConversationFeedbackAction(tenantId, projectId, conversationId),
         ]);
 
         if (traceResponse.status === 'rejected' || !traceResponse.value.ok) {
-          throw new Error('Failed to fetch conversation details');
+          throwError('Failed to fetch conversation details');
         }
         const data = await traceResponse.value.json();
         setConversation(data);
 
-        setUsageEvents(eventsResult.status === 'fulfilled' ? eventsResult.value : []);
+        setUsageEvents(
+          eventsResult.status === 'fulfilled'
+            ? eventsResult.value.filter(
+                (e: { generationType: string }) =>
+                  e.generationType !== GENERATION_TYPES.EVAL_SCORING &&
+                  e.generationType !== GENERATION_TYPES.EVAL_SIMULATION
+              )
+            : []
+        );
+
+        setHasFeedback(feedbackResult.status === 'fulfilled' && feedbackResult.value === true);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     if (conversationId && tenantId && projectId) fetchConversationDetail();
@@ -300,6 +324,13 @@ export default function ConversationDetail({
               href={`/${tenantId}/projects/${projectId}/agents/${conversation.agentId}`}
             >
               {conversation.agentName ? `${conversation.agentName}` : conversation.agentId}
+            </ExternalLink>
+          )}
+          {hasFeedback && (
+            <ExternalLink
+              href={`/${tenantId}/projects/${projectId}/feedback?conversationId=${conversationId}`}
+            >
+              View Feedback
             </ExternalLink>
           )}
           <SignozLink conversationId={conversationId} />
@@ -445,14 +476,33 @@ export default function ConversationDetail({
             <CardTitle className="text-sm font-medium text-foreground">Alerts</CardTitle>
             <TriangleAlert className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 min-h-0 overflow-y-auto">
             {(() => {
               const errors = conversation.errorCount ?? 0;
               const warnings = conversation.warningCount ?? 0;
               const total = errors + warnings;
+              const streamTimeoutActivity = conversation.activities?.find(
+                (a) => a.type === ACTIVITY_TYPES.STREAM_LIFETIME_EXCEEDED
+              );
 
               return (
                 <>
+                  {streamTimeoutActivity && (
+                    <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 mb-3 dark:border-red-900 dark:bg-red-950/50">
+                      <Timer className="h-4 w-4 text-red-500 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-red-700 dark:text-red-400">
+                          Stream timed out
+                        </p>
+                        {streamTimeoutActivity.streamMaxLifetimeMs &&
+                          streamTimeoutActivity.streamMaxLifetimeMs > 0 && (
+                            <p className="text-xs text-red-600/70 dark:text-red-400/70">
+                              Exceeded {streamTimeoutActivity.streamMaxLifetimeMs / 1000}s limit
+                            </p>
+                          )}
+                      </div>
+                    </div>
+                  )}
                   {total > 0 ? (
                     <div className="space-y-1">
                       {errors > 0 && (
@@ -476,12 +526,12 @@ export default function ConversationDetail({
                         </div>
                       )}
                     </div>
-                  ) : (
+                  ) : !streamTimeoutActivity ? (
                     <div>
                       <div className="text-2xl font-bold font-mono text-green-600 mb-1">0</div>
                       <p className="text-xs text-muted-foreground">No warnings or errors</p>
                     </div>
-                  )}
+                  ) : null}
                   {total > 0 && !isCloudDeployment && (
                     <Button
                       variant="outline"
@@ -516,6 +566,10 @@ export default function ConversationDetail({
             conversationId={conversationId}
             tenantId={tenantId}
             projectId={projectId}
+            highlightMessageId={highlightMessageId}
+            onLeaveFeedback={(_activityId, messageId, type) => {
+              setFeedbackDialog({ open: true, messageId, type: type ?? 'negative' });
+            }}
             onCopyFullTrace={handleCopyFullTrace}
             onCopySummarizedTrace={handleCopySummarizedTrace}
             isCopying={isCopying}
@@ -525,6 +579,17 @@ export default function ConversationDetail({
           />
         </ResizablePanelGroup>
       </div>
+
+      <FeedbackDialog
+        isOpen={feedbackDialog.open}
+        onOpenChange={(open) => setFeedbackDialog((prev) => ({ ...prev, open }))}
+        tenantId={tenantId}
+        projectId={projectId}
+        conversationId={conversationId}
+        messageId={feedbackDialog.messageId}
+        initialType={feedbackDialog.type}
+        onSubmitSuccess={() => setHasFeedback(true)}
+      />
     </div>
   );
 }

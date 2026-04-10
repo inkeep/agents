@@ -22,7 +22,6 @@ interface EditorDialogProps {
 }
 
 const EditorDialog: FC<EditorDialogProps> = ({ open, onOpenChange, children, label }) => {
-  'use memo';
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {children}
@@ -38,7 +37,6 @@ const EditorDialog: FC<EditorDialogProps> = ({ open, onOpenChange, children, lab
 };
 
 const EditorDialogTrigger: FC<ComponentProps<typeof Button>> = ({ className, ...props }) => {
-  'use memo';
   return (
     <DialogTrigger asChild>
       <Button
@@ -56,7 +54,6 @@ const EditorDialogTrigger: FC<ComponentProps<typeof Button>> = ({ className, ...
 };
 
 const EditorFormatAction: FC<ComponentProps<typeof Button>> = ({ disabled, ...props }) => {
-  'use memo';
   const [isFormatting, startFormattingTransition] = useTransition();
   const { getEditorByUri } = useMonacoActions();
   const timeoutRef = useRef(0);

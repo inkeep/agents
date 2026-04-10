@@ -105,6 +105,11 @@ export const executionLimitsDefaults = {
   // ARTIFACT_GENERATION_BACKOFF_INITIAL_MS: Starting delay for retry backoff when generation fails
   // ARTIFACT_GENERATION_BACKOFF_MAX_MS: Maximum delay between retries (formula: min(INITIAL * 2^attempt, MAX))
   ARTIFACT_GENERATION_MAX_RETRIES: 3,
+  // ARTIFACT_SAVE_RETRY_DELAY_MS: Delay before retrying artifact persistence after an infrastructure failure.
+  ARTIFACT_SAVE_RETRY_DELAY_MS: 3_000,
+  // ARTIFACT_PENDING_MAX_WAIT_MS: Maximum time to wait for in-flight artifact saves to complete before
+  // proceeding (e.g. at the end of a stream). Long enough for typical DB round-trips; avoids stalling forever.
+  ARTIFACT_PENDING_MAX_WAIT_MS: 10_000,
   ARTIFACT_SESSION_MAX_PENDING: 100,
   ARTIFACT_SESSION_MAX_PREVIOUS_SUMMARIES: 3,
   ARTIFACT_GENERATION_BACKOFF_INITIAL_MS: 1_000, // 1 second
@@ -162,4 +167,10 @@ export const executionLimitsDefaults = {
 
   // COMPRESSION_ENABLED: Whether compression is enabled (set to false to disable)
   COMPRESSION_ENABLED: true,
+
+  // Durable execution timeout constants
+  DURABLE_LLM_GENERATION_TIMEOUT_MS: 60 * 60 * 1000,
+  DURABLE_MCP_TOOL_TIMEOUT_MS: 30 * 60 * 1000,
+  DURABLE_FUNCTION_TOOL_TIMEOUT_MS: 10 * 60 * 1000,
+  DURABLE_TOOL_APPROVAL_TIMEOUT_MS: 30 * 60 * 1000,
 } as const;

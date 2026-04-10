@@ -36,19 +36,16 @@ export const DisconnectCredentialConfirmation: FC<DisconnectCredentialConfirmati
 
   const handleDelete = async () => {
     setIsDeleting(true);
-    try {
-      const result = await deleteCredentialAction(tenantId, projectId, credentialId);
-      if (!result.success) {
-        toast.error(result.error ?? 'Failed to delete credential');
-        return;
-      }
-
-      toast.success(`Deleted credential for "${toolName}" successfully.`);
-      setIsOpen(false);
-      router.refresh();
-    } finally {
-      setIsDeleting(false);
+    const result = await deleteCredentialAction(tenantId, projectId, credentialId);
+    if (!result.success) {
+      toast.error(result.error ?? 'Failed to delete credential');
+      return;
     }
+
+    toast.success(`Deleted credential for "${toolName}" successfully.`);
+    setIsOpen(false);
+    router.refresh();
+    setIsDeleting(false);
   };
 
   return (

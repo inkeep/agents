@@ -2,8 +2,9 @@
 
 import type { AllowedAuthMethod } from '@inkeep/agents-core/auth/auth-types';
 import { parseAllowedAuthMethods } from '@inkeep/agents-core/auth/auth-types';
+import { DEFAULT_MEMBERSHIP_LIMIT } from '@inkeep/agents-core/client-exports';
 import { Loader2 } from 'lucide-react';
-import { use, useCallback, useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { AuthMethodConfiguration } from '@/components/settings/auth-method-configuration';
 import {
@@ -43,14 +44,14 @@ export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings
     refetch: refetchSSO,
   } = useSSOProviders(isCloudDeployment ? tenantId : undefined);
 
-  const fetchOrganization = useCallback(async () => {
+  async function fetchOrganization() {
     if (!tenantId) return;
 
     try {
       const orgResult = await authClient.organization.getFullOrganization({
         query: {
           organizationId: tenantId,
-          membersLimit: 300,
+          membersLimit: DEFAULT_MEMBERSHIP_LIMIT,
         },
       });
 
@@ -64,14 +65,16 @@ export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch organization');
-    } finally {
-      setLoading(false);
     }
-  }, [tenantId, authClient]);
+    setLoading(false);
+  }
 
   useEffect(() => {
     fetchOrganization();
-  }, [fetchOrganization]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchOrganization,
+  ]);
 
   if (loading || isAdminLoading) {
     return <SettingsLoadingSkeleton />;

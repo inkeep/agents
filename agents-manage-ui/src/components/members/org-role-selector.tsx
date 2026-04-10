@@ -17,6 +17,7 @@ interface OrgRoleSelectorProps {
   onChange: (role: OrgRole) => void;
   disabled?: boolean;
   triggerClassName?: string;
+  isRoleDisabled?: (role: OrgRole) => boolean;
 }
 
 export const OrgRoleSelector: FC<OrgRoleSelectorProps> = ({
@@ -24,6 +25,7 @@ export const OrgRoleSelector: FC<OrgRoleSelectorProps> = ({
   onChange,
   disabled = false,
   triggerClassName,
+  isRoleDisabled,
 }) => {
   const currentLabel = ROLE_OPTIONS.find((r) => r.value === value)?.label || value;
 
@@ -41,18 +43,29 @@ export const OrgRoleSelector: FC<OrgRoleSelectorProps> = ({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[300px]">
-        {ROLE_OPTIONS.map((role) => (
-          <DropdownMenuItem
-            key={role.value}
-            onClick={() => onChange(role.value)}
-            className={role.value === value ? 'bg-muted' : ''}
-          >
-            <div className="flex flex-col">
-              <span>{role.label}</span>
-              <span className="text-xs text-muted-foreground">{role.description}</span>
-            </div>
-          </DropdownMenuItem>
-        ))}
+        {ROLE_OPTIONS.map((role) => {
+          const roleDisabled = isRoleDisabled?.(role.value) ?? false;
+          return (
+            <DropdownMenuItem
+              key={role.value}
+              onClick={() => !roleDisabled && onChange(role.value)}
+              className={`${role.value === value ? 'bg-muted' : ''} ${roleDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={roleDisabled}
+            >
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <span>{role.label}</span>
+                  {roleDisabled && (
+                    <span className="text-[10px] text-destructive font-medium">
+                      Seat limit reached
+                    </span>
+                  )}
+                </div>
+                <span className="text-xs text-muted-foreground">{role.description}</span>
+              </div>
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

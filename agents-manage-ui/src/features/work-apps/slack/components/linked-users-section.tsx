@@ -81,9 +81,8 @@ export function LinkedUsersSection() {
     } catch (err) {
       console.error('Failed to unlink user:', err);
       toast.error('Failed to unlink user. Please try again.');
-    } finally {
-      setUserToUnlink(null);
     }
+    setUserToUnlink(null);
   };
 
   const handleExportUsers = async () => {

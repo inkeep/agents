@@ -181,6 +181,118 @@ describe('projectFull data access', () => {
       expect(result.name).toBe('Minimal Project');
       expect(result.agents).toEqual({});
     });
+
+    it('should create and return skill files through full project round-trips', async () => {
+      const projectId = `project-${generateId()}`;
+      const projectData: FullProjectDefinition = {
+        ...createTestProjectDefinition(projectId),
+        skills: {
+          'weather-safety-guardrails': {
+            name: 'weather-safety-guardrails',
+            description: 'Safety rules.',
+            content: 'Always check the weather.',
+            metadata: null,
+            files: [
+              {
+                filePath: 'SKILL.md',
+                content: `---
+name: weather-safety-guardrails
+description: "Safety rules."
+---
+Always check the weather.`,
+              },
+              {
+                filePath: 'reference/safety-checklist.txt',
+                content: 'Check alerts',
+              },
+            ],
+          },
+        },
+      };
+
+      await createFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData,
+      });
+
+      const result = await getFullProject(db)({
+        scopes: { tenantId, projectId },
+      });
+
+      expect((result as any)?.skills?.['weather-safety-guardrails']).toMatchObject({
+        files: [
+          {
+            filePath: 'SKILL.md',
+            content: `---
+name: weather-safety-guardrails
+description: "Safety rules."
+---
+Always check the weather.`,
+          },
+          {
+            filePath: 'reference/safety-checklist.txt',
+            content: 'Check alerts',
+          },
+        ],
+      });
+    });
+
+    it('should create multiple skills with files in one full-project write', async () => {
+      const projectId = `project-${generateId()}`;
+      const projectData: FullProjectDefinition = {
+        ...createTestProjectDefinition(projectId),
+        skills: {
+          'structured-itinerary-responses': {
+            name: 'structured-itinerary-responses',
+            description: 'Structured itinerary output rules.',
+            content: 'Return itinerary responses in a structured format.',
+            metadata: null,
+            files: [
+              {
+                filePath: 'SKILL.md',
+                content: `---
+name: structured-itinerary-responses
+description: "Structured itinerary output rules."
+---
+Return itinerary responses in a structured format.`,
+              },
+            ],
+          },
+          'weather-safety-guardrails': {
+            name: 'weather-safety-guardrails',
+            description: 'Weather safety checks.',
+            content: 'Always include weather safety guidance.',
+            metadata: null,
+            files: [
+              {
+                filePath: 'SKILL.md',
+                content: `---
+name: weather-safety-guardrails
+description: "Weather safety checks."
+---
+Always include weather safety guidance.`,
+              },
+            ],
+          },
+        },
+      };
+
+      await createFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData,
+      });
+
+      const result = await getFullProject(db)({
+        scopes: { tenantId, projectId },
+      });
+
+      expect(Object.keys((result as any)?.skills ?? {}).sort()).toEqual([
+        'structured-itinerary-responses',
+        'weather-safety-guardrails',
+      ]);
+      expect((result as any)?.skills?.['structured-itinerary-responses'].files).toHaveLength(1);
+      expect((result as any)?.skills?.['weather-safety-guardrails'].files).toHaveLength(1);
+    });
   });
 
   describe('getFullProject', () => {
@@ -260,6 +372,89 @@ describe('projectFull data access', () => {
         expect(tool.name).toBe('Test Tool');
         expect(tool.config).toBeDefined();
       }
+    });
+  });
+
+  describe('updateFullProjectServerSide with skill files', () => {
+    it('should replace nested skill files when updating a project', async () => {
+      const projectId = `project-${generateId()}`;
+      const projectData: FullProjectDefinition = {
+        ...createTestProjectDefinition(projectId),
+        skills: {
+          'weather-safety-guardrails': {
+            name: 'weather-safety-guardrails',
+            description: 'Safety rules.',
+            content: 'Always check the weather.',
+            metadata: null,
+            files: [
+              {
+                filePath: 'SKILL.md',
+                content: `---
+name: weather-safety-guardrails
+description: "Safety rules."
+---
+Always check the weather.`,
+              },
+              {
+                filePath: 'reference/safety-checklist.txt',
+                content: 'Check alerts',
+              },
+            ],
+          },
+        },
+      };
+
+      await createFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData,
+      });
+
+      await updateFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: {
+          ...projectData,
+          skills: {
+            'weather-safety-guardrails': {
+              ...(projectData.skills?.['weather-safety-guardrails'] as any),
+              description: 'Updated safety rules.',
+              content: 'Always check alerts.',
+              files: [
+                {
+                  filePath: 'SKILL.md',
+                  content: `---
+name: weather-safety-guardrails
+description: "Updated safety rules."
+---
+Always check alerts.`,
+                },
+                {
+                  filePath: 'templates/alert.md',
+                  content: 'Alert template',
+                },
+              ],
+            },
+          },
+        },
+      });
+
+      const result = await getFullProject(db)({
+        scopes: { tenantId, projectId },
+      });
+
+      expect((result as any)?.skills?.['weather-safety-guardrails'].files).toEqual([
+        {
+          filePath: 'SKILL.md',
+          content: `---
+name: weather-safety-guardrails
+description: "Updated safety rules."
+---
+Always check alerts.`,
+        },
+        {
+          filePath: 'templates/alert.md',
+          content: 'Alert template',
+        },
+      ]);
     });
   });
 

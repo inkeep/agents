@@ -1,5 +1,4 @@
 import { canViewProject, createApiError, type OrgRole, SPAN_KEYS } from '@inkeep/agents-core';
-import axios from 'axios';
 import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { env } from '../../../env';
@@ -45,7 +44,7 @@ async function authorizeProject(c: Ctx, projectId: string | undefined) {
         orgRole: tenantRole,
       });
       if (!hasAccess) {
-        logger.warn({ tenantId, projectId, userId }, 'Project not found or access denied');
+        logger.warn({ userId }, 'Project not found or access denied');
         return c.json(
           { error: 'Forbidden', message: 'You do not have access to this project' },
           403
@@ -57,11 +56,24 @@ async function authorizeProject(c: Ctx, projectId: string | undefined) {
   return { tenantId, userId };
 }
 
+class FetchResponseError extends Error {
+  status: number;
+  data: unknown;
+
+  constructor(status: number, data: unknown) {
+    super(`Request failed with status ${status}`);
+    this.name = 'FetchResponseError';
+    this.status = status;
+    this.data = data;
+  }
+}
+
 const KEY_NOT_FOUND_RE = /key `(.+)` not found/i;
 
 function getMissingKeys(error: unknown): string[] | null {
-  if (!axios.isAxiosError(error) || error.response?.status !== 400) return null;
-  const errors: any[] = error.response?.data?.error?.errors ?? [];
+  if (!(error instanceof FetchResponseError) || error.status !== 400) return null;
+  const errorData = error.data as any;
+  const errors: any[] = errorData?.error?.errors ?? [];
   const keys = errors.map((e: any) => KEY_NOT_FOUND_RE.exec(e?.message)?.[1]).filter(Boolean);
   if (keys.length === 0 || keys.length !== errors.length) return null;
   const unique = [...new Set(keys)] as string[];
@@ -82,15 +94,41 @@ function queryReferencesKeys(query: any, keys: string[]): boolean {
 type SignozConfig = { endpoint: string; headers: Record<string, string> };
 const EMPTY_RESPONSE = { data: { status: 'success', data: { data: { results: [] } } } };
 
+async function signozPost(
+  endpoint: string,
+  body: any,
+  headers: Record<string, string>,
+  timeout: number
+): Promise<{ data: any }> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new FetchResponseError(response.status, data);
+    }
+
+    return { data };
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 async function queryWithRetry(
   signoz: SignozConfig,
   payload: any
 ): Promise<{ data: any; retried: boolean }> {
   try {
-    const resp = await axios.post(signoz.endpoint, payload, {
-      headers: signoz.headers,
-      timeout: 30000,
-    });
+    const resp = await signozPost(signoz.endpoint, payload, signoz.headers, 30000);
     return { data: resp, retried: false };
   } catch (error) {
     const missing = getMissingKeys(error);
@@ -108,46 +146,48 @@ async function queryWithRetry(
     if (kept.length === 0) return { data: EMPTY_RESPONSE, retried: true };
 
     const stripped = { ...payload, compositeQuery: { ...payload.compositeQuery, queries: kept } };
-    const resp = await axios.post(signoz.endpoint, stripped, {
-      headers: signoz.headers,
-      timeout: 30000,
-    });
+    const resp = await signozPost(signoz.endpoint, stripped, signoz.headers, 30000);
     return { data: resp, retried: true };
   }
 }
 
 function handleSignozError(error: unknown, operation: string) {
-  if (axios.isAxiosError(error)) {
-    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
-      logger.error({ error: error.message }, 'SigNoz service unavailable');
-      return {
-        body: { error: 'Service Unavailable', message: 'SigNoz service is unavailable' },
-        status: 503 as const,
-      };
-    }
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      logger.error({ status: error.response.status }, 'SigNoz authentication failed');
+  if (error instanceof FetchResponseError) {
+    if (error.status === 401 || error.status === 403) {
+      logger.error({ status: error.status }, 'SigNoz authentication failed');
       return {
         body: { error: 'Internal Server Error', message: 'SigNoz authentication failed' },
         status: 500 as const,
       };
     }
-    if (error.response?.status === 400) {
-      logger.warn(
-        { status: 400, responseData: error.response?.data },
-        `Invalid SigNoz ${operation}`
-      );
+    if (error.status === 400) {
+      logger.warn({ status: 400, responseData: error.data }, `Invalid SigNoz ${operation}`);
       return {
         body: {
           error: 'Bad Request',
-          message: error.response?.data?.error ?? 'Invalid query parameters',
+          message: (error.data as any)?.error ?? 'Invalid query parameters',
         },
         status: 400 as const,
       };
     }
   }
+
+  if (
+    error instanceof TypeError ||
+    (error instanceof DOMException && error.name === 'AbortError')
+  ) {
+    logger.error(
+      { error: error instanceof Error ? error.message : error },
+      'SigNoz service unavailable'
+    );
+    return {
+      body: { error: 'Service Unavailable', message: 'SigNoz service is unavailable' },
+      status: 503 as const,
+    };
+  }
+
   logger.error(
-    { error, responseData: axios.isAxiosError(error) ? error.response?.data : undefined },
+    { error, responseData: error instanceof FetchResponseError ? error.data : undefined },
     `SigNoz ${operation} failed`
   );
   return {
@@ -156,10 +196,8 @@ function handleSignozError(error: unknown, operation: string) {
   };
 }
 
-// Axios wraps the HTTP body in `.data`. SigNoz v5 returns `{ status, data: { results } }`.
-// So the results live at `axiosResponse.data.data.data.results`.
-function extractResults(axiosResponse: any): any[] {
-  return axiosResponse.data?.data?.data?.results ?? [];
+function extractResults(fetchResponse: any): any[] {
+  return fetchResponse.data?.data?.data?.results ?? [];
 }
 
 const app = new Hono<{ Variables: ManageAppVariables }>();
@@ -298,10 +336,7 @@ app.post('/span-lookup', async (c) => {
   );
 
   try {
-    const resp = await axios.post(signoz.endpoint, payload, {
-      headers: signoz.headers,
-      timeout: 15000,
-    });
+    const resp = await signozPost(signoz.endpoint, payload, signoz.headers, 15000);
     return c.json(resp.data);
   } catch (error) {
     const { body: errBody, status } = handleSignozError(error, 'span-lookup');
@@ -312,7 +347,7 @@ app.post('/span-lookup', async (c) => {
 app.get('/health', async (c) => {
   const signoz = getSignozConfig();
   if (!signoz) {
-    logger.warn({}, 'SigNoz credentials not set');
+    logger.warn('SigNoz credentials not set');
     return c.json({
       status: 'not_configured',
       configured: false,
@@ -321,26 +356,51 @@ app.get('/health', async (c) => {
   }
 
   try {
-    await axios.post(
-      signoz.endpoint,
-      {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch(signoz.endpoint, {
+      method: 'POST',
+      headers: signoz.headers,
+      body: JSON.stringify({
         start: Date.now() - 300000,
         end: Date.now(),
         requestType: 'scalar',
         compositeQuery: { queries: [] },
-      },
-      { headers: signoz.headers, timeout: 5000, validateStatus: (s) => s === 200 || s === 400 }
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (response.status === 200 || response.status === 400) {
+      return c.json({ status: 'ok', configured: true });
+    }
+
+    if (response.status === 401 || response.status === 403) {
+      logger.error({ error: 'Invalid API key' }, 'SigNoz connection test failed');
+      return c.json({
+        status: 'connection_failed',
+        configured: false,
+        error: 'Invalid SIGNOZ_API_KEY',
+      });
+    }
+
+    logger.error(
+      { error: `Unexpected status ${response.status}` },
+      'SigNoz connection test failed'
     );
-    return c.json({ status: 'ok', configured: true });
+    return c.json({
+      status: 'connection_failed',
+      configured: false,
+      error: 'Failed to connect to SigNoz',
+    });
   } catch (error) {
     let errorMessage = 'Failed to connect to SigNoz';
-    if (axios.isAxiosError(error)) {
-      if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND')
-        errorMessage = 'Check SIGNOZ_URL';
-      else if (error.response?.status === 401 || error.response?.status === 403)
-        errorMessage = 'Invalid SIGNOZ_API_KEY';
-      else if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED')
-        errorMessage = 'SigNoz connection timed out';
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      errorMessage = 'SigNoz connection timed out';
+    } else if (error instanceof TypeError) {
+      errorMessage = 'Check SIGNOZ_URL';
     }
     logger.error(
       { error: error instanceof Error ? error.message : error },

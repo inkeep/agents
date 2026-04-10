@@ -19,7 +19,7 @@ export function WorkAppGitHubInstallButton({
 }: WorkAppGitHubInstallButtonProps) {
   const [loading, setLoading] = useState(false);
 
-  const handleInstall = async () => {
+  async function handleInstall() {
     setLoading(true);
     try {
       const url = await getWorkAppGitHubInstallUrl(tenantId);
@@ -28,10 +28,9 @@ export function WorkAppGitHubInstallButton({
       toast.error('Failed to get installation URL', {
         description: error instanceof Error ? error.message : 'An unexpected error occurred',
       });
-    } finally {
-      setLoading(false);
     }
-  };
+    setLoading(false);
+  }
 
   return (
     <Button onClick={handleInstall} disabled={loading} variant={variant} size={size}>

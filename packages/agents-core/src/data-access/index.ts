@@ -1,8 +1,8 @@
 // Re-export all data access functions
 
 export * from '../db/manage/manage-client';
-export * from '../db/manage/scope-definitions';
 export * from '../db/runtime/runtime-client';
+
 // Config data access (Doltgres - versioned)
 export * from './manage/agentFull';
 export * from './manage/agents';
@@ -18,9 +18,6 @@ export * from './manage/functionTools';
 export * from './manage/projectFull';
 export * from './manage/projectLifecycle';
 export * from './manage/projects';
-export * from './manage/scheduledTriggers';
-export * from './manage/scheduledWorkflows';
-export * from './manage/scope-helpers';
 export * from './manage/skills';
 export * from './manage/subAgentExternalAgentRelations';
 export * from './manage/subAgentRelations';
@@ -33,22 +30,28 @@ export * from './manage/triggers';
 export * from './runtime/apiKeys';
 export * from './runtime/apps';
 export * from './runtime/audit-queries';
-export * from './runtime/auth';
 export * from './runtime/cascade-delete';
 export * from './runtime/contextCache';
 export * from './runtime/conversations';
+export * from './runtime/entitlements';
 export * from './runtime/evalRuns';
+export * from './runtime/feedback';
 export * from './runtime/github-work-app-installations';
 export * from './runtime/ledgerArtifacts';
 export * from './runtime/messages';
 export * from './runtime/organizations';
 export * from './runtime/projects';
 export * from './runtime/scheduledTriggerInvocations';
+export * from './runtime/scheduledTriggers';
+export * from './runtime/scheduledTriggerUsers';
+export * from './runtime/schedulerState';
 export * from './runtime/slack-work-app-mcp';
+export * from './runtime/streamChunks';
 export * from './runtime/tasks';
 export * from './runtime/triggerInvocations';
 export * from './runtime/userProfiles';
 export * from './runtime/users';
 export * from './runtime/workAppSlack';
+export * from './runtime/workflowExecutions';
 
 export * from './validation';

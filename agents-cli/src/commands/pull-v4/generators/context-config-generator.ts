@@ -73,7 +73,7 @@ type ContextConfigInput = z.input<typeof ContextConfigSchema>;
 type ContextConfigOutput = z.output<typeof ContextConfigSchema>;
 
 function normalizeContextVariables(
-  contextVariables?: Record<string, unknown>
+  contextVariables?: Record<string, unknown> | null
 ): NormalizedContextVariableMap {
   if (!contextVariables) {
     return {};
@@ -573,7 +573,9 @@ function inferHeadersSchemaFromTemplateHeaderVariables(
   };
 }
 
-export const task = {
+type GeneratorParams = Parameters<typeof generateContextConfigDefinition>[0];
+
+export const task: GenerationTask<GeneratorParams> = {
   type: 'context-config',
   collect(context) {
     if (!context.project.agents) {
@@ -582,9 +584,7 @@ export const task = {
 
     const contextConfigRecordsById = new Map<
       string,
-      ReturnType<
-        GenerationTask<Parameters<typeof generateContextConfigDefinition>[0]>['collect']
-      >[number]
+      ReturnType<GenerationTask<GeneratorParams>['collect']>[number]
     >();
 
     for (const agentId of context.completeAgentIds) {
@@ -642,11 +642,11 @@ export const task = {
               credentialReferences: credentialReferencePathOverrides,
             },
           }),
-        } as Parameters<typeof generateContextConfigDefinition>[0],
+        } as GeneratorParams,
       });
     }
 
     return [...contextConfigRecordsById.values()];
   },
   generate: generateContextConfigDefinition,
-} satisfies GenerationTask<Parameters<typeof generateContextConfigDefinition>[0]>;
+};

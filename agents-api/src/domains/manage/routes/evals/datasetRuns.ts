@@ -11,6 +11,7 @@ import {
   ListResponseSchema,
   listDatasetItems,
   listDatasetRuns,
+  listScheduledTriggerInvocationsByTriggerId,
   SingleResponseSchema,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
@@ -52,38 +53,33 @@ app.openapi(
 
     try {
       const runs = await listDatasetRuns(runDbClient)({ scopes: { tenantId, projectId } });
-      const filteredRuns = runs.filter((run) => (run as any).datasetId === datasetId);
+      const filteredRuns = runs.filter((run) => run.datasetId === datasetId);
 
-      // Fetch run config names for all runs
-      const runsWithNames = await Promise.all(
+      const runsWithMeta = await Promise.all(
         filteredRuns.map(async (run) => {
-          if (run.datasetRunConfigId) {
-            const runConfig = await getDatasetRunConfigById(db)({
-              scopes: { tenantId, projectId, datasetRunConfigId: run.datasetRunConfigId },
-            });
-            return {
-              ...run,
-              runConfigName: runConfig?.name || null,
-            };
-          }
+          const runConfig = run.datasetRunConfigId
+            ? await getDatasetRunConfigById(db)({
+                scopes: { tenantId, projectId, datasetRunConfigId: run.datasetRunConfigId },
+              })
+            : null;
           return {
             ...run,
-            runConfigName: null,
+            runConfigName: runConfig?.name ?? null,
           };
         })
       );
 
       return c.json({
-        data: runsWithNames as any,
+        data: runsWithMeta as any,
         pagination: {
           page: 1,
-          limit: runsWithNames.length,
-          total: runsWithNames.length,
+          limit: runsWithMeta.length,
+          total: runsWithMeta.length,
           pages: 1,
         },
       }) as any;
     } catch (error) {
-      logger.error({ error, tenantId, projectId, datasetId }, 'Failed to list dataset runs');
+      logger.error({ error, datasetId }, 'Failed to list dataset runs');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -113,17 +109,6 @@ app.openapi(
           'application/json': {
             schema: SingleResponseSchema(
               DatasetRunApiSelectSchema.extend({
-                conversations: z.array(
-                  z.object({
-                    id: z.string(),
-                    conversationId: z.string(),
-                    datasetRunId: z.string(),
-                    agentId: z.string().nullable().optional(),
-                    output: z.string().nullable().optional(),
-                    createdAt: z.string(),
-                    updatedAt: z.string(),
-                  })
-                ),
                 items: z.array(
                   z.object({
                     id: z.string(),
@@ -132,7 +117,6 @@ app.openapi(
                     datasetId: z.string(),
                     input: z.any().nullable().optional(),
                     expectedOutput: z.any().nullable().optional(),
-                    simulationAgent: z.any().nullable().optional(),
                     createdAt: z.string(),
                     updatedAt: z.string(),
                     conversations: z.array(
@@ -172,19 +156,18 @@ app.openapi(
         ) as any;
       }
 
-      let runConfigName: string | null = null;
-      if (run.datasetRunConfigId) {
-        // Get the run config to get the name
-        const runConfig = await getDatasetRunConfigById(db)({
-          scopes: { tenantId, projectId, datasetRunConfigId: run.datasetRunConfigId },
-        });
-        runConfigName = runConfig?.name || null;
-      }
+      const [runConfig, conversationRelations] = await Promise.all([
+        run.datasetRunConfigId
+          ? getDatasetRunConfigById(db)({
+              scopes: { tenantId, projectId, datasetRunConfigId: run.datasetRunConfigId },
+            })
+          : Promise.resolve(null),
+        getDatasetRunConversationRelations(runDbClient)({
+          scopes: { tenantId, projectId, datasetRunId: runId },
+        }),
+      ]);
 
-      // Get conversation relations for this run
-      const conversationRelations = await getDatasetRunConversationRelations(runDbClient)({
-        scopes: { tenantId, projectId, datasetRunId: runId },
-      });
+      const runConfigName = runConfig?.name ?? null;
 
       // Get all dataset items for this dataset
       const datasetItems = await listDatasetItems(db)({
@@ -267,77 +250,118 @@ app.openapi(
         })
       );
 
-      // Also fetch output and agentId for all conversations in the main conversations array
-      const conversationsWithOutput = await Promise.all(
-        conversationRelations.map(async (conv) => {
-          try {
-            // Fetch conversation to get sub-agent ID, then look up parent agent ID
-            const conversation = await getConversation(runDbClient)({
-              scopes: { tenantId, projectId },
-              conversationId: conv.conversationId,
-            });
-
-            const agentId: string | null = conversation?.agentId || null;
-
-            const messages = await getMessagesByConversation(runDbClient)({
-              scopes: { tenantId, projectId },
-              conversationId: conv.conversationId,
-              pagination: { page: 1, limit: 100 },
-            });
-
-            const assistantMessage = messages
-              .filter((msg) => msg.role === 'assistant' || msg.role === 'agent')
-              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-
-            let output: string | null = null;
-            if (assistantMessage?.content) {
-              if (typeof assistantMessage.content === 'string') {
-                output = assistantMessage.content;
-              } else if (
-                typeof assistantMessage.content === 'object' &&
-                assistantMessage.content !== null &&
-                'text' in assistantMessage.content
-              ) {
-                output =
-                  typeof assistantMessage.content.text === 'string'
-                    ? assistantMessage.content.text
-                    : null;
-              }
-            }
-
-            return {
-              ...conv,
-              output,
-              agentId,
-            };
-          } catch (error) {
-            logger.warn(
-              { error, conversationId: conv.conversationId },
-              'Failed to fetch conversation output'
-            );
-            return {
-              ...conv,
-              output: null,
-              agentId: null,
-            };
-          }
-        })
-      );
-
       return c.json({
         data: {
           ...run,
-          runConfigName: runConfigName,
-          conversations: conversationsWithOutput,
+          runConfigName,
           items: itemsWithConversations,
         } as any,
       }) as any;
     } catch (error) {
-      logger.error({ error, tenantId, projectId, runId }, 'Failed to get dataset run');
+      logger.error({ error, runId }, 'Failed to get dataset run');
       return c.json(
         createApiError({
           code: 'internal_server_error',
           message: 'Failed to get dataset run',
+        }),
+        500
+      );
+    }
+  }
+);
+
+const DatasetRunItemResponseSchema = z.object({
+  id: z.string(),
+  tenantId: z.string(),
+  projectId: z.string(),
+  agentId: z.string(),
+  datasetRunId: z.string(),
+  datasetItemId: z.string(),
+  status: z.string(),
+  startedAt: z.string().nullable().optional(),
+  completedAt: z.string().nullable().optional(),
+  attemptNumber: z.number(),
+  createdAt: z.string(),
+  conversationId: z.string().nullable().optional(),
+});
+
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/{runId}/items',
+    summary: 'Get Dataset Run Items',
+    operationId: 'get-dataset-run-items',
+    tags: ['Evaluations'],
+    permission: requireProjectPermission('view'),
+    request: {
+      params: TenantProjectParamsSchema.extend({ runId: z.string() }),
+      query: z.object({ status: z.string().optional() }),
+    },
+    responses: {
+      200: {
+        description: 'List of dataset run invocations',
+        content: {
+          'application/json': {
+            schema: ListResponseSchema(DatasetRunItemResponseSchema),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, runId } = c.req.valid('param');
+    const { status } = c.req.valid('query');
+
+    try {
+      const [invocations, relations] = await Promise.all([
+        listScheduledTriggerInvocationsByTriggerId(runDbClient)({
+          scopes: { tenantId, projectId },
+          scheduledTriggerId: runId,
+          filters: status ? { status } : undefined,
+        }),
+        getDatasetRunConversationRelations(runDbClient)({
+          scopes: { tenantId, projectId, datasetRunId: runId },
+        }),
+      ]);
+
+      const items = invocations.map((inv) => {
+        const datasetItemId = (inv.resolvedPayload as Record<string, unknown> | null)
+          ?.datasetItemId as string | undefined;
+        const rel = relations.find(
+          (r) => r.datasetItemId === datasetItemId && r.conversationId !== undefined
+        );
+        return {
+          id: inv.id,
+          tenantId: inv.tenantId,
+          projectId: inv.projectId,
+          agentId: inv.agentId,
+          datasetRunId: inv.scheduledTriggerId,
+          datasetItemId: datasetItemId ?? '',
+          status: inv.status,
+          startedAt: inv.startedAt ?? null,
+          completedAt: inv.completedAt ?? null,
+          attemptNumber: inv.attemptNumber,
+          createdAt: inv.createdAt,
+          conversationId: rel?.conversationId ?? null,
+        };
+      });
+
+      return c.json({
+        data: items as any,
+        pagination: {
+          page: 1,
+          limit: items.length,
+          total: items.length,
+          pages: 1,
+        },
+      }) as any;
+    } catch (error) {
+      logger.error({ error, runId }, 'Failed to get dataset run items');
+      return c.json(
+        createApiError({
+          code: 'internal_server_error',
+          message: 'Failed to get dataset run items',
         }),
         500
       );
