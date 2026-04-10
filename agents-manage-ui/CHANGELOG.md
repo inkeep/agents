@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-ui
 
+## 0.67.1
+
+### Patch Changes
+
+- 284864a: Fix Cost Over Time chart showing a single dot by querying per-trace aggregates instead of deriving from a 200-event sample
+  - @inkeep/agents-core@0.67.1
+
 ## 0.67.0
 
 ### Minor Changes
