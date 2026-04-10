@@ -492,6 +492,7 @@ export async function consumeApprovalContinuationStream(params: {
   const decoder = new TextDecoder();
   let buffer = '';
   let fullText = '';
+  let chainedApprovalPosted = false;
   const toolCallIdToName = new Map<string, string>();
   const toolCallIdToInput = new Map<string, Record<string, unknown>>();
 
@@ -554,6 +555,7 @@ export async function consumeApprovalContinuationStream(params: {
                 logger.warn({ error: e, toolCallId }, 'Failed to post chained approval message')
               );
 
+            chainedApprovalPosted = true;
             clearTimeout(timeoutId);
           }
         } catch {
@@ -611,6 +613,11 @@ export async function consumeApprovalContinuationStream(params: {
     logger.info(
       { channel, threadTs, conversationId, responseLength: fullText.length },
       'Approval continuation stream completed'
+    );
+  } else if (!chainedApprovalPosted) {
+    logger.warn(
+      { channel, threadTs, conversationId },
+      'Approval continuation stream completed with no text and no chained approval'
     );
   }
 }
