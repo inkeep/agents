@@ -48,12 +48,16 @@ async function githubRequest({
 }
 
 async function githubGraphql({ token, query, variables }) {
-  return githubRequest({
+  const result = await githubRequest({
     token,
     method: "POST",
     path: "/graphql",
     body: { query, variables },
   });
+  if (result?.errors?.length) {
+    throw new Error(`GraphQL error: ${result.errors.map((e) => e.message).join(", ")}`);
+  }
+  return result;
 }
 
 function requireEnv(name) {
@@ -76,6 +80,13 @@ function prefixPatchPaths(patch, prefix) {
     }
 
     const unquoted = value.replace(/^"(.+)"$/, "$1");
+
+    // Reject path traversal attempts
+    const segments = unquoted.split("/");
+    if (segments.some((s) => s === ".." || s === ".")) {
+      throw new Error(`Rejecting patch with path traversal: ${unquoted}`);
+    }
+
     const nextValue = `${normalizedPrefix}/${unquoted}`.replace(/\/+/g, "/");
     return value.startsWith("\"") ? `"${nextValue}"` : nextValue;
   };
@@ -200,10 +211,18 @@ ${details}`;
 }
 
 async function upsertIssueComment({ token, repo, issueNumber, body }) {
-  const comments = await githubRequest({
-    token,
-    path: `/repos/${repo}/issues/${issueNumber}/comments?per_page=100`,
-  });
+  // Paginate to find the bridge comment (handles PRs with 100+ comments)
+  let comments = [];
+  let page = 1;
+  while (true) {
+    const batch = await githubRequest({
+      token,
+      path: `/repos/${repo}/issues/${issueNumber}/comments?per_page=100&page=${page}`,
+    });
+    comments = comments.concat(batch);
+    if (batch.length < 100) break;
+    page++;
+  }
 
   const existing = comments.find((comment) => comment.body?.includes(BRIDGE_COMMENT_MARKER));
   if (existing) {
@@ -321,7 +340,7 @@ async function syncPublicPr() {
             body: buildPublicComment({
               publicPr,
               status: "failed",
-              details: `Patch application failed.\n\n\`\`\`\n${error.message}\n\`\`\``,
+              details: `Patch application failed. The diff could not be applied cleanly. Please rebase your PR on the latest main.`,
             }),
           });
           throw error;
@@ -359,12 +378,7 @@ async function syncPublicPr() {
             "--set-upstream",
             "origin",
             branchName,
-          ], {
-            env: {
-              ...process.env,
-              GITHUB_TOKEN: internalToken,
-            },
-          });
+          ]);
         }
       } finally {
         rmSync(tempDir, { recursive: true, force: true });
@@ -492,6 +506,17 @@ async function closeLinkedInternalPr() {
     body: { state: "closed" },
   });
 
+  // Clean up the stale branch on agents-private
+  try {
+    await githubRequest({
+      token: internalToken,
+      method: "DELETE",
+      path: `/repos/${internalRepo}/git/refs/heads/${branchName}`,
+    });
+  } catch {
+    // Branch may already be deleted or protected
+  }
+
   await upsertIssueComment({
     token: publicToken,
     repo: publicRepo,
@@ -521,7 +546,7 @@ async function main() {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch((error) => {
-    console.error(error.message);
+    console.error(error.stack || error.message);
     process.exitCode = 1;
   });
 }
