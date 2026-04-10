@@ -1,5 +1,15 @@
 # @inkeep/agents-api
 
+## 0.67.3
+
+### Patch Changes
+
+- ab65543: Fix text file artifacts being returned as base64-encoded file parts instead of decoded text content
+  - @inkeep/agents-core@0.67.3
+  - @inkeep/agents-email@0.67.3
+  - @inkeep/agents-mcp@0.67.3
+  - @inkeep/agents-work-apps@0.67.3
+
 ## 0.67.2
 
 ### Patch Changes
