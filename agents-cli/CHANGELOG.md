@@ -1,5 +1,14 @@
 # @inkeep/agents-cli
 
+## 0.67.2
+
+### Patch Changes
+
+- Updated dependencies [cad720b]
+  - @inkeep/agents-manage-ui@0.67.2
+  - @inkeep/agents-core@0.67.2
+  - @inkeep/agents-sdk@0.67.2
+
 ## 0.67.1
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-ui
 
+## 0.67.2
+
+### Patch Changes
+
+- cad720b: improve UnsavedChangesDialog typings to fix `Type error: Type 'Control<{ tools: Record...>' is not assignable to type 'Control<any>'`
+  - @inkeep/agents-core@0.67.2
+
 ## 0.67.1
 
 ### Patch Changes
