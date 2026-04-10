@@ -1,3 +1,4 @@
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ExecutionHandler } from '../../../domains/run/handlers/executionHandler';
 
@@ -164,21 +165,7 @@ vi.mock('../../../env.js', async (_importOriginal) => {
   };
 });
 
-vi.mock('../../../logger.js', () => {
-  const mockLogger = {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    child: vi.fn(),
-  };
-  // Make child return itself for chaining
-  mockLogger.child.mockReturnValue(mockLogger);
-
-  return {
-    getLogger: () => mockLogger,
-  };
-});
+vi.mock('../../../logger.js', () => createMockLoggerModule().module);
 
 describe('Integration Tests', () => {
   describe('ExecutionHandler', () => {

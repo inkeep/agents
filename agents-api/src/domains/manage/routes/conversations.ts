@@ -9,6 +9,11 @@ import {
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
+import {
+  ALLOWED_IMAGE_MIME_TYPES,
+  ALLOWED_TEXT_DOCUMENT_MIME_TYPES,
+  normalizeMimeType,
+} from '@inkeep/agents-core/constants/allowed-file-formats';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
@@ -31,6 +36,59 @@ function isMediaNotFoundError(error: unknown): boolean {
     normalized.includes(' 404') ||
     normalized.includes(' not found')
   );
+}
+
+const SAFE_IMAGE_PASSTHROUGH_MIME_TYPES = new Set(
+  [...ALLOWED_IMAGE_MIME_TYPES].filter((t) => t !== 'image/svg+xml')
+);
+
+const TEXT_DOCUMENT_DOWNLOAD_MIME_TYPES = new Set(ALLOWED_TEXT_DOCUMENT_MIME_TYPES);
+
+function getSafeMediaResponseHeaders({
+  contentType,
+  contentLength,
+}: {
+  contentType: string;
+  contentLength: number;
+}): Record<string, string> {
+  const normalizedContentType = normalizeMimeType(contentType);
+
+  if (SAFE_IMAGE_PASSTHROUGH_MIME_TYPES.has(normalizedContentType)) {
+    return {
+      'Content-Type': contentType,
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': 'private, max-age=31536000, immutable',
+      'Content-Length': contentLength.toString(),
+    };
+  }
+
+  if (normalizedContentType === 'application/pdf') {
+    return {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'attachment',
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': 'private, max-age=31536000, immutable',
+      'Content-Length': contentLength.toString(),
+    };
+  }
+
+  if (TEXT_DOCUMENT_DOWNLOAD_MIME_TYPES.has(normalizedContentType)) {
+    return {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Content-Disposition': 'attachment',
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': 'private, max-age=31536000, immutable',
+      'Content-Length': contentLength.toString(),
+    };
+  }
+
+  return {
+    'Content-Type': 'application/octet-stream',
+    'Content-Disposition': 'attachment',
+    'X-Content-Type-Options': 'nosniff',
+    'Cache-Control': 'private, max-age=31536000, immutable',
+    'Content-Length': contentLength.toString(),
+  };
 }
 
 const ConversationListQuerySchema = z.object({
@@ -181,7 +239,7 @@ app.openapi(
 
     const llmContext = formatMessagesForLLMContext(messages);
 
-    const resolvedMessages = resolveMessagesListBlobUris(messages);
+    const resolvedMessages = await resolveMessagesListBlobUris(messages);
 
     return c.json({
       data: {
@@ -312,23 +370,15 @@ app.openapi(
 
       return new Response(result.data as Uint8Array<ArrayBuffer>, {
         status: 200,
-        headers: {
-          'Content-Type': result.contentType,
-          'Cache-Control': 'private, max-age=31536000, immutable',
-          'Content-Length': result.data.length.toString(),
-        },
+        headers: getSafeMediaResponseHeaders({
+          contentType: result.contentType,
+          contentLength: result.data.length,
+        }),
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error(
-        {
-          error: errorMessage,
-          key,
-          requestId: c.get('requestId'),
-          tenantId,
-          projectId,
-          conversationId,
-        },
+        { error: errorMessage, key, requestId: c.get('requestId'), conversationId },
         'Failed to serve media'
       );
       if (isMediaNotFoundError(error)) {

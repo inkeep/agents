@@ -9,21 +9,16 @@
 
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
-import { validateProjectId, validateTenantId } from './resource-validation';
+
+type DatasetMessageRole = 'user' | 'assistant' | 'system';
 
 export interface DatasetItem {
   id: string;
   datasetId: string;
   input?: {
-    messages: Array<{ role: string; content: unknown }>;
-    headers?: Record<string, string>;
+    messages: Array<{ role: DatasetMessageRole; content: unknown }>;
   } | null;
-  expectedOutput?: Array<{ role: string; content: unknown }> | null;
-  simulationAgent?: {
-    stopWhen?: unknown;
-    prompt: string;
-    model: unknown;
-  } | null;
+  expectedOutput?: Array<{ role: DatasetMessageRole; content: unknown }> | null;
   createdAt: string;
   updatedAt: string;
   tenantId: string;
@@ -33,28 +28,16 @@ export interface DatasetItem {
 export interface DatasetItemInsert {
   id?: string;
   input?: {
-    messages: Array<{ role: string; content: unknown }>;
-    headers?: Record<string, string>;
+    messages: Array<{ role: DatasetMessageRole; content: unknown }>;
   } | null;
-  expectedOutput?: Array<{ role: string; content: unknown }> | null;
-  simulationAgent?: {
-    stopWhen?: unknown;
-    prompt: string;
-    model: unknown;
-  } | null;
+  expectedOutput?: Array<{ role: DatasetMessageRole; content: unknown }> | null;
 }
 
 export interface DatasetItemUpdate {
   input?: {
-    messages: Array<{ role: string; content: unknown }>;
-    headers?: Record<string, string>;
+    messages: Array<{ role: DatasetMessageRole; content: unknown }>;
   } | null;
-  expectedOutput?: Array<{ role: string; content: unknown }> | null;
-  simulationAgent?: {
-    stopWhen?: unknown;
-    prompt: string;
-    model: unknown;
-  } | null;
+  expectedOutput?: Array<{ role: DatasetMessageRole; content: unknown }> | null;
 }
 
 /**
@@ -65,9 +48,6 @@ export async function fetchDatasetItems(
   projectId: string,
   datasetId: string
 ): Promise<ListResponse<DatasetItem>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   return makeManagementApiRequest<ListResponse<DatasetItem>>(
     `tenants/${tenantId}/projects/${projectId}/evals/dataset-items/${datasetId}`
   );
@@ -82,9 +62,6 @@ export async function createDatasetItem(
   datasetId: string,
   item: DatasetItemInsert
 ): Promise<DatasetItem> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<DatasetItem>>(
     `tenants/${tenantId}/projects/${projectId}/evals/dataset-items/${datasetId}/items`,
     {
@@ -106,9 +83,6 @@ export async function updateDatasetItem(
   itemId: string,
   item: DatasetItemUpdate
 ): Promise<DatasetItem> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   const response = await makeManagementApiRequest<SingleResponse<DatasetItem>>(
     `tenants/${tenantId}/projects/${projectId}/evals/dataset-items/${datasetId}/items/${itemId}`,
     {
@@ -129,9 +103,6 @@ export async function deleteDatasetItem(
   datasetId: string,
   itemId: string
 ): Promise<void> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
   await makeManagementApiRequest(
     `tenants/${tenantId}/projects/${projectId}/evals/dataset-items/${datasetId}/items/${itemId}`,
     {

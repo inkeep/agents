@@ -12,7 +12,7 @@ The style configuration provides comprehensive settings for customizing the appe
 The theme configuration is defined through the `UserTheme` interface which extends `Partial<IkpTheme>`. This allows for deep customization of the widget's appearance.
 
 ```typescript
-import { type InkeepBaseSettings } from "@inkeep/cxkit-types";
+import { type InkeepBaseSettings } from "@inkeep/agents-ui-cloud";
 
 const baseSettings: InkeepBaseSettings = {
   theme: {
@@ -284,7 +284,7 @@ aiAssistantAvatar: {
 The user avatar can be customized using the `userAvatar` property in the `aiChatSettings`.
 
 ```typescript
-import { type InkeepAIChatSettings } from "@inkeep/cxkit-react";
+import { type InkeepAIChatSettings } from "@inkeep/agents-ui-cloud";
 
 export const aiChatSettings: InkeepAIChatSettings = {
   aiAssistantAvatar: "http://example.com/assistant-avatar.png",
@@ -319,7 +319,7 @@ You can customize various icons throughout the widget by providing a `customIcon
 #### Example Configuration
 
 ```typescript
-import { type InkeepBaseSettings } from "@inkeep/cxkit-react";
+import { type InkeepBaseSettings } from "@inkeep/agents-ui-cloud";
 
 export const baseSettings: InkeepBaseSettings = {
   customIcons: {

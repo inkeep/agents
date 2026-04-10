@@ -49,7 +49,7 @@ describe('pull-v4 introspect generator', () => {
     supportAgent.subAgents = {
       'support-agent': {
         id: 'support-agent',
-        name: '',
+        name: 'support-agent',
         canUse: [],
       },
       ...supportAgent.subAgents,
@@ -70,5 +70,57 @@ describe('pull-v4 introspect generator', () => {
     const subAgentFilePath = join(testDir, 'agents', 'sub-agents', 'support-agent.ts');
     const { default: subAgentContent } = await import(`${subAgentFilePath}?raw`);
     expect(subAgentContent).toContain('export const supportAgent = subAgent({');
+  });
+
+  it('generates skills through the shared generation pipeline', async () => {
+    const project = createProjectFixture();
+    project.skills = {
+      'general-gameplan': {
+        name: 'general-gameplan',
+        description: 'Create a general plan.',
+        metadata: {
+          tools: 'planner',
+        },
+        content: 'Use this skill for planning.',
+        files: [
+          {
+            filePath: 'SKILL.md',
+            content: `---
+name: general-gameplan
+description: Create a general plan.
+metadata:
+  tools: planner
+---
+Use this skill for planning.`,
+          },
+          {
+            filePath: 'templates/checklist.md',
+            content: '# Checklist',
+          },
+        ],
+      },
+    };
+
+    await introspectGenerate({ project, paths: projectPaths });
+
+    const skillFilePath = join(testDir, 'skills', 'general-gameplan', 'SKILL.md');
+    expect(fs.existsSync(skillFilePath)).toBe(true);
+    const templateFilePath = join(
+      testDir,
+      'skills',
+      'general-gameplan',
+      'templates',
+      'checklist.md'
+    );
+    expect(fs.existsSync(templateFilePath)).toBe(true);
+
+    const { default: skillContent } = await import(`${skillFilePath}?raw`);
+    expect(skillContent).toContain('name: general-gameplan');
+    expect(skillContent).toContain('description: Create a general plan.');
+    expect(skillContent).toContain('metadata:');
+    expect(skillContent).toContain('  tools: planner');
+    expect(skillContent).toContain('Use this skill for planning.');
+    const { default: templateContent } = await import(`${templateFilePath}?raw`);
+    expect(templateContent).toBe('# Checklist\n');
   });
 });

@@ -1,6 +1,7 @@
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
   foreignKey,
   index,
   integer,
@@ -135,6 +136,52 @@ export const tasks = pgTable(
   (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
 );
 
+export const workflowExecutions = pgTable(
+  'workflow_executions',
+  {
+    ...projectScoped,
+    agentId: varchar('agent_id', { length: 256 }).notNull(),
+    conversationId: varchar('conversation_id', { length: 256 }).notNull(),
+    requestId: varchar('request_id', { length: 256 }),
+    status: varchar('status', { length: 50 }).notNull().default('running'),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    index('workflow_executions_conversation_idx').on(
+      table.tenantId,
+      table.projectId,
+      table.conversationId
+    ),
+  ]
+);
+
+export const streamChunks = pgTable(
+  'stream_chunks',
+  {
+    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
+    projectId: varchar('project_id', { length: 256 }).notNull(),
+    conversationId: varchar('conversation_id', { length: 256 }).notNull(),
+    idx: integer('idx').notNull(),
+    data: text('data').notNull(),
+    isFinal: boolean('is_final').notNull().default(false),
+    createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.tenantId, table.projectId, table.conversationId, table.idx],
+    }),
+    index('stream_chunks_cleanup_idx').on(table.createdAt),
+    index('stream_chunks_conversation_idx').on(
+      table.tenantId,
+      table.projectId,
+      table.conversationId,
+      table.idx
+    ),
+  ]
+);
+
 export const apiKeys = pgTable(
   'api_keys',
   {
@@ -193,6 +240,8 @@ export const triggerInvocations = pgTable(
     ...agentScoped,
     triggerId: varchar('trigger_id', { length: 256 }).notNull(),
     conversationId: varchar('conversation_id', { length: 256 }),
+    runAsUserId: varchar('run_as_user_id', { length: 256 }),
+    batchId: varchar('batch_id', { length: 256 }),
     ref: jsonb('ref').$type<ResolvedRef>(),
     status: varchar('status', { length: 20 }).notNull().default('pending'),
     requestPayload: jsonb('request_payload').notNull(),
@@ -204,6 +253,7 @@ export const triggerInvocations = pgTable(
     primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
     index('trigger_invocations_trigger_idx').on(table.triggerId, table.createdAt),
     index('trigger_invocations_status_idx').on(table.triggerId, table.status),
+    index('trigger_invocations_batch_idx').on(table.triggerId, table.batchId),
     // Optional FK to conversations - only if conversationId is set
     // Note: Using a separate constraint to allow NULL conversationId
   ]
@@ -346,10 +396,38 @@ export const workAppSlackChannelAgentConfigs = pgTable(
   ]
 );
 
-/**
- * Scheduled trigger invocations - records each execution of a scheduled trigger.
- * NOTE: No FK to scheduled_triggers table since it's in a different database (DoltGres).
- */
+export const scheduledTriggers = pgTable(
+  'scheduled_triggers',
+  {
+    ...agentScoped,
+    name: varchar('name', { length: 256 }).notNull(),
+    description: text('description'),
+    enabled: boolean('enabled').notNull().default(true),
+    cronExpression: varchar('cron_expression', { length: 256 }),
+    cronTimezone: varchar('cron_timezone', { length: 64 }).default('UTC'),
+    runAt: timestamp('run_at', { withTimezone: true, mode: 'string' }),
+    payload: jsonb('payload').$type<Record<string, unknown> | null>(),
+    messageTemplate: text('message_template'),
+    maxRetries: integer('max_retries').notNull().default(1),
+    retryDelaySeconds: integer('retry_delay_seconds').notNull().default(60),
+    timeoutSeconds: integer('timeout_seconds').notNull().default(780),
+    runAsUserId: varchar('run_as_user_id', { length: 256 }).references(() => user.id, {
+      onDelete: 'cascade',
+    }),
+    createdBy: varchar('created_by', { length: 256 }),
+    nextRunAt: timestamp('next_run_at', { withTimezone: true, mode: 'string' }),
+    ref: varchar('ref', { length: 256 }).notNull().default('main'),
+    dispatchDelayMs: integer('dispatch_delay_ms'),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.id] }),
+    index('scheduled_triggers_agent_idx').on(table.tenantId, table.projectId, table.agentId),
+    index('scheduled_triggers_ref_idx').on(table.ref),
+    index('scheduled_triggers_next_run_at_idx').on(table.enabled, table.nextRunAt),
+  ]
+);
+
 export const scheduledTriggerInvocations = pgTable(
   'scheduled_trigger_invocations',
   {
@@ -366,6 +444,7 @@ export const scheduledTriggerInvocations = pgTable(
     conversationIds: jsonb('conversation_ids').$type<string[]>().default([]),
     attemptNumber: integer('attempt_number').notNull().default(1),
     idempotencyKey: varchar('idempotency_key', { length: 256 }).notNull(),
+    runAsUserId: varchar('run_as_user_id', { length: 256 }),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
       .notNull()
       .defaultNow(),
@@ -373,8 +452,63 @@ export const scheduledTriggerInvocations = pgTable(
   (table) => [
     primaryKey({ columns: [table.tenantId, table.id] }),
     uniqueIndex('sched_invocations_idempotency_idx').on(table.idempotencyKey),
+    index('sched_invocations_trigger_scheduled_for_idx').on(
+      table.tenantId,
+      table.projectId,
+      table.agentId,
+      table.scheduledTriggerId,
+      table.scheduledFor
+    ),
+    index('sched_invocations_trigger_user_scheduled_for_idx').on(
+      table.tenantId,
+      table.projectId,
+      table.agentId,
+      table.scheduledTriggerId,
+      table.runAsUserId,
+      table.scheduledFor
+    ),
+    index('sched_invocations_status_scheduled_for_idx').on(
+      table.tenantId,
+      table.projectId,
+      table.agentId,
+      table.status,
+      table.scheduledFor
+    ),
   ]
 );
+
+export const scheduledTriggerUsers = pgTable(
+  'scheduled_trigger_users',
+  {
+    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
+    scheduledTriggerId: varchar('scheduled_trigger_id', { length: 256 }).notNull(),
+    userId: varchar('user_id', { length: 256 })
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.tenantId, table.scheduledTriggerId, table.userId],
+      name: 'sched_trigger_users_pk',
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.scheduledTriggerId],
+      foreignColumns: [scheduledTriggers.tenantId, scheduledTriggers.id],
+      name: 'sched_trigger_users_trigger_fk',
+    }).onDelete('cascade'),
+    index('sched_trigger_users_user_idx').on(table.userId),
+    index('sched_trigger_users_trigger_idx').on(table.tenantId, table.scheduledTriggerId),
+  ]
+);
+
+export const schedulerState = pgTable('scheduler_state', {
+  id: varchar('id', { length: 256 }).primaryKey(),
+  currentRunId: varchar('current_run_id', { length: 256 }),
+  ...timestamps,
+});
 
 // --- Tables with FK dependencies ---
 
@@ -412,6 +546,33 @@ export const messages = pgTable(
     // Composite FKs with SET NULL don't work when other columns (tenantId, projectId)
     // are NOT NULL - PostgreSQL tries to NULL all FK columns.
     // These optional references should be handled in application code if needed.
+  ]
+);
+
+export const feedback = pgTable(
+  'feedback',
+  {
+    ...projectScoped,
+    conversationId: varchar('conversation_id', { length: 256 }).notNull(),
+    messageId: varchar('message_id', { length: 256 }),
+    type: varchar('type', { length: 20 }).$type<'positive' | 'negative'>().notNull(),
+    details: text('details'),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    index('feedback_conversation_id_idx').on(table.tenantId, table.projectId, table.conversationId),
+    index('feedback_message_id_idx').on(table.tenantId, table.projectId, table.messageId),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.conversationId],
+      foreignColumns: [conversations.tenantId, conversations.projectId, conversations.id],
+      name: 'feedback_conversation_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.messageId],
+      foreignColumns: [messages.tenantId, messages.projectId, messages.id],
+      name: 'feedback_message_fk',
+    }).onDelete('cascade'),
   ]
 );
 
@@ -684,6 +845,18 @@ export const messagesRelations = relations(messages, ({ one, many }) => ({
   }),
   childMessages: many(messages, {
     relationName: 'parentChild',
+  }),
+  feedback: many(feedback),
+}));
+
+export const feedbackRelations = relations(feedback, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [feedback.tenantId, feedback.projectId, feedback.conversationId],
+    references: [conversations.tenantId, conversations.projectId, conversations.id],
+  }),
+  message: one(messages, {
+    fields: [feedback.tenantId, feedback.projectId, feedback.messageId],
+    references: [messages.tenantId, messages.projectId, messages.id],
   }),
 }));
 
@@ -977,5 +1150,30 @@ export const workAppSlackMcpToolAccessConfig = pgTable(
       foreignColumns: [organization.id],
       name: 'work_app_slack_mcp_tool_access_config_tenant_fk',
     }).onDelete('cascade'),
+  ]
+);
+
+// ============================================================================
+// ORG ENTITLEMENTS
+// ============================================================================
+
+export const orgEntitlement = pgTable(
+  'org_entitlement',
+  {
+    id: varchar('id', { length: 256 }).primaryKey(),
+    organizationId: varchar('organization_id', { length: 256 }).notNull(),
+    resourceType: text('resource_type').notNull(),
+    maxValue: integer('max_value').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    unique('org_entitlement_org_resource_unique').on(table.organizationId, table.resourceType),
+    index('org_entitlement_org_idx').on(table.organizationId),
+    foreignKey({
+      columns: [table.organizationId],
+      foreignColumns: [organization.id],
+      name: 'org_entitlement_organization_fk',
+    }).onDelete('cascade'),
+    check('org_entitlement_resource_type_format', sql`resource_type ~ '^[a-z]+:[a-z][a-z0-9_]*$'`),
   ]
 );

@@ -2,7 +2,7 @@
 
 import { ArrowLeft, ChevronRight, Clock, ExternalLink, Loader2, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { use, useCallback, useEffect, useMemo, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { DatasetItemViewDialog } from '@/components/dataset-items/dataset-item-view-dialog';
 import {
   TestCaseFilters,
@@ -20,9 +20,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { DatasetRunWithConversations } from '@/lib/api/dataset-runs';
-import { fetchDatasetRun } from '@/lib/api/dataset-runs';
-import { fetchEvaluationJobConfigEvaluators } from '@/lib/api/evaluation-job-configs';
+import type { DatasetRunInvocation, DatasetRunWithConversations } from '@/lib/api/dataset-runs';
+import { fetchDatasetRun, fetchDatasetRunItems } from '@/lib/api/dataset-runs';
 import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
 import { formatDateAgo, formatDateTime } from '@/lib/utils/format-date';
 
@@ -35,82 +34,67 @@ export default function Page({
   const [error, setError] = useState<string | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [filters, setFilters] = useState<TestCaseFiltersType>({});
+  const [invocations, setInvocations] = useState<DatasetRunInvocation[]>([]);
   const [evaluationProgress, setEvaluationProgress] = useState<{
     total: number;
     completed: number;
     isRunning: boolean;
   } | null>(null);
 
-  const loadRun = useCallback(
-    async (showLoading = true) => {
-      try {
-        if (showLoading) {
-          setLoading(true);
-        }
-        setError(null);
-        const response = await fetchDatasetRun(tenantId, projectId, runId);
-        setRun(response.data);
-
-        // If there's an evaluation job, fetch evaluation progress
-        if (response.data?.evaluationJobConfigId) {
-          const [evaluatorRelations, evalResults] = await Promise.all([
-            fetchEvaluationJobConfigEvaluators(
-              tenantId,
-              projectId,
-              response.data.evaluationJobConfigId
-            ),
-            fetchEvaluationResultsByJobConfig(
-              tenantId,
-              projectId,
-              response.data.evaluationJobConfigId
-            ),
-          ]);
-
-          // Count conversations that have been created
-          const conversationCount =
-            response.data.items?.reduce(
-              (acc, item) => acc + (item.conversations?.length || 0),
-              0
-            ) || 0;
-
-          // Expected evaluations = conversations × evaluators
-          const evaluatorCount = evaluatorRelations.data?.length || 0;
-          const expectedEvaluations = conversationCount * evaluatorCount;
-          // Only count evaluations that have output (completed evaluations)
-          const completedEvaluations =
-            evalResults.data?.filter(
-              (result) => result.output !== null && result.output !== undefined
-            ).length || 0;
-
-          setEvaluationProgress({
-            total: expectedEvaluations,
-            completed: completedEvaluations,
-            isRunning: completedEvaluations < expectedEvaluations && expectedEvaluations > 0,
-          });
-        } else {
-          setEvaluationProgress(null);
-        }
-      } catch (err) {
-        console.error('Error loading dataset run:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load run');
-      } finally {
-        if (showLoading) {
-          setLoading(false);
-        }
+  async function loadRun(showLoading = true) {
+    try {
+      if (showLoading) {
+        setLoading(true);
       }
-    },
-    [tenantId, projectId, runId]
-  );
+      setError(null);
+      const [response, itemsResponse] = await Promise.all([
+        fetchDatasetRun(tenantId, projectId, runId),
+        fetchDatasetRunItems(tenantId, projectId, runId),
+      ]);
+      setRun(response.data);
+      setInvocations(itemsResponse.data || []);
 
-  // Calculate conversation progress
-  const conversationProgress = useMemo(() => {
-    if (!run?.items) return { total: 0, completed: 0, isRunning: false };
-    const total = run.items.length;
-    const completed = run.items.filter(
-      (item) => item.conversations && item.conversations.length > 0
+      // If there's an evaluation job, fetch evaluation progress
+      if (response.data?.evaluationJobConfigId) {
+        const evalResults = await fetchEvaluationResultsByJobConfig(
+          tenantId,
+          projectId,
+          response.data.evaluationJobConfigId
+        );
+
+        const totalEvaluations = evalResults.data?.length || 0;
+        const completedEvaluations =
+          evalResults.data?.filter(
+            (result) => result.output !== null && result.output !== undefined
+          ).length || 0;
+
+        setEvaluationProgress({
+          total: totalEvaluations,
+          completed: completedEvaluations,
+          isRunning: completedEvaluations < totalEvaluations && totalEvaluations > 0,
+        });
+      } else {
+        setEvaluationProgress(null);
+      }
+    } catch (err) {
+      console.error('Error loading dataset run:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load run');
+    }
+    if (showLoading) {
+      setLoading(false);
+    }
+  }
+
+  const conversationProgress = (() => {
+    if (invocations.length === 0) return { total: 0, completed: 0, failed: 0, isRunning: false };
+    const total = invocations.length;
+    const completed = invocations.filter((inv) => inv.status === 'completed').length;
+    const failed = invocations.filter(
+      (inv) => inv.status === 'failed' || inv.status === 'cancelled'
     ).length;
-    return { total, completed, isRunning: completed < total && total > 0 };
-  }, [run]);
+    const settled = completed + failed;
+    return { total, completed, failed, isRunning: settled < total && total > 0 };
+  })();
 
   // Overall progress - run is complete only when both conversations AND evaluations are done
   const isRunInProgress =
@@ -119,7 +103,10 @@ export default function Page({
   // Initial load
   useEffect(() => {
     loadRun();
-  }, [loadRun]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadRun,
+  ]);
 
   // Auto-refresh when run is in progress
   useEffect(() => {
@@ -130,9 +117,20 @@ export default function Page({
     }, 3000); // Refresh every 3 seconds
 
     return () => clearInterval(interval);
-  }, [isRunInProgress, loadRun]);
+  }, [
+    isRunInProgress,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadRun,
+  ]);
 
-  const uniqueAgents = useMemo(() => {
+  const invocationByItemId = new Map<string, DatasetRunInvocation>();
+  for (const inv of invocations) {
+    if (inv.datasetItemId) {
+      invocationByItemId.set(inv.datasetItemId, inv);
+    }
+  }
+
+  const uniqueAgents = (() => {
     if (!run?.items) return [];
     const agentIds = new Set<string>();
     run.items.forEach((item) => {
@@ -143,12 +141,10 @@ export default function Page({
       });
     });
     return Array.from(agentIds).map((id) => ({ id, name: id }));
-  }, [run]);
+  })();
 
-  const filteredItems = useMemo(() => {
-    if (!run?.items) return [];
-
-    return run.items
+  const filteredItems =
+    run?.items
       .map((item) => {
         const getInputText = (): string => {
           const input = item.input;
@@ -205,8 +201,7 @@ export default function Page({
           conversations,
         };
       })
-      .filter((item): item is NonNullable<typeof item> => item !== null);
-  }, [run, filters]);
+      .filter((item) => item !== null) ?? [];
 
   if (loading) {
     return (
@@ -249,7 +244,7 @@ export default function Page({
           <CardTitle>{run.runConfigName || `Run ${run.id.slice(0, 8)}`}</CardTitle>
           <CardDescription className="flex items-center gap-2 mt-1">
             <Clock className="h-3 w-3" />
-            Created {formatDateAgo(run.createdAt)}
+            Created {formatDateAgo(run.createdAt, { local: true })}
           </CardDescription>
           {isRunInProgress && (
             <div className="mt-4 flex flex-col gap-3 p-3 rounded-lg bg-muted/50 border">
@@ -263,12 +258,17 @@ export default function Page({
                 <span className="text-xs text-muted-foreground">
                   Test cases: {conversationProgress.completed} of {conversationProgress.total}{' '}
                   completed
+                  {conversationProgress.failed > 0 && (
+                    <span className="ml-1 text-red-600 dark:text-red-400">
+                      ({conversationProgress.failed} failed)
+                    </span>
+                  )}
                   {!conversationProgress.isRunning && conversationProgress.total > 0 && (
                     <span className="ml-2 text-green-600 dark:text-green-400">✓</span>
                   )}
                 </span>
                 <Progress
-                  value={conversationProgress.completed}
+                  value={conversationProgress.completed + conversationProgress.failed}
                   max={conversationProgress.total}
                   className="h-1.5"
                 />
@@ -295,8 +295,18 @@ export default function Page({
           )}
           {!isRunInProgress && conversationProgress.total > 0 && (
             <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-              <span className="text-green-600 dark:text-green-400">✓</span>
-              Run completed: {conversationProgress.completed} test cases
+              {conversationProgress.failed > 0 ? (
+                <>
+                  <span className="text-yellow-600 dark:text-yellow-400">⚠</span>
+                  Run finished: {conversationProgress.completed} completed,{' '}
+                  {conversationProgress.failed} failed
+                </>
+              ) : (
+                <>
+                  <span className="text-green-600 dark:text-green-400">✓</span>
+                  Run completed: {conversationProgress.completed} test cases
+                </>
+              )}
               {evaluationProgress && `, ${evaluationProgress.completed} evaluations`}
             </div>
           )}
@@ -392,9 +402,16 @@ export default function Page({
                   // Show all conversations for this item (one row per agent run)
                   const conversations = item.conversations || [];
                   if (conversations.length === 0) {
-                    // No conversations yet - show placeholder row with loading state if run is in progress
+                    const inv = invocationByItemId.get(item.id);
+                    const isFailed = inv?.status === 'failed' || inv?.status === 'cancelled';
+                    const isPending = inv?.status === 'pending';
+                    const isRunning = inv?.status === 'running';
+
                     return (
-                      <TableRow key={item.id}>
+                      <TableRow
+                        key={item.id}
+                        className={isFailed ? 'bg-red-50 dark:bg-red-950/20' : ''}
+                      >
                         <TableCell>
                           <button
                             type="button"
@@ -409,20 +426,32 @@ export default function Page({
                           <span className="text-sm text-muted-foreground">-</span>
                         </TableCell>
                         <TableCell>
-                          {conversationProgress.isRunning ? (
+                          {isFailed ? (
+                            <span className="text-sm text-red-600 dark:text-red-400 font-medium">
+                              Failed
+                            </span>
+                          ) : isRunning ? (
                             <span className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Loader2 className="h-3 w-3 animate-spin" />
                               Processing...
                             </span>
+                          ) : isPending ? (
+                            <span className="text-sm text-muted-foreground">Pending...</span>
                           ) : (
                             <span className="text-sm text-muted-foreground">No output</span>
                           )}
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm">{formatDateTime(run.createdAt)}</span>
+                          <span className="text-sm">
+                            {formatDateTime(inv?.createdAt ?? run.createdAt, { local: true })}
+                          </span>
                         </TableCell>
                         <TableCell>
-                          {conversationProgress.isRunning ? (
+                          {isFailed ? (
+                            <span className="text-sm text-red-600 dark:text-red-400">
+                              Execution failed
+                            </span>
+                          ) : isPending || isRunning ? (
                             <span className="text-sm text-muted-foreground">Pending...</span>
                           ) : (
                             <span className="text-sm text-muted-foreground">No conversation</span>
@@ -459,7 +488,9 @@ export default function Page({
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm">{formatDateTime(conversation.createdAt)}</span>
+                        <span className="text-sm">
+                          {formatDateTime(conversation.createdAt, { local: true })}
+                        </span>
                       </TableCell>
                       <TableCell>
                         <Link

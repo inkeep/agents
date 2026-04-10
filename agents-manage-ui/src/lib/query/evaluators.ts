@@ -5,11 +5,17 @@ import { useParams } from 'next/navigation';
 import { type Evaluator, fetchEvaluators } from '@/lib/api/evaluators';
 
 const evaluatorQueryKeys = {
-  list: (tenantId: string, projectId: string) => ['evaluators', tenantId, projectId] as const,
+  list: (tenantId: string, projectId: string, agentId?: string) =>
+    ['evaluators', tenantId, projectId, agentId ?? 'all'] as const,
 };
 
-export function useEvaluatorsQuery({ enabled = true }: { enabled?: boolean } = {}) {
-  'use memo';
+export function useEvaluatorsQuery({
+  enabled = true,
+  agentId,
+}: {
+  enabled?: boolean;
+  agentId?: string;
+} = {}) {
   const { tenantId, projectId } = useParams<{ tenantId?: string; projectId?: string }>();
 
   if (!tenantId || !projectId) {
@@ -17,15 +23,14 @@ export function useEvaluatorsQuery({ enabled = true }: { enabled?: boolean } = {
   }
 
   return useQuery<Evaluator[]>({
-    queryKey: evaluatorQueryKeys.list(tenantId, projectId),
+    queryKey: evaluatorQueryKeys.list(tenantId, projectId, agentId),
     async queryFn() {
-      const response = await fetchEvaluators(tenantId, projectId);
+      const response = await fetchEvaluators(tenantId, projectId, { agentId });
       return response.data;
     },
     enabled,
     staleTime: 30_000,
     initialData: [],
-    // force `queryFn` still runs on mount
     initialDataUpdatedAt: 0,
     meta: {
       defaultError: 'Failed to load evaluators',

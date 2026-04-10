@@ -190,10 +190,6 @@ export function validateAgentStructure(
     externalAgentIds?: Set<string>;
   }
 ): void {
-  if (agentData.defaultSubAgentId && !agentData.subAgents[agentData.defaultSubAgentId]) {
-    throw new Error(`Default agent '${agentData.defaultSubAgentId}' does not exist in agents`);
-  }
-
   if (projectResources) {
     validateToolReferences(agentData, projectResources.toolIds);
     validateDataComponentReferences(agentData, projectResources.dataComponentIds);

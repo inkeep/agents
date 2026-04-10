@@ -1,5 +1,6 @@
 import { V1_BREAKDOWN_SCHEMA } from '@inkeep/agents-core/client-exports';
-import { useMemo, useState } from 'react';
+import { ThumbsDown, ThumbsUp } from 'lucide-react';
+import { useState } from 'react';
 import { Streamdown } from 'streamdown';
 import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
 import { SignozSpanLink } from '@/components/traces/signoz-link';
@@ -33,16 +34,14 @@ function formatJsonSafely(content: string): string {
 
 /** Compact context breakdown for the side panel */
 function ContextBreakdownPanel({ breakdown }: { breakdown: ContextBreakdown }) {
-  const items = useMemo(() => {
-    return V1_BREAKDOWN_SCHEMA.map((def) => ({
-      key: def.key,
-      label: def.label,
-      color: def.color,
-      value: breakdown.components[def.key] ?? 0,
-    }))
-      .filter((item) => item.value > 0)
-      .sort((a, b) => b.value - a.value);
-  }, [breakdown]);
+  const items = V1_BREAKDOWN_SCHEMA.map((def) => ({
+    key: def.key,
+    label: def.label,
+    color: def.color,
+    value: breakdown.components[def.key] ?? 0,
+  }))
+    .filter((item) => item.value > 0)
+    .sort((a, b) => b.value - a.value);
 
   if (breakdown.total === 0) return null;
 
@@ -123,12 +122,18 @@ export function renderPanelContent({
   selected,
   findSpanById,
   spanLoading = false,
+  onLeaveFeedback,
 }: {
   selected: SelectedPanel;
   findSpanById: (
     id?: string
   ) => NonNullable<ConversationDetail['allSpanAttributes']>[number] | undefined;
   spanLoading?: boolean;
+  onLeaveFeedback?: (
+    activityId: string,
+    messageId?: string,
+    type?: 'positive' | 'negative'
+  ) => void;
 }) {
   if (selected.type === 'mcp_tool_error') {
     const e = selected.item;
@@ -296,6 +301,28 @@ export function renderPanelContent({
       return (
         <>
           <Section>
+            {onLeaveFeedback && (
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  aria-label="Positive feedback"
+                  onClick={() => onLeaveFeedback(a.id, a.messageId, 'positive')}
+                >
+                  <ThumbsUp className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  aria-label="Negative feedback"
+                  onClick={() => onLeaveFeedback(a.id, a.messageId, 'negative')}
+                >
+                  <ThumbsDown className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
             <Info label="Sub agent" value={a.subAgentName || 'Unknown'} />
             <AssistantMessageContent
               content={a.aiResponseContent || 'Response content not available'}
@@ -852,6 +879,36 @@ export function renderPanelContent({
                 The stream exceeded the maximum allowed lifetime and was forcibly closed.
               </Bubble>
             </LabeledBlock>
+            <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'durable_tool_execution':
+      return (
+        <>
+          <Section>
+            {a.toolName && (
+              <Info label="Tool name" value={<Badge variant="code">{a.toolName}</Badge>} />
+            )}
+            {a.toolCallId && <Info label="Tool call ID" value={a.toolCallId} />}
+            {a.subAgentId && <Info label="Sub-agent" value={a.subAgentId} />}
+            <Info
+              label="Status"
+              value={
+                <Badge variant={a.status === 'error' ? 'destructive' : 'default'}>
+                  {a.status === 'error' ? 'Failed' : 'Completed'}
+                </Badge>
+              }
+            />
+            {a.toolResponseContent && (
+              <LabeledBlock label="Tool response">
+                <Bubble>{a.toolResponseContent}</Bubble>
+              </LabeledBlock>
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
           <Divider />

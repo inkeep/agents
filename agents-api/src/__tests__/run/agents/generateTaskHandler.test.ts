@@ -1,4 +1,5 @@
-import { type Part, parseEmbeddedJson, TaskState } from '@inkeep/agents-core';
+import { getAppByIdForProject, type Part, parseEmbeddedJson, TaskState } from '@inkeep/agents-core';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { A2ATask } from '../../../domains/run/a2a/types';
 import { Agent } from '../../../domains/run/agents/Agent';
@@ -95,6 +96,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
       error: vi.fn(),
       debug: vi.fn(),
     })),
+    getAppByIdForProject: vi.fn(() => vi.fn().mockResolvedValue(null)),
     generateId: vi.fn(() => 'test-id-123'),
     loadEnvironmentFiles: vi.fn(),
     TaskState: {
@@ -105,8 +107,12 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   };
 });
 
-// Mock database client
+// Mock database clients
 vi.mock('../../data/db/dbClient.js', () => ({
+  default: {},
+}));
+
+vi.mock('../../../data/db/runDbClient.js', () => ({
   default: {},
 }));
 
@@ -133,6 +139,18 @@ vi.mock('../../../domains/run/agents/Agent.js', () => ({
 
     setDelegationId(_delegationId: string | undefined) {
       // Mock implementation
+    }
+
+    setDurableWorkflowRunId(_runId: string | undefined) {
+      // Mock implementation
+    }
+
+    setApprovedToolCalls(_approvedToolCalls: Record<string, any> | undefined) {
+      // Mock implementation
+    }
+
+    getPendingDurableApproval() {
+      return undefined;
     }
 
     async generate(userParts: Part[], _options: unknown) {
@@ -218,13 +236,7 @@ vi.mock('../../../domains/run/stream/stream-registry.js', () => ({
   getStreamHelper: vi.fn().mockReturnValue(undefined),
 }));
 
-vi.mock('../../../logger.js', () => ({
-  getLogger: vi.fn().mockReturnValue({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
+vi.mock('../../../logger.js', () => createMockLoggerModule().module);
 
 function createMockExecutionContext(
   overrides: {
@@ -1062,6 +1074,102 @@ describe('generateTaskHandler', () => {
 
       const deserialized = deserializeTaskHandlerConfig(serialized);
       expect(deserialized).toEqual(mockConfig);
+    });
+  });
+
+  describe('appPrompt resolution from DB (project-scoped)', () => {
+    const makeTask = (text: string): A2ATask => ({
+      id: 'task-123',
+      input: { parts: [{ kind: 'text', text }] },
+      context: { conversationId: 'conv-123' },
+    });
+
+    it('should resolve appPrompt from DB using project-scoped lookup', async () => {
+      const mockGetApp = vi.fn().mockResolvedValue({ prompt: 'Resolved prompt from DB' });
+      (getAppByIdForProject as any).mockReturnValue(mockGetApp);
+
+      const configWithAppId: TaskHandlerConfig = {
+        ...mockConfig,
+        executionContext: {
+          ...mockConfig.executionContext,
+          metadata: { appId: 'test-app-id' },
+        },
+      };
+
+      const handler = createTaskHandler(configWithAppId);
+      await handler(makeTask('hello'));
+
+      expect(getAppByIdForProject).toHaveBeenCalled();
+      expect(mockGetApp).toHaveBeenCalledWith({
+        id: 'test-app-id',
+        scopes: {
+          tenantId: mockConfig.executionContext.tenantId,
+          projectId: mockConfig.executionContext.projectId,
+        },
+      });
+      expect(configWithAppId.executionContext.metadata?.appPrompt).toBe('Resolved prompt from DB');
+    });
+
+    it('should re-resolve appPrompt from DB even when already set', async () => {
+      const mockGetApp = vi.fn().mockResolvedValue({ prompt: 'Fresh prompt from DB' });
+      (getAppByIdForProject as any).mockReturnValue(mockGetApp);
+
+      const configWithBoth: TaskHandlerConfig = {
+        ...mockConfig,
+        executionContext: {
+          ...mockConfig.executionContext,
+          metadata: { appId: 'test-app-id', appPrompt: 'Stale prompt' },
+        },
+      };
+
+      const handler = createTaskHandler(configWithBoth);
+      await handler(makeTask('hello'));
+
+      expect(getAppByIdForProject).toHaveBeenCalled();
+      expect(configWithBoth.executionContext.metadata?.appPrompt).toBe('Fresh prompt from DB');
+    });
+
+    it('should continue without appPrompt when DB lookup fails', async () => {
+      const mockGetApp = vi.fn().mockRejectedValue(new Error('Connection refused'));
+      (getAppByIdForProject as any).mockReturnValue(mockGetApp);
+
+      const configWithAppId: TaskHandlerConfig = {
+        ...mockConfig,
+        executionContext: {
+          ...mockConfig.executionContext,
+          metadata: { appId: 'test-app-id' },
+        },
+      };
+
+      const handler = createTaskHandler(configWithAppId);
+      await handler(makeTask('hello'));
+
+      expect(configWithAppId.executionContext.metadata?.appPrompt).toBeUndefined();
+    });
+
+    it('should continue without appPrompt when app belongs to different tenant or project', async () => {
+      const mockGetApp = vi.fn().mockResolvedValue(undefined);
+      (getAppByIdForProject as any).mockReturnValue(mockGetApp);
+
+      const configWithAppId: TaskHandlerConfig = {
+        ...mockConfig,
+        executionContext: {
+          ...mockConfig.executionContext,
+          metadata: { appId: 'cross-tenant-app-id' },
+        },
+      };
+
+      const handler = createTaskHandler(configWithAppId);
+      await handler(makeTask('hello'));
+
+      expect(mockGetApp).toHaveBeenCalledWith({
+        id: 'cross-tenant-app-id',
+        scopes: {
+          tenantId: mockConfig.executionContext.tenantId,
+          projectId: mockConfig.executionContext.projectId,
+        },
+      });
+      expect(configWithAppId.executionContext.metadata?.appPrompt).toBeUndefined();
     });
   });
 });

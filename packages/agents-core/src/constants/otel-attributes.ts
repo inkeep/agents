@@ -18,6 +18,8 @@ export const SPAN_NAMES = {
   COMPRESSOR_SAFE_COMPRESS: 'compressor.safe_compress',
   AGENT_MAX_STEPS_REACHED: 'agent.max_steps_reached',
   STREAM_FORCE_CLEANUP: 'stream.force_cleanup',
+  DURABLE_TOOL_EXECUTION: 'durable.tool_execution',
+  EXECUTION_HANDLER_EXECUTE: 'execution_handler.execute',
 } as const;
 
 export const AI_OPERATIONS = {
@@ -82,11 +84,17 @@ export const SPAN_KEYS = {
   TOOL_NAME: 'tool.name',
   TOOL_CALL_ID: 'tool.callId',
   TOOL_APPROVAL_REASON: 'tool.approval.reason',
+  TOOL_RESPONSE_CONTENT: 'tool.response.content',
+  TOOL_RESPONSE_TIMESTAMP: 'tool.response.timestamp',
 
   // Token usage
   GEN_AI_USAGE_INPUT_TOKENS: 'gen_ai.usage.input_tokens',
   GEN_AI_USAGE_OUTPUT_TOKENS: 'gen_ai.usage.output_tokens',
   GEN_AI_COST_ESTIMATED_USD: 'gen_ai.cost.estimated_usd',
+
+  // Provider routing
+  GEN_AI_REQUEST_PROVIDER: 'gen_ai.request.provider',
+  GEN_AI_RESPONSE_PROVIDER: 'gen_ai.response.provider',
 
   // Context attributes
   CONTEXT_URL: 'context.url',
@@ -95,6 +103,7 @@ export const SPAN_KEYS = {
   CONTEXT_HEADERS_KEYS: 'context.headers_keys',
 
   // Message attributes
+  MESSAGE_ID: 'message.id',
   MESSAGE_CONTENT: 'message.content',
   MESSAGE_PARTS: 'message.parts',
   MESSAGE_TIMESTAMP: 'message.timestamp',
@@ -123,6 +132,8 @@ export const SPAN_KEYS = {
   INVOCATION_ENTRY_POINT: 'invocation.entryPoint',
   TRIGGER_ID: 'trigger.id',
   TRIGGER_INVOCATION_ID: 'trigger.invocation.id',
+  TRIGGER_RUN_AS_USER_ID: 'trigger.run_as_user_id',
+  TRIGGER_BATCH_ID: 'trigger.batch_id',
 
   // Artifact processing attributes
   ARTIFACT_ID: 'artifact.id',
@@ -207,6 +218,7 @@ export const ACTIVITY_TYPES = {
   COMPRESSION: 'compression',
   MAX_STEPS_REACHED: 'max_steps_reached',
   STREAM_LIFETIME_EXCEEDED: 'stream_lifetime_exceeded',
+  DURABLE_TOOL_EXECUTION: 'durable_tool_execution',
 } as const;
 
 /** Activity Status Values */

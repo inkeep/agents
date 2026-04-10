@@ -1,15 +1,9 @@
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ComposioCredentialStore } from '../../credential-stores/composio-store';
 import { CredentialStoreType } from '../../types';
 
-vi.mock('../../utils/logger.js', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  }),
-}));
+vi.mock('../../utils/logger.js', () => createMockLoggerModule().module);
 
 const mockGet = vi.fn();
 const mockDeleteAccount = vi.fn();

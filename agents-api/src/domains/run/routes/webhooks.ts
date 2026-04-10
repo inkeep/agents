@@ -52,8 +52,13 @@ const triggerWebhookRoute = createProtectedRoute({
         'application/json': {
           schema: z.object({
             success: z.boolean(),
-            invocationId: z.string(),
-            conversationId: z.string(),
+            invocations: z.array(
+              z.object({
+                invocationId: z.string(),
+                conversationId: z.string(),
+                runAsUserId: z.string().nullable(),
+              })
+            ),
           }),
         },
       },
@@ -116,7 +121,7 @@ app.openapi(triggerWebhookRoute, async (c) => {
   const { tenantId, projectId, agentId, triggerId } = c.req.valid('param');
   const resolvedRef = c.get('resolvedRef');
 
-  logger.info({ tenantId, projectId, agentId, triggerId }, 'Processing trigger webhook');
+  logger.info({ triggerId }, 'Processing trigger webhook');
 
   const rawBody = await c.req.text();
 
@@ -146,16 +151,12 @@ app.openapi(triggerWebhookRoute, async (c) => {
       projectId,
       agentId,
       triggerId,
-      invocationId: result.invocationId,
-      conversationId: result.conversationId,
+      invocationCount: result.invocations.length,
     },
     'Trigger webhook accepted, workflow dispatched'
   );
 
-  return c.json(
-    { success: true, invocationId: result.invocationId, conversationId: result.conversationId },
-    202
-  );
+  return c.json({ success: true, invocations: result.invocations }, 202);
 });
 
 export default app;

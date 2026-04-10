@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
@@ -62,9 +62,8 @@ export function EvaluationJobFormDialog({
   }, [isOpen, form]);
 
   const { isSubmitting } = form.formState;
-  const jobFilters = form.watch('jobFilters');
 
-  const evaluatorLookup = useMemo(() => createLookup(evaluators), [evaluators]);
+  const evaluatorLookup = createLookup(evaluators);
 
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -79,31 +78,22 @@ export function EvaluationJobFormDialog({
     if (start && end) {
       const startDate = new Date(start);
       const endDate = new Date(end);
-      form.setValue('jobFilters', {
-        ...jobFilters,
-        dateRange: {
-          startDate: startDate.toISOString().split('T')[0],
-          endDate: endDate.toISOString().split('T')[0],
-        },
+      form.setValue('jobFilters.dateRange', {
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
       });
     } else {
-      form.setValue('jobFilters', {
-        ...jobFilters,
-        dateRange: undefined,
-      });
+      form.unregister('jobFilters.dateRange');
     }
   };
 
   const handleRemoveDateRange = () => {
     setCustomStartDate('');
     setCustomEndDate('');
-    form.setValue('jobFilters', {
-      ...jobFilters,
-      dateRange: undefined,
-    });
+    form.unregister('jobFilters.dateRange');
   };
 
-  const onSubmit = async (data: EvaluationJobConfigFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     const isValid = await form.trigger();
     if (!isValid) {
       return;
@@ -150,7 +140,7 @@ export function EvaluationJobFormDialog({
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
-  };
+  });
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -167,7 +157,7 @@ export function EvaluationJobFormDialog({
           <div className="py-8 text-center text-muted-foreground">Loading...</div>
         ) : (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={onSubmit} className="space-y-6">
               <FormField
                 control={form.control}
                 name="evaluatorIds"

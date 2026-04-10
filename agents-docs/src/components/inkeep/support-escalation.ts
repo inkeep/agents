@@ -10,8 +10,8 @@ const answerConfidence = z
     This is the highest Answer Confidence level and should be used sparingly.
   `),
     z.literal('somewhat_confident').describe(`
-    The AI Assistant provided a complete and direct answer to the User Question, but the answer contained minor caveats or uncertainties. 
- 
+    The AI Assistant provided a complete and direct answer to the User Question, but the answer contained minor caveats or uncertainties.
+
     Examples:
     • The AI Assistant asked follow-up questions to the User
     • The AI Assistant requested additional information from the User
@@ -23,7 +23,7 @@ const answerConfidence = z
     The assistant provided options requiring further action from the User, asked for more information, showed uncertainty,
     suggested the user contact support or provided contact information, or provided an indirect or incomplete answer.
     This is the most common Answer Confidence level.
- 
+
     Examples:
     • The AI Assistant provided a general answer not directly related to the User Question
     • The AI Assistant said to reach out to support or provided an email address or contact information

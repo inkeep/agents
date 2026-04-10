@@ -1,6 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,15 +12,45 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { fetchEvaluatorAgentsAction } from '@/lib/actions/agent-relations';
 import type { Evaluator } from '@/lib/api/evaluators';
+import { useAgentsQuery } from '@/lib/query/agents';
 
 interface EvaluatorViewDialogProps {
+  tenantId: string;
+  projectId: string;
   evaluator: Evaluator;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function EvaluatorViewDialog({ evaluator, isOpen, onOpenChange }: EvaluatorViewDialogProps) {
+export function EvaluatorViewDialog({
+  tenantId,
+  projectId,
+  evaluator,
+  isOpen,
+  onOpenChange,
+}: EvaluatorViewDialogProps) {
+  const { data: agents } = useAgentsQuery();
+  const [scopedAgentIds, setScopedAgentIds] = useState<string[]>([]);
+  const [loadingScope, setLoadingScope] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setLoadingScope(true);
+    fetchEvaluatorAgentsAction(tenantId, projectId, evaluator.id)
+      .then((result) => {
+        if (result.success && result.data) {
+          setScopedAgentIds(result.data.map((r) => r.agentId));
+        } else {
+          setScopedAgentIds([]);
+        }
+      })
+      .finally(() => setLoadingScope(false));
+  }, [isOpen, tenantId, projectId, evaluator.id]);
+
+  const agentNameMap = new Map(agents.map((a) => [a.id, a.name]));
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="!max-w-[80vw] w-[80vw] max-h-[95vh] overflow-y-auto">
@@ -41,6 +73,26 @@ export function EvaluatorViewDialog({ evaluator, isOpen, onOpenChange }: Evaluat
             <Label className="text-sm font-medium">Description</Label>
             <div className="bg-muted rounded-md p-3">
               <span className="text-sm">{evaluator.description || 'No description'}</span>
+            </div>
+          </div>
+
+          {/* Agent Scope */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Agent Scope</Label>
+            <div className="bg-muted rounded-md p-3">
+              {loadingScope ? (
+                <span className="text-sm text-muted-foreground">Loading...</span>
+              ) : scopedAgentIds.length === 0 ? (
+                <span className="text-sm text-muted-foreground">All agents (project-wide)</span>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {scopedAgentIds.map((id) => (
+                    <Badge key={id} variant="secondary">
+                      {agentNameMap.get(id) || id}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
