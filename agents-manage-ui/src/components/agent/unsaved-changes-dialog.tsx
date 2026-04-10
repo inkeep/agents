@@ -1,6 +1,6 @@
 import { useRouter } from 'next/navigation';
-import { type FC, useEffect, useRef, useState } from 'react';
-import { type Control, useFormState } from 'react-hook-form';
+import { useEffect, useRef, useState } from 'react';
+import { type Control, type FieldValues, useFormState } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -13,17 +13,16 @@ import {
 
 type PendingNavigation = () => void;
 
-interface UnsavedChangesDialogProps {
+interface UnsavedChangesDialogProps<FV extends FieldValues, TV extends FieldValues> {
   dirty?: boolean;
   onSubmit: () => Promise<void>;
-  control: Control<any>;
+  control: Control<FV, unknown, TV>;
 }
 
-export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({
-  dirty,
-  onSubmit,
-  control,
-}) => {
+export function UnsavedChangesDialog<
+  TFieldValues extends FieldValues,
+  TTransformedValues extends FieldValues,
+>({ dirty, onSubmit, control }: UnsavedChangesDialogProps<TFieldValues, TTransformedValues>) {
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const { isDirty: rhfDirtyState, isSubmitting, isValid } = useFormState({ control });
   const isDirty = dirty || rhfDirtyState;
@@ -161,4 +160,4 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({
       </DialogContent>
     </Dialog>
   );
-};
+}
