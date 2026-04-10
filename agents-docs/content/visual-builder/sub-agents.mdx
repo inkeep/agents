@@ -21,6 +21,35 @@ You can use the Visual Builder to add Sub Agents to an Agent, give Sub Agents to
 
 2. Provide a name, prompt, and description.
 
+## Copying an Agent
+
+Use the menu on an existing agent card and choose **Duplicate**.
+
+1. Open the agent's menu and select **Duplicate**.
+2. Choose the **Target project**. The current project is selected by default.
+3. Change the suggested name and ID.
+4. Click **Copy agent**.
+
+### Copy within the same project
+
+If you keep **Target project** set to the current project, the copied agent stays within that
+project.
+
+The copy keeps the original agent's agent-scoped configuration and continues to reference the same
+project-scoped dependencies. Webhook and scheduled triggers are not copied.
+
+### Copy into another project
+
+If you change **Target project** to a different project, the builder copies the selected agent into
+that project instead. Cross-project copies always read from the source project's main branch.
+
+When you copy an agent across projects:
+
+- Referenced project resources like MCP servers, external agents, functions, skills, data components, and artifact components are recreated in the target project when needed.
+- Webhook and scheduled triggers are skipped.
+- Team-agent relationships are not supported.
+- Credentials are not copied. If a copied MCP server or external agent depends on credentials that are not available in the target project, it is added disconnected and needs to be reconnected after the copy.
+
 ### Agent Prompt
 
 You can configure an Agent-level prompt that gets automatically added to all Sub Agents that make up the Agent. This provides consistent context and behavior guidelines so Sub Agents respond and act as one cohesive unit.
@@ -70,6 +99,7 @@ To connect the tool to the Sub Agent, click the "+" icon at the top of the MCP b
 When you have tasks that get more complex, you'll likely want to create more Sub Agents that are specialized in narrow tasks and have prompts and tools focused on their roles.
 
 To create more Sub Agents:
+
 1. Drag and drop a **Sub Agent** block from the top left toolbar onto the canvas.
 2. Configure the Sub Agent with its own prompt and settings
 3. Connect it to the parent Sub Agent by clicking the connector at the top of the Sub Agent box and dragging it to the main Sub Agent
@@ -77,6 +107,7 @@ To create more Sub Agents:
 When connected, a line will appear showing the relationship between the Sub Agents.
 
 A few notes:
+
 - To delete a Sub Agent, click on the Sub Agent box and then hit the backspace key.
 - An Agent must have at least one Sub Agent. If you delete the default Sub Agent, add a new one before trying the Agent.
 

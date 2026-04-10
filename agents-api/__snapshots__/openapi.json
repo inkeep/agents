@@ -799,14 +799,7 @@
           {
             "properties": {
               "contextConfig": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/ContextConfig"
-                  },
-                  {
-                    "nullable": true
-                  }
-                ]
+                "$ref": "#/components/schemas/ContextConfig"
               },
               "externalAgents": {
                 "additionalProperties": {
@@ -892,6 +885,17 @@
             "type": "object"
           }
         ]
+      },
+      "AgentWithinContextOfProjectSelectResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AgentWithinContextOfProjectSelect"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
       },
       "AgentWithinContextOfProjectSelectWithRelationIds": {
         "allOf": [
@@ -2017,6 +2021,7 @@
         "type": "object"
       },
       "ContextConfig": {
+        "nullable": true,
         "properties": {
           "contextVariables": {
             "anyOf": [
@@ -3473,6 +3478,34 @@
           "diffType",
           "dataChange",
           "schemaChange"
+        ],
+        "type": "object"
+      },
+      "DuplicateAgentRequest": {
+        "properties": {
+          "newAgentId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceId"
+              },
+              {
+                "description": "ID for the duplicated agent"
+              }
+            ]
+          },
+          "newAgentName": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NameSchema"
+              },
+              {
+                "description": "Optional name for the duplicated agent"
+              }
+            ]
+          }
+        },
+        "required": [
+          "newAgentId"
         ],
         "type": "object"
       },
@@ -5685,6 +5718,104 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "ImportAgentRequest": {
+        "properties": {
+          "newAgentId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceId"
+              },
+              {
+                "description": "ID for the imported agent"
+              }
+            ]
+          },
+          "newAgentName": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NameSchema"
+              },
+              {
+                "description": "Optional name for the imported agent"
+              }
+            ]
+          },
+          "sourceAgentId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceId"
+              },
+              {
+                "description": "Agent ID to import from the source project"
+              }
+            ]
+          },
+          "sourceProjectId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResourceId"
+              },
+              {
+                "description": "Project ID to import the agent from"
+              }
+            ]
+          }
+        },
+        "required": [
+          "sourceProjectId",
+          "sourceAgentId",
+          "newAgentId"
+        ],
+        "type": "object"
+      },
+      "ImportAgentResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AgentWithinContextOfProjectSelect"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/ImportAgentWarning"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data",
+          "warnings"
+        ],
+        "type": "object"
+      },
+      "ImportAgentWarning": {
+        "properties": {
+          "code": {
+            "enum": [
+              "credential_missing"
+            ],
+            "type": "string"
+          },
+          "credentialReferenceId": {
+            "$ref": "#/components/schemas/ResourceId"
+          },
+          "resourceId": {
+            "$ref": "#/components/schemas/ResourceId"
+          },
+          "resourceType": {
+            "enum": [
+              "tool",
+              "externalAgent"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "resourceType",
+          "resourceId",
+          "credentialReferenceId"
+        ],
         "type": "object"
       },
       "InternalServerError": {
@@ -15526,6 +15657,131 @@
         }
       }
     },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/import": {
+      "post": {
+        "operationId": "import-agent",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportAgentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportAgentResponse"
+                }
+              }
+            },
+            "description": "Agent imported successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Import conflict"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Import Agent",
+        "tags": [
+          "Agents"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      }
+    },
     "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs": {
       "get": {
         "operationId": "list-context-configs",
@@ -16159,6 +16415,140 @@
         "summary": "Update Context Configuration",
         "tags": [
           "Context Configs"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/duplicate": {
+      "post": {
+        "operationId": "duplicate-agent",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DuplicateAgentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentWithinContextOfProjectSelectResponse"
+                }
+              }
+            },
+            "description": "Agent duplicated successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Agent already exists"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Duplicate Agent",
+        "tags": [
+          "Agents"
         ],
         "x-authz": {
           "description": "Requires project edit permission (project_admin, or org admin/owner)",

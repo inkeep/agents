@@ -28,11 +28,9 @@ const NewAgentDialogContent = ({ tenantId, projectId, onSuccess }: NewAgentDialo
     <DialogContent className="sm:max-w-xl">
       <DialogHeader>
         <DialogTitle>New Agent</DialogTitle>
-        <DialogDescription className="sr-only">Create a new agent.</DialogDescription>
+        <DialogDescription className="sr-only">Create a blank agent.</DialogDescription>
       </DialogHeader>
-      <div className="pt-6">
-        <AgentForm tenantId={tenantId} projectId={projectId} onSuccess={onSuccess} />
-      </div>
+      <AgentForm tenantId={tenantId} projectId={projectId} onSuccess={onSuccess} />
     </DialogContent>
   );
 };
@@ -45,7 +43,7 @@ export function NewAgentDialog({ tenantId, projectId }: NewAgentItemProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
-          <Plus className="size-4" /> New Agent
+          <Plus /> New Agent
         </Button>
       </DialogTrigger>
       <NewAgentDialogContent
