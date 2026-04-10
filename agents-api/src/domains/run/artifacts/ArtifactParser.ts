@@ -264,10 +264,7 @@ export class ArtifactParser {
         ? this.artifactService.getToolResultFull(ref[SENTINEL_KEY.TOOL])
         : this.artifactService.getToolResultRaw(ref[SENTINEL_KEY.TOOL]);
       if (raw !== undefined) {
-        logger.debug(
-          { toolCallId: ref[SENTINEL_KEY.TOOL] },
-          'Resolved ephemeral tool result ref'
-        );
+        logger.debug({ toolCallId: ref[SENTINEL_KEY.TOOL] }, 'Resolved ephemeral tool result ref');
         let data: unknown = raw;
         if (hasSelect) {
           data = applySelector(data, ref[SENTINEL_KEY.SELECT], ref[SENTINEL_KEY.TOOL]);

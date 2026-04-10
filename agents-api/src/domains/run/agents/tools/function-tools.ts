@@ -1,5 +1,5 @@
 import { getFunctionToolsForSubAgent, withRef } from '@inkeep/agents-core';
-import { type ToolSet, jsonSchema, tool } from 'ai';
+import { jsonSchema, type ToolSet, tool } from 'ai';
 import manageDbPool from '../../../../data/db/manageDbPool';
 import { getLogger } from '../../../../logger';
 import {

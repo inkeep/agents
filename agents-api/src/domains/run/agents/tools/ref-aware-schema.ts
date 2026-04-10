@@ -102,9 +102,7 @@ function makeNullable(schemaNode: Record<string, unknown>): Record<string, unkno
   for (const key of ['anyOf', 'oneOf'] as const) {
     if (Array.isArray(schemaNode[key])) {
       const branches = schemaNode[key] as unknown[];
-      const hasNull = branches.some(
-        (b) => isObjectRecord(b) && b.type === 'null'
-      );
+      const hasNull = branches.some((b) => isObjectRecord(b) && b.type === 'null');
       if (hasNull) return schemaNode;
       return { ...schemaNode, [key]: [...branches, { type: 'null' }] };
     }
