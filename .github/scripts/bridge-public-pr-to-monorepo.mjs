@@ -1,40 +1,40 @@
-import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
-const BRIDGE_COMMENT_MARKER = "<!-- monorepo-pr-bridge -->";
+const BRIDGE_COMMENT_MARKER = '<!-- monorepo-pr-bridge -->';
 
 function run(command, args, options = {}) {
   try {
     return execFileSync(command, args, {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
       ...options,
     }).trim();
   } catch (error) {
     const stderr = error.stderr?.toString().trim();
     const stdout = error.stdout?.toString().trim();
-    const details = [stderr, stdout].filter(Boolean).join("\n");
-    throw new Error(details || `${command} ${args.join(" ")} failed`);
+    const details = [stderr, stdout].filter(Boolean).join('\n');
+    throw new Error(details || `${command} ${args.join(' ')} failed`);
   }
 }
 
 async function githubRequest({
   token,
-  method = "GET",
+  method = 'GET',
   path: requestPath,
   body,
-  accept = "application/vnd.github+json",
+  accept = 'application/vnd.github+json',
 }) {
   const response = await fetch(`https://api.github.com${requestPath}`, {
     method,
     headers: {
       Accept: accept,
       Authorization: `Bearer ${token}`,
-      "User-Agent": "inkeep-public-pr-bridge",
-      ...(body ? { "Content-Type": "application/json" } : {}),
+      'User-Agent': 'inkeep-public-pr-bridge',
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
   });
@@ -44,18 +44,18 @@ async function githubRequest({
     throw new Error(`${method} ${requestPath} failed (${response.status}): ${text}`);
   }
 
-  return accept === "application/vnd.github.patch" ? text : (text ? JSON.parse(text) : null);
+  return accept === 'application/vnd.github.patch' ? text : text ? JSON.parse(text) : null;
 }
 
 async function githubGraphql({ token, query, variables }) {
   const result = await githubRequest({
     token,
-    method: "POST",
-    path: "/graphql",
+    method: 'POST',
+    path: '/graphql',
     body: { query, variables },
   });
   if (result?.errors?.length) {
-    throw new Error(`GraphQL error: ${result.errors.map((e) => e.message).join(", ")}`);
+    throw new Error(`GraphQL error: ${result.errors.map((e) => e.message).join(', ')}`);
   }
   return result;
 }
@@ -73,55 +73,55 @@ function getPublicPrBranchName(prefix, prNumber) {
 }
 
 function prefixPatchPaths(patch, prefix) {
-  const normalizedPrefix = prefix.replace(/^\/+|\/+$/g, "");
+  const normalizedPrefix = prefix.replace(/^\/+|\/+$/g, '');
   const prefixedPath = (value) => {
-    if (value === "/dev/null") {
+    if (value === '/dev/null') {
       return value;
     }
 
-    const unquoted = value.replace(/^"(.+)"$/, "$1");
+    const unquoted = value.replace(/^"(.+)"$/, '$1');
 
     // Reject path traversal attempts
-    const segments = unquoted.split("/");
-    if (segments.some((s) => s === ".." || s === ".")) {
+    const segments = unquoted.split('/');
+    if (segments.some((s) => s === '..' || s === '.')) {
       throw new Error(`Rejecting patch with path traversal: ${unquoted}`);
     }
 
-    const nextValue = `${normalizedPrefix}/${unquoted}`.replace(/\/+/g, "/");
-    return value.startsWith("\"") ? `"${nextValue}"` : nextValue;
+    const nextValue = `${normalizedPrefix}/${unquoted}`.replace(/\/+/g, '/');
+    return value.startsWith('"') ? `"${nextValue}"` : nextValue;
   };
 
   return patch
-    .split("\n")
+    .split('\n')
     .map((line) => {
-      if (line.startsWith("diff --git a/")) {
+      if (line.startsWith('diff --git a/')) {
         const match = line.match(/^diff --git a\/(.+?) b\/(.+)$/);
         if (!match) {
           return line;
         }
         return `diff --git a/${prefixedPath(match[1])} b/${prefixedPath(match[2])}`;
       }
-      if (line.startsWith("--- a/")) {
+      if (line.startsWith('--- a/')) {
         return `--- a/${prefixedPath(line.slice(6))}`;
       }
-      if (line.startsWith("+++ b/")) {
+      if (line.startsWith('+++ b/')) {
         return `+++ b/${prefixedPath(line.slice(6))}`;
       }
-      if (line.startsWith("rename from ")) {
-        return `rename from ${prefixedPath(line.slice("rename from ".length))}`;
+      if (line.startsWith('rename from ')) {
+        return `rename from ${prefixedPath(line.slice('rename from '.length))}`;
       }
-      if (line.startsWith("rename to ")) {
-        return `rename to ${prefixedPath(line.slice("rename to ".length))}`;
+      if (line.startsWith('rename to ')) {
+        return `rename to ${prefixedPath(line.slice('rename to '.length))}`;
       }
-      if (line.startsWith("copy from ")) {
-        return `copy from ${prefixedPath(line.slice("copy from ".length))}`;
+      if (line.startsWith('copy from ')) {
+        return `copy from ${prefixedPath(line.slice('copy from '.length))}`;
       }
-      if (line.startsWith("copy to ")) {
-        return `copy to ${prefixedPath(line.slice("copy to ".length))}`;
+      if (line.startsWith('copy to ')) {
+        return `copy to ${prefixedPath(line.slice('copy to '.length))}`;
       }
       return line;
     })
-    .join("\n");
+    .join('\n');
 }
 
 function internalPullRequestTitle(publicPr) {
@@ -130,21 +130,21 @@ function internalPullRequestTitle(publicPr) {
 
 function buildBridgeMetadata(publicPr, mirrorPath) {
   return [
-    "<!-- public-pr-sync",
+    '<!-- public-pr-sync',
     `public_repo=${publicPr.base.repo.full_name}`,
     `public_pr_number=${publicPr.number}`,
     `public_pr_url=${publicPr.html_url}`,
     `public_author_login=${publicPr.user.login}`,
     `public_author_id=${publicPr.user.id}`,
     `mirror_path=${mirrorPath}`,
-    "-->",
-  ].join("\n");
+    '-->',
+  ].join('\n');
 }
 
 function buildInternalPrBody({ publicPr, branchName, mirrorPath }) {
   const originalBody = publicPr.body?.trim()
     ? publicPr.body.trim()
-    : "_No public PR body was provided._";
+    : '_No public PR body was provided._';
 
   return `## Summary
 Mirror public PR [#${publicPr.number}](${publicPr.html_url}) from \`${publicPr.base.repo.full_name}\` into \`inkeep/agents-private\` for canonical review and merge.
@@ -172,7 +172,7 @@ ${buildBridgeMetadata(publicPr, mirrorPath)}`;
 }
 
 function buildPublicComment({ publicPr, internalPr, status, details }) {
-  if (status === "synced") {
+  if (status === 'synced') {
     return `${BRIDGE_COMMENT_MARKER}
 A matching internal PR is ready in [inkeep/agents-private#${internalPr.number}](${internalPr.html_url}) for canonical review and merge.
 
@@ -183,21 +183,21 @@ A matching internal PR is ready in [inkeep/agents-private#${internalPr.number}](
 This comment will be updated as the bridge state changes.`;
   }
 
-  if (status === "no-op") {
+  if (status === 'no-op') {
     return `${BRIDGE_COMMENT_MARKER}
 I checked this public PR, but there was no new diff to port into \`agents-private\`.
 
 ${details}`;
   }
 
-  if (status === "closed") {
+  if (status === 'closed') {
     return `${BRIDGE_COMMENT_MARKER}
 The public PR was closed without merge, so the matching internal PR was closed as well.
 
 ${details}`;
   }
 
-  if (status === "merged-upstream") {
+  if (status === 'merged-upstream') {
     return `${BRIDGE_COMMENT_MARKER}
 This public PR was merged directly in the public repo. The matching monorepo PR was left open for manual follow-up because \`agents-private\` remains the source of truth.
 
@@ -228,7 +228,7 @@ async function upsertIssueComment({ token, repo, issueNumber, body }) {
   if (existing) {
     await githubRequest({
       token,
-      method: "PATCH",
+      method: 'PATCH',
       path: `/repos/${repo}/issues/comments/${existing.id}`,
       body: { body },
     });
@@ -237,7 +237,7 @@ async function upsertIssueComment({ token, repo, issueNumber, body }) {
 
   const created = await githubRequest({
     token,
-    method: "POST",
+    method: 'POST',
     path: `/repos/${repo}/issues/${issueNumber}/comments`,
     body: { body },
   });
@@ -269,17 +269,17 @@ async function ensureDraftState({ token, repo, pullRequest, shouldBeDraft }) {
 }
 
 async function syncPublicPr() {
-  const publicToken = requireEnv("PUBLIC_TOKEN");
-  const internalToken = requireEnv("INTERNAL_TOKEN");
-  const publicRepo = requireEnv("PUBLIC_REPO");
-  const internalRepo = requireEnv("INTERNAL_REPO");
-  const internalRepoDir = requireEnv("INTERNAL_REPO_DIR");
-  const mirrorPath = requireEnv("MONOREPO_PATH_PREFIX");
-  const internalBaseRef = requireEnv("INTERNAL_BASE_REF");
-  const internalBranchPrefix = requireEnv("INTERNAL_BRANCH_PREFIX");
-  const publicPrAction = process.env.PUBLIC_PR_ACTION ?? "opened";
-  const publicPrNumber = Number.parseInt(requireEnv("PUBLIC_PR_NUMBER"), 10);
-  const internalOwner = internalRepo.split("/")[0];
+  const publicToken = requireEnv('PUBLIC_TOKEN');
+  const internalToken = requireEnv('INTERNAL_TOKEN');
+  const publicRepo = requireEnv('PUBLIC_REPO');
+  const internalRepo = requireEnv('INTERNAL_REPO');
+  const internalRepoDir = requireEnv('INTERNAL_REPO_DIR');
+  const mirrorPath = requireEnv('MONOREPO_PATH_PREFIX');
+  const internalBaseRef = requireEnv('INTERNAL_BASE_REF');
+  const internalBranchPrefix = requireEnv('INTERNAL_BRANCH_PREFIX');
+  const publicPrAction = process.env.PUBLIC_PR_ACTION ?? 'opened';
+  const publicPrNumber = Number.parseInt(requireEnv('PUBLIC_PR_NUMBER'), 10);
+  const internalOwner = internalRepo.split('/')[0];
   const branchName = getPublicPrBranchName(internalBranchPrefix, publicPrNumber);
 
   const publicPr = await githubRequest({
@@ -296,16 +296,16 @@ async function syncPublicPr() {
 
   const metadataOnlyAction =
     internalPr &&
-    (publicPrAction === "edited" ||
-      publicPrAction === "ready_for_review" ||
-      publicPrAction === "converted_to_draft");
+    (publicPrAction === 'edited' ||
+      publicPrAction === 'ready_for_review' ||
+      publicPrAction === 'converted_to_draft');
 
   let hasStagedChanges = false;
   if (!metadataOnlyAction) {
     const patch = await githubRequest({
       token: publicToken,
       path: `/repos/${publicRepo}/pulls/${publicPrNumber}`,
-      accept: "application/vnd.github.patch",
+      accept: 'application/vnd.github.patch',
     });
 
     if (!patch.trim()) {
@@ -315,23 +315,30 @@ async function syncPublicPr() {
         issueNumber: publicPrNumber,
         body: buildPublicComment({
           publicPr,
-          status: "no-op",
-          details: "GitHub returned an empty patch, so there was nothing to port.",
+          status: 'no-op',
+          details: 'GitHub returned an empty patch, so there was nothing to port.',
         }),
       });
       return;
     }
 
-    const tempDir = mkdtempSync(path.join(tmpdir(), "public-pr-bridge-"));
-    const patchFile = path.join(tempDir, "public-pr.patch");
-    writeFileSync(patchFile, prefixPatchPaths(patch, mirrorPath), "utf8");
+    const tempDir = mkdtempSync(path.join(tmpdir(), 'public-pr-bridge-'));
+    const patchFile = path.join(tempDir, 'public-pr.patch');
+    writeFileSync(patchFile, prefixPatchPaths(patch, mirrorPath), 'utf8');
 
     try {
-      run("git", ["-C", internalRepoDir, "fetch", "origin", internalBaseRef, "--prune"]);
-      run("git", ["-C", internalRepoDir, "checkout", "-B", branchName, `origin/${internalBaseRef}`]);
+      run('git', ['-C', internalRepoDir, 'fetch', 'origin', internalBaseRef, '--prune']);
+      run('git', [
+        '-C',
+        internalRepoDir,
+        'checkout',
+        '-B',
+        branchName,
+        `origin/${internalBaseRef}`,
+      ]);
 
       try {
-        run("git", ["-C", internalRepoDir, "apply", "--index", "--3way", patchFile]);
+        run('git', ['-C', internalRepoDir, 'apply', '--index', '--3way', patchFile]);
       } catch (error) {
         await upsertIssueComment({
           token: publicToken,
@@ -339,7 +346,7 @@ async function syncPublicPr() {
           issueNumber: publicPrNumber,
           body: buildPublicComment({
             publicPr,
-            status: "failed",
+            status: 'failed',
             details: `Patch application failed. The diff could not be applied cleanly. Please rebase your PR on the latest main.`,
           }),
         });
@@ -348,7 +355,7 @@ async function syncPublicPr() {
 
       hasStagedChanges = (() => {
         try {
-          run("git", ["-C", internalRepoDir, "diff", "--cached", "--quiet"]);
+          run('git', ['-C', internalRepoDir, 'diff', '--cached', '--quiet']);
           return false;
         } catch {
           return true;
@@ -356,27 +363,27 @@ async function syncPublicPr() {
       })();
 
       if (hasStagedChanges) {
-        run("git", ["-C", internalRepoDir, "config", "user.name", "Inkeep Public PR Bridge"]);
-        run("git", ["-C", internalRepoDir, "config", "user.email", "public-pr-bridge@inkeep.com"]);
+        run('git', ['-C', internalRepoDir, 'config', 'user.name', 'Inkeep Public PR Bridge']);
+        run('git', ['-C', internalRepoDir, 'config', 'user.email', 'public-pr-bridge@inkeep.com']);
 
         const authorEmail = `${publicPr.user.id}+${publicPr.user.login}@users.noreply.github.com`;
-        run("git", [
-          "-C",
+        run('git', [
+          '-C',
           internalRepoDir,
-          "commit",
-          "--author",
+          'commit',
+          '--author',
           `${publicPr.user.login} <${authorEmail}>`,
-          "-m",
+          '-m',
           `chore(sync): mirror ${publicRepo}#${publicPr.number}`,
         ]);
 
-        run("git", [
-          "-C",
+        run('git', [
+          '-C',
           internalRepoDir,
-          "push",
-          "--force-with-lease",
-          "--set-upstream",
-          "origin",
+          'push',
+          '--force-with-lease',
+          '--set-upstream',
+          'origin',
           branchName,
         ]);
       }
@@ -385,57 +392,58 @@ async function syncPublicPr() {
     }
 
     internalPr = await findOpenInternalPr({
-        token: internalToken,
-        repo: internalRepo,
-        owner: internalOwner,
-        branchName,
-      });
+      token: internalToken,
+      repo: internalRepo,
+      owner: internalOwner,
+      branchName,
+    });
 
-      if (!internalPr && !hasStagedChanges) {
-        await upsertIssueComment({
-          token: publicToken,
-          repo: publicRepo,
-          issueNumber: publicPrNumber,
-          body: buildPublicComment({
-            publicPr,
-            status: "no-op",
-            details: "The diff already appears to be present on the internal base branch, so no new monorepo PR was opened.",
-          }),
-        });
-        return;
-      }
+    if (!internalPr && !hasStagedChanges) {
+      await upsertIssueComment({
+        token: publicToken,
+        repo: publicRepo,
+        issueNumber: publicPrNumber,
+        body: buildPublicComment({
+          publicPr,
+          status: 'no-op',
+          details:
+            'The diff already appears to be present on the internal base branch, so no new monorepo PR was opened.',
+        }),
+      });
+      return;
     }
+  }
 
-    const title = internalPullRequestTitle(publicPr);
-    const body = buildInternalPrBody({ publicPr, branchName, mirrorPath });
+  const title = internalPullRequestTitle(publicPr);
+  const body = buildInternalPrBody({ publicPr, branchName, mirrorPath });
 
-    if (internalPr) {
-      internalPr = await githubRequest({
-        token: internalToken,
-        method: "PATCH",
-        path: `/repos/${internalRepo}/pulls/${internalPr.number}`,
-        body: { title, body },
-      });
-      await ensureDraftState({
-        token: internalToken,
-        repo: internalRepo,
-        pullRequest: internalPr,
-        shouldBeDraft: publicPr.draft,
-      });
-    } else {
-      internalPr = await githubRequest({
-        token: internalToken,
-        method: "POST",
-        path: `/repos/${internalRepo}/pulls`,
-        body: {
-          title,
-          head: branchName,
-          base: internalBaseRef,
-          body,
-          draft: publicPr.draft,
-        },
-      });
-    }
+  if (internalPr) {
+    internalPr = await githubRequest({
+      token: internalToken,
+      method: 'PATCH',
+      path: `/repos/${internalRepo}/pulls/${internalPr.number}`,
+      body: { title, body },
+    });
+    await ensureDraftState({
+      token: internalToken,
+      repo: internalRepo,
+      pullRequest: internalPr,
+      shouldBeDraft: publicPr.draft,
+    });
+  } else {
+    internalPr = await githubRequest({
+      token: internalToken,
+      method: 'POST',
+      path: `/repos/${internalRepo}/pulls`,
+      body: {
+        title,
+        head: branchName,
+        base: internalBaseRef,
+        body,
+        draft: publicPr.draft,
+      },
+    });
+  }
 
   await upsertIssueComment({
     token: publicToken,
@@ -444,19 +452,19 @@ async function syncPublicPr() {
     body: buildPublicComment({
       publicPr,
       internalPr,
-      status: "synced",
+      status: 'synced',
     }),
   });
 }
 
 async function closeLinkedInternalPr() {
-  const publicToken = requireEnv("PUBLIC_TOKEN");
-  const internalToken = requireEnv("INTERNAL_TOKEN");
-  const publicRepo = requireEnv("PUBLIC_REPO");
-  const internalRepo = requireEnv("INTERNAL_REPO");
-  const internalBranchPrefix = requireEnv("INTERNAL_BRANCH_PREFIX");
-  const publicPrNumber = Number.parseInt(requireEnv("PUBLIC_PR_NUMBER"), 10);
-  const internalOwner = internalRepo.split("/")[0];
+  const publicToken = requireEnv('PUBLIC_TOKEN');
+  const internalToken = requireEnv('INTERNAL_TOKEN');
+  const publicRepo = requireEnv('PUBLIC_REPO');
+  const internalRepo = requireEnv('INTERNAL_REPO');
+  const internalBranchPrefix = requireEnv('INTERNAL_BRANCH_PREFIX');
+  const publicPrNumber = Number.parseInt(requireEnv('PUBLIC_PR_NUMBER'), 10);
+  const internalOwner = internalRepo.split('/')[0];
   const branchName = getPublicPrBranchName(internalBranchPrefix, publicPrNumber);
 
   const publicPr = await githubRequest({
@@ -483,7 +491,7 @@ async function closeLinkedInternalPr() {
       body: buildPublicComment({
         publicPr,
         internalPr,
-        status: "merged-upstream",
+        status: 'merged-upstream',
         details: `Matching internal PR: [#${internalPr.number}](${internalPr.html_url})`,
       }),
     });
@@ -492,7 +500,7 @@ async function closeLinkedInternalPr() {
 
   await githubRequest({
     token: internalToken,
-    method: "POST",
+    method: 'POST',
     path: `/repos/${internalRepo}/issues/${internalPr.number}/comments`,
     body: {
       body: `Closing because the linked public PR [#${publicPr.number}](${publicPr.html_url}) was closed without merge.`,
@@ -501,16 +509,16 @@ async function closeLinkedInternalPr() {
 
   await githubRequest({
     token: internalToken,
-    method: "PATCH",
+    method: 'PATCH',
     path: `/repos/${internalRepo}/pulls/${internalPr.number}`,
-    body: { state: "closed" },
+    body: { state: 'closed' },
   });
 
   // Clean up the stale branch on agents-private
   try {
     await githubRequest({
       token: internalToken,
-      method: "DELETE",
+      method: 'DELETE',
       path: `/repos/${internalRepo}/git/refs/heads/${branchName}`,
     });
   } catch {
@@ -523,7 +531,7 @@ async function closeLinkedInternalPr() {
     issueNumber: publicPrNumber,
     body: buildPublicComment({
       publicPr,
-      status: "closed",
+      status: 'closed',
       details: `Closed matching internal PR [#${internalPr.number}](${internalPr.html_url}).`,
     }),
   });
@@ -531,12 +539,12 @@ async function closeLinkedInternalPr() {
 
 async function main() {
   const mode = process.argv[2];
-  if (mode === "sync") {
+  if (mode === 'sync') {
     await syncPublicPr();
     return;
   }
 
-  if (mode === "close") {
+  if (mode === 'close') {
     await closeLinkedInternalPr();
     return;
   }
