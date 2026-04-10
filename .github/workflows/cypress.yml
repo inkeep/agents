@@ -37,7 +37,7 @@ jobs:
 
     services:
       doltgres:
-        image: dolthub/doltgresql:0.55.4
+        image: dolthub/doltgresql:0.56.1
         env:
           DOLTGRES_USER: appuser
           DOLTGRES_PASSWORD: password
