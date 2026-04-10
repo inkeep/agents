@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-ui
 
+## 0.67.4
+
+### Patch Changes
+
+- b2c15cd: Fix DynamicComponentRenderer not rendering in production by allowing unsafe-eval in CSP
+  - @inkeep/agents-core@0.67.4
+
 ## 0.67.3
 
 ### Patch Changes
