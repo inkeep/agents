@@ -376,22 +376,12 @@ export class SSEStreamHelper implements StreamHelper {
   }
 
   /**
-   * Write the final [DONE] message
-   */
-  async writeDone(): Promise<void> {
-    await this.stream.writeSSE({
-      data: '[DONE]',
-    });
-  }
-
-  /**
-   * Complete the stream with finish reason and done message
+   * Complete the stream with finish reason
    */
   async complete(finishReason = 'stop'): Promise<void> {
     await this.flushQueuedOperations();
 
     await this.writeCompletion(finishReason);
-    await this.writeDone();
   }
 }
 

@@ -1,0 +1,135 @@
+import { SKILL_ENTRY_FILE_PATH } from '@inkeep/agents-core/client-exports';
+import type { SkillDetail } from '@/lib/types/skills';
+
+export { SKILL_ENTRY_FILE_PATH };
+
+export function isSkillEntryFile(filePath: string): boolean {
+  return filePath === SKILL_ENTRY_FILE_PATH;
+}
+
+export function getSkillFileRemovalLabel(filePath: string): 'Delete skill' | 'Remove file' {
+  return isSkillEntryFile(filePath) ? 'Delete skill' : 'Remove file';
+}
+
+export interface SkillFileRecord {
+  skillId: string;
+  fileId: string;
+  filePath: string;
+  content: string;
+  treePath: string;
+  routePath: string;
+  isEntryFile: boolean;
+}
+
+function getSkillFileTreePath(skillId: string, filePath: string): string {
+  return `${skillId}/${filePath}`;
+}
+
+function getSkillFileRoutePath(skillId: string, filePath: string): string {
+  return isSkillEntryFile(filePath) ? skillId : getSkillFileTreePath(skillId, filePath);
+}
+
+function getSkillFolderRoutePath(skillId: string, directoryPath?: string): string {
+  return [skillId, directoryPath].filter(Boolean).join('/');
+}
+
+function encodeSkillFileRoutePath(routePath: string): string {
+  return routePath
+    .split('/')
+    .filter(Boolean)
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+}
+
+export function buildSkillFileViewHref(
+  tenantId: string,
+  projectId: string,
+  skillId: string,
+  filePath: string
+): string {
+  return `/${tenantId}/projects/${projectId}/skills/files/${encodeSkillFileRoutePath(
+    getSkillFileRoutePath(skillId, filePath)
+  )}`;
+}
+
+export function buildNewSkillFileHref(
+  tenantId: string,
+  projectId: string,
+  skillId: string,
+  directoryPath?: string
+): string {
+  const suffix = directoryPath ? `/${encodeSkillFileRoutePath(directoryPath)}` : '';
+  return `/${tenantId}/projects/${projectId}/skills/new/${encodeURIComponent(skillId)}${suffix}`;
+}
+
+export function buildSkillFolderViewHref(
+  tenantId: string,
+  projectId: string,
+  skillId: string,
+  directoryPath?: string
+): string {
+  return `/${tenantId}/projects/${projectId}/skills/folders/${encodeSkillFileRoutePath(
+    getSkillFolderRoutePath(skillId, directoryPath)
+  )}`;
+}
+
+export function getSkillFileParentDirectory(filePath: string): string {
+  const segments = filePath.split('/').filter(Boolean);
+  return segments.slice(0, -1).join('/');
+}
+
+export function getSkillFileEditorUri(filePath: string): `${string}.${'template' | 'md'}` {
+  const stem = filePath.replace(/[^a-zA-Z0-9.-]+/g, '-').replace(/\.[^.]+$/, '') || 'skill-file';
+  return filePath.endsWith('.md') ? `${stem}.md` : `${stem}.template`;
+}
+
+export function flattenSkillFiles(skills: SkillDetail[]): SkillFileRecord[] {
+  return skills.flatMap((skill) =>
+    (skill.files ?? []).map((file) => ({
+      skillId: skill.id,
+      skillName: skill.name,
+      fileId: file.id,
+      filePath: file.filePath,
+      content: file.content,
+      treePath: getSkillFileTreePath(skill.id, file.filePath),
+      routePath: getSkillFileRoutePath(skill.id, file.filePath),
+      isEntryFile: isSkillEntryFile(file.filePath),
+    }))
+  );
+}
+
+export function buildSkillFileRouteAliases(
+  files: readonly SkillFileRecord[]
+): Record<string, string> {
+  return files.reduce<Record<string, string>>((acc, file) => {
+    acc[file.fileId] = file.routePath;
+    return acc;
+  }, {});
+}
+
+export function resolveSkillFileFromRoute(
+  files: readonly SkillFileRecord[],
+  routeToken?: string
+): SkillFileRecord | null {
+  if (!routeToken) {
+    return null;
+  }
+
+  const skillEntry = files.find(
+    (file) => file.skillId === routeToken && isSkillEntryFile(file.filePath)
+  );
+  if (skillEntry) {
+    return skillEntry;
+  }
+
+  const fileById = files.find((file) => file.fileId === routeToken);
+  if (fileById) {
+    return fileById;
+  }
+
+  return (
+    files.find((file) => file.routePath === routeToken) ??
+    files.find((file) => file.treePath === routeToken) ??
+    null
+  );
+}

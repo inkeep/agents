@@ -4,6 +4,7 @@ import {
   createApiError,
   createEvaluationRun,
   generateId,
+  getAgentIdsForEvaluators,
   getConversation,
   getEvaluatorsByIds,
   type ResolvedRef,
@@ -175,7 +176,13 @@ app.openapi(
         ) as any;
       }
 
-      // Create evaluation run
+      const agentIdsMap = await withRef(manageDbPool, resolvedRef, (db) =>
+        getAgentIdsForEvaluators(db)({
+          scopes: { tenantId, projectId },
+          evaluatorIds,
+        })
+      );
+
       const evaluationRunId = generateId();
       await createEvaluationRun(runDbClient)({
         id: evaluationRunId,
@@ -184,23 +191,46 @@ app.openapi(
         ref: resolvedRef,
       });
 
-      // Trigger evaluations via Workflow
-      await Promise.all(
-        conversationIds.map((conversationId) =>
+      const triggeredConversationIds: string[] = [];
+      const workflowPromises: Promise<unknown>[] = [];
+
+      for (const [i, conversation] of conversations.entries()) {
+        if (!conversation) continue;
+        const conversationId = conversationIds[i];
+        const { agentId } = conversation;
+
+        const scopedEvaluatorIds = agentId
+          ? evaluatorIds.filter((evalId) => {
+              const scopedAgents = agentIdsMap.get(evalId);
+              return !scopedAgents?.length || scopedAgents.includes(agentId);
+            })
+          : evaluatorIds;
+
+        if (!scopedEvaluatorIds.length) {
+          logger.info(
+            { conversationId },
+            'All evaluators filtered out by agent scoping for conversation'
+          );
+          continue;
+        }
+
+        triggeredConversationIds.push(conversationId);
+        workflowPromises.push(
           start(evaluateConversationWorkflow, [
             {
               tenantId,
               projectId,
               conversationId,
-              evaluatorIds,
+              evaluatorIds: scopedEvaluatorIds,
               evaluationRunId,
             },
           ])
-        )
-      );
+        );
+      }
+      await Promise.all(workflowPromises);
 
       logger.info(
-        { tenantId, projectId, conversationIds, evaluatorIds, evaluationRunId },
+        { conversationIds: triggeredConversationIds, evaluatorIds, evaluationRunId },
         'Conversation evaluations triggered'
       );
 
@@ -208,16 +238,13 @@ app.openapi(
         {
           message: 'Evaluations triggered successfully',
           evaluationRunId,
-          conversationIds,
+          conversationIds: triggeredConversationIds,
           evaluatorIds,
         },
         202
       ) as any;
     } catch (error) {
-      logger.error(
-        { error, tenantId, projectId, conversationIds },
-        'Failed to trigger conversation evaluations'
-      );
+      logger.error({ error, conversationIds }, 'Failed to trigger conversation evaluations');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -272,7 +299,7 @@ app.openapi(
     const { evaluationJobConfigId, evaluatorIds, jobFilters } = c.req.valid('json');
 
     logger.info(
-      { tenantId, projectId, evaluationJobConfigId, evaluatorCount: evaluatorIds.length },
+      { evaluationJobConfigId, evaluatorCount: evaluatorIds.length },
       'Triggering evaluation job'
     );
 
@@ -288,15 +315,7 @@ app.openapi(
         });
 
       logger.info(
-        {
-          tenantId,
-          projectId,
-          evaluationJobConfigId,
-          evaluationRunId,
-          conversationCount,
-          queued,
-          failed,
-        },
+        { evaluationJobConfigId, evaluationRunId, conversationCount, queued, failed },
         'Evaluation job triggered successfully'
       );
 
@@ -310,10 +329,7 @@ app.openapi(
         202
       );
     } catch (err) {
-      logger.error(
-        { err, tenantId, projectId, evaluationJobConfigId },
-        'Failed to trigger evaluation job'
-      );
+      logger.error({ err, evaluationJobConfigId }, 'Failed to trigger evaluation job');
       return c.json(
         { error: 'Failed to trigger evaluation job', message: (err as Error).message },
         500

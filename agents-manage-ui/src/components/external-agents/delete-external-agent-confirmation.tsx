@@ -28,20 +28,17 @@ export function DeleteExternalAgentConfirmation({
 
   const handleDelete = async () => {
     setIsSubmitting(true);
-    try {
-      const result = await deleteExternalAgentAction(tenantId, projectId, externalAgentId);
-      if (result.success) {
-        setIsOpen(false);
-        toast.success('External agent deleted.');
-        if (redirectOnDelete) {
-          router.push(`/${tenantId}/projects/${projectId}/external-agents`);
-        }
-      } else {
-        toast.error(result.error);
+    const result = await deleteExternalAgentAction(tenantId, projectId, externalAgentId);
+    if (result.success) {
+      setIsOpen(false);
+      toast.success('External agent deleted.');
+      if (redirectOnDelete) {
+        router.push(`/${tenantId}/projects/${projectId}/external-agents`);
       }
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      toast.error(result.error);
     }
+    setIsSubmitting(false);
   };
 
   return (

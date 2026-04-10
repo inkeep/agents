@@ -19,30 +19,26 @@ export function DeleteDatasetConfirmation({
   setIsOpen,
   redirectOnDelete = false,
 }: DeleteDatasetConfirmationProps) {
-  const params = useParams();
-  const router = useRouter();
-  const { tenantId, projectId } = params as {
+  const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
-  };
+  }>();
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleDelete = async () => {
     setIsSubmitting(true);
-    try {
-      const result = await deleteDatasetAction(tenantId, projectId, datasetId);
-      if (result.success) {
-        toast.success('Test suite deleted.');
-        setIsOpen(false);
-        if (redirectOnDelete) {
-          router.push(`/${tenantId}/projects/${projectId}/datasets`);
-        }
-      } else {
-        toast.error(result.error);
+    const result = await deleteDatasetAction(tenantId, projectId, datasetId);
+    if (result.success) {
+      toast.success('Test suite deleted.');
+      setIsOpen(false);
+      if (redirectOnDelete) {
+        router.push(`/${tenantId}/projects/${projectId}/datasets`);
       }
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      toast.error(result.error);
     }
+    setIsSubmitting(false);
   };
 
   return (

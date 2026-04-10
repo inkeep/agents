@@ -10,7 +10,7 @@
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
     "sync:licenses": "node scripts/sync-licenses.mjs",
-    "prebuild": "node -e \"process.exit(process.env.INKEEP_PRIVATE_MONOREPO === '1' ? 0 : 1)\" || (pnpm install --frozen-lockfile && pnpm sync:licenses)",
+    "prebuild": "pnpm install --frozen-lockfile && pnpm sync:licenses",
     "build": "turbo build --filter='!agents-cookbook-templates'",
     "knip": "turbo knip",
     "dev": "turbo dev --filter=@inkeep/agents-api --filter=@inkeep/agents-manage-ui --filter=@inkeep/agents-docs --filter=@inkeep/agents-core --filter=@inkeep/agents-sdk",
@@ -32,8 +32,8 @@
     "format:check": "biome check --linter-enabled=false",
     "typecheck": "turbo typecheck --filter='!agents-cookbook-templates'",
     "typecheck:watch": "turbo typecheck:watch",
-    "precheck": "node -e \"process.exit(process.env.INKEEP_PRIVATE_MONOREPO === '1' ? 0 : 1)\" || pnpm install --frozen-lockfile",
-    "check": "turbo check --filter='!agents-cookbook-templates' && pnpm format:check && pnpm check:env-descriptions && pnpm check:route-handler-patterns && pnpm check:dal-boundary && pnpm knip",
+    "precheck": "pnpm install --frozen-lockfile",
+    "check": "turbo check --filter='!agents-cookbook-templates' && pnpm format:check && pnpm check:env-descriptions && pnpm check:route-handler-patterns && pnpm check:dal-boundary && pnpm check:changeset-packages && pnpm knip",
     "check:husky": "turbo check:husky --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'",
     "check:prepush": "turbo check:prepush --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'",
     "check:fix": "biome check --write",
@@ -47,6 +47,7 @@
     "version": "changeset version",
     "release": "changeset publish",
     "release-dev": "changeset version --snapshot dev && changeset publish --tag dev",
+    "generate:keys": "bash scripts/generate-jwt-keys.sh",
     "db:generate": "pnpm --filter @inkeep/agents-core db:generate",
     "db:migrate": "pnpm --filter @inkeep/agents-core db:migrate",
     "db:drop": "pnpm --filter @inkeep/agents-core db:drop",
@@ -80,7 +81,7 @@
     "spicedb:sync:apply": "bash scripts/sync-spicedb.sh --apply",
     "db:auth:init": "pnpm --filter @inkeep/agents-core db:auth:init",
     "check:migration-lineage": "node scripts/check-migration-lineage.mjs",
-    "check:migration-regeneration": "node scripts/check-migration-regeneration.mjs",
+    "check:changeset-packages": "node scripts/check-changeset-packages.mjs",
     "check:dal-boundary": "bash scripts/lint-data-access-boundary.sh",
     "check:env-descriptions": "node scripts/check-env-descriptions.mjs",
     "check:route-handler-patterns": "node scripts/check-route-handler-patterns.mjs",
@@ -127,5 +128,20 @@
       "bash -c 'cp scripts/generate-jwt-keys.sh create-agents-template/scripts/generate-jwt-keys.sh && git add create-agents-template/scripts/generate-jwt-keys.sh'"
     ]
   },
-  "packageManager": "pnpm@10.10.0"
+  "pnpm": {
+    "overrides": {
+      "@hono/node-server": ">=1.19.10",
+      "@modelcontextprotocol/sdk": ">=1.26.0",
+      "@workflow/core": ">=4.2.0-beta.64",
+      "dompurify": ">=3.3.2",
+      "fast-xml-parser": ">=5.3.8",
+      "serialize-javascript": ">=7.0.3",
+      "svgo": ">=3.3.3",
+      "minimatch": ">=5.1.8",
+      "lodash": ">=4.17.23",
+      "lodash-es": ">=4.17.23",
+      "express-rate-limit": ">=8.2.2"
+    }
+  },
+  "packageManager": "pnpm@10.33.0"
 }

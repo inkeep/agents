@@ -21,8 +21,8 @@ export function getPrimaryModel(config: AgentConfig): ModelSettings {
     );
   }
   return {
+    ...config.models.base,
     model: validateModel(config.models.base.model, 'Base'),
-    providerOptions: config.models.base.providerOptions,
   };
 }
 
@@ -38,8 +38,8 @@ export function getStructuredOutputModel(config: AgentConfig): ModelSettings {
 
   if (structuredConfig) {
     return {
+      ...structuredConfig,
       model: validateModel(structuredConfig.model, 'Structured output'),
-      providerOptions: structuredConfig.providerOptions,
     };
   }
 
@@ -49,8 +49,8 @@ export function getStructuredOutputModel(config: AgentConfig): ModelSettings {
     );
   }
   return {
+    ...baseConfig,
     model: validateModel(baseConfig.model, 'Base (fallback for structured output)'),
-    providerOptions: baseConfig.providerOptions,
   };
 }
 
@@ -66,8 +66,8 @@ export function getSummarizerModel(config: AgentConfig): ModelSettings {
 
   if (summarizerConfig) {
     return {
+      ...summarizerConfig,
       model: validateModel(summarizerConfig.model, 'Summarizer'),
-      providerOptions: summarizerConfig.providerOptions,
     };
   }
 
@@ -77,8 +77,8 @@ export function getSummarizerModel(config: AgentConfig): ModelSettings {
     );
   }
   return {
+    ...baseConfig,
     model: validateModel(baseConfig.model, 'Base (fallback for summarizer)'),
-    providerOptions: baseConfig.providerOptions,
   };
 }
 

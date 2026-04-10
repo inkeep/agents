@@ -23,7 +23,9 @@ import { ManagementApiClient } from '../../../api';
 import { performBackgroundVersionCheck } from '../../../utils/background-version-check';
 import { initializeCommand } from '../../../utils/cli-pipeline';
 import { loadProject } from '../../../utils/project-loader';
-import { introspectGenerate } from '../introspect-generator';
+import { readProjectState, writeProjectState } from '../../../utils/state';
+import { withLocalStateBranch } from '../../../utils/temp-branch';
+import { introspectGenerate, type ProjectPaths } from '../introspect-generator';
 
 export interface PullV3Options {
   project?: string;
@@ -34,10 +36,10 @@ export interface PullV3Options {
   debug?: boolean;
   verbose?: boolean;
   force?: boolean;
-  introspect?: boolean;
   all?: boolean;
   tag?: string;
   quiet?: boolean;
+  conflictStrategy?: 'ours' | 'theirs';
   /** Internal: used for batch operations to return results instead of calling process.exit() */
   _batchMode?: boolean;
 }
@@ -55,20 +57,6 @@ interface BatchPullResult {
   targetDir: string;
   success: boolean;
   error?: string;
-}
-
-interface ProjectPaths {
-  projectRoot: string;
-  agentsDir: string;
-  toolsDir: string;
-  dataComponentsDir: string;
-  artifactComponentsDir: string;
-  statusComponentsDir: string;
-  environmentsDir: string;
-  credentialsDir: string;
-  contextConfigsDir: string;
-  externalAgentsDir: string;
-  skillsDir: string;
 }
 
 /**
@@ -161,15 +149,7 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
   }
 
   console.log(styleText('blue', '\nInkeep Pull:'));
-  if (options.introspect) {
-    console.log(
-      styleText('gray', '  Introspect mode • Complete regeneration • No comparison needed')
-    );
-  } else {
-    console.log(styleText('gray', '  Smart comparison • Detect all changes • Targeted updates'));
-  }
-
-  const s = p.spinner();
+  console.log(styleText('gray', '  Smart comparison • Detect all changes • Targeted updates'));
 
   try {
     // Step 1: Load configuration (same as push command)
@@ -182,9 +162,6 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
       logConfig: true,
       quiet: options.quiet,
     });
-
-    // Step 2: Determine project directory and ID
-    s.start('Detecting project...');
     let projectDir: string;
     let projectId: string;
     let localProjectForId: any = null;
@@ -196,7 +173,6 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
       // We're in a project directory
       projectDir = currentDir;
 
-      s.start('Loading local project...');
       try {
         localProjectForId = await loadProject(projectDir);
         const localProjectId = localProjectForId.getId();
@@ -204,7 +180,6 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
         if (options.project) {
           // Validate that --project matches local project ID
           if (localProjectId !== options.project) {
-            s.stop('Project ID mismatch');
             console.error(
               styleText(
                 'red',
@@ -225,9 +200,8 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
         }
 
         projectId = localProjectId;
-        s.stop(`Using local project: ${projectId}`);
+        console.log(styleText('green', `◆ Using local project: ${projectId}`));
       } catch (error) {
-        s.stop('Failed to load local project');
         throw new Error(
           `Could not load local project: ${error instanceof Error ? error.message : String(error)}`
         );
@@ -235,7 +209,6 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     } else {
       // No index.ts in current directory
       if (!options.project) {
-        s.stop('No index.ts found in current directory');
         console.error(
           styleText(
             'yellow',
@@ -255,13 +228,11 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
       if (hasIndexInPath) {
         // --project is a valid directory path
         projectDir = projectPath;
-        s.start('Loading project from specified path...');
         try {
           localProjectForId = await loadProject(projectDir);
           projectId = localProjectForId.getId();
-          s.stop(`Using project from path: ${projectId}`);
+          console.log(styleText('green', `◆ Using project from path: ${projectId}`));
         } catch (error) {
-          s.stop('Failed to load project from path');
           throw new Error(
             `Could not load project from ${projectPath}: ${error instanceof Error ? error.message : String(error)}`
           );
@@ -270,12 +241,16 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
         // Treat --project as project ID, create subdirectory
         projectId = options.project;
         projectDir = join(currentDir, projectId);
-        s.stop(`Creating new project directory: ${projectDir}`);
+        console.log(styleText('green', `◆ Creating new project directory: ${projectDir}`));
       }
     }
 
-    // Step 4: Fetch project data from API
-    s.start(`Fetching project: ${projectId}`);
+    const existingState = readProjectState(projectId);
+    const lastPulledHash = existingState?.lastPulledHash;
+
+    if (options.debug && lastPulledHash) {
+      console.log(styleText('gray', `   Last pulled hash: ${lastPulledHash}`));
+    }
 
     const apiClient = await ManagementApiClient.create(
       config.agentsApiUrl,
@@ -286,7 +261,84 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
       config.agentsApiKey
     );
 
-    const remoteProject = await apiClient.getFullProject(projectId);
+    let currentMainHash: string | undefined;
+    try {
+      const mainBranch = await apiClient.getBranch(projectId, 'main');
+      currentMainHash = mainBranch.hash;
+    } catch (error) {
+      if (options.debug) {
+        console.log(
+          styleText(
+            'gray',
+            `   Could not fetch main branch hash: ${error instanceof Error ? error.message : String(error)}`
+          )
+        );
+      }
+      // Non-fatal: if we can't get the hash, fall through to direct pull
+    }
+
+    if (options.debug && currentMainHash) {
+      console.log(styleText('gray', `   Current main hash: ${currentMainHash}`));
+    }
+
+    let remoteProject: Awaited<ReturnType<typeof apiClient.getFullProject>> | undefined;
+
+    if (localProjectForId && lastPulledHash) {
+      const localProjectDefinition = await localProjectForId.getFullDefinition();
+
+      // Merge main INTO temp branch so the temp branch gets a reconciled result
+      // (main's changes + user's local changes). We then pull from the temp branch.
+      // We must NOT merge temp into main — that would push local edits to main.
+      remoteProject = await withLocalStateBranch({
+        apiClient,
+        projectId,
+        fromCommit: lastPulledHash,
+        localDefinition: localProjectDefinition,
+        branchPrefix: 'cli-pull',
+        fn: async (tempBranchName) => {
+          const preview = await apiClient.mergePreview(projectId, {
+            sourceBranch: 'main',
+            targetBranch: tempBranchName,
+          });
+
+          if (preview.hasConflicts) {
+            const { resolveConflictsInteractive } = await import('../merge-conflicts');
+            const resolutions = await resolveConflictsInteractive(preview.conflicts, options);
+
+            if (resolutions === null) {
+              console.log(styleText('yellow', 'Pull cancelled'));
+              return undefined;
+            }
+
+            await apiClient.mergeExecute(projectId, {
+              sourceBranch: 'main',
+              targetBranch: tempBranchName,
+              sourceHash: preview.sourceHash,
+              targetHash: preview.targetHash,
+              resolutions,
+              message: 'CLI pull: merge main into local state',
+            });
+          } else {
+            await apiClient.mergeExecute(projectId, {
+              sourceBranch: 'main',
+              targetBranch: tempBranchName,
+              sourceHash: preview.sourceHash,
+              targetHash: preview.targetHash,
+              message: 'CLI pull: merge main into local state',
+            });
+          }
+
+          return await apiClient.getFullProject(projectId, tempBranchName);
+        },
+      });
+
+      if (!remoteProject) {
+        return;
+      }
+    } else {
+      // Todo: we can probably just exit here because there is nothing new to pull
+      remoteProject = await apiClient.getFullProject(projectId);
+    }
 
     if (options.debug && remoteProject.functions) {
       console.log(
@@ -365,7 +417,7 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     // @ts-expect-error -- fixme Types of property `models` are incompatible.
     enrichCanDelegateToWithTypes(remoteProject);
 
-    s.message('Project data fetched');
+    console.log(styleText('green', '◆ Project data fetched'));
 
     if (options.json) {
       console.log(JSON.stringify(remoteProject, null, 2));
@@ -376,16 +428,27 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     // Step 5: Set up project structure
     const paths = createProjectStructure(projectDir);
 
-    await generateProjectSkillsIfPresent(remoteProject, paths.skillsDir);
-
-    s.start('Starting generating files...');
+    console.log(styleText('gray', 'Generating files...'));
     await introspectGenerate({
       // @ts-expect-error -- ignore Types of property 'models' are incompatible.
       project: remoteProject,
       paths,
       debug: options.debug,
     });
-    s.stop('All files generated');
+    console.log(styleText('green', '◆ All files generated'));
+
+    try {
+      const mainBranch = await apiClient.getBranch(projectId, 'main');
+      writeProjectState(projectId, mainBranch.hash);
+    } catch (error) {
+      console.warn(
+        styleText(
+          'yellow',
+          `Warning: Could not save pull state: ${error instanceof Error ? error.message : String(error)}`
+        )
+      );
+      console.warn(styleText('yellow', 'Future pulls may re-prompt for conflict resolution.'));
+    }
 
     console.log(styleText('green', '\nProject synced successfully!'));
     console.log(styleText('gray', `   Location: ${paths.projectRoot}`));
@@ -404,7 +467,6 @@ export async function pullV4Command(options: PullV3Options): Promise<PullResult 
     process.exit(0);
   } catch (error) {
     const message = error instanceof Error ? error.stack : String(error);
-    s.stop();
     console.error(styleText('red', `\nError: ${message}`));
     if (options.debug && error instanceof Error) {
       console.error(styleText('red', error.stack || ''));
@@ -634,7 +696,6 @@ export async function pullSingleProject(
     const remoteProject = await apiClient.getFullProject(projectId);
     // Create project structure
     const paths = createProjectStructure(targetDir);
-    await generateProjectSkillsIfPresent(remoteProject, paths.skillsDir);
 
     // Generate all files using introspect mode for new projects
     await introspectGenerate({
@@ -660,17 +721,4 @@ export async function pullSingleProject(
       error: error instanceof Error ? error.message : String(error),
     };
   }
-}
-
-async function generateProjectSkillsIfPresent(
-  remoteProject: any,
-  skillsDir: string
-): Promise<void> {
-  const skills = remoteProject.skills ?? {};
-  if (!Object.keys(skills).length) {
-    return;
-  }
-
-  const { generateSkills } = await import('../skill');
-  await generateSkills(skills, skillsDir);
 }

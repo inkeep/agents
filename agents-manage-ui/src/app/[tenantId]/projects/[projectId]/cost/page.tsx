@@ -1,10 +1,12 @@
 'use client';
 
-import { use, useMemo } from 'react';
+import { notFound } from 'next/navigation';
+import { use } from 'react';
 import { CostDashboard } from '@/components/cost/cost-dashboard';
 import { PageHeader } from '@/components/layout/page-header';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
-import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
+import { useTracesQueryState } from '@/hooks/use-traces-query-state';
+import { useCapabilitiesQuery } from '@/lib/query/capabilities';
 
 const TIME_RANGES = {
   '24h': { label: 'Last 24 hours', hours: 24 },
@@ -15,10 +17,14 @@ const TIME_RANGES = {
 
 export default function ProjectUsagePage({
   params,
-}: {
-  params: Promise<{ tenantId: string; projectId: string }>;
-}) {
+}: PageProps<'/[tenantId]/projects/[projectId]/cost'>) {
   const { tenantId, projectId } = use(params);
+  const { data: capabilities, isFetching: capabilitiesLoading } = useCapabilitiesQuery();
+
+  if (!capabilitiesLoading && !capabilities?.costTracking?.enabled) {
+    notFound();
+  }
+
   const {
     timeRange: selectedTimeRange,
     customStartDate,
@@ -27,7 +33,7 @@ export default function ProjectUsagePage({
     setCustomDateRange,
   } = useTracesQueryState();
 
-  const { startTime, endTime } = useMemo(() => {
+  const { startTime, endTime } = (() => {
     if (selectedTimeRange === CUSTOM && customStartDate && customEndDate) {
       return {
         startTime: new Date(customStartDate).toISOString(),
@@ -38,10 +44,10 @@ export default function ProjectUsagePage({
     const end = new Date();
     const start = new Date(end.getTime() - range.hours * 60 * 60 * 1000);
     return { startTime: start.toISOString(), endTime: end.toISOString() };
-  }, [selectedTimeRange, customStartDate, customEndDate]);
+  })();
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Cost & Token Usage"
         description="Estimated costs and token usage for this project"
@@ -56,8 +62,8 @@ export default function ProjectUsagePage({
               ? { from: customStartDate, to: customEndDate }
               : selectedTimeRange
           }
-          onAdd={(value: TimeRange) => setSelectedTimeRange(value)}
-          setCustomDateRange={(start: string, end: string) => setCustomDateRange(start, end)}
+          onAdd={setSelectedTimeRange}
+          setCustomDateRange={setCustomDateRange}
           options={Object.entries(TIME_RANGES).map(([value, config]) => ({
             value,
             label: config.label,

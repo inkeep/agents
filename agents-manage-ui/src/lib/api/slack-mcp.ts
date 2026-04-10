@@ -2,7 +2,6 @@
 
 import { cache } from 'react';
 import { makeManagementApiRequest } from './api-config';
-import { validateTenantId } from './resource-validation';
 
 export type SlackMcpChannelAccessMode = 'all' | 'selected';
 
@@ -17,8 +16,6 @@ async function $getSlackMcpToolAccess(
   projectId: string,
   toolId: string
 ): Promise<SlackMcpAccessConfig> {
-  validateTenantId(tenantId);
-
   return makeManagementApiRequest<SlackMcpAccessConfig>(
     `tenants/${tenantId}/projects/${projectId}/tools/${toolId}/slack-access`
   );
@@ -35,8 +32,6 @@ export async function setSlackMcpToolAccess(
     channelIds?: string[];
   }
 ): Promise<SlackMcpAccessConfig> {
-  validateTenantId(tenantId);
-
   return makeManagementApiRequest<SlackMcpAccessConfig>(
     `tenants/${tenantId}/projects/${projectId}/tools/${toolId}/slack-access`,
     {
