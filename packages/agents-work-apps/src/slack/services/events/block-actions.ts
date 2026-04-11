@@ -13,6 +13,7 @@ import {
   buildToolApprovalBlocks,
   buildToolApprovalDoneBlocks,
   createContextBlock,
+  createContextBlockFromText,
   type ToolApprovalButtonValue,
   ToolApprovalButtonValueSchema,
 } from '../blocks';
@@ -164,6 +165,20 @@ export async function handleToolApproval(params: {
       const contentType = approvalResponse.headers.get('content-type') || '';
       if (approvalResponse.body && contentType.includes('text/event-stream')) {
         const agentName = (await lookupAgentName(tenantId, projectId, agentId)) || agentId;
+
+        const thinkingText = SlackStrings.status.thinking(agentName);
+        const thinkingMsg = await slackClient.chat
+          .postMessage({
+            channel: buttonValue.channel,
+            ...approvalThreadParam,
+            blocks: [createContextBlockFromText(thinkingText)],
+            text: thinkingText,
+          })
+          .catch((e) => {
+            logger.warn({ error: e }, 'Failed to post thinking message');
+            return null;
+          });
+
         await consumeApprovalContinuationStream({
           response: approvalResponse,
           slackClient,
@@ -174,6 +189,7 @@ export async function handleToolApproval(params: {
           projectId,
           agentId,
           slackUserId,
+          thinkingMessageTs: thinkingMsg?.ts,
         });
       }
 
@@ -474,6 +490,7 @@ export async function consumeApprovalContinuationStream(params: {
   projectId: string;
   agentId: string;
   slackUserId: string;
+  thinkingMessageTs?: string;
 }): Promise<void> {
   const {
     response,
@@ -485,6 +502,7 @@ export async function consumeApprovalContinuationStream(params: {
     projectId,
     agentId,
     slackUserId,
+    thinkingMessageTs,
   } = params;
   const threadParam = threadTs ? { thread_ts: threadTs } : {};
 
@@ -588,6 +606,12 @@ export async function consumeApprovalContinuationStream(params: {
   } finally {
     clearTimeout(timeoutId);
     reader.cancel().catch(() => {});
+  }
+
+  if (thinkingMessageTs) {
+    await slackClient.chat
+      .delete({ channel, ts: thinkingMessageTs })
+      .catch((e) => logger.warn({ error: e }, 'Failed to delete thinking message'));
   }
 
   if (fullText.length > 0) {
