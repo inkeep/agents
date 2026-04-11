@@ -98,6 +98,16 @@ export async function handleToolApproval(params: {
         slackUserId,
       });
 
+      // Update the approval message immediately so buttons disappear on click,
+      // before the potentially slow API call to resume the workflow.
+      if (responseUrl) {
+        await sendResponseUrlMessage(responseUrl, {
+          text: approved ? `✅ Approved \`${toolName}\`` : `❌ Denied \`${toolName}\``,
+          replace_original: true,
+          blocks: buildToolApprovalDoneBlocks({ toolName, approved, actorUserId: slackUserId }),
+        }).catch((e) => logger.warn({ error: e }, 'Failed to update approval message'));
+      }
+
       const apiUrl = env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
 
       const approvalResponse = await getInProcessFetch()(`${apiUrl}/run/api/chat`, {
@@ -144,14 +154,6 @@ export async function handleToolApproval(params: {
           .catch((e) => logger.warn({ error: e }, 'Failed to send approval error notification'));
         span.end();
         return;
-      }
-
-      if (responseUrl) {
-        await sendResponseUrlMessage(responseUrl, {
-          text: approved ? `✅ Approved \`${toolName}\`` : `❌ Denied \`${toolName}\``,
-          replace_original: true,
-          blocks: buildToolApprovalDoneBlocks({ toolName, approved, actorUserId: slackUserId }),
-        }).catch((e) => logger.warn({ error: e }, 'Failed to update approval message'));
       }
 
       logger.info({ toolCallId, conversationId, approved, slackUserId }, 'Tool approval processed');
