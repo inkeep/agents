@@ -211,7 +211,7 @@
     "postgres": "^3.4.8",
     "traverse": "^0.6.10",
     "ts-pattern": "^5.7.1",
-    "yaml": "^2.8.2"
+    "yaml": "^2.8.3"
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^1.1.5",
