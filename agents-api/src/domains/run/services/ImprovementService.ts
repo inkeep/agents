@@ -22,6 +22,7 @@ export interface TriggerImprovementParams {
   projectId: string;
   agentId?: string;
   feedbackIds: string[];
+  additionalContext?: string;
   resolvedRef: ResolvedRef;
 }
 
@@ -33,7 +34,7 @@ export interface TriggerImprovementResult {
 export async function triggerImprovement(
   params: TriggerImprovementParams
 ): Promise<TriggerImprovementResult> {
-  const { tenantId, projectId, agentId, feedbackIds, resolvedRef } = params;
+  const { tenantId, projectId, agentId, feedbackIds, additionalContext, resolvedRef } = params;
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const branchName = `improvement/${agentId ?? 'project'}/${timestamp}`;
   const conversationId = generateId();
@@ -51,9 +52,10 @@ export async function triggerImprovement(
 
   logger.info({ branchName }, 'Improvement branch created, triggering agent via chat API');
 
-  const userMessage = `Improvement branch "${branchName}" is ready. Feedback IDs: ${feedbackIds.join(', ')}
-
-Run your full workflow now.`;
+  const userMessage = [
+    `Improvement branch "${branchName}" is ready. Feedback IDs: ${feedbackIds.join(', ')}`,
+    additionalContext ? `\nAdditional context from the builder:\n${additionalContext}` : '',
+  ].join('\n');
 
   await createConversation(runDbClient)({
     id: conversationId,

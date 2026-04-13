@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import FullPageError from '@/components/errors/full-page-error';
 import { ImprovementBranchView } from '@/components/improvements/improvement-branch-view';
 import { PageHeader } from '@/components/layout/page-header';
-import { fetchConversationBounds, fetchConversationHistory } from '@/lib/api/conversations-client';
+import { fetchConversationBounds } from '@/lib/api/conversations-client';
 import { fetchImprovementConversation, fetchImprovementDiff } from '@/lib/api/improvements';
 
 export const dynamic = 'force-dynamic';
@@ -14,37 +14,25 @@ export const metadata = {
 
 const IMPROVEMENT_PROJECT_ID = 'improvement-agent';
 
-async function loadConversation(tenantId: string, projectId: string, branchName: string, conversationId?: string) {
+async function loadAgentStatus(
+  tenantId: string,
+  projectId: string,
+  branchName: string,
+  conversationId?: string
+): Promise<string | undefined> {
   let resolvedId = conversationId;
 
   if (!resolvedId) {
-    const fallback = await fetchImprovementConversation(tenantId, projectId, branchName).catch(() => null);
+    const fallback = await fetchImprovementConversation(tenantId, projectId, branchName).catch(
+      () => null
+    );
     resolvedId = fallback?.conversationId ?? undefined;
   }
 
-  if (!resolvedId) {
-    return { conversationId: null, agentStatus: undefined, messages: [] };
-  }
+  if (!resolvedId) return undefined;
 
-  const [bounds, history] = await Promise.all([
-    fetchConversationBounds(tenantId, IMPROVEMENT_PROJECT_ID, resolvedId),
-    fetchConversationHistory(tenantId, IMPROVEMENT_PROJECT_ID, resolvedId),
-  ]);
-
-  const agentStatus = ((bounds?.metadata as Record<string, unknown> | null)?.status) as string | undefined;
-
-  const allMessages = history?.messages ?? [];
-  const userMsg = allMessages.find((m: any) => m.role === 'user');
-  const assistantMsg = [...allMessages].reverse().find((m: any) =>
-    (m.role === 'assistant' || m.role === 'agent') && m.visibility === 'user-facing'
-  );
-
-  const messages = [
-    ...(userMsg ? [{ role: userMsg.role, content: userMsg.content }] : []),
-    ...(assistantMsg ? [{ role: 'assistant', content: assistantMsg.content }] : []),
-  ];
-
-  return { conversationId: resolvedId, agentStatus, messages };
+  const bounds = await fetchConversationBounds(tenantId, IMPROVEMENT_PROJECT_ID, resolvedId);
+  return (bounds?.metadata as Record<string, unknown> | null)?.status as string | undefined;
 }
 
 export default async function ImprovementBranchPage({
@@ -60,28 +48,23 @@ export default async function ImprovementBranchPage({
   const isNewRun = status === 'running';
 
   try {
-    const [diff, conversation] = await Promise.all([
+    const [diff, agentStatus] = await Promise.all([
       fetchImprovementDiff(tenantId, projectId, decodedBranch),
-      loadConversation(tenantId, projectId, decodedBranch, conversationId),
+      loadAgentStatus(tenantId, projectId, decodedBranch, conversationId),
     ]);
 
-    if (!conversation.agentStatus && isNewRun) {
-      conversation.agentStatus = 'running';
-    }
+    const resolvedStatus = agentStatus ?? (isNewRun ? 'running' : undefined);
 
     return (
       <>
-        <PageHeader
-          title="Improvement"
-          description={`Branch: ${decodedBranch}`}
-        />
+        <PageHeader title="Improvement" description={`Branch: ${decodedBranch}`} />
         <ImprovementBranchView
           tenantId={tenantId}
           projectId={projectId}
           diff={diff}
           branchName={decodedBranch}
           isNewRun={isNewRun}
-          conversation={conversation}
+          agentStatus={resolvedStatus}
         />
       </>
     );

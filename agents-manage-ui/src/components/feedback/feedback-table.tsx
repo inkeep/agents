@@ -23,6 +23,15 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import {
   Table,
   TableBody,
   TableCell,
@@ -30,6 +39,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
 import { triggerImprovementAction } from '@/lib/actions/improvements';
 import type { Feedback } from '@/lib/api/feedback';
 import { formatDateTimeTable } from '@/lib/utils/format-date';
@@ -74,6 +84,8 @@ export function FeedbackTable({
   const [deleteFeedbackId, setDeleteFeedbackId] = React.useState<string | null>(null);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const [isTriggering, setIsTriggering] = React.useState(false);
+  const [showContextDialog, setShowContextDialog] = React.useState(false);
+  const [additionalContext, setAdditionalContext] = React.useState('');
 
   const toggleFeedback = (id: string) => {
     setSelectedIds((prev) => {
@@ -97,8 +109,15 @@ export function FeedbackTable({
 
   const handleTriggerImprovement = () => {
     if (selectedIds.size === 0) return;
+    setAdditionalContext('');
+    setShowContextDialog(true);
+  };
+
+  const confirmTrigger = () => {
+    setShowContextDialog(false);
     setIsTriggering(true);
-    triggerImprovementAction(tenantId, projectId, Array.from(selectedIds))
+    const context = additionalContext.trim() || undefined;
+    triggerImprovementAction(tenantId, projectId, Array.from(selectedIds), undefined, context)
       .then((result) => {
         if (result.success && result.data) {
           const branchEncoded = encodeURIComponent(result.data.branchName);
@@ -402,6 +421,36 @@ export function FeedbackTable({
           onDeleted={() => router.refresh()}
         />
       ) : null}
+
+      <Dialog open={showContextDialog} onOpenChange={setShowContextDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Run Improvement</DialogTitle>
+            <DialogDescription>
+              The improvement agent will analyze {selectedIds.size} selected feedback{selectedIds.size > 1 ? ' items' : ''} and propose changes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="additional-context">Additional context (optional)</Label>
+            <Textarea
+              id="additional-context"
+              placeholder="e.g. Focus on improving the system prompt for handling edge cases..."
+              value={additionalContext}
+              onChange={(e) => setAdditionalContext(e.target.value)}
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowContextDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmTrigger}>
+              <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+              Run Improvement
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex items-center justify-between">
         <div className="text-xs text-muted-foreground">

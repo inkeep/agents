@@ -1,15 +1,32 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  areBranchesSchemaCompatible,
+  ConflictItemSchema,
+  ConflictResolutionSchema,
   commonGetErrorResponses,
   createApiError,
   deleteBranch,
+  doltCheckout,
   doltDiff,
   doltDiffSummary,
   doltGetBranchNamespace,
   doltMerge,
+  doltPreviewMergeConflicts,
+  doltPreviewMergeConflictsSummary,
   getConversationHistory,
+  getDatasetById,
+  getEvaluatorById,
+  getFeedbackByIds,
+  getMessagesByConversation,
   listBranches,
   listConversations,
+  listDatasetRuns,
+  listEvaluationResultsByRun,
+  listEvaluationRunsByJobConfigId,
+  listScheduledTriggerInvocationsByTriggerId,
+  managePkMap,
+  MergeConflictError,
+  syncSchemaFromMain,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
@@ -53,6 +70,7 @@ const ImprovementRunSchema = z
     branchName: z.string(),
     agentId: z.string(),
     timestamp: z.string(),
+    agentStatus: z.string().optional(),
   })
   .openapi('ImprovementRun');
 
@@ -97,7 +115,23 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const db = c.get('db');
 
-    const branches = await listBranches(db)({ tenantId, projectId });
+    const [branches, { conversations }] = await Promise.all([
+      listBranches(db)({ tenantId, projectId }),
+      listConversations(runDbClient)({
+        scopes: { tenantId, projectId: IMPROVEMENT_PROJECT_ID },
+        pagination: { page: 1, limit: 200 },
+      }),
+    ]);
+
+    const branchStatusMap = new Map<string, string>();
+    for (const conv of conversations) {
+      const meta = conv.metadata as Record<string, unknown> | null;
+      const branch = meta?.improvementBranch as string | undefined;
+      const status = meta?.status as string | undefined;
+      if (branch && status) {
+        branchStatusMap.set(branch, status);
+      }
+    }
 
     const improvements = branches
       .filter((b) => b.baseName.startsWith(IMPROVEMENT_BRANCH_PREFIX))
@@ -108,10 +142,12 @@ app.openapi(
           /^(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})-(\d+)Z$/,
           '$1T$2:$3:$4.$5Z'
         );
+        const agentId = parts[0] === 'project' ? '' : (parts[0] ?? '');
         return {
           branchName: b.baseName,
-          agentId: parts[0] ?? '',
+          agentId,
           timestamp: isoTimestamp || rawTimestamp,
+          agentStatus: branchStatusMap.get(b.baseName),
         };
       })
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -141,6 +177,12 @@ app.openapi(
                 .min(1)
                 .describe('One or more feedback IDs to base the improvement on'),
               agentId: z.string().optional().describe('Optionally scope to a specific agent'),
+              additionalContext: z
+                .string()
+                .optional()
+                .describe(
+                  'Free-form instructions or context to guide the improvement agent'
+                ),
             }),
           },
         },
@@ -163,14 +205,38 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
-    const { feedbackIds, agentId } = c.req.valid('json');
+    const { feedbackIds, agentId, additionalContext } = c.req.valid('json');
     const resolvedRef = c.get('resolvedRef');
+
+    const feedbackItems = await getFeedbackByIds(runDbClient)({
+      scopes: { tenantId, projectId },
+      feedbackIds,
+    });
+
+    const missingIds = feedbackIds.filter((id) => !feedbackItems.some((f) => f.id === id));
+    if (missingIds.length > 0) {
+      throw createApiError({
+        code: 'bad_request',
+        message: `Feedback not found: ${missingIds.join(', ')}`,
+      });
+    }
+
+    const agentIds = new Set(feedbackItems.map((f) => f.agentId).filter(Boolean));
+    if (agentIds.size > 1) {
+      throw createApiError({
+        code: 'bad_request',
+        message: `All feedback must belong to the same agent. Found feedback from multiple agents: ${[...agentIds].join(', ')}`,
+      });
+    }
+
+    const resolvedAgentId = agentId ?? (agentIds.size === 1 ? [...agentIds][0] : undefined);
 
     const { branchName, conversationId } = await triggerImprovement({
       tenantId,
       projectId,
-      agentId,
+      agentId: resolvedAgentId,
       feedbackIds,
+      additionalContext,
       resolvedRef,
     });
 
@@ -292,12 +358,23 @@ app.openapi(
     method: 'post',
     path: '/{branchName}/merge',
     summary: 'Merge Improvement',
-    description: 'Approve and merge an improvement branch into main.',
+    description:
+      'Approve and merge an improvement branch into main. If conflicts exist, returns 409 with conflict details. Re-submit with resolutions to resolve.',
     operationId: 'merge-improvement',
     tags: ['Improvements'],
     permission: requireProjectPermission('edit'),
     request: {
       params: ImprovementBranchParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: z.object({
+              resolutions: z.array(ConflictResolutionSchema).optional(),
+            }),
+          },
+        },
+        required: false,
+      },
     },
     responses: {
       200: {
@@ -307,6 +384,9 @@ app.openapi(
             schema: z.object({ success: z.boolean(), message: z.string() }),
           },
         },
+      },
+      409: {
+        description: 'Merge conflicts detected — resolve and retry',
       },
       ...commonGetErrorResponses,
     },
@@ -324,6 +404,9 @@ app.openapi(
       });
     }
 
+    const body = c.req.valid('json');
+    const resolutions = body?.resolutions;
+
     const sourceFullName = doltGetBranchNamespace({
       tenantId,
       projectId,
@@ -335,11 +418,62 @@ app.openapi(
       branchName: 'main',
     })();
 
-    await doltMerge(db)({
-      fromBranch: sourceFullName,
-      toBranch: targetFullName,
-      message: `Merge improvement "${decodedBranchName}" into main`,
-    });
+    const schemaCompat = await areBranchesSchemaCompatible(db)(sourceFullName, targetFullName);
+    if (!schemaCompat.compatible) {
+      if (schemaCompat.branchADifferences.length > 0) {
+        await doltCheckout(db)({ branch: sourceFullName });
+        const syncResult = await syncSchemaFromMain(db)({ autoCommitPending: true });
+        if (syncResult.error && !syncResult.synced) {
+          logger.warn({ error: syncResult.error }, 'Schema sync failed on improvement branch');
+        }
+      }
+      if (schemaCompat.branchBDifferences.length > 0) {
+        await doltCheckout(db)({ branch: targetFullName });
+        const syncResult = await syncSchemaFromMain(db)({ autoCommitPending: true });
+        if (syncResult.error && !syncResult.synced) {
+          logger.warn({ error: syncResult.error }, 'Schema sync failed on target branch');
+        }
+      }
+    }
+
+    try {
+      await doltMerge(db)({
+        fromBranch: sourceFullName,
+        toBranch: targetFullName,
+        message: `Merge improvement "${decodedBranchName}" into main`,
+        resolutions,
+      });
+    } catch (error) {
+      if (error instanceof MergeConflictError) {
+        const conflicts = await buildImprovementConflictItems(
+          db,
+          targetFullName,
+          sourceFullName
+        );
+
+        throw createApiError({
+          code: 'conflict',
+          message: `Merge has ${error.conflictCount} conflict(s) that need resolution.`,
+          extensions: { conflicts },
+        });
+      }
+
+      const conflicts = await buildImprovementConflictItems(
+        db,
+        targetFullName,
+        sourceFullName
+      ).catch(() => []);
+
+      if (conflicts.length > 0) {
+        throw createApiError({
+          code: 'conflict',
+          message: `Merge has ${conflicts.length} conflict(s) that need resolution.`,
+          extensions: { conflicts },
+        });
+      }
+
+      throw error;
+    }
 
     return c.json({
       success: true,
@@ -385,7 +519,7 @@ app.openapi(
       });
     }
 
-    await deleteBranch(db)({ tenantId, projectId, branchName: decodedBranchName });
+    await deleteBranch(db)({ tenantId, projectId, branchName: decodedBranchName, force: true });
 
     return c.json({
       success: true,
@@ -469,5 +603,352 @@ app.openapi(
     });
   }
 );
+
+const EvalSummaryItemStatusSchema = z.object({
+  total: z.number(),
+  completed: z.number(),
+  failed: z.number(),
+  pending: z.number(),
+  running: z.number(),
+});
+
+const EvalSummaryResultSchema = z.object({
+  id: z.string(),
+  evaluatorId: z.string(),
+  evaluatorName: z.string(),
+  conversationId: z.string(),
+  input: z.string().nullable(),
+  output: z.unknown().nullable(),
+  passed: z.enum(['passed', 'failed', 'no_criteria', 'pending']),
+  createdAt: z.string(),
+});
+
+const EvalSummaryDatasetRunSchema = z.object({
+  id: z.string(),
+  datasetId: z.string(),
+  datasetName: z.string(),
+  runConfigName: z.string().nullable(),
+  createdAt: z.string(),
+  phase: z.enum(['baseline', 'post_change', 'unknown']),
+  ref: z.object({ name: z.string(), hash: z.string(), type: z.string() }).nullable(),
+  items: EvalSummaryItemStatusSchema,
+  evaluationJobConfigId: z.string().nullable(),
+  evaluationResults: z.array(EvalSummaryResultSchema),
+});
+
+const EvalSummaryResponseSchema = z.object({
+  datasetRuns: z.array(EvalSummaryDatasetRunSchema),
+});
+
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/{branchName}/eval-summary',
+    summary: 'Get Improvement Eval Summary',
+    description:
+      'Get structured evaluation and dataset run data for an improvement branch.',
+    operationId: 'get-improvement-eval-summary',
+    tags: ['Improvements'],
+    permission: requireProjectPermission('view'),
+    request: {
+      params: ImprovementBranchParamsSchema,
+    },
+    responses: {
+      200: {
+        description: 'Evaluation summary for the improvement branch',
+        content: {
+          'application/json': {
+            schema: EvalSummaryResponseSchema,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, branchName } = c.req.valid('param');
+    const db = c.get('db');
+    const decodedBranchName = decodeURIComponent(branchName);
+
+    if (!decodedBranchName.startsWith(IMPROVEMENT_BRANCH_PREFIX)) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Not an improvement branch',
+      });
+    }
+
+    const allRuns = await listDatasetRuns(runDbClient)({
+      scopes: { tenantId, projectId },
+    });
+
+    const branchRuns = allRuns.filter((run) => {
+      if (!run.ref) return false;
+      const refName = (run.ref as { name?: string }).name ?? '';
+      return refName.includes(decodedBranchName);
+    });
+
+    const datasetRuns = await Promise.all(
+      branchRuns.map(async (run) => {
+        const [invocations, dataset] = await Promise.all([
+          listScheduledTriggerInvocationsByTriggerId(runDbClient)({
+            scopes: { tenantId, projectId },
+            scheduledTriggerId: run.id,
+          }),
+          getDatasetById(db)({
+            scopes: { tenantId, projectId, datasetId: run.datasetId },
+          }).catch(() => null),
+        ]);
+
+        const statusCounts = {
+          total: invocations.length,
+          completed: invocations.filter((i) => i.status === 'completed').length,
+          failed: invocations.filter((i) => i.status === 'failed').length,
+          pending: invocations.filter((i) => i.status === 'pending').length,
+          running: invocations.filter((i) => i.status === 'running').length,
+        };
+
+        let evaluationResults: z.infer<typeof EvalSummaryResultSchema>[] = [];
+
+        if (run.evaluationJobConfigId) {
+          const jobRuns = await listEvaluationRunsByJobConfigId(runDbClient)({
+            scopes: { tenantId, projectId },
+            evaluationJobConfigId: run.evaluationJobConfigId,
+          });
+
+          const allResults = (
+            await Promise.all(
+              jobRuns.map((jr) =>
+                listEvaluationResultsByRun(runDbClient)({
+                  scopes: { tenantId, projectId, evaluationRunId: jr.id },
+                })
+              )
+            )
+          ).flat();
+
+          const evaluatorCache = new Map<string, { name: string; passCriteria: unknown }>();
+
+          const uniqueConvIds = [...new Set(allResults.map((r) => r.conversationId))];
+          const inputMap = new Map<string, string>();
+          await Promise.all(
+            uniqueConvIds.map(async (conversationId) => {
+              try {
+                const messages = await getMessagesByConversation(runDbClient)({
+                  scopes: { tenantId, projectId },
+                  conversationId,
+                  pagination: { page: 1, limit: 10 },
+                });
+                const firstUser = [...messages].reverse().find((m) => m.role === 'user');
+                if (firstUser?.content) {
+                  const text =
+                    typeof firstUser.content === 'string'
+                      ? firstUser.content
+                      : (firstUser.content as { text?: string }).text || '';
+                  if (text) inputMap.set(conversationId, text);
+                }
+              } catch {
+                // ignore
+              }
+            })
+          );
+
+          evaluationResults = await Promise.all(
+            allResults.map(async (result) => {
+              let evaluatorInfo = evaluatorCache.get(result.evaluatorId);
+              if (!evaluatorInfo) {
+                const evaluator = await getEvaluatorById(db)({
+                  scopes: { tenantId, projectId, evaluatorId: result.evaluatorId },
+                }).catch(() => null);
+                evaluatorInfo = {
+                  name: evaluator?.name ?? result.evaluatorId,
+                  passCriteria: evaluator?.passCriteria ?? null,
+                };
+                evaluatorCache.set(result.evaluatorId, evaluatorInfo);
+              }
+
+              let passed: 'passed' | 'failed' | 'no_criteria' | 'pending' = 'pending';
+              if (result.output) {
+                const outputData = (result.output as { output?: Record<string, unknown> })?.output;
+                const criteria = evaluatorInfo.passCriteria as {
+                  operator?: 'and' | 'or';
+                  conditions?: Array<{
+                    field: string;
+                    operator: string;
+                    value: number;
+                  }>;
+                } | null;
+
+                if (outputData && criteria?.conditions?.length) {
+                  const allPass = criteria.operator === 'and'
+                    ? criteria.conditions.every((cond) => {
+                        const val = outputData[cond.field];
+                        if (typeof val !== 'number') return false;
+                        switch (cond.operator) {
+                          case '>': return val > cond.value;
+                          case '<': return val < cond.value;
+                          case '>=': return val >= cond.value;
+                          case '<=': return val <= cond.value;
+                          case '=': return val === cond.value;
+                          case '!=': return val !== cond.value;
+                          default: return false;
+                        }
+                      })
+                    : criteria.conditions.some((cond) => {
+                        const val = outputData[cond.field];
+                        if (typeof val !== 'number') return false;
+                        switch (cond.operator) {
+                          case '>': return val > cond.value;
+                          case '<': return val < cond.value;
+                          case '>=': return val >= cond.value;
+                          case '<=': return val <= cond.value;
+                          case '=': return val === cond.value;
+                          case '!=': return val !== cond.value;
+                          default: return false;
+                        }
+                      });
+                  passed = allPass ? 'passed' : 'failed';
+                } else if (outputData) {
+                  passed = 'no_criteria';
+                }
+              }
+
+              return {
+                id: result.id,
+                evaluatorId: result.evaluatorId,
+                evaluatorName: evaluatorInfo.name,
+                conversationId: result.conversationId,
+                input: inputMap.get(result.conversationId) ?? null,
+                output: result.output,
+                passed,
+                createdAt: result.createdAt,
+              };
+            })
+          );
+        }
+
+        return {
+          id: run.id,
+          datasetId: run.datasetId,
+          datasetName: dataset?.name ?? run.datasetId,
+          runConfigName: run.datasetRunConfigId ?? null,
+          createdAt: run.createdAt,
+          phase: 'unknown' as 'baseline' | 'post_change' | 'unknown',
+          ref: run.ref as { name: string; hash: string; type: string } | null,
+          items: statusCounts,
+          evaluationJobConfigId: run.evaluationJobConfigId ?? null,
+          evaluationResults,
+        };
+      })
+    );
+
+    datasetRuns.sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+
+    const datasetRunsByDataset = new Map<string, typeof datasetRuns>();
+    for (const run of datasetRuns) {
+      const existing = datasetRunsByDataset.get(run.datasetId) ?? [];
+      existing.push(run);
+      datasetRunsByDataset.set(run.datasetId, existing);
+    }
+
+    for (const runs of datasetRunsByDataset.values()) {
+      const hashes = new Set(runs.map((r) => r.ref?.hash).filter(Boolean));
+      if (hashes.size <= 1) {
+        for (const r of runs) r.phase = 'post_change';
+      } else {
+        const sorted = [...runs].sort(
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        const earliestHash = sorted[0]?.ref?.hash;
+        for (const r of runs) {
+          r.phase = r.ref?.hash === earliestHash ? 'baseline' : 'post_change';
+        }
+      }
+    }
+
+    return c.json({ datasetRuns });
+  }
+);
+
+const TIMESTAMP_COLUMNS = new Set(['created_at', 'updated_at']);
+
+function extractPrefixedValues(
+  row: Record<string, unknown>,
+  prefix: string,
+  pkColumns: string[]
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  const skipSuffixes = new Set(['diff_type', ...pkColumns]);
+  for (const [key, value] of Object.entries(row)) {
+    if (!key.startsWith(prefix)) continue;
+    const suffix = key.slice(prefix.length);
+    if (skipSuffixes.has(suffix)) continue;
+    result[suffix] = value;
+  }
+  return result;
+}
+
+function isTimestampOnlyDiff(
+  base: Record<string, unknown>,
+  ours: Record<string, unknown>,
+  theirs: Record<string, unknown>,
+  row: Record<string, unknown>
+): boolean {
+  if (row.our_diff_type !== 'modified' || row.their_diff_type !== 'modified') return false;
+  for (const key of Object.keys(base)) {
+    if (TIMESTAMP_COLUMNS.has(key)) continue;
+    if (
+      String(base[key] ?? '') !== String(ours[key] ?? '') ||
+      String(base[key] ?? '') !== String(theirs[key] ?? '')
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+async function buildImprovementConflictItems(
+  db: Parameters<typeof doltPreviewMergeConflicts>[0],
+  baseBranch: string,
+  mergeBranch: string
+): Promise<z.infer<typeof ConflictItemSchema>[]> {
+  const summary = await doltPreviewMergeConflictsSummary(db)({ baseBranch, mergeBranch });
+  const tablesWithConflicts = summary.filter((t) => t.numDataConflicts > 0);
+  const conflicts: z.infer<typeof ConflictItemSchema>[] = [];
+
+  for (const ct of tablesWithConflicts) {
+    const rows = await doltPreviewMergeConflicts(db)({
+      baseBranch,
+      mergeBranch,
+      tableName: ct.table,
+    });
+    const pkColumns = managePkMap[ct.table] ?? [];
+
+    for (const row of rows) {
+      const fullPk: Record<string, string> = {};
+      for (const col of pkColumns) {
+        fullPk[col] = String(row[`base_${col}`] ?? row[`our_${col}`] ?? row[`their_${col}`]);
+      }
+
+      const base = extractPrefixedValues(row, 'base_', pkColumns);
+      const ours = extractPrefixedValues(row, 'our_', pkColumns);
+      const theirs = extractPrefixedValues(row, 'their_', pkColumns);
+
+      if (isTimestampOnlyDiff(base, ours, theirs, row)) continue;
+
+      conflicts.push({
+        table: ct.table,
+        primaryKey: fullPk,
+        ourDiffType: String(row.our_diff_type ?? 'modified'),
+        theirDiffType: String(row.their_diff_type ?? 'modified'),
+        base: row.base_diff_type === 'added' ? null : base,
+        ours: row.our_diff_type === 'removed' ? null : ours,
+        theirs: row.their_diff_type === 'removed' ? null : theirs,
+      });
+    }
+  }
+
+  return conflicts;
+}
 
 export default app;

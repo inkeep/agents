@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Eye, Loader2, X } from 'lucide-react';
+import { Check, Eye, Loader2, X, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -15,8 +15,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { mergeImprovementAction, rejectImprovementAction } from '@/lib/actions/improvements';
 import type { ImprovementRun } from '@/lib/api/improvements';
-import { mergeImprovement, rejectImprovement } from '@/lib/api/improvements';
 
 interface ImprovementsTableProps {
   tenantId: string;
@@ -30,10 +30,19 @@ export function ImprovementsTable({ tenantId, projectId, improvements }: Improve
 
   const handleMerge = (branchName: string) => {
     setLoadingAction(`merge-${branchName}`);
-    mergeImprovement(tenantId, projectId, branchName)
-      .then(() => {
-        toast.success('Improvement merged successfully');
-        router.refresh();
+    mergeImprovementAction(tenantId, projectId, branchName)
+      .then((result) => {
+        if (result.success) {
+          toast.success('Improvement merged successfully');
+          router.refresh();
+        } else if (result.code === 'conflict') {
+          toast.warning('Merge conflicts detected — resolve them in the diff view');
+          router.push(
+            `/${tenantId}/projects/${projectId}/improvements/${encodeURIComponent(branchName)}`
+          );
+        } else {
+          toast.error(result.error ?? 'Failed to merge improvement');
+        }
       })
       .catch((error) => {
         toast.error(error instanceof Error ? error.message : 'Failed to merge improvement');
@@ -43,10 +52,14 @@ export function ImprovementsTable({ tenantId, projectId, improvements }: Improve
 
   const handleReject = (branchName: string) => {
     setLoadingAction(`reject-${branchName}`);
-    rejectImprovement(tenantId, projectId, branchName)
-      .then(() => {
-        toast.success('Improvement rejected');
-        router.refresh();
+    rejectImprovementAction(tenantId, projectId, branchName)
+      .then((result) => {
+        if (result.success) {
+          toast.success('Improvement rejected');
+          router.refresh();
+        } else {
+          toast.error(result.error ?? 'Failed to reject improvement');
+        }
       })
       .catch((error) => {
         toast.error(error instanceof Error ? error.message : 'Failed to reject improvement');
@@ -101,7 +114,27 @@ export function ImprovementsTable({ tenantId, projectId, improvements }: Improve
                   : '—'}
               </TableCell>
               <TableCell>
-                <Badge variant="outline">Ready for review</Badge>
+                {improvement.agentStatus === 'running' && (
+                  <Badge variant="secondary" className="gap-1.5">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Running
+                  </Badge>
+                )}
+                {improvement.agentStatus === 'completed' && (
+                  <Badge variant="default" className="gap-1.5">
+                    <Check className="h-3 w-3" />
+                    Completed
+                  </Badge>
+                )}
+                {improvement.agentStatus === 'failed' && (
+                  <Badge variant="destructive" className="gap-1.5">
+                    <XCircle className="h-3 w-3" />
+                    Failed
+                  </Badge>
+                )}
+                {!improvement.agentStatus && (
+                  <Badge variant="outline">Ready for review</Badge>
+                )}
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-2">

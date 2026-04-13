@@ -134,7 +134,8 @@ async function makeApiRequestInternal<T>(
           code: errorCode,
           message: errorMessage,
         },
-        response.status
+        response.status,
+        errorData ?? undefined
       );
     }
 

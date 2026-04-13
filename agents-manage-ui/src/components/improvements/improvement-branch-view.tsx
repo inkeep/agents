@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Bot, Check, Loader2, RefreshCw, User, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Check, Loader2, RefreshCw, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -8,21 +8,21 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { mergeImprovementAction, rejectImprovementAction } from '@/lib/actions/improvements';
-import type { ImprovementDiffResponse } from '@/lib/api/improvements';
+import type { ConflictItem, ConflictResolution, ImprovementDiffResponse } from '@/lib/api/improvements';
 import { ImprovementDiffView } from './improvement-diff-view';
-
-interface ConversationMessage {
-  role: string;
-  content: unknown;
-  createdAt?: string;
-}
-
-interface ConversationData {
-  conversationId: string | null;
-  agentStatus?: string;
-  messages: ConversationMessage[];
-}
+import { ImprovementEvalResults } from './improvement-eval-results';
 
 interface ImprovementBranchViewProps {
   tenantId: string;
@@ -30,54 +30,7 @@ interface ImprovementBranchViewProps {
   diff: ImprovementDiffResponse;
   branchName: string;
   isNewRun: boolean;
-  conversation: ConversationData;
-}
-
-function extractText(content: unknown): string {
-  if (typeof content === 'string') return content;
-  if (content && typeof content === 'object') {
-    const c = content as Record<string, unknown>;
-    if (typeof c.text === 'string') return c.text;
-    if (Array.isArray(c.parts)) {
-      return c.parts
-        .map((p: Record<string, unknown>) => (typeof p.text === 'string' ? p.text : ''))
-        .filter(Boolean)
-        .join('\n');
-    }
-  }
-  return '';
-}
-
-function MessageBubble({ role, content, createdAt }: { role: string; content: unknown; createdAt?: string }) {
-  const text = extractText(content);
-  if (!text) return null;
-  const isAssistant = role === 'assistant';
-
-  return (
-    <div className="flex gap-2 items-start">
-      <div
-        className={`shrink-0 mt-0.5 rounded-full p-1 ${isAssistant ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}
-      >
-        {isAssistant ? <Bot className="h-3.5 w-3.5" /> : <User className="h-3.5 w-3.5" />}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-xs text-muted-foreground mb-0.5">
-          {role}
-          {createdAt && (
-            <span className="ml-2">
-              {new Date(createdAt).toLocaleTimeString(undefined, {
-                hour: 'numeric',
-                minute: '2-digit',
-              })}
-            </span>
-          )}
-        </div>
-        <pre className="text-sm whitespace-pre-wrap break-words font-sans leading-relaxed">
-          {text}
-        </pre>
-      </div>
-    </div>
-  );
+  agentStatus?: string;
 }
 
 export function ImprovementBranchView({
@@ -86,12 +39,14 @@ export function ImprovementBranchView({
   diff,
   branchName,
   isNewRun,
-  conversation,
+  agentStatus,
 }: ImprovementBranchViewProps) {
   const router = useRouter();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const [conflicts, setConflicts] = useState<ConflictItem[]>([]);
+  const [resolutions, setResolutions] = useState<Record<string, 'ours' | 'theirs'>>({});
+  const [showConflictDialog, setShowConflictDialog] = useState(false);
 
-  const agentStatus = conversation.agentStatus;
   const isRunning = agentStatus === 'running' || (isNewRun && !agentStatus);
   const isCompleted = agentStatus === 'completed';
   const isFailed = agentStatus === 'failed';
@@ -117,16 +72,42 @@ export function ImprovementBranchView({
     router.refresh();
   };
 
-  const handleMerge = async () => {
+  const conflictKey = (c: ConflictItem) =>
+    `${c.table}::${Object.values(c.primaryKey).join('::')}`;
+
+  const handleMerge = async (withResolutions?: ConflictResolution[]) => {
     setLoadingAction('merge');
-    const result = await mergeImprovementAction(tenantId, projectId, branchName);
+    const result = await mergeImprovementAction(
+      tenantId,
+      projectId,
+      branchName,
+      withResolutions
+    );
     if (result.success) {
+      setShowConflictDialog(false);
       toast.success('Improvement merged successfully');
       router.push(`/${tenantId}/projects/${projectId}/improvements`);
+    } else if (result.code === 'conflict' && result.conflicts && result.conflicts.length > 0) {
+      setConflicts(result.conflicts);
+      const defaults: Record<string, 'ours' | 'theirs'> = {};
+      for (const c of result.conflicts) {
+        defaults[conflictKey(c)] = 'ours';
+      }
+      setResolutions(defaults);
+      setShowConflictDialog(true);
     } else {
       toast.error(result.error ?? 'Failed to merge');
     }
     setLoadingAction(null);
+  };
+
+  const handleResolveAndMerge = async () => {
+    const resolved: ConflictResolution[] = conflicts.map((c) => ({
+      table: c.table,
+      primaryKey: c.primaryKey,
+      rowDefaultPick: resolutions[conflictKey(c)] ?? 'ours',
+    }));
+    await handleMerge(resolved);
   };
 
   const handleReject = async () => {
@@ -140,11 +121,6 @@ export function ImprovementBranchView({
     }
     setLoadingAction(null);
   };
-
-  const userMessage = conversation.messages.find((m) => m.role === 'user');
-  const lastAssistantMessage = [...conversation.messages]
-    .reverse()
-    .find((m) => (m.role === 'assistant' || m.role === 'agent') && extractText(m.content));
 
   return (
     <div className="space-y-4">
@@ -183,7 +159,7 @@ export function ImprovementBranchView({
           <Button
             size="sm"
             variant="outline"
-            onClick={handleMerge}
+            onClick={() => handleMerge()}
             disabled={loadingAction !== null || diff.summary.length === 0}
           >
             {loadingAction === 'merge' && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
@@ -201,36 +177,106 @@ export function ImprovementBranchView({
         </div>
       </div>
 
-      {(userMessage || lastAssistantMessage) && (
-        <Card>
-          <CardHeader className="py-3">
-            <CardTitle className="text-sm">Agent Response</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 space-y-4">
-            {userMessage && (
-              <MessageBubble
-                role={userMessage.role}
-                content={userMessage.content}
-                createdAt={userMessage.createdAt}
-              />
+      <Tabs defaultValue="results">
+        <TabsList>
+          <TabsTrigger value="results">Results</TabsTrigger>
+          <TabsTrigger value="diffs">
+            Diffs
+            {diff.summary.length > 0 && (
+              <Badge variant="secondary" className="ml-1.5 text-xs px-1.5 py-0">
+                {diff.summary.length}
+              </Badge>
             )}
-            {lastAssistantMessage ? (
-              <MessageBubble
-                role={lastAssistantMessage.role}
-                content={lastAssistantMessage.content}
-                createdAt={lastAssistantMessage.createdAt}
-              />
-            ) : isRunning ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground pl-7">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Agent is working...
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
-      )}
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="results" className="mt-4">
+          <ImprovementEvalResults
+            tenantId={tenantId}
+            projectId={projectId}
+            branchName={branchName}
+            isRunning={isRunning}
+          />
+        </TabsContent>
+        <TabsContent value="diffs" className="mt-4">
+          <ImprovementDiffView tenantId={tenantId} projectId={projectId} diff={diff} />
+        </TabsContent>
+      </Tabs>
 
-      <ImprovementDiffView tenantId={tenantId} projectId={projectId} diff={diff} />
+      <Dialog open={showConflictDialog} onOpenChange={setShowConflictDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Merge Conflicts
+            </DialogTitle>
+            <DialogDescription>
+              {conflicts.length} conflict{conflicts.length !== 1 && 's'} detected. For each
+              conflict, choose whether to keep the improvement branch changes or the current main
+              branch version.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {conflicts.map((c) => {
+              const key = conflictKey(c);
+              return (
+                <Card key={key}>
+                  <CardHeader className="py-2 px-4">
+                    <CardTitle className="text-xs font-mono">
+                      {c.table} ({Object.entries(c.primaryKey).map(([k, v]) => `${k}=${v}`).join(', ')})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-3 space-y-3">
+                    <RadioGroup
+                      value={resolutions[key] ?? 'ours'}
+                      onValueChange={(v) =>
+                        setResolutions((prev) => ({ ...prev, [key]: v as 'ours' | 'theirs' }))
+                      }
+                    >
+                      <div className="flex items-start gap-2">
+                        <RadioGroupItem value="theirs" id={`${key}-theirs`} className="mt-1" />
+                        <Label htmlFor={`${key}-theirs`} className="flex-1 cursor-pointer">
+                          <span className="text-xs font-medium">
+                            Keep improvement (branch)
+                          </span>
+                          {c.theirs && (
+                            <pre className="mt-1 text-xs bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded p-2 overflow-x-auto whitespace-pre-wrap">
+                              {JSON.stringify(c.theirs, null, 2)}
+                            </pre>
+                          )}
+                        </Label>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <RadioGroupItem value="ours" id={`${key}-ours`} className="mt-1" />
+                        <Label htmlFor={`${key}-ours`} className="flex-1 cursor-pointer">
+                          <span className="text-xs font-medium">
+                            Keep current (main)
+                          </span>
+                          {c.ours && (
+                            <pre className="mt-1 text-xs bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded p-2 overflow-x-auto whitespace-pre-wrap">
+                              {JSON.stringify(c.ours, null, 2)}
+                            </pre>
+                          )}
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowConflictDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleResolveAndMerge} disabled={loadingAction === 'merge'}>
+              {loadingAction === 'merge' && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Resolve & Merge
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
