@@ -1,3 +1,4 @@
+import { z } from '@hono/zod-openapi';
 import { describe, expect, it } from 'vitest';
 import {
   buildRefAwareSchemas,
@@ -26,7 +27,7 @@ describe('makeRefAwareJsonSchema', () => {
     expect(textProp.anyOf).toBeUndefined();
   });
 
-  it('should add $refs property at root level', () => {
+  it('should add refs property at root level', () => {
     const schema = {
       type: 'object',
       properties: {
@@ -102,6 +103,24 @@ describe('makeRefAwareJsonSchema', () => {
     const valueProp = (result.properties as any).value;
     expect(valueProp.anyOf).toHaveLength(3);
     expect(valueProp.anyOf[2]).toEqual({ type: 'null' });
+  });
+
+  it('should wrap allOf schemas in anyOf with null rather than mutating type', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        composed: {
+          allOf: [{ type: 'string' }, { minLength: 1 }],
+        },
+      },
+    };
+
+    const result = makeRefAwareJsonSchema(schema);
+    const composedProp = (result.properties as any).composed;
+    expect(composedProp.type).toBeUndefined();
+    expect(composedProp.anyOf).toHaveLength(2);
+    expect(composedProp.anyOf[0].allOf).toBeDefined();
+    expect(composedProp.anyOf[1]).toEqual({ type: 'null' });
   });
 
   it('should not double-add null to already-nullable types', () => {
@@ -188,7 +207,7 @@ describe('buildRefAwareSchemas', () => {
     expect(baseInputSchema!.safeParse({ text: 123 }).success).toBe(false);
   });
 
-  it('should produce schema with $refs and nullable properties', () => {
+  it('should produce schema with refs and nullable properties', () => {
     const schema = {
       type: 'object',
       properties: {
@@ -213,7 +232,6 @@ describe('buildRefAwareSchemas', () => {
   });
 
   it('should accept a Zod schema and convert it', () => {
-    const { z } = require('@hono/zod-openapi');
     const zodSchema = z.object({
       name: z.string(),
       age: z.number().optional(),

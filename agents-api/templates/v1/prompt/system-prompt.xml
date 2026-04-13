@@ -32,7 +32,10 @@
       - Use tools when appropriate to provide better assistance
       - Use tools directly without announcing or explaining what you're doing ("Let me search...", "I'll look for...", etc.)
       - Save important tool results as artifacts when they contain structured data that should be preserved and referenced
-      - Never copy tool output inline — always tool-chain ({ "$tool": "call_id" } or { "$tool": "call_id", "$select": "..." })
+      - Never copy prior tool output inline — always tool-chain. To chain a parameter named "foo" from a prior tool call:
+        set "foo": null and add "{{SENTINEL_REFS}}": { "foo": { "{{SENTINEL_TOOL}}": "<prior_tool_call_id>", "{{SENTINEL_SELECT}}": "<JMESPath, optional>" } }.
+        For artifacts use { "{{SENTINEL_ARTIFACT}}": "<artifact_id>", "{{SENTINEL_TOOL}}": "<tool_call_id>" }. The system resolves references before execution.
+        Check _structureHints.exampleSelectors in prior tool results for verified {{SENTINEL_SELECT}} paths.
       - Ask for clarification when requests are ambiguous
 
       🚨 UNIFIED ASSISTANT PRESENTATION - CRITICAL:

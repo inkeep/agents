@@ -1,7 +1,6 @@
 import type { ArtifactComponentApiInsert, FullExecutionContext } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
-import { REFS_KEY } from '../agents/tools/ref-aware-schema';
-import { SENTINEL_KEY } from '../constants/artifact-syntax';
+import { REFS_KEY, SENTINEL_KEY } from '../constants/artifact-syntax';
 import {
   buildSchemaShape,
   type ExtendedJsonSchema,
@@ -224,12 +223,6 @@ export class ArtifactParser {
   }
 
   /**
-   * Resolve artifact refs embedded in tool call arguments.
-   * Recursively walks the args object/array; any object of the shape
-   * { $artifact: "artifact-id", $tool: "tool-call-id" } is replaced with
-   * the full artifact data so the tool receives the real content.
-   */
-  /**
    * Resolve a single reference object (artifact or tool result).
    */
   private async resolveRef(ref: any): Promise<any> {
@@ -280,9 +273,13 @@ export class ArtifactParser {
     return ref;
   }
 
+  /**
+   * Resolve artifact/tool-result refs embedded in tool call arguments.
+   * Handles the `SENTINEL_KEY.REFS` map format (preferred) and legacy per-property refs.
+   */
   async resolveArgs(args: any): Promise<any> {
     if (args !== null && typeof args === 'object' && !Array.isArray(args)) {
-      // Handle $refs map: resolve each entry and merge into args
+      // Handle SENTINEL_KEY.REFS map: resolve each entry and merge into args
       if (args[REFS_KEY] && typeof args[REFS_KEY] === 'object') {
         const refs = args[REFS_KEY] as Record<string, any>;
         const result: Record<string, any> = {};
@@ -293,7 +290,7 @@ export class ArtifactParser {
         }
         for (const [paramName, ref] of Object.entries(refs)) {
           result[paramName] = await this.resolveRef(ref);
-          logger.debug({ paramName }, 'Resolved $refs entry');
+          logger.debug({ paramName }, `Resolved ${REFS_KEY} entry`);
         }
         return result;
       }

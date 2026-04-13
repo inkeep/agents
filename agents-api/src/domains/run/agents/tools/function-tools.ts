@@ -83,8 +83,10 @@ export async function getFunctionTools(
         continue;
       }
 
-      let refAwareInputSchema: any;
-      let baseInputSchema: any;
+      let refAwareInputSchema:
+        | ReturnType<typeof buildRefAwareSchemas>['refAwareInputSchema']
+        | undefined;
+      let baseInputSchema: ReturnType<typeof buildRefAwareSchemas>['baseInputSchema'];
       if (functionData.inputSchema) {
         try {
           ({ refAwareInputSchema, baseInputSchema } = buildRefAwareSchemas(
@@ -109,7 +111,7 @@ export async function getFunctionTools(
 
       const baseTool = tool({
         description: functionToolDef.description || functionToolDef.name,
-        inputSchema: refAwareInputSchema,
+        inputSchema: refAwareInputSchema as NonNullable<typeof refAwareInputSchema>,
         execute: async (args, { toolCallId, providerMetadata }: any) => {
           const parsed = await parseAndCheckApproval(
             ctx,

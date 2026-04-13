@@ -1,6 +1,6 @@
 import { parseEmbeddedJson, SESSION_EVENT_ERROR, unwrapError } from '@inkeep/agents-core';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
-import { type ToolSet, tool } from 'ai';
+import { jsonSchema, type ToolSet, tool } from 'ai';
 import { getLogger } from '../../../../logger';
 import { agentSessionManager } from '../../session/AgentSession';
 import type { AgentRunContext } from '../agent-types';
@@ -93,11 +93,11 @@ export async function getMcpTools(
         'Tool approval check'
       );
 
-      let refAwareInputSchema: any;
-      let baseInputSchema: any;
+      let refAwareInputSchema: ReturnType<typeof buildRefAwareSchemas>['refAwareInputSchema'];
+      let baseInputSchema: ReturnType<typeof buildRefAwareSchemas>['baseInputSchema'];
       try {
         ({ refAwareInputSchema, baseInputSchema } = buildRefAwareSchemas(
-          originalTool.inputSchema as any
+          originalTool.inputSchema as Record<string, unknown>
         ));
       } catch (schemaError) {
         logger.warn(
@@ -107,7 +107,7 @@ export async function getMcpTools(
           },
           'Failed to build ref-aware schema for MCP tool; falling back to original schema'
         );
-        refAwareInputSchema = originalTool.inputSchema;
+        refAwareInputSchema = jsonSchema(originalTool.inputSchema as Record<string, unknown>);
         baseInputSchema = undefined;
       }
 
