@@ -1,5 +1,21 @@
 # @inkeep/agents-api
 
+## 0.68.0
+
+### Minor Changes
+
+- d1e18a8: Add OAuth 2.1 / OIDC provider support via Better Auth oauth-provider plugin
+
+### Patch Changes
+
+- e223ac8: Fix tool chaining schema breaking Anthropic constrained JSON generation by replacing per-property anyOf wrapping with a map approach
+- accbb2e: Update MCP server catalog: fix broken URLs, migrate SSE to Streamable HTTP, add 17 new servers
+- Updated dependencies [d1e18a8]
+  - @inkeep/agents-core@0.68.0
+  - @inkeep/agents-work-apps@0.68.0
+  - @inkeep/agents-email@0.68.0
+  - @inkeep/agents-mcp@0.68.0
+
 ## 0.67.4
 
 ### Patch Changes
