@@ -11,6 +11,7 @@ import {
   createDatasetRunConversationRelation,
   createEvaluationResult,
   generateId,
+  getAgentIdsForEvaluators,
   getConversation,
   getEvaluatorById,
   getProjectScopedRef,
@@ -29,10 +30,6 @@ import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import { executeAgentAsync } from '../../../run/services/TriggerService';
 import { EvaluationService } from '../../services/EvaluationService';
-import {
-  filterEvaluatorsByAgentScope,
-  getEvaluatorAgentScopeMap,
-} from '../../utils/evaluatorFiltering';
 
 const logger = getLogger('workflow-run-dataset-item');
 
@@ -396,10 +393,17 @@ async function filterEvaluatorsByAgentStep(params: {
   }
 
   const agentIdsMap = await withRef(manageDbPool, resolvedRef, (db) =>
-    getEvaluatorAgentScopeMap(db, { tenantId, projectId, evaluatorIds })
+    getAgentIdsForEvaluators(db)({
+      scopes: { tenantId, projectId },
+      evaluatorIds,
+    })
   );
 
-  const filtered = filterEvaluatorsByAgentScope({ agentIdsMap, agentId, evaluatorIds });
+  const filtered = evaluatorIds.filter((evalId) => {
+    const scopedAgents = agentIdsMap.get(evalId);
+    if (!scopedAgents || scopedAgents.length === 0) return true;
+    return scopedAgents.includes(agentId);
+  });
 
   if (filtered.length < evaluatorIds.length) {
     logger.info(

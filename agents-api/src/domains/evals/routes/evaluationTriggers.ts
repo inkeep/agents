@@ -4,6 +4,7 @@ import {
   createApiError,
   createEvaluationRun,
   generateId,
+  getAgentIdsForEvaluators,
   getConversation,
   getEvaluatorsByIds,
   type ResolvedRef,
@@ -19,10 +20,6 @@ import { getLogger } from '../../../logger';
 import { evalApiKeyAuth } from '../../../middleware/evalsAuth';
 import { triggerConversationEvaluation } from '../services/conversationEvaluation';
 import { queueEvaluationJobConversations } from '../services/evaluationJob';
-import {
-  filterEvaluatorsByAgentScope,
-  getEvaluatorAgentScopeMap,
-} from '../utils/evaluatorFiltering';
 import { evaluateConversationWorkflow } from '../workflow';
 
 const app = new OpenAPIHono<{ Variables: { resolvedRef: ResolvedRef } }>();
@@ -180,7 +177,10 @@ app.openapi(
       }
 
       const agentIdsMap = await withRef(manageDbPool, resolvedRef, (db) =>
-        getEvaluatorAgentScopeMap(db, { tenantId, projectId, evaluatorIds })
+        getAgentIdsForEvaluators(db)({
+          scopes: { tenantId, projectId },
+          evaluatorIds,
+        })
       );
 
       const evaluationRunId = generateId();
@@ -200,7 +200,11 @@ app.openapi(
         const { agentId } = conversation;
 
         const scopedEvaluatorIds = agentId
-          ? filterEvaluatorsByAgentScope({ agentIdsMap, agentId, evaluatorIds })
+          ? evaluatorIds.filter((evalId) => {
+              const scopedAgents = agentIdsMap.get(evalId);
+              if (!scopedAgents || scopedAgents.length === 0) return true;
+              return scopedAgents.includes(agentId);
+            })
           : evaluatorIds;
 
         if (!scopedEvaluatorIds.length) {

@@ -3,6 +3,7 @@ import {
   type EvaluationSuiteFilterCriteria,
   type Filter,
   generateId,
+  getAgentIdsForEvaluators,
   getConversation,
   getEvaluationSuiteConfigById,
   getEvaluationSuiteConfigEvaluatorRelations,
@@ -14,10 +15,6 @@ import { start } from 'workflow/api';
 import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
-import {
-  filterEvaluatorsByAgentScope,
-  getEvaluatorAgentScopeMap,
-} from '../utils/evaluatorFiltering';
 import { evaluateConversationWorkflow } from '../workflow';
 
 const logger = getLogger('ConversationEvaluation');
@@ -140,12 +137,15 @@ export const triggerConversationEvaluation = async (params: {
         const { agentId: conversationAgentId } = conversation;
         if (conversationAgentId) {
           const agentIdsMap = await withRef(manageDbPool, resolvedRef, (db) =>
-            getEvaluatorAgentScopeMap(db, { tenantId, projectId, evaluatorIds })
+            getAgentIdsForEvaluators(db)({
+              scopes: { tenantId, projectId },
+              evaluatorIds,
+            })
           );
-          evaluatorIds = filterEvaluatorsByAgentScope({
-            agentIdsMap,
-            agentId: conversationAgentId,
-            evaluatorIds,
+          evaluatorIds = evaluatorIds.filter((evalId) => {
+            const scopedAgents = agentIdsMap.get(evalId);
+            if (!scopedAgents || scopedAgents.length === 0) return true;
+            return scopedAgents.includes(conversationAgentId);
           });
 
           if (evaluatorIds.length === 0) {
