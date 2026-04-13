@@ -49,6 +49,24 @@ For most interactive chat use cases, **Classic** mode provides the best user exp
 
 Open your agent's settings panel and find the **Execution mode** section. Select either **Classic** or **Durable** from the dropdown. This sets the default for all requests to this agent.
 
+
+### In the TypeScript SDK
+
+Set the `executionMode` in the agent configuration when creating an agent programmatically:
+
+```typescript
+import { agent } from "@inkeep/agents-sdk";
+
+const myAgent = agent({
+  id: "my-agent",
+  executionMode: "durable", // or "classic" (default)
+  defaultSubAgent: supportAgent,
+  subAgents: () => [supportAgent],
+});
+```
+
+This sets the default execution mode for all requests to this agent.
+
 ### Per-request override
 
 Clients can override the agent's default execution mode by passing `executionMode` in the request body:
