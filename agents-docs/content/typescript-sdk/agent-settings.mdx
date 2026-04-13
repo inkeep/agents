@@ -19,6 +19,8 @@ An Agent is made up of sub-agents, like so:
 const customerSupportAgent = agent({
   id: "support-agent",
   prompt: `You work for Acme Corp. Always be professional and helpful.`,
+  executionMode: "classic", // or "durable"
+  defaultSubAgent: supportAgent,
   subAgents: () => [supportAgent, escalationAgent],
 });
 ```
@@ -42,6 +44,24 @@ const supportAgent = subAgent({
 ## Configuring Models
 
 Configure AI models for your agents. See [Model Configuration](/typescript-sdk/models) for detailed information about supported providers, configuration options, and examples.
+
+
+## Configuring Execution Mode
+
+Set the execution mode to control how the agent's execution lifecycle is managed:
+
+```typescript
+agent({
+  id: "support-agent",
+  executionMode: "durable", // or "classic" (default)
+  defaultSubAgent: supportAgent,
+});
+```
+
+- **`classic`** (default): Runs in a single in-process loop with minimal streaming latency (~100ms TTFB)
+- **`durable`**: Wraps execution in a workflow with persistent checkpoints for crash recovery (~2s TTFB)
+
+See [Execution Modes](/visual-builder/execution-modes) for detailed information about when to use each mode.
 
 <SkillRule
   id="stop-when-config"
