@@ -11,7 +11,6 @@ import {
   createDatasetRunConversationRelation,
   createEvaluationResult,
   generateId,
-  getAgentIdsForEvaluators,
   getConversation,
   getEvaluatorById,
   getProjectScopedRef,
@@ -28,6 +27,10 @@ import { manageDbClient } from '../../../../data/db';
 import manageDbPool from '../../../../data/db/manageDbPool';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
+import {
+  filterEvaluatorsByAgentScope,
+  getEvaluatorAgentScopeMap,
+} from '../../utils/evaluatorFiltering';
 import { executeAgentAsync } from '../../../run/services/TriggerService';
 import { EvaluationService } from '../../services/EvaluationService';
 
@@ -393,17 +396,10 @@ async function filterEvaluatorsByAgentStep(params: {
   }
 
   const agentIdsMap = await withRef(manageDbPool, resolvedRef, (db) =>
-    getAgentIdsForEvaluators(db)({
-      scopes: { tenantId, projectId },
-      evaluatorIds,
-    })
+    getEvaluatorAgentScopeMap(db, { tenantId, projectId, evaluatorIds })
   );
 
-  const filtered = evaluatorIds.filter((evalId) => {
-    const scopedAgents = agentIdsMap.get(evalId);
-    if (!scopedAgents || scopedAgents.length === 0) return true;
-    return scopedAgents.includes(agentId);
-  });
+  const filtered = filterEvaluatorsByAgentScope({ agentIdsMap, agentId, evaluatorIds });
 
   if (filtered.length < evaluatorIds.length) {
     logger.info(
