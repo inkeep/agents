@@ -79,7 +79,7 @@ app.openapi(
         },
       }) as any;
     } catch (error) {
-      logger.error({ error, tenantId, projectId }, 'Failed to list dataset run configs');
+      logger.error({ error }, 'Failed to list dataset run configs');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -134,7 +134,7 @@ app.openapi(
         data: config,
       }) as any;
     } catch (error) {
-      logger.error({ error, tenantId, projectId, runConfigId }, 'Failed to get dataset run config');
+      logger.error({ error, runConfigId }, 'Failed to get dataset run config');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -209,13 +209,10 @@ app.openapi(
         );
       }
 
-      logger.info({ tenantId, projectId, runConfigId: id }, 'Dataset run config created');
+      logger.info({ runConfigId: id }, 'Dataset run config created');
       return c.json({ data: created as any }, 201) as any;
     } catch (error) {
-      logger.error(
-        { error, tenantId, projectId, configData },
-        'Failed to create dataset run config'
-      );
+      logger.error({ error, configData }, 'Failed to create dataset run config');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -450,14 +447,11 @@ app.openapi(
         ref: branchName,
       });
 
-      logger.info(
-        { tenantId, projectId, runConfigId, datasetRunId, totalItems: items.length },
-        'Dataset run triggered'
-      );
+      logger.info({ runConfigId, datasetRunId, totalItems: items.length }, 'Dataset run triggered');
 
       return c.json({ datasetRunId, status: 'pending' as const, totalItems: items.length }, 202);
     } catch (error) {
-      logger.error({ error, tenantId, projectId, runConfigId }, 'Failed to trigger dataset run');
+      logger.error({ error, runConfigId }, 'Failed to trigger dataset run');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -559,13 +553,10 @@ app.openapi(
       // Note: evaluatorIds are only used when creating a new dataset run,
       // not when updating an existing config. Updates don't trigger new runs.
 
-      logger.info({ tenantId, projectId, runConfigId }, 'Dataset run config updated');
+      logger.info({ runConfigId }, 'Dataset run config updated');
       return c.json({ data: updated as any }) as any;
     } catch (error) {
-      logger.error(
-        { error, tenantId, projectId, runConfigId, configData },
-        'Failed to update dataset run config'
-      );
+      logger.error({ error, runConfigId, configData }, 'Failed to update dataset run config');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -611,7 +602,7 @@ app.openapi(
         ) as any;
       }
 
-      logger.info({ tenantId, projectId, runConfigId }, 'Dataset run config deleted');
+      logger.info({ runConfigId }, 'Dataset run config deleted');
       return c.body(null, 204) as any;
     } catch (error: any) {
       logger.error(
@@ -621,8 +612,6 @@ app.openapi(
           errorCode: error?.cause?.code,
           errorDetail: error?.cause?.detail,
           errorConstraint: error?.cause?.constraint,
-          tenantId,
-          projectId,
           runConfigId,
         },
         'Failed to delete dataset run config'

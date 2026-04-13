@@ -1,3 +1,7 @@
+import {
+  oauthProviderAuthServerMetadata,
+  oauthProviderOpenIdConfigMetadata,
+} from '@better-auth/oauth-provider';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { getInProcessFetch, getWaitUntil, registerAppFetch } from '@inkeep/agents-core';
 import { githubRoutes } from '@inkeep/agents-work-apps/github';
@@ -13,7 +17,7 @@ import { runRoutes } from './domains/run';
 import { workAppsRoutes } from './domains/work-apps';
 import { env } from './env';
 import { flushBatchProcessor } from './instrumentation';
-import { getLogger } from './logger';
+import { getLogger, runWithLogContext } from './logger';
 import {
   authCorsConfig,
   defaultCorsConfig,
@@ -124,6 +128,17 @@ function createAgentsHono(config: AppConfig) {
     // Mount the Better Auth handler (OPTIONS handled by cors middleware above)
     app.on(['POST', 'GET'], '/api/auth/*', (c) => {
       return auth.handler(c.req.raw);
+    });
+
+    // OIDC / OAuth 2.1 discovery endpoints
+    const openIdConfigHandler = oauthProviderOpenIdConfigMetadata(auth);
+    const authServerMetadataHandler = oauthProviderAuthServerMetadata(auth);
+
+    app.get('/.well-known/openid-configuration', (c) => {
+      return openIdConfigHandler(c.req.raw);
+    });
+    app.get('/.well-known/oauth-authorization-server/*', (c) => {
+      return authServerMetadataHandler(c.req.raw);
     });
   }
   // Run routes - permissive CORS (origin: '*')
@@ -271,6 +286,30 @@ function createAgentsHono(config: AppConfig) {
   // Baggage middleware for execution API - extracts context from API key authentication
   app.use('/run/*', async (c, next) => {
     return executionBaggageMiddleware()(c, next);
+  });
+
+  // Logger ALS context for run routes
+  app.use('/run/*', async (c, next) => {
+    const ctx = c.get('executionContext' as keyof typeof c.var) as
+      | { tenantId: string; projectId: string; agentId: string }
+      | undefined;
+    if (ctx) {
+      return runWithLogContext(
+        { tenantId: ctx.tenantId, projectId: ctx.projectId, agentId: ctx.agentId },
+        () => next()
+      );
+    }
+    return next();
+  });
+
+  // Logger ALS context for manage routes
+  app.use('/manage/tenants/*', async (c, next) => {
+    const tenantId = c.get('tenantId');
+    if (tenantId) {
+      const projectId = c.req.param('projectId');
+      return runWithLogContext({ tenantId, ...(projectId && { projectId }) }, () => next());
+    }
+    return next();
   });
 
   // management routes

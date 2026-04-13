@@ -127,6 +127,13 @@
       "when": 1774971562824,
       "tag": "0017_brief_doctor_strange",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1775500609155,
+      "tag": "0018_gorgeous_captain_america",
+      "breakpoints": true
     }
   ]
 }

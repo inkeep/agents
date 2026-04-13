@@ -1,18 +1,12 @@
 import type { BaseExecutionContext } from '@inkeep/agents-core';
 import { generateServiceToken, verifyServiceToken } from '@inkeep/agents-core';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../data/db/runDbClient.js', () => ({ default: {} }));
 
-vi.mock('../../logger.js', () => ({
-  getLogger: () => ({
-    debug: vi.fn(),
-    error: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-  }),
-}));
+vi.mock('../../logger.js', () => createMockLoggerModule().module);
 
 vi.mock('../../env.js', () => ({
   env: {

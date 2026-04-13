@@ -91,13 +91,13 @@ export class EvaluationService {
         );
       } else {
         logger.warn(
-          { conversationId: conversation.id, agentId: conversation.agentId },
+          { conversationId: conversation.id },
           'AgentId not found, cannot get agent definition'
         );
       }
     } catch (error) {
       logger.warn(
-        { error, conversationId: conversation.id, agentId: conversation.agentId },
+        { error, conversationId: conversation.id },
         'Failed to fetch agent definition for evaluation'
       );
     }

@@ -44,7 +44,7 @@ async function authorizeProject(c: Ctx, projectId: string | undefined) {
         orgRole: tenantRole,
       });
       if (!hasAccess) {
-        logger.warn({ tenantId, projectId, userId }, 'Project not found or access denied');
+        logger.warn({ userId }, 'Project not found or access denied');
         return c.json(
           { error: 'Forbidden', message: 'You do not have access to this project' },
           403
@@ -347,7 +347,7 @@ app.post('/span-lookup', async (c) => {
 app.get('/health', async (c) => {
   const signoz = getSignozConfig();
   if (!signoz) {
-    logger.warn({}, 'SigNoz credentials not set');
+    logger.warn('SigNoz credentials not set');
     return c.json({
       status: 'not_configured',
       configured: false,

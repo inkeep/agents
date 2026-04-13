@@ -71,10 +71,7 @@ app.openapi(
       }
       return c.json({ data }) as any;
     } catch (error) {
-      logger.error(
-        { error, tenantId, projectId, evaluatorIds },
-        'Failed to batch get evaluator agent scopes'
-      );
+      logger.error({ error, evaluatorIds }, 'Failed to batch get evaluator agent scopes');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -119,7 +116,7 @@ app.openapi(
       });
       return c.json({ data: relations }) as any;
     } catch (error) {
-      logger.error({ error, tenantId, projectId, evaluatorId }, 'Failed to list evaluator agents');
+      logger.error({ error, evaluatorId }, 'Failed to list evaluator agents');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -171,10 +168,7 @@ app.openapi(
         agentId,
       });
 
-      logger.info(
-        { tenantId, projectId, evaluatorId, agentId },
-        'Agent-evaluator relation created'
-      );
+      logger.info({ evaluatorId }, 'Agent-evaluator relation created');
       return c.json({ data: created }, 201) as any;
     } catch (error) {
       if (isUniqueConstraintError(error)) {
@@ -187,10 +181,7 @@ app.openapi(
         }
       }
 
-      logger.error(
-        { error, tenantId, projectId, evaluatorId, agentId },
-        'Failed to create agent-evaluator relation'
-      );
+      logger.error({ error, evaluatorId }, 'Failed to create agent-evaluator relation');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -239,16 +230,10 @@ app.openapi(
         ) as any;
       }
 
-      logger.info(
-        { tenantId, projectId, evaluatorId, agentId },
-        'Agent-evaluator relation deleted'
-      );
+      logger.info({ evaluatorId }, 'Agent-evaluator relation deleted');
       return c.body(null, 204) as any;
     } catch (error) {
-      logger.error(
-        { error, tenantId, projectId, evaluatorId, agentId },
-        'Failed to delete agent-evaluator relation'
-      );
+      logger.error({ error, evaluatorId }, 'Failed to delete agent-evaluator relation');
       return c.json(
         createApiError({
           code: 'internal_server_error',

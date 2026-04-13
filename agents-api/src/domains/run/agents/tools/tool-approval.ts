@@ -1,4 +1,8 @@
-import { parseEmbeddedJson } from '@inkeep/agents-core';
+import {
+  APPROVAL_NEEDED_EVENT,
+  APPROVAL_RESOLVED_EVENT,
+  parseEmbeddedJson,
+} from '@inkeep/agents-core';
 import type { Span } from '@opentelemetry/api';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { getLogger } from '../../../../logger';
@@ -41,41 +45,13 @@ export async function waitForToolApproval(
   if (ctx.durableWorkflowRunId) {
     const approvedToolCalls = ctx.approvedToolCalls;
     if (approvedToolCalls) {
-      const queue = approvedToolCalls[toolName];
-      const preApproved = queue?.shift();
-      if (queue?.length === 0) {
-        delete approvedToolCalls[toolName];
-      }
+      // Look up by toolCallId first, then fall back to toolName (for delegated approvals
+      // where the toolCallId changes across re-executions but the toolName stays the same).
+      const preApproved = approvedToolCalls[toolCallId] ?? approvedToolCalls[toolName];
       if (preApproved !== undefined) {
-        if (preApproved.originalToolCallId && preApproved.originalToolCallId !== toolCallId) {
-          const deniedResult = tracer.startActiveSpan(
-            'tool.approval_denied',
-            {
-              attributes: {
-                ...baseSpanAttributes,
-                'tool.approval.reason': 'originalToolCallId mismatch',
-                'tool.approval.originalToolCallId': preApproved.originalToolCallId,
-              },
-            },
-            (denialSpan: Span) => {
-              logger.warn(
-                {
-                  toolName,
-                  toolCallId,
-                  originalToolCallId: preApproved.originalToolCallId,
-                },
-                'Durable approval rejected: originalToolCallId mismatch — tool call may have changed since approval'
-              );
-              denialSpan.setStatus({ code: SpanStatusCode.OK });
-              denialSpan.end();
-              return createDeniedToolResult(
-                toolCallId,
-                'Tool approval rejected: the tool call changed since it was approved.'
-              );
-            }
-          );
-          return { approved: false, deniedResult };
-        }
+        delete approvedToolCalls[toolCallId];
+        delete approvedToolCalls[toolName];
+
         if (!preApproved.approved) {
           const deniedResult = tracer.startActiveSpan(
             'tool.approval_denied',
@@ -122,12 +98,23 @@ export async function waitForToolApproval(
 
     const streamHelper = ctx.isDelegatedAgent ? undefined : ctx.streamHelper;
     if (streamHelper) {
-      await streamHelper.writeToolApprovalRequest({
-        approvalId: `aitxt-${toolCallId}`,
-        toolCallId,
-        toolName,
-        input: args as Record<string, unknown>,
-      });
+      try {
+        await streamHelper.writeToolApprovalRequest({
+          approvalId: `aitxt-${toolCallId}`,
+          toolCallId,
+          toolName,
+          input: args as Record<string, unknown>,
+        });
+      } catch (sseError) {
+        logger.warn(
+          {
+            toolCallId,
+            toolName,
+            error: sseError instanceof Error ? sseError.message : String(sseError),
+          },
+          'Failed to stream tool approval request to client — approval is persisted and recoverable via polling'
+        );
+      }
     }
 
     ctx.pendingDurableApproval = { toolCallId, toolName, args };
@@ -155,7 +142,7 @@ export async function waitForToolApproval(
     const currentStreamRequestId = ctx.streamRequestId ?? '';
     if (currentStreamRequestId) {
       await toolApprovalUiBus.publish(currentStreamRequestId, {
-        type: 'approval-needed',
+        type: APPROVAL_NEEDED_EVENT,
         toolCallId,
         toolName,
         input: args,
@@ -178,7 +165,7 @@ export async function waitForToolApproval(
       const currentStreamRequestId = ctx.streamRequestId ?? '';
       if (currentStreamRequestId) {
         await toolApprovalUiBus.publish(currentStreamRequestId, {
-          type: 'approval-resolved',
+          type: APPROVAL_RESOLVED_EVENT,
           toolCallId,
           approved: false,
           reason: approvalResult.reason,
@@ -222,7 +209,7 @@ export async function waitForToolApproval(
     const currentStreamRequestId = ctx.streamRequestId ?? '';
     if (currentStreamRequestId) {
       await toolApprovalUiBus.publish(currentStreamRequestId, {
-        type: 'approval-resolved',
+        type: APPROVAL_RESOLVED_EVENT,
         toolCallId,
         approved: true,
       });

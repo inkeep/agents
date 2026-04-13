@@ -257,6 +257,11 @@ export type AiSdkToolDefinition = {
       args: unknown
     ) => { success: true; error?: never } | { success: false; error: { message: string } };
   };
+  baseInputSchema?: {
+    safeParse?: (
+      args: unknown
+    ) => { success: true; error?: never } | { success: false; error: { message: string } };
+  };
   execute?: (args: unknown, context?: unknown) => Promise<unknown>;
 };
 
@@ -278,10 +283,7 @@ export interface AgentRunContext {
   functionToolRelationshipIdByName: Map<string, string>;
   taskDenialRedirects: Array<{ toolName: string; toolCallId: string; reason: string }>;
   durableWorkflowRunId?: string;
-  approvedToolCalls?: Record<
-    string,
-    Array<{ approved: boolean; reason?: string; originalToolCallId?: string }>
-  >;
+  approvedToolCalls?: Record<string, { approved: boolean; reason?: string }>;
   pendingDurableApproval?: PendingDurableApproval;
   delegatedToolApproval?: {
     toolCallId: string;

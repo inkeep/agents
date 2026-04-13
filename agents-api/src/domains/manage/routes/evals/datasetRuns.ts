@@ -79,7 +79,7 @@ app.openapi(
         },
       }) as any;
     } catch (error) {
-      logger.error({ error, tenantId, projectId, datasetId }, 'Failed to list dataset runs');
+      logger.error({ error, datasetId }, 'Failed to list dataset runs');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -258,7 +258,7 @@ app.openapi(
         } as any,
       }) as any;
     } catch (error) {
-      logger.error({ error, tenantId, projectId, runId }, 'Failed to get dataset run');
+      logger.error({ error, runId }, 'Failed to get dataset run');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -357,7 +357,7 @@ app.openapi(
         },
       }) as any;
     } catch (error) {
-      logger.error({ error, tenantId, projectId, runId }, 'Failed to get dataset run items');
+      logger.error({ error, runId }, 'Failed to get dataset run items');
       return c.json(
         createApiError({
           code: 'internal_server_error',

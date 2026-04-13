@@ -1,5 +1,121 @@
 # @inkeep/agents-api
 
+## 0.68.0
+
+### Minor Changes
+
+- d1e18a8: Add OAuth 2.1 / OIDC provider support via Better Auth oauth-provider plugin
+
+### Patch Changes
+
+- e223ac8: Fix tool chaining schema breaking Anthropic constrained JSON generation by replacing per-property anyOf wrapping with a map approach
+- accbb2e: Update MCP server catalog: fix broken URLs, migrate SSE to Streamable HTTP, add 17 new servers
+- Updated dependencies [d1e18a8]
+  - @inkeep/agents-core@0.68.0
+  - @inkeep/agents-work-apps@0.68.0
+  - @inkeep/agents-email@0.68.0
+  - @inkeep/agents-mcp@0.68.0
+
+## 0.67.4
+
+### Patch Changes
+
+- @inkeep/agents-core@0.67.4
+- @inkeep/agents-email@0.67.4
+- @inkeep/agents-mcp@0.67.4
+- @inkeep/agents-work-apps@0.67.4
+
+## 0.67.3
+
+### Patch Changes
+
+- ab65543: Fix text file artifacts being returned as base64-encoded file parts instead of decoded text content
+  - @inkeep/agents-core@0.67.3
+  - @inkeep/agents-email@0.67.3
+  - @inkeep/agents-mcp@0.67.3
+  - @inkeep/agents-work-apps@0.67.3
+
+## 0.67.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.67.2
+- @inkeep/agents-email@0.67.2
+- @inkeep/agents-mcp@0.67.2
+- @inkeep/agents-work-apps@0.67.2
+
+## 0.67.1
+
+### Patch Changes
+
+- 2bf0d15: Add GET /agents/{agentId}/tool-status endpoint returning deduped MCP tool health per agent
+- ad12123: Skip artifact creation for text document attachments that are already inlined into the prompt
+  - @inkeep/agents-core@0.67.1
+  - @inkeep/agents-email@0.67.1
+  - @inkeep/agents-mcp@0.67.1
+  - @inkeep/agents-work-apps@0.67.1
+
+## 0.67.0
+
+### Minor Changes
+
+- 757ac77: Add multi-user webhook triggers with per-user dispatch delay and invocation tracking.
+
+### Patch Changes
+
+- 4e0f7c4: Improve tool chaining with ref-aware schemas, better error messages, and shared schema description constants
+- Updated dependencies [757ac77]
+  - @inkeep/agents-core@0.67.0
+  - @inkeep/agents-work-apps@0.67.0
+  - @inkeep/agents-email@0.67.0
+  - @inkeep/agents-mcp@0.67.0
+
+## 0.66.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.66.1
+- @inkeep/agents-email@0.66.1
+- @inkeep/agents-mcp@0.66.1
+- @inkeep/agents-work-apps@0.66.1
+
+## 0.66.0
+
+### Patch Changes
+
+- 9b60e24: Add pending approval polling endpoint and graceful SSE failure handling for durable tool approvals
+- 2dbefca: Register binary attachment artifacts for executions API and unify persisted upload context
+- 63a1358: Migrate logger calls to use scoped context — remove repeated ambient fields, adopt string-only logger calls
+- 0318750: Fix approval queue ordering by keying on toolCallId instead of toolName
+- 2dbefca: Fix `get_reference_artifact` to hydrate blob-backed binary artifacts into model-usable file parts. This allows agents to inspect referenced binary artifacts instead of only seeing blob metadata.
+- Updated dependencies [5596ecb]
+- Updated dependencies [63a1358]
+- Updated dependencies [01a960d]
+- Updated dependencies [4d0169b]
+  - @inkeep/agents-core@0.66.0
+  - @inkeep/agents-work-apps@0.66.0
+  - @inkeep/agents-email@0.66.0
+  - @inkeep/agents-mcp@0.66.0
+
+## 0.65.2
+
+### Patch Changes
+
+- 867b0f5: Fix durable approval replay: validate originalToolCallId before applying pre-approved decisions
+- ce94912: dispatched triggers without requiring user associations
+- 93eb31e: Add log context middleware for automatic tenantId/projectId/agentId propagation via AsyncLocalStorage
+- 34e1d67: Fix Doltgres error logging to surface root cause details, redact SQL bind params, and re-throw auto-commit failures to prevent silent data loss
+- a951178: Fix tool denial context lost across durable workflow steps
+- Updated dependencies [b33134a]
+- Updated dependencies [50f57fa]
+- Updated dependencies [fa18f84]
+- Updated dependencies [34e1d67]
+- Updated dependencies [93eb31e]
+  - @inkeep/agents-mcp@0.65.2
+  - @inkeep/agents-work-apps@0.65.2
+  - @inkeep/agents-core@0.65.2
+  - @inkeep/agents-email@0.65.2
+
 ## 0.65.1
 
 ### Patch Changes

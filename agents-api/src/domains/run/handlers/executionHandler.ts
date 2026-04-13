@@ -2,6 +2,7 @@ import {
   AGENT_EXECUTION_TRANSFER_COUNT_DEFAULT,
   createMessage,
   createTask,
+  DURABLE_APPROVAL_ARTIFACT_TYPE,
   type FullExecutionContext,
   generateId,
   generateServiceToken,
@@ -18,7 +19,7 @@ import {
 } from '@inkeep/agents-core';
 import runDbClient from '../../../data/db/runDbClient.js';
 import { flushBatchProcessor } from '../../../instrumentation.js';
-import { getLogger } from '../../../logger.js';
+import { getLogger, runWithLogContext } from '../../../logger.js';
 import { triggerConversationEvaluation } from '../../evals/services/conversationEvaluation.js';
 import { A2AClient } from '../a2a/client.js';
 import { executeTransfer } from '../a2a/transfer.js';
@@ -55,11 +56,8 @@ export interface ExecutionHandlerParams {
   responseMessageId?: string;
   /** Durable workflow run ID — present when running inside a WDK workflow */
   durableWorkflowRunId?: string;
-  /** Pre-approved tool decisions keyed by toolName — accumulated across approval loops */
-  approvedToolCalls?: Record<
-    string,
-    Array<{ approved: boolean; reason?: string; originalToolCallId?: string }>
-  >;
+  /** Pre-approved tool decisions keyed by toolCallId — accumulated across approval loops */
+  approvedToolCalls?: Record<string, { approved: boolean; reason?: string }>;
 }
 
 interface ExecutionResult {
@@ -102,35 +100,45 @@ export class ExecutionHandler {
 
     const { tenantId, projectId, project, agentId, baseUrl, resolvedRef } = executionContext;
 
-    registerStreamHelper(requestId, sseHelper);
+    return runWithLogContext({ requestId, conversationId }, async () => {
+      registerStreamHelper(requestId, sseHelper);
 
-    agentSessionManager.createSession(requestId, executionContext, conversationId);
+      agentSessionManager.createSession(requestId, executionContext, conversationId);
 
-    if (emitOperations) {
-      agentSessionManager.enableEmitOperations(requestId);
-    }
+      if (emitOperations) {
+        agentSessionManager.enableEmitOperations(requestId);
+      }
 
-    logger.info(
-      { sessionId: requestId, agentId, conversationId, emitOperations },
-      'Created AgentSession for message execution'
-    );
+      logger.info({ emitOperations }, 'Created AgentSession for message execution');
 
-    const agent = project.agents[agentId];
-    try {
-      // Always resolve models for artifact naming, even if status updates are disabled
-      let summarizerModel: ModelSettings | undefined;
-      let baseModel: ModelSettings | undefined;
-
+      const agent = project.agents[agentId];
       try {
-        if (agent?.defaultSubAgentId) {
-          const resolvedModels = await resolveModelConfig(
-            executionContext,
-            agent.subAgents[agent.defaultSubAgentId]
+        // Always resolve models for artifact naming, even if status updates are disabled
+        let summarizerModel: ModelSettings | undefined;
+        let baseModel: ModelSettings | undefined;
+
+        try {
+          if (agent?.defaultSubAgentId) {
+            const resolvedModels = await resolveModelConfig(
+              executionContext,
+              agent.subAgents[agent.defaultSubAgentId]
+            );
+            summarizerModel = resolvedModels.summarizer;
+            baseModel = resolvedModels.base;
+          } else {
+            // Fallback when no defaultSubAgentId — walk the full chain
+            summarizerModel = firstWithModel(
+              agent.models?.summarizer,
+              project.models?.summarizer,
+              project.models?.base
+            );
+            baseModel = firstWithModel(agent.models?.base, project.models?.base);
+          }
+        } catch (modelError) {
+          logger.warn(
+            { error: modelError instanceof Error ? modelError.message : 'Unknown error' },
+            'Failed to resolve models, using agent-level config'
           );
-          summarizerModel = resolvedModels.summarizer;
-          baseModel = resolvedModels.base;
-        } else {
-          // Fallback when no defaultSubAgentId — walk the full chain
           summarizerModel = firstWithModel(
             agent.models?.summarizer,
             project.models?.summarizer,
@@ -138,245 +146,519 @@ export class ExecutionHandler {
           );
           baseModel = firstWithModel(agent.models?.base, project.models?.base);
         }
-      } catch (modelError) {
-        logger.warn(
+
+        // Initialize status updates (always call to set models, but only enable events if configured)
+        const statusConfig =
+          agent?.statusUpdates && agent.statusUpdates.enabled !== false
+            ? agent.statusUpdates
+            : { enabled: false }; // Disabled but still sets models
+
+        agentSessionManager.initializeStatusUpdates(
+          requestId,
+          statusConfig,
+          summarizerModel,
+          baseModel
+        );
+      } catch (error) {
+        logger.error(
           {
-            error: modelError instanceof Error ? modelError.message : 'Unknown error',
-            agentId,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
           },
-          'Failed to resolve models, using agent-level config'
+          'Failed to initialize session configuration, continuing with defaults'
         );
-        summarizerModel = firstWithModel(
-          agent.models?.summarizer,
-          project.models?.summarizer,
-          project.models?.base
-        );
-        baseModel = firstWithModel(agent.models?.base, project.models?.base);
       }
 
-      // Initialize status updates (always call to set models, but only enable events if configured)
-      const statusConfig =
-        agent?.statusUpdates && agent.statusUpdates.enabled !== false
-          ? agent.statusUpdates
-          : { enabled: false }; // Disabled but still sets models
-
-      agentSessionManager.initializeStatusUpdates(
-        requestId,
-        statusConfig,
-        summarizerModel,
-        baseModel
-      );
-    } catch (error) {
-      logger.error(
-        {
-          error: error instanceof Error ? error.message : 'Unknown error',
-          stack: error instanceof Error ? error.stack : undefined,
-        },
-        'Failed to initialize session configuration, continuing with defaults'
-      );
-    }
-
-    let currentAgentId = initialAgentId;
-    let iterations = 0;
-    let errorCount = 0;
-    let task: any = null;
-    let fromSubAgentId: string | undefined; // Track the agent that executed a transfer
-
-    try {
-      await sseHelper.writeOperation(agentInitializingOp(requestId, agentId));
-
-      const taskId = `task_${conversationId}-${requestId}`;
-
-      logger.info(
-        { taskId, currentAgentId, conversationId, requestId },
-        'Attempting to create or reuse existing task'
-      );
+      let currentAgentId = initialAgentId;
+      let iterations = 0;
+      let errorCount = 0;
+      let task: any = null;
+      let fromSubAgentId: string | undefined; // Track the agent that executed a transfer
 
       try {
-        task = await createTask(runDbClient)({
-          id: taskId,
-          tenantId,
-          projectId,
-          agentId,
-          subAgentId: currentAgentId,
-          contextId: conversationId,
-          status: 'pending',
-          ref: resolvedRef,
-          metadata: {
-            conversation_id: conversationId,
-            message_id: requestId,
-            stream_request_id: requestId, // This also serves as the AgentSession ID
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            root_sub_agent_id: initialAgentId,
-            sub_agent_id: currentAgentId,
-          },
-        });
+        await sseHelper.writeOperation(agentInitializingOp(requestId, agentId));
 
-        logger.info(
-          {
-            taskId,
-            createdTaskMetadata: Array.isArray(task) ? task[0]?.metadata : task?.metadata,
-          },
-          'Task created with metadata'
-        );
-      } catch (error: any) {
-        if (isUniqueConstraintError(error)) {
-          logger.info(
-            { taskId, error: error.message },
-            'Task already exists, fetching existing task'
-          );
+        const taskId = `task_${conversationId}-${requestId}`;
 
-          const existingTask = await getTask(runDbClient)({
+        logger.info({ taskId, currentAgentId }, 'Attempting to create or reuse existing task');
+
+        try {
+          task = await createTask(runDbClient)({
             id: taskId,
-            scopes: { tenantId, projectId },
+            tenantId,
+            projectId,
+            agentId,
+            subAgentId: currentAgentId,
+            contextId: conversationId,
+            status: 'pending',
+            ref: resolvedRef,
+            metadata: {
+              conversation_id: conversationId,
+              message_id: requestId,
+              stream_request_id: requestId, // This also serves as the AgentSession ID
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              root_sub_agent_id: initialAgentId,
+              sub_agent_id: currentAgentId,
+            },
           });
-          if (existingTask) {
-            task = existingTask;
+
+          logger.info(
+            {
+              taskId,
+              createdTaskMetadata: Array.isArray(task) ? task[0]?.metadata : task?.metadata,
+            },
+            'Task created with metadata'
+          );
+        } catch (error: any) {
+          if (isUniqueConstraintError(error)) {
             logger.info(
-              { taskId, existingTask },
-              'Successfully reused existing task from race condition'
+              { taskId, error: error.message },
+              'Task already exists, fetching existing task'
             );
+
+            const existingTask = await getTask(runDbClient)({
+              id: taskId,
+              scopes: { tenantId, projectId },
+            });
+            if (existingTask) {
+              task = existingTask;
+              logger.info(
+                { taskId, existingTask },
+                'Successfully reused existing task from race condition'
+              );
+            } else {
+              logger.error({ taskId, error }, 'Task constraint failed but task not found');
+              throw error;
+            }
           } else {
-            logger.error({ taskId, error }, 'Task constraint failed but task not found');
+            logger.error({ taskId, error }, 'Failed to create task due to non-constraint error');
             throw error;
           }
-        } else {
-          logger.error({ taskId, error }, 'Failed to create task due to non-constraint error');
-          throw error;
         }
-      }
 
-      logger.debug(
-        {
-          timestamp: new Date(),
-          executionType: 'create_initial_task',
-          conversationId,
-          agentId,
-          requestId,
-          currentAgentId,
-          taskId: Array.isArray(task) ? task[0]?.id : task?.id,
-          userMessage: userMessage.substring(0, 100), // Truncate for security
-        },
-        'ExecutionHandler: Initial task created'
-      );
-      if (Array.isArray(task)) task = task[0];
-
-      let currentMessage = userMessage;
-
-      const maxTransfers =
-        agent?.stopWhen?.transferCountIs ?? AGENT_EXECUTION_TRANSFER_COUNT_DEFAULT;
-
-      while (iterations < maxTransfers) {
-        iterations++;
-
-        logger.info(
-          { iterations, currentAgentId, agentId, conversationId, fromSubAgentId },
-          `Execution loop iteration ${iterations} with agent ${currentAgentId}, transfer from: ${fromSubAgentId || 'none'}`
+        logger.debug(
+          {
+            executionType: 'create_initial_task',
+            currentAgentId,
+            taskId: Array.isArray(task) ? task[0]?.id : task?.id,
+            userMessage: userMessage.substring(0, 100),
+          },
+          'ExecutionHandler: Initial task created'
         );
+        if (Array.isArray(task)) task = task[0];
 
-        const activeAgent = await getActiveAgentForConversation(runDbClient)({
-          scopes: { tenantId, projectId },
-          conversationId,
-        });
+        let currentMessage = userMessage;
 
-        logger.info({ activeAgent }, 'activeAgent');
-        if (activeAgent && activeAgent.activeSubAgentId !== currentAgentId) {
-          currentAgentId = activeAgent.activeSubAgentId;
-          logger.info({ currentAgentId }, `Updated current agent to: ${currentAgentId}`);
-        }
+        const maxTransfers =
+          agent?.stopWhen?.transferCountIs ?? AGENT_EXECUTION_TRANSFER_COUNT_DEFAULT;
 
-        const agentBaseUrl = `${baseUrl}/run/agents`;
+        while (iterations < maxTransfers) {
+          iterations++;
 
-        // Always generate a service token for internal A2A self-calls.
-        // The original apiKey may be any auth type (app credential, API key, etc.)
-        // but internal calls need a service token that the runApiKeyAuth middleware
-        // can verify via verifyServiceToken(). Since we use getInProcessFetch(),
-        // signing and verification happen in the same process with the same secret.
-        const initiatedBy = executionContext.metadata?.initiatedBy as
-          | { type: 'user' | 'api_key'; id: string }
-          | undefined;
+          logger.info(
+            { iterations, currentAgentId, fromSubAgentId },
+            `Execution loop iteration ${iterations} with agent ${currentAgentId}, transfer from: ${fromSubAgentId || 'none'}`
+          );
 
-        const authToken = await generateServiceToken({
-          tenantId,
-          projectId,
-          originAgentId: agentId,
-          targetAgentId: currentAgentId,
-          initiatedBy,
-          appId: executionContext.metadata?.appId,
-        });
+          const activeAgent = await getActiveAgentForConversation(runDbClient)({
+            scopes: { tenantId, projectId },
+            conversationId,
+          });
 
-        const runAsUserId =
-          initiatedBy?.type === 'user' &&
-          initiatedBy.id &&
-          initiatedBy.id !== 'system' &&
-          !initiatedBy.id.startsWith('apikey:')
-            ? initiatedBy.id
-            : undefined;
+          logger.info({ activeAgent }, 'activeAgent');
+          if (activeAgent && activeAgent.activeSubAgentId !== currentAgentId) {
+            currentAgentId = activeAgent.activeSubAgentId;
+            logger.info({ currentAgentId }, `Updated current agent to: ${currentAgentId}`);
+          }
 
-        const trustedHeaders: Record<string, string> = {
-          Authorization: `Bearer ${authToken}`,
-          'x-inkeep-tenant-id': tenantId,
-          'x-inkeep-project-id': projectId,
-          'x-inkeep-agent-id': agentId,
-          'x-inkeep-sub-agent-id': currentAgentId,
-          ...(runAsUserId ? { 'x-inkeep-run-as-user-id': runAsUserId } : {}),
-        };
+          const agentBaseUrl = `${baseUrl}/run/agents`;
 
-        const a2aClient = new A2AClient(agentBaseUrl, {
-          headers: mergeHeadersWithoutOverrides(trustedHeaders, forwardedHeaders || {}),
-          fetchFn: getInProcessFetch(),
-        });
+          // Always generate a service token for internal A2A self-calls.
+          // The original apiKey may be any auth type (app credential, API key, etc.)
+          // but internal calls need a service token that the runApiKeyAuth middleware
+          // can verify via verifyServiceToken(). Since we use getInProcessFetch(),
+          // signing and verification happen in the same process with the same secret.
+          const initiatedBy = executionContext.metadata?.initiatedBy as
+            | { type: 'user' | 'api_key'; id: string }
+            | undefined;
 
-        let messageResponse: SendMessageResponse | null = null;
+          const authToken = await generateServiceToken({
+            tenantId,
+            projectId,
+            originAgentId: agentId,
+            targetAgentId: currentAgentId,
+            initiatedBy,
+            appId: executionContext.metadata?.appId,
+          });
 
-        const messageMetadata: any = {
-          stream_request_id: requestId, // This also serves as the AgentSession ID
-          // Pass forwardedHeaders so the task handler can extract them
-          forwardedHeaders: forwardedHeaders,
-        };
-        if (fromSubAgentId) {
-          messageMetadata.fromSubAgentId = fromSubAgentId;
-        }
-        if (params.durableWorkflowRunId) {
-          messageMetadata.durable_workflow_run_id = params.durableWorkflowRunId;
-          messageMetadata.approved_tool_calls = JSON.stringify(params.approvedToolCalls ?? {});
-        }
+          const runAsUserId =
+            initiatedBy?.type === 'user' &&
+            initiatedBy.id &&
+            initiatedBy.id !== 'system' &&
+            !initiatedBy.id.startsWith('apikey:')
+              ? initiatedBy.id
+              : undefined;
 
-        // On the first iteration, use the original message parts if provided (includes data parts from triggers)
-        // On subsequent iterations (after transfers), use text-only since currentMessage is updated
-        const partsToSend: Part[] =
-          iterations === 1 && messageParts && messageParts.length > 0
-            ? messageParts
-            : [{ kind: 'text', text: currentMessage }];
+          const trustedHeaders: Record<string, string> = {
+            Authorization: `Bearer ${authToken}`,
+            'x-inkeep-tenant-id': tenantId,
+            'x-inkeep-project-id': projectId,
+            'x-inkeep-agent-id': agentId,
+            'x-inkeep-sub-agent-id': currentAgentId,
+            ...(runAsUserId ? { 'x-inkeep-run-as-user-id': runAsUserId } : {}),
+          };
 
-        messageResponse = await a2aClient.sendMessage({
-          message: {
-            role: 'user',
-            parts: partsToSend,
-            messageId: `${requestId}-iter-${iterations}`,
-            kind: 'message',
-            contextId: conversationId,
-            metadata: messageMetadata,
-          },
-          configuration: {
-            acceptedOutputModes: ['text', 'text/plain'],
-            blocking: false,
-          },
-        });
+          const a2aClient = new A2AClient(agentBaseUrl, {
+            headers: mergeHeadersWithoutOverrides(trustedHeaders, forwardedHeaders || {}),
+            fetchFn: getInProcessFetch(),
+          });
 
-        if (!messageResponse?.result) {
-          errorCount++;
-          logger.error(
-            {
-              currentAgentId,
-              iterations,
-              errorCount,
-              hasError: !!(messageResponse as any)?.error,
-              errorDetails: (messageResponse as any)?.error,
-              fullResponse: messageResponse,
+          let messageResponse: SendMessageResponse | null = null;
+
+          const messageMetadata: any = {
+            stream_request_id: requestId, // This also serves as the AgentSession ID
+            // Pass forwardedHeaders so the task handler can extract them
+            forwardedHeaders: forwardedHeaders,
+          };
+          if (fromSubAgentId) {
+            messageMetadata.fromSubAgentId = fromSubAgentId;
+          }
+          if (params.durableWorkflowRunId) {
+            messageMetadata.durable_workflow_run_id = params.durableWorkflowRunId;
+            messageMetadata.approved_tool_calls = JSON.stringify(params.approvedToolCalls ?? {});
+          }
+
+          // On the first iteration, use the original message parts if provided (includes data parts from triggers)
+          // On subsequent iterations (after transfers), use text-only since currentMessage is updated
+          const partsToSend: Part[] =
+            iterations === 1 && messageParts && messageParts.length > 0
+              ? messageParts
+              : [{ kind: 'text', text: currentMessage }];
+
+          messageResponse = await a2aClient.sendMessage({
+            message: {
+              role: 'user',
+              parts: partsToSend,
+              messageId: `${requestId}-iter-${iterations}`,
+              kind: 'message',
+              contextId: conversationId,
+              metadata: messageMetadata,
             },
-            `No response from agent ${currentAgentId} on iteration ${iterations} (error ${errorCount}/${this.MAX_ERRORS})`
+            configuration: {
+              acceptedOutputModes: ['text', 'text/plain'],
+              blocking: false,
+            },
+          });
+
+          if (!messageResponse?.result) {
+            errorCount++;
+            logger.error(
+              {
+                currentAgentId,
+                iterations,
+                errorCount,
+                hasError: !!(messageResponse as any)?.error,
+                errorDetails: (messageResponse as any)?.error,
+                fullResponse: messageResponse,
+              },
+              `No response from agent ${currentAgentId} on iteration ${iterations} (error ${errorCount}/${this.MAX_ERRORS})`
+            );
+
+            if (errorCount >= this.MAX_ERRORS) {
+              const errorMessage = `Maximum error limit (${this.MAX_ERRORS}) reached`;
+              logger.error({ maxErrors: this.MAX_ERRORS, errorCount }, errorMessage);
+
+              // Create span to mark error
+              return tracer.startActiveSpan('execution_handler.execute', {}, async (span) => {
+                try {
+                  span.setAttributes({
+                    'ai.response.content': `Hmm.. It seems I might be having some issues right now. Please clear the chat and try again.`,
+                    'ai.response.timestamp': new Date().toISOString(),
+                    'subAgent.name': agent?.subAgents[currentAgentId]?.name,
+                    'subAgent.id': currentAgentId,
+                  });
+                  setSpanWithError(span, new Error(errorMessage));
+
+                  await sseHelper.writeOperation(errorOp(errorMessage, currentAgentId || 'system'));
+
+                  if (task) {
+                    await updateTask(runDbClient)({
+                      taskId: task.id,
+                      scopes: { tenantId, projectId },
+                      data: {
+                        status: 'failed',
+                        metadata: {
+                          ...task.metadata,
+                          failed_at: new Date().toISOString(),
+                          error: errorMessage,
+                        },
+                      },
+                    });
+                  }
+
+                  await agentSessionManager.endSession(requestId);
+                  unregisterStreamHelper(requestId);
+                  return { success: false, error: errorMessage, iterations };
+                } finally {
+                  span.end();
+                  await new Promise((resolve) => setImmediate(resolve));
+                  await flushBatchProcessor();
+                }
+              });
+            }
+
+            continue;
+          }
+
+          const firstArtifactData = (messageResponse.result as any)?.artifacts?.[0]?.parts?.[0]
+            ?.data as { type?: string; toolCallId?: string; toolName?: string; args?: unknown };
+          if (firstArtifactData?.type === DURABLE_APPROVAL_ARTIFACT_TYPE) {
+            return {
+              success: true,
+              iterations,
+              pendingApproval: {
+                toolCallId: firstArtifactData.toolCallId ?? '',
+                toolName: firstArtifactData.toolName ?? '',
+                args: firstArtifactData.args,
+              },
+            };
+          }
+
+          if (isTransferTask(messageResponse.result)) {
+            const transferData = extractTransferData(messageResponse.result);
+
+            if (!transferData) {
+              logger.error(
+                { result: messageResponse.result },
+                'Transfer detected but no transfer data found'
+              );
+              continue;
+            }
+
+            const { targetSubAgentId, fromSubAgentId: transferFromAgent } = transferData;
+
+            const firstArtifact = messageResponse.result.artifacts[0];
+            const transferReason =
+              firstArtifact?.parts[1]?.kind === 'text'
+                ? firstArtifact.parts[1].text
+                : 'Transfer initiated';
+
+            logger.info(
+              { targetSubAgentId, transferReason, transferFromAgent },
+              'Transfer response'
+            );
+
+            // Store the transfer response as an assistant message in conversation history
+            await createMessage(runDbClient)({
+              scopes: { tenantId, projectId },
+              data: {
+                id: generateId(),
+                conversationId,
+                role: 'agent',
+                content: {
+                  text: transferReason,
+                  parts: [
+                    {
+                      kind: 'text',
+                      text: transferReason,
+                    },
+                  ],
+                },
+                visibility: 'user-facing',
+                messageType: 'chat',
+                fromSubAgentId: currentAgentId,
+                taskId: task.id,
+              },
+            });
+            // Keep the original user message and add a continuation prompt
+            currentMessage =
+              currentMessage +
+              '\n\nPlease continue this conversation seamlessly. The previous response in conversation history was from another internal agent, but you must continue as if YOU made that response. All responses must appear as one unified agent - do not repeat what was already communicated.';
+
+            const { success, targetSubAgentId: newAgentId } = await executeTransfer({
+              projectId,
+              tenantId,
+              threadId: conversationId,
+              agentId: agentId,
+              targetSubAgentId,
+              ref: resolvedRef,
+            });
+
+            if (success) {
+              fromSubAgentId = currentAgentId;
+              currentAgentId = newAgentId;
+
+              logger.info(
+                {
+                  transferFrom: fromSubAgentId,
+                  transferTo: currentAgentId,
+                  reason: transferReason,
+                },
+                'Transfer executed, tracking fromSubAgentId for next iteration'
+              );
+            }
+
+            continue;
+          }
+
+          let responseParts = [];
+
+          if ((messageResponse.result as any).streamedContent?.parts) {
+            responseParts = (messageResponse.result as any).streamedContent.parts;
+            logger.info(
+              { partsCount: responseParts.length },
+              'Using streamed content for conversation history'
+            );
+          } else {
+            responseParts =
+              (messageResponse.result as any).artifacts?.flatMap(
+                (artifact: any) => artifact.parts || []
+              ) || [];
+            logger.info(
+              { partsCount: responseParts.length },
+              'Using artifacts for conversation history (fallback)'
+            );
+          }
+
+          if (responseParts && responseParts.length > 0) {
+            const agentSessionData = agentSessionManager.getSession(requestId);
+            if (agentSessionData) {
+              const sessionSummary = agentSessionData.getSummary();
+              logger.info(sessionSummary, 'AgentSession data after completion');
+            }
+
+            let textContent = '';
+            for (const part of responseParts) {
+              const isTextPart = getResponsePartKind(part) === 'text' && part.text;
+
+              if (isTextPart) {
+                textContent += part.text;
+              }
+            }
+
+            // Stream completion operation - wrapped in span for tracing
+            return tracer.startActiveSpan('execution_handler.execute', {}, async (span) => {
+              try {
+                const messageId = params.responseMessageId || generateId();
+                span.setAttributes({
+                  'ai.response.content': textContent || 'No response content',
+                  'ai.response.timestamp': new Date().toISOString(),
+                  'subAgent.name': agent?.subAgents[currentAgentId]?.name,
+                  'subAgent.id': currentAgentId,
+                  'message.id': messageId,
+                });
+
+                // Store the agent response in the database with both text and parts
+                await createMessage(runDbClient)({
+                  scopes: { tenantId, projectId },
+                  data: {
+                    id: messageId,
+                    conversationId,
+                    role: 'agent',
+                    content: {
+                      text: textContent || undefined,
+                      parts: responseParts.map((part: any) => {
+                        const k = getResponsePartKind(part);
+                        if (k === 'text') {
+                          return { kind: 'text', text: part.text };
+                        }
+                        return {
+                          kind: 'data',
+                          text: undefined,
+                          data: k === 'data' ? JSON.stringify(part.data) : undefined,
+                        };
+                      }),
+                    },
+                    visibility: 'user-facing',
+                    messageType: 'chat',
+                    fromSubAgentId: currentAgentId,
+                    taskId: task.id,
+                  },
+                });
+
+                // Mark task as completed
+                const updateTaskStart = Date.now();
+                await updateTask(runDbClient)({
+                  taskId: task.id,
+                  scopes: { tenantId, projectId },
+                  data: {
+                    status: 'completed',
+                    metadata: {
+                      ...task.metadata,
+                      completed_at: new Date(),
+                      response: {
+                        text: textContent,
+                        parts: responseParts,
+                        hasText: !!textContent,
+                        hasData: responseParts.some((p: any) => getResponsePartKind(p) === 'data'),
+                      },
+                    },
+                  },
+                });
+
+                const updateTaskEnd = Date.now();
+                logger.info(
+                  { duration: updateTaskEnd - updateTaskStart },
+                  'Completed updateTask operation'
+                );
+
+                // Send completion data operation before ending session
+                await sseHelper.writeOperation(completionOp(currentAgentId, iterations));
+
+                // Complete the stream to flush any queued operations
+                await sseHelper.complete();
+
+                // End the AgentSession and clean up resources
+                logger.info('Ending AgentSession and cleaning up');
+                await agentSessionManager.endSession(requestId);
+
+                // Clean up streamHelper
+                logger.info('Cleaning up streamHelper');
+                unregisterStreamHelper(requestId);
+
+                // Extract captured response if using BufferingStreamHelper
+                let response: string | undefined;
+                if (sseHelper instanceof BufferingStreamHelper) {
+                  const captured = sseHelper.getCapturedResponse();
+                  response = captured.text || 'No response content';
+                }
+
+                logger.info('ExecutionHandler returning success');
+                // Trigger evaluation
+                if (!params.datasetRunId) {
+                  triggerConversationEvaluation({
+                    tenantId,
+                    projectId,
+                    conversationId,
+                    resolvedRef,
+                  }).catch((error) => {
+                    logger.error(
+                      { error },
+                      'Failed to trigger conversation evaluation (non-blocking)'
+                    );
+                  });
+                }
+
+                return { success: true, iterations, response };
+              } catch (error) {
+                setSpanWithError(span, error instanceof Error ? error : new Error(String(error)));
+                throw error;
+              } finally {
+                span.end();
+                // Flush batch processor immediately after span ends to ensure it's sent to SignOz
+                // Use setImmediate to allow span to be processed before flushing
+                await new Promise((resolve) => setImmediate(resolve));
+                await flushBatchProcessor();
+              }
+            });
+          }
+
+          // If we get here, we didn't get a valid response or transfer
+          errorCount++;
+          logger.warn(
+            { iterations, errorCount },
+            `No valid response or transfer on iteration ${iterations} (error ${errorCount}/${this.MAX_ERRORS})`
           );
 
           if (errorCount >= this.MAX_ERRORS) {
@@ -387,7 +669,8 @@ export class ExecutionHandler {
             return tracer.startActiveSpan('execution_handler.execute', {}, async (span) => {
               try {
                 span.setAttributes({
-                  'ai.response.content': `Hmm.. It seems I might be having some issues right now. Please clear the chat and try again.`,
+                  'ai.response.content':
+                    'Hmm.. It seems I might be having some issues right now. Please clear the chat and try again.',
                   'ai.response.timestamp': new Date().toISOString(),
                   'subAgent.name': agent?.subAgents[currentAgentId]?.name,
                   'subAgent.id': currentAgentId,
@@ -404,7 +687,7 @@ export class ExecutionHandler {
                       status: 'failed',
                       metadata: {
                         ...task.metadata,
-                        failed_at: new Date().toISOString(),
+                        failed_at: new Date(),
                         error: errorMessage,
                       },
                     },
@@ -413,6 +696,21 @@ export class ExecutionHandler {
 
                 await agentSessionManager.endSession(requestId);
                 unregisterStreamHelper(requestId);
+                // Trigger evaluation for regular conversations (not dataset runs)
+                if (!params.datasetRunId) {
+                  triggerConversationEvaluation({
+                    tenantId,
+                    projectId,
+                    conversationId,
+                    resolvedRef,
+                  }).catch((evalError) => {
+                    logger.error(
+                      { error: evalError },
+                      'Failed to trigger conversation evaluation (non-blocking)'
+                    );
+                  });
+                }
+
                 return { success: false, error: errorMessage, iterations };
               } finally {
                 span.end();
@@ -421,412 +719,104 @@ export class ExecutionHandler {
               }
             });
           }
-
-          continue;
         }
 
-        const firstArtifactData = (messageResponse.result as any)?.artifacts?.[0]?.parts?.[0]
-          ?.data as { type?: string; toolCallId?: string; toolName?: string; args?: unknown };
-        if (firstArtifactData?.type === 'durable-approval-required') {
-          return {
-            success: true,
-            iterations,
-            pendingApproval: {
-              toolCallId: firstArtifactData.toolCallId ?? '',
-              toolName: firstArtifactData.toolName ?? '',
-              args: firstArtifactData.args,
-            },
-          };
-        }
+        // Max transfers reached
+        const maxTransfersErrorMessage = `Maximum transfer limit (${maxTransfers}) reached without completion`;
+        logger.error({ maxTransfers, iterations }, maxTransfersErrorMessage);
 
-        if (isTransferTask(messageResponse.result)) {
-          const transferData = extractTransferData(messageResponse.result);
+        // Create span to mark error
+        return tracer.startActiveSpan('execution_handler.execute', {}, async (span) => {
+          try {
+            span.setAttributes({
+              'ai.response.content':
+                'Hmm.. It seems I might be having some issues right now. Please clear the chat and try again.',
+              'ai.response.timestamp': new Date().toISOString(),
+              'subAgent.name': agent?.subAgents[currentAgentId]?.name,
+              'subAgent.id': currentAgentId,
+            });
+            setSpanWithError(span, new Error(maxTransfersErrorMessage));
 
-          if (!transferData) {
-            logger.error(
-              { result: messageResponse.result },
-              'Transfer detected but no transfer data found'
+            // Send error operation for max iterations reached
+            await sseHelper.writeOperation(
+              errorOp(maxTransfersErrorMessage, currentAgentId || 'system')
             );
-            continue;
-          }
 
-          const { targetSubAgentId, fromSubAgentId: transferFromAgent } = transferData;
-
-          const firstArtifact = messageResponse.result.artifacts[0];
-          const transferReason =
-            firstArtifact?.parts[1]?.kind === 'text'
-              ? firstArtifact.parts[1].text
-              : 'Transfer initiated';
-
-          logger.info({ targetSubAgentId, transferReason, transferFromAgent }, 'Transfer response');
-
-          // Store the transfer response as an assistant message in conversation history
-          await createMessage(runDbClient)({
-            scopes: { tenantId, projectId },
-            data: {
-              id: generateId(),
-              conversationId,
-              role: 'agent',
-              content: {
-                text: transferReason,
-                parts: [
-                  {
-                    kind: 'text',
-                    text: transferReason,
-                  },
-                ],
-              },
-              visibility: 'user-facing',
-              messageType: 'chat',
-              fromSubAgentId: currentAgentId,
-              taskId: task.id,
-            },
-          });
-          // Keep the original user message and add a continuation prompt
-          currentMessage =
-            currentMessage +
-            '\n\nPlease continue this conversation seamlessly. The previous response in conversation history was from another internal agent, but you must continue as if YOU made that response. All responses must appear as one unified agent - do not repeat what was already communicated.';
-
-          const { success, targetSubAgentId: newAgentId } = await executeTransfer({
-            projectId,
-            tenantId,
-            threadId: conversationId,
-            agentId: agentId,
-            targetSubAgentId,
-            ref: resolvedRef,
-          });
-
-          if (success) {
-            fromSubAgentId = currentAgentId;
-            currentAgentId = newAgentId;
-
-            logger.info(
-              {
-                transferFrom: fromSubAgentId,
-                transferTo: currentAgentId,
-                reason: transferReason,
-              },
-              'Transfer executed, tracking fromSubAgentId for next iteration'
-            );
-          }
-
-          continue;
-        }
-
-        let responseParts = [];
-
-        if ((messageResponse.result as any).streamedContent?.parts) {
-          responseParts = (messageResponse.result as any).streamedContent.parts;
-          logger.info(
-            { partsCount: responseParts.length },
-            'Using streamed content for conversation history'
-          );
-        } else {
-          responseParts =
-            (messageResponse.result as any).artifacts?.flatMap(
-              (artifact: any) => artifact.parts || []
-            ) || [];
-          logger.info(
-            { partsCount: responseParts.length },
-            'Using artifacts for conversation history (fallback)'
-          );
-        }
-
-        if (responseParts && responseParts.length > 0) {
-          const agentSessionData = agentSessionManager.getSession(requestId);
-          if (agentSessionData) {
-            const sessionSummary = agentSessionData.getSummary();
-            logger.info(sessionSummary, 'AgentSession data after completion');
-          }
-
-          let textContent = '';
-          for (const part of responseParts) {
-            const isTextPart = getResponsePartKind(part) === 'text' && part.text;
-
-            if (isTextPart) {
-              textContent += part.text;
-            }
-          }
-
-          // Stream completion operation - wrapped in span for tracing
-          return tracer.startActiveSpan('execution_handler.execute', {}, async (span) => {
-            try {
-              const messageId = params.responseMessageId || generateId();
-              span.setAttributes({
-                'ai.response.content': textContent || 'No response content',
-                'ai.response.timestamp': new Date().toISOString(),
-                'subAgent.name': agent?.subAgents[currentAgentId]?.name,
-                'subAgent.id': currentAgentId,
-                'message.id': messageId,
-              });
-
-              // Store the agent response in the database with both text and parts
-              await createMessage(runDbClient)({
-                scopes: { tenantId, projectId },
-                data: {
-                  id: messageId,
-                  conversationId,
-                  role: 'agent',
-                  content: {
-                    text: textContent || undefined,
-                    parts: responseParts.map((part: any) => {
-                      const k = getResponsePartKind(part);
-                      if (k === 'text') {
-                        return { kind: 'text', text: part.text };
-                      }
-                      return {
-                        kind: 'data',
-                        text: undefined,
-                        data: k === 'data' ? JSON.stringify(part.data) : undefined,
-                      };
-                    }),
-                  },
-                  visibility: 'user-facing',
-                  messageType: 'chat',
-                  fromSubAgentId: currentAgentId,
-                  taskId: task.id,
-                },
-              });
-
-              // Mark task as completed
-              const updateTaskStart = Date.now();
+            // Mark task as failed
+            if (task) {
               await updateTask(runDbClient)({
                 taskId: task.id,
                 scopes: { tenantId, projectId },
                 data: {
-                  status: 'completed',
+                  status: 'failed',
                   metadata: {
                     ...task.metadata,
-                    completed_at: new Date(),
-                    response: {
-                      text: textContent,
-                      parts: responseParts,
-                      hasText: !!textContent,
-                      hasData: responseParts.some((p: any) => getResponsePartKind(p) === 'data'),
-                    },
+                    failed_at: new Date(),
+                    error: maxTransfersErrorMessage,
                   },
                 },
               });
-
-              const updateTaskEnd = Date.now();
-              logger.info(
-                { duration: updateTaskEnd - updateTaskStart },
-                'Completed updateTask operation'
-              );
-
-              // Send completion data operation before ending session
-              await sseHelper.writeOperation(completionOp(currentAgentId, iterations));
-
-              // Complete the stream to flush any queued operations
-              await sseHelper.complete();
-
-              // End the AgentSession and clean up resources
-              logger.info({}, 'Ending AgentSession and cleaning up');
-              await agentSessionManager.endSession(requestId);
-
-              // Clean up streamHelper
-              logger.info({}, 'Cleaning up streamHelper');
-              unregisterStreamHelper(requestId);
-
-              // Extract captured response if using BufferingStreamHelper
-              let response: string | undefined;
-              if (sseHelper instanceof BufferingStreamHelper) {
-                const captured = sseHelper.getCapturedResponse();
-                response = captured.text || 'No response content';
-              }
-
-              logger.info({}, 'ExecutionHandler returning success');
-              // Trigger evaluation
-              if (!params.datasetRunId) {
-                triggerConversationEvaluation({
-                  tenantId,
-                  projectId,
-                  conversationId,
-                  resolvedRef,
-                }).catch((error) => {
-                  logger.error(
-                    { error, conversationId, tenantId, projectId, resolvedRef },
-                    'Failed to trigger conversation evaluation (non-blocking)'
-                  );
-                });
-              }
-
-              return { success: true, iterations, response };
-            } catch (error) {
-              setSpanWithError(span, error instanceof Error ? error : new Error(String(error)));
-              throw error;
-            } finally {
-              span.end();
-              // Flush batch processor immediately after span ends to ensure it's sent to SignOz
-              // Use setImmediate to allow span to be processed before flushing
-              await new Promise((resolve) => setImmediate(resolve));
-              await flushBatchProcessor();
             }
-          });
-        }
+            // Clean up AgentSession and streamHelper on error
+            await agentSessionManager.endSession(requestId);
+            unregisterStreamHelper(requestId);
+            return { success: false, error: maxTransfersErrorMessage, iterations };
+          } finally {
+            span.end();
+            await new Promise((resolve) => setImmediate(resolve));
+            await flushBatchProcessor();
+          }
+        });
+      } catch (error) {
+        const rootCause = unwrapError(error);
+        const errorMessage = rootCause.message;
+        const errorStack = rootCause.stack;
+        logger.error({ errorMessage, errorStack }, 'Error in execution handler');
 
-        // If we get here, we didn't get a valid response or transfer
-        errorCount++;
-        logger.warn(
-          { iterations, errorCount },
-          `No valid response or transfer on iteration ${iterations} (error ${errorCount}/${this.MAX_ERRORS})`
-        );
+        // Create a span to mark this error for tracing
+        return tracer.startActiveSpan('execution_handler.execute', {}, async (span) => {
+          try {
+            span.setAttributes({
+              'ai.response.content':
+                'Hmm.. It seems I might be having some issues right now. Please clear the chat and try again.',
+              'ai.response.timestamp': new Date().toISOString(),
+              'subAgent.name': agent?.subAgents[currentAgentId]?.name,
+              'subAgent.id': currentAgentId,
+            });
+            setSpanWithError(span, rootCause);
 
-        if (errorCount >= this.MAX_ERRORS) {
-          const errorMessage = `Maximum error limit (${this.MAX_ERRORS}) reached`;
-          logger.error({ maxErrors: this.MAX_ERRORS, errorCount }, errorMessage);
+            // Stream error operation
+            // Send error operation for execution exception
+            await sseHelper.writeOperation(
+              errorOp(`Execution error: ${errorMessage}`, currentAgentId || 'system')
+            );
 
-          // Create span to mark error
-          return tracer.startActiveSpan('execution_handler.execute', {}, async (span) => {
-            try {
-              span.setAttributes({
-                'ai.response.content':
-                  'Hmm.. It seems I might be having some issues right now. Please clear the chat and try again.',
-                'ai.response.timestamp': new Date().toISOString(),
-                'subAgent.name': agent?.subAgents[currentAgentId]?.name,
-                'subAgent.id': currentAgentId,
-              });
-              setSpanWithError(span, new Error(errorMessage));
-
-              await sseHelper.writeOperation(errorOp(errorMessage, currentAgentId || 'system'));
-
-              if (task) {
-                await updateTask(runDbClient)({
-                  taskId: task.id,
-                  scopes: { tenantId, projectId },
-                  data: {
-                    status: 'failed',
-                    metadata: {
-                      ...task.metadata,
-                      failed_at: new Date(),
-                      error: errorMessage,
-                    },
+            // Mark task as failed
+            if (task) {
+              await updateTask(runDbClient)({
+                taskId: task.id,
+                scopes: { tenantId, projectId },
+                data: {
+                  status: 'failed',
+                  metadata: {
+                    ...task.metadata,
+                    failed_at: new Date(),
+                    error: errorMessage,
                   },
-                });
-              }
-
-              await agentSessionManager.endSession(requestId);
-              unregisterStreamHelper(requestId);
-              // Trigger evaluation for regular conversations (not dataset runs)
-              if (!params.datasetRunId) {
-                triggerConversationEvaluation({
-                  tenantId,
-                  projectId,
-                  conversationId,
-                  resolvedRef,
-                }).catch((evalError) => {
-                  logger.error(
-                    { error: evalError, conversationId, tenantId, projectId },
-                    'Failed to trigger conversation evaluation (non-blocking)'
-                  );
-                });
-              }
-
-              return { success: false, error: errorMessage, iterations };
-            } finally {
-              span.end();
-              await new Promise((resolve) => setImmediate(resolve));
-              await flushBatchProcessor();
+                },
+              });
             }
-          });
-        }
+            // Clean up AgentSession and streamHelper on exception
+            await agentSessionManager.endSession(requestId);
+            unregisterStreamHelper(requestId);
+            return { success: false, error: errorMessage, iterations };
+          } finally {
+            span.end();
+            await new Promise((resolve) => setImmediate(resolve));
+            await flushBatchProcessor();
+          }
+        });
       }
-
-      // Max transfers reached
-      const maxTransfersErrorMessage = `Maximum transfer limit (${maxTransfers}) reached without completion`;
-      logger.error({ maxTransfers, iterations }, maxTransfersErrorMessage);
-
-      // Create span to mark error
-      return tracer.startActiveSpan('execution_handler.execute', {}, async (span) => {
-        try {
-          span.setAttributes({
-            'ai.response.content':
-              'Hmm.. It seems I might be having some issues right now. Please clear the chat and try again.',
-            'ai.response.timestamp': new Date().toISOString(),
-            'subAgent.name': agent?.subAgents[currentAgentId]?.name,
-            'subAgent.id': currentAgentId,
-          });
-          setSpanWithError(span, new Error(maxTransfersErrorMessage));
-
-          // Send error operation for max iterations reached
-          await sseHelper.writeOperation(
-            errorOp(maxTransfersErrorMessage, currentAgentId || 'system')
-          );
-
-          // Mark task as failed
-          if (task) {
-            await updateTask(runDbClient)({
-              taskId: task.id,
-              scopes: { tenantId, projectId },
-              data: {
-                status: 'failed',
-                metadata: {
-                  ...task.metadata,
-                  failed_at: new Date(),
-                  error: maxTransfersErrorMessage,
-                },
-              },
-            });
-          }
-          // Clean up AgentSession and streamHelper on error
-          await agentSessionManager.endSession(requestId);
-          unregisterStreamHelper(requestId);
-          return { success: false, error: maxTransfersErrorMessage, iterations };
-        } finally {
-          span.end();
-          await new Promise((resolve) => setImmediate(resolve));
-          await flushBatchProcessor();
-        }
-      });
-    } catch (error) {
-      const rootCause = unwrapError(error);
-      const errorMessage = rootCause.message;
-      const errorStack = rootCause.stack;
-      logger.error({ errorMessage, errorStack }, 'Error in execution handler');
-
-      // Create a span to mark this error for tracing
-      return tracer.startActiveSpan('execution_handler.execute', {}, async (span) => {
-        try {
-          span.setAttributes({
-            'ai.response.content':
-              'Hmm.. It seems I might be having some issues right now. Please clear the chat and try again.',
-            'ai.response.timestamp': new Date().toISOString(),
-            'subAgent.name': agent?.subAgents[currentAgentId]?.name,
-            'subAgent.id': currentAgentId,
-          });
-          setSpanWithError(span, rootCause);
-
-          // Stream error operation
-          // Send error operation for execution exception
-          await sseHelper.writeOperation(
-            errorOp(`Execution error: ${errorMessage}`, currentAgentId || 'system')
-          );
-
-          // Mark task as failed
-          if (task) {
-            await updateTask(runDbClient)({
-              taskId: task.id,
-              scopes: { tenantId, projectId },
-              data: {
-                status: 'failed',
-                metadata: {
-                  ...task.metadata,
-                  failed_at: new Date(),
-                  error: errorMessage,
-                },
-              },
-            });
-          }
-          // Clean up AgentSession and streamHelper on exception
-          await agentSessionManager.endSession(requestId);
-          unregisterStreamHelper(requestId);
-          return { success: false, error: errorMessage, iterations };
-        } finally {
-          span.end();
-          await new Promise((resolve) => setImmediate(resolve));
-          await flushBatchProcessor();
-        }
-      });
-    }
+    }); // end runWithLogContext
   }
 }

@@ -46,7 +46,7 @@ import { getAgentRelations, getAgentRelationsByAgent } from './subAgentRelations
 import { getSubAgentById } from './subAgents';
 import { getSubAgentTeamAgentRelationsByAgent } from './subAgentTeamAgentRelations';
 import { listTools } from './tools';
-import { listTriggers } from './triggers';
+import { getTriggerUsersBatch, listTriggers } from './triggers';
 
 export const getAgentById =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
@@ -918,6 +918,12 @@ const getFullAgentDefinitionInternal =
       agentsLogger.debug({ agentId, count: triggersList.length }, 'Fetched triggers for agent');
 
       if (triggersList.length > 0) {
+        const triggerIds = triggersList.map((t) => t.id);
+        const usersByTrigger = await getTriggerUsersBatch(db)({
+          scopes: { tenantId, projectId, agentId },
+          triggerIds,
+        });
+
         const triggersObject: Record<string, any> = {};
         for (const trigger of triggersList) {
           triggersObject[trigger.id] = {
@@ -931,7 +937,9 @@ const getFullAgentDefinitionInternal =
             authentication: trigger.authentication,
             signingSecretCredentialReferenceId: trigger.signingSecretCredentialReferenceId,
             signatureVerification: trigger.signatureVerification,
+            dispatchDelayMs: trigger.dispatchDelayMs,
             runAsUserId: trigger.runAsUserId,
+            runAsUserIds: usersByTrigger.get(trigger.id) ?? [],
             createdBy: trigger.createdBy,
           };
         }

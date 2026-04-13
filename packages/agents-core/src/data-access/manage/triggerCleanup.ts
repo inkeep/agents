@@ -9,7 +9,7 @@ import { getLogger } from '../../utils/logger';
 import type { ResolvedRef } from '../../validation/dolt-schemas';
 import { listProjectsMetadata } from '../runtime/projects';
 import { deleteScheduledTriggersByRunAsUserId } from '../runtime/scheduledTriggers';
-import { deleteTriggersByRunAsUserId } from './triggers';
+import { deleteTriggersByRunAsUserId, removeUserFromProjectTriggerUsers } from './triggers';
 
 const logger = getLogger('auth-cleanup');
 
@@ -60,6 +60,7 @@ export async function cleanupUserTriggers(params: {
         ref,
         async (db) => {
           await deleteTriggersByRunAsUserId(db)({ tenantId, projectId, runAsUserId: userId });
+          await removeUserFromProjectTriggerUsers(db)({ tenantId, projectId, userId });
         },
         {
           commit: true,

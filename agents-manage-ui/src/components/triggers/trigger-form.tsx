@@ -281,7 +281,8 @@ const triggerFormSchema = z.object({
   headerCaseSensitive: z.boolean().optional(),
   allowEmptyBody: z.boolean().optional(),
   normalizeUnicode: z.boolean().optional(),
-  runAsUserId: z.string().optional(),
+  runAsUserIds: z.array(z.string()).default([]),
+  dispatchDelayMs: z.coerce.number().int().min(0).max(600_000).optional(),
 });
 
 type TriggerFormData = z.infer<typeof triggerFormSchema>;
@@ -317,7 +318,6 @@ export function TriggerForm({
   const { members: orgMembers, isLoading: isMembersLoading } = useOrgMembers(tenantId, projectId);
 
   const selectableMembers = isAdmin ? orgMembers : orgMembers.filter((m) => m.id === user?.id);
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [multiUserOpen, setMultiUserOpen] = useState(false);
 
   // Fetch available credentials (only project-scoped credentials are allowed for triggers)
@@ -387,7 +387,8 @@ export function TriggerForm({
         headerCaseSensitive: false,
         allowEmptyBody: true,
         normalizeUnicode: false,
-        runAsUserId: p?.runAsUserId || undefined,
+        runAsUserIds: p?.runAsUserId ? [p.runAsUserId] : [],
+        dispatchDelayMs: p?.dispatchDelayMs ? Number(p.dispatchDelayMs) : undefined,
       };
     }
 
@@ -459,7 +460,13 @@ export function TriggerForm({
       headerCaseSensitive: signatureVerification?.validation?.headerCaseSensitive ?? false,
       allowEmptyBody: signatureVerification?.validation?.allowEmptyBody ?? true,
       normalizeUnicode: signatureVerification?.validation?.normalizeUnicode ?? false,
-      runAsUserId: trigger.runAsUserId ?? undefined,
+      runAsUserIds:
+        trigger.runAsUserIds && trigger.runAsUserIds.length > 0
+          ? trigger.runAsUserIds
+          : trigger.runAsUserId
+            ? [trigger.runAsUserId]
+            : [],
+      dispatchDelayMs: trigger.dispatchDelayMs ?? undefined,
     };
   };
 
@@ -481,7 +488,7 @@ export function TriggerForm({
   const [
     transformType,
     signatureSource,
-    watchedRunAsUserId,
+    watchedRunAsUserIds,
     watchedAuthHeaders,
     watchedSignatureVerificationEnabled,
     watchedSigningCredential,
@@ -496,7 +503,7 @@ export function TriggerForm({
     name: [
       'transformType',
       'signatureSource',
-      'runAsUserId',
+      'runAsUserIds',
       'authHeaders',
       'signatureVerificationEnabled',
       'signingSecretCredentialReferenceId',
@@ -508,11 +515,6 @@ export function TriggerForm({
       'joinSeparator',
     ],
   });
-
-  const resolveRunAsUserId = (value: string | undefined): string | null => {
-    if (!value || value === NONE_VALUE) return null;
-    return value;
-  };
 
   const getMemberDisplayName = (userId: string): string => {
     const member = orgMembers.find((m) => m.id === userId);
@@ -736,6 +738,7 @@ export function TriggerForm({
         name: data.name,
         description: data.description || undefined,
         enabled: data.enabled,
+        dispatchDelayMs: data.dispatchDelayMs !== undefined ? data.dispatchDelayMs : undefined,
         // Send null to explicitly clear messageTemplate, undefined to keep existing
         messageTemplate:
           trimmedMessageTemplate === ''
@@ -755,47 +758,19 @@ export function TriggerForm({
         ...(signatureVerification && { signatureVerification }),
       };
 
+      const runAsUserIds = data.runAsUserIds.filter((id) => id !== NONE_VALUE);
+
       if (mode === 'create') {
-        const usersToCreate =
-          selectedUserIds.length > 0 ? selectedUserIds : [data.runAsUserId || NONE_VALUE];
-
-        if (usersToCreate.length === 1) {
-          const singlePayload = { ...payload, runAsUserId: resolveRunAsUserId(usersToCreate[0]) };
-          const result = await createTriggerAction(tenantId, projectId, agentId, singlePayload);
-          if (result.success) {
-            toast.success('Trigger created successfully');
-            router.push(redirectPath);
-          } else {
-            toast.error(result.error || 'Failed to create trigger');
-          }
-          return;
-        }
-
-        const bulkResults = await Promise.allSettled(
-          usersToCreate.map((userId) => {
-            const displayName = getMemberDisplayName(userId);
-            const bulkPayload = {
-              ...payload,
-              name: `${data.name} (${displayName})`,
-              runAsUserId: resolveRunAsUserId(userId),
-            };
-            return createTriggerAction(tenantId, projectId, agentId, bulkPayload);
-          })
-        );
-
-        const succeeded = bulkResults.filter(
-          (r) => r.status === 'fulfilled' && r.value.success
-        ).length;
-        const failed = bulkResults.length - succeeded;
-
-        if (failed === 0) {
-          toast.success(`Created ${succeeded} triggers successfully`);
-          router.push(redirectPath);
-        } else if (succeeded > 0) {
-          toast.warning(`Created ${succeeded}/${bulkResults.length} triggers. ${failed} failed.`);
+        const result = await createTriggerAction(tenantId, projectId, agentId, {
+          ...payload,
+          runAsUserIds,
+          runAsUserId: null,
+        });
+        if (result.success) {
+          toast.success('Trigger created successfully');
           router.push(redirectPath);
         } else {
-          toast.error('Failed to create triggers');
+          toast.error(result.error || 'Failed to create trigger');
         }
         return;
       }
@@ -805,7 +780,11 @@ export function TriggerForm({
         return;
       }
 
-      const editPayload = { ...payload, runAsUserId: resolveRunAsUserId(data.runAsUserId) };
+      const editPayload = {
+        ...payload,
+        runAsUserIds,
+        runAsUserId: null,
+      };
       const result = await updateTriggerAction(
         tenantId,
         projectId,
@@ -873,7 +852,7 @@ export function TriggerForm({
         {/* Run As */}
         <Card>
           <CardHeader>
-            <CardTitle>Run As</CardTitle>
+            <CardTitle>Execution Identity</CardTitle>
             <CardDescription>
               Choose which user identity the trigger should run as. This determines whose
               credentials and permissions are used during execution.
@@ -885,115 +864,128 @@ export function TriggerForm({
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                 Loading users...
               </div>
-            ) : mode === 'create' && isAdmin ? (
-              <div className="grid gap-2">
-                <span className="text-sm font-medium leading-none">Run as Users</span>
-                <Popover open={multiUserOpen} onOpenChange={setMultiUserOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-between"
-                      role="combobox"
-                      aria-expanded={multiUserOpen}
-                    >
-                      <span className="truncate">
-                        {selectedUserIds.length === 0
-                          ? 'None'
-                          : selectedUserIds.length === 1
-                            ? getMemberDisplayName(selectedUserIds[0])
-                            : `${selectedUserIds.length} users selected`}
-                      </span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Search users..." />
-                      <CommandList>
-                        <CommandEmpty>No users found.</CommandEmpty>
-                        <CommandGroup>
-                          {selectableMembers.map((member) => (
-                            <CommandItem
-                              key={member.id}
-                              value={`${member.name} ${member.email}`}
-                              onSelect={() => {
-                                setSelectedUserIds((prev) =>
-                                  prev.includes(member.id)
-                                    ? prev.filter((id) => id !== member.id)
-                                    : [...prev, member.id]
-                                );
-                              }}
-                            >
-                              <Checkbox
-                                checked={selectedUserIds.includes(member.id)}
-                                className="mr-2"
-                              />
-                              <div className="flex flex-col">
-                                <span>{member.name || member.email}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {member.email}
-                                </span>
-                              </div>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                {selectedUserIds.length > 1 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {selectedUserIds.map((id) => (
-                      <Badge
-                        key={id}
-                        variant="secondary"
-                        className="cursor-pointer"
-                        role="button"
-                        aria-label={`Remove ${getMemberDisplayName(id)}`}
-                        onClick={() =>
-                          setSelectedUserIds((prev) => prev.filter((uid) => uid !== id))
-                        }
-                      >
-                        {getMemberDisplayName(id)} &times;
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-                <p className="text-[0.8rem] text-muted-foreground">
-                  Select multiple users to create one trigger per user.
-                </p>
-              </div>
             ) : (
               <FormField
                 control={form.control}
-                name="runAsUserId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Run as User</FormLabel>
-                    <Select value={field.value || NONE_VALUE} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select user" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={NONE_VALUE}>None</SelectItem>
-                        {selectableMembers.map((member) => (
-                          <SelectItem key={member.id} value={member.id}>
-                            {member.name || member.email}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Choose whose identity and credentials this trigger uses when running.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                name="runAsUserIds"
+                render={({ field }) => {
+                  const runAsUserIds = field.value ?? [];
+
+                  return isAdmin ? (
+                    <FormItem className="grid gap-2">
+                      <FormLabel>Run as Users</FormLabel>
+                      <Popover open={multiUserOpen} onOpenChange={setMultiUserOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-between"
+                            role="combobox"
+                            aria-expanded={multiUserOpen}
+                          >
+                            <span className="truncate">
+                              {runAsUserIds.length === 0
+                                ? 'None'
+                                : runAsUserIds.length === 1
+                                  ? getMemberDisplayName(runAsUserIds[0])
+                                  : `${runAsUserIds.length} users selected`}
+                            </span>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          className="w-[--radix-popover-trigger-width] p-0"
+                          align="start"
+                        >
+                          <Command>
+                            <CommandInput placeholder="Search users..." />
+                            <CommandList>
+                              <CommandEmpty>No users found.</CommandEmpty>
+                              <CommandGroup>
+                                {selectableMembers.map((member) => (
+                                  <CommandItem
+                                    key={member.id}
+                                    value={`${member.name} ${member.email}`}
+                                    onSelect={() => {
+                                      field.onChange(
+                                        runAsUserIds.includes(member.id)
+                                          ? runAsUserIds.filter((id) => id !== member.id)
+                                          : [...runAsUserIds, member.id]
+                                      );
+                                    }}
+                                  >
+                                    <Checkbox
+                                      checked={runAsUserIds.includes(member.id)}
+                                      className="mr-2"
+                                    />
+                                    <div className="flex flex-col">
+                                      <span>{member.name || member.email}</span>
+                                      <span className="text-xs text-muted-foreground">
+                                        {member.email}
+                                      </span>
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      {runAsUserIds.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {runAsUserIds.map((id) => (
+                            <Badge
+                              key={id}
+                              variant="secondary"
+                              className="cursor-pointer"
+                              role="button"
+                              aria-label={`Remove ${getMemberDisplayName(id)}`}
+                              onClick={() =>
+                                field.onChange(runAsUserIds.filter((uid) => uid !== id))
+                              }
+                            >
+                              {getMemberDisplayName(id)} &times;
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                      <FormDescription>
+                        Select the users whose identity this webhook should run as. Each webhook
+                        request creates one execution per selected user.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  ) : (
+                    <FormItem>
+                      <FormLabel>Run as User</FormLabel>
+                      <Select
+                        value={runAsUserIds[0] || NONE_VALUE}
+                        onValueChange={(value) =>
+                          field.onChange(value === NONE_VALUE ? [] : [value])
+                        }
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select user" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={NONE_VALUE}>None</SelectItem>
+                          {selectableMembers.map((member) => (
+                            <SelectItem key={member.id} value={member.id}>
+                              {member.name || member.email}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Choose whose identity and credentials this trigger uses when running.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             )}
-            {(watchedRunAsUserId && watchedRunAsUserId !== NONE_VALUE) ||
-            selectedUserIds.length > 0 ? (
+            {(watchedRunAsUserIds?.length ?? 0) > 0 ? (
               (!watchedAuthHeaders || watchedAuthHeaders.length === 0) &&
               !watchedSignatureVerificationEnabled ? (
                 <Alert variant="warning">
@@ -1006,6 +998,48 @@ export function TriggerForm({
                 </Alert>
               ) : null
             ) : null}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Dispatch Delay</CardTitle>
+            <CardDescription>
+              Optionally stagger each per-user execution to reduce bursty downstream tool traffic.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FormField
+              control={form.control}
+              name="dispatchDelayMs"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Dispatch Delay (ms)</FormLabel>
+                  <FormControl>
+                    <Input
+                      ref={field.ref}
+                      name={field.name}
+                      onBlur={field.onBlur}
+                      disabled={field.disabled}
+                      value={field.value != null ? String(field.value) : ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        field.onChange(val === '' ? undefined : Number(val));
+                      }}
+                      type="number"
+                      min={0}
+                      max={600000}
+                      placeholder="0"
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Delay in milliseconds between dispatching each selected user&apos;s execution
+                    (0-600000). Use this to avoid MCP or API rate limit spikes.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </CardContent>
         </Card>
 

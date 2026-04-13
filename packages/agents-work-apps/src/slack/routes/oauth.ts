@@ -76,7 +76,7 @@ export function parseOAuthState(stateStr: string): OAuthState | null {
   try {
     const [data, signature] = stateStr.split('.');
     if (!data || !signature) {
-      logger.warn({}, 'OAuth state missing signature');
+      logger.warn('OAuth state missing signature');
       return null;
     }
 
@@ -89,7 +89,7 @@ export function parseOAuthState(stateStr: string): OAuthState | null {
       signature.length !== expectedSignature.length ||
       !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))
     ) {
-      logger.warn({}, 'Invalid OAuth state signature');
+      logger.warn('Invalid OAuth state signature');
       return null;
     }
 
@@ -210,7 +210,7 @@ app.openapi(
     }
 
     if (!code) {
-      logger.error({}, 'No code provided in OAuth callback');
+      logger.error('No code provided in OAuth callback');
       return c.redirect(`${dashboardUrl}?error=no_code`);
     }
 
@@ -234,7 +234,7 @@ app.openapi(
       } catch (fetchErr) {
         clearTimeout(timeout);
         if ((fetchErr as Error).name === 'AbortError') {
-          logger.error({}, 'Slack token exchange timed out');
+          logger.error('Slack token exchange timed out');
           return c.redirect(`${dashboardUrl}?error=timeout`);
         }
         throw fetchErr;

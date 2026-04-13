@@ -53,7 +53,7 @@ app.openapi(
       });
       return c.json({ data: relations }) as any;
     } catch (error) {
-      logger.error({ error, tenantId, projectId, datasetId }, 'Failed to list dataset agents');
+      logger.error({ error, datasetId }, 'Failed to list dataset agents');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -105,7 +105,7 @@ app.openapi(
         agentId,
       });
 
-      logger.info({ tenantId, projectId, datasetId, agentId }, 'Agent-dataset relation created');
+      logger.info({ datasetId }, 'Agent-dataset relation created');
       return c.json({ data: created }, 201) as any;
     } catch (error) {
       if (isUniqueConstraintError(error)) {
@@ -118,10 +118,7 @@ app.openapi(
         }
       }
 
-      logger.error(
-        { error, tenantId, projectId, datasetId, agentId },
-        'Failed to create agent-dataset relation'
-      );
+      logger.error({ error, datasetId }, 'Failed to create agent-dataset relation');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -170,13 +167,10 @@ app.openapi(
         ) as any;
       }
 
-      logger.info({ tenantId, projectId, datasetId, agentId }, 'Agent-dataset relation deleted');
+      logger.info({ datasetId }, 'Agent-dataset relation deleted');
       return c.body(null, 204) as any;
     } catch (error) {
-      logger.error(
-        { error, tenantId, projectId, datasetId, agentId },
-        'Failed to delete agent-dataset relation'
-      );
+      logger.error({ error, datasetId }, 'Failed to delete agent-dataset relation');
       return c.json(
         createApiError({
           code: 'internal_server_error',

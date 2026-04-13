@@ -43,6 +43,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
 
 vi.mock('ai', () => ({
   tool: vi.fn().mockImplementation((config) => config),
+  jsonSchema: vi.fn().mockImplementation((schema) => ({ jsonSchema: schema })),
 }));
 
 import type { FullExecutionContext } from '@inkeep/agents-core';

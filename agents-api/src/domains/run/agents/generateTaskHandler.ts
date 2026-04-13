@@ -1,6 +1,7 @@
 import {
   type AgentConversationHistoryConfig,
   type CredentialStoreRegistry,
+  DURABLE_APPROVAL_ARTIFACT_TYPE,
   type FilePart,
   type FullExecutionContext,
   generateId,
@@ -72,7 +73,7 @@ function buildDurableApprovalResult(pendingApproval: PendingDurableApproval): A2
           {
             kind: 'data' as const,
             data: {
-              type: 'durable-approval-required',
+              type: DURABLE_APPROVAL_ARTIFACT_TYPE,
               toolCallId: pendingApproval.toolCallId,
               toolName: pendingApproval.toolName,
               args: pendingApproval.args,
@@ -403,12 +404,9 @@ export const createTaskHandler = (
           ? typeof approvedToolCallsRaw === 'string'
             ? (JSON.parse(approvedToolCallsRaw) as Record<
                 string,
-                Array<{ approved: boolean; reason?: string; originalToolCallId?: string }>
+                { approved: boolean; reason?: string }
               >)
-            : (approvedToolCallsRaw as Record<
-                string,
-                Array<{ approved: boolean; reason?: string; originalToolCallId?: string }>
-              >)
+            : (approvedToolCallsRaw as Record<string, { approved: boolean; reason?: string }>)
           : undefined;
 
       agent.setDurableWorkflowRunId(durableWorkflowRunId);
