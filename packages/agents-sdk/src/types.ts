@@ -256,6 +256,7 @@ export interface AgentConfig {
   };
   statusUpdates?: StatusUpdateSettings;
   triggers?: () => TriggerInterface[];
+  executionMode?: 'classic' | 'durable';
 }
 
 export class AgentError extends Error {
