@@ -202,9 +202,9 @@ describe('buildRefAwareSchemas', () => {
     expect((refAwareInputSchema as any).jsonSchema).toBeDefined();
 
     expect(baseInputSchema).toBeDefined();
-    expect(baseInputSchema!.safeParse).toBeDefined();
-    expect(baseInputSchema!.safeParse({ text: 'hello' }).success).toBe(true);
-    expect(baseInputSchema!.safeParse({ text: 123 }).success).toBe(false);
+    expect(baseInputSchema?.safeParse).toBeDefined();
+    expect(baseInputSchema?.safeParse({ text: 'hello' }).success).toBe(true);
+    expect(baseInputSchema?.safeParse({ text: 123 }).success).toBe(false);
   });
 
   it('should produce schema with refs and nullable properties', () => {
@@ -245,7 +245,7 @@ describe('buildRefAwareSchemas', () => {
     expect((refAwareInputSchema as any).jsonSchema.properties[REFS_KEY]).toBeDefined();
 
     expect(baseInputSchema).toBeDefined();
-    expect(baseInputSchema!.safeParse({ name: 'test' }).success).toBe(true);
+    expect(baseInputSchema?.safeParse({ name: 'test' }).success).toBe(true);
   });
 
   it('should produce dramatically smaller schemas than per-property anyOf', () => {
