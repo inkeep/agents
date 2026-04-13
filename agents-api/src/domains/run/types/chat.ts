@@ -1,8 +1,10 @@
 import { z } from '@hono/zod-openapi';
 import {
   DATA_URI_IMAGE_BASE64_REGEX,
+  DATA_URI_OFFICE_BASE64_REGEX,
   DATA_URI_PDF_BASE64_REGEX,
   DATA_URI_TEXT_BASE64_REGEX,
+  isOfficeDocumentMimeType,
   normalizeMimeType,
 } from '@inkeep/agents-core/constants/allowed-file-formats';
 import { isTextDocumentMimeType } from '../utils/text-document-attachments';
@@ -34,8 +36,17 @@ const TextDocumentDataUriSchema = z
   .refine(hasValidBase64Payload, 'Invalid base64 data in text document data URI');
 
 export const ImageUrlSchema = z.union([z.httpUrl(), ImageDataUriSchema]);
+const OfficeDocumentDataUriSchema = z
+  .string()
+  .regex(DATA_URI_OFFICE_BASE64_REGEX, 'File must be a .docx or .xlsx data URI')
+  .refine(hasValidBase64Payload, 'Invalid base64 data in office document data URI');
+
 export const PdfDataOrUrlSchema = z.union([PdfDataUriSchema, z.httpUrl()]);
-export const InlineDocumentDataSchema = z.union([PdfDataOrUrlSchema, TextDocumentDataUriSchema]);
+export const InlineDocumentDataSchema = z.union([
+  PdfDataOrUrlSchema,
+  TextDocumentDataUriSchema,
+  OfficeDocumentDataUriSchema,
+]);
 
 /** OpenAI-specific image detail level. Has no effect on other providers. */
 export const ImageDetailEnum = ['auto', 'low', 'high'] as const;
@@ -88,6 +99,14 @@ export const VercelFilePartSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Text document file parts must use inline base64 data URIs',
+        path: ['url'],
+      });
+    }
+
+    if (isOfficeDocumentMimeType(mimeType) && !DATA_URI_OFFICE_BASE64_REGEX.test(part.url)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Office document file parts must use inline base64 data URIs',
         path: ['url'],
       });
     }

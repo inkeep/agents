@@ -157,6 +157,20 @@ export class UnsupportedTextAttachmentSourceError extends TextDocumentAttachment
   }
 }
 
+export class UnsupportedFileTypeForModelError extends Error {
+  readonly mimeType: string;
+  readonly modelId: string;
+
+  constructor(mimeType: string, modelId: string) {
+    super(
+      `File type "${mimeType}" is not supported by the configured model "${modelId}". Use an OpenAI or Gemini model to attach Word or Excel files.`
+    );
+    this.name = 'UnsupportedFileTypeForModelError';
+    this.mimeType = mimeType;
+    this.modelId = modelId;
+  }
+}
+
 export class PdfUrlIngestionError extends FileSecurityError {
   readonly sourceUrl: string;
 

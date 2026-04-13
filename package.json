@@ -141,6 +141,11 @@
       "lodash": ">=4.17.23",
       "lodash-es": ">=4.17.23",
       "express-rate-limit": ">=8.2.2"
+    },
+    "patchedDependencies": {
+      "@changesets/assemble-release-plan@6.0.9": "patches/@changesets__assemble-release-plan.patch",
+      "fumadocs-core": "patches/fumadocs-core.patch",
+      "@ai-sdk/openai@3.0.7": "patches/@ai-sdk__openai@3.0.7.patch"
     }
   },
   "packageManager": "pnpm@10.33.0"
