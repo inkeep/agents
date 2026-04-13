@@ -394,6 +394,39 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
             } catch (error) {
               console.error('[auth] Failed to create user profile for user', user.id, error);
             }
+
+            if (invitation.role !== OrgRoles.ADMIN && invitation.role !== OrgRoles.OWNER) {
+              const { getProjectAssignmentsForInvitation, deleteInvitationProjectAssignments } =
+                await import('../data-access/runtime/invitationProjectAssignments');
+              const { grantProjectAccess } = await import('./authz/sync');
+
+              const assignments = await getProjectAssignmentsForInvitation(config.dbClient)(
+                invitation.id
+              );
+
+              if (assignments.length > 0) {
+                const results = await Promise.allSettled(
+                  assignments.map((a) =>
+                    grantProjectAccess({
+                      tenantId: org.id,
+                      projectId: a.projectId,
+                      userId: user.id,
+                      role: a.projectRole as import('./authz/types').ProjectRole,
+                    })
+                  )
+                );
+                results.forEach((result, i) => {
+                  if (result.status === 'rejected') {
+                    console.warn(
+                      `[auth] Failed to grant project access for project ${assignments[i]?.projectId}:`,
+                      result.reason
+                    );
+                  }
+                });
+              }
+
+              await deleteInvitationProjectAssignments(config.dbClient)(invitation.id);
+            }
           },
           beforeUpdateMemberRole: async ({ member, organization: org, newRole }) => {
             const { roleMatchesAdminBucket, enforcePerRoleSeatLimit } = await import(
