@@ -1,10 +1,12 @@
 import { dash } from '@better-auth/infra';
+import { oauthProvider } from '@better-auth/oauth-provider';
 import { type SSOOptions, sso } from '@better-auth/sso';
 import { betterAuth, type Session, type User } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import {
   bearer,
   deviceAuthorization,
+  jwt,
   lastLoginMethod,
   oAuthProxy,
   organization,
@@ -56,6 +58,11 @@ function _inferAuthType() {
     plugins: [
       bearer(),
       oAuthProxy(),
+      jwt(),
+      oauthProvider({
+        loginPage: '/login',
+        consentPage: '/consent',
+      }),
       organization({
         schema: {
           invitation: {
@@ -86,6 +93,7 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
     appName: 'Inkeep Agents',
     baseURL: config.baseURL,
     secret: config.secret,
+    disabledPaths: ['/token'],
     database: drizzleAdapter(config.dbClient, {
       provider: 'pg',
     }),
@@ -164,6 +172,7 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
       },
     },
     session: {
+      storeSessionInDatabase: true,
       expiresIn: 60 * 60 * 24 * 7,
       updateAge: 60 * 60 * 24,
       cookieCache: {
@@ -193,6 +202,20 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
     plugins: [
       bearer(),
       dash(),
+      jwt(),
+      oauthProvider({
+        loginPage: `${env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000'}/login`,
+        consentPage: `${env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000'}/consent`,
+        scopes: ['openid', 'profile', 'email', 'offline_access'],
+        customAccessTokenClaims: async ({ user }) => {
+          if (!user) return {};
+          const org = await getInitialOrganization(config.dbClient, user.id);
+          return {
+            'https://inkeep.com/tenantId': org?.id ?? undefined,
+            'https://inkeep.com/email': user.email,
+          };
+        },
+      }),
       lastLoginMethod({
         customResolveMethod(ctx) {
           const path = ctx.path;
