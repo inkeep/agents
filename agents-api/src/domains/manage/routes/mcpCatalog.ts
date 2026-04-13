@@ -298,7 +298,7 @@ const PREBUILT_MCP_SERVERS: PrebuiltMCPServer[] = [
   {
     id: 'miro',
     name: 'Miro',
-    url: 'https://mcp.miro.com/',
+    url: 'https://mcp.miro.com',
     transport: MCPTransportType.streamableHttp,
     category: 'design',
     description: 'Visual collaboration and whiteboarding',
