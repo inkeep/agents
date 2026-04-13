@@ -49400,6 +49400,10 @@
       "name": "GitHub"
     },
     {
+      "description": "Operations for managing organization invitations",
+      "name": "Invitations"
+    },
+    {
       "description": "MCP (Model Context Protocol) endpoints",
       "name": "MCP"
     },
