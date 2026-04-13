@@ -188,7 +188,7 @@ describe('runGenerate — strip + warn', () => {
   it('strips docx part and injects note when model is Claude', async () => {
     const ctx = makeCtx();
     const parts = [
-      { kind: 'text', text: 'Summarize this document.' },
+      { kind: 'text' as const, text: 'Summarize this document.' },
       makeFilePart(DOCX_MIME, 'report.docx'),
     ];
 
@@ -207,7 +207,7 @@ describe('runGenerate — strip + warn', () => {
   it('strips xlsx part and injects note when model is Claude', async () => {
     const ctx = makeCtx();
     const parts = [
-      { kind: 'text', text: 'Summarize this spreadsheet.' },
+      { kind: 'text' as const, text: 'Summarize this spreadsheet.' },
       makeFilePart(XLSX_MIME, 'data.xlsx'),
     ];
 
@@ -224,7 +224,7 @@ describe('runGenerate — strip + warn', () => {
     const ctx = makeCtx();
     const pdfPart = makeFilePart('application/pdf', 'doc.pdf');
     const docxPart = makeFilePart(DOCX_MIME, 'report.docx');
-    const parts = [{ kind: 'text', text: 'Review these.' }, pdfPart, docxPart];
+    const parts = [{ kind: 'text' as const, text: 'Review these.' }, pdfPart, docxPart];
 
     await runGenerate(ctx, parts);
 
@@ -249,7 +249,7 @@ describe('runGenerate — strip + warn', () => {
 
     const ctx = makeCtx();
     const docxPart = makeFilePart(DOCX_MIME, 'report.docx');
-    const parts = [{ kind: 'text', text: 'Summarize this.' }, docxPart];
+    const parts = [{ kind: 'text' as const, text: 'Summarize this.' }, docxPart];
 
     await runGenerate(ctx, parts);
 
@@ -262,7 +262,7 @@ describe('runGenerate — strip + warn', () => {
 
   it('does not modify message when there are no file parts', async () => {
     const ctx = makeCtx();
-    const parts = [{ kind: 'text', text: 'Hello world.' }];
+    const parts = [{ kind: 'text' as const, text: 'Hello world.' }];
 
     await runGenerate(ctx, parts);
 
