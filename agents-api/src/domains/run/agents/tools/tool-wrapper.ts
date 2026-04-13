@@ -15,6 +15,7 @@ import { trace } from '@opentelemetry/api';
 import type { ToolSet } from 'ai';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
+import { SENTINEL_KEY } from '../../constants/artifact-syntax';
 import { stripBinaryDataForObservability } from '../../services/blob-storage/artifact-binary-sanitizer';
 import { agentSessionManager, type ToolCallData } from '../../session/AgentSession';
 import { generateToolId } from '../../utils/agent-operations';
@@ -228,10 +229,10 @@ export function wrapToolWithStreaming(
                     .join(', ')
                 : `resolved to ${Array.isArray(resolvedArgs) ? 'array' : typeof resolvedArgs}`;
             throw new Error(
-              `Tool chaining $select resolved to the wrong type for '${toolName}'. ` +
+              `Tool chaining ${SENTINEL_KEY.SELECT} resolved to the wrong type for '${toolName}'. ` +
                 `${mismatchDetails}. ${validation.error.message}. ` +
-                `Your $select expression likely returns an object or array where the tool expects a primitive (string/number/boolean). ` +
-                `Drill deeper in your $select path — e.g. add ".text", ".name", or ".id" to extract the specific field. ` +
+                `Your ${SENTINEL_KEY.SELECT} expression likely returns an object or array where the tool expects a primitive (string/number/boolean). ` +
+                `Drill deeper in your ${SENTINEL_KEY.SELECT} path — e.g. add ".text", ".name", or ".id" to extract the specific field. ` +
                 `Check _structureHints.terminalPaths in the source tool result for leaf fields.`
             );
           }
