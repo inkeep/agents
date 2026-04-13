@@ -14,6 +14,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
 import { type TimeRange, useToolCallsQueryState } from '@/hooks/use-tool-calls-query-state';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
+import { getTimeRangeBounds } from '@/lib/utils/time-range';
 
 const TIME_RANGES = {
   '24h': { label: 'Last 24 hours', hours: 24 },
@@ -71,35 +72,15 @@ export default function ToolCallsBreakdown({
     }
   };
 
-  const { startTime, endTime } = (() => {
-    const currentEndTime = CURRENT_TIME;
-
-    if (timeRange === 'custom') {
-      if (customStartDate && customEndDate) {
-        const [sy, sm, sd] = customStartDate.split('-').map(Number);
-        const [ey, em, ed] = customEndDate.split('-').map(Number);
-        const startDate = new Date(sy, (sm || 1) - 1, sd || 1, 0, 0, 0, 0);
-        const endDate = new Date(ey, (em || 1) - 1, ed || 1, 23, 59, 59, 999);
-        const clampedEndMs = Math.min(endDate.getTime(), CURRENT_TIME - 1);
-
-        return {
-          startTime: startDate.getTime(),
-          endTime: clampedEndMs,
-        };
-      }
-      const hoursBack = TIME_RANGES['30d'].hours;
-      return {
-        startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
-        endTime: currentEndTime,
-      };
-    }
-
-    const hoursBack = TIME_RANGES[timeRange as keyof typeof TIME_RANGES]?.hours || 24 * 30;
-    return {
-      startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
-      endTime: currentEndTime,
-    };
-  })();
+  const { startTime, endTime } = getTimeRangeBounds({
+    timeRange,
+    customRangeKey: CUSTOM,
+    customStartDate,
+    customEndDate,
+    timeRanges: TIME_RANGES,
+    fallbackTimeRange: '30d',
+    now: CURRENT_TIME,
+  });
 
   useEffect(() => {
     const fetchData = async () => {

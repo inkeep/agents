@@ -34,8 +34,8 @@ function formatTokens(tokens: number): string {
 interface CostDashboardProps {
   tenantId: string;
   projectId?: string;
-  startTime: string;
-  endTime: string;
+  startTime: number;
+  endTime: number;
 }
 
 interface UsageSummaryRow {
@@ -61,16 +61,14 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
       setIsLoading(true);
       try {
         const client = getSigNozStatsClient(tenantId);
-        const start = new Date(startTime).getTime();
-        const end = new Date(endTime).getTime();
 
         const [byModel, byAgent, byType, byProvider, eventsList, costPerDay] = await Promise.all([
-          client.getUsageCostSummary(start, end, 'model', projectId),
-          client.getUsageCostSummary(start, end, 'agent', projectId),
-          client.getUsageCostSummary(start, end, 'generation_type', projectId),
-          client.getUsageCostSummary(start, end, 'provider', projectId),
-          client.getUsageEventsList(start, end, projectId, undefined, 200),
-          client.getUsageCostPerDay(start, end, projectId),
+          client.getUsageCostSummary(startTime, endTime, 'model', projectId),
+          client.getUsageCostSummary(startTime, endTime, 'agent', projectId),
+          client.getUsageCostSummary(startTime, endTime, 'generation_type', projectId),
+          client.getUsageCostSummary(startTime, endTime, 'provider', projectId),
+          client.getUsageEventsList(startTime, endTime, projectId, undefined, 200),
+          client.getUsageCostPerDay(startTime, endTime, projectId),
         ]);
 
         setSummaryByModel(byModel);
@@ -150,7 +148,7 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
                   return value;
                 }
               }}
-              yAxisTickFormatter={(value: number | string) => {
+              yAxisTickFormatter={(value) => {
                 const num = typeof value === 'string' ? Number.parseFloat(value) : value;
                 return num < 0.01 ? `$${num.toFixed(4)}` : `$${num.toFixed(2)}`;
               }}

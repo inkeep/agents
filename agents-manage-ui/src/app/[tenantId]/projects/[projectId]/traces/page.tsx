@@ -25,6 +25,7 @@ import { useSignozConfig } from '@/hooks/use-signoz-config';
 import { useConversationStats } from '@/hooks/use-traces';
 import { type TimeRange, useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { getSigNozStatsClient, type SpanFilterOptions } from '@/lib/api/signoz-stats';
+import { getTimeRangeBounds } from '@/lib/utils/time-range';
 
 // Time range options
 const TIME_RANGES = {
@@ -64,42 +65,15 @@ export default function TracesOverview({
   const [activityLoading, setActivityLoading] = useState(true);
 
   // Calculate time range based on selection
-  const { startTime, endTime } = (() => {
-    const currentEndTime = CURRENT_TIME - 1; // Clamp to now-1ms to satisfy backend validation
-
-    if (selectedTimeRange === CUSTOM) {
-      // Use custom dates if provided
-      if (customStartDate && customEndDate) {
-        // Parse the YYYY-MM-DD inputs as local dates to avoid UTC offset issues
-        const [sy, sm, sd] = customStartDate.split('-').map(Number);
-        const [ey, em, ed] = customEndDate.split('-').map(Number);
-        const startDate = new Date(sy, (sm || 1) - 1, sd || 1, 0, 0, 0, 0);
-        const endDate = new Date(ey, (em || 1) - 1, ed || 1, 23, 59, 59, 999);
-
-        // Clamp end to now-1ms to satisfy backend validation (end cannot be in the future)
-        const clampedEndMs = Math.min(endDate.getTime(), currentEndTime);
-
-        return {
-          startTime: startDate.getTime(),
-          endTime: clampedEndMs,
-        };
-      }
-      // Default to 30 days if custom dates not set
-      const hoursBack = TIME_RANGES['30d'].hours;
-      return {
-        startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
-        endTime: currentEndTime,
-      };
-    }
-
-    const hoursBack = TIME_RANGES[selectedTimeRange].hours;
-    const calculatedStart = currentEndTime - hoursBack * 60 * 60 * 1000;
-
-    return {
-      startTime: calculatedStart,
-      endTime: currentEndTime,
-    };
-  })();
+  const { startTime, endTime } = getTimeRangeBounds({
+    timeRange: selectedTimeRange,
+    customRangeKey: CUSTOM,
+    customStartDate,
+    customEndDate,
+    timeRanges: TIME_RANGES,
+    fallbackTimeRange: '30d',
+    now: CURRENT_TIME,
+  });
   // URL state management is now handled by useUrlFilterState hook
 
   // Debounce search query to avoid too many API calls

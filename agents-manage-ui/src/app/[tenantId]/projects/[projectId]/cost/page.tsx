@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
 import { useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { useCapabilitiesQuery } from '@/lib/query/capabilities';
+import { getTimeRangeBounds } from '@/lib/utils/time-range';
 
 const TIME_RANGES = {
   '24h': { label: 'Last 24 hours', hours: 24 },
@@ -33,18 +34,14 @@ export default function ProjectUsagePage({
     setCustomDateRange,
   } = useTracesQueryState();
 
-  const { startTime, endTime } = (() => {
-    if (selectedTimeRange === CUSTOM && customStartDate && customEndDate) {
-      return {
-        startTime: new Date(customStartDate).toISOString(),
-        endTime: new Date(customEndDate).toISOString(),
-      };
-    }
-    const range = TIME_RANGES[selectedTimeRange as keyof typeof TIME_RANGES] ?? TIME_RANGES['30d'];
-    const end = new Date();
-    const start = new Date(end.getTime() - range.hours * 60 * 60 * 1000);
-    return { startTime: start.toISOString(), endTime: end.toISOString() };
-  })();
+  const { startTime, endTime } = getTimeRangeBounds({
+    timeRange: selectedTimeRange,
+    customRangeKey: CUSTOM,
+    customStartDate,
+    customEndDate,
+    timeRanges: TIME_RANGES,
+    fallbackTimeRange: '30d',
+  });
 
   return (
     <div className="flex flex-col gap-6">

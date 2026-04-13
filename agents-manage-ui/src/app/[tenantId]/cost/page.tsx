@@ -11,6 +11,7 @@ import { Combobox } from '@/components/ui/combobox';
 import { useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { useCapabilitiesQuery } from '@/lib/query/capabilities';
 import { useProjectsQuery } from '@/lib/query/projects';
+import { getTimeRangeBounds } from '@/lib/utils/time-range';
 
 const TIME_RANGES = {
   '24h': { label: 'Last 24 hours', hours: 24 },
@@ -39,18 +40,16 @@ export default function TenantUsagePage({ params }: PageProps<'/[tenantId]/cost'
   const [projectId, setProjectId] = useQueryState('projectId', parseAsString);
   const selectedProjectId = projectId ?? undefined;
 
-  const { startTime, endTime } = (() => {
-    if (selectedTimeRange === CUSTOM && customStartDate && customEndDate) {
-      return {
-        startTime: new Date(customStartDate).toISOString(),
-        endTime: new Date(customEndDate).toISOString(),
-      };
-    }
-    const range = TIME_RANGES[selectedTimeRange as keyof typeof TIME_RANGES] ?? TIME_RANGES['30d'];
-    const end = new Date();
-    const start = new Date(end.getTime() - range.hours * 60 * 60 * 1000);
-    return { startTime: start.toISOString(), endTime: end.toISOString() };
-  })();
+  const { startTime, endTime } = getTimeRangeBounds({
+    timeRange: selectedTimeRange,
+    customRangeKey: CUSTOM,
+    customStartDate,
+    customEndDate,
+    timeRanges: TIME_RANGES,
+    fallbackTimeRange: '30d',
+  });
+
+  const options = projects.map((p) => ({ value: p.projectId, label: p.name }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -63,15 +62,15 @@ export default function TenantUsagePage({ params }: PageProps<'/[tenantId]/cost'
         <Combobox
           defaultValue={selectedProjectId}
           notFoundMessage="No projects found."
-          onSelect={(value: string) => setProjectId(value || null)}
-          options={projects.map((p) => ({ value: p.projectId, label: p.name }))}
+          onSelect={(value) => setProjectId(value || null)}
+          options={options}
           TriggerComponent={
             <FilterTriggerComponent
               filterLabel={selectedProjectId ? 'Project' : 'All projects'}
               isRemovable
               onDeleteFilter={() => setProjectId(null)}
               multipleCheckboxValues={selectedProjectId ? [selectedProjectId] : []}
-              options={projects.map((p) => ({ value: p.projectId, label: p.name }))}
+              options={options}
             />
           }
         />

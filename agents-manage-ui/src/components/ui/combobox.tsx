@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, ChevronsUpDown } from 'lucide-react';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { useDisclosure } from '@/hooks/use-disclosure';
 import { cn } from '@/lib/utils';
 import { Button } from './button';
@@ -25,7 +25,7 @@ export type OptionType = {
 
 interface ComboboxProps {
   options: OptionType[];
-  onSelect: (value: any) => void;
+  onSelect: (value: string) => void;
   defaultValue?: string;
   placeholder?: string;
   searchPlaceholder?: string;
@@ -49,14 +49,13 @@ export function Combobox({
   shouldCloseOnSelect = true,
   TriggerComponent,
   onOpenChange,
-  multipleCheckboxValues,
+  multipleCheckboxValues = [],
   enableSearch = true,
   className,
   triggerClassName,
 }: ComboboxProps) {
   const { isOpen, onClose, onToggle } = useDisclosure();
   const [value, setValue] = useState(defaultValue);
-  const commandRef = useRef<HTMLDivElement>(null);
   const currentLabel = options.find((option) => option.value === value)?.label;
 
   const handleChangeOnOpen = () => {
@@ -65,10 +64,10 @@ export function Combobox({
   };
 
   useEffect(() => {
-    if (!multipleCheckboxValues?.length) {
+    if (!multipleCheckboxValues.length) {
       setValue(defaultValue);
     }
-  }, [multipleCheckboxValues?.length, defaultValue]);
+  }, [multipleCheckboxValues.length, defaultValue]);
 
   return (
     <Popover onOpenChange={handleChangeOnOpen} open={isOpen}>
@@ -87,7 +86,7 @@ export function Combobox({
         </PopoverTrigger>
       )}
       <PopoverContent align="start" className={cn('min-w-[250px] p-0', className)}>
-        <Command ref={commandRef}>
+        <Command>
           {enableSearch && <CommandInput placeholder={searchPlaceholder} />}
           <CommandList className="scrollbar-thin scrollbar-thumb-muted-foreground/30 dark:scrollbar-thumb-muted-foreground/50 scrollbar-track-transparent">
             <CommandEmpty>{notFoundMessage}</CommandEmpty>
@@ -106,16 +105,18 @@ export function Combobox({
 
                     onSelect(newValue);
                     setValue(newValue);
-                    shouldCloseOnSelect && onClose();
+                    if (shouldCloseOnSelect) {
+                      onClose();
+                    }
                   }}
                   value={option.searchBy ?? option.value}
                 >
                   {option.showCheckbox && (
                     <Checkbox
-                      checked={multipleCheckboxValues?.includes(option.value)}
+                      checked={multipleCheckboxValues.includes(option.value)}
                       className={cn(
                         'w-4 h-4 mr-2 rounded-sm border border-gray-400 opacity-0',
-                        multipleCheckboxValues?.includes(option.value) && 'opacity-100'
+                        multipleCheckboxValues.includes(option.value) && 'opacity-100'
                       )}
                       onClick={(e) => {
                         e.stopPropagation();
