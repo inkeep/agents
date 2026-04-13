@@ -27,12 +27,12 @@ import { manageDbClient } from '../../../../data/db';
 import manageDbPool from '../../../../data/db/manageDbPool';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
+import { executeAgentAsync } from '../../../run/services/TriggerService';
+import { EvaluationService } from '../../services/EvaluationService';
 import {
   filterEvaluatorsByAgentScope,
   getEvaluatorAgentScopeMap,
 } from '../../utils/evaluatorFiltering';
-import { executeAgentAsync } from '../../../run/services/TriggerService';
-import { EvaluationService } from '../../services/EvaluationService';
 
 const logger = getLogger('workflow-run-dataset-item');
 

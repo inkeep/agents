@@ -1,4 +1,4 @@
-import { getAgentIdsForEvaluators, type AgentsManageDatabaseClient } from '@inkeep/agents-core';
+import { type AgentsManageDatabaseClient, getAgentIdsForEvaluators } from '@inkeep/agents-core';
 
 export function filterEvaluatorsByAgentScope(params: {
   agentIdsMap: Map<string, string[]>;
