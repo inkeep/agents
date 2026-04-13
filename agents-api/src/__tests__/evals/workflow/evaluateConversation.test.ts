@@ -9,9 +9,6 @@ const {
   generateIdMock,
   getEvaluatorsByIdsMock,
   getEvaluatorByIdMock,
-  getAgentIdsForEvaluatorsMock,
-  getProjectMainResolvedRefMock,
-  withRefMock,
   executeEvaluationMock,
 } = vi.hoisted(() => ({
   getConversationMock: vi.fn(() => vi.fn()),
@@ -20,11 +17,6 @@ const {
   generateIdMock: vi.fn(() => 'test-result-id'),
   getEvaluatorsByIdsMock: vi.fn(),
   getEvaluatorByIdMock: vi.fn(),
-  getAgentIdsForEvaluatorsMock: vi.fn(),
-  getProjectMainResolvedRefMock: vi.fn(() => vi.fn()),
-  withRefMock: vi.fn(async (_pool: unknown, _resolvedRef: unknown, fn: (db: unknown) => unknown) =>
-    fn({})
-  ),
   executeEvaluationMock: vi.fn(),
 }));
 
@@ -36,9 +28,6 @@ vi.mock('@inkeep/agents-core', () => ({
   generateId: generateIdMock,
   getEvaluatorsByIds: getEvaluatorsByIdsMock,
   getEvaluatorById: getEvaluatorByIdMock,
-  getAgentIdsForEvaluators: getAgentIdsForEvaluatorsMock,
-  getProjectMainResolvedRef: getProjectMainResolvedRefMock,
-  withRef: withRefMock,
   InternalServices: {
     INKEEP_AGENTS_EVAL_API: 'inkeep-agents-eval-api',
   },
@@ -268,126 +257,6 @@ describe('evaluateConversation Workflow Steps', () => {
 
       const evaluator = await getEvaluatorByIdMock('non-existent');
       expect(evaluator).toBeNull();
-    });
-  });
-
-  describe('filterEvaluatorsByAgentStep', () => {
-    it('should filter out evaluators scoped to a different agent', async () => {
-      const agentIdsMap = new Map<string, string[]>();
-      agentIdsMap.set('eval-sales', ['sales-trigger-agent']);
-      agentIdsMap.set('eval-global', []);
-
-      getAgentIdsForEvaluatorsMock.mockReturnValue(vi.fn().mockResolvedValue(agentIdsMap));
-      withRefMock.mockImplementation(
-        async (_pool: unknown, _ref: unknown, fn: (db: unknown) => unknown) => fn({})
-      );
-
-      const mockGetAgentIds = getAgentIdsForEvaluatorsMock({});
-      const result = await mockGetAgentIds({
-        scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
-        evaluatorIds: ['eval-sales', 'eval-global'],
-      });
-
-      const evaluatorIds = ['eval-sales', 'eval-global'];
-      const agentId = 'meeting-prep-agent';
-
-      const filtered = evaluatorIds.filter((evalId) => {
-        const scopedAgents = result.get(evalId);
-        if (!scopedAgents || scopedAgents.length === 0) return true;
-        return scopedAgents.includes(agentId);
-      });
-
-      expect(filtered).toEqual(['eval-global']);
-      expect(filtered).not.toContain('eval-sales');
-    });
-
-    it('should keep evaluators scoped to the matching agent', async () => {
-      const agentIdsMap = new Map<string, string[]>();
-      agentIdsMap.set('eval-sales', ['sales-trigger-agent']);
-      agentIdsMap.set('eval-global', []);
-
-      getAgentIdsForEvaluatorsMock.mockReturnValue(vi.fn().mockResolvedValue(agentIdsMap));
-
-      const mockGetAgentIds = getAgentIdsForEvaluatorsMock({});
-      const result = await mockGetAgentIds({
-        scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
-        evaluatorIds: ['eval-sales', 'eval-global'],
-      });
-
-      const evaluatorIds = ['eval-sales', 'eval-global'];
-      const agentId = 'sales-trigger-agent';
-
-      const filtered = evaluatorIds.filter((evalId) => {
-        const scopedAgents = result.get(evalId);
-        if (!scopedAgents || scopedAgents.length === 0) return true;
-        return scopedAgents.includes(agentId);
-      });
-
-      expect(filtered).toEqual(['eval-sales', 'eval-global']);
-    });
-
-    it('should keep all evaluators when conversation has no agentId', async () => {
-      const evaluatorIds = ['eval-sales', 'eval-global'];
-      const agentId = null;
-
-      if (!agentId) {
-        expect(evaluatorIds).toEqual(['eval-sales', 'eval-global']);
-        return;
-      }
-    });
-
-    it('should keep project-wide evaluators (no agent relations) for any agent', async () => {
-      const agentIdsMap = new Map<string, string[]>();
-      agentIdsMap.set('eval-project-wide', []);
-
-      getAgentIdsForEvaluatorsMock.mockReturnValue(vi.fn().mockResolvedValue(agentIdsMap));
-
-      const mockGetAgentIds = getAgentIdsForEvaluatorsMock({});
-      const result = await mockGetAgentIds({
-        scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
-        evaluatorIds: ['eval-project-wide'],
-      });
-
-      const evaluatorIds = ['eval-project-wide'];
-
-      for (const testAgentId of ['agent-a', 'agent-b', 'agent-c']) {
-        const filtered = evaluatorIds.filter((evalId) => {
-          const scopedAgents = result.get(evalId);
-          if (!scopedAgents || scopedAgents.length === 0) return true;
-          return scopedAgents.includes(testAgentId);
-        });
-
-        expect(filtered).toEqual(['eval-project-wide']);
-      }
-    });
-
-    it('should filter correctly with evaluator scoped to multiple agents', async () => {
-      const agentIdsMap = new Map<string, string[]>();
-      agentIdsMap.set('eval-multi', ['sales-agent', 'support-agent']);
-
-      getAgentIdsForEvaluatorsMock.mockReturnValue(vi.fn().mockResolvedValue(agentIdsMap));
-
-      const mockGetAgentIds = getAgentIdsForEvaluatorsMock({});
-      const result = await mockGetAgentIds({
-        scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
-        evaluatorIds: ['eval-multi'],
-      });
-
-      const evaluatorIds = ['eval-multi'];
-
-      const filteredForSales = evaluatorIds.filter((evalId) => {
-        const scopedAgents = result.get(evalId);
-        if (!scopedAgents || scopedAgents.length === 0) return true;
-        return scopedAgents.includes('sales-agent');
-      });
-      expect(filteredForSales).toEqual(['eval-multi']);
-
-      const filteredForMeeting = evaluatorIds.filter((evalId) => {
-        const scopedAgents = result.get(evalId);
-        if (!scopedAgents || scopedAgents.length === 0) return true;
-        return scopedAgents.includes('meeting-prep-agent');
-      });
-      expect(filteredForMeeting).toEqual([]);
     });
   });
 });
