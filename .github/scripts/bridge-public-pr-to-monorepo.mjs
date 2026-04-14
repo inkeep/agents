@@ -95,9 +95,7 @@ function prefixPatchPaths(patch, prefix) {
     .split('\n')
     .map((line) => {
       if (line.startsWith('diff --git ')) {
-        const match = line.match(
-          /^diff --git (?:"a\/(.+)"|a\/(.+)) (?:"b\/(.+)"|b\/(.+))$/,
-        );
+        const match = line.match(/^diff --git (?:"a\/(.+)"|a\/(.+)) (?:"b\/(.+)"|b\/(.+))$/);
         if (!match) {
           return line;
         }
