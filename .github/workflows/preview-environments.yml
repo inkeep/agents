@@ -13,6 +13,7 @@ name: Preview Environments
 # - PREVIEW_MANAGE_UI_PASSWORD=<admin password> (secret)
 # - PREVIEW_BETTER_AUTH_SECRET=<preview Better Auth secret> (secret)
 # - PREVIEW_SPICEDB_PRESHARED_KEY=<preview SpiceDB key> (secret)
+# - PREVIEW_MANAGE_API_BYPASS_SECRET=<preview manage API bypass secret> (secret)
 #
 # Repository variables:
 # - PREVIEW_ENVIRONMENTS_ENABLED=true|false
@@ -323,6 +324,7 @@ jobs:
           SPICEDB_ENDPOINT: ${{ needs.bootstrap-preview-auth.outputs.spicedb_endpoint }}
           BETTER_AUTH_SECRET: ${{ secrets.PREVIEW_BETTER_AUTH_SECRET }}
           SPICEDB_PRESHARED_KEY: ${{ secrets.PREVIEW_SPICEDB_PRESHARED_KEY }}
+          INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: ${{ secrets.PREVIEW_MANAGE_API_BYPASS_SECRET }}
           CI: true
           RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN || secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}

@@ -144,11 +144,16 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
           );
         }
       } catch (error) {
+        // Log but do NOT re-throw: the route handler already returned a
+        // successful response and the write is in Dolt's working set.
+        // Re-throwing here would replace the handler's 2xx with a 500,
+        // making the client think the operation failed when it actually
+        // succeeded. The next request's checkoutBranch with
+        // autoCommitPending:true will commit the pending changes.
         logger.error(
           { error, ...getDatabaseErrorLogContext(error), branch: resolvedRef.name },
-          'Failed to auto-commit changes — uncommitted writes will be lost on connection release'
+          'Failed to auto-commit changes - pending writes will be committed on next checkout (autoCommitPending)'
         );
-        throw error;
       }
     }
   } finally {
