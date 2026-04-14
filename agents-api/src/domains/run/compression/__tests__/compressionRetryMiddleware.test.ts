@@ -56,6 +56,21 @@ function makeMockCtx(): CompressionRetryContext {
   };
 }
 
+async function readAllChunks(result: { stream: ReadableStream<any> }): Promise<unknown[]> {
+  const chunks: unknown[] = [];
+  const reader = result.stream.getReader();
+  let done = false;
+  while (!done) {
+    const r = await reader.read();
+    if (r.done) {
+      done = true;
+    } else {
+      chunks.push(r.value);
+    }
+  }
+  return chunks;
+}
+
 describe('createCompressionRetryMiddleware', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -164,24 +179,14 @@ describe('createCompressionRetryMiddleware', () => {
       const doStream = vi.fn().mockResolvedValue(streamResult);
       const model = { doGenerate: vi.fn(), doStream: vi.fn() };
 
-      const result = await middleware.wrapStream?.({
+      const result = (await middleware.wrapStream?.({
         doGenerate: vi.fn(),
         doStream,
         params: { prompt: [] } as any,
         model: model as any,
-      });
+      })) as Awaited<ReturnType<NonNullable<typeof middleware.wrapStream>>>;
 
-      const chunks: unknown[] = [];
-      const reader = result.stream.getReader();
-      let done = false;
-      while (!done) {
-        const r = await reader.read();
-        if (r.done) {
-          done = true;
-        } else {
-          chunks.push(r.value);
-        }
-      }
+      const chunks = await readAllChunks(result);
 
       expect(chunks[0]).toEqual(textDelta);
       expect(chunks[1]).toEqual(finish);
@@ -209,27 +214,17 @@ describe('createCompressionRetryMiddleware', () => {
       };
       const params = { prompt: [{ role: 'user', content: 'hi' }] } as any;
 
-      const result = await middleware.wrapStream?.({
+      const result = (await middleware.wrapStream?.({
         doGenerate: vi.fn(),
         doStream,
         params,
         model: model as any,
-      });
+      })) as Awaited<ReturnType<NonNullable<typeof middleware.wrapStream>>>;
 
       expect(ctx.compressPrompt).toHaveBeenCalledWith(params.prompt);
       expect(model.doStream).toHaveBeenCalledOnce();
 
-      const chunks: unknown[] = [];
-      const reader = result.stream.getReader();
-      let done = false;
-      while (!done) {
-        const r = await reader.read();
-        if (r.done) {
-          done = true;
-        } else {
-          chunks.push(r.value);
-        }
-      }
+      const chunks = await readAllChunks(result);
       expect(chunks[0]).toEqual(retryTextDelta);
     });
 
@@ -264,24 +259,14 @@ describe('createCompressionRetryMiddleware', () => {
       const doStream = vi.fn().mockResolvedValue(streamResult);
       const model = { doGenerate: vi.fn(), doStream: vi.fn() };
 
-      const result = await middleware.wrapStream?.({
+      const result = (await middleware.wrapStream?.({
         doGenerate: vi.fn(),
         doStream,
         params: { prompt: [] } as any,
         model: model as any,
-      });
+      })) as Awaited<ReturnType<NonNullable<typeof middleware.wrapStream>>>;
 
-      const chunks: unknown[] = [];
-      const reader = result.stream.getReader();
-      let done = false;
-      while (!done) {
-        const r = await reader.read();
-        if (r.done) {
-          done = true;
-        } else {
-          chunks.push(r.value);
-        }
-      }
+      const chunks = await readAllChunks(result);
 
       expect(chunks[0]).toEqual(textDelta);
       expect(chunks[1]).toEqual(errorChunk);

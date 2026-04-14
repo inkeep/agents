@@ -11,8 +11,9 @@ import {
 import type { Span } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
 import type { ToolSet } from 'ai';
-import { generateText, Output, streamText } from 'ai';
+import { generateText, Output, streamText, wrapLanguageModel } from 'ai';
 import { getLogger } from '../../../../logger';
+import { createCompressionRetryMiddleware } from '../../compression/compressionRetryMiddleware';
 import type { MidGenerationCompressor } from '../../compression/MidGenerationCompressor';
 import { agentSessionManager } from '../../session/AgentSession';
 import { getStreamHelper } from '../../stream/stream-registry';
@@ -24,7 +25,7 @@ import { hasToolCallWithPrefix, resolveGenerationResponse } from '../agent-types
 import { handleStreamGeneration } from '../streaming/stream-handler';
 import { V1_BREAKDOWN_SCHEMA } from '../versions/v1/PromptConfig';
 import { handlePrepareStepCompression, handleStopWhenConditions } from './ai-sdk-callbacks';
-import { setupCompression } from './compression';
+import { buildCompressPrompt, setupCompression } from './compression';
 import { buildConversationHistory, buildInitialMessages } from './conversation-history';
 import { configureModelSettings } from './model-config';
 import { formatFinalResponse } from './response-formatting';
@@ -252,8 +253,18 @@ export async function runGenerate(
           primaryModelSettings
         );
 
+        const wrappedModel = compressor
+          ? wrapLanguageModel({
+              model: modelSettings.model,
+              middleware: createCompressionRetryMiddleware({
+                compressPrompt: buildCompressPrompt(compressor),
+              }),
+            })
+          : modelSettings.model;
+
         const streamConfig = {
           ...modelSettings,
+          model: wrappedModel,
           toolChoice: 'auto' as const,
         };
 
