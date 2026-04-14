@@ -1,5 +1,56 @@
 # @inkeep/agents-core
 
+## 0.68.1
+
+## 0.68.0
+
+### Minor Changes
+
+- d1e18a8: Add OAuth 2.1 / OIDC provider support via Better Auth oauth-provider plugin
+
+## 0.67.4
+
+## 0.67.3
+
+## 0.67.2
+
+## 0.67.1
+
+## 0.67.0
+
+### Minor Changes
+
+- 757ac77: Add multi-user webhook triggers with per-user dispatch delay and invocation tracking.
+
+## 0.66.1
+
+## 0.66.0
+
+### Minor Changes
+
+- 5596ecb: Remove logger dependency injection from agentFull and projectFull data access functions. Agent CRUD operations now log via module-scope logger instead of silently swallowing logs. Removes exported `AgentLogger` interface and `ProjectLogger` type (zero external consumers).
+
+### Patch Changes
+
+- 63a1358: Migrate logger calls to use scoped context — remove repeated ambient fields, adopt string-only logger calls
+- 01a960d: Extract repeated string literals into shared constant modules for tool names, approval events, workflow tokens, session events, and relation types
+- 4d0169b: Add createMockLoggerModule factory in test-utils export for shared test mocks
+
+## 0.65.2
+
+### Patch Changes
+
+- fa18f84: Return static error message for all 500-level API responses to prevent information leakage
+- 34e1d67: Fix Doltgres error logging to surface root cause details, redact SQL bind params, and re-throw auto-commit failures to prevent silent data loss
+- 93eb31e: Add scoped logger context via AsyncLocalStorage for automatic request-level field propagation
+
+## 0.65.1
+
+### Patch Changes
+
+- 3735393: fix so project deletion cant delete other projects' branches
+- dbee04b: Add feedback CRUD API, database table, and Manage UI for collecting user feedback on conversations and messages
+
 ## 0.65.0
 
 ### Minor Changes

@@ -1,4 +1,4 @@
-import { handleApiError } from '@inkeep/agents-core';
+import { getDatabaseErrorLogContext, handleApiError } from '@inkeep/agents-core';
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import type { StatusCode } from 'hono/utils/http-status';
@@ -62,6 +62,7 @@ function logServerError(
     logger.error(
       {
         error: err,
+        ...getDatabaseErrorLogContext(err),
         message: errorMessage,
         stack: errorStack,
         path,
@@ -73,6 +74,7 @@ function logServerError(
     logger.error(
       {
         error: err,
+        ...getDatabaseErrorLogContext(err),
         path,
         requestId,
         status,

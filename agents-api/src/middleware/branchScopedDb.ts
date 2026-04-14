@@ -5,6 +5,7 @@ import {
   doltReset,
   doltStatus,
   generateId,
+  getDatabaseErrorLogContext,
 } from '@inkeep/agents-core';
 import * as schema from '@inkeep/agents-core/db/manage-schema';
 import { drizzle } from 'drizzle-orm/node-postgres';
@@ -57,7 +58,7 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
   // Get connection pool from dbClient
   const pool = getPoolFromClient(manageDbClient);
   if (!pool) {
-    logger.error({}, 'Could not get connection pool from dbClient');
+    logger.error('Could not get connection pool from dbClient');
     c.set('db', manageDbClient);
     await next();
     return;
@@ -143,8 +144,11 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
           );
         }
       } catch (error) {
-        // Log but don't fail - the write already succeeded
-        logger.error({ error, branch: resolvedRef.name }, 'Failed to auto-commit changes');
+        logger.error(
+          { error, ...getDatabaseErrorLogContext(error), branch: resolvedRef.name },
+          'Failed to auto-commit changes — uncommitted writes will be lost on connection release'
+        );
+        throw error;
       }
     }
   } finally {
@@ -165,7 +169,10 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
         },
         'branchScopedDb cleanup failed'
       );
-      logger.error({ error: cleanupError }, 'Error during connection cleanup');
+      logger.error(
+        { error: cleanupError, ...getDatabaseErrorLogContext(cleanupError) },
+        'Error during connection cleanup'
+      );
     } finally {
       const totalMs = Date.now() - mwStartTime;
       if (totalMs > 5_000) {

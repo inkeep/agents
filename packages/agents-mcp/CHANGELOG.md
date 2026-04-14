@@ -1,5 +1,35 @@
 # @inkeep/agents-mcp
 
+## 0.68.1
+
+### Patch Changes
+
+- a074f63: security fix for agents-mcp
+
+## 0.68.0
+
+## 0.67.4
+
+## 0.67.3
+
+## 0.67.2
+
+## 0.67.1
+
+## 0.67.0
+
+## 0.66.1
+
+## 0.66.0
+
+## 0.65.2
+
+### Patch Changes
+
+- b33134a: Regenerate MCP server from latest OpenAPI spec with pnpm monorepo compatibility fixes
+
+## 0.65.1
+
 ## 0.65.0
 
 ## 0.64.10

@@ -4,6 +4,8 @@ import {
   doublePrecision,
   foreignKey,
   index,
+  integer,
+  jsonb,
   numeric,
   pgTable,
   primaryKey,
@@ -35,7 +37,6 @@ import type {
   StopWhen,
   SubAgentStopWhen,
 } from '../../validation/schemas';
-import { jsonb } from './dolt-safe-jsonb';
 
 const tenantScoped = {
   tenantId: varchar('tenant_id', { length: 256 }).notNull(),
@@ -148,6 +149,7 @@ export const triggers = pgTable(
       .$type<SignatureVerificationConfig | null>()
       .default(null),
     runAsUserId: varchar('run_as_user_id', { length: 256 }),
+    dispatchDelayMs: integer('dispatch_delay_ms'),
     createdBy: varchar('created_by', { length: 256 }),
     ...timestamps,
   },
@@ -163,6 +165,38 @@ export const triggers = pgTable(
       foreignColumns: [credentialReferences.id],
       name: 'triggers_credential_reference_fk',
     }).onDelete('set null'),
+  ]
+);
+
+export const triggerUsers = pgTable(
+  'trigger_users',
+  {
+    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
+    projectId: varchar('project_id', { length: 256 }).notNull(),
+    agentId: varchar('agent_id', { length: 256 }).notNull(),
+    triggerId: varchar('trigger_id', { length: 256 }).notNull(),
+    userId: varchar('user_id', { length: 256 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({
+      name: 'trigger_users_pk',
+      columns: [table.tenantId, table.projectId, table.agentId, table.triggerId, table.userId],
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId, table.triggerId],
+      foreignColumns: [triggers.tenantId, triggers.projectId, triggers.agentId, triggers.id],
+      name: 'trigger_users_trigger_fk',
+    }).onDelete('cascade'),
+    index('trigger_users_user_idx').on(table.userId),
+    index('trigger_users_trigger_idx').on(
+      table.tenantId,
+      table.projectId,
+      table.agentId,
+      table.triggerId
+    ),
   ]
 );
 

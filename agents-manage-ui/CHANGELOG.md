@@ -1,5 +1,104 @@
 # @inkeep/agents-manage-ui
 
+## 0.68.1
+
+### Patch Changes
+
+- 7b3b8b6: Fix cost page timeout by aggregating cost queries at the database level
+  - @inkeep/agents-core@0.68.1
+
+## 0.68.0
+
+### Patch Changes
+
+- Updated dependencies [d1e18a8]
+  - @inkeep/agents-core@0.68.0
+
+## 0.67.4
+
+### Patch Changes
+
+- b2c15cd: Fix DynamicComponentRenderer not rendering in production by allowing unsafe-eval in CSP
+  - @inkeep/agents-core@0.67.4
+
+## 0.67.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.67.3
+
+## 0.67.2
+
+### Patch Changes
+
+- cad720b: improve UnsavedChangesDialog typings to fix `Type error: Type 'Control<{ tools: Record...>' is not assignable to type 'Control<any>'`
+  - @inkeep/agents-core@0.67.2
+
+## 0.67.1
+
+### Patch Changes
+
+- 284864a: Fix Cost Over Time chart showing a single dot by querying per-trace aggregates instead of deriving from a 200-event sample
+  - @inkeep/agents-core@0.67.1
+
+## 0.67.0
+
+### Minor Changes
+
+- 757ac77: Add multi-user webhook triggers with per-user dispatch delay and invocation tracking.
+
+### Patch Changes
+
+- Updated dependencies [757ac77]
+  - @inkeep/agents-core@0.67.0
+
+## 0.66.1
+
+### Patch Changes
+
+- e6f0111: Fix authentication return URL validation to reject backslash-based redirect bypasses that could send users off-site after login.
+- 7383bf1: logging for traces
+  - @inkeep/agents-core@0.66.1
+
+## 0.66.0
+
+### Patch Changes
+
+- 98399ec: Add Improve with AI dialog to playground for copilot-assisted agent iteration
+  Tweak styling on feedback page
+  Bump agents-ui packages
+  Remove custom feedback on playground widget since latest version has feedback built in
+  Remove redundant feedback type in form
+- Updated dependencies [5596ecb]
+- Updated dependencies [63a1358]
+- Updated dependencies [01a960d]
+- Updated dependencies [4d0169b]
+  - @inkeep/agents-core@0.66.0
+
+## 0.65.2
+
+### Patch Changes
+
+- 259797c: Fix `useFormState` reactivity under React Compiler by isolating proxy-backed error reads
+- ebdd24f: fix timezone calculation for datasets and evaluators
+- 1f1b4b9: Auto-replace spaces with dashes in skill name input
+- 1a504c7: Add nested folder documentation and info tooltip for skill file paths
+- Updated dependencies [fa18f84]
+- Updated dependencies [34e1d67]
+- Updated dependencies [93eb31e]
+  - @inkeep/agents-core@0.65.2
+
+## 0.65.1
+
+### Patch Changes
+
+- 16fb544: Batch useWatch calls to reduce React Hook Form subscriptions and re-renders
+- 4077b67: Update agents-ui and agents-ui-cloud versions to 0.15.29
+- dbee04b: Add feedback CRUD API, database table, and Manage UI for collecting user feedback on conversations and messages
+- Updated dependencies [3735393]
+- Updated dependencies [dbee04b]
+  - @inkeep/agents-core@0.65.1
+
 ## 0.65.0
 
 ### Patch Changes

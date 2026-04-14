@@ -49,7 +49,7 @@ export const evalApiKeyAuth = () => {
       const apiKey = authHeader.substring(7); // Remove 'Bearer ' prefix
       const tokenMatches = apiKey === env.INKEEP_AGENTS_EVAL_API_BYPASS_SECRET;
       if (tokenMatches) {
-        logger.info({}, 'Bypass secret authenticated successfully');
+        logger.info('Bypass secret authenticated successfully');
         await next();
         return;
       }

@@ -4,6 +4,7 @@ import {
   type CredentialStoreRegistry,
   CredentialStuffer,
   createMessage,
+  DELEGATE_TOOL_PREFIX,
   type FullExecutionContext,
   generateId,
   generateServiceToken,
@@ -11,6 +12,10 @@ import {
   getMcpToolById,
   headers,
   type McpTool,
+  RELATION_TYPE_DELEGATE,
+  SESSION_EVENT_DELEGATION_RETURNED,
+  SESSION_EVENT_DELEGATION_SENT,
+  SESSION_EVENT_TRANSFER,
   SPAN_KEYS,
   TemplateEngine,
   withRef,
@@ -254,7 +259,7 @@ export const createTransferToAgentTool = ({
       );
 
       if (streamRequestId) {
-        agentSessionManager.recordEvent(streamRequestId, 'transfer', callingAgentId, {
+        agentSessionManager.recordEvent(streamRequestId, SESSION_EVENT_TRANSFER, callingAgentId, {
           fromSubAgent: callingAgentId,
           targetSubAgent: transferConfig.id ?? 'unknown',
           reason: `Transfer to ${transferConfig.name || transferConfig.id}`,
@@ -288,6 +293,7 @@ export function createDelegateToAgentTool({
   metadata,
   sessionId,
   credentialStoreRegistry,
+  agentRunContext,
 }: {
   delegateConfig: DelegateRelation;
   callingAgentId: string;
@@ -296,6 +302,7 @@ export function createDelegateToAgentTool({
   metadata: DelegationMetadata;
   sessionId?: string;
   credentialStoreRegistry?: CredentialStoreRegistry;
+  agentRunContext?: import('./agent-types').AgentRunContext;
 }) {
   const { tenantId, projectId, agentId, project } = executionContext;
 
@@ -318,7 +325,7 @@ export function createDelegateToAgentTool({
       if (metadata.streamRequestId) {
         agentSessionManager.recordEvent(
           metadata.streamRequestId,
-          'delegation_sent',
+          SESSION_EVENT_DELEGATION_SENT,
           callingAgentId,
           {
             delegationId,
@@ -424,18 +431,38 @@ export function createDelegateToAgentTool({
         ...(isInternal || isTeam ? { fetchFn: getInProcessFetch() } : {}),
       });
 
+      const baseDelegationMeta = getDelegationMetadata({
+        isInternal,
+        callingAgentId,
+        delegationId,
+        metadata,
+      });
+
+      const delegationMeta = {
+        ...baseDelegationMeta,
+        ...(agentRunContext?.durableWorkflowRunId
+          ? { durable_workflow_run_id: agentRunContext.durableWorkflowRunId }
+          : {}),
+        ...(agentRunContext?.delegatedToolApproval
+          ? {
+              approved_tool_calls: JSON.stringify({
+                [agentRunContext.delegatedToolApproval.toolName]: {
+                  approved: agentRunContext.delegatedToolApproval.approved,
+                  reason: agentRunContext.delegatedToolApproval.reason,
+                  originalToolCallId: agentRunContext.delegatedToolApproval.toolCallId,
+                },
+              }),
+            }
+          : {}),
+      };
+
       const messageToSend = {
         role: 'agent' as const,
         parts: [{ text: input.message, kind: 'text' as const }],
         messageId: generateId(),
         kind: 'message' as const,
         contextId,
-        metadata: getDelegationMetadata({
-          isInternal,
-          callingAgentId,
-          delegationId,
-          metadata,
-        }),
+        metadata: delegationMeta,
       };
       logger.info({ messageToSend }, 'messageToSend');
 
@@ -482,7 +509,7 @@ export function createDelegateToAgentTool({
       if (sessionId && context?.toolCallId) {
         const toolResult = {
           toolCallId: context.toolCallId,
-          toolName: `delegate_to_${delegateConfig.config.id}`,
+          toolName: `${DELEGATE_TOOL_PREFIX}${delegateConfig.config.id}`,
           args: input,
           result: response.result,
           timestamp: Date.now(),
@@ -493,7 +520,7 @@ export function createDelegateToAgentTool({
       if (metadata.streamRequestId) {
         agentSessionManager.recordEvent(
           metadata.streamRequestId,
-          'delegation_returned',
+          SESSION_EVENT_DELEGATION_RETURNED,
           callingAgentId,
           {
             delegationId,
@@ -621,7 +648,7 @@ export async function buildTransferRelationConfig(
         baseUrl: rel.externalAgent.baseUrl,
         headers: rel.headers || undefined,
         credentialReferenceId: rel.externalAgent.credentialReferenceId,
-        relationType: 'delegate',
+        relationType: RELATION_TYPE_DELEGATE,
       },
     })
   );

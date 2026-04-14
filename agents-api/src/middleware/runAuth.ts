@@ -386,7 +386,7 @@ function tryBypassAuth(apiKey: string, reqData: RequestData): AuthAttempt {
     });
   }
 
-  logger.info({}, 'Bypass secret authenticated successfully');
+  logger.info('Bypass secret authenticated successfully');
 
   return {
     authResult: {
@@ -881,7 +881,7 @@ async function runApiKeyAuthHandler(
 
   // Development/test environment handling
   if (isDev) {
-    logger.info({}, 'development environment');
+    logger.info('development environment');
 
     const attempt = await authenticateRequest(reqData);
 

@@ -178,7 +178,7 @@ export function ProjectForm({
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
-  });
+  }, console.error);
 
   return (
     <Form {...form}>

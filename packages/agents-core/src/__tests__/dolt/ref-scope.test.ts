@@ -6,7 +6,14 @@ vi.mock('../../dolt/branches-api', () => ({
   checkoutBranch: vi.fn(),
 }));
 
+vi.mock('../../dolt/commit', () => ({
+  doltStatus: vi.fn(),
+  doltAddAndCommit: vi.fn(),
+  doltReset: vi.fn(),
+}));
+
 import { checkoutBranch } from '../../dolt/branches-api';
+import { doltAddAndCommit, doltReset, doltStatus } from '../../dolt/commit';
 import {
   getCurrentRefScope,
   getRefScopedDb,
@@ -245,6 +252,101 @@ describe('Ref Scope Module', () => {
             return withRef(mockPool, innerRef, async () => 'inner');
           })
         ).rejects.toThrow(NestedRefScopeError);
+      });
+    });
+
+    describe('auto-commit behavior', () => {
+      const resolvedRef: ResolvedRef = {
+        type: 'branch',
+        name: 'tenant_project_main',
+        hash: 'abc123',
+      };
+
+      const mockedDoltStatus = doltStatus as ReturnType<typeof vi.fn>;
+      const mockedDoltAddAndCommit = doltAddAndCommit as ReturnType<typeof vi.fn>;
+      const mockedDoltReset = doltReset as ReturnType<typeof vi.fn>;
+
+      beforeEach(() => {
+        const checkoutBranchFn = vi.fn().mockResolvedValue({
+          branchName: resolvedRef.name,
+          hash: resolvedRef.hash,
+          schemaSync: { performed: false, hadDifferences: false },
+        });
+        mockedCheckoutBranch.mockReturnValue(checkoutBranchFn);
+      });
+
+      it('should auto-commit when commit: true and there are uncommitted changes', async () => {
+        const statusFn = vi.fn().mockResolvedValue([{ table: 'agents', status: 'modified' }]);
+        mockedDoltStatus.mockReturnValue(statusFn);
+        const commitFn = vi.fn().mockResolvedValue(undefined);
+        mockedDoltAddAndCommit.mockReturnValue(commitFn);
+
+        const result = await withRef(mockPool, resolvedRef, async () => 'result', {
+          commit: true,
+          commitMessage: 'test commit',
+        });
+
+        expect(result).toBe('result');
+        expect(mockedDoltStatus).toHaveBeenCalled();
+        expect(commitFn).toHaveBeenCalledWith(expect.objectContaining({ message: 'test commit' }));
+      });
+
+      it('should skip commit when there are no uncommitted changes', async () => {
+        const statusFn = vi.fn().mockResolvedValue([]);
+        mockedDoltStatus.mockReturnValue(statusFn);
+        const commitFn = vi.fn();
+        mockedDoltAddAndCommit.mockReturnValue(commitFn);
+
+        const result = await withRef(mockPool, resolvedRef, async () => 'result', {
+          commit: true,
+        });
+
+        expect(result).toBe('result');
+        expect(mockedDoltStatus).toHaveBeenCalled();
+        expect(commitFn).not.toHaveBeenCalled();
+      });
+
+      it('should throw when auto-commit fails instead of swallowing the error', async () => {
+        const statusFn = vi.fn().mockResolvedValue([{ table: 'agents', status: 'modified' }]);
+        mockedDoltStatus.mockReturnValue(statusFn);
+        const commitError = new Error('DOLT_COMMIT failed');
+        const commitFn = vi.fn().mockRejectedValue(commitError);
+        mockedDoltAddAndCommit.mockReturnValue(commitFn);
+
+        await expect(
+          withRef(mockPool, resolvedRef, async () => 'result', { commit: true })
+        ).rejects.toThrow('DOLT_COMMIT failed');
+
+        expect(mockConnection.release).toHaveBeenCalled();
+      });
+
+      it('should reset uncommitted changes when callback throws with commit: true', async () => {
+        const statusFn = vi.fn().mockResolvedValue([{ table: 'agents', status: 'modified' }]);
+        mockedDoltStatus.mockReturnValue(statusFn);
+        const resetFn = vi.fn().mockResolvedValue(undefined);
+        mockedDoltReset.mockReturnValue(resetFn);
+
+        await expect(
+          withRef(
+            mockPool,
+            resolvedRef,
+            async () => {
+              throw new Error('operation failed');
+            },
+            { commit: true }
+          )
+        ).rejects.toThrow('operation failed');
+
+        expect(mockedDoltReset).toHaveBeenCalled();
+        expect(resetFn).toHaveBeenCalled();
+      });
+
+      it('should not attempt commit when commit option is false', async () => {
+        const result = await withRef(mockPool, resolvedRef, async () => 'result');
+
+        expect(mockedDoltStatus).not.toHaveBeenCalled();
+        expect(mockedDoltAddAndCommit).not.toHaveBeenCalled();
+        expect(result).toBe('result');
       });
     });
 

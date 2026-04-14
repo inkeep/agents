@@ -56,10 +56,10 @@ export class Agent implements AgentInterface {
   };
   private statusUpdateSettings?: StatusUpdateSettings;
   private prompt?: string;
-  private executionMode?: 'classic' | 'durable';
   private stopWhen?: AgentStopWhen;
   private triggers: TriggerInterface[] = [];
   private triggerMap: Map<string, Trigger> = new Map();
+  private executionMode?: 'classic' | 'durable';
 
   constructor(config: AgentConfig) {
     this.defaultSubAgent = config.defaultSubAgent;

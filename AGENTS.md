@@ -241,6 +241,33 @@ All existing PUT update routes remain functional — they share the same handler
 - **Test Structure**: Tests must be in `__tests__` directories, named `*.test.ts`
 - **Coverage Requirements**: All new code paths must have test coverage
 
+#### Shared Test Mocks (`@inkeep/agents-core/test-utils`)
+
+Use the shared mock factories instead of defining inline mocks. This prevents drift when the real API changes.
+
+```typescript
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
+
+// Simple — just suppress logger noise (most common):
+vi.mock('../../logger', () => createMockLoggerModule().module);
+
+// When asserting on logger calls:
+const { mockLogger, module: loggerModule, clearAll } = createMockLoggerModule();
+vi.mock('../../logger', () => loggerModule);
+// In beforeEach: clearAll() — vi.clearAllMocks() does not reach nested mock fns
+
+// Edge case: static imports after vi.mock (TDZ issue) — use vi.hoisted container:
+const refs = vi.hoisted(() => ({ mockLogger: null as any }));
+vi.mock('../../logger', async () => {
+  const { createMockLoggerModule } = await import('@inkeep/agents-core/test-utils');
+  const result = createMockLoggerModule();
+  refs.mockLogger = result.mockLogger;
+  return result.module;
+});
+```
+
+**Do NOT** define inline logger mocks (`{ info: vi.fn(), warn: vi.fn(), ... }`) — use the factory.
+
 #### Example Test Structure
 ```typescript
 // src/builder/__tests__/myFeature.test.ts
@@ -385,6 +412,7 @@ This product has **50+ customer-facing** and **100+ internal tooling/devops** su
 
 **Before marking any feature complete, verify:**
 - [ ] `pnpm check` passes
+- [ ] **Changeset created** via `pnpm bump` for every published package with runtime behavior changes (see [Creating Changelog Entries](#creating-changelog-entries-changesets))
 - [ ] UI components implemented in agents-manage-ui
 - [ ] Documentation added to `/agents-docs/`
 - [ ] Surface area and breaking changes have been addressed as agreed with the user (see “Clarify scope and surface area before implementing”).
@@ -392,8 +420,9 @@ This product has **50+ customer-facing** and **100+ internal tooling/devops** su
 ### 📋 Standard Development Workflow
 
 1. Create a branch: `git checkout -b feature/your-feature-name`
-2. Run [Verification](#verification) before pushing
-3. Commit, then `gh pr create`
+2. Create a changeset: `pnpm bump <patch|minor> --pkg <package> "<message>"` (required for any runtime behavior change to a published package — see [Creating Changelog Entries](#creating-changelog-entries-changesets))
+3. Run [Verification](#verification) before pushing
+4. Commit, then `gh pr create`
 
 The user may override this workflow (e.g., work directly on main).
 

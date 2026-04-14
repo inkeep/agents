@@ -4,23 +4,24 @@ import {
   InkeepChatButton,
   InkeepModalSearchAndChat,
   type InkeepModalSearchAndChatProps,
-} from '@inkeep/agents-ui-cloud';
+} from '@inkeep/cxkit-react';
 import type { SharedProps } from 'fumadocs-ui/components/dialog/search';
 import type { FC } from 'react';
+import { z } from 'zod';
+import { detectedSalesSignal, salesSignalType } from './sales-escalation';
+import { provideAnswerConfidenceSchema } from './support-escalation';
+
+const validSalesSignalTypes = salesSignalType.options.map((option) => option.value);
 
 const apiKey = process.env.NEXT_PUBLIC_INKEEP_API_KEY;
-const appId = process.env.NEXT_PUBLIC_INKEEP_APP_ID;
 
 if (!apiKey) {
   console.warn('NEXT_PUBLIC_INKEEP_API_KEY not configured.');
 }
 
-if (!appId) {
-  console.warn('NEXT_PUBLIC_INKEEP_APP_ID not configured.');
-}
-
 const config: InkeepModalSearchAndChatProps = {
   baseSettings: {
+    apiKey,
     primaryBrandColor: '#D5E5FF',
     organizationDisplayName: 'Inkeep',
     colorMode: {
@@ -55,18 +56,7 @@ const config: InkeepModalSearchAndChatProps = {
             }
             [data-theme="light"].ikp-chat-button__button:focus-visible {
               box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #69A3FF !important;
-            }
-            [data-theme="light"] .ikp-ai-chat-input__send-button {
-              color: #3784ff;
-            }
-            [data-theme="light"] .ikp-ai-chat-input__send-button:hover {
-              color: #006fe7;
-            }
-            [data-theme="light"] .ikp-markdown-sup > a:hover,
-            [data-theme="light"] .ikp-markdown-sup[data-part="markdown-sup"]:hover a[data-part="markdown-link"] {
-              color: var(--ikp-color-inkeep-expanded-primary-950);
-            }
-            `,
+            }`,
         },
       ],
     },
@@ -82,7 +72,6 @@ const config: InkeepModalSearchAndChatProps = {
     },
   },
   aiChatSettings: {
-    appId,
     aiAssistantAvatar: {
       light: '/logos/icon-black.svg',
       dark: '/logos/icon-light-blue.svg',
@@ -112,15 +101,72 @@ const config: InkeepModalSearchAndChatProps = {
         },
       },
     ],
-  },
+    getTools: () => [
+      {
+        type: 'function',
+        function: {
+          name: 'detectSalesSignal',
+          description: 'Identify when users express interest in potentially purchasing a product.',
+          parameters: z.toJSONSchema(detectedSalesSignal),
+        },
+        renderMessageButtons: ({
+          args,
+        }: {
+          args: { type: (typeof validSalesSignalTypes)[number] };
+        }) => {
+          if (validSalesSignalTypes.includes(args.type)) {
+            return [
+              {
+                label: 'Schedule a Demo',
+                icon: { builtIn: 'LuCalendar' },
+                action: {
+                  type: 'open_link',
+                  url: 'https://inkeep.com/demo?cta_id=docs_cxkit',
+                },
+              },
+            ];
+          }
+          return [];
+        },
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'provideAnswerConfidence',
+          description:
+            'Determine how confident the AI assistant was and whether or not to escalate to humans.',
+          parameters: z.toJSONSchema(provideAnswerConfidenceSchema),
+        },
+        renderMessageButtons: ({
+          args,
+        }: {
+          args: z.infer<typeof provideAnswerConfidenceSchema>;
+        }) => {
+          const confidence = args.answerConfidence;
+          if (['not_confident', 'no_sources', 'other'].includes(confidence)) {
+            return [
+              {
+                label: 'Contact Support',
+                icon: { builtIn: 'LuUser' },
+                action: {
+                  type: 'open_link',
+                  url: 'mailto:support@inkeep.com',
+                },
+              },
+            ];
+          }
+          return [];
+        },
+      },
+    ],
+  } as any,
   searchSettings: {
-    apiKey,
     tabs: [['Docs', { isAlwaysVisible: true }], ['All', { isAlwaysVisible: true }], 'GitHub'],
   },
 };
 
 export const InkeepScript: FC<SharedProps> = ({ open, onOpenChange }) => {
-  if (!apiKey || !appId) {
+  if (!apiKey) {
     return;
   }
 
@@ -132,7 +178,7 @@ export const InkeepScript: FC<SharedProps> = ({ open, onOpenChange }) => {
       />
       <InkeepModalSearchAndChat
         {...config}
-        openSettings={{
+        modalSettings={{
           // disable default cmd+k behavior, it's handled by fumadocs
           shortcutKey: null,
           isOpen: open,

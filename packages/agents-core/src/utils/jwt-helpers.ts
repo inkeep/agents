@@ -21,7 +21,6 @@ export function getJwtSecret(): Uint8Array {
     }
 
     logger.warn(
-      {},
       'INKEEP_AGENTS_JWT_SIGNING_SECRET not set, using insecure default. DO NOT USE IN PRODUCTION!'
     );
     return new TextEncoder().encode(DEV_SECRET);

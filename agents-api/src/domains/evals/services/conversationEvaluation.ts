@@ -54,7 +54,7 @@ export const triggerConversationEvaluation = async (params: {
 
     if (runConfigs.length === 0) {
       logger.debug(
-        { tenantId, projectId, conversationId },
+        { conversationId },
         'No active evaluation run configs found, skipping evaluation'
       );
       return {
@@ -65,7 +65,7 @@ export const triggerConversationEvaluation = async (params: {
     }
 
     logger.info(
-      { tenantId, projectId, conversationId, runConfigCount: runConfigs.length },
+      { conversationId, runConfigCount: runConfigs.length },
       'Triggering conversation evaluation'
     );
 
@@ -202,13 +202,7 @@ export const triggerConversationEvaluation = async (params: {
     };
   } catch (error) {
     logger.error(
-      {
-        error: (error as Error)?.message,
-        errorStack: (error as Error)?.stack,
-        tenantId,
-        projectId,
-        conversationId,
-      },
+      { error: (error as Error)?.message, errorStack: (error as Error)?.stack, conversationId },
       'Failed to trigger conversation evaluation'
     );
     throw error;

@@ -647,8 +647,7 @@ describe('Chat Routes', () => {
 
       expect(response.status).toBe(500);
       const body = await response.json();
-      expect(body.detail).toBe('Failed to process chat completion');
-      expect(body.detail).not.toContain('ECONNREFUSED');
+      expect(body.detail).toBe('An internal server error occurred. Please try again later.');
     });
   });
 });

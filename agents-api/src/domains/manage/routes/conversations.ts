@@ -380,14 +380,7 @@ app.openapi(
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error(
-        {
-          error: errorMessage,
-          key,
-          requestId: c.get('requestId'),
-          tenantId,
-          projectId,
-          conversationId,
-        },
+        { error: errorMessage, key, requestId: c.get('requestId'), conversationId },
         'Failed to serve media'
       );
       if (isMediaNotFoundError(error)) {

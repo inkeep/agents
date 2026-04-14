@@ -35,7 +35,12 @@ export {
   account,
   deviceCode,
   invitation,
+  jwks,
   member,
+  oauthAccessToken,
+  oauthClient,
+  oauthConsent,
+  oauthRefreshToken,
   organization,
   session,
   ssoProvider,
@@ -240,6 +245,8 @@ export const triggerInvocations = pgTable(
     ...agentScoped,
     triggerId: varchar('trigger_id', { length: 256 }).notNull(),
     conversationId: varchar('conversation_id', { length: 256 }),
+    runAsUserId: varchar('run_as_user_id', { length: 256 }),
+    batchId: varchar('batch_id', { length: 256 }),
     ref: jsonb('ref').$type<ResolvedRef>(),
     status: varchar('status', { length: 20 }).notNull().default('pending'),
     requestPayload: jsonb('request_payload').notNull(),
@@ -251,6 +258,7 @@ export const triggerInvocations = pgTable(
     primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
     index('trigger_invocations_trigger_idx').on(table.triggerId, table.createdAt),
     index('trigger_invocations_status_idx').on(table.triggerId, table.status),
+    index('trigger_invocations_batch_idx').on(table.triggerId, table.batchId),
     // Optional FK to conversations - only if conversationId is set
     // Note: Using a separate constraint to allow NULL conversationId
   ]

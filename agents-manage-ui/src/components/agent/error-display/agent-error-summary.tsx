@@ -172,7 +172,7 @@ export function AgentErrorSummary() {
     });
   }
 
-  const { subAgents, functionTools, externalAgents, teamAgents, tools, agentSettings, other } =
+  const { subAgents, functionTools, externalAgents, teamAgents, tools, agentSettings } =
     useGroupedAgentErrors();
 
   // const [showErrors, setShowErrors] = useState(true);
@@ -208,10 +208,6 @@ export function AgentErrorSummary() {
       onNavigate() {
         setQueryState({ pane: 'agent', nodeId: null, edgeId: null });
       },
-    },
-    {
-      title: 'Other',
-      errors: processMessagesWithNodeId({ '': other }),
     },
   ];
 

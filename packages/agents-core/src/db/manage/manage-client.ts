@@ -3,10 +3,14 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import type { PgliteDatabase } from 'drizzle-orm/pglite';
 import { Pool } from 'pg';
 import { env, loadEnvironmentFiles } from '../../env';
+import { getDatabaseErrorLogContext } from '../../utils/error';
+import { getLogger } from '../../utils/logger';
 import * as schema from './manage-schema';
 import { createTestManageDatabaseClientNoMigrations } from './test-manage-client';
 
 loadEnvironmentFiles();
+
+const managePoolLogger = getLogger('manage-db-pool');
 
 // Union type that accepts both production (node-postgres) and test (PGlite) clients
 export type AgentsManageDatabaseClient =
@@ -40,9 +44,11 @@ export function createAgentsManageDatabasePool(config: AgentsManageDatabaseConfi
     idleTimeoutMillis: 30_000,
   });
 
-  // Handle pool errors
   pool.on('error', (err) => {
-    console.error('Unexpected PostgreSQL pool error:', err);
+    managePoolLogger.error(
+      { error: err, ...getDatabaseErrorLogContext(err) },
+      'Unexpected error on agents manage database pool (Doltgres)'
+    );
   });
 
   return pool;
@@ -75,9 +81,11 @@ export function createAgentsManageDatabaseClient(
     idleTimeoutMillis: 30_000,
   });
 
-  // Handle pool errors
   pool.on('error', (err) => {
-    console.error('Unexpected PostgreSQL pool error:', err);
+    managePoolLogger.error(
+      { error: err, ...getDatabaseErrorLogContext(err) },
+      'Unexpected error on agents manage database pool (Doltgres)'
+    );
   });
 
   return drizzle(pool, {
@@ -111,7 +119,10 @@ export function createAgentManageDatabaseConnection(config: AgentsManageDatabase
   });
 
   pool.on('error', (err) => {
-    console.error('Unexpected PostgreSQL pool error:', err);
+    managePoolLogger.error(
+      { error: err, ...getDatabaseErrorLogContext(err) },
+      'Unexpected error on agents manage database pool (Doltgres)'
+    );
   });
 
   return pool.connect().then((connection) => {

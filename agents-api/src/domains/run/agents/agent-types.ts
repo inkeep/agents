@@ -222,6 +222,18 @@ export type DelegateRelation =
   | { type: 'external'; config: ExternalAgentRelationConfig }
   | { type: 'team'; config: TeamAgentRelationConfig };
 
+export interface PendingDurableApproval {
+  toolCallId: string;
+  toolName: string;
+  args: unknown;
+  delegatedApproval?: {
+    toolCallId: string;
+    toolName: string;
+    args: unknown;
+    subAgentId: string;
+  };
+}
+
 export type ToolType = 'transfer' | 'delegation' | 'mcp' | 'tool';
 
 export function isValidTool(tool: unknown): tool is {
@@ -241,6 +253,11 @@ export type AiSdkToolDefinition = {
   description?: string;
   inputSchema?: unknown;
   parameters?: {
+    safeParse?: (
+      args: unknown
+    ) => { success: true; error?: never } | { success: false; error: { message: string } };
+  };
+  baseInputSchema?: {
     safeParse?: (
       args: unknown
     ) => { success: true; error?: never } | { success: false; error: { message: string } };
@@ -266,9 +283,12 @@ export interface AgentRunContext {
   functionToolRelationshipIdByName: Map<string, string>;
   taskDenialRedirects: Array<{ toolName: string; toolCallId: string; reason: string }>;
   durableWorkflowRunId?: string;
-  approvedToolCalls?: Record<
-    string,
-    Array<{ approved: boolean; reason?: string; originalToolCallId?: string }>
-  >;
-  pendingDurableApproval?: { toolCallId: string; toolName: string; args: unknown };
+  approvedToolCalls?: Record<string, { approved: boolean; reason?: string }>;
+  pendingDurableApproval?: PendingDurableApproval;
+  delegatedToolApproval?: {
+    toolCallId: string;
+    toolName: string;
+    approved: boolean;
+    reason?: string;
+  };
 }

@@ -79,3 +79,16 @@ export function buildTextAttachmentBlock(params: {
     '</attached_file>',
   ].join('\n');
 }
+
+export function buildDecodedTextAttachmentBlock(params: {
+  data: Uint8Array;
+  mimeType: string;
+  filename?: string;
+}): string {
+  const content = decodeTextDocumentBytes(params.data);
+  return buildTextAttachmentBlock({
+    mimeType: params.mimeType,
+    content,
+    filename: params.filename,
+  });
+}
