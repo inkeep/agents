@@ -98,7 +98,7 @@ import {
   omitTimestamps,
   PaginationQueryParamsSchema,
   PaginationSchema,
-  ProjectResourceIdSchema,
+  ProjectAgentResourceIdSchema,
   ResourceIdSchema,
   StringRecordSchema,
 } from './schemas/shared';
@@ -355,7 +355,7 @@ export const ExternalSubAgentRelationApiInsertSchema = createApiInsertSchema(
 export const AgentSelectSchema = createSelectSchema(agents);
 
 export const AgentInsertSchema = createInsertSchema(agents, {
-  id: () => ResourceIdSchema,
+  id: () => ProjectAgentResourceIdSchema,
   name: () => NameSchema,
   description: () => DescriptionSchema,
   defaultSubAgentId: () =>
@@ -373,7 +373,7 @@ export const AgentUpdateSchema = AgentInsertSchema.partial();
 export const AgentApiSelectSchema = createApiSchema(AgentSelectSchema).openapi('Agent');
 export const AgentApiInsertSchema = createApiInsertSchema(AgentInsertSchema)
   .extend({
-    id: ResourceIdSchema,
+    id: ProjectAgentResourceIdSchema,
   })
   .omit({
     createdAt: true,
@@ -2635,7 +2635,7 @@ export const ProjectSelectSchema = registerFieldSchemas(
 );
 export const ProjectInsertSchema = createInsertSchema(projects)
   .extend({
-    id: ProjectResourceIdSchema,
+    id: ProjectAgentResourceIdSchema,
     models: ProjectModelSchema,
     stopWhen: StopWhenSchema.optional(),
   })
@@ -3085,7 +3085,7 @@ const TenantId = z.string().openapi('TenantIdPathParam', {
   example: 'tenant_123',
 });
 
-const ProjectId = ProjectResourceIdSchema.openapi('ProjectIdPathParam', {
+const ProjectId = ProjectAgentResourceIdSchema.openapi('ProjectIdPathParam', {
   param: {
     name: 'projectId',
     in: 'path',
@@ -3094,13 +3094,13 @@ const ProjectId = ProjectResourceIdSchema.openapi('ProjectIdPathParam', {
   example: 'project-456',
 });
 
-const AgentId = z.string().openapi('AgentIdPathParam', {
+const AgentId = ProjectAgentResourceIdSchema.openapi('AgentIdPathParam', {
   param: {
     name: 'agentId',
     in: 'path',
   },
   description: 'Agent identifier',
-  example: 'agent_789',
+  example: 'my-agent-789',
 });
 
 const SubAgentId = z.string().openapi('SubAgentIdPathParam', {

@@ -19,18 +19,18 @@ const ResourceIdSchema = z
     example: 'resource_789',
   });
 
-const ProjectResourceIdSchema = z
+const ProjectAgentResourceIdSchema = z
   .string()
   .trim()
   .nonempty('Id is required')
   .max(MAX_ID_LENGTH)
   .regex(PROJECT_ID_PATTERN, {
     message:
-      'Project ID must start and end with lowercase alphanumeric characters, and may contain hyphens',
+      'Project and agent ID must start and end with lowercase alphanumeric characters, and may contain hyphens',
   })
-  .openapi('ProjectResourceId', {
-    description: 'Project identifier (lowercase alphanumeric and hyphens only)',
-    example: 'my-project-123',
+  .openapi('ProjectAgentResourceId', {
+    description: 'Project or agent identifier (lowercase alphanumeric and hyphens only)',
+    example: 'my-resource-123',
   });
 
 const StringRecordSchema = z
@@ -159,7 +159,7 @@ export {
   PaginationSchema,
   StringRecordSchema,
   ResourceIdSchema,
-  ProjectResourceIdSchema,
+  ProjectAgentResourceIdSchema,
   createAgentScopedApiInsertSchema,
   URL_SAFE_ID_PATTERN,
   PROJECT_ID_PATTERN,
