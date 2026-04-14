@@ -64,19 +64,21 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
         const start = new Date(startTime).getTime();
         const end = new Date(endTime).getTime();
 
-        const [byModel, byAgent, byType, byProvider, eventsList, costPerDay] = await Promise.all([
-          client.getUsageCostSummary(start, end, 'model', projectId),
-          client.getUsageCostSummary(start, end, 'agent', projectId),
-          client.getUsageCostSummary(start, end, 'generation_type', projectId),
-          client.getUsageCostSummary(start, end, 'provider', projectId),
+        const [summaries, eventsList, costPerDay] = await Promise.all([
+          client.getUsageCostSummaries(
+            start,
+            end,
+            ['model', 'agent', 'generation_type', 'provider'] as const,
+            projectId
+          ),
           client.getUsageEventsList(start, end, projectId, undefined, 200),
           client.getUsageCostPerDay(start, end, projectId),
         ]);
 
-        setSummaryByModel(byModel);
-        setSummaryByAgent(byAgent);
-        setSummaryByType(byType);
-        setSummaryByProvider(byProvider);
+        setSummaryByModel(summaries.model);
+        setSummaryByAgent(summaries.agent);
+        setSummaryByType(summaries.generation_type);
+        setSummaryByProvider(summaries.provider);
         setEvents(eventsList);
         setChartData(costPerDay);
       } catch (error) {
