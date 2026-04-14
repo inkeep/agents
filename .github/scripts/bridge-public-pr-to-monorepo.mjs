@@ -94,18 +94,51 @@ function prefixPatchPaths(patch, prefix) {
   return patch
     .split('\n')
     .map((line) => {
-      if (line.startsWith('diff --git a/')) {
-        const match = line.match(/^diff --git a\/(.+?) b\/(.+)$/);
+      if (line.startsWith('diff --git ')) {
+        const match = line.match(
+          /^diff --git (?:"a\/(.+)"|a\/(.+)) (?:"b\/(.+)"|b\/(.+))$/,
+        );
         if (!match) {
           return line;
         }
-        return `diff --git a/${prefixedPath(match[1])} b/${prefixedPath(match[2])}`;
+
+        if (match[1] && match[3]) {
+          const fromPath = prefixedPath(`"${match[1]}"`).replace(/^"|"$/g, '');
+          const toPath = prefixedPath(`"${match[3]}"`).replace(/^"|"$/g, '');
+          return `diff --git "a/${fromPath}" "b/${toPath}"`;
+        }
+
+        return `diff --git a/${prefixedPath(match[2])} b/${prefixedPath(match[4])}`;
       }
-      if (line.startsWith('--- a/')) {
-        return `--- a/${prefixedPath(line.slice(6))}`;
+      if (line.startsWith('--- ')) {
+        if (line === '--- /dev/null') {
+          return line;
+        }
+        if (line.startsWith('--- a/')) {
+          return `--- a/${prefixedPath(line.slice(6))}`;
+        }
+        if (line.startsWith('--- "a/')) {
+          const match = line.match(/^--- "a\/(.+)"$/);
+          if (match) {
+            const nextPath = prefixedPath(`"${match[1]}"`).replace(/^"|"$/g, '');
+            return `--- "a/${nextPath}"`;
+          }
+        }
       }
-      if (line.startsWith('+++ b/')) {
-        return `+++ b/${prefixedPath(line.slice(6))}`;
+      if (line.startsWith('+++ ')) {
+        if (line === '+++ /dev/null') {
+          return line;
+        }
+        if (line.startsWith('+++ b/')) {
+          return `+++ b/${prefixedPath(line.slice(6))}`;
+        }
+        if (line.startsWith('+++ "b/')) {
+          const match = line.match(/^\+\+\+ "b\/(.+)"$/);
+          if (match) {
+            const nextPath = prefixedPath(`"${match[1]}"`).replace(/^"|"$/g, '');
+            return `+++ "b/${nextPath}"`;
+          }
+        }
       }
       if (line.startsWith('rename from ')) {
         return `rename from ${prefixedPath(line.slice('rename from '.length))}`;
