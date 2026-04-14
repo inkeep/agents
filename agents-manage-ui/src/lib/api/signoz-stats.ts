@@ -234,6 +234,11 @@ const timestampMsFromValue = (raw: unknown): number => {
 
 const extractTimeSeriesBuckets = (resp: any, name: string): Map<string, number> => {
   const buckets = new Map<string, number>();
+  const addToBucket = (ms: number, value: number) => {
+    if (!ms) return;
+    buckets.set(dateKeyFromMs(ms), (buckets.get(dateKeyFromMs(ms)) ?? 0) + value);
+  };
+
   const results = resp?.data?.data?.results ?? resp?.data?.results;
   if (!Array.isArray(results)) return buckets;
   const result = results.find((r: any) => r?.queryName === name);
@@ -243,14 +248,23 @@ const extractTimeSeriesBuckets = (resp: any, name: string): Map<string, number> 
     ? result.aggregations.flatMap((agg: any) => agg.series ?? [])
     : (result.series ?? []);
 
-  for (const s of seriesList) {
-    for (const v of s.values ?? []) {
-      const ms = timestampMsFromValue(v.timestamp ?? v.ts ?? v.time);
-      if (!ms) continue;
-      const cost = Number(v.value ?? 0) || 0;
-      const key = dateKeyFromMs(ms);
-      buckets.set(key, (buckets.get(key) ?? 0) + cost);
+  if (seriesList.length > 0) {
+    for (const s of seriesList) {
+      for (const v of s.values ?? []) {
+        addToBucket(timestampMsFromValue(v.timestamp ?? v.ts ?? v.time), Number(v.value ?? 0) || 0);
+      }
     }
+    return buckets;
+  }
+
+  const columns: Array<{ name: string; columnType: string }> = result.columns ?? [];
+  const rows: unknown[][] = result.data ?? [];
+  if (columns.length === 0 || rows.length === 0) return buckets;
+  const tsIdx = columns.findIndex((c) => /time|timestamp/i.test(c.name));
+  const valIdx = columns.findIndex((c) => c.columnType === 'aggregation');
+  if (tsIdx < 0 || valIdx < 0) return buckets;
+  for (const row of rows) {
+    addToBucket(timestampMsFromValue(row[tsIdx]), Number(row[valIdx] ?? 0) || 0);
   }
   return buckets;
 };
@@ -266,19 +280,23 @@ interface UsageCostSummaryRow {
   eventCount: number;
 }
 
-const USAGE_COST_AGGREGATION_EXPRESSIONS = {
-  inputTokens: `sum(${SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS})`,
-  outputTokens: `sum(${SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS})`,
-  cost: `sum(${SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD})`,
-  eventCount: 'count()',
-} as const;
-
-const USAGE_COST_AGGREGATIONS = [
-  USAGE_COST_AGGREGATION_EXPRESSIONS.inputTokens,
-  USAGE_COST_AGGREGATION_EXPRESSIONS.outputTokens,
-  USAGE_COST_AGGREGATION_EXPRESSIONS.cost,
-  USAGE_COST_AGGREGATION_EXPRESSIONS.eventCount,
+// Single source of truth for cost-summary aggregations: the expression list
+// sent to SigNoz and the response-column indices used to parse it are both
+// derived from this array, so reordering it keeps them in sync.
+const USAGE_COST_AGGREGATION_ORDER = [
+  { key: 'inputTokens', expression: `sum(${SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS})` },
+  { key: 'outputTokens', expression: `sum(${SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS})` },
+  { key: 'cost', expression: `sum(${SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD})` },
+  { key: 'eventCount', expression: 'count()' },
 ] as const;
+
+type UsageCostAggregationKey = (typeof USAGE_COST_AGGREGATION_ORDER)[number]['key'];
+
+const USAGE_COST_AGGREGATIONS = USAGE_COST_AGGREGATION_ORDER.map((a) => a.expression);
+
+const USAGE_COST_AGGREGATION_INDEX = Object.fromEntries(
+  USAGE_COST_AGGREGATION_ORDER.map((a, i) => [a.key, i])
+) as Record<UsageCostAggregationKey, number>;
 
 const usageCostQueryName = (groupBy: UsageCostGroupBy): string => `usageCost_${groupBy}`;
 
@@ -298,20 +316,22 @@ const usageCostGroupByKey = (groupBy: UsageCostGroupBy): string => {
 };
 
 const seriesToUsageSummaryRows = (series: Series[], groupByKey: string): UsageCostSummaryRow[] => {
+  const readNumber = (s: Series, key: UsageCostAggregationKey) =>
+    Number(s.values?.[USAGE_COST_AGGREGATION_INDEX[key]]?.value ?? 0) || 0;
+  const readInt = (s: Series, key: UsageCostAggregationKey) =>
+    parseInt(s.values?.[USAGE_COST_AGGREGATION_INDEX[key]]?.value ?? '0', 10) || 0;
+
   return series
     .map((s) => {
-      const values = s.values ?? [];
-      const inputTokens = Number(values[0]?.value ?? 0) || 0;
-      const outputTokens = Number(values[1]?.value ?? 0) || 0;
-      const cost = Number(values[2]?.value ?? 0) || 0;
-      const eventCount = parseInt(values[3]?.value ?? '0', 10) || 0;
+      const totalInputTokens = readNumber(s, 'inputTokens');
+      const totalOutputTokens = readNumber(s, 'outputTokens');
       return {
         groupKey: s.labels?.[groupByKey] || UNKNOWN_VALUE,
-        totalInputTokens: inputTokens,
-        totalOutputTokens: outputTokens,
-        totalTokens: inputTokens + outputTokens,
-        totalEstimatedCostUsd: cost,
-        eventCount,
+        totalInputTokens,
+        totalOutputTokens,
+        totalTokens: totalInputTokens + totalOutputTokens,
+        totalEstimatedCostUsd: readNumber(s, 'cost'),
+        eventCount: readInt(s, 'eventCount'),
       };
     })
     .sort((a, b) => b.totalTokens - a.totalTokens);
