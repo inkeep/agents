@@ -45,9 +45,23 @@ Evaluators define how agent responses are scored. Each evaluator has a **prompt*
 
 From the Evaluators list, open an evaluator to view or edit it, or use the delete action.
 
+### Agent scoping
+
+Evaluators can be scoped to specific agents. When an evaluator is scoped to one or more agents, it only runs on conversations handled by those agents during batch evaluations.
+
+- **No agent scope** (default): The evaluator applies to all conversations regardless of which agent handled them.
+- **Scoped to agents**: The evaluator only runs on conversations from the specified agents.
+
+This is useful when you have agent-specific quality criteria. For example, a "Technical accuracy" evaluator might only apply to your documentation agent, while a "Tone" evaluator applies to all agents.
+
+To configure agent scoping:
+1. Open an evaluator from the **Evaluators** tab.
+2. In the agent scope settings, select which agents this evaluator should apply to.
+3. Leave empty to apply to all agents.
+
 ## Batch evaluations
 
-Batch evaluations run selected evaluators over a set of conversations once. In the Visual Builder you scope that set with a **date range**. The API and TypeScript SDK can also scope a job to specific **test suite runs** using test suite run IDs (`datasetRunIds` in the API)—for example to evaluate only conversations produced by a given [test suite](/visual-builder/test-suites) run. Starting a test suite run **with evaluators** creates a matching batch evaluation automatically.
+Batch evaluations run selected evaluators over a set of conversations once. If evaluators are [scoped to specific agents](#agent-scoping), only evaluators matching each conversation's agent are applied. In the Visual Builder you scope the conversation set with a **date range**. The API and TypeScript SDK can also scope a job to specific **test suite runs** using test suite run IDs (`datasetRunIds` in the API)—for example to evaluate only conversations produced by a given [test suite](/visual-builder/test-suites) run. Starting a test suite run **with evaluators** creates a matching batch evaluation automatically.
 
 ### Creating a batch evaluation
 
