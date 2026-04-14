@@ -49,7 +49,7 @@ This guide shows how to call your agent directly over HTTP and stream responses 
 - **`content` + `parts` together** — Both are accepted. `content` is prepended as a text part unless an identical text part already exists.
 - **`conversationId`** — Optional; server generates one if omitted
 
-## File inputs (images, PDFs, and text documents)
+## File inputs (images, PDFs, text documents, and Office files)
 
 The chat endpoint supports files in message content parts with different rules by type:
 
@@ -63,6 +63,11 @@ The chat endpoint supports files in message content parts with different rules b
   - `application/json`
 - **PDF file inputs**: support either remote URLs (`https://...`) or base64 `data:` payloads
 - **Text document file inputs**: support inline base64 `data:` payloads only. Remote URLs are not accepted for these text document MIME types.
+- **Office document file inputs (`.docx`, `.xlsx`)**: support inline base64 `data:` payloads only. Remote URLs are not supported.
+
+<Note>
+  Office document attachments (`.docx`, `.xlsx`) are only supported when using OpenAI models. When using other model providers, office file parts are automatically removed and the model receives a note indicating the file was omitted.
+</Note>
 
 ### Request shape for file parts
 
@@ -129,6 +134,18 @@ The chat endpoint supports files in message content parts with different rules b
         },
         {
           "type": "file",
+          "url": "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,UEsDBBQAAAAI...",
+          "mediaType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "filename": "document.docx"
+        },
+        {
+          "type": "file",
+          "url": "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,UEsDBBQAAAAI...",
+          "mediaType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "filename": "spreadsheet.xlsx"
+        },
+        {
+          "type": "file",
           "url": "https://example.com/document.pdf",
           "mediaType": "application/pdf",
           "filename": "document.pdf"
@@ -145,12 +162,14 @@ The chat endpoint supports files in message content parts with different rules b
 - **Maximum size**:
   - Images and PDFs: each inline file payload is limited to **10 MB**
   - Text documents (`text/plain`, `text/markdown`, `text/html`, `text/csv`, `text/x-log`, `application/json`): each inline file payload is limited to **256 KB**
+  - Office documents (`.docx`, `.xlsx`): each inline file payload is limited to **10 MB**
 - **Vercel `parts` file typing**: for `/run/api/chat`, file parts use Vercel-compatible shape
   with `url` (data URI or `https://` for PDFs) and required `mediaType`
 - **Content validation**:
   - Images are validated against supported image bytes
   - PDFs must start with the `%PDF-` signature bytes
   - Text documents must decode as valid UTF-8 text and are rejected if they contain binary-style control characters
+  - Office documents (`.docx`, `.xlsx`) must contain valid ZIP magic bytes (OOXML containers are ZIP-based)
 - **Model input handling for text documents**: text attachments are injected into the prompt only on the turn where the user sends them; persisted text attachments are not re-injected from later conversation history
 - **HTML semantics**: `text/html` files are treated as raw source text. The API does not render, sanitize, or convert HTML to visible page text before injection.
 - **Remote PDF URLs**: must be reachable over `http` or `https` from the Run API. Unreachable hosts, non-PDF responses, or oversized bodies result in **HTTP 400** with an error message (query strings and fragments on the URL are not preserved in stored metadata).
