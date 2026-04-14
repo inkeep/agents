@@ -51,7 +51,7 @@ describe('invitationProjectAssignments', () => {
     it('inserts all assignments in a single batch', async () => {
       await createInvitationProjectAssignments(testRunDbClient)('inv-1', [
         { projectId: 'proj-a', projectRole: 'project_member' },
-        { projectId: 'proj-b', projectRole: 'project_editor' },
+        { projectId: 'proj-b', projectRole: 'project_viewer' },
       ]);
 
       const rows = await getProjectAssignmentsForInvitation(testRunDbClient)('inv-1');
@@ -59,7 +59,7 @@ describe('invitationProjectAssignments', () => {
       expect(rows).toEqual(
         expect.arrayContaining([
           { projectId: 'proj-a', projectRole: 'project_member' },
-          { projectId: 'proj-b', projectRole: 'project_editor' },
+          { projectId: 'proj-b', projectRole: 'project_viewer' },
         ])
       );
     });

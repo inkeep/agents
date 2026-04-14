@@ -68,6 +68,7 @@ export function InviteMemberDialog({
 
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+  const [projectsLoadError, setProjectsLoadError] = useState(false);
   const [projectSearch, setProjectSearch] = useState('');
   const [selectedProjectIds, setSelectedProjectIds] = useState<Set<string>>(new Set());
   const [projectRole, setProjectRole] = useState<ProjectRole>(ProjectRoles.MEMBER);
@@ -75,6 +76,7 @@ export function InviteMemberDialog({
   useEffect(() => {
     if (open && selectedRole === OrgRoles.MEMBER) {
       setIsLoadingProjects(true);
+      setProjectsLoadError(false);
       fetchProjects(organizationId)
         .then((response) => {
           const list: ProjectOption[] = [];
@@ -85,8 +87,10 @@ export function InviteMemberDialog({
           }
           setProjects(list);
         })
-        .catch(() => {
+        .catch((err) => {
+          console.warn('[invite-member] Failed to load projects:', err);
           setProjects([]);
+          setProjectsLoadError(true);
         })
         .then(() => {
           setIsLoadingProjects(false);
@@ -171,35 +175,34 @@ export function InviteMemberDialog({
       return;
     }
 
-    const results: InvitationResult[] = [];
+    const baseUrl = window.location.origin;
+    const results: InvitationResult[] = await Promise.all(
+      response.results.map(async (item): Promise<InvitationResult> => {
+        if (item.status === 'error') {
+          return {
+            email: item.email,
+            status: 'error',
+            error: item.error ?? 'Failed to add member',
+            compensated: item.compensated,
+          };
+        }
 
-    for (const item of response.results) {
-      if (item.status === 'error') {
-        results.push({
-          email: item.email,
-          status: 'error',
-          error: item.error ?? 'Failed to add member',
-          compensated: item.compensated,
-        });
-        continue;
-      }
+        const invitationId = item.id;
+        const link = invitationId
+          ? `${baseUrl}/accept-invitation/${invitationId}?email=${encodeURIComponent(item.email)}`
+          : undefined;
 
-      const invitationId = item.id;
-      const baseUrl = window.location.origin;
-      const link = invitationId
-        ? `${baseUrl}/accept-invitation/${invitationId}?email=${encodeURIComponent(item.email)}`
-        : undefined;
+        let emailSent = false;
+        let emailError: string | undefined;
+        if (PUBLIC_IS_SMTP_CONFIGURED && invitationId) {
+          const status = await getInvitationEmailStatus(invitationId);
+          emailSent = status.emailSent;
+          emailError = status.error;
+        }
 
-      let emailSent = false;
-      let emailError: string | undefined;
-      if (PUBLIC_IS_SMTP_CONFIGURED && invitationId) {
-        const status = await getInvitationEmailStatus(invitationId);
-        emailSent = status.emailSent;
-        emailError = status.error;
-      }
-
-      results.push({ email: item.email, status: 'success', link, emailSent, emailError });
-    }
+        return { email: item.email, status: 'success', link, emailSent, emailError };
+      })
+    );
 
     setInvitationResults(results);
 
@@ -293,6 +296,10 @@ export function InviteMemberDialog({
 
                   {isLoadingProjects ? (
                     <p className="text-xs text-muted-foreground">Loading projects...</p>
+                  ) : projectsLoadError ? (
+                    <p className="text-xs text-destructive">
+                      Failed to load projects. Try reopening the dialog.
+                    </p>
                   ) : projects.length === 0 ? (
                     <p className="text-xs text-muted-foreground">No projects available.</p>
                   ) : (
@@ -308,10 +315,11 @@ export function InviteMemberDialog({
                         {projectSearch && (
                           <button
                             type="button"
+                            aria-label="Clear search"
                             className="absolute right-3.5 top-1/2 -translate-y-1/2 opacity-60 hover:opacity-100"
                             onClick={() => setProjectSearch('')}
                           >
-                            <X className="h-3.5 w-3.5" />
+                            <X className="h-3.5 w-3.5" aria-hidden="true" />
                           </button>
                         )}
                       </div>

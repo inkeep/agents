@@ -21,7 +21,7 @@ const AssignmentSchema = z.object({
 });
 
 const InviteMemberBodySchema = z.object({
-  emails: z.array(z.string().email()),
+  emails: z.array(z.string().email()).min(1).max(50),
   role: z.enum([OrgRoles.OWNER, OrgRoles.ADMIN, OrgRoles.MEMBER]),
   organizationId: z.string(),
   assignments: z.array(AssignmentSchema).optional(),
@@ -90,6 +90,13 @@ app.openapi(
 
     const { emails, role, organizationId, assignments } = c.req.valid('json');
 
+    if (organizationId !== activeMember.organizationId) {
+      throw createApiError({
+        code: 'forbidden',
+        message: 'Cannot create invitations in a different organization',
+      });
+    }
+
     if (assignments && assignments.length > 0) {
       const projects = await listProjectsMetadata(runDbClient)({ tenantId: organizationId });
       const validProjectIds = new Set(projects.map((p) => p.id));
@@ -133,8 +140,16 @@ app.openapi(
               headers: c.req.raw.headers,
             });
             compensated = true;
-          } catch {
-            // compensation failed — nothing more we can do
+          } catch (cancelErr) {
+            console.error(
+              '[inviteMember] Compensation cancelInvitation failed — orphaned invitation',
+              {
+                invitationId,
+                email,
+                originalError: err instanceof Error ? err.message : String(err),
+                cancelError: cancelErr instanceof Error ? cancelErr.message : String(cancelErr),
+              }
+            );
           }
           results.push({
             email,

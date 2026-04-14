@@ -411,7 +411,7 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
                       tenantId: org.id,
                       projectId: a.projectId,
                       userId: user.id,
-                      role: a.projectRole as import('./authz/types').ProjectRole,
+                      role: a.projectRole,
                     })
                   )
                 );

@@ -1,10 +1,11 @@
 import { eq } from 'drizzle-orm';
+import type { ProjectRole } from '../../auth/authz/types';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { invitationProjectAssignment } from '../../db/runtime/runtime-schema';
 
 export interface InvitationProjectAssignmentInput {
   projectId: string;
-  projectRole: string;
+  projectRole: ProjectRole;
 }
 
 export const createInvitationProjectAssignments =
@@ -24,7 +25,7 @@ export const createInvitationProjectAssignments =
 
 export const getProjectAssignmentsForInvitation =
   (db: AgentsRunDatabaseClient) =>
-  async (invitationId: string): Promise<Array<{ projectId: string; projectRole: string }>> => {
+  async (invitationId: string): Promise<Array<{ projectId: string; projectRole: ProjectRole }>> => {
     const rows = await db
       .select({
         projectId: invitationProjectAssignment.projectId,
@@ -33,7 +34,7 @@ export const getProjectAssignmentsForInvitation =
       .from(invitationProjectAssignment)
       .where(eq(invitationProjectAssignment.invitationId, invitationId));
 
-    return rows;
+    return rows as Array<{ projectId: string; projectRole: ProjectRole }>;
   };
 
 export const deleteInvitationProjectAssignments =

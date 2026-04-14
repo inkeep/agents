@@ -46,7 +46,11 @@ export async function getInvitationEmailStatus(
     return await makeManagementApiRequest<{ emailSent: boolean; error?: string }>(
       `api/invitations/${encodeURIComponent(invitationId)}/email-status`
     );
-  } catch {
+  } catch (error) {
+    console.warn('[getInvitationEmailStatus] Failed to fetch email status:', {
+      invitationId,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return { emailSent: false };
   }
 }
