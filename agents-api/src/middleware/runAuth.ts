@@ -3,6 +3,7 @@ import {
   canUseProjectStrict,
   createApiError,
   getAppById,
+  getInProcessFetch,
   getPoWErrorMessage,
   isSlackUserToken,
   type PublicKeyConfig,
@@ -18,7 +19,14 @@ import {
 import { trace } from '@opentelemetry/api';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
-import { decodeProtectedHeader, errors, importSPKI, jwtVerify } from 'jose';
+import {
+  createRemoteJWKSet,
+  customFetch,
+  decodeProtectedHeader,
+  errors,
+  importSPKI,
+  jwtVerify,
+} from 'jose';
 import runDbClient from '../data/db/runDbClient';
 import { getAnonJwtSecret } from '../domains/run/routes/auth';
 import { env } from '../env';
@@ -26,6 +34,11 @@ import { getLogger } from '../logger';
 import { createBaseExecutionContext } from '../types/runExecutionContext';
 
 const logger = getLogger('env-key-auth');
+
+const jwksUrl = new URL('/api/auth/jwks', env.INKEEP_AGENTS_API_URL || 'http://localhost:3002');
+const JWKS = createRemoteJWKSet(jwksUrl, {
+  [customFetch]: getInProcessFetch(),
+});
 
 // ============================================================================
 // Supported auth strategies
@@ -402,6 +415,101 @@ function tryBypassAuth(apiKey: string, reqData: RequestData): AuthAttempt {
   };
 }
 
+async function tryOAuthSupportCopilotAuth(
+  app: NonNullable<Awaited<ReturnType<ReturnType<typeof getAppById>>>>,
+  reqData: RequestData
+): Promise<AuthAttempt> {
+  const { apiKey: bearerToken, agentId: requestedAgentId } = reqData;
+
+  if (!bearerToken) {
+    return { authResult: null, failureMessage: 'Bearer token required for support_copilot app' };
+  }
+
+  let payload: Record<string, unknown>;
+  try {
+    const result = await jwtVerify(bearerToken, JWKS);
+    payload = result.payload as Record<string, unknown>;
+  } catch (err) {
+    logger.debug(
+      { error: err, appId: app.id },
+      'OAuth JWT verification failed for support_copilot'
+    );
+    return { authResult: null, failureMessage: 'Invalid or expired OAuth JWT' };
+  }
+
+  const sub = payload.sub as string | undefined;
+  const azp = payload.azp as string | undefined;
+  const jwtTenantId = payload['https://inkeep.com/tenantId'] as string | undefined;
+
+  if (!sub) {
+    return { authResult: null, failureMessage: 'OAuth JWT missing sub claim' };
+  }
+
+  if (env.COPILOT_OAUTH_CLIENT_ID && azp !== env.COPILOT_OAUTH_CLIENT_ID) {
+    logger.warn({ azp, appId: app.id }, 'OAuth JWT azp mismatch');
+    throw new HTTPException(401, { message: 'Invalid OAuth client' });
+  }
+
+  if (app.tenantId && jwtTenantId && app.tenantId !== jwtTenantId) {
+    logger.warn(
+      { appTenantId: app.tenantId, jwtTenantId, appId: app.id },
+      'OAuth JWT tenant mismatch'
+    );
+    throw new HTTPException(403, { message: 'Tenant mismatch' });
+  }
+
+  if (!app.projectId) {
+    logger.error({ appId: app.id }, 'support_copilot app missing projectId');
+    throw createApiError({ code: 'internal_server_error', message: 'App configuration error' });
+  }
+
+  try {
+    const canUse = await canUseProjectStrict({
+      userId: sub,
+      tenantId: app.tenantId || '',
+      projectId: app.projectId,
+    });
+    if (!canUse) {
+      logger.warn(
+        { userId: sub, tenantId: app.tenantId, projectId: app.projectId },
+        'OAuth JWT: user does not have access to requested project'
+      );
+      throw new HTTPException(403, { message: 'Access denied: insufficient permissions' });
+    }
+  } catch (error) {
+    if (error instanceof HTTPException) throw error;
+    logger.error(
+      { error, userId: sub, projectId: app.projectId },
+      'SpiceDB permission check failed for OAuth JWT'
+    );
+    throw new HTTPException(503, { message: 'Authorization service temporarily unavailable' });
+  }
+
+  if (Math.random() < 0.1) {
+    updateAppLastUsed(runDbClient)(app.id).catch((err) => {
+      logger.error({ error: err, appId: app.id }, 'Failed to update app lastUsedAt');
+    });
+  }
+
+  logger.info({ appId: app.id, userId: sub }, 'OAuth support_copilot authenticated successfully');
+
+  return {
+    authResult: {
+      apiKey: bearerToken,
+      tenantId: app.tenantId || '',
+      projectId: app.projectId,
+      agentId: requestedAgentId || app.defaultAgentId || '',
+      apiKeyId: `app:${app.id}`,
+      metadata: {
+        endUserId: sub,
+        initiatedBy: { type: 'user' as const, id: sub },
+        authMethod: 'app_credential_support_copilot',
+        appId: app.id,
+      },
+    },
+  };
+}
+
 /**
  * Authenticate using an app credential (X-Inkeep-App-Id header).
  * Supports web_client (end-user JWT) and api (app secret) types.
@@ -738,6 +846,8 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       }
       return { authResult: null, failureMessage: 'Invalid end-user JWT' };
     }
+  } else if (app.type === 'support_copilot') {
+    return tryOAuthSupportCopilotAuth(app, reqData);
   } else {
     return { authResult: null, failureMessage: 'Unsupported app type' };
   }

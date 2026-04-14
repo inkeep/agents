@@ -1140,6 +1140,7 @@
         "discriminator": {
           "mapping": {
             "api": "#/components/schemas/ApiConfig",
+            "support_copilot": "#/components/schemas/SupportCopilotConfig",
             "web_client": "#/components/schemas/WebClientConfig"
           },
           "propertyName": "type"
@@ -1150,6 +1151,9 @@
           },
           {
             "$ref": "#/components/schemas/ApiConfig"
+          },
+          {
+            "$ref": "#/components/schemas/SupportCopilotConfig"
           }
         ]
       },
@@ -1157,6 +1161,7 @@
         "discriminator": {
           "mapping": {
             "api": "#/components/schemas/ApiConfig",
+            "support_copilot": "#/components/schemas/SupportCopilotConfig",
             "web_client": "#/components/schemas/WebClientConfigResponse"
           },
           "propertyName": "type"
@@ -1167,6 +1172,9 @@
           },
           {
             "$ref": "#/components/schemas/ApiConfig"
+          },
+          {
+            "$ref": "#/components/schemas/SupportCopilotConfig"
           }
         ]
       },
@@ -1217,7 +1225,8 @@
           "type": {
             "enum": [
               "web_client",
-              "api"
+              "api",
+              "support_copilot"
             ],
             "type": "string"
           },
@@ -9655,6 +9664,33 @@
         },
         "type": "object"
       },
+      "SupportCopilotConfig": {
+        "properties": {
+          "supportCopilot": {
+            "properties": {
+              "credentialReferenceIds": {
+                "default": [],
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "type": {
+            "enum": [
+              "support_copilot"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "supportCopilot"
+        ],
+        "type": "object"
+      },
       "TeamAgent": {
         "properties": {
           "description": {
@@ -12366,6 +12402,93 @@
         "tags": [
           "OAuth"
         ]
+      }
+    },
+    "/manage/tenants/{tenantId}/apps": {
+      "get": {
+        "description": "List all apps for a tenant across all projects, optionally filtered by type",
+        "operationId": "list-tenant-apps",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationPageQueryParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationLimitQueryParam"
+            }
+          },
+          {
+            "description": "Filter by app type",
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "description": "Filter by app type",
+              "enum": [
+                "web_client",
+                "api",
+                "support_copilot"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppListResponse"
+                }
+              }
+            },
+            "description": "List of apps retrieved successfully"
+          }
+        },
+        "summary": "List Tenant Apps",
+        "tags": [
+          "Apps"
+        ],
+        "x-authz": {
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
+          "permission": "member",
+          "resource": "organization"
+        },
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
       }
     },
     "/manage/tenants/{tenantId}/entitlements": {
@@ -27552,7 +27675,8 @@
               "description": "Filter by app type",
               "enum": [
                 "web_client",
-                "api"
+                "api",
+                "support_copilot"
               ],
               "type": "string"
             }

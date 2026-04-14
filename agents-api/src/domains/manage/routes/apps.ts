@@ -44,7 +44,10 @@ app.openapi(
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema.extend({
-        type: z.enum(['web_client', 'api']).optional().describe('Filter by app type'),
+        type: z
+          .enum(['web_client', 'api', 'support_copilot'])
+          .optional()
+          .describe('Filter by app type'),
       }),
     },
     responses: {

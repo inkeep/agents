@@ -49,6 +49,7 @@ vi.mock('@inkeep/agents-core', async () => {
     canUseProjectStrict: canUseProjectStrictMock,
     validateTargetAgent: validateTargetAgentMock,
     verifyPoW: verifyPoWMock,
+    getInProcessFetch: () => vi.fn(),
     getPoWErrorMessage: (error: string) => {
       const messages: Record<string, string> = {
         pow_expired: 'Proof-of-work challenge has expired. Please request a new challenge.',
@@ -68,6 +69,8 @@ vi.mock('@inkeep/agents-core', async () => {
 
 vi.mock('jose', () => ({
   jwtVerify: jwtVerifyMock,
+  createRemoteJWKSet: vi.fn(() => vi.fn()),
+  customFetch: Symbol('customFetch'),
   errors: {
     JWTExpired: class JWTExpired extends Error {},
     JWSSignatureVerificationFailed: class JWSSignatureVerificationFailed extends Error {},
@@ -86,11 +89,28 @@ vi.mock('../../../env.js', () => ({
   env: {
     INKEEP_AGENTS_RUN_API_BYPASS_SECRET: undefined as string | undefined,
     INKEEP_AGENTS_API_URL: 'http://localhost:3002',
+    COPILOT_OAUTH_CLIENT_ID: 'copilot-client-id',
   },
 }));
 
 import { Hono } from 'hono';
 import { runApiKeyAuth as apiKeyAuth } from '../../../middleware/runAuth';
+
+function makeSupportCopilotApp(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'app-copilot-1',
+    tenantId: 'tenant_1',
+    projectId: 'project_1',
+    type: 'support_copilot',
+    enabled: true,
+    defaultAgentId: 'agent-1',
+    config: {
+      type: 'support_copilot',
+      supportCopilot: { credentialReferenceIds: [] },
+    },
+    ...overrides,
+  };
+}
 
 function makeWebClientApp(overrides: Record<string, unknown> = {}) {
   return {
@@ -561,6 +581,156 @@ describe('App Credential Authentication', () => {
       });
 
       expect(res.status).toBe(200);
+    });
+  });
+
+  describe('support_copilot app with OAuth JWT', () => {
+    const VALID_OAUTH_JWT = 'eyJhbGciOiJFZERTQSJ9.oauth-payload.oauth-signature';
+
+    beforeEach(() => {
+      app.use('*', apiKeyAuth());
+      app.get('/', (c) => c.json({ success: true }));
+    });
+
+    it('should authenticate successfully with valid OAuth JWT', async () => {
+      getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(makeSupportCopilotApp()));
+      canUseProjectStrictMock.mockResolvedValue(true);
+      jwtVerifyMock.mockResolvedValue({
+        payload: {
+          sub: 'user-123',
+          azp: 'copilot-client-id',
+          'https://inkeep.com/tenantId': 'tenant_1',
+        },
+      });
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${VALID_OAUTH_JWT}`,
+          'x-inkeep-app-id': 'app-copilot-1',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(canUseProjectStrictMock).toHaveBeenCalledWith({
+        userId: 'user-123',
+        tenantId: 'tenant_1',
+        projectId: 'project_1',
+      });
+    });
+
+    it('should reject when JWT verification fails', async () => {
+      getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(makeSupportCopilotApp()));
+      jwtVerifyMock.mockRejectedValue(new Error('signature invalid'));
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${VALID_OAUTH_JWT}`,
+          'x-inkeep-app-id': 'app-copilot-1',
+        },
+      });
+
+      expect(res.status).toBe(401);
+    });
+
+    it('should reject when azp does not match COPILOT_OAUTH_CLIENT_ID', async () => {
+      getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(makeSupportCopilotApp()));
+      jwtVerifyMock.mockResolvedValue({
+        payload: {
+          sub: 'user-123',
+          azp: 'wrong-client-id',
+          'https://inkeep.com/tenantId': 'tenant_1',
+        },
+      });
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${VALID_OAUTH_JWT}`,
+          'x-inkeep-app-id': 'app-copilot-1',
+        },
+      });
+
+      expect(res.status).toBe(401);
+    });
+
+    it('should reject when JWT tenant does not match app tenant', async () => {
+      getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(makeSupportCopilotApp()));
+      jwtVerifyMock.mockResolvedValue({
+        payload: {
+          sub: 'user-123',
+          azp: 'copilot-client-id',
+          'https://inkeep.com/tenantId': 'different-tenant',
+        },
+      });
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${VALID_OAUTH_JWT}`,
+          'x-inkeep-app-id': 'app-copilot-1',
+        },
+      });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('should reject when user lacks project permission (canUseProjectStrict = false)', async () => {
+      getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(makeSupportCopilotApp()));
+      canUseProjectStrictMock.mockResolvedValue(false);
+      jwtVerifyMock.mockResolvedValue({
+        payload: {
+          sub: 'user-123',
+          azp: 'copilot-client-id',
+          'https://inkeep.com/tenantId': 'tenant_1',
+        },
+      });
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${VALID_OAUTH_JWT}`,
+          'x-inkeep-app-id': 'app-copilot-1',
+        },
+      });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('should return 503 when SpiceDB is unavailable', async () => {
+      getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(makeSupportCopilotApp()));
+      canUseProjectStrictMock.mockRejectedValue(new Error('SpiceDB unreachable'));
+      jwtVerifyMock.mockResolvedValue({
+        payload: {
+          sub: 'user-123',
+          azp: 'copilot-client-id',
+          'https://inkeep.com/tenantId': 'tenant_1',
+        },
+      });
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${VALID_OAUTH_JWT}`,
+          'x-inkeep-app-id': 'app-copilot-1',
+        },
+      });
+
+      expect(res.status).toBe(503);
+    });
+
+    it('should reject when JWT missing sub claim', async () => {
+      getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(makeSupportCopilotApp()));
+      jwtVerifyMock.mockResolvedValue({
+        payload: {
+          azp: 'copilot-client-id',
+          'https://inkeep.com/tenantId': 'tenant_1',
+        },
+      });
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${VALID_OAUTH_JWT}`,
+          'x-inkeep-app-id': 'app-copilot-1',
+        },
+      });
+
+      expect(res.status).toBe(401);
     });
   });
 });

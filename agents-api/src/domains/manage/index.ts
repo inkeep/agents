@@ -17,6 +17,7 @@ import playgroundTokenRoutes from './routes/playgroundToken';
 import projectFullRoutes from './routes/projectFull';
 import projectGitHubAccessRoutes from './routes/projectGithubAccess';
 import signozRoutes from './routes/signoz';
+import tenantAppsRoutes from './routes/tenantApps';
 import userProfileRoutes from './routes/userProfile';
 import userProjectMembershipsRoutes from './routes/userProjectMemberships';
 import usersRoutes from './routes/users';
@@ -73,6 +74,9 @@ export function createManageRoutes() {
 
   // Mount feedback routes under tenant/project
   app.route('/tenants/:tenantId/projects/:projectId/feedback', feedbackRoutes);
+
+  // Mount tenant-level apps listing (cross-project, e.g. for support_copilot discovery)
+  app.route('/tenants/:tenantId/apps', tenantAppsRoutes);
 
   // Mount full project routes directly under tenant
   app.route('/tenants/:tenantId', projectFullRoutes);
