@@ -189,6 +189,27 @@ await client.triggerBatchEvaluation({
 | `getEvaluator(evaluatorId)` | Fetch one evaluator |
 | `updateEvaluator(evaluatorId, partial)` | Update evaluator fields |
 | `deleteEvaluator(evaluatorId)` | Delete an evaluator |
+| `listAgentsForEvaluator(evaluatorId)` | List agents scoped to an evaluator |
+| `addAgentToEvaluator(evaluatorId, agentId)` | Scope an evaluator to an agent |
+| `removeAgentFromEvaluator(evaluatorId, agentId)` | Remove agent scope from an evaluator |
+
+### Agent scoping for evaluators
+
+Evaluators can be scoped to specific agents. When batch evaluations run, scoped evaluators only apply to conversations handled by the specified agents.
+
+```typescript
+// Scope an evaluator to specific agents
+await client.addAgentToEvaluator(evaluator.id, "agent-1");
+await client.addAgentToEvaluator(evaluator.id, "agent-2");
+
+// List which agents an evaluator is scoped to
+const agents = await client.listAgentsForEvaluator(evaluator.id);
+
+// Remove agent scope
+await client.removeAgentFromEvaluator(evaluator.id, "agent-1");
+```
+
+When an evaluator has no agent scope (the default), it applies to all conversations. When scoped to one or more agents, it only runs on conversations from those agents during batch evaluations.
 
 ### Test suites and items
 
