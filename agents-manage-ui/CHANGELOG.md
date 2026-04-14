@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-ui
 
+## 0.68.1
+
+### Patch Changes
+
+- 7b3b8b6: Fix cost page timeout by aggregating cost queries at the database level
+  - @inkeep/agents-core@0.68.1
+
 ## 0.68.0
 
 ### Patch Changes
