@@ -75,7 +75,7 @@ describe('FullAgentFormSchema', () => {
 
   it('should be able remove fields', () => {
     const result = FullAgentFormSchema.safeParse({
-      id: '_',
+      id: 'x',
       name: '_',
       statusUpdates: {},
       contextConfig: {
@@ -118,7 +118,7 @@ describe('FullAgentFormSchema', () => {
 
   it('should keep defaultSubAgentNodeId in form values without transforming it to agent id', () => {
     const result = FullAgentFormSchema.safeParse({
-      id: '_',
+      id: 'x',
       name: '_',
       defaultSubAgentNodeId: 'temp-node-id',
       statusUpdates: {},
