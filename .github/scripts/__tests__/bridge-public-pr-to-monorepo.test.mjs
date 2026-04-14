@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { prefixPatchPaths } from '../bridge-public-pr-to-monorepo.mjs';
 
 const MIRROR_PREFIX = 'public/agents';
@@ -31,7 +31,9 @@ describe('prefixPatchPaths', () => {
     ].join('\n');
 
     const result = prefixPatchPaths(patch, MIRROR_PREFIX);
-    expect(result).toContain('diff --git "a/public/agents/file\\twith tab.md" "b/public/agents/file\\twith tab.md"');
+    expect(result).toContain(
+      'diff --git "a/public/agents/file\\twith tab.md" "b/public/agents/file\\twith tab.md"'
+    );
     expect(result).toContain('--- "a/public/agents/file\\twith tab.md"');
     expect(result).toContain('+++ "b/public/agents/file\\twith tab.md"');
   });
@@ -47,7 +49,9 @@ describe('prefixPatchPaths', () => {
     ].join('\n');
 
     const result = prefixPatchPaths(patch, MIRROR_PREFIX);
-    expect(result).toContain('diff --git a/public/agents/normal.txt "b/public/agents/file with spaces.txt"');
+    expect(result).toContain(
+      'diff --git a/public/agents/normal.txt "b/public/agents/file with spaces.txt"'
+    );
     expect(result).toContain('--- a/public/agents/normal.txt');
     expect(result).toContain('+++ "b/public/agents/file with spaces.txt"');
   });

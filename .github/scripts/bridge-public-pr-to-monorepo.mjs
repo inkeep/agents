@@ -73,15 +73,28 @@ function getPublicPrBranchName(prefix, prNumber) {
 }
 
 function decodeCStyleEscapes(s) {
-  return s.replace(/\\([abtnvfr\\"])|(\\[0-7]{1,3})|(\\x[0-9a-fA-F]{2})/g, (match, simple, octal, hex) => {
-    if (simple) {
-      const map = { a: '\x07', b: '\b', t: '\t', n: '\n', v: '\v', f: '\f', r: '\r', '\\': '\\', '"': '"' };
-      return map[simple];
+  return s.replace(
+    /\\([abtnvfr\\"])|(\\[0-7]{1,3})|(\\x[0-9a-fA-F]{2})/g,
+    (match, simple, octal, hex) => {
+      if (simple) {
+        const map = {
+          a: '\x07',
+          b: '\b',
+          t: '\t',
+          n: '\n',
+          v: '\v',
+          f: '\f',
+          r: '\r',
+          '\\': '\\',
+          '"': '"',
+        };
+        return map[simple];
+      }
+      if (octal) return String.fromCharCode(Number.parseInt(octal.slice(1), 8));
+      if (hex) return String.fromCharCode(Number.parseInt(hex.slice(2), 16));
+      return match;
     }
-    if (octal) return String.fromCharCode(Number.parseInt(octal.slice(1), 8));
-    if (hex) return String.fromCharCode(Number.parseInt(hex.slice(2), 16));
-    return match;
-  });
+  );
 }
 
 function prefixPatchPaths(patch, prefix) {
