@@ -73,8 +73,7 @@ describe('Oversized Artifact Detection', () => {
     expect(eventData.metadata?.originalTokenSize).toBeGreaterThan(30000);
     expect(eventData.metadata?.contextWindowSize).toBe(100000);
 
-    // Verify enhanced summary data
-    expect(eventData.summaryData?._oversizedWarning).toContain('OVERSIZED');
+    expect(eventData.summaryData?._oversizedWarning).toBeUndefined();
     expect(eventData.summaryData?._structureInfo).toBeDefined();
   });
 
@@ -125,7 +124,6 @@ describe('Oversized Artifact Detection', () => {
     expect(eventData.metadata?.isOversized).toBe(false);
     expect(eventData.metadata?.retrievalBlocked).toBe(false);
 
-    // Verify no oversized warning in summary
     expect(eventData.summaryData?._oversizedWarning).toBeUndefined();
   });
 

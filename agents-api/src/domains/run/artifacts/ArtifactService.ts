@@ -744,11 +744,9 @@ export class ArtifactService {
       toolCallId: request.toolCallId,
     });
 
-    // Enhance summaryData with oversized warning if needed
     const enhancedSummaryData = oversizedDetection.isOversized
       ? {
           ...summaryData,
-          _oversizedWarning: oversizedDetection.oversizedWarning,
           _structureInfo: oversizedDetection.structureInfo,
         }
       : summaryData;

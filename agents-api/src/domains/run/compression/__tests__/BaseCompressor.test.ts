@@ -517,10 +517,7 @@ describe('BaseCompressor', () => {
       expect(artifactData.metadata.contextWindowSize).toBe(200000);
       expect(artifactData.metadata.toolArgs).toEqual({ query: 'test' });
 
-      // Verify oversized warning in summary data
-      expect(artifactData.summaryData._oversizedWarning).toContain('OVERSIZED');
-      expect(artifactData.summaryData._oversizedWarning).toContain('exceeds safe context limits');
-      // Structure info shows the full toolResultData object structure
+      expect(artifactData.summaryData._oversizedWarning).toBeUndefined();
       expect(artifactData.summaryData._structureInfo).toContain('Object with 4 keys');
     });
 
@@ -651,7 +648,7 @@ describe('BaseCompressor', () => {
       expect(oversizedInfo.toolArgs).toEqual({ query: 'test' });
       // Structure info shows the full toolResultData object structure
       expect(oversizedInfo.structureInfo).toContain('Object with 4 keys');
-      expect(oversizedInfo.oversizedWarning).toContain('OVERSIZED');
+      expect(oversizedInfo.oversizedWarning).toBeUndefined();
 
       // Verify ArtifactInfo structure for normal artifact
       const normalInfo = result['call-normal'];
