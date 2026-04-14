@@ -72,6 +72,18 @@ function getPublicPrBranchName(prefix, prNumber) {
   return `${prefix}-${prNumber}`;
 }
 
+function decodeCStyleEscapes(s) {
+  return s.replace(/\\([abtnvfr\\"])|(\\[0-7]{1,3})|(\\x[0-9a-fA-F]{2})/g, (match, simple, octal, hex) => {
+    if (simple) {
+      const map = { a: '\x07', b: '\b', t: '\t', n: '\n', v: '\v', f: '\f', r: '\r', '\\': '\\', '"': '"' };
+      return map[simple];
+    }
+    if (octal) return String.fromCharCode(Number.parseInt(octal.slice(1), 8));
+    if (hex) return String.fromCharCode(Number.parseInt(hex.slice(2), 16));
+    return match;
+  });
+}
+
 function prefixPatchPaths(patch, prefix) {
   const normalizedPrefix = prefix.replace(/^\/+|\/+$/g, '');
   const prefixedPath = (value) => {
@@ -81,8 +93,9 @@ function prefixPatchPaths(patch, prefix) {
 
     const unquoted = value.replace(/^"(.+)"$/, '$1');
 
-    // Reject path traversal attempts
-    const segments = unquoted.split('/');
+    // Decode C-style escape sequences before traversal check
+    const decoded = decodeCStyleEscapes(unquoted);
+    const segments = decoded.split('/');
     if (segments.some((s) => s === '..' || s === '.')) {
       throw new Error(`Rejecting patch with path traversal: ${unquoted}`);
     }
@@ -601,4 +614,4 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   });
 }
 
-export { buildInternalPrBody, buildPublicComment, prefixPatchPaths };
+export { buildInternalPrBody, buildPublicComment, decodeCStyleEscapes, prefixPatchPaths };
