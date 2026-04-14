@@ -1,8 +1,55 @@
 'use server';
 
 import type { MethodOption } from '@inkeep/agents-core/auth/auth-types';
+import type { OrgRole, ProjectRole } from '@inkeep/agents-core/client-exports';
 import { makeManagementApiRequest } from '../api/api-config';
 import { ApiError } from '../types/errors';
+
+export interface InviteMemberInput {
+  emails: string[];
+  role: OrgRole;
+  organizationId: string;
+  assignments?: Array<{ projectId: string; projectRole: ProjectRole }>;
+}
+
+export interface InviteMemberResult {
+  email: string;
+  status: 'success' | 'error';
+  id?: string;
+  error?: string;
+  compensated?: boolean;
+}
+
+export async function inviteMembers(
+  input: InviteMemberInput
+): Promise<{ success: true; results: InviteMemberResult[] } | { success: false; error: string }> {
+  try {
+    const response = await makeManagementApiRequest<{ data: InviteMemberResult[] }>(
+      'api/invitations',
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }
+    );
+    return { success: true, results: response.data };
+  } catch (error) {
+    console.error('[inviteMembers] Error:', error);
+    const message = error instanceof ApiError ? error.message : 'Failed to invite members';
+    return { success: false, error: message };
+  }
+}
+
+export async function getInvitationEmailStatus(
+  invitationId: string
+): Promise<{ emailSent: boolean; error?: string }> {
+  try {
+    return await makeManagementApiRequest<{ emailSent: boolean; error?: string }>(
+      `api/invitations/${encodeURIComponent(invitationId)}/email-status`
+    );
+  } catch {
+    return { emailSent: false };
+  }
+}
 
 interface PendingInvitation {
   id: string;
