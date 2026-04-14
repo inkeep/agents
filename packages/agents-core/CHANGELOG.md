@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.68.2
+
+### Patch Changes
+
+- 557f700: Add support_copilot app type with OAuth 2.1 JWT auth, tenant-level app discovery endpoint, and apps UI for configuring support copilot apps with credentials
+- 4e0fd65: Add invitation project assignments: automatically grant project access when invitation is accepted
+
 ## 0.68.1
 
 ## 0.68.0
