@@ -50,7 +50,15 @@ function StatusBadge({ result }: { result?: EvalSummaryResult }) {
   return <EvaluationStatusBadge status={toEvalStatus(result.passed)} />;
 }
 
-function OutputCollapsible({ resultId, output, label }: { resultId: string; output: unknown; label?: string }) {
+function OutputCollapsible({
+  resultId,
+  output,
+  label,
+}: {
+  resultId: string;
+  output: unknown;
+  label?: string;
+}) {
   const [isOpen, setIsOpen] = useState(false);
 
   if (!output) return <span className="text-xs text-muted-foreground">-</span>;
@@ -75,9 +83,7 @@ function OutputCollapsible({ resultId, output, label }: { resultId: string; outp
           />
         </CollapsibleContent>
       </Collapsible>
-      {metadata != null && (
-        <MetadataCollapsible resultId={resultId} metadata={metadata} />
-      )}
+      {metadata != null && <MetadataCollapsible resultId={resultId} metadata={metadata} />}
     </div>
   );
 }
@@ -158,7 +164,8 @@ function aggregateByEvaluator(
   for (const agg of evaluatorMap.values()) {
     agg.baselinePassRate = computePassRate(agg.baselineResults);
     agg.postChangePassRate = computePassRate(agg.postChangeResults);
-    const activeResults = agg.postChangeResults.length > 0 ? agg.postChangeResults : agg.baselineResults;
+    const activeResults =
+      agg.postChangeResults.length > 0 ? agg.postChangeResults : agg.baselineResults;
     agg.overallStatus = computeOverallStatus(activeResults);
   }
 
@@ -186,17 +193,24 @@ function ItemDetailRow({
       </TableCell>
       {hasBaseline && (
         <>
-          <TableCell><StatusBadge result={baselineResult} /></TableCell>
+          <TableCell>
+            <StatusBadge result={baselineResult} />
+          </TableCell>
           <TableCell>
             {baselineResult ? (
-              <OutputCollapsible resultId={`baseline-item-${baselineResult.id}`} output={baselineResult.output} />
+              <OutputCollapsible
+                resultId={`baseline-item-${baselineResult.id}`}
+                output={baselineResult.output}
+              />
             ) : (
               <span className="text-xs text-muted-foreground">-</span>
             )}
           </TableCell>
         </>
       )}
-      <TableCell><StatusBadge result={result} /></TableCell>
+      <TableCell>
+        <StatusBadge result={result} />
+      </TableCell>
       <TableCell>
         <OutputCollapsible resultId={`post-item-${result.id}`} output={result.output} />
       </TableCell>
@@ -205,7 +219,8 @@ function ItemDetailRow({
 }
 
 function EvaluatorRow({ agg, hasBaseline }: { agg: AggregatedEvaluator; hasBaseline: boolean }) {
-  const activeResults = agg.postChangeResults.length > 0 ? agg.postChangeResults : agg.baselineResults;
+  const activeResults =
+    agg.postChangeResults.length > 0 ? agg.postChangeResults : agg.baselineResults;
   const hasMultipleItems = activeResults.length > 1;
   const isSingleItem = activeResults.length === 1;
   const [expanded, setExpanded] = useState(false);
@@ -222,11 +237,12 @@ function EvaluatorRow({ agg, hasBaseline }: { agg: AggregatedEvaluator; hasBasel
       >
         <TableCell className="text-xs font-medium">
           <div className="flex items-center gap-1">
-            {hasMultipleItems && (
-              expanded
-                ? <ChevronDown className="h-3 w-3 text-muted-foreground" />
-                : <ChevronRight className="h-3 w-3 text-muted-foreground" />
-            )}
+            {hasMultipleItems &&
+              (expanded ? (
+                <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-3 w-3 text-muted-foreground" />
+              ))}
             {agg.evaluatorName}
           </div>
         </TableCell>
@@ -236,16 +252,17 @@ function EvaluatorRow({ agg, hasBaseline }: { agg: AggregatedEvaluator; hasBasel
               {isSingleItem ? (
                 <StatusBadge result={singleBaseline} />
               ) : agg.baselineResults.length > 0 ? (
-                <span className="text-xs">
-                  {agg.baselinePassRate ?? '-'}
-                </span>
+                <span className="text-xs">{agg.baselinePassRate ?? '-'}</span>
               ) : (
                 <span className="text-xs text-muted-foreground">-</span>
               )}
             </TableCell>
             <TableCell>
               {isSingleItem && singleBaseline ? (
-                <OutputCollapsible resultId={`baseline-${singleBaseline.id}`} output={singleBaseline.output} />
+                <OutputCollapsible
+                  resultId={`baseline-${singleBaseline.id}`}
+                  output={singleBaseline.output}
+                />
               ) : hasMultipleItems ? (
                 <span className="text-xs text-muted-foreground">
                   {agg.baselineResults.length} items
@@ -265,9 +282,7 @@ function EvaluatorRow({ agg, hasBaseline }: { agg: AggregatedEvaluator; hasBasel
               Running
             </Badge>
           ) : (
-            <span className="text-xs">
-              {agg.postChangePassRate ?? '-'}
-            </span>
+            <span className="text-xs">{agg.postChangePassRate ?? '-'}</span>
           )}
         </TableCell>
         <TableCell>
@@ -282,15 +297,16 @@ function EvaluatorRow({ agg, hasBaseline }: { agg: AggregatedEvaluator; hasBasel
           )}
         </TableCell>
       </TableRow>
-      {expanded && activeResults.map((result, i) => (
-        <ItemDetailRow
-          key={result.id}
-          result={result}
-          index={i}
-          hasBaseline={showBaseline}
-          baselineResult={agg.baselineResults[i]}
-        />
-      ))}
+      {expanded &&
+        activeResults.map((result, i) => (
+          <ItemDetailRow
+            key={result.id}
+            result={result}
+            index={i}
+            hasBaseline={showBaseline}
+            baselineResult={agg.baselineResults[i]}
+          />
+        ))}
     </>
   );
 }
@@ -317,8 +333,12 @@ function ComparisonTable({ group }: { group: DatasetGroup }) {
                 <TableHead className="text-xs">Baseline Output</TableHead>
               </>
             )}
-            <TableHead className="text-xs">{hasBaseline ? 'Post-Change Status' : 'Status'}</TableHead>
-            <TableHead className="text-xs">{hasBaseline ? 'Post-Change Output' : 'Output'}</TableHead>
+            <TableHead className="text-xs">
+              {hasBaseline ? 'Post-Change Status' : 'Status'}
+            </TableHead>
+            <TableHead className="text-xs">
+              {hasBaseline ? 'Post-Change Output' : 'Output'}
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -332,8 +352,7 @@ function ComparisonTable({ group }: { group: DatasetGroup }) {
 }
 
 function DatasetRunProgress({ run }: { run: EvalSummaryDatasetRun }) {
-  const progressPercent =
-    run.items.total > 0 ? (run.items.completed / run.items.total) * 100 : 0;
+  const progressPercent = run.items.total > 0 ? (run.items.completed / run.items.total) * 100 : 0;
 
   return (
     <div className="space-y-1.5">
@@ -384,7 +403,9 @@ function DatasetGroupCard({ group }: { group: DatasetGroup }) {
                   </Badge>
                 )}
                 {!hasBaseline && (
-                  <Badge variant="secondary" className="text-xs">New</Badge>
+                  <Badge variant="secondary" className="text-xs">
+                    New
+                  </Badge>
                 )}
               </div>
               <div className="flex items-center gap-2">
@@ -454,7 +475,8 @@ export function ImprovementEvalResults({
         if (result.success && result.data) {
           setData(result.data);
           const hasIncomplete = result.data.datasetRuns.some(
-            (run) => run.items.completed + run.items.failed < run.items.total ||
+            (run) =>
+              run.items.completed + run.items.failed < run.items.total ||
               run.evaluationResults.some((r) => r.passed === 'pending')
           );
           setShouldPoll(hasIncomplete);

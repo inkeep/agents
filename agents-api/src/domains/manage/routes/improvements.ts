@@ -1,3 +1,4 @@
+import { and, eq, getTableColumns, sql } from 'drizzle-orm';
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   areBranchesSchemaCompatible,
@@ -6,6 +7,7 @@ import {
   commonGetErrorResponses,
   createApiError,
   deleteBranch,
+  doltAddAndCommit,
   doltCheckout,
   doltDiff,
   doltDiffSummary,
@@ -18,31 +20,45 @@ import {
   getEvaluatorById,
   getFeedbackByIds,
   getMessagesByConversation,
+  getWorkflowExecutionByConversation,
   listBranches,
   listConversations,
   listDatasetRuns,
   listEvaluationResultsByRun,
   listEvaluationRunsByJobConfigId,
   listScheduledTriggerInvocationsByTriggerId,
+  manageFkColumnLinks,
   managePkMap,
+  manageTableMap,
   MergeConflictError,
   syncSchemaFromMain,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
-import { requireProjectPermission } from '../../../middleware/projectAccess';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
+import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
-import { triggerImprovement } from '../../run/services/ImprovementService';
+import { prepareImprovement } from '../../run/services/ImprovementService';
 
-const IMPROVEMENT_PROJECT_ID = 'improvement-agent';
+const IMPROVEMENT_PROJECT_ID = 'chat-to-edit';
 
 const logger = getLogger('improvements');
 
+function buildDynWhere(tableObj: Parameters<typeof getTableColumns>[0], pk: Record<string, string>) {
+  const columns = getTableColumns(tableObj);
+  const colByDbName = new Map(Object.values(columns).map((c) => [c.name, c]));
+  const conditions = Object.entries(pk).map(([dbName, val]) => {
+    const col = colByDbName.get(dbName);
+    if (!col) throw createApiError({ code: 'bad_request', message: `Unknown column: ${dbName}` });
+    return eq(col, val);
+  });
+  return and(...conditions)!;
+}
+
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-const IMPROVEMENT_BRANCH_PREFIX = 'improvement/';
+const IMPROVEMENT_BRANCH_PREFIX = 'improvement';
 
 const EVAL_INFRASTRUCTURE_TABLES = new Set([
   'evaluation_job_config',
@@ -123,31 +139,51 @@ app.openapi(
       }),
     ]);
 
-    const branchStatusMap = new Map<string, string>();
+    const branchConversationMap = new Map<string, string>();
     for (const conv of conversations) {
       const meta = conv.metadata as Record<string, unknown> | null;
       const branch = meta?.improvementBranch as string | undefined;
-      const status = meta?.status as string | undefined;
-      if (branch && status) {
-        branchStatusMap.set(branch, status);
+      if (branch) {
+        branchConversationMap.set(branch, conv.id);
       }
     }
 
-    const improvements = branches
-      .filter((b) => b.baseName.startsWith(IMPROVEMENT_BRANCH_PREFIX))
+    const improvementBranches = branches.filter((b) =>
+      b.baseName.startsWith(IMPROVEMENT_BRANCH_PREFIX)
+    );
+
+    const workflowStatusMap = new Map<string, string>();
+    await Promise.all(
+      improvementBranches.map(async (b) => {
+        const convId = branchConversationMap.get(b.baseName);
+        if (!convId) return;
+        const execution = await getWorkflowExecutionByConversation(runDbClient)({
+          tenantId,
+          projectId: IMPROVEMENT_PROJECT_ID,
+          conversationId: convId,
+        });
+        if (execution?.status) {
+          workflowStatusMap.set(b.baseName, execution.status);
+        }
+      })
+    );
+
+    const improvements = improvementBranches
       .map((b) => {
-        const parts = b.baseName.replace(IMPROVEMENT_BRANCH_PREFIX, '').split('/');
-        const rawTimestamp = parts[1] ?? '';
+        const afterPrefix = b.baseName.slice(IMPROVEMENT_BRANCH_PREFIX.length);
+        const sep = afterPrefix.startsWith('/') ? '/' : '_';
+        const parts = afterPrefix.slice(1).split(sep);
+        const rawTimestamp = parts.pop() ?? '';
         const isoTimestamp = rawTimestamp.replace(
           /^(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})-(\d+)Z$/,
           '$1T$2:$3:$4.$5Z'
         );
-        const agentId = parts[0] === 'project' ? '' : (parts[0] ?? '');
+        const agentId = parts.join(sep) === 'project' ? '' : (parts.join(sep) ?? '');
         return {
           branchName: b.baseName,
           agentId,
           timestamp: isoTimestamp || rawTimestamp,
-          agentStatus: branchStatusMap.get(b.baseName),
+          agentStatus: workflowStatusMap.get(b.baseName),
         };
       })
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -180,22 +216,27 @@ app.openapi(
               additionalContext: z
                 .string()
                 .optional()
-                .describe(
-                  'Free-form instructions or context to guide the improvement agent'
-                ),
+                .describe('Free-form instructions or context to guide the improvement agent'),
             }),
           },
         },
       },
     },
     responses: {
-      202: {
-        description: 'Improvement triggered',
+      200: {
+        description: 'Improvement prepared — client should fire the chat API call',
         content: {
           'application/json': {
             schema: z.object({
               branchName: z.string(),
               conversationId: z.string(),
+              chatPayload: z.object({
+                model: z.string(),
+                messages: z.array(z.object({ role: z.string(), content: z.string() })),
+                stream: z.boolean(),
+                conversationId: z.string(),
+              }),
+              targetHeaders: z.record(z.string(), z.string()),
             }),
           },
         },
@@ -206,7 +247,6 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
     const { feedbackIds, agentId, additionalContext } = c.req.valid('json');
-    const resolvedRef = c.get('resolvedRef');
 
     const feedbackItems = await getFeedbackByIds(runDbClient)({
       scopes: { tenantId, projectId },
@@ -229,18 +269,19 @@ app.openapi(
       });
     }
 
-    const resolvedAgentId = agentId ?? (agentIds.size === 1 ? [...agentIds][0] : undefined);
+    const resolvedAgentId = agentId ?? (agentIds.size === 1 ? [...agentIds][0] : undefined) ?? undefined;
+    const db = c.get('db');
 
-    const { branchName, conversationId } = await triggerImprovement({
+    const result = await prepareImprovement({
       tenantId,
       projectId,
       agentId: resolvedAgentId,
       feedbackIds,
       additionalContext,
-      resolvedRef,
+      db,
     });
 
-    return c.json({ branchName, conversationId }, 202);
+    return c.json(result);
   }
 );
 
@@ -304,22 +345,33 @@ app.openapi(
       branchName: 'main',
     })();
 
-    const summaryRows = await doltDiffSummary(db)({
-      fromRevision: targetFullName,
-      toRevision: sourceFullName,
-    });
+    let summaryRows: any[];
+    try {
+      summaryRows = await doltDiffSummary(db)({
+        fromRevision: targetFullName,
+        toRevision: sourceFullName,
+      });
+    } catch (err) {
+      logger.warn({ sourceFullName, targetFullName, err }, 'Diff summary query failed — branch may not exist');
+      return c.json({
+        branchName: decodedBranchName,
+        summary: [],
+        tables: {},
+      });
+    }
 
     logger.info({ summaryRows, sourceFullName, targetFullName }, 'Diff summary raw rows');
 
     const summary = summaryRows
       .map((row: any) => {
-        const tableName =
-          row.table_name ?? row.to_table_name ?? row.from_table_name ?? undefined;
+        const tableName = row.table_name ?? row.to_table_name ?? row.from_table_name ?? undefined;
         if (!tableName) return null;
         const name = String(tableName);
         if (EVAL_INFRASTRUCTURE_TABLES.has(name)) return null;
-        const dataChange = row.data_change === true || row.data_change === 't' || row.data_change === 1;
-        const schemaChange = row.schema_change === true || row.schema_change === 't' || row.schema_change === 1;
+        const dataChange =
+          row.data_change === true || row.data_change === 't' || row.data_change === 1;
+        const schemaChange =
+          row.schema_change === true || row.schema_change === 't' || row.schema_change === 1;
         return {
           tableName: name,
           diffType: String(row.diff_type ?? 'modified'),
@@ -345,10 +397,19 @@ app.openapi(
       }
     }
 
+    const changedTables = new Set(summary.map((s) => s.tableName.replace(/^public\./, '')));
+    const relevantFkLinks = manageFkColumnLinks.filter(
+      (link) => changedTables.has(link.childTable) || changedTables.has(link.parentTable)
+    );
+
     return c.json({
       branchName: decodedBranchName,
       summary,
       tables,
+      fkLinks: relevantFkLinks,
+      pkMap: Object.fromEntries(
+        [...changedTables].filter((t) => managePkMap[t]).map((t) => [t, managePkMap[t]])
+      ),
     });
   }
 );
@@ -445,11 +506,7 @@ app.openapi(
       });
     } catch (error) {
       if (error instanceof MergeConflictError) {
-        const conflicts = await buildImprovementConflictItems(
-          db,
-          targetFullName,
-          sourceFullName
-        );
+        const conflicts = await buildImprovementConflictItems(db, targetFullName, sourceFullName);
 
         throw createApiError({
           code: 'conflict',
@@ -478,6 +535,147 @@ app.openapi(
     return c.json({
       success: true,
       message: `Improvement branch "${decodedBranchName}" merged into main`,
+    });
+  }
+);
+
+const RevertRowSchema = z.object({
+  table: z.string(),
+  primaryKey: z.record(z.string(), z.string()),
+  diffType: z.enum(['added', 'modified', 'removed']),
+});
+
+app.openapi(
+  createProtectedRoute({
+    method: 'post',
+    path: '/{branchName}/revert',
+    summary: 'Revert Changes on Improvement Branch',
+    description:
+      'Revert specific changes on the improvement branch before merging, allowing selective merge.',
+    operationId: 'revert-improvement',
+    tags: ['Improvements'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: ImprovementBranchParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: z.object({
+              rows: z.array(RevertRowSchema),
+            }),
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Rows reverted on the improvement branch',
+        content: {
+          'application/json': {
+            schema: z.object({ success: z.boolean(), message: z.string() }),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, branchName } = c.req.valid('param');
+    const db = c.get('db');
+
+    const decodedBranchName = decodeURIComponent(branchName);
+
+    if (!decodedBranchName.startsWith(IMPROVEMENT_BRANCH_PREFIX)) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Not an improvement branch',
+      });
+    }
+
+    const { rows } = c.req.valid('json');
+    if (rows.length === 0) {
+      return c.json({ success: true, message: 'No rows to revert' });
+    }
+
+    const branchFullName = doltGetBranchNamespace({
+      tenantId,
+      projectId,
+      branchName: decodedBranchName,
+    })();
+    const mainFullName = doltGetBranchNamespace({
+      tenantId,
+      projectId,
+      branchName: 'main',
+    })();
+
+    const rowsNeedingMain = rows.filter(
+      (r) => r.diffType === 'modified' || r.diffType === 'removed'
+    );
+    const mainData = new Map<string, Record<string, unknown>>();
+
+    if (rowsNeedingMain.length > 0) {
+      await doltCheckout(db)({ branch: mainFullName });
+      for (const row of rowsNeedingMain) {
+        const table = row.table.replace(/^public\./, '');
+        const tableObj = manageTableMap[table];
+        if (!tableObj) continue;
+
+        const whereCondition = buildDynWhere(tableObj, row.primaryKey);
+        const [mainRow] = await db.select().from(tableObj).where(whereCondition).limit(1);
+        if (mainRow) {
+          mainData.set(`${row.table}:${JSON.stringify(row.primaryKey)}`, mainRow);
+        }
+      }
+    }
+
+    await doltCheckout(db)({ branch: branchFullName });
+
+    for (const row of rows) {
+      const table = row.table.replace(/^public\./, '');
+      const tableObj = manageTableMap[table];
+      if (!tableObj) continue;
+
+      const whereCondition = buildDynWhere(tableObj, row.primaryKey);
+
+      if (row.diffType === 'added') {
+        await db.delete(tableObj).where(whereCondition);
+      } else if (row.diffType === 'modified') {
+        const mainRow = mainData.get(`${row.table}:${JSON.stringify(row.primaryKey)}`);
+        if (mainRow) {
+          const pkCols = new Set(managePkMap[table] ?? []);
+          const columns = getTableColumns(tableObj) as Record<string, { name: string }>;
+          const setData: Record<string, unknown> = {};
+          for (const [prop, col] of Object.entries(columns)) {
+            if (!pkCols.has(col.name)) {
+              setData[prop] = mainRow[prop as keyof typeof mainRow];
+            }
+          }
+          await db.update(tableObj).set(setData).where(whereCondition);
+        }
+      } else if (row.diffType === 'removed') {
+        const mainRow = mainData.get(`${row.table}:${JSON.stringify(row.primaryKey)}`);
+        if (mainRow) {
+          await db.insert(tableObj).values(mainRow);
+        }
+      }
+    }
+
+    try {
+      await doltAddAndCommit(db)({
+        message: `Revert ${rows.length} excluded row(s) before merge`,
+      });
+    } catch {
+      logger.info({ tenantId, projectId, branchName: decodedBranchName, rowCount: rows.length }, 'No changes to commit (rows may already match main)');
+    }
+
+    logger.info(
+      { tenantId, projectId, branchName: decodedBranchName, rowCount: rows.length },
+      'Reverted excluded rows on improvement branch'
+    );
+
+    return c.json({
+      success: true,
+      message: `Reverted ${rows.length} row(s) on branch "${decodedBranchName}"`,
     });
   }
 );
@@ -533,8 +731,7 @@ app.openapi(
     method: 'get',
     path: '/{branchName}/conversation',
     summary: 'Get Improvement Conversation',
-    description:
-      'Get the improvement agent conversation trace for a given improvement branch.',
+    description: 'Get the improvement agent conversation trace for a given improvement branch.',
     operationId: 'get-improvement-conversation',
     tags: ['Improvements'],
     permission: requireProjectPermission('view'),
@@ -548,6 +745,7 @@ app.openapi(
           'application/json': {
             schema: z.object({
               conversationId: z.string().nullable(),
+              agentStatus: z.string().optional(),
               messages: z.array(
                 z.object({
                   role: z.string(),
@@ -584,17 +782,25 @@ app.openapi(
     });
 
     if (!match) {
-      return c.json({ conversationId: null, messages: [] });
+      return c.json({ conversationId: null, agentStatus: undefined, messages: [] });
     }
 
-    const messages = await getConversationHistory(runDbClient)({
-      scopes: { tenantId, projectId: IMPROVEMENT_PROJECT_ID },
-      conversationId: match.id,
-      options: { limit: 200 },
-    });
+    const [messages, execution] = await Promise.all([
+      getConversationHistory(runDbClient)({
+        scopes: { tenantId, projectId: IMPROVEMENT_PROJECT_ID },
+        conversationId: match.id,
+        options: { limit: 200 },
+      }),
+      getWorkflowExecutionByConversation(runDbClient)({
+        tenantId,
+        projectId: IMPROVEMENT_PROJECT_ID,
+        conversationId: match.id,
+      }),
+    ]);
 
     return c.json({
       conversationId: match.id,
+      agentStatus: execution?.status,
       messages: messages.map((m) => ({
         role: m.role,
         content: m.content,
@@ -645,8 +851,7 @@ app.openapi(
     method: 'get',
     path: '/{branchName}/eval-summary',
     summary: 'Get Improvement Eval Summary',
-    description:
-      'Get structured evaluation and dataset run data for an improvement branch.',
+    description: 'Get structured evaluation and dataset run data for an improvement branch.',
     operationId: 'get-improvement-eval-summary',
     tags: ['Improvements'],
     permission: requireProjectPermission('view'),
@@ -686,6 +891,13 @@ app.openapi(
       const refName = (run.ref as { name?: string }).name ?? '';
       return refName.includes(decodedBranchName);
     });
+
+    const improvementBranchFullName = doltGetBranchNamespace({
+      tenantId,
+      projectId,
+      branchName: decodedBranchName,
+    })();
+    await doltCheckout(db)({ branch: improvementBranchFullName });
 
     const datasetRuns = await Promise.all(
       branchRuns.map(async (run) => {
@@ -778,33 +990,48 @@ app.openapi(
                 } | null;
 
                 if (outputData && criteria?.conditions?.length) {
-                  const allPass = criteria.operator === 'and'
-                    ? criteria.conditions.every((cond) => {
-                        const val = outputData[cond.field];
-                        if (typeof val !== 'number') return false;
-                        switch (cond.operator) {
-                          case '>': return val > cond.value;
-                          case '<': return val < cond.value;
-                          case '>=': return val >= cond.value;
-                          case '<=': return val <= cond.value;
-                          case '=': return val === cond.value;
-                          case '!=': return val !== cond.value;
-                          default: return false;
-                        }
-                      })
-                    : criteria.conditions.some((cond) => {
-                        const val = outputData[cond.field];
-                        if (typeof val !== 'number') return false;
-                        switch (cond.operator) {
-                          case '>': return val > cond.value;
-                          case '<': return val < cond.value;
-                          case '>=': return val >= cond.value;
-                          case '<=': return val <= cond.value;
-                          case '=': return val === cond.value;
-                          case '!=': return val !== cond.value;
-                          default: return false;
-                        }
-                      });
+                  const allPass =
+                    criteria.operator === 'and'
+                      ? criteria.conditions.every((cond) => {
+                          const val = outputData[cond.field];
+                          if (typeof val !== 'number') return false;
+                          switch (cond.operator) {
+                            case '>':
+                              return val > cond.value;
+                            case '<':
+                              return val < cond.value;
+                            case '>=':
+                              return val >= cond.value;
+                            case '<=':
+                              return val <= cond.value;
+                            case '=':
+                              return val === cond.value;
+                            case '!=':
+                              return val !== cond.value;
+                            default:
+                              return false;
+                          }
+                        })
+                      : criteria.conditions.some((cond) => {
+                          const val = outputData[cond.field];
+                          if (typeof val !== 'number') return false;
+                          switch (cond.operator) {
+                            case '>':
+                              return val > cond.value;
+                            case '<':
+                              return val < cond.value;
+                            case '>=':
+                              return val >= cond.value;
+                            case '<=':
+                              return val <= cond.value;
+                            case '=':
+                              return val === cond.value;
+                            case '!=':
+                              return val !== cond.value;
+                            default:
+                              return false;
+                          }
+                        });
                   passed = allPass ? 'passed' : 'failed';
                 } else if (outputData) {
                   passed = 'no_criteria';
@@ -840,9 +1067,7 @@ app.openapi(
       })
     );
 
-    datasetRuns.sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    );
+    datasetRuns.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
     const datasetRunsByDataset = new Map<string, typeof datasetRuns>();
     for (const run of datasetRuns) {

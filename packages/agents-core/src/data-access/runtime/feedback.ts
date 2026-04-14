@@ -150,10 +150,7 @@ export const getFeedbackByIds =
       .from(feedback)
       .leftJoin(conversations, and(...conversationsJoin))
       .where(
-        and(
-          projectScopedWhere(feedback, params.scopes),
-          inArray(feedback.id, params.feedbackIds)
-        )
+        and(projectScopedWhere(feedback, params.scopes), inArray(feedback.id, params.feedbackIds))
       );
   };
 

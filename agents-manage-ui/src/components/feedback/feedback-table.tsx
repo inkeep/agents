@@ -40,8 +40,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { triggerImprovementAction } from '@/lib/actions/improvements';
+import { getCopilotTokenAction } from '@/lib/actions/copilot-token';
+import { prepareImprovementAction } from '@/lib/actions/improvements';
 import type { Feedback } from '@/lib/api/feedback';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { formatDateTimeTable } from '@/lib/utils/format-date';
 
 function truncate(value: string, max = 120): string {
@@ -78,6 +80,7 @@ export function FeedbackTable({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { PUBLIC_INKEEP_AGENTS_API_URL, PUBLIC_INKEEP_COPILOT_APP_ID } = useRuntimeConfig();
   const [typeFilter, setTypeFilter] = React.useState<'positive' | 'negative' | undefined>(
     filters.type
   );
@@ -113,25 +116,70 @@ export function FeedbackTable({
     setShowContextDialog(true);
   };
 
-  const confirmTrigger = () => {
+  const confirmTrigger = async () => {
     setShowContextDialog(false);
     setIsTriggering(true);
+
     const context = additionalContext.trim() || undefined;
-    triggerImprovementAction(tenantId, projectId, Array.from(selectedIds), undefined, context)
-      .then((result) => {
-        if (result.success && result.data) {
-          const branchEncoded = encodeURIComponent(result.data.branchName);
-          router.push(
-            `/${tenantId}/projects/${projectId}/improvements/${branchEncoded}?status=running&conversationId=${result.data.conversationId}`
-          );
-        } else {
-          toast.error(result.error || 'Failed to trigger improvement');
-        }
-      })
-      .catch((error) => {
-        toast.error(error instanceof Error ? error.message : 'Failed to trigger improvement');
-      })
-      .then(() => setIsTriggering(false));
+    const prepareResult = await prepareImprovementAction(
+      tenantId,
+      projectId,
+      Array.from(selectedIds),
+      undefined,
+      context
+    ).catch((error) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to trigger improvement');
+      return null;
+    });
+
+    if (!prepareResult?.success || !prepareResult.data) {
+      if (prepareResult) toast.error(prepareResult.error || 'Failed to prepare improvement');
+      setIsTriggering(false);
+      return;
+    }
+
+    const { branchName, conversationId, chatPayload, targetHeaders } = prepareResult.data;
+
+    const tokenResult = await getCopilotTokenAction().catch(() => null);
+    if (!tokenResult?.success) {
+      toast.error('Failed to get auth token');
+      setIsTriggering(false);
+      return;
+    }
+
+    const appId = PUBLIC_INKEEP_COPILOT_APP_ID || tokenResult.data.appId;
+
+    const payloadWithCookie = {
+      ...chatPayload,
+      headers: {
+        ...chatPayload.headers,
+        ...(tokenResult.data.cookieHeader && {
+          'x-forwarded-cookie': tokenResult.data.cookieHeader,
+        }),
+      },
+    };
+
+    fetch(`${PUBLIC_INKEEP_AGENTS_API_URL}/run/v1/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${tokenResult.data.apiKey}`,
+        ...(appId && { 'x-inkeep-app-id': appId }),
+        ...(tokenResult.data.cookieHeader && {
+          'x-forwarded-cookie': tokenResult.data.cookieHeader,
+        }),
+        ...targetHeaders,
+      },
+      body: JSON.stringify(payloadWithCookie),
+    }).catch((err) => {
+      console.error('Improvement chat API call failed:', err);
+    });
+
+    setIsTriggering(false);
+    const branchEncoded = encodeURIComponent(branchName);
+    router.push(
+      `/${tenantId}/projects/${projectId}/improvements/${branchEncoded}?status=running&conversationId=${conversationId}`
+    );
   };
 
   React.useEffect(() => {
@@ -308,11 +356,7 @@ export function FeedbackTable({
           )}
 
           {selectedIds.size > 0 && (
-            <Button
-              size="sm"
-              onClick={handleTriggerImprovement}
-              disabled={isTriggering}
-            >
+            <Button size="sm" onClick={handleTriggerImprovement} disabled={isTriggering}>
               {isTriggering ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
               ) : (
@@ -427,7 +471,8 @@ export function FeedbackTable({
           <DialogHeader>
             <DialogTitle>Run Improvement</DialogTitle>
             <DialogDescription>
-              The improvement agent will analyze {selectedIds.size} selected feedback{selectedIds.size > 1 ? ' items' : ''} and propose changes.
+              The improvement agent will analyze {selectedIds.size} selected feedback
+              {selectedIds.size > 1 ? ' items' : ''} and propose changes.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">

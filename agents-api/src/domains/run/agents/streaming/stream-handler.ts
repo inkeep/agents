@@ -103,8 +103,5 @@ export async function processStreamEvents(
     }
   }
 
-  logger.info(
-    { agentId: ctx.config.id },
-    'Stream processing complete'
-  );
+  logger.info({ agentId: ctx.config.id }, 'Stream processing complete');
 }

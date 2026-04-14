@@ -1,6 +1,14 @@
 'use client';
 
-import { AlertTriangle, ArrowLeft, Check, Loader2, RefreshCw, XCircle } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Check,
+  Loader2,
+  MessageSquare,
+  RefreshCw,
+  XCircle,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -8,7 +16,6 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -19,9 +26,22 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { mergeImprovementAction, rejectImprovementAction } from '@/lib/actions/improvements';
-import type { ConflictItem, ConflictResolution, ImprovementDiffResponse } from '@/lib/api/improvements';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { getCopilotTokenAction } from '@/lib/actions/copilot-token';
+import {
+  mergeImprovementAction,
+  rejectImprovementAction,
+  revertImprovementRowsAction,
+} from '@/lib/actions/improvements';
+import type {
+  ConflictItem,
+  ConflictResolution,
+  ImprovementDiffResponse,
+} from '@/lib/api/improvements';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { ImprovementDiffView } from './improvement-diff-view';
+import type { ExcludedRow } from './improvement-diff-view';
 import { ImprovementEvalResults } from './improvement-eval-results';
 
 interface ImprovementBranchViewProps {
@@ -31,6 +51,7 @@ interface ImprovementBranchViewProps {
   branchName: string;
   isNewRun: boolean;
   agentStatus?: string;
+  conversationId?: string;
 }
 
 export function ImprovementBranchView({
@@ -40,16 +61,23 @@ export function ImprovementBranchView({
   branchName,
   isNewRun,
   agentStatus,
+  conversationId,
 }: ImprovementBranchViewProps) {
   const router = useRouter();
+  const { PUBLIC_INKEEP_AGENTS_API_URL, PUBLIC_INKEEP_COPILOT_APP_ID } = useRuntimeConfig();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [conflicts, setConflicts] = useState<ConflictItem[]>([]);
   const [resolutions, setResolutions] = useState<Record<string, 'ours' | 'theirs'>>({});
   const [showConflictDialog, setShowConflictDialog] = useState(false);
+  const [showFollowUpDialog, setShowFollowUpDialog] = useState(false);
+  const [followUpMessage, setFollowUpMessage] = useState('');
+  const [isSendingFollowUp, setIsSendingFollowUp] = useState(false);
+  const [overrideRunning, setOverrideRunning] = useState(false);
+  const [excludedRows, setExcludedRows] = useState<ExcludedRow[]>([]);
 
-  const isRunning = agentStatus === 'running' || (isNewRun && !agentStatus);
-  const isCompleted = agentStatus === 'completed';
-  const isFailed = agentStatus === 'failed';
+  const isRunning = overrideRunning || agentStatus === 'running' || (isNewRun && !agentStatus);
+  const isCompleted = !overrideRunning && agentStatus === 'completed';
+  const isFailed = !overrideRunning && agentStatus === 'failed';
 
   useEffect(() => {
     if (!isRunning) return;
@@ -72,17 +100,26 @@ export function ImprovementBranchView({
     router.refresh();
   };
 
-  const conflictKey = (c: ConflictItem) =>
-    `${c.table}::${Object.values(c.primaryKey).join('::')}`;
+  const conflictKey = (c: ConflictItem) => `${c.table}::${Object.values(c.primaryKey).join('::')}`;
 
   const handleMerge = async (withResolutions?: ConflictResolution[]) => {
     setLoadingAction('merge');
-    const result = await mergeImprovementAction(
-      tenantId,
-      projectId,
-      branchName,
-      withResolutions
-    );
+
+    if (excludedRows.length > 0) {
+      const revertResult = await revertImprovementRowsAction(
+        tenantId,
+        projectId,
+        branchName,
+        excludedRows
+      );
+      if (!revertResult.success) {
+        toast.error(revertResult.error ?? 'Failed to revert excluded rows');
+        setLoadingAction(null);
+        return;
+      }
+    }
+
+    const result = await mergeImprovementAction(tenantId, projectId, branchName, withResolutions);
     if (result.success) {
       setShowConflictDialog(false);
       toast.success('Improvement merged successfully');
@@ -122,6 +159,66 @@ export function ImprovementBranchView({
     setLoadingAction(null);
   };
 
+  const handleSendFollowUp = async () => {
+    if (!followUpMessage.trim() || !conversationId) return;
+
+    setIsSendingFollowUp(true);
+
+    const tokenResult = await getCopilotTokenAction().catch(() => null);
+    if (!tokenResult?.success) {
+      toast.error('Failed to get auth token');
+      setIsSendingFollowUp(false);
+      return;
+    }
+
+    const appId = PUBLIC_INKEEP_COPILOT_APP_ID || tokenResult.data.appId;
+
+    const agentId = branchName.match(/^improvement\/([^/]+)\//)?.[1];
+
+    const bodyHeaders: Record<string, string> = {
+      'x-target-tenant-id': tenantId,
+      'x-target-project-id': projectId,
+      'x-target-branch-name': branchName,
+      ...(agentId && { 'x-target-agent-id': agentId }),
+      ...(tokenResult.data.cookieHeader && {
+        'x-forwarded-cookie': tokenResult.data.cookieHeader,
+      }),
+    };
+
+    fetch(`${PUBLIC_INKEEP_AGENTS_API_URL}/run/v1/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${tokenResult.data.apiKey}`,
+        ...(appId && { 'x-inkeep-app-id': appId }),
+        ...(tokenResult.data.cookieHeader && {
+          'x-forwarded-cookie': tokenResult.data.cookieHeader,
+        }),
+        'x-target-tenant-id': tenantId,
+        'x-target-project-id': projectId,
+        'x-target-branch-name': branchName,
+        ...(agentId && { 'x-target-agent-id': agentId }),
+        'x-inkeep-agent-id': 'improvement-orchestrator',
+        'x-emit-operations': 'true',
+      },
+      body: JSON.stringify({
+        model: 'chat-to-edit/improvement-orchestrator',
+        messages: [{ role: 'user', content: followUpMessage.trim() }],
+        stream: false,
+        conversationId,
+        headers: bodyHeaders,
+      }),
+    }).catch((err) => {
+      console.error('Follow-up chat API call failed:', err);
+    });
+
+    setShowFollowUpDialog(false);
+    setFollowUpMessage('');
+    setIsSendingFollowUp(false);
+    setOverrideRunning(true);
+    toast.success('Follow-up sent — agent is processing');
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -155,6 +252,17 @@ export function ImprovementBranchView({
           <Button size="sm" variant="ghost" onClick={handleRefresh}>
             <RefreshCw className="h-4 w-4" />
           </Button>
+
+          {(isCompleted || isFailed) && conversationId && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowFollowUpDialog(true)}
+            >
+              <MessageSquare className="h-4 w-4 mr-1" />
+              Continue
+            </Button>
+          )}
 
           <Button
             size="sm"
@@ -198,9 +306,44 @@ export function ImprovementBranchView({
           />
         </TabsContent>
         <TabsContent value="diffs" className="mt-4">
-          <ImprovementDiffView tenantId={tenantId} projectId={projectId} diff={diff} />
+          <ImprovementDiffView
+            tenantId={tenantId}
+            projectId={projectId}
+            diff={diff}
+            onExcludedRowsChange={setExcludedRows}
+          />
         </TabsContent>
       </Tabs>
+
+      <Dialog open={showFollowUpDialog} onOpenChange={setShowFollowUpDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Continue Improvement</DialogTitle>
+            <DialogDescription>
+              Send a follow-up message to the improvement agent. It will continue working on the same
+              branch with your additional instructions.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            placeholder="e.g., The prompt change isn't strong enough — make it more explicit."
+            value={followUpMessage}
+            onChange={(e) => setFollowUpMessage(e.target.value)}
+            rows={4}
+          />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowFollowUpDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendFollowUp}
+              disabled={!followUpMessage.trim() || isSendingFollowUp}
+            >
+              {isSendingFollowUp && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Send
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showConflictDialog} onOpenChange={setShowConflictDialog}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -223,7 +366,11 @@ export function ImprovementBranchView({
                 <Card key={key}>
                   <CardHeader className="py-2 px-4">
                     <CardTitle className="text-xs font-mono">
-                      {c.table} ({Object.entries(c.primaryKey).map(([k, v]) => `${k}=${v}`).join(', ')})
+                      {c.table} (
+                      {Object.entries(c.primaryKey)
+                        .map(([k, v]) => `${k}=${v}`)
+                        .join(', ')}
+                      )
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="px-4 pb-3 space-y-3">
@@ -236,9 +383,7 @@ export function ImprovementBranchView({
                       <div className="flex items-start gap-2">
                         <RadioGroupItem value="theirs" id={`${key}-theirs`} className="mt-1" />
                         <Label htmlFor={`${key}-theirs`} className="flex-1 cursor-pointer">
-                          <span className="text-xs font-medium">
-                            Keep improvement (branch)
-                          </span>
+                          <span className="text-xs font-medium">Keep improvement (branch)</span>
                           {c.theirs && (
                             <pre className="mt-1 text-xs bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded p-2 overflow-x-auto whitespace-pre-wrap">
                               {JSON.stringify(c.theirs, null, 2)}
@@ -249,9 +394,7 @@ export function ImprovementBranchView({
                       <div className="flex items-start gap-2">
                         <RadioGroupItem value="ours" id={`${key}-ours`} className="mt-1" />
                         <Label htmlFor={`${key}-ours`} className="flex-1 cursor-pointer">
-                          <span className="text-xs font-medium">
-                            Keep current (main)
-                          </span>
+                          <span className="text-xs font-medium">Keep current (main)</span>
                           {c.ours && (
                             <pre className="mt-1 text-xs bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded p-2 overflow-x-auto whitespace-pre-wrap">
                               {JSON.stringify(c.ours, null, 2)}

@@ -22,20 +22,33 @@ export async function fetchImprovements(
   return response;
 }
 
-export async function triggerImprovement(
+export interface PrepareImprovementResponse {
+  branchName: string;
+  conversationId: string;
+  chatPayload: {
+    model: string;
+    messages: Array<{ role: string; content: string }>;
+    stream: boolean;
+    conversationId: string;
+    headers: Record<string, string>;
+  };
+  targetHeaders: Record<string, string>;
+}
+
+export async function prepareImprovement(
   tenantId: string,
   projectId: string,
   feedbackIds: string[],
   agentId?: string,
   additionalContext?: string
-): Promise<{ branchName: string; conversationId: string }> {
-  const response = await makeManagementApiRequest<{
-    branchName: string;
-    conversationId: string;
-  }>(`tenants/${tenantId}/projects/${projectId}/improvements/trigger`, {
-    method: 'POST',
-    body: JSON.stringify({ feedbackIds, agentId, additionalContext }),
-  });
+): Promise<PrepareImprovementResponse> {
+  const response = await makeManagementApiRequest<PrepareImprovementResponse>(
+    `tenants/${tenantId}/projects/${projectId}/improvements/trigger`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ feedbackIds, agentId, additionalContext }),
+    }
+  );
   return response;
 }
 
@@ -46,10 +59,18 @@ export interface ImprovementDiffSummary {
   schemaChange: boolean;
 }
 
+export interface FkColumnLink {
+  childTable: string;
+  parentTable: string;
+  columns: { child: string; parent: string }[];
+}
+
 export interface ImprovementDiffResponse {
   branchName: string;
   summary: ImprovementDiffSummary[];
   tables: Record<string, Record<string, unknown>[]>;
+  fkLinks?: FkColumnLink[];
+  pkMap?: Record<string, string[]>;
 }
 
 export async function fetchImprovementDiff(
@@ -100,10 +121,10 @@ export async function mergeImprovement(
   const body = resolutions ? JSON.stringify({ resolutions }) : JSON.stringify({});
 
   try {
-    const response = await makeManagementApiRequest<{ success: boolean; message: string }>(
-      url,
-      { method: 'POST', body }
-    );
+    const response = await makeManagementApiRequest<{ success: boolean; message: string }>(url, {
+      method: 'POST',
+      body,
+    });
     return { success: true, message: response.message };
   } catch (error) {
     if (error instanceof ApiError && error.status === 409) {
@@ -119,6 +140,29 @@ export async function mergeImprovement(
   }
 }
 
+export interface RevertRowInput {
+  table: string;
+  primaryKey: Record<string, string>;
+  diffType: string;
+}
+
+export async function revertImprovementRows(
+  tenantId: string,
+  projectId: string,
+  branchName: string,
+  rows: RevertRowInput[]
+): Promise<{ success: boolean; message: string }> {
+  const encoded = encodeURIComponent(branchName);
+  const response = await makeManagementApiRequest<{ success: boolean; message: string }>(
+    `tenants/${tenantId}/projects/${projectId}/improvements/${encoded}/revert`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ rows }),
+    }
+  );
+  return response;
+}
+
 export interface ImprovementConversationMessage {
   role: string;
   content: unknown;
@@ -127,6 +171,7 @@ export interface ImprovementConversationMessage {
 
 export interface ImprovementConversationResponse {
   conversationId: string | null;
+  agentStatus?: string;
   messages: ImprovementConversationMessage[];
 }
 

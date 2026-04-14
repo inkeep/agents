@@ -5,12 +5,15 @@ import type {
   ConflictResolution,
   EvalSummaryResponse,
   MergeResult,
+  PrepareImprovementResponse,
+  RevertRowInput,
 } from '../api/improvements';
 import {
   fetchImprovementEvalSummary,
   mergeImprovement,
+  prepareImprovement,
   rejectImprovement,
-  triggerImprovement,
+  revertImprovementRows,
 } from '../api/improvements';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
@@ -35,15 +38,21 @@ export async function fetchImprovementEvalSummaryAction(
   }
 }
 
-export async function triggerImprovementAction(
+export async function prepareImprovementAction(
   tenantId: string,
   projectId: string,
   feedbackIds: string[],
   agentId?: string,
   additionalContext?: string
-): Promise<ActionResult<{ branchName: string; conversationId: string }>> {
+): Promise<ActionResult<PrepareImprovementResponse>> {
   try {
-    const result = await triggerImprovement(tenantId, projectId, feedbackIds, agentId, additionalContext);
+    const result = await prepareImprovement(
+      tenantId,
+      projectId,
+      feedbackIds,
+      agentId,
+      additionalContext
+    );
     return { success: true, data: result };
   } catch (error) {
     if (error instanceof ApiError) {
@@ -51,7 +60,7 @@ export async function triggerImprovementAction(
     }
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to trigger improvement',
+      error: error instanceof Error ? error.message : 'Failed to prepare improvement',
       code: 'unknown_error',
     };
   }
@@ -85,6 +94,27 @@ export async function mergeImprovementAction(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to merge improvement',
+      code: 'unknown_error',
+    };
+  }
+}
+
+export async function revertImprovementRowsAction(
+  tenantId: string,
+  projectId: string,
+  branchName: string,
+  rows: RevertRowInput[]
+): Promise<ActionResult<{ success: boolean; message: string }>> {
+  try {
+    const result = await revertImprovementRows(tenantId, projectId, branchName, rows);
+    return { success: true, data: result };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return { success: false, error: error.message, code: error.error.code };
+    }
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to revert rows',
       code: 'unknown_error',
     };
   }

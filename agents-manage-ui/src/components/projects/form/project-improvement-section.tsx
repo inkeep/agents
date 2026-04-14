@@ -137,7 +137,6 @@ export function ProjectImprovementSection({ control, disabled }: ProjectImprovem
                   disabled={disabled}
                 />
               )}
-
             </>
           )}
 

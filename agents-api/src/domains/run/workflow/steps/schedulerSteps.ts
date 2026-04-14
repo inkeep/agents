@@ -33,4 +33,3 @@ export async function dispatchDueTriggersStep(): Promise<void> {
     logger.info({ dispatched: result.dispatched }, 'Dispatch tick completed');
   }
 }
-

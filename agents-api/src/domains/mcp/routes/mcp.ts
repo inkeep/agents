@@ -16,7 +16,12 @@ const app = new Hono();
  * x-forwarded-cookie is mapped to cookie for browser compatibility
  * (browsers don't allow setting Cookie header directly).
  */
-const FORWARDED_HEADERS = ['x-forwarded-cookie', 'authorization', 'cookie', 'x-inkeep-ref'] as const;
+const FORWARDED_HEADERS = [
+  'x-forwarded-cookie',
+  'authorization',
+  'cookie',
+  'x-inkeep-ref',
+] as const;
 
 app.all('/', async (c) => {
   const transport = new StreamableHTTPTransport();
