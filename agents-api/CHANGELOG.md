@@ -1,5 +1,16 @@
 # @inkeep/agents-api
 
+## 0.68.1
+
+### Patch Changes
+
+- 0018f02: Filters out evaluators whose scope doesn't include the conversation's agent in batched evaluations
+- Updated dependencies [a074f63]
+  - @inkeep/agents-mcp@0.68.1
+  - @inkeep/agents-core@0.68.1
+  - @inkeep/agents-email@0.68.1
+  - @inkeep/agents-work-apps@0.68.1
+
 ## 0.68.0
 
 ### Minor Changes
