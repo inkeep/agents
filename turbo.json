@@ -18,7 +18,12 @@
     "PORT",
     "AGENTS_API_PORT",
     "MANAGE_UI_PORT",
-    "LOG_LEVEL"
+    "LOG_LEVEL",
+    "SPICEDB_ENDPOINT",
+    "SPICEDB_PRESHARED_KEY",
+    "SPICEDB_TLS_ENABLED",
+    "SMTP_HOST",
+    "SMTP_PORT"
   ],
   "globalDependencies": ["pnpm-lock.yaml"],
   "tasks": {
