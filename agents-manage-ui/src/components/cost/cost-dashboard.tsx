@@ -90,9 +90,8 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
         console.error('Failed to fetch usage data:', error);
         if (cancelled) return;
         setLoadError(error instanceof Error ? error.message : 'Failed to load cost data');
-      } finally {
-        if (!cancelled) setIsLoading(false);
       }
+      if (!cancelled) setIsLoading(false);
     }
     fetchData();
     return () => {
