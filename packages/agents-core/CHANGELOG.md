@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.68.0
+
+### Minor Changes
+
+- d1e18a8: Add OAuth 2.1 / OIDC provider support via Better Auth oauth-provider plugin
+
 ## 0.67.4
 
 ## 0.67.3
