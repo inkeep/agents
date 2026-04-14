@@ -62,3 +62,22 @@ Final quality-bar pass completed:
 - **Baseline commit stamped:** `a074f63cd` (unchanged from spec creation — no drift during spec process).
 
 Spec status → `ready-for-implementation`.
+
+## 2026-04-14 — PR #3129 review-cycle corrections
+
+Two bot reviewers (pullfrog, claude[bot]) approved the spec with inline comments. Findings assessed per `/eng:assess-findings`.
+
+**Accepted (corrections applied):**
+- claude[bot] MAJOR: Version citation. Spec said `@ai-sdk/provider@3.0.4`; codebase declares `3.0.2` in `agents-api/package.json` and `packages/ai-sdk-provider/package.json`. Verified via `diff` of installed `3.0.2` vs `3.0.4` `dist/index.d.ts` — the middleware contract (`wrapGenerate`/`wrapStream` nullary signatures, `options.model` access) is **identical**. Only change is unrelated `LanguageModelV2ProviderTool` → `LanguageModelV2ProviderDefinedTool` rename. Updated §6.2 to cite `3.0.2` with a note that 3.0.4 was also verified.
+- claude[bot] MAJOR: Stub function name typo — `formatOversizedReason` → `formatOversizedRetrievalReason` (actual function at `artifact-utils.ts:50`, already used by `default-tools.ts:233`). Fixed globally.
+- pullfrog: R8 telemetry "span attributes / log fields" ambiguity. Clarified: all attributes are **span attributes** (not log fields), emitted on step span or tool-call span. Consistent with existing `compression.*` conventions and more queryable.
+- pullfrog: Local filesystem path in §17 References. Removed; replaced with in-repo pointers to `evidence/`, `meta/_changelog.md`, `meta/audit-findings.md`, `meta/design-challenge.md`.
+
+**Partially accepted (added to Risks / Future Work rather than design changes):**
+- claude[bot] Consider: End-User visibility when tool results are excluded. Added new row to §13 Risks — UX confusion is real but surfacing to chat UI is out of scope for this runtime refactor; operators can see `tool.result.oversized_excluded` in Jaeger immediately.
+- claude[bot] Minor: Traces UI surfacing for new telemetry. Added to §15 Future Work (Identified tier).
+- claude[bot] Minor: Future artifact retrieval tool migration story. Added a migration note to the existing Future Work entry — recommendation field can be updated backward-compatibly when retrieval tool ships.
+- claude[bot] MAJOR (secondary suggestion): Enriched stub metadata (`docsUrl`, truncated `toolArgs`, human-readable token context). Added to §15 Future Work (Noted tier) — deferred because current stub matches existing `retrieval_blocked` shape for consistency, and the existing path has the same gap.
+- claude[bot] Consider: Docs accompaniment. Added to §14 Verification Plan — grep `agents-docs/` for existing references to compression behavior and update if stale. No new doc page mandatory (Public SDK/API contract unchanged).
+
+**Declined:** None. All findings had merit.

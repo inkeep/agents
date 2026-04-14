@@ -153,7 +153,7 @@ Must emit a telemetry event on every regex hit so Anthropic wording drift is det
 
 ### 6.2 Middleware (`compressionRetryMiddleware.ts`)
 
-**Critical shape correction.** Per `@ai-sdk/provider@3.0.4` (`index.d.ts:2066-2088`), `wrapGenerate` / `wrapStream` receive `doGenerate` / `doStream` as **nullary** functions — they bind the already-transformed params. To retry with modified params, call `options.model.doGenerate(modifiedOptions)` (or `options.model.doStream(modifiedOptions)`) directly.
+**Critical shape correction.** Per `@ai-sdk/provider@3.0.2` (the version declared in `agents-api/package.json` and `packages/ai-sdk-provider/package.json`; verified identical middleware contract in 3.0.4 via a diff of `dist/index.d.ts` between the two — the only delta is an unrelated `LanguageModelV2ProviderTool` → `LanguageModelV2ProviderDefinedTool` rename), `wrapGenerate` / `wrapStream` receive `doGenerate` / `doStream` as **nullary** functions — they bind the already-transformed params. To retry with modified params, call `options.model.doGenerate(modifiedOptions)` (or `options.model.doStream(modifiedOptions)`) directly.
 
 ```ts
 export function createCompressionRetryMiddleware(ctx: AgentRunContext): LanguageModelV2Middleware {
@@ -224,7 +224,7 @@ toModelOutput: ({ output }: { output: unknown }) => {
         toolCallId: currentToolCallId,
         toolName,
         warning: '⚠️ Tool produced an oversized result that cannot be included in the conversation.',
-        reason: formatOversizedReason(detection.originalTokenSize, detection.contextWindowSize),
+        reason: formatOversizedRetrievalReason(detection.originalTokenSize, detection.contextWindowSize),
         toolInfo: { toolName, toolArgs: args, structureInfo: detection.structureInfo },
         recommendation:
           'Consider: 1) narrowing filters/queries on the next tool call, 2) asking the user to break down the request, 3) processing data differently.',
@@ -251,7 +251,9 @@ New span attributes / log fields:
 - `compression.retry_number = 0 | 1`
 - `compression.outcome = 'success' | 'second_overflow' | 'other_error'`
 - `artifact.excluded = true` with `artifact.id`, `artifact.original_tokens`, `artifact.context_window`
-- `anthropic_overflow_regex_hit = true` (separate attribute so we can alert on wording drift)
+- `anthropic_overflow_regex_hit = true` (span attribute, not log field — keeps consistency with the other `compression.*` attributes and makes the drift signal queryable via Jaeger/OTel tag search)
+
+All of the above are **span attributes** (not log fields). Emit on the step span inside the middleware retry path, and on the tool-call span for `tool.result.oversized_excluded`.
 
 ---
 
@@ -382,6 +384,7 @@ No P0 open questions remain. All In Scope items are fully decided.
 | AI SDK streaming error delivery regresses (known issues #4099, #4726). | Mid-stream overflow not caught by middleware. | LOW | Covered by R7 — post-commit errors propagate. Pre-commit path (the common case) handled. |
 | Removing proactive compression exposes calls that previously succeeded via compression to real overflow rejections. | Some flows that never hit overflow before (because compression fired early) now hit it and need the retry path. | MEDIUM | Expected and correct by design. Retry path handles them. Watch `compression.outcome = 'second_overflow'` rate post-deploy. |
 | Oversized artifact reference stub confuses the LLM into hallucinating content. | Agent output quality degradation. | LOW | Stub wording is explicit that content is unavailable; LLM prompt engineering norms treat bracketed placeholders as non-content. Monitor user feedback. |
+| End-User visibility gap: when a tool result is excluded mid-turn, the End User sees the LLM's subsequent "I couldn't retrieve that" response with no UI indicator that exclusion happened. | UX confusion; user cannot distinguish exclusion from tool failure. | MEDIUM | Telemetry emits `tool.result.oversized_excluded`. Surfacing this to end-user UI (chat stream or status indicator) is out of scope for this spec — flag as a candidate for the manage-ui / chat-consumer surface team. Operators can see it in Jaeger immediately. |
 
 ---
 
@@ -400,6 +403,7 @@ No P0 open questions remain. All In Scope items are fully decided.
 - **Telemetry test:** intercept OTel exporter; assert attributes per R8.
 - **Manual / cookbook:** run an agent in `agents-cookbook/` with a tool that returns an oversized payload; confirm via Jaeger span attributes that `tool.result.oversized_excluded = true` and no `compression.trigger = 'prepareStep_budget'` attribute appears (that code path is removed).
 - **Regression:** existing tests for `ConversationCompressor` / `getConversationHistoryWithCompression` must still pass unchanged.
+- **Docs check:** `agents-docs/` surfaces compression behavior to Agent Builders only at a high level (current search turns up no dedicated compression page). During implementation, grep `agents-docs/content/` for mentions of "compression", "context window", or "oversized" and update if stale. Public SDK/API contract does not change, so no new doc page is mandatory — but if an existing page describes the current proactive behavior, correct it.
 - **Pre-push:** `pnpm check` (lint + typecheck + test + format:check).
 - **Changeset:** `pnpm bump patch --pkg agents-api "Make mid-generation compression reactive to provider overflow errors and exclude oversized artifacts from LLM context"`.
 
@@ -409,7 +413,9 @@ No P0 open questions remain. All In Scope items are fully decided.
 
 | Item | Tier | Why not now | Triggers to revisit |
 |---|---|---|---|
-| Agent-callable artifact retrieval tool (e.g., `get_artifact_full(id)`) | **Explored** | Out of this spec's scope; stub informs the LLM content is unavailable without advertising a retrieval path. Designing a safe retrieval API (permissions, token budget of retrieved content, recursion prevention) is its own scope. | Agent builders report repeated frustration with "content unavailable"; product decision to support in-turn full-artifact access. |
+| Agent-callable artifact retrieval tool (e.g., `get_artifact_full(id)`) | **Explored** | Out of this spec's scope; stub informs the LLM content is unavailable without advertising a retrieval path. Designing a safe retrieval API (permissions, token budget of retrieved content, recursion prevention) is its own scope. | Agent builders report repeated frustration with "content unavailable"; product decision to support in-turn full-artifact access. **Migration note:** when added, update the oversized stub's `recommendation` field to mention the retrieval tool (e.g., "retrieve via `get_artifact_full(id)`"). This is a backward-compatible addition — no breaking change required. |
+| Traces UI surfacing for `tool.result.oversized_excluded` and `compression.outcome = 'second_overflow'` attributes | **Identified** | Telemetry is emitted; UI treatment is a manage-ui surface concern and belongs to a different team. Without UI, operators discover via Jaeger queries. | First operator report of "I couldn't see which tool call was excluded"; or agent-builder feedback. |
+| Enriched oversized-stub metadata for debugging | **Noted** | Current stub matches existing `retrieval_blocked` shape for consistency. Potential additions: `docsUrl`, truncation of `toolArgs` to prevent multi-KB dumps in Traces, human-readable token context ("~42K tokens, 30% of 140K limit"). | Consistent reports from agent builders about difficulty debugging exclusions in Traces UI. |
 | Bedrock / Azure / Google overflow detection | **Identified** | Initial providers are Anthropic + OpenAI; other providers are not currently in production paths for this runtime. | Add a provider to production; extend `detectContextOverflow` with per-provider branch. |
 | Alert on `anthropic_overflow_regex_hit` frequency + drift detection | **Identified** | Alerting thresholds are an ops concern, not a spec-time decision. Telemetry is in place. | First Anthropic model rev where hit-rate drops unexpectedly after deploy. |
 | Customizable reference stub wording | **Noted** | Default wording is sufficient for initial ship; customization adds surface area without demonstrated need. | Customer request or specific localization/branding requirement. |
@@ -460,6 +466,7 @@ No P0 open questions remain. All In Scope items are fully decided.
 
 ## 17. References
 
-- Plan file: `/Users/timothycardona/.claude/plans/rustling-prancing-beaver.md`
 - Evidence: `evidence/current-compression-triggers.md`, `evidence/oversized-artifact-handling.md`, `evidence/provider-overflow-signals.md`, `evidence/middleware-approach.md`
 - Changelog: `meta/_changelog.md`
+- Audit: `meta/audit-findings.md`
+- Design challenge: `meta/design-challenge.md`
