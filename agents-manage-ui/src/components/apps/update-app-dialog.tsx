@@ -10,10 +10,16 @@ import { APP_TYPE_OPTIONS } from './form/validation';
 interface UpdateAppDialogProps {
   app: App;
   agentOptions: SelectOption[];
+  credentialOptions: SelectOption[];
   setIsOpen: (isOpen: boolean) => void;
 }
 
-export function UpdateAppDialog({ app, agentOptions, setIsOpen }: UpdateAppDialogProps) {
+export function UpdateAppDialog({
+  app,
+  agentOptions,
+  credentialOptions,
+  setIsOpen,
+}: UpdateAppDialogProps) {
   const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
@@ -34,6 +40,7 @@ export function UpdateAppDialog({ app, agentOptions, setIsOpen }: UpdateAppDialo
             projectId={projectId}
             app={app}
             agentOptions={agentOptions}
+            credentialOptions={credentialOptions}
             onAppUpdated={() => setIsOpen(false)}
           />
         </div>

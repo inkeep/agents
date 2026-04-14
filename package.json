@@ -85,7 +85,8 @@
     "check:dal-boundary": "bash scripts/lint-data-access-boundary.sh",
     "check:env-descriptions": "node scripts/check-env-descriptions.mjs",
     "check:route-handler-patterns": "node scripts/check-route-handler-patterns.mjs",
-    "setup-slack-dev": "tsx scripts/setup-slack-dev.ts"
+    "setup-slack-dev": "tsx scripts/setup-slack-dev.ts",
+    "setup-oauth-client": "tsx scripts/setup-oauth-client.ts"
   },
   "version": "0.1.0",
   "dependencies": {
