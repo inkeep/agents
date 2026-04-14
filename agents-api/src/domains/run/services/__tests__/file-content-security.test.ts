@@ -277,6 +277,14 @@ describe('file-content-security', () => {
       ).resolves.toBe(DOCX_MIME);
     });
 
+    it('accepts valid ZIP bytes for xlsx mime type', async () => {
+      const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      const VALID_ZIP_BYTES = Buffer.from([0x50, 0x4b, 0x03, 0x04, ...Array(100).fill(0)]);
+      await expect(
+        resolveDownloadedFileMimeType(VALID_ZIP_BYTES, XLSX_MIME, XLSX_MIME)
+      ).resolves.toBe(XLSX_MIME);
+    });
+
     it('rejects non-ZIP bytes for docx mime type', async () => {
       const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
       await expect(
