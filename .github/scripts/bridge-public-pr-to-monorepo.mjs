@@ -107,7 +107,7 @@ function prefixPatchPaths(patch, prefix) {
 
         const prefixedFrom = prefixedPath(fromQuoted ? `"${fromRaw}"` : fromRaw).replace(
           /^"|"$/g,
-          '',
+          ''
         );
         const prefixedTo = prefixedPath(toQuoted ? `"${toRaw}"` : toRaw).replace(/^"|"$/g, '');
 
