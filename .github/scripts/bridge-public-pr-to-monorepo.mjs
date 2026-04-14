@@ -100,13 +100,22 @@ function prefixPatchPaths(patch, prefix) {
           return line;
         }
 
-        if (match[1] && match[3]) {
-          const fromPath = prefixedPath(`"${match[1]}"`).replace(/^"|"$/g, '');
-          const toPath = prefixedPath(`"${match[3]}"`).replace(/^"|"$/g, '');
-          return `diff --git "a/${fromPath}" "b/${toPath}"`;
-        }
+        const fromRaw = match[1] ?? match[2];
+        const toRaw = match[3] ?? match[4];
+        const fromQuoted = match[1] !== undefined;
+        const toQuoted = match[3] !== undefined;
 
-        return `diff --git a/${prefixedPath(match[2])} b/${prefixedPath(match[4])}`;
+        const prefixedFrom = prefixedPath(fromQuoted ? `"${fromRaw}"` : fromRaw).replace(
+          /^"|"$/g,
+          '',
+        );
+        const prefixedTo = prefixedPath(toQuoted ? `"${toRaw}"` : toRaw).replace(/^"|"$/g, '');
+
+        const aPrefix = fromQuoted ? '"a/' : 'a/';
+        const aSuffix = fromQuoted ? '"' : '';
+        const bPrefix = toQuoted ? '"b/' : 'b/';
+        const bSuffix = toQuoted ? '"' : '';
+        return `diff --git ${aPrefix}${prefixedFrom}${aSuffix} ${bPrefix}${prefixedTo}${bSuffix}`;
       }
       if (line.startsWith('--- ')) {
         if (line === '--- /dev/null') {
@@ -122,6 +131,7 @@ function prefixPatchPaths(patch, prefix) {
             return `--- "a/${nextPath}"`;
           }
         }
+        throw new Error(`Rejecting patch with unrecognized --- header format: ${line}`);
       }
       if (line.startsWith('+++ ')) {
         if (line === '+++ /dev/null') {
@@ -137,6 +147,7 @@ function prefixPatchPaths(patch, prefix) {
             return `+++ "b/${nextPath}"`;
           }
         }
+        throw new Error(`Rejecting patch with unrecognized +++ header format: ${line}`);
       }
       if (line.startsWith('rename from ')) {
         return `rename from ${prefixedPath(line.slice('rename from '.length))}`;
