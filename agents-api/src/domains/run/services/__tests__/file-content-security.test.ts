@@ -216,6 +216,46 @@ describe('file-content-security', () => {
     });
   });
 
+  describe('normalizeInlineFileBytes - office documents', () => {
+    const VALID_ZIP_BYTES = Buffer.from([0x50, 0x4b, 0x03, 0x04, ...Array(100).fill(0)]);
+    const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+    it('accepts valid ZIP bytes when mimeType is docx', async () => {
+      const result = await normalizeInlineFileBytes({
+        bytes: VALID_ZIP_BYTES.toString('base64'),
+        mimeType: DOCX_MIME,
+      });
+      expect(result.mimeType).toBe(DOCX_MIME);
+    });
+
+    it('accepts valid ZIP bytes when mimeType is xlsx', async () => {
+      const result = await normalizeInlineFileBytes({
+        bytes: VALID_ZIP_BYTES.toString('base64'),
+        mimeType: XLSX_MIME,
+      });
+      expect(result.mimeType).toBe(XLSX_MIME);
+    });
+
+    it('rejects non-ZIP bytes claiming to be docx', async () => {
+      await expect(
+        normalizeInlineFileBytes({
+          bytes: VALID_PDF_BYTES.toString('base64'),
+          mimeType: DOCX_MIME,
+        })
+      ).rejects.toBeInstanceOf(BlockedInlineUnsupportedFileBytesError);
+    });
+
+    it('rejects non-ZIP bytes claiming to be xlsx', async () => {
+      await expect(
+        normalizeInlineFileBytes({
+          bytes: VALID_PNG_BYTES.toString('base64'),
+          mimeType: XLSX_MIME,
+        })
+      ).rejects.toBeInstanceOf(BlockedInlineUnsupportedFileBytesError);
+    });
+  });
+
   describe('resolveDownloadedFileMimeType', () => {
     it('accepts PDF signature bytes when expected mime type is application/pdf', async () => {
       await expect(
@@ -226,6 +266,21 @@ describe('file-content-security', () => {
     it('rejects non-PDF bytes when expected mime type is application/pdf', async () => {
       await expect(
         resolveDownloadedFileMimeType(VALID_PNG_BYTES, 'application/pdf', 'application/pdf')
+      ).rejects.toThrow(/Blocked external file with unsupported bytes signature/);
+    });
+
+    it('accepts valid ZIP bytes for docx mime type', async () => {
+      const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      const VALID_ZIP_BYTES = Buffer.from([0x50, 0x4b, 0x03, 0x04, ...Array(100).fill(0)]);
+      await expect(
+        resolveDownloadedFileMimeType(VALID_ZIP_BYTES, DOCX_MIME, DOCX_MIME)
+      ).resolves.toBe(DOCX_MIME);
+    });
+
+    it('rejects non-ZIP bytes for docx mime type', async () => {
+      const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      await expect(
+        resolveDownloadedFileMimeType(VALID_PDF_BYTES, DOCX_MIME, DOCX_MIME)
       ).rejects.toThrow(/Blocked external file with unsupported bytes signature/);
     });
   });

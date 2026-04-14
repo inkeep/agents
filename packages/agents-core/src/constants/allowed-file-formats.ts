@@ -59,7 +59,7 @@ export const DATA_URI_PDF_BASE64_REGEX = /^data:application\/pdf;base64,/;
 export const DATA_URI_TEXT_BASE64_REGEX =
   /^data:(text\/(plain|markdown|html|csv|x-log)|application\/json);base64,/;
 export const DATA_URI_OFFICE_BASE64_REGEX =
-  /^data:application\/vnd\.openxmlformats-officedocument\.(wordprocessingml\.document|spreadsheetml\.sheet);base64,/;
+  /^data:application\/vnd\.openxmlformats-officedocument\.(wordprocessingml\.document|spreadsheetml\.sheet);base64,/i;
 
 export function normalizeMimeType(mimeType: string): string {
   return mimeType.split(';')[0]?.trim().toLowerCase() || '';

@@ -24,6 +24,30 @@ describe('supportsOfficeDocuments', () => {
     expect(supportsOfficeDocuments('openai/gpt-4o')).toBe(true);
   });
 
+  it('returns true for bare gpt- prefix', () => {
+    expect(supportsOfficeDocuments('gpt-4o')).toBe(true);
+  });
+
+  it('returns true for bare o1- prefix', () => {
+    expect(supportsOfficeDocuments('o1-mini')).toBe(true);
+  });
+
+  it('returns true for bare o3- prefix', () => {
+    expect(supportsOfficeDocuments('o3-mini')).toBe(true);
+  });
+
+  it('returns true for bare o4- prefix', () => {
+    expect(supportsOfficeDocuments('o4-mini')).toBe(true);
+  });
+
+  it('returns true for bare chatgpt- prefix', () => {
+    expect(supportsOfficeDocuments('chatgpt-4o-latest')).toBe(true);
+  });
+
+  it('handles mixed-case openai/ prefix', () => {
+    expect(supportsOfficeDocuments('OpenAI/gpt-4o')).toBe(true);
+  });
+
   it('returns false for google/ prefix (Gemini requires Files API, not inline binary)', () => {
     expect(supportsOfficeDocuments('google/gemini-2.5-pro')).toBe(false);
   });
@@ -144,6 +168,14 @@ describe('buildStrippedPartsNote', () => {
       'anthropic/claude-3-5-sonnet-20241022'
     );
     expect(note).toContain('(unnamed)');
+  });
+
+  it('escapes special characters in filename via JSON.stringify', () => {
+    const note = buildStrippedPartsNote(
+      [{ mimeType: DOCX_MIME, filename: 'file"with"quotes.docx' }],
+      'anthropic/claude-3-5-sonnet-20241022'
+    );
+    expect(note).toContain('"file\\"with\\"quotes.docx"');
   });
 
   it('produces one line per stripped part', () => {

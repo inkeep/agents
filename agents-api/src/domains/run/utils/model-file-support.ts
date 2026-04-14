@@ -6,7 +6,8 @@ import {
 
 export function supportsOfficeDocuments(modelId: string): boolean {
   if (!modelId) return false;
-  return modelId.toLowerCase().startsWith('openai/');
+  const lower = modelId.toLowerCase();
+  return lower.startsWith('openai/') || /^(gpt-|o1-|o3-|o4-|chatgpt-)/.test(lower);
 }
 
 export interface StrippedFilePart {
@@ -43,7 +44,7 @@ export function stripIncompatibleOfficeParts(
 export function buildStrippedPartsNote(stripped: StrippedFilePart[], modelId: string): string {
   return stripped
     .map(({ mimeType, filename }) => {
-      const label = filename ? `"${filename}"` : '(unnamed)';
+      const label = filename ? JSON.stringify(filename) : '"(unnamed)"';
       return `[Attachment omitted: ${label} (${mimeType}) — this file type is not supported by the configured model (${modelId}).]`;
     })
     .join('\n');

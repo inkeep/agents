@@ -36,10 +36,21 @@ const TextDocumentDataUriSchema = z
   .refine(hasValidBase64Payload, 'Invalid base64 data in text document data URI');
 
 export const ImageUrlSchema = z.union([z.httpUrl(), ImageDataUriSchema]);
-const OfficeDocumentDataUriSchema = z
-  .string()
-  .regex(DATA_URI_OFFICE_BASE64_REGEX, 'File must be a .docx or .xlsx data URI')
-  .refine(hasValidBase64Payload, 'Invalid base64 data in office document data URI');
+const normalizeDataUriMimeType = (val: unknown): unknown => {
+  if (typeof val !== 'string') return val;
+  return val.replace(
+    /^(data:)([^;,]+)/i,
+    (_, prefix, mimeType) => `${prefix}${mimeType.toLowerCase()}`
+  );
+};
+
+const OfficeDocumentDataUriSchema = z.preprocess(
+  normalizeDataUriMimeType,
+  z
+    .string()
+    .regex(DATA_URI_OFFICE_BASE64_REGEX, 'File must be a .docx or .xlsx data URI')
+    .refine(hasValidBase64Payload, 'Invalid base64 data in office document data URI')
+);
 
 export const PdfDataOrUrlSchema = z.union([PdfDataUriSchema, z.httpUrl()]);
 export const InlineDocumentDataSchema = z.union([

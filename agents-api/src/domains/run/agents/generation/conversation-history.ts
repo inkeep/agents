@@ -216,18 +216,6 @@ export async function buildUserMessageContent(
       continue;
     }
 
-    if (isOfficeDocumentMimeType(mimeType)) {
-      content.push({
-        type: 'file',
-        data: fileValue,
-        mediaType: mimeType,
-        ...(typeof part.metadata?.filename === 'string'
-          ? { filename: part.metadata.filename }
-          : {}),
-      });
-      continue;
-    }
-
     const mappedPart = mapFileToAiSdkContentPart(fileValue, mimeType, {
       detail: typeof part.metadata?.detail === 'string' ? part.metadata.detail : undefined,
       filename: typeof part.metadata?.filename === 'string' ? part.metadata.filename : undefined,
