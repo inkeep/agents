@@ -39,33 +39,7 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
 
       - name: Normalize @claude trigger case
-        run: |
-          python3 -c "
-          import json, re, os
-          path = os.environ['GITHUB_EVENT_PATH']
-          with open(path) as f:
-              event = json.load(f)
-          modified = False
-          for key in ['comment', 'review']:
-              if key in event and isinstance(event.get(key), dict) and 'body' in event[key] and event[key]['body']:
-                  new_body = re.sub(r'@claude', '@claude', event[key]['body'], flags=re.IGNORECASE)
-                  if new_body != event[key]['body']:
-                      event[key]['body'] = new_body
-                      modified = True
-          if 'issue' in event and isinstance(event.get('issue'), dict):
-              for field in ['body', 'title']:
-                  if field in event['issue'] and event['issue'][field]:
-                      new_val = re.sub(r'@claude', '@claude', event['issue'][field], flags=re.IGNORECASE)
-                      if new_val != event['issue'][field]:
-                          event['issue'][field] = new_val
-                          modified = True
-          if modified:
-              with open(path, 'w') as f:
-                  json.dump(event, f)
-              print('Normalized @claude trigger case in event payload')
-          else:
-              print('No case normalization needed')
-          "
+        run: sed -i 's/@[Cc][Ll][Aa][Uu][Dd][Ee]/@claude/g' "$GITHUB_EVENT_PATH"
 
       - name: Run Claude Code
         id: claude
