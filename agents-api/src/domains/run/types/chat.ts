@@ -106,7 +106,9 @@ export const VercelFilePartSchema = z
   .superRefine((part, ctx) => {
     const mimeType = normalizeMimeType(part.mediaType);
 
-    if (isTextDocumentMimeType(mimeType) && !DATA_URI_TEXT_BASE64_REGEX.test(part.url)) {
+    const normalizedUrl = normalizeDataUriMimeType(part.url) as string;
+
+    if (isTextDocumentMimeType(mimeType) && !DATA_URI_TEXT_BASE64_REGEX.test(normalizedUrl)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Text document file parts must use inline base64 data URIs',
@@ -114,7 +116,7 @@ export const VercelFilePartSchema = z
       });
     }
 
-    if (isOfficeDocumentMimeType(mimeType) && !DATA_URI_OFFICE_BASE64_REGEX.test(part.url)) {
+    if (isOfficeDocumentMimeType(mimeType) && !DATA_URI_OFFICE_BASE64_REGEX.test(normalizedUrl)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Office document file parts must use inline base64 data URIs',
