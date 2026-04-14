@@ -33,7 +33,13 @@ function toAsyncIterator(
   if (Symbol.asyncIterator in stream) {
     return (stream as AsyncIterable<StreamPart>)[Symbol.asyncIterator]();
   }
-  return (stream as ReadableStream<StreamPart>).getReader() as unknown as AsyncIterator<StreamPart>;
+  // Node 18+ ReadableStream implements Symbol.asyncIterator. If we land here, the
+  // runtime has given us a stream that doesn't — wrap the reader in a real iterator
+  // rather than casting (ReadableStreamDefaultReader exposes .read(), not .next()).
+  const reader = (stream as ReadableStream<StreamPart>).getReader();
+  return {
+    next: () => reader.read() as Promise<IteratorResult<StreamPart>>,
+  };
 }
 
 export async function peekFirstChunk(streamResult: StreamResult): Promise<PeekResult> {
@@ -137,6 +143,11 @@ export function createCompressionRetryMiddleware(
   ctx: CompressionRetryContext
 ): LanguageModelMiddleware {
   return {
+    // Middleware contract verified against @ai-sdk/provider@3.0.2 and 3.0.4
+    // (dist/index.d.ts diff: only unrelated rename LanguageModelV2ProviderTool →
+    // LanguageModelV2ProviderDefinedTool). If the SDK bumps to v4, re-verify the
+    // wrapGenerate/wrapStream shape — doGenerate/doStream must remain nullary and
+    // `options.model` must expose doGenerate/doStream for retry.
     specificationVersion: 'v3',
 
     async wrapGenerate({ doGenerate, params, model }) {

@@ -39,16 +39,25 @@ export function setupCompression(
 }
 
 export function buildCompressPrompt(
-  compressor: MidGenerationCompressor
+  compressor: MidGenerationCompressor,
+  originalMessageCount: number
 ): (prompt: unknown[]) => Promise<unknown[]> {
   return async (prompt: unknown[]) => {
     const messages = prompt as any[];
 
-    const compressionResult = await compressor.safeCompress(messages);
+    // Preserve the original prefix (system + user message + pre-generation conversation
+    // history). Only the generated tail (tool calls + assistant responses accumulated
+    // during this run) is compressed. Matches the pre-middleware behavior in
+    // handlePrepareStepCompression where `originalMessages = stepMessages.slice(0, originalMessageCount)`
+    // and the summary was appended AFTER the preserved prefix.
+    const originalMessages = messages.slice(0, originalMessageCount);
+    const generatedMessages = messages.slice(originalMessageCount);
+
+    const compressionResult = await compressor.safeCompress(generatedMessages);
     compressor.markCompressed(messages.length);
 
     if (Array.isArray(compressionResult.summary)) {
-      return compressionResult.summary;
+      return [...originalMessages, ...compressionResult.summary];
     }
 
     const summaryData = {
@@ -83,18 +92,19 @@ export function buildCompressPrompt(
     }
 
     const summaryMessage = JSON.stringify(summaryData);
-    const systemMessages = messages.filter((m: any) => m.role === 'system');
 
     logger.info(
       {
         originalTotal: messages.length,
-        compressed: systemMessages.length + 1,
+        originalKept: originalMessages.length,
+        generatedCompressed: generatedMessages.length,
+        compressed: originalMessages.length + 1,
       },
       'Middleware compression completed'
     );
 
     return [
-      ...systemMessages,
+      ...originalMessages,
       {
         role: 'user',
         content: `Your research has been compressed due to context limits. Here is everything you have discovered so far: ${summaryMessage}\n\n${stopInstruction} When referencing artifacts, use <artifact:ref id="artifact_id" tool="tool_call_id" /> tags with the exact IDs above.`,

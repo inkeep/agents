@@ -111,13 +111,14 @@ export function wrapToolWithStreaming(
   const relationshipId = getRelationshipIdForTool(ctx, toolName, toolType);
 
   const originalExecute = toolDefinition.execute;
-  const contextWindowSize = getModelContextWindow().contextWindow ?? 120000;
   let lastArgs: unknown;
   let lastToolCallId: string | undefined;
 
   return {
     ...toolDefinition,
     toModelOutput: ({ output }: { output: unknown }) => {
+      const contextWindowSize =
+        getModelContextWindow(ctx.currentModelSettings).contextWindow ?? 120000;
       const detection = detectOversizedArtifact(output, contextWindowSize, {
         toolCallId: lastToolCallId,
         toolName,
@@ -131,6 +132,7 @@ export function wrapToolWithStreaming(
             'artifact.context_window': contextWindowSize,
           });
         }
+        // Round-trip serializes `unknown` tool args into JSONValue and strips non-JSON types.
         return {
           type: 'json' as const,
           value: JSON.parse(

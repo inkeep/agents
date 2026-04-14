@@ -222,6 +222,7 @@ export async function runGenerate(
 
         const { primaryModelSettings, modelSettings, hasStructuredOutput, timeoutMs } =
           configureModelSettings(ctx);
+        ctx.currentModelSettings = primaryModelSettings;
         const inlinePdfFileCount = fileParts.filter(
           (part) => part.file.mimeType?.toLowerCase().startsWith('application/pdf') === true
         ).length;
@@ -257,7 +258,7 @@ export async function runGenerate(
           ? wrapLanguageModel({
               model: modelSettings.model,
               middleware: createCompressionRetryMiddleware({
-                compressPrompt: buildCompressPrompt(compressor),
+                compressPrompt: buildCompressPrompt(compressor, originalMessageCount),
               }),
             })
           : modelSettings.model;
