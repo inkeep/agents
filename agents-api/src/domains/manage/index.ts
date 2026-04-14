@@ -9,6 +9,7 @@ import feedbackRoutes from './routes/feedback';
 import githubRoutes from './routes/github';
 import crudRoutes from './routes/index';
 import invitationsRoutes from './routes/invitations';
+import inviteMemberRoutes from './routes/inviteMember';
 import mcpToolGitHubAccessRoutes from './routes/mcpToolGithubAccess';
 import mcpToolSlackAccessRoutes from './routes/mcpToolSlackAccess';
 import oauthRoutes from './routes/oauth';
@@ -37,6 +38,7 @@ export function createManageRoutes() {
 
   // Mount invitations routes - includes /verify (unauthenticated) and /pending (authenticated)
   app.route('/api/invitations', invitationsRoutes);
+  app.route('/api/invitations', inviteMemberRoutes);
 
   // Mount entitlements routes under tenant
   app.route('/tenants/:tenantId/entitlements', entitlementsRoutes);
