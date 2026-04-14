@@ -34,7 +34,7 @@ vi.mock('../../../env.js', () => ({
     ENVIRONMENT: 'production',
     INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: undefined,
     INKEEP_AGENTS_API_URL: 'http://localhost:3002',
-    COPILOT_OAUTH_CLIENT_ID: 'copilot-client-id',
+    COPILOT_OAUTH_CLIENT_ID: 'copilot-client-id' as string | undefined,
   },
 }));
 
@@ -48,6 +48,7 @@ vi.mock('../../../middleware/sessionAuth', () => ({
 }));
 
 import { Hono } from 'hono';
+import { env } from '../../../env';
 import { manageBearerAuth } from '../../../middleware/manageAuth';
 
 const VALID_JWT = 'eyJhbGciOiJFZERTQSJ9.payload.signature';
@@ -158,5 +159,25 @@ describe('Manage Auth - OAuth JWT', () => {
     });
 
     expect(res.status).toBe(401);
+  });
+
+  it('should skip OAuth JWT path entirely when COPILOT_OAUTH_CLIENT_ID is not configured', async () => {
+    const original = env.COPILOT_OAUTH_CLIENT_ID;
+    env.COPILOT_OAUTH_CLIENT_ID = undefined;
+    try {
+      app.use('*', manageBearerAuth());
+      app.get('/', (c) => c.text('OK'));
+
+      const res = await app.request('/', {
+        headers: { Authorization: `Bearer ${VALID_JWT}` },
+      });
+
+      expect(res.status).toBe(401);
+      // Critical: must not even attempt JWT verification when unconfigured,
+      // so that JWTs issued to other OAuth clients cannot authenticate.
+      expect(jwtVerifyMock).not.toHaveBeenCalled();
+    } finally {
+      env.COPILOT_OAUTH_CLIENT_ID = original;
+    }
   });
 });

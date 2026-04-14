@@ -1,6 +1,7 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   AppListResponse,
+  commonGetErrorResponses,
   listAppsPaginated,
   PaginationQueryParamsSchema,
   sanitizeAppConfig,
@@ -40,6 +41,7 @@ app.openapi(
           },
         },
       },
+      ...commonGetErrorResponses,
     },
     ...speakeasyOffsetLimitPagination,
   }),

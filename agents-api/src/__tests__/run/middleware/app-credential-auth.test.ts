@@ -89,11 +89,12 @@ vi.mock('../../../env.js', () => ({
   env: {
     INKEEP_AGENTS_RUN_API_BYPASS_SECRET: undefined as string | undefined,
     INKEEP_AGENTS_API_URL: 'http://localhost:3002',
-    COPILOT_OAUTH_CLIENT_ID: 'copilot-client-id',
+    COPILOT_OAUTH_CLIENT_ID: 'copilot-client-id' as string | undefined,
   },
 }));
 
 import { Hono } from 'hono';
+import { env } from '../../../env';
 import { runApiKeyAuth as apiKeyAuth } from '../../../middleware/runAuth';
 
 function makeSupportCopilotApp(overrides: Record<string, unknown> = {}) {
@@ -731,6 +732,48 @@ describe('App Credential Authentication', () => {
       });
 
       expect(res.status).toBe(401);
+    });
+
+    it('should reject when JWT missing tenantId claim', async () => {
+      getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(makeSupportCopilotApp()));
+      jwtVerifyMock.mockResolvedValue({
+        payload: {
+          sub: 'user-123',
+          azp: 'copilot-client-id',
+        },
+      });
+
+      const res = await app.request('/', {
+        headers: {
+          Authorization: `Bearer ${VALID_OAUTH_JWT}`,
+          'x-inkeep-app-id': 'app-copilot-1',
+        },
+      });
+
+      expect(res.status).toBe(401);
+      expect(jwtVerifyMock).toHaveBeenCalled();
+      expect(canUseProjectStrictMock).not.toHaveBeenCalled();
+    });
+
+    it('should reject when COPILOT_OAUTH_CLIENT_ID is not configured', async () => {
+      const original = env.COPILOT_OAUTH_CLIENT_ID;
+      env.COPILOT_OAUTH_CLIENT_ID = undefined;
+      try {
+        getAppByIdMock.mockReturnValue(vi.fn().mockResolvedValue(makeSupportCopilotApp()));
+
+        const res = await app.request('/', {
+          headers: {
+            Authorization: `Bearer ${VALID_OAUTH_JWT}`,
+            'x-inkeep-app-id': 'app-copilot-1',
+          },
+        });
+
+        expect(res.status).toBe(401);
+        // Critical: must not even attempt JWT verification when unconfigured.
+        expect(jwtVerifyMock).not.toHaveBeenCalled();
+      } finally {
+        env.COPILOT_OAUTH_CLIENT_ID = original;
+      }
     });
   });
 });

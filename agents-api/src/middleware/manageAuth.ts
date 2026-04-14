@@ -1,6 +1,5 @@
 import {
   type BaseExecutionContext,
-  getInProcessFetch,
   getLogger,
   isInternalServiceToken,
   isSlackUserToken,
@@ -12,15 +11,11 @@ import type { createAuth } from '@inkeep/agents-core/auth';
 import { registerAuthzMeta } from '@inkeep/agents-core/middleware';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
-import { createRemoteJWKSet, customFetch, jwtVerify } from 'jose';
+import { jwtVerify } from 'jose';
 import runDbClient from '../data/db/runDbClient';
 import { env } from '../env';
+import { getOAuthIssuer, getOAuthJwks } from '../utils/oauthJwks';
 import { sessionAuth } from './sessionAuth';
-
-const jwksUrl = new URL('/api/auth/jwks', env.INKEEP_AGENTS_API_URL || 'http://localhost:3002');
-const JWKS = createRemoteJWKSet(jwksUrl, {
-  [customFetch]: getInProcessFetch(),
-});
 
 /**
  * Legacy exception: allow database API keys on GET /manage/tenants/:t/projects/:p/conversations/:id
@@ -129,11 +124,16 @@ export const manageBearerAuth = () =>
 
     // 3. Validate as an OAuth JWT access token (from oauthProvider plugin)
     // Only JWT tokens are handled here — opaque tokens are not issued by the copilot flow.
-    if (token.split('.').length === 3) {
+    // OAuth JWT auth is disabled entirely when COPILOT_OAUTH_CLIENT_ID is unset, so an
+    // unconfigured deployment cannot be tricked into accepting a JWT intended for a different
+    // OAuth client on the same provider.
+    if (env.COPILOT_OAUTH_CLIENT_ID && token.split('.').length === 3) {
       try {
-        const { payload } = await jwtVerify(token, JWKS);
+        const { payload } = await jwtVerify(token, getOAuthJwks(), {
+          issuer: getOAuthIssuer(),
+        });
         const azp = payload.azp as string | undefined;
-        if (env.COPILOT_OAUTH_CLIENT_ID && azp !== env.COPILOT_OAUTH_CLIENT_ID) {
+        if (azp !== env.COPILOT_OAUTH_CLIENT_ID) {
           throw new HTTPException(401, { message: 'Invalid OAuth client' });
         }
         const sub = payload.sub;
@@ -144,7 +144,7 @@ export const manageBearerAuth = () =>
           c.set('userId', sub);
           if (email) c.set('userEmail', email);
           if (tenantId) c.set('tenantId', tenantId);
-          if (azp) c.set('oauthClientId' as any, azp);
+          c.set('oauthClientId' as any, azp);
           await next();
           return;
         }

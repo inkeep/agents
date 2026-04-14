@@ -83,7 +83,7 @@ export function CredentialMultiSelect<TFieldValues extends FieldValues>({
                     ) : (
                       <span className="text-muted-foreground">{placeholder}</span>
                     )}
-                    <ChevronsUpDown className="opacity-50 text-muted-foreground" />
+                    <ChevronsUpDown aria-hidden className="opacity-50 text-muted-foreground" />
                   </Button>
                 </PopoverTrigger>
               </FormControl>
@@ -101,6 +101,7 @@ export function CredentialMultiSelect<TFieldValues extends FieldValues>({
                         >
                           {option.label}
                           <Check
+                            aria-hidden
                             className={cn(
                               'ml-auto',
                               selected.includes(option.value) ? 'opacity-100' : 'opacity-0'
@@ -126,7 +127,7 @@ export function CredentialMultiSelect<TFieldValues extends FieldValues>({
                         onClick={() => removeValue(id)}
                         aria-label={`Remove ${opt?.label ?? id}`}
                       >
-                        <X className="size-3" />
+                        <X aria-hidden className="size-3" />
                       </button>
                     </Badge>
                   );

@@ -3,7 +3,6 @@ import {
   canUseProjectStrict,
   createApiError,
   getAppById,
-  getInProcessFetch,
   getPoWErrorMessage,
   isSlackUserToken,
   type PublicKeyConfig,
@@ -19,26 +18,15 @@ import {
 import { trace } from '@opentelemetry/api';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
-import {
-  createRemoteJWKSet,
-  customFetch,
-  decodeProtectedHeader,
-  errors,
-  importSPKI,
-  jwtVerify,
-} from 'jose';
+import { decodeProtectedHeader, errors, importSPKI, jwtVerify } from 'jose';
 import runDbClient from '../data/db/runDbClient';
 import { getAnonJwtSecret } from '../domains/run/routes/auth';
 import { env } from '../env';
 import { getLogger } from '../logger';
 import { createBaseExecutionContext } from '../types/runExecutionContext';
+import { getOAuthIssuer, getOAuthJwks } from '../utils/oauthJwks';
 
 const logger = getLogger('env-key-auth');
-
-const jwksUrl = new URL('/api/auth/jwks', env.INKEEP_AGENTS_API_URL || 'http://localhost:3002');
-const JWKS = createRemoteJWKSet(jwksUrl, {
-  [customFetch]: getInProcessFetch(),
-});
 
 // ============================================================================
 // Supported auth strategies
@@ -425,9 +413,22 @@ async function tryOAuthSupportCopilotAuth(
     return { authResult: null, failureMessage: 'Bearer token required for support_copilot app' };
   }
 
+  // OAuth JWT auth is disabled entirely when COPILOT_OAUTH_CLIENT_ID is unset so an
+  // unconfigured deployment cannot be tricked into accepting a JWT intended for a
+  // different OAuth client on the same provider.
+  if (!env.COPILOT_OAUTH_CLIENT_ID) {
+    logger.warn(
+      { appId: app.id },
+      'support_copilot app credential auth attempted but COPILOT_OAUTH_CLIENT_ID is not configured'
+    );
+    return { authResult: null, failureMessage: 'OAuth is not configured for support_copilot' };
+  }
+
   let payload: Record<string, unknown>;
   try {
-    const result = await jwtVerify(bearerToken, JWKS);
+    const result = await jwtVerify(bearerToken, getOAuthJwks(), {
+      issuer: getOAuthIssuer(),
+    });
     payload = result.payload as Record<string, unknown>;
   } catch (err) {
     logger.debug(
@@ -445,12 +446,17 @@ async function tryOAuthSupportCopilotAuth(
     return { authResult: null, failureMessage: 'OAuth JWT missing sub claim' };
   }
 
-  if (env.COPILOT_OAUTH_CLIENT_ID && azp !== env.COPILOT_OAUTH_CLIENT_ID) {
+  if (!jwtTenantId) {
+    logger.warn({ appId: app.id, userId: sub }, 'OAuth JWT missing tenantId claim');
+    return { authResult: null, failureMessage: 'OAuth JWT missing tenantId claim' };
+  }
+
+  if (azp !== env.COPILOT_OAUTH_CLIENT_ID) {
     logger.warn({ azp, appId: app.id }, 'OAuth JWT azp mismatch');
     throw new HTTPException(401, { message: 'Invalid OAuth client' });
   }
 
-  if (app.tenantId && jwtTenantId && app.tenantId !== jwtTenantId) {
+  if (app.tenantId && app.tenantId !== jwtTenantId) {
     logger.warn(
       { appTenantId: app.tenantId, jwtTenantId, appId: app.id },
       'OAuth JWT tenant mismatch'
