@@ -15,10 +15,15 @@ import { trace } from '@opentelemetry/api';
 import type { ToolSet } from 'ai';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
+import {
+  detectOversizedArtifact,
+  formatOversizedRetrievalReason,
+} from '../../artifacts/artifact-utils';
 import { SENTINEL_KEY } from '../../constants/artifact-syntax';
 import { stripBinaryDataForObservability } from '../../services/blob-storage/artifact-binary-sanitizer';
 import { agentSessionManager, type ToolCallData } from '../../session/AgentSession';
 import { generateToolId } from '../../utils/agent-operations';
+import { getModelContextWindow } from '../../utils/model-context-utils';
 import { stripInternalFields } from '../../utils/select-filter';
 import { isToolResultDenied } from '../../utils/tool-result';
 import type { AgentRunContext, AiSdkToolDefinition, ToolType } from '../agent-types';
@@ -106,12 +111,57 @@ export function wrapToolWithStreaming(
   const relationshipId = getRelationshipIdForTool(ctx, toolName, toolType);
 
   const originalExecute = toolDefinition.execute;
+  const contextWindowSize = getModelContextWindow().contextWindow ?? 120000;
+  let lastArgs: unknown;
+  let lastToolCallId: string | undefined;
+
   return {
     ...toolDefinition,
-    toModelOutput: ({ output }: { output: unknown }) => buildToolResultForModelInput(output),
+    toModelOutput: ({ output }: { output: unknown }) => {
+      const detection = detectOversizedArtifact(output, contextWindowSize, {
+        toolCallId: lastToolCallId,
+        toolName,
+      });
+      if (detection.isOversized) {
+        const activeSpan = trace.getActiveSpan();
+        if (activeSpan) {
+          activeSpan.setAttributes({
+            'tool.result.oversized_excluded': true,
+            'artifact.original_tokens': detection.originalTokenSize,
+            'artifact.context_window': contextWindowSize,
+          });
+        }
+        return {
+          type: 'json' as const,
+          value: JSON.parse(
+            JSON.stringify({
+              status: 'oversized',
+              toolCallId: lastToolCallId,
+              toolName,
+              warning:
+                '⚠️ Tool produced an oversized result that cannot be included in the conversation.',
+              reason: formatOversizedRetrievalReason(
+                detection.originalTokenSize,
+                detection.contextWindowSize ?? contextWindowSize
+              ),
+              toolInfo: {
+                toolName,
+                toolArgs: lastArgs,
+                structureInfo: detection.structureInfo ?? '',
+              },
+              recommendation:
+                'Consider: 1) narrowing filters/queries on the next tool call, 2) asking the user to break down the request, 3) processing data differently.',
+            })
+          ),
+        };
+      }
+      return buildToolResultForModelInput(output);
+    },
     execute: async (args: any, context?: any) => {
+      lastArgs = args;
       const startTime = Date.now();
       const toolCallId = context?.toolCallId || generateToolId();
+      lastToolCallId = toolCallId;
       const streamHelper = ctx.isDelegatedAgent ? undefined : ctx.streamHelper;
 
       const activeSpan = trace.getActiveSpan();
