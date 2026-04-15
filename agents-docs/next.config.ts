@@ -1,22 +1,15 @@
 import { createMDX } from 'fumadocs-mdx/next';
 import type { NextConfig } from 'next';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { fetchCloudRedirects } from './fetch-cloud-redirects';
 import staticRedirects from './redirects.json' with { type: 'json' };
 
 const withMDX = createMDX();
 
 const isProd = process.env.NODE_ENV === 'production';
-const configDir = path.dirname(fileURLToPath(import.meta.url));
-const monorepoRoot = path.resolve(configDir, '..', '..', '..');
 
 const config: NextConfig = {
   experimental: {
     turbopackFileSystemCacheForBuild: true,
-  },
-  turbopack: {
-    root: monorepoRoot,
   },
   reactStrictMode: true,
   reactCompiler: {

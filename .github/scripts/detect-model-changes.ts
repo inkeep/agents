@@ -17,7 +17,6 @@ import {
 const GATEWAY_ENDPOINT = 'https://ai-gateway.vercel.sh/v1/models';
 const TRACKED_PROVIDERS = new Set(['openai', 'anthropic', 'google']);
 const FETCH_TIMEOUT_MS = 30_000;
-const MODEL_SYNC_PATH_PREFIX = process.env.MODEL_SYNC_PATH_PREFIX ?? '';
 
 const GATEWAY_API_KEY = process.env.AI_GATEWAY_API_KEY;
 
@@ -143,10 +142,6 @@ interface NewModel {
   released?: number;
 }
 
-function prefixedRepoPath(path: string): string {
-  return MODEL_SYNC_PATH_PREFIX ? `${MODEL_SYNC_PATH_PREFIX}/${path}` : path;
-}
-
 async function main(): Promise<void> {
   const githubToken = process.env.GITHUB_TOKEN;
   const githubRepo = process.env.GITHUB_REPOSITORY ?? 'inkeep/agents';
@@ -214,7 +209,7 @@ ${modelList}
 - Use a single commit with message: "chore: add new models [model-sync]"
 
 ## Step 1: Research
-Before touching any files, read \`${prefixedRepoPath('agents-manage-ui/src/components/agent/configuration/model-options.tsx')}\` to get the current UI model list, then use WebSearch to determine:
+Before touching any files, read \`agents-manage-ui/src/components/agent/configuration/model-options.tsx\` to get the current UI model list, then use WebSearch to determine:
 
 1. **API deprecation status** for every new model above and every model currently in the UI. An **API deprecation** means the model will no longer be available via the provider's API — this is distinct from a model being removed from a consumer product (ChatGPT, Claude.ai, Gemini app). Only API-level deprecations count. Check:
    - OpenAI: platform.openai.com/docs/deprecations
@@ -229,9 +224,9 @@ Before touching any files, read \`${prefixedRepoPath('agents-manage-ui/src/compo
 
 ## Step 2: Read the files first
 Before editing anything, read all 3 target files so you understand their exact patterns and conventions:
-- \`${prefixedRepoPath('packages/agents-core/src/constants/models.ts')}\`
-- \`${prefixedRepoPath('agents-manage-ui/src/components/agent/configuration/model-options.tsx')}\`
-- \`${prefixedRepoPath('agents-cli/src/utils/model-config.ts')}\`
+- \`packages/agents-core/src/constants/models.ts\`
+- \`agents-manage-ui/src/components/agent/configuration/model-options.tsx\`
+- \`agents-cli/src/utils/model-config.ts\`
 
 ## Step 3: Classify and update the 3 files
 
@@ -248,24 +243,24 @@ Assign each model a tier:
 - Active (non-API-deprecated) models without a date suffix
 - For specialty categories (reasoning, code generation): one model **per provider** — the most capable/latest only
 
-### \`${prefixedRepoPath('packages/agents-core/src/constants/models.ts')}\`
+### \`packages/agents-core/src/constants/models.ts\`
 - Add every model (both CONSTANTS-ONLY and FULL)
 - Key naming: SCREAMING_SNAKE_CASE — dots and dashes both become underscores (claude-sonnet-4-6 → CLAUDE_SONNET_4_6, gpt-5.2 → GPT_5_2)
 - Value format: always 'provider/model-id' (Anthropic uses dashes, OpenAI and Google use dots in the model ID)
 - NEVER modify or remove existing entries — constants are exhaustive and permanent, and serve as the comparison baseline for future sync runs
 
-### \`${prefixedRepoPath('agents-manage-ui/src/components/agent/configuration/model-options.tsx')}\`
+### \`agents-manage-ui/src/components/agent/configuration/model-options.tsx\`
 - Add only **FULL** tier models
 - Human-readable label matching existing style: 'Claude Sonnet 4.6', 'GPT-5.2', 'Gemini 2.5 Flash'
 - Order: newest first, then by tier (Opus/Pro > Sonnet/Flash > Haiku/Nano/Mini)
 - Remove any existing entries that have an **API deprecation** announcement from their provider (same definition as Step 1 — product removal does not count)
 - Per provider per category (reasoning, code generation), ensure the UI shows the single most capable entry based on your Step 1 research — only replace an existing specialty model if the newer one already exists in \`models.ts\` constants (never introduce a model ID that isn't already in constants)
 
-### \`${prefixedRepoPath('agents-cli/src/utils/model-config.ts')}\`
+### \`agents-cli/src/utils/model-config.ts\`
 - Same rules as the UI above — including specialty model updates based on Step 1 research
 
 ## Step 4: Create changeset
-Create \`${prefixedRepoPath(`.changeset/add-models-${today}-${slug}.md`)}\`. Only include a package if it was actually modified:
+Create \`.changeset/add-models-${today}-${slug}.md\`. Only include a package if it was actually modified:
 - Always include \`@inkeep/agents-core\` (constants are always updated)
 - Only include \`@inkeep/agents-manage-ui\` if any models were added to or removed from the UI
 - Only include \`@inkeep/agents-cli\` if any models were added to or removed from the CLI
@@ -283,7 +278,7 @@ Write a concise description covering what changed. Examples:
 - Omit the remove sentence if nothing was pruned
 
 ## Step 5: Verify
-Run these from the repository root in order and fix any issues before committing:
+Run these in order and fix any issues before committing:
 1. \`pnpm format\` — auto-fixes formatting
 2. \`pnpm typecheck\` — confirms no type errors
 3. \`pnpm lint\` — confirms no lint errors

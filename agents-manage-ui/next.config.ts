@@ -1,5 +1,3 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from 'next';
 
@@ -16,8 +14,6 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const isSentryEnabled = Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN);
-const configDir = path.dirname(fileURLToPath(import.meta.url));
-const monorepoRoot = path.resolve(configDir, '..', '..', '..');
 
 const nextConfig: NextConfig = {
   experimental: {
@@ -40,13 +36,11 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_CI: process.env.CI,
   },
   output: 'standalone',
-  outputFileTracingRoot: monorepoRoot,
   reactCompiler: {
     // Fail the build on any compiler diagnostic
     panicThreshold: 'all_errors',
   },
   turbopack: {
-    root: monorepoRoot,
     rules: {
       './**/icons/*.svg': {
         loaders: [

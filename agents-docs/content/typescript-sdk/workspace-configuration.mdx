@@ -29,21 +29,15 @@ export default defineConfig({
 });
 ```
 
-### `NestedInkeepConfig`
+<AutoTypeTable
+  name="default"
+  type="export { NestedInkeepConfig as default } from '@inkeep/agents-cli/config'"
+/>
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `tenantId` | `string` | Yes | Tenant identifier for the workspace. |
-| `agentsApi` | [`ApiConfig`](#apiconfig) | Yes | Agents API connection settings. |
-| `manageUiUrl` | `string` | No | Management UI URL. Defaults to `http://localhost:3000`. |
-| `outputDirectory` | `string` | No | Output directory for generated files. |
-
-### `ApiConfig`
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `url` | `string` | Yes | Agents API endpoint URL. |
-| `apiKey` | `string` | No | Optional API key used by CLI commands. |
+<AutoTypeTable
+  name="default"
+  type="export { ApiConfig as default } from '@inkeep/agents-cli/config'"
+/>
 
 </SkillRule>
 

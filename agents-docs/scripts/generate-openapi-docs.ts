@@ -36,7 +36,7 @@ const TitleToIcon: Record<keyof typeof TagToDescription, string> = {
   'External Agents': 'LuGlobe',
   Feedback: 'LuThumbsUp',
   'Function Tools': 'LuCode',
-  Functions: 'LuCode',
+  Functions: 'LuCode2',
   GitHub: 'LuGithub',
   Invitations: 'LuMail',
   MCP: 'LuServer',
