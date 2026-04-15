@@ -92,7 +92,10 @@ const socialProviders =
 
 const emailService = createEmailService();
 
-export const auth = createAgentsAuth({ socialProviders }, emailService);
+export const auth: ReturnType<typeof createAgentsAuth> = createAgentsAuth(
+  { socialProviders },
+  emailService
+);
 
 // Create default credential stores
 const defaultStores = createDefaultCredentialStores();
