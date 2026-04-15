@@ -1,5 +1,12 @@
 # @inkeep/agents-work-apps
 
+## 0.68.4
+
+### Patch Changes
+
+- 7438f76: add thread to resume link message context
+  - @inkeep/agents-core@0.68.4
+
 ## 0.68.3
 
 ### Patch Changes
