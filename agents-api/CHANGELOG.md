@@ -1,5 +1,16 @@
 # @inkeep/agents-api
 
+## 0.68.3
+
+### Patch Changes
+
+- e8776f5: Add Microsoft as a social sign-in provider
+- Updated dependencies [e8776f5]
+  - @inkeep/agents-core@0.68.3
+  - @inkeep/agents-work-apps@0.68.3
+  - @inkeep/agents-email@0.68.3
+  - @inkeep/agents-mcp@0.68.3
+
 ## 0.68.2
 
 ### Patch Changes
