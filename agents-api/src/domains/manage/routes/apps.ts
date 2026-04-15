@@ -44,7 +44,10 @@ app.openapi(
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema.extend({
-        type: z.enum(['web_client', 'api']).optional().describe('Filter by app type'),
+        type: z
+          .enum(['web_client', 'api', 'support_copilot'])
+          .optional()
+          .describe('Filter by app type'),
       }),
     },
     responses: {
@@ -64,7 +67,7 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
-    const type = c.req.query('type') as 'web_client' | 'api' | undefined;
+    const type = c.req.query('type') as 'web_client' | 'api' | 'support_copilot' | undefined;
 
     const result = await listAppsPaginated(runDbClient)({
       scopes: { tenantId, projectId },

@@ -19,16 +19,19 @@ interface AppsTableProps {
   apps: App[];
   agentLookup: Record<string, Agent>;
   agentOptions: SelectOption[];
+  credentialOptions: SelectOption[];
 }
 
 const TYPE_LABELS: Record<string, string> = {
   web_client: 'Web Client',
   api: 'API',
+  support_copilot: 'Support Copilot',
 };
 
-const TYPE_BADGE_VARIANT: Record<string, 'sky' | 'violet'> = {
+const TYPE_BADGE_VARIANT: Record<string, 'sky' | 'violet' | 'orange'> = {
   web_client: 'sky',
   api: 'violet',
+  support_copilot: 'orange',
 };
 
 function AppIdCell({ appId }: { appId: string }) {
@@ -52,7 +55,7 @@ function AppIdCell({ appId }: { appId: string }) {
   );
 }
 
-export function AppsTable({ apps, agentLookup, agentOptions }: AppsTableProps) {
+export function AppsTable({ apps, agentLookup, agentOptions, credentialOptions }: AppsTableProps) {
   const { tenantId } = useParams<{ tenantId: string }>();
   const {
     data: { canUse },
@@ -133,7 +136,14 @@ export function AppsTable({ apps, agentLookup, agentOptions }: AppsTableProps) {
       header: '',
       enableSorting: false,
       meta: { className: 'w-12' },
-      cell: ({ row }) => canUse && <AppItemMenu app={row.original} agentOptions={agentOptions} />,
+      cell: ({ row }) =>
+        canUse && (
+          <AppItemMenu
+            app={row.original}
+            agentOptions={agentOptions}
+            credentialOptions={credentialOptions}
+          />
+        ),
     },
   ];
 

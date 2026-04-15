@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ToolChainResolutionError } from '../../../domains/run/artifacts/ArtifactParser';
+import { SENTINEL_KEY } from '../../../domains/run/constants/artifact-syntax';
 import { applySelector, sanitizeJMESPathSelector } from '../../../domains/run/utils/select-filter';
 
 describe('sanitizeJMESPathSelector', () => {
@@ -87,7 +88,7 @@ describe('applySelector', () => {
       ToolChainResolutionError
     );
     expect(() => applySelector(sampleData, 'nonexistent', toolCallId)).toThrow(
-      /\$select matched nothing/
+      new RegExp(`${SENTINEL_KEY.SELECT} matched nothing`)
     );
   });
 

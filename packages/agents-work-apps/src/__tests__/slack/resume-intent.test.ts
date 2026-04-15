@@ -54,6 +54,7 @@ vi.mock('../../slack/services/events/utils', () => ({
     if (opts.threadContext) return `${opts.threadContext}\n\n${opts.text}`;
     return opts.text;
   }),
+  getThreadContext: vi.fn().mockResolvedValue('Thread message 1\nThread message 2'),
 }));
 
 vi.mock('../../env', () => ({
@@ -138,14 +139,22 @@ describe('resumeSmartLinkIntent', () => {
         threadTs: '1234567890.123456',
         agentId: 'agent_123',
         projectId: 'project_456',
-        question: 'What is the API rate limit?',
+        question: 'Thread message 1\nThread message 2\n\nWhat is the API rate limit?',
       })
     );
 
-    const { formatSlackQuery } = await import('../../slack/services/events/utils');
+    const { formatSlackQuery, getThreadContext } = await import(
+      '../../slack/services/events/utils'
+    );
+    expect(vi.mocked(getThreadContext)).toHaveBeenCalledWith(
+      expect.anything(),
+      'C12345678',
+      '1234567890.123456'
+    );
     expect(vi.mocked(formatSlackQuery)).toHaveBeenCalledWith(
       expect.objectContaining({
         text: 'What is the API rate limit?',
+        threadContext: 'Thread message 1\nThread message 2',
         messageTs: '1234567890.123457',
         senderTimezone: 'America/New_York',
       })

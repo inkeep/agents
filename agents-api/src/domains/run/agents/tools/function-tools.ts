@@ -1,6 +1,5 @@
-import { z } from '@hono/zod-openapi';
 import { getFunctionToolsForSubAgent, withRef } from '@inkeep/agents-core';
-import { type ToolSet, tool } from 'ai';
+import { jsonSchema, type ToolSet, tool } from 'ai';
 import manageDbPool from '../../../../data/db/manageDbPool';
 import { getLogger } from '../../../../logger';
 import {
@@ -11,7 +10,7 @@ import type { SandboxConfig } from '../../types/executionContext';
 import type { AgentRunContext } from '../agent-types';
 import { enhanceToolResultWithStructureHints } from '../generation/tool-result';
 import { toolSessionManager } from '../services/ToolSessionManager';
-import { makeBaseInputSchema, makeRefAwareJsonSchema } from './ref-aware-schema';
+import { buildRefAwareSchemas } from './ref-aware-schema';
 import { parseAndCheckApproval } from './tool-approval';
 import { wrapToolWithStreaming } from './tool-wrapper';
 
@@ -84,31 +83,25 @@ export async function getFunctionTools(
         continue;
       }
 
-      let baseInputSchema: ReturnType<typeof z.fromJSONSchema> | undefined;
-      let refAwareInputSchema: ReturnType<typeof z.fromJSONSchema> = z.string();
+      let refAwareInputSchema:
+        | ReturnType<typeof buildRefAwareSchemas>['refAwareInputSchema']
+        | undefined;
+      let baseInputSchema: ReturnType<typeof buildRefAwareSchemas>['baseInputSchema'];
       if (functionData.inputSchema) {
         try {
-          baseInputSchema = makeBaseInputSchema(functionData.inputSchema);
+          ({ refAwareInputSchema, baseInputSchema } = buildRefAwareSchemas(
+            functionData.inputSchema
+          ));
         } catch (schemaError) {
           logger.warn(
             {
               functionToolName: functionToolDef.name,
               schemaError: schemaError instanceof Error ? schemaError.message : String(schemaError),
             },
-            'Failed to build base input schema; post-resolution validation will be skipped'
+            'Failed to build ref-aware schema; falling back to raw inputSchema'
           );
-        }
-        try {
-          refAwareInputSchema = z.fromJSONSchema(makeRefAwareJsonSchema(functionData.inputSchema));
-        } catch (schemaError) {
-          logger.warn(
-            {
-              functionToolName: functionToolDef.name,
-              schemaError: schemaError instanceof Error ? schemaError.message : String(schemaError),
-            },
-            'Failed to build ref-aware schema; falling back to base schema'
-          );
-          refAwareInputSchema = z.fromJSONSchema(functionData.inputSchema);
+          refAwareInputSchema = jsonSchema(functionData.inputSchema);
+          baseInputSchema = undefined;
         }
       }
       const toolPolicies = functionToolDef.toolPolicies;
@@ -118,7 +111,7 @@ export async function getFunctionTools(
 
       const baseTool = tool({
         description: functionToolDef.description || functionToolDef.name,
-        inputSchema: refAwareInputSchema,
+        inputSchema: refAwareInputSchema as NonNullable<typeof refAwareInputSchema>,
         execute: async (args, { toolCallId, providerMetadata }: any) => {
           const parsed = await parseAndCheckApproval(
             ctx,
