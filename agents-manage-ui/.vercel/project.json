@@ -1,0 +1,15 @@
+{
+  "projectId": "prj_test",
+  "orgId": "team_test",
+  "settings": {
+    "createdAt": 1757472201890,
+    "framework": "nextjs",
+    "devCommand": null,
+    "installCommand": "pnpm install",
+    "buildCommand": null,
+    "outputDirectory": null,
+    "rootDirectory": null,
+    "directoryListing": false,
+    "nodeVersion": "20.x"
+  }
+}
