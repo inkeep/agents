@@ -135,7 +135,7 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
       accountLinking: {
         enabled: true,
         trustedProviders: async () => {
-          const base = ['google', 'email-password'];
+          const base = ['google', 'microsoft', 'email-password'];
           try {
             const providerIds = await querySsoProviderIds(config.dbClient)();
             return [...base, ...providerIds];
@@ -162,14 +162,25 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
         },
       },
     },
-    socialProviders: config.socialProviders?.google && {
-      google: {
-        ...config.socialProviders.google,
-        // For local/preview env, redirect to production URL registered in Google Console
-        ...(env.OAUTH_PROXY_PRODUCTION_URL && {
-          redirectURI: `${env.OAUTH_PROXY_PRODUCTION_URL}/api/auth/callback/google`,
-        }),
-      },
+    socialProviders: (config.socialProviders?.google || config.socialProviders?.microsoft) && {
+      ...(config.socialProviders?.google && {
+        google: {
+          ...config.socialProviders.google,
+          // For local/preview env, redirect to production URL registered in Google Console
+          ...(env.OAUTH_PROXY_PRODUCTION_URL && {
+            redirectURI: `${env.OAUTH_PROXY_PRODUCTION_URL}/api/auth/callback/google`,
+          }),
+        },
+      }),
+      ...(config.socialProviders?.microsoft && {
+        microsoft: {
+          ...config.socialProviders.microsoft,
+          // For local/preview env, redirect to production URL registered in Entra app
+          ...(env.OAUTH_PROXY_PRODUCTION_URL && {
+            redirectURI: `${env.OAUTH_PROXY_PRODUCTION_URL}/api/auth/callback/microsoft`,
+          }),
+        },
+      }),
     },
     session: {
       storeSessionInDatabase: true,
