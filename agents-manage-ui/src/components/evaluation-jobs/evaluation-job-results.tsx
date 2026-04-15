@@ -3,7 +3,7 @@
 import { ChevronDown, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
+import { ReadOnlyJsonView } from '@/components/editors/read-only-json-view';
 import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
 import { EvaluatorViewDialog } from '@/components/evaluators/evaluator-view-dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -281,13 +281,8 @@ export function EvaluationJobResults({
 
                             return (
                               <>
-                                <OutputCollapsible
-                                  resultId={result.id}
-                                  output={outputWithoutMetadata}
-                                />
-                                {metadata && (
-                                  <MetadataCollapsible resultId={result.id} metadata={metadata} />
-                                )}
+                                <OutputCollapsible output={outputWithoutMetadata} />
+                                {metadata && <MetadataCollapsible metadata={metadata} />}
                               </>
                             );
                           })()}
@@ -316,7 +311,7 @@ export function EvaluationJobResults({
   );
 }
 
-function OutputCollapsible({ resultId, output }: { resultId: string; output: unknown }) {
+function OutputCollapsible({ output }: { output: unknown }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -326,19 +321,13 @@ function OutputCollapsible({ resultId, output }: { resultId: string; output: unk
         <span>Output</span>
       </CollapsibleTrigger>
       <CollapsibleContent className="pt-2">
-        <ExpandableJsonEditor
-          name={`output-${resultId}`}
-          value={JSON.stringify(output, null, 2)}
-          label=""
-          readOnly
-          defaultOpen
-        />
+        <ReadOnlyJsonView value={JSON.stringify(output, null, 2)} maxHeight="300px" />
       </CollapsibleContent>
     </Collapsible>
   );
 }
 
-function MetadataCollapsible({ resultId, metadata }: { resultId: string; metadata: unknown }) {
+function MetadataCollapsible({ metadata }: { metadata: unknown }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -348,13 +337,7 @@ function MetadataCollapsible({ resultId, metadata }: { resultId: string; metadat
         <span>Metadata</span>
       </CollapsibleTrigger>
       <CollapsibleContent className="pt-2">
-        <ExpandableJsonEditor
-          name={`metadata-${resultId}`}
-          value={JSON.stringify(metadata, null, 2)}
-          label=""
-          readOnly
-          defaultOpen
-        />
+        <ReadOnlyJsonView value={JSON.stringify(metadata, null, 2)} maxHeight="300px" />
       </CollapsibleContent>
     </Collapsible>
   );
