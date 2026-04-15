@@ -10,10 +10,13 @@ export const ARTIFACT_TAG = {
  * Sentinel object keys used in tool arguments for reference resolution.
  */
 export const SENTINEL_KEY = {
-  ARTIFACT: '$artifact',
-  TOOL: '$tool',
-  SELECT: '$select',
+  ARTIFACT: '_artifact',
+  TOOL: '_tool',
+  SELECT: '_select',
+  REFS: '_refs',
 } as const;
+
+export const REFS_KEY = SENTINEL_KEY.REFS;
 
 /**
  * Built-in tool names for artifact operations.

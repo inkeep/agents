@@ -125,6 +125,7 @@ export function RemoveSSODialog({
       const hasRemainingMethod =
         updated.some((m) => m.method === 'email-password') ||
         updated.some((m) => m.method === 'google') ||
+        updated.some((m) => m.method === 'microsoft') ||
         updated.some((m) => m.method === 'sso' && m.enabled);
 
       if (!hasRemainingMethod) {

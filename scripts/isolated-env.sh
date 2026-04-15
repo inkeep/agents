@@ -361,6 +361,9 @@ print(f"export MANAGE_UI_PORT='{ui}'")
 print(f"export INKEEP_AGENTS_API_URL='http://localhost:{api}'")
 print(f"export PUBLIC_INKEEP_AGENTS_API_URL='http://localhost:{api}'")
 print(f"export NEXT_PUBLIC_INKEEP_AGENTS_API_URL='http://localhost:{api}'")
+print(f"export INKEEP_AGENTS_MANAGE_UI_URL='http://localhost:{ui}'")
+print(f"export NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_UI_URL='http://localhost:{ui}'")
+print(f"export TRUSTED_ORIGIN='http://localhost:{ui}'")
 PYEOF
 }
 

@@ -1,6 +1,7 @@
 import { DANGEROUS_PATTERNS } from '@inkeep/agents-core/utils/signature-validation';
 import * as jmespath from 'jmespath';
 import { ToolChainResolutionError } from '../artifacts/ArtifactParser';
+import { SENTINEL_KEY } from '../constants/artifact-syntax';
 
 export function clearSelectorCache(): void {
   selectorCache.clear();
@@ -24,7 +25,7 @@ const MAX_EXPRESSION_LENGTH = 1000;
 
 /**
  * Sanitize JMESPath selector to fix common LLM syntax issues.
- * Extracted from ArtifactService for reuse in $select filtering.
+ * Extracted from ArtifactService for reuse in _select filtering.
  */
 export function sanitizeJMESPathSelector(selector: string): string {
   const cached = selectorCache.get(selector);
@@ -57,7 +58,7 @@ function validateSelector(expression: string, toolCallId: string, originalSelect
   if (expression.length > MAX_EXPRESSION_LENGTH) {
     throw new ToolChainResolutionError(
       toolCallId,
-      `$select expression exceeds maximum length of ${MAX_EXPRESSION_LENGTH} characters. Expression: ${originalSelector}`
+      `${SENTINEL_KEY.SELECT} expression exceeds maximum length of ${MAX_EXPRESSION_LENGTH} characters. Expression: ${originalSelector}`
     );
   }
 
@@ -65,7 +66,7 @@ function validateSelector(expression: string, toolCallId: string, originalSelect
     if (pattern.test(expression)) {
       throw new ToolChainResolutionError(
         toolCallId,
-        `$select expression contains dangerous pattern. Expression: ${originalSelector}`
+        `${SENTINEL_KEY.SELECT} expression contains dangerous pattern. Expression: ${originalSelector}`
       );
     }
   }
@@ -97,7 +98,7 @@ function summarizeShape(data: unknown, maxDepth = 3, currentDepth = 0): string {
 }
 
 /**
- * Apply a JMESPath $select filter to resolved tool/artifact data.
+ * Apply a JMESPath SENTINEL_KEY.SELECT filter to resolved tool/artifact data.
  *
  * - Auto-strips `result.` prefix (matches _structureHints selector format)
  * - Sanitizes common LLM JMESPath errors
@@ -122,7 +123,7 @@ export function applySelector(data: unknown, selector: string, toolCallId: strin
       const dataPreview = summarizeShape(data);
       throw new ToolChainResolutionError(
         toolCallId,
-        `$select matched nothing. The expression "${selector}" did not match any data in the tool result. Available data shape: ${dataPreview}. Check _structureHints and try a different selector.`
+        `${SENTINEL_KEY.SELECT} matched nothing. The expression "${selector}" did not match any data in the tool result. Available data shape: ${dataPreview}. Check _structureHints and try a different selector.`
       );
     }
     return result;
@@ -132,7 +133,7 @@ export function applySelector(data: unknown, selector: string, toolCallId: strin
     }
     throw new ToolChainResolutionError(
       toolCallId,
-      `$select filter failed: ${error instanceof Error ? error.message : String(error)}. Expression: ${selector}`
+      `${SENTINEL_KEY.SELECT} filter failed: ${error instanceof Error ? error.message : String(error)}. Expression: ${selector}`
     );
   }
 }
