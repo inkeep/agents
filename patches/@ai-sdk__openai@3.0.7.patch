@@ -1,0 +1,53 @@
+diff --git a/dist/index.mjs b/dist/index.mjs
+index 649c027342d5bfcfc220253085000ce07609f2b3..17d35624cdd5d909f539c424e8494f224c1df597 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -203,6 +203,23 @@ function convertToOpenAIChatMessages({
+                       file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`
+                     }
+                   };
++                } else if (
++                  part.mediaType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
++                  part.mediaType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
++                ) {
++                  if (part.data instanceof URL) {
++                    throw new UnsupportedFunctionalityError({
++                      functionality: `file part media type ${part.mediaType} with URLs`
++                    });
++                  }
++                  const ext = part.mediaType.includes("wordprocessingml") ? "docx" : "xlsx";
++                  return {
++                    type: "file",
++                    file: typeof part.data === "string" && part.data.startsWith("file-") ? { file_id: part.data } : {
++                      filename: (_c = part.filename) != null ? _c : `part-${index}.${ext}`,
++                      file_data: `data:${part.mediaType};base64,${convertToBase64(part.data)}`
++                    }
++                  };
+                 } else {
+                   throw new UnsupportedFunctionalityError({
+                     functionality: `file part media type ${part.mediaType}`
+@@ -2617,6 +2634,24 @@ async function convertToOpenAIResponsesInput({
+                       file_data: `data:application/pdf;base64,${convertToBase642(part.data)}`
+                     }
+                   };
++                } else if (
++                  part.mediaType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
++                  part.mediaType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
++                ) {
++                  if (part.data instanceof URL) {
++                    return {
++                      type: "input_file",
++                      file_url: part.data.toString()
++                    };
++                  }
++                  const ext = part.mediaType.includes("wordprocessingml") ? "docx" : "xlsx";
++                  return {
++                    type: "input_file",
++                    ...typeof part.data === "string" && isFileId(part.data, fileIdPrefixes) ? { file_id: part.data } : {
++                      filename: (_c2 = part.filename) != null ? _c2 : `part-${index}.${ext}`,
++                      file_data: `data:${part.mediaType};base64,${convertToBase642(part.data)}`
++                    }
++                  };
+                 } else {
+                   throw new UnsupportedFunctionalityError4({
+                     functionality: `file part media type ${part.mediaType}`

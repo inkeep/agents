@@ -1,3 +1,4 @@
+import { isOfficeDocumentMimeType } from '@inkeep/agents-core/constants/allowed-file-formats';
 import { fileTypeFromBuffer } from 'file-type';
 import {
   decodeTextDocumentBytes,
@@ -59,6 +60,13 @@ export async function resolveDownloadedFileMimeType(
     throw new BlockedExternalUnsupportedBytesError(headerContentType || expected || 'unknown');
   }
 
+  if (isOfficeDocumentMimeType(expected)) {
+    if (looksLikeZip(data)) {
+      return expected as string;
+    }
+    throw new BlockedExternalUnsupportedBytesError(headerContentType || expected || 'unknown');
+  }
+
   const sniffedMime = await sniffAllowedImageMimeType(data);
   if (sniffedMime) {
     return sniffedMime;
@@ -95,6 +103,13 @@ async function sniffAllowedInlineFileMimeType(
       throw new BlockedInlineUnsupportedFileBytesError(requestedMimeType);
     }
     return 'application/pdf';
+  }
+
+  if (isOfficeDocumentMimeType(requestedMimeType)) {
+    if (!looksLikeZip(data)) {
+      throw new BlockedInlineUnsupportedFileBytesError(requestedMimeType ?? 'unknown');
+    }
+    return requestedMimeType as string;
   }
 
   if (isTextDocumentMimeType(requestedMimeType)) {
@@ -134,4 +149,11 @@ function looksLikePdf(data: Uint8Array): boolean {
   return (
     data[0] === 0x25 && data[1] === 0x50 && data[2] === 0x44 && data[3] === 0x46 && data[4] === 0x2d
   );
+}
+
+function looksLikeZip(data: Uint8Array): boolean {
+  if (data.length < 4) {
+    return false;
+  }
+  return data[0] === 0x50 && data[1] === 0x4b && data[2] === 0x03 && data[3] === 0x04;
 }
