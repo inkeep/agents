@@ -5,6 +5,7 @@ import {
   ToolChainResolutionError,
 } from '../../../domains/run/artifacts/ArtifactParser';
 import type { ArtifactService } from '../../../domains/run/artifacts/ArtifactService';
+import { SENTINEL_KEY } from '../../../domains/run/constants/artifact-syntax';
 
 function createParser(overrides: {
   getArtifactFull?: ArtifactService['getArtifactFull'];
@@ -30,7 +31,7 @@ function createParser(overrides: {
   });
 }
 
-describe('resolveArgs with $select', () => {
+describe('resolveArgs with select', () => {
   const toolData = {
     items: [
       { title: 'Alpha', score: 0.9 },
@@ -40,15 +41,15 @@ describe('resolveArgs with $select', () => {
     metadata: { total: 3 },
   };
 
-  describe('$tool + $select', () => {
-    it('should filter ephemeral tool result with $select', async () => {
+  describe('tool + select', () => {
+    it('should filter ephemeral tool result with select', async () => {
       const parser = createParser({
         getToolResultRaw: vi.fn().mockReturnValue(toolData),
       });
 
       const result = await parser.resolveArgs({
-        $tool: 'call_search',
-        $select: 'items[?score > `0.8`]',
+        [SENTINEL_KEY.TOOL]: 'call_search',
+        [SENTINEL_KEY.SELECT]: 'items[?score > `0.8`]',
       });
 
       expect(result).toEqual([
@@ -57,70 +58,70 @@ describe('resolveArgs with $select', () => {
       ]);
     });
 
-    it('should extract specific fields with $select', async () => {
+    it('should extract specific fields with select', async () => {
       const parser = createParser({
         getToolResultRaw: vi.fn().mockReturnValue(toolData),
       });
 
       const result = await parser.resolveArgs({
-        $tool: 'call_search',
-        $select: 'items[].title',
+        [SENTINEL_KEY.TOOL]: 'call_search',
+        [SENTINEL_KEY.SELECT]: 'items[].title',
       });
 
       expect(result).toEqual(['Alpha', 'Beta', 'Gamma']);
     });
 
-    it('should throw ToolChainResolutionError when $select matches nothing', async () => {
+    it('should throw ToolChainResolutionError when select matches nothing', async () => {
       const parser = createParser({
         getToolResultRaw: vi.fn().mockReturnValue(toolData),
       });
 
       await expect(
         parser.resolveArgs({
-          $tool: 'call_search',
-          $select: 'nonexistent_field',
+          [SENTINEL_KEY.TOOL]: 'call_search',
+          [SENTINEL_KEY.SELECT]: 'nonexistent_field',
         })
       ).rejects.toThrow(ToolChainResolutionError);
     });
   });
 
-  describe('$artifact + $tool + $select', () => {
-    it('should filter artifact data with $select', async () => {
+  describe('artifact + tool + select', () => {
+    it('should filter artifact data with select', async () => {
       const parser = createParser({
         getArtifactFull: vi.fn().mockResolvedValue({ data: toolData }),
       });
 
       const result = await parser.resolveArgs({
-        $artifact: 'art_123',
-        $tool: 'call_search',
-        $select: 'metadata.total',
+        [SENTINEL_KEY.ARTIFACT]: 'art_123',
+        [SENTINEL_KEY.TOOL]: 'call_search',
+        [SENTINEL_KEY.SELECT]: 'metadata.total',
       });
 
       expect(result).toBe(3);
     });
   });
 
-  describe('regression: without $select', () => {
-    it('should return full tool result when no $select', async () => {
+  describe('regression: without select', () => {
+    it('should return full tool result when no select', async () => {
       const parser = createParser({
         getToolResultRaw: vi.fn().mockReturnValue(toolData),
       });
 
       const result = await parser.resolveArgs({
-        $tool: 'call_search',
+        [SENTINEL_KEY.TOOL]: 'call_search',
       });
 
       expect(result).toEqual(toolData);
     });
 
-    it('should return full artifact data when no $select', async () => {
+    it('should return full artifact data when no select', async () => {
       const parser = createParser({
         getArtifactFull: vi.fn().mockResolvedValue({ data: toolData }),
       });
 
       const result = await parser.resolveArgs({
-        $artifact: 'art_123',
-        $tool: 'call_search',
+        [SENTINEL_KEY.ARTIFACT]: 'art_123',
+        [SENTINEL_KEY.TOOL]: 'call_search',
       });
 
       expect(result).toEqual(toolData);
@@ -135,8 +136,8 @@ describe('resolveArgs with $select', () => {
 
       await expect(
         parser.resolveArgs({
-          $tool: 'call_search',
-          $select: '[invalid!!!',
+          [SENTINEL_KEY.TOOL]: 'call_search',
+          [SENTINEL_KEY.SELECT]: '[invalid!!!',
         })
       ).rejects.toThrow(ToolChainResolutionError);
     });
@@ -148,22 +149,22 @@ describe('resolveArgs with $select', () => {
 
       await expect(
         parser.resolveArgs({
-          $tool: 'call_search',
-          $select: '__proto__',
+          [SENTINEL_KEY.TOOL]: 'call_search',
+          [SENTINEL_KEY.SELECT]: '__proto__',
         })
       ).rejects.toThrow(ToolChainResolutionError);
     });
   });
 
-  describe('nested refs with $select', () => {
-    it('should resolve nested $select at different levels', async () => {
+  describe('nested refs with select', () => {
+    it('should resolve nested select at different levels', async () => {
       const parser = createParser({
         getToolResultRaw: vi.fn().mockReturnValue(toolData),
       });
 
       const result = await parser.resolveArgs({
-        first: { $tool: 'call_search', $select: 'items[0].title' },
-        second: { $tool: 'call_search', $select: 'metadata.total' },
+        first: { [SENTINEL_KEY.TOOL]: 'call_search', [SENTINEL_KEY.SELECT]: 'items[0].title' },
+        second: { [SENTINEL_KEY.TOOL]: 'call_search', [SENTINEL_KEY.SELECT]: 'metadata.total' },
       });
 
       expect(result).toEqual({
@@ -173,15 +174,108 @@ describe('resolveArgs with $select', () => {
     });
   });
 
-  describe('result. prefix stripping', () => {
-    it('should auto-strip result. prefix from $select expressions', async () => {
+  describe('refs map resolution', () => {
+    it('should resolve refs entries and merge into args, stripping the refs key', async () => {
       const parser = createParser({
         getToolResultRaw: vi.fn().mockReturnValue(toolData),
       });
 
       const result = await parser.resolveArgs({
-        $tool: 'call_search',
-        $select: 'result.metadata.total',
+        query: null,
+        limit: 10,
+        [SENTINEL_KEY.REFS]: {
+          query: { [SENTINEL_KEY.TOOL]: 'call_search' },
+        },
+      });
+
+      expect(result).toEqual({
+        query: toolData,
+        limit: 10,
+      });
+      expect(result).not.toHaveProperty(SENTINEL_KEY.REFS);
+    });
+
+    it('should resolve refs with select', async () => {
+      const parser = createParser({
+        getToolResultRaw: vi.fn().mockReturnValue(toolData),
+      });
+
+      const result = await parser.resolveArgs({
+        title: null,
+        [SENTINEL_KEY.REFS]: {
+          title: { [SENTINEL_KEY.TOOL]: 'call_search', [SENTINEL_KEY.SELECT]: 'items[0].title' },
+        },
+      });
+
+      expect(result).toEqual({ title: 'Alpha' });
+    });
+
+    it('should resolve refs with artifact + tool + select', async () => {
+      const parser = createParser({
+        getArtifactFull: vi.fn().mockResolvedValue({ data: toolData }),
+      });
+
+      const result = await parser.resolveArgs({
+        total: null,
+        [SENTINEL_KEY.REFS]: {
+          total: {
+            [SENTINEL_KEY.ARTIFACT]: 'art_123',
+            [SENTINEL_KEY.TOOL]: 'call_search',
+            [SENTINEL_KEY.SELECT]: 'metadata.total',
+          },
+        },
+      });
+
+      expect(result).toEqual({ total: 3 });
+    });
+
+    it('should throw ToolChainResolutionError when a refs entry cannot be resolved', async () => {
+      const parser = createParser({
+        getToolResultRaw: vi.fn().mockReturnValue(undefined),
+      });
+
+      await expect(
+        parser.resolveArgs({
+          query: null,
+          [SENTINEL_KEY.REFS]: {
+            query: { [SENTINEL_KEY.TOOL]: 'call_missing' },
+          },
+        })
+      ).rejects.toThrow(ToolChainResolutionError);
+    });
+
+    it('should resolve multiple refs entries in a single call', async () => {
+      const parser = createParser({
+        getToolResultRaw: vi.fn().mockReturnValue(toolData),
+      });
+
+      const result = await parser.resolveArgs({
+        first: null,
+        second: null,
+        passthrough: 'unchanged',
+        [SENTINEL_KEY.REFS]: {
+          first: { [SENTINEL_KEY.TOOL]: 'call_search', [SENTINEL_KEY.SELECT]: 'items[0].title' },
+          second: { [SENTINEL_KEY.TOOL]: 'call_search', [SENTINEL_KEY.SELECT]: 'metadata.total' },
+        },
+      });
+
+      expect(result).toEqual({
+        first: 'Alpha',
+        second: 3,
+        passthrough: 'unchanged',
+      });
+    });
+  });
+
+  describe('result. prefix stripping', () => {
+    it('should auto-strip result. prefix from select expressions', async () => {
+      const parser = createParser({
+        getToolResultRaw: vi.fn().mockReturnValue(toolData),
+      });
+
+      const result = await parser.resolveArgs({
+        [SENTINEL_KEY.TOOL]: 'call_search',
+        [SENTINEL_KEY.SELECT]: 'result.metadata.total',
       });
 
       expect(result).toBe(3);

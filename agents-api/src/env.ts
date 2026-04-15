@@ -67,6 +67,14 @@ const envSchema = z
       })
       .describe('Admin password for management UI login (min 8 characters)'),
 
+    // OAuth 2.1 Support Copilot
+    COPILOT_OAUTH_CLIENT_ID: z
+      .string()
+      .optional()
+      .describe(
+        'OAuth 2.1 client ID for the Support Copilot app (created by pnpm setup-oauth-client)'
+      ),
+
     // API Bypass Secrets (for local development and testing, skips auth)
     INKEEP_AGENTS_API_BYPASS_SECRET: z
       .string()

@@ -1,3 +1,7 @@
+import {
+  oauthProviderAuthServerMetadata,
+  oauthProviderOpenIdConfigMetadata,
+} from '@better-auth/oauth-provider';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { getInProcessFetch, getWaitUntil, registerAppFetch } from '@inkeep/agents-core';
 import { githubRoutes } from '@inkeep/agents-work-apps/github';
@@ -123,6 +127,17 @@ function createAgentsHono(config: AppConfig) {
     // Mount the Better Auth handler (OPTIONS handled by cors middleware above)
     app.on(['POST', 'GET'], '/api/auth/*', (c) => {
       return auth.handler(c.req.raw);
+    });
+
+    // OIDC / OAuth 2.1 discovery endpoints
+    const openIdConfigHandler = oauthProviderOpenIdConfigMetadata(auth);
+    const authServerMetadataHandler = oauthProviderAuthServerMetadata(auth);
+
+    app.get('/.well-known/openid-configuration', (c) => {
+      return openIdConfigHandler(c.req.raw);
+    });
+    app.get('/.well-known/oauth-authorization-server/*', (c) => {
+      return authServerMetadataHandler(c.req.raw);
     });
   }
   // Run routes - permissive CORS (origin: '*')
