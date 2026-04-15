@@ -1,5 +1,35 @@
 # @inkeep/agents-manage-ui
 
+## 0.68.4
+
+### Patch Changes
+
+- @inkeep/agents-core@0.68.4
+
+## 0.68.3
+
+### Patch Changes
+
+- e8776f5: Add Microsoft as a social sign-in provider
+- Updated dependencies [e8776f5]
+  - @inkeep/agents-core@0.68.3
+
+## 0.68.2
+
+### Patch Changes
+
+- 557f700: Add support_copilot app type with OAuth 2.1 JWT auth, tenant-level app discovery endpoint, and apps UI for configuring support copilot apps with credentials
+- Updated dependencies [557f700]
+- Updated dependencies [4e0fd65]
+  - @inkeep/agents-core@0.68.2
+
+## 0.68.1
+
+### Patch Changes
+
+- 7b3b8b6: Fix cost page timeout by aggregating cost queries at the database level
+  - @inkeep/agents-core@0.68.1
+
 ## 0.68.0
 
 ### Patch Changes

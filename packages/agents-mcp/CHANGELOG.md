@@ -1,5 +1,17 @@
 # @inkeep/agents-mcp
 
+## 0.68.4
+
+## 0.68.3
+
+## 0.68.2
+
+## 0.68.1
+
+### Patch Changes
+
+- a074f63: security fix for agents-mcp
+
 ## 0.68.0
 
 ## 0.67.4
