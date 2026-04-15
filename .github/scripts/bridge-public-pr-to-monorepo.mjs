@@ -72,6 +72,31 @@ function getPublicPrBranchName(prefix, prNumber) {
   return `${prefix}-${prNumber}`;
 }
 
+function decodeCStyleEscapes(s) {
+  return s.replace(
+    /\\([abtnvfr\\"])|(\\[0-7]{1,3})|(\\x[0-9a-fA-F]{2})/g,
+    (match, simple, octal, hex) => {
+      if (simple) {
+        const map = {
+          a: '\x07',
+          b: '\b',
+          t: '\t',
+          n: '\n',
+          v: '\v',
+          f: '\f',
+          r: '\r',
+          '\\': '\\',
+          '"': '"',
+        };
+        return map[simple];
+      }
+      if (octal) return String.fromCharCode(Number.parseInt(octal.slice(1), 8));
+      if (hex) return String.fromCharCode(Number.parseInt(hex.slice(2), 16));
+      return match;
+    }
+  );
+}
+
 function prefixPatchPaths(patch, prefix) {
   const normalizedPrefix = prefix.replace(/^\/+|\/+$/g, '');
   const prefixedPath = (value) => {
@@ -81,8 +106,9 @@ function prefixPatchPaths(patch, prefix) {
 
     const unquoted = value.replace(/^"(.+)"$/, '$1');
 
-    // Reject path traversal attempts
-    const segments = unquoted.split('/');
+    // Decode C-style escape sequences before traversal check
+    const decoded = decodeCStyleEscapes(unquoted);
+    const segments = decoded.split('/');
     if (segments.some((s) => s === '..' || s === '.')) {
       throw new Error(`Rejecting patch with path traversal: ${unquoted}`);
     }
@@ -94,18 +120,60 @@ function prefixPatchPaths(patch, prefix) {
   return patch
     .split('\n')
     .map((line) => {
-      if (line.startsWith('diff --git a/')) {
-        const match = line.match(/^diff --git a\/(.+?) b\/(.+)$/);
+      if (line.startsWith('diff --git ')) {
+        const match = line.match(/^diff --git (?:"a\/(.+)"|a\/(.+)) (?:"b\/(.+)"|b\/(.+))$/);
         if (!match) {
           return line;
         }
-        return `diff --git a/${prefixedPath(match[1])} b/${prefixedPath(match[2])}`;
+
+        const fromRaw = match[1] ?? match[2];
+        const toRaw = match[3] ?? match[4];
+        const fromQuoted = match[1] !== undefined;
+        const toQuoted = match[3] !== undefined;
+
+        const prefixedFrom = prefixedPath(fromQuoted ? `"${fromRaw}"` : fromRaw).replace(
+          /^"|"$/g,
+          ''
+        );
+        const prefixedTo = prefixedPath(toQuoted ? `"${toRaw}"` : toRaw).replace(/^"|"$/g, '');
+
+        const aPrefix = fromQuoted ? '"a/' : 'a/';
+        const aSuffix = fromQuoted ? '"' : '';
+        const bPrefix = toQuoted ? '"b/' : 'b/';
+        const bSuffix = toQuoted ? '"' : '';
+        return `diff --git ${aPrefix}${prefixedFrom}${aSuffix} ${bPrefix}${prefixedTo}${bSuffix}`;
       }
-      if (line.startsWith('--- a/')) {
-        return `--- a/${prefixedPath(line.slice(6))}`;
+      if (line.startsWith('--- ')) {
+        if (line === '--- /dev/null') {
+          return line;
+        }
+        if (line.startsWith('--- a/')) {
+          return `--- a/${prefixedPath(line.slice(6))}`;
+        }
+        if (line.startsWith('--- "a/')) {
+          const match = line.match(/^--- "a\/(.+)"$/);
+          if (match) {
+            const nextPath = prefixedPath(`"${match[1]}"`).replace(/^"|"$/g, '');
+            return `--- "a/${nextPath}"`;
+          }
+        }
+        throw new Error(`Rejecting patch with unrecognized --- header format: ${line}`);
       }
-      if (line.startsWith('+++ b/')) {
-        return `+++ b/${prefixedPath(line.slice(6))}`;
+      if (line.startsWith('+++ ')) {
+        if (line === '+++ /dev/null') {
+          return line;
+        }
+        if (line.startsWith('+++ b/')) {
+          return `+++ b/${prefixedPath(line.slice(6))}`;
+        }
+        if (line.startsWith('+++ "b/')) {
+          const match = line.match(/^\+\+\+ "b\/(.+)"$/);
+          if (match) {
+            const nextPath = prefixedPath(`"${match[1]}"`).replace(/^"|"$/g, '');
+            return `+++ "b/${nextPath}"`;
+          }
+        }
+        throw new Error(`Rejecting patch with unrecognized +++ header format: ${line}`);
       }
       if (line.startsWith('rename from ')) {
         return `rename from ${prefixedPath(line.slice('rename from '.length))}`;
@@ -559,4 +627,4 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   });
 }
 
-export { buildInternalPrBody, buildPublicComment, prefixPatchPaths };
+export { buildInternalPrBody, buildPublicComment, decodeCStyleEscapes, prefixPatchPaths };
