@@ -21,7 +21,7 @@ export const ReadOnlyJsonView: FC<ReadOnlyJsonViewProps> = ({
     <div
       className={cn(
         'overflow-auto rounded-md border border-input text-xs [&_pre]:!m-0 [&_pre]:!rounded-md [&_pre]:!border-0 [&_code]:!text-xs',
-        className,
+        className
       )}
       style={{ maxHeight }}
     >
