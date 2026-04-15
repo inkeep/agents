@@ -1,7 +1,7 @@
-import { createMDX } from 'fumadocs-mdx/next';
-import type { NextConfig } from 'next';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createMDX } from 'fumadocs-mdx/next';
+import type { NextConfig } from 'next';
 import { fetchCloudRedirects } from './fetch-cloud-redirects';
 import staticRedirects from './redirects.json' with { type: 'json' };
 
