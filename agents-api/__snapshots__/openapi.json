@@ -1140,6 +1140,7 @@
         "discriminator": {
           "mapping": {
             "api": "#/components/schemas/ApiConfig",
+            "support_copilot": "#/components/schemas/SupportCopilotConfig",
             "web_client": "#/components/schemas/WebClientConfig"
           },
           "propertyName": "type"
@@ -1150,6 +1151,9 @@
           },
           {
             "$ref": "#/components/schemas/ApiConfig"
+          },
+          {
+            "$ref": "#/components/schemas/SupportCopilotConfig"
           }
         ]
       },
@@ -1157,6 +1161,7 @@
         "discriminator": {
           "mapping": {
             "api": "#/components/schemas/ApiConfig",
+            "support_copilot": "#/components/schemas/SupportCopilotConfig",
             "web_client": "#/components/schemas/WebClientConfigResponse"
           },
           "propertyName": "type"
@@ -1167,6 +1172,9 @@
           },
           {
             "$ref": "#/components/schemas/ApiConfig"
+          },
+          {
+            "$ref": "#/components/schemas/SupportCopilotConfig"
           }
         ]
       },
@@ -1217,7 +1225,8 @@
           "type": {
             "enum": [
               "web_client",
-              "api"
+              "api",
+              "support_copilot"
             ],
             "type": "string"
           },
@@ -9655,6 +9664,33 @@
         },
         "type": "object"
       },
+      "SupportCopilotConfig": {
+        "properties": {
+          "supportCopilot": {
+            "properties": {
+              "credentialReferenceIds": {
+                "default": [],
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "type": "object"
+          },
+          "type": {
+            "enum": [
+              "support_copilot"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "supportCopilot"
+        ],
+        "type": "object"
+      },
       "TeamAgent": {
         "properties": {
           "description": {
@@ -11873,6 +11909,181 @@
         }
       }
     },
+    "/manage/api/invitations": {
+      "post": {
+        "description": "Invite one or more members to an organization, optionally granting project access upon acceptance.",
+        "operationId": "invite-members",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "assignments": {
+                    "items": {
+                      "properties": {
+                        "projectId": {
+                          "type": "string"
+                        },
+                        "projectRole": {
+                          "enum": [
+                            "project_admin",
+                            "project_member",
+                            "project_viewer"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "projectId",
+                        "projectRole"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "emails": {
+                    "items": {
+                      "format": "email",
+                      "type": "string"
+                    },
+                    "maxItems": 50,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "organizationId": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "enum": [
+                      "owner",
+                      "admin",
+                      "member"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "emails",
+                  "role",
+                  "organizationId"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "compensated": {
+                            "type": "boolean"
+                          },
+                          "email": {
+                            "type": "string"
+                          },
+                          "error": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "link": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "enum": [
+                              "success",
+                              "error"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "email",
+                          "status"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Per-email invite results"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Invite Members",
+        "tags": [
+          "Invitations"
+        ],
+        "x-authz": {
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
+          "permission": "member",
+          "resource": "organization"
+        }
+      }
+    },
     "/manage/api/users/{userId}/profile": {
       "get": {
         "description": "Get the profile for a specific user. Users can only access their own profile.",
@@ -12384,6 +12595,153 @@
         "tags": [
           "OAuth"
         ]
+      }
+    },
+    "/manage/tenants/{tenantId}/apps": {
+      "get": {
+        "description": "List all apps for a tenant across all projects, optionally filtered by type",
+        "operationId": "list-tenant-apps",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationPageQueryParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/PaginationLimitQueryParam"
+            }
+          },
+          {
+            "description": "Filter by app type",
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "description": "Filter by app type",
+              "enum": [
+                "web_client",
+                "api",
+                "support_copilot"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppListResponse"
+                }
+              }
+            },
+            "description": "List of apps retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Tenant Apps",
+        "tags": [
+          "Apps"
+        ],
+        "x-authz": {
+          "description": "Requires organization membership. Auth is enforced by the manageBearerOrSessionAuth middleware in createApp.ts.",
+          "permission": "member",
+          "resource": "organization"
+        },
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
       }
     },
     "/manage/tenants/{tenantId}/entitlements": {
@@ -27570,7 +27928,8 @@
               "description": "Filter by app type",
               "enum": [
                 "web_client",
-                "api"
+                "api",
+                "support_copilot"
               ],
               "type": "string"
             }
@@ -49243,6 +49602,10 @@
     {
       "description": "GitHub App integration endpoints",
       "name": "GitHub"
+    },
+    {
+      "description": "Operations for managing organization invitations",
+      "name": "Invitations"
     },
     {
       "description": "MCP (Model Context Protocol) endpoints",

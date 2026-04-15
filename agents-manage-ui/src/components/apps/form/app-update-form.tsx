@@ -24,6 +24,7 @@ import {
 } from '@/lib/actions/app-auth-keys';
 import { updateAppAction } from '@/lib/actions/apps';
 import type { App } from '@/lib/api/apps';
+import { CredentialMultiSelect } from './credential-multi-select';
 import { type AppUpdateFormInput, AppUpdateFormSchema } from './validation';
 
 interface AppUpdateFormProps {
@@ -31,6 +32,7 @@ interface AppUpdateFormProps {
   projectId: string;
   app: App;
   agentOptions: SelectOption[];
+  credentialOptions: SelectOption[];
   onAppUpdated: () => void;
 }
 
@@ -45,11 +47,19 @@ export function AppUpdateForm({
   projectId,
   app,
   agentOptions,
+  credentialOptions,
   onAppUpdated,
 }: AppUpdateFormProps) {
   const webConfig: WebClientConfigShape | null =
     app.type === 'web_client'
       ? (((app.config as Record<string, unknown>)?.webClient as WebClientConfigShape) ?? null)
+      : null;
+
+  const supportCopilotConfig =
+    app.type === 'support_copilot'
+      ? ((app.config as Record<string, unknown>)?.supportCopilot as
+          | { credentialReferenceIds?: string[] }
+          | undefined)
       : null;
 
   const [serverKeys, setServerKeys] = useState<PublicKeyDisplay[]>([]);
@@ -84,6 +94,7 @@ export function AppUpdateForm({
             audience: webConfig?.audience ?? '',
           }
         : {}),
+      credentialReferenceIds: supportCopilotConfig?.credentialReferenceIds ?? [],
     },
     mode: 'onChange',
   });
@@ -116,6 +127,13 @@ export function AppUpdateForm({
         payload.config = {
           type: 'web_client',
           webClient: webClientConfig,
+        };
+      } else if (app.type === 'support_copilot') {
+        payload.config = {
+          type: 'support_copilot',
+          supportCopilot: {
+            credentialReferenceIds: data.credentialReferenceIds ?? [],
+          },
         };
       }
 
@@ -215,6 +233,18 @@ export function AppUpdateForm({
           rows={4}
           className="max-h-96"
         />
+
+        {app.type === 'support_copilot' && credentialOptions.length > 0 && (
+          <CredentialMultiSelect
+            control={form.control}
+            name="credentialReferenceIds"
+            label="Credentials"
+            description="Optional. Grant this app access to stored credentials for connecting to external services."
+            options={credentialOptions}
+            placeholder="Select credentials..."
+            searchPlaceholder="Search credentials..."
+          />
+        )}
 
         {app.type === 'web_client' && !isLoadingKeys && (
           <>

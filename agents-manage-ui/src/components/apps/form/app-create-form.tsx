@@ -20,15 +20,22 @@ import { Separator } from '@/components/ui/separator';
 import { addAppAuthKeyAction } from '@/lib/actions/app-auth-keys';
 import { createAppAction } from '@/lib/actions/apps';
 import type { AppCreateResponse } from '@/lib/api/apps';
+import { CredentialMultiSelect } from './credential-multi-select';
 import { type AppCreateFormInput, AppCreateFormSchema } from './validation';
 
 interface AppCreateFormProps {
-  appType: 'web_client' | 'api';
+  appType: 'web_client' | 'api' | 'support_copilot';
   agentOptions: SelectOption[];
+  credentialOptions: SelectOption[];
   onAppCreated: (result: AppCreateResponse) => void;
 }
 
-export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreateFormProps) {
+export function AppCreateForm({
+  appType,
+  agentOptions,
+  credentialOptions,
+  onAppCreated,
+}: AppCreateFormProps) {
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
 
   const [pendingKeysToAdd, setPendingKeysToAdd] = useState<PendingKey[]>([]);
@@ -44,6 +51,7 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
       prompt: '',
       allowedDomains: appType === 'web_client' ? '' : undefined,
       audience: '',
+      credentialReferenceIds: [],
     },
     mode: 'onChange',
   });
@@ -79,7 +87,14 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
                   ...authConfig,
                 },
               }
-            : { type: 'api', api: {} },
+            : appType === 'support_copilot'
+              ? {
+                  type: 'support_copilot',
+                  supportCopilot: {
+                    credentialReferenceIds: data.credentialReferenceIds ?? [],
+                  },
+                }
+              : { type: 'api', api: {} },
       };
 
       const result = await createAppAction(tenantId, projectId, payload);
@@ -157,6 +172,18 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
           rows={4}
           className="max-h-96"
         />
+
+        {appType === 'support_copilot' && credentialOptions.length > 0 && (
+          <CredentialMultiSelect
+            control={form.control}
+            name="credentialReferenceIds"
+            label="Credentials"
+            description="Optional. Grant this app access to stored credentials for connecting to external services."
+            options={credentialOptions}
+            placeholder="Select credentials..."
+            searchPlaceholder="Search credentials..."
+          />
+        )}
 
         {appType === 'web_client' && (
           <>

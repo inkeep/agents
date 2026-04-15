@@ -37,6 +37,7 @@ export * from './runtime/entitlements';
 export * from './runtime/evalRuns';
 export * from './runtime/feedback';
 export * from './runtime/github-work-app-installations';
+export * from './runtime/invitationProjectAssignments';
 export * from './runtime/ledgerArtifacts';
 export * from './runtime/messages';
 export * from './runtime/organizations';

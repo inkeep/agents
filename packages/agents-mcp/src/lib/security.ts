@@ -248,12 +248,12 @@ export function resolveGlobalSecurity(
       {
         fieldName: "better-auth.session_token",
         type: "apiKey:cookie",
-        value: security?.cookieAuth || env().INKEEPAGENTS_COOKIE_AUTH,
+        value: security?.cookieAuth ?? env().INKEEPAGENTS_COOKIE_AUTH,
       },
       {
         fieldName: "Authorization",
         type: "http:bearer",
-        value: security?.bearerAuth || env().INKEEPAGENTS_BEARER_AUTH,
+        value: security?.bearerAuth ?? env().INKEEPAGENTS_BEARER_AUTH,
       },
     ],
   ];
