@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.68.2
+
+### Patch Changes
+
+- 557f700: Add support_copilot app type with OAuth 2.1 JWT auth, tenant-level app discovery endpoint, and apps UI for configuring support copilot apps with credentials
+- Updated dependencies [557f700]
+- Updated dependencies [4e0fd65]
+  - @inkeep/agents-core@0.68.2
+
 ## 0.68.1
 
 ### Patch Changes
