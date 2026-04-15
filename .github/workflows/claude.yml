@@ -38,6 +38,9 @@ jobs:
           fetch-depth: 1
           token: ${{ steps.app-token.outputs.token }}
 
+      - name: Normalize @claude trigger case
+        run: sed -i 's/@[Cc][Ll][Aa][Uu][Dd][Ee]/@claude/g' "$GITHUB_EVENT_PATH"
+
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@26ec041249acb0a944c0a47b6c0c13f05dbc5b44 # v1
