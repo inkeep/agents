@@ -58,7 +58,7 @@ function buildCsp() {
     "'self'",
     "'unsafe-inline'",
     "'wasm-unsafe-eval'",
-    process.env.NODE_ENV === 'production' ? null : "'unsafe-eval'",
+    "'unsafe-eval'",
     posthogHost,
   ]
     .filter(Boolean)

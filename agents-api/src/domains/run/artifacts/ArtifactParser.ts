@@ -1,6 +1,6 @@
 import type { ArtifactComponentApiInsert, FullExecutionContext } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
-import { SENTINEL_KEY } from '../constants/artifact-syntax';
+import { REFS_KEY, SENTINEL_KEY } from '../constants/artifact-syntax';
 import {
   buildSchemaShape,
   type ExtendedJsonSchema,
@@ -223,60 +223,92 @@ export class ArtifactParser {
   }
 
   /**
-   * Resolve artifact refs embedded in tool call arguments.
-   * Recursively walks the args object/array; any object of the shape
-   * { $artifact: "artifact-id", $tool: "tool-call-id" } is replaced with
-   * the full artifact data so the tool receives the real content.
+   * Resolve a single reference object (artifact or tool result).
+   */
+  private async resolveRef(ref: any): Promise<any> {
+    if (
+      typeof ref[SENTINEL_KEY.ARTIFACT] === 'string' &&
+      typeof ref[SENTINEL_KEY.TOOL] === 'string'
+    ) {
+      const fullData = await this.artifactService.getArtifactFull(
+        ref[SENTINEL_KEY.ARTIFACT],
+        ref[SENTINEL_KEY.TOOL]
+      );
+      if (fullData?.data) {
+        logger.debug(
+          { artifactId: ref[SENTINEL_KEY.ARTIFACT], toolCallId: ref[SENTINEL_KEY.TOOL] },
+          'Resolved artifact ref'
+        );
+        let data = fullData.data;
+        if (typeof ref[SENTINEL_KEY.SELECT] === 'string') {
+          data = applySelector(data, ref[SENTINEL_KEY.SELECT], ref[SENTINEL_KEY.TOOL]);
+        }
+        return data;
+      }
+      throw new ToolChainResolutionError(
+        ref[SENTINEL_KEY.TOOL],
+        `Artifact '${ref[SENTINEL_KEY.ARTIFACT]}' from tool call '${ref[SENTINEL_KEY.TOOL]}' could not be resolved`
+      );
+    }
+
+    if (typeof ref[SENTINEL_KEY.TOOL] === 'string') {
+      const hasSelect = typeof ref[SENTINEL_KEY.SELECT] === 'string';
+      const raw = hasSelect
+        ? this.artifactService.getToolResultFull(ref[SENTINEL_KEY.TOOL])
+        : this.artifactService.getToolResultRaw(ref[SENTINEL_KEY.TOOL]);
+      if (raw !== undefined) {
+        logger.debug({ toolCallId: ref[SENTINEL_KEY.TOOL] }, 'Resolved ephemeral tool result ref');
+        let data: unknown = raw;
+        if (hasSelect) {
+          data = applySelector(data, ref[SENTINEL_KEY.SELECT], ref[SENTINEL_KEY.TOOL]);
+        }
+        return data;
+      }
+      throw new ToolChainResolutionError(
+        ref[SENTINEL_KEY.TOOL],
+        `Tool result for call '${ref[SENTINEL_KEY.TOOL]}' not found or failed`
+      );
+    }
+
+    return ref;
+  }
+
+  /**
+   * Resolve artifact/tool-result refs embedded in tool call arguments.
+   * Handles the `SENTINEL_KEY.REFS` map format (preferred) and legacy per-property refs.
    */
   async resolveArgs(args: any): Promise<any> {
     if (args !== null && typeof args === 'object' && !Array.isArray(args)) {
+      // Handle SENTINEL_KEY.REFS map: resolve each entry and merge into args
+      if (args[REFS_KEY] && typeof args[REFS_KEY] === 'object') {
+        const refs = args[REFS_KEY] as Record<string, any>;
+        const result: Record<string, any> = {};
+        for (const [key, value] of Object.entries(args)) {
+          if (key !== REFS_KEY) {
+            result[key] = await this.resolveArgs(value);
+          }
+        }
+        for (const [paramName, ref] of Object.entries(refs)) {
+          result[paramName] = await this.resolveRef(ref);
+          logger.debug({ paramName }, `Resolved ${REFS_KEY} entry`);
+        }
+        return result;
+      }
+
+      // Legacy: top-level artifact ref
       if (
         typeof args[SENTINEL_KEY.ARTIFACT] === 'string' &&
         typeof args[SENTINEL_KEY.TOOL] === 'string'
       ) {
-        const fullData = await this.artifactService.getArtifactFull(
-          args[SENTINEL_KEY.ARTIFACT],
-          args[SENTINEL_KEY.TOOL]
-        );
-        if (fullData?.data) {
-          logger.debug(
-            { artifactId: args[SENTINEL_KEY.ARTIFACT], toolCallId: args[SENTINEL_KEY.TOOL] },
-            'Resolved artifact ref in tool arg'
-          );
-          let data = fullData.data;
-          if (typeof args[SENTINEL_KEY.SELECT] === 'string') {
-            data = applySelector(data, args[SENTINEL_KEY.SELECT], args[SENTINEL_KEY.TOOL]);
-          }
-          return data;
-        }
-        throw new ToolChainResolutionError(
-          args[SENTINEL_KEY.TOOL],
-          `Artifact '${args[SENTINEL_KEY.ARTIFACT]}' from tool call '${args[SENTINEL_KEY.TOOL]}' could not be resolved`
-        );
+        return this.resolveRef(args);
       }
 
+      // Legacy: top-level tool result ref
       if (typeof args[SENTINEL_KEY.TOOL] === 'string' && !(SENTINEL_KEY.ARTIFACT in args)) {
-        const hasSelect = typeof args[SENTINEL_KEY.SELECT] === 'string';
-        const raw = hasSelect
-          ? this.artifactService.getToolResultFull(args[SENTINEL_KEY.TOOL])
-          : this.artifactService.getToolResultRaw(args[SENTINEL_KEY.TOOL]);
-        if (raw !== undefined) {
-          logger.debug(
-            { toolCallId: args[SENTINEL_KEY.TOOL] },
-            'Resolved ephemeral tool result ref in tool arg'
-          );
-          let data: unknown = raw;
-          if (hasSelect) {
-            data = applySelector(data, args[SENTINEL_KEY.SELECT], args[SENTINEL_KEY.TOOL]);
-          }
-          return data;
-        }
-        throw new ToolChainResolutionError(
-          args[SENTINEL_KEY.TOOL],
-          `Tool result for call '${args[SENTINEL_KEY.TOOL]}' not found or failed`
-        );
+        return this.resolveRef(args);
       }
 
+      // Recursively resolve nested args (legacy per-property refs)
       const result: Record<string, any> = {};
       for (const [key, value] of Object.entries(args)) {
         result[key] = await this.resolveArgs(value);

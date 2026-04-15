@@ -1,39 +1,49 @@
 import { z } from '@hono/zod-openapi';
-import { SENTINEL_KEY } from '../../constants/artifact-syntax';
+import { convertZodToJsonSchema } from '@inkeep/agents-core';
+import { jsonSchema } from 'ai';
+import { getLogger } from '../../../../logger';
+import { REFS_KEY, SENTINEL_KEY } from '../../constants/artifact-syntax';
+
+export { REFS_KEY };
+
+const logger = getLogger('ref-aware-schema');
 
 export const TOOL_CHAINING_SCHEMA_DESCRIPTIONS = {
   ROOT:
-    'TOOL CHAINING: All parameters in this tool accept tool chaining references as an alternative to literal values. ' +
-    'When data originated from ANY prior tool call or artifact, you MUST pass a reference object instead of copying the value inline — ' +
-    'even if the data is visible in your context. The system resolves references to actual data before execution. ' +
-    'This works for ALL parameter types: strings, numbers, booleans, objects, and arrays. ' +
-    'Use "$select" (JMESPath) to extract a specific field when the tool expects a primitive but the source is a complex object. ' +
-    'Check _structureHints.exampleSelectors in prior tool results for verified $select paths.',
+    `TOOL CHAINING — pass data from a prior tool call or artifact without copying it inline. ` +
+    `HOW: set the parameter you want to chain to null, and add an entry under "${SENTINEL_KEY.REFS}" whose key is that parameter's name. ` +
+    `The entry value is { "${SENTINEL_KEY.TOOL}": "<prior tool call id>" } (use the "_toolCallId" from that prior tool result), ` +
+    `optionally with "${SENTINEL_KEY.SELECT}": "<JMESPath>" to pick a specific field, ` +
+    `or { "${SENTINEL_KEY.ARTIFACT}": "<artifact id>", "${SENTINEL_KEY.TOOL}": "<tool call id>" } to reference a saved artifact. ` +
+    `EXAMPLE — a fetch tool calling a URL discovered by a prior search: ` +
+    `{ "url": null, "method": "GET", "${SENTINEL_KEY.REFS}": { "url": { "${SENTINEL_KEY.TOOL}": "call_abc123", "${SENTINEL_KEY.SELECT}": "items[0].url" } } }. ` +
+    `RULES: always prefer chaining over inlining values the prior tool produced; ` +
+    `check _structureHints.exampleSelectors in prior tool results for verified ${SENTINEL_KEY.SELECT} paths; ` +
+    `omit "${SENTINEL_KEY.REFS}" entirely when you aren't chaining any parameters.`,
 
-  ARTIFACT_REF:
-    'TOOL CHAINING from an artifact. PREFERRED when the data was saved as an artifact. ' +
-    'Pass { "$artifact": "<artifact_id>", "$tool": "<tool_call_id>" } and the system delivers the full artifact data to this parameter. ' +
-    'Add "$select" to extract a specific field. The artifact_id comes from artifact:create or available_artifacts.',
+  REFS_PROPERTY:
+    `Map of { paramName: referenceObject } for parameters whose values come from prior tool results or artifacts. ` +
+    `Only include entries for parameters you are chaining; set those same parameters to null at the top level. ` +
+    `Leave out this property entirely when not chaining.`,
 
-  TOOL_REF:
-    'TOOL CHAINING from a prior tool result. PREFERRED over copying data inline. ' +
-    'Pass { "$tool": "<tool_call_id>" } and the system delivers that tool\'s full output to this parameter. ' +
-    'Add "$select" to extract a specific field. The tool_call_id is the _toolCallId from the prior tool result.',
+  ARTIFACT_REF: `Reference an artifact by id. Shape: { "${SENTINEL_KEY.ARTIFACT}": "<artifact_id>", "${SENTINEL_KEY.TOOL}": "<tool_call_id>" }. Optional "${SENTINEL_KEY.SELECT}" (JMESPath) to extract a specific field from the artifact data.`,
+
+  TOOL_REF: `Reference a prior tool result by its call id. Shape: { "${SENTINEL_KEY.TOOL}": "<tool_call_id>" }. Optional "${SENTINEL_KEY.SELECT}" (JMESPath) to extract a specific field from that result.`,
 
   ARTIFACT_ID:
-    'The artifact ID to chain from. Found in artifact:create responses or the available_artifacts list.',
+    'The artifact ID — from an artifact:create response or the available_artifacts list.',
 
   TOOL_CALL_ID:
-    'The _toolCallId from the prior tool result to chain from. Every tool result includes a _toolCallId field — use it exactly as provided.',
+    'The exact "_toolCallId" value from a prior tool result in this conversation. Never invent one.',
 
   SELECT:
-    'JMESPath expression to extract a specific field from the chained data. ' +
-    'Check _structureHints.exampleSelectors in the source tool result for verified paths. ' +
-    'REQUIRED when this parameter expects a primitive (string, number, boolean) but the source is a complex object. ' +
-    'The "result." prefix is automatically stripped if present.',
+    `JMESPath expression applied to the resolved data (e.g. "items[0].url", "metadata.total"). ` +
+    `Use when you need a specific field rather than the whole result. ` +
+    `Prefer values from _structureHints.exampleSelectors on the source tool result. ` +
+    `The "result." prefix is auto-stripped if included.`,
 } as const;
 
-const PARAM_REF_SCHEMA: Record<string, unknown> = {
+const REFS_ENTRY_SCHEMA: Record<string, unknown> = {
   anyOf: [
     {
       type: 'object',
@@ -53,7 +63,7 @@ const PARAM_REF_SCHEMA: Record<string, unknown> = {
           description: TOOL_CHAINING_SCHEMA_DESCRIPTIONS.SELECT,
         },
       },
-      additionalProperties: true,
+      additionalProperties: false,
     },
     {
       type: 'object',
@@ -69,92 +79,92 @@ const PARAM_REF_SCHEMA: Record<string, unknown> = {
           description: TOOL_CHAINING_SCHEMA_DESCRIPTIONS.SELECT,
         },
       },
-      additionalProperties: true,
+      additionalProperties: false,
     },
   ],
 };
 
-function withToolRef(schemaNode: unknown): Record<string, unknown> {
-  const wrapper: Record<string, unknown> = {
-    anyOf: [schemaNode, PARAM_REF_SCHEMA],
-  };
-  if (isObjectRecord(schemaNode) && typeof schemaNode.description === 'string') {
-    wrapper.description = schemaNode.description;
-  }
-  return wrapper;
-}
+const REFS_PROPERTY_SCHEMA: Record<string, unknown> = {
+  type: 'object',
+  description: TOOL_CHAINING_SCHEMA_DESCRIPTIONS.REFS_PROPERTY,
+  additionalProperties: REFS_ENTRY_SCHEMA,
+};
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-function transformSchemaNode(schemaNode: unknown, isValuePosition: boolean): unknown {
-  if (!isObjectRecord(schemaNode)) {
-    return schemaNode;
+/**
+ * Make a schema node nullable by adding "null" to its type.
+ * For simple types: `{ type: "string" }` → `{ type: ["string", "null"] }`
+ * For union types (anyOf/oneOf): adds `{ type: "null" }` as a branch.
+ * Note: `allOf` schemas fall through to the default branch; adding null to an
+ * allOf composition has different semantics than anyOf/oneOf, so we do not
+ * attempt to mutate allOf branches here.
+ */
+function makeNullable(schemaNode: Record<string, unknown>): Record<string, unknown> {
+  if (typeof schemaNode.type === 'string') {
+    return { ...schemaNode, type: [schemaNode.type, 'null'] };
   }
 
-  const transformed: Record<string, unknown> = { ...schemaNode };
-
-  if (isObjectRecord(schemaNode.properties)) {
-    transformed.properties = Object.fromEntries(
-      Object.entries(schemaNode.properties).map(([key, valueSchema]) => [
-        key,
-        transformSchemaNode(valueSchema, true),
-      ])
-    );
+  if (Array.isArray(schemaNode.type)) {
+    if (schemaNode.type.includes('null')) {
+      return schemaNode;
+    }
+    return { ...schemaNode, type: [...schemaNode.type, 'null'] };
   }
 
-  if (isObjectRecord(schemaNode.patternProperties)) {
-    transformed.patternProperties = Object.fromEntries(
-      Object.entries(schemaNode.patternProperties).map(([key, valueSchema]) => [
-        key,
-        transformSchemaNode(valueSchema, true),
-      ])
-    );
-  }
-
-  if (schemaNode.items !== undefined) {
-    if (Array.isArray(schemaNode.items)) {
-      transformed.items = schemaNode.items.map((item) => transformSchemaNode(item, true));
-    } else {
-      transformed.items = transformSchemaNode(schemaNode.items, true);
+  for (const key of ['anyOf', 'oneOf'] as const) {
+    if (Array.isArray(schemaNode[key])) {
+      const branches = schemaNode[key] as unknown[];
+      const hasNull = branches.some((b) => isObjectRecord(b) && b.type === 'null');
+      if (hasNull) return schemaNode;
+      return { ...schemaNode, [key]: [...branches, { type: 'null' }] };
     }
   }
 
-  if (isObjectRecord(schemaNode.additionalProperties)) {
-    transformed.additionalProperties = transformSchemaNode(schemaNode.additionalProperties, true);
+  // For allOf, wrap the whole composition in anyOf with null rather than
+  // mutating the allOf branches (adding null to allOf has different semantics).
+  if (Array.isArray(schemaNode.allOf)) {
+    return { anyOf: [schemaNode, { type: 'null' }] };
   }
 
-  for (const key of ['anyOf', 'oneOf', 'allOf'] as const) {
-    const variant = schemaNode[key];
-    if (Array.isArray(variant)) {
-      transformed[key] = variant.map((item) => transformSchemaNode(item, false));
-    }
-  }
-
-  if (isObjectRecord(schemaNode.not)) {
-    transformed.not = transformSchemaNode(schemaNode.not, false);
-  }
-
-  if (isObjectRecord(schemaNode.if)) {
-    transformed.if = transformSchemaNode(schemaNode.if, false);
-  }
-  if (isObjectRecord(schemaNode.then)) {
-    // biome-ignore lint/suspicious/noThenProperty: JSON Schema conditional keyword
-    transformed.then = transformSchemaNode(schemaNode.then, false);
-  }
-  if (isObjectRecord(schemaNode.else)) {
-    transformed.else = transformSchemaNode(schemaNode.else, false);
-  }
-
-  return isValuePosition ? withToolRef(transformed) : transformed;
+  return { ...schemaNode, type: ['object', 'null'] };
 }
 
+/**
+ * Transform a tool's JSON Schema for tool chaining support.
+ *
+ * Instead of wrapping every property with `anyOf` (which bloats the schema
+ * and breaks Anthropic's constrained JSON generation), this approach:
+ *
+ * 1. Makes each property nullable — `type: "string"` → `type: ["string", "null"]`
+ * 2. Adds a single `SENTINEL_KEY.REFS` property at the root for tool chaining references
+ *
+ * The model passes `null` for referenced parameters and includes the reference
+ * in `SENTINEL_KEY.REFS`. The resolution logic replaces nulls with resolved data.
+ */
 export function makeRefAwareJsonSchema(schema: Record<string, unknown>): Record<string, unknown> {
-  const transformed = transformSchemaNode(schema, false) as Record<string, unknown>;
+  const transformed: Record<string, unknown> = { ...schema };
+
+  if (isObjectRecord(schema.properties)) {
+    transformed.properties = {
+      ...Object.fromEntries(
+        Object.entries(schema.properties).map(([key, valueSchema]) => [
+          key,
+          isObjectRecord(valueSchema) ? makeNullable(valueSchema) : valueSchema,
+        ])
+      ),
+      [REFS_KEY]: REFS_PROPERTY_SCHEMA,
+    };
+  } else {
+    transformed.properties = { [REFS_KEY]: REFS_PROPERTY_SCHEMA };
+  }
+
   const existingDesc =
     typeof transformed.description === 'string' ? `${transformed.description} ` : '';
   transformed.description = `${existingDesc}${TOOL_CHAINING_SCHEMA_DESCRIPTIONS.ROOT}`;
+
   return transformed;
 }
 
@@ -162,4 +172,40 @@ export function makeBaseInputSchema(
   schema: Record<string, unknown>
 ): ReturnType<typeof z.fromJSONSchema> {
   return z.fromJSONSchema(schema);
+}
+
+/**
+ * Build both the ref-aware input schema (for the LLM tool definition) and
+ * the base input schema (for post-resolution validation).
+ *
+ * Accepts either a raw JSON Schema object or a Zod schema. Zod schemas are
+ * converted via `convertZodToJsonSchema` from agents-core.
+ *
+ * Uses `jsonSchema()` from the AI SDK to send the JSON Schema directly to
+ * the provider — avoiding the lossy `z.fromJSONSchema()` → `zodToJsonSchema`
+ * round-trip.
+ */
+export function buildRefAwareSchemas(inputSchema: Record<string, unknown> | z.ZodType): {
+  refAwareInputSchema: ReturnType<typeof jsonSchema>;
+  baseInputSchema: ReturnType<typeof z.fromJSONSchema> | undefined;
+} {
+  const rawJson =
+    inputSchema instanceof z.ZodType
+      ? (convertZodToJsonSchema(inputSchema) as Record<string, unknown>)
+      : inputSchema;
+
+  let baseInputSchema: ReturnType<typeof z.fromJSONSchema> | undefined;
+  try {
+    baseInputSchema = makeBaseInputSchema(rawJson);
+  } catch (error) {
+    logger.warn(
+      { error: error instanceof Error ? error.message : String(error) },
+      'Failed to build base input schema; post-resolution validation will be skipped'
+    );
+    baseInputSchema = undefined;
+  }
+
+  const refAwareInputSchema = jsonSchema(makeRefAwareJsonSchema(rawJson));
+
+  return { refAwareInputSchema, baseInputSchema };
 }

@@ -202,7 +202,8 @@ app.openapi(
         const scopedEvaluatorIds = agentId
           ? evaluatorIds.filter((evalId) => {
               const scopedAgents = agentIdsMap.get(evalId);
-              return !scopedAgents?.length || scopedAgents.includes(agentId);
+              if (!scopedAgents || scopedAgents.length === 0) return true;
+              return scopedAgents.includes(agentId);
             })
           : evaluatorIds;
 

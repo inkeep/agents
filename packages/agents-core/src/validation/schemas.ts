@@ -1898,8 +1898,17 @@ export const ApiConfigSchema = z
   })
   .openapi('ApiConfig');
 
+export const SupportCopilotConfigSchema = z
+  .object({
+    type: z.literal('support_copilot'),
+    supportCopilot: z.object({
+      credentialReferenceIds: z.array(z.string()).default([]),
+    }),
+  })
+  .openapi('SupportCopilotConfig');
+
 export const AppConfigSchema = z
-  .discriminatedUnion('type', [WebClientConfigSchema, ApiConfigSchema])
+  .discriminatedUnion('type', [WebClientConfigSchema, ApiConfigSchema, SupportCopilotConfigSchema])
   .openapi('AppConfig');
 
 export const AddPublicKeyRequestSchema = z
@@ -1935,7 +1944,11 @@ export const WebClientConfigResponseSchema = z
   .openapi('WebClientConfigResponse');
 
 export const AppConfigResponseSchema = z
-  .discriminatedUnion('type', [WebClientConfigResponseSchema, ApiConfigSchema])
+  .discriminatedUnion('type', [
+    WebClientConfigResponseSchema,
+    ApiConfigSchema,
+    SupportCopilotConfigSchema,
+  ])
   .openapi('AppConfigResponse');
 
 export const AppSelectSchema = createSelectSchema(apps);
@@ -1943,7 +1956,7 @@ export const AppSelectSchema = createSelectSchema(apps);
 export const AppInsertSchema = createInsertSchema(apps).extend({
   id: ResourceIdSchema,
   name: z.string().trim().nonempty('Please enter a name.').max(256),
-  type: z.enum(['web_client', 'api']),
+  type: z.enum(['web_client', 'api', 'support_copilot']),
   defaultAgentId: z.string().min(1).nullish(),
   config: AppConfigSchema,
 });

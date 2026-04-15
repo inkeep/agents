@@ -98,7 +98,7 @@ export class ArtifactService {
   /**
    * Get the full stored tool result by toolCallId, without MCP unwrapping.
    * Filters out internal fields (_structureHints). Shared by getToolResultRaw,
-   * createArtifact, and $select resolution so all access the same data.
+   * createArtifact, and SENTINEL_KEY.SELECT resolution so all access the same data.
    */
   getToolResultFull(toolCallId: string): unknown {
     if (!this.context.sessionId) return undefined;

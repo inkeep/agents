@@ -38,6 +38,7 @@ const TitleToIcon: Record<keyof typeof TagToDescription, string> = {
   'Function Tools': 'LuCode',
   Functions: 'LuCode',
   GitHub: 'LuGithub',
+  Invitations: 'LuMail',
   MCP: 'LuServer',
   'MCP Catalog': 'LuLibrary',
   OAuth: 'LuShieldCheck',

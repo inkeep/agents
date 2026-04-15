@@ -12,6 +12,11 @@ export const APP_TYPE_OPTIONS = [
     label: 'API',
     description: 'For server-to-server API access',
   },
+  {
+    value: 'support_copilot' as const,
+    label: 'Support Copilot',
+    description: 'For deploying agents across external tools and support platforms',
+  },
 ] as const;
 
 function validateDomainList(val: string | undefined) {
@@ -35,12 +40,17 @@ const webClientFields = {
   audience: z.string().optional(),
 };
 
+const supportCopilotFields = {
+  credentialReferenceIds: z.array(z.string()).optional(),
+};
+
 export const AppCreateFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
   defaultAgentId: z.string().min(1, 'Default agent is required'),
   prompt: z.string().optional(),
   ...webClientFields,
+  ...supportCopilotFields,
 });
 
 export const AppUpdateFormSchema = z.object({
@@ -50,6 +60,7 @@ export const AppUpdateFormSchema = z.object({
   prompt: z.string().optional(),
   enabled: z.boolean(),
   ...webClientFields,
+  ...supportCopilotFields,
 });
 
 export type AppCreateFormInput = z.infer<typeof AppCreateFormSchema>;
