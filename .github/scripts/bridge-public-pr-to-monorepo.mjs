@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -268,6 +268,35 @@ async function ensureDraftState({ token, repo, pullRequest, shouldBeDraft }) {
   });
 }
 
+/**
+ * After applying a public PR's diff into the monorepo mirror path, some config
+ * files may need adjustments that only apply in the monorepo context.
+ *
+ * Currently handles:
+ * - next.config.ts: ensures outputFileTracingRoot is set for standalone builds
+ */
+function reconcileMonorepoPatches(repoDir, mirrorPath) {
+  let changed = false;
+  const nextConfigPaths = [
+    path.join(repoDir, mirrorPath, "agents-manage-ui", "next.config.ts"),
+  ];
+  for (const configPath of nextConfigPaths) {
+    if (!existsSync(configPath)) continue;
+    let content = readFileSync(configPath, "utf8");
+    if (content.includes("outputFileTracingRoot")) continue;
+    if (content.includes("output: 'standalone'")) {
+      content = content.replace(
+        "output: 'standalone'",
+        "output: 'standalone',\n  outputFileTracingRoot: monorepoRoot"
+      );
+      writeFileSync(configPath, content, "utf8");
+      console.log(`Patched outputFileTracingRoot into ${configPath}`);
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 async function syncPublicPr() {
   const publicToken = requireEnv("PUBLIC_TOKEN");
   const internalToken = requireEnv("INTERNAL_TOKEN");
@@ -369,6 +398,20 @@ async function syncPublicPr() {
           "-m",
           `chore(sync): mirror ${publicRepo}#${publicPr.number}`,
         ]);
+
+        const reconciled = reconcileMonorepoPatches(internalRepoDir, mirrorPath);
+        if (reconciled) {
+          run("git", ["-C", internalRepoDir, "add", "-A"]);
+          run("git", [
+            "-C",
+            internalRepoDir,
+            "commit",
+            "--author",
+            `Inkeep Public PR Bridge <public-pr-bridge@inkeep.com>`,
+            "-m",
+            `chore(sync): reconcile monorepo patches for ${publicRepo}#${publicPr.number}`,
+          ]);
+        }
 
         run("git", [
           "-C",
