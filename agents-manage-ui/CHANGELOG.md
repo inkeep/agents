@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-ui
 
+## 0.68.5
+
+### Patch Changes
+
+- 3a85412: Improve performance of datasets and evaluation results loading
+  - @inkeep/agents-core@0.68.5
+
 ## 0.68.4
 
 ### Patch Changes
