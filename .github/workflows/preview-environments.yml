@@ -187,7 +187,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     concurrency:
-      group: preview-railway-${{ vars.RAILWAY_PROJECT_ID || 'default' }}
+      group: preview-railway-${{ needs.compute-context.outputs.pr_number }}
       cancel-in-progress: false
     needs: [compute-context]
     if: |
@@ -416,7 +416,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
-      group: preview-railway-${{ vars.RAILWAY_PROJECT_ID || 'default' }}
+      group: preview-railway-${{ needs.compute-context.outputs.pr_number }}
       cancel-in-progress: false
     needs: [compute-context]
     if: |
