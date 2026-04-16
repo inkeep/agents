@@ -123,6 +123,7 @@
     "@vitest/coverage-v8": "4.1.2",
     "babel-plugin-react-compiler": "0.0.0-experimental-a8e64ef-20260402",
     "cypress": "^15.11.0",
+    "jsdom": "^29.0.2",
     "playwright": "1.58.2",
     "start-server-and-test": "^2.1.2",
     "tailwind-scrollbar": "^4.0.2",
