@@ -12,7 +12,7 @@ require_env_vars \
   INKEEP_AGENTS_MANAGE_UI_PASSWORD \
   BETTER_AUTH_SECRET
 
-mask_env_vars RUN_DB_URL SPICEDB_ENDPOINT SPICEDB_PRESHARED_KEY INKEEP_AGENTS_MANAGE_UI_PASSWORD BETTER_AUTH_SECRET
+mask_env_vars MANAGE_DB_URL RUN_DB_URL SPICEDB_ENDPOINT SPICEDB_PRESHARED_KEY INKEEP_AGENTS_MANAGE_UI_PASSWORD BETTER_AUTH_SECRET
 
 SPICEDB_TRANSIENT_RETRY_PATTERN='(No connection established|UNAVAILABLE|ECONNRESET|ECONNREFUSED|EPIPE|ETIMEDOUT|deadline exceeded|Protocol error|transport is closing)'
 
@@ -121,11 +121,12 @@ redeploy_railway_service() {
   railway_service_instance_redeploy "${env_id}" "${service_id}" >/dev/null
 }
 
-if [ -z "${RUN_DB_URL:-}" ] || [ -z "${SPICEDB_ENDPOINT:-}" ]; then
+if [ -z "${MANAGE_DB_URL:-}" ] || [ -z "${RUN_DB_URL:-}" ] || [ -z "${SPICEDB_ENDPOINT:-}" ]; then
   require_env_vars \
     RAILWAY_API_TOKEN \
     RAILWAY_PROJECT_ID \
     RAILWAY_OUTPUT_SERVICE \
+    RAILWAY_MANAGE_DB_URL_KEY \
     RAILWAY_RUN_DB_URL_KEY \
     RAILWAY_SPICEDB_ENDPOINT_KEY \
     PR_NUMBER
@@ -138,6 +139,10 @@ if [ -z "${RUN_DB_URL:-}" ] || [ -z "${SPICEDB_ENDPOINT:-}" ]; then
     railway_variables_json "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_ID}" "${OUTPUT_SERVICE_ID}"
   )"
 
+  if [ -z "${MANAGE_DB_URL:-}" ]; then
+    MANAGE_DB_URL="$(jq -r --arg key "${RAILWAY_MANAGE_DB_URL_KEY}" '.[$key] // empty' <<< "${OUTPUT_SERVICE_ENV_JSON}")"
+  fi
+
   if [ -z "${RUN_DB_URL:-}" ]; then
     RUN_DB_URL="$(jq -r --arg key "${RAILWAY_RUN_DB_URL_KEY}" '.[$key] // empty' <<< "${OUTPUT_SERVICE_ENV_JSON}")"
   fi
@@ -146,13 +151,14 @@ if [ -z "${RUN_DB_URL:-}" ] || [ -z "${SPICEDB_ENDPOINT:-}" ]; then
     SPICEDB_ENDPOINT="$(jq -r --arg key "${RAILWAY_SPICEDB_ENDPOINT_KEY}" '.[$key] // empty' <<< "${OUTPUT_SERVICE_ENV_JSON}")"
   fi
 
-  mask_env_vars RUN_DB_URL SPICEDB_ENDPOINT
+  mask_env_vars MANAGE_DB_URL RUN_DB_URL SPICEDB_ENDPOINT
 fi
 
-require_env_vars RUN_DB_URL SPICEDB_ENDPOINT
+require_env_vars MANAGE_DB_URL RUN_DB_URL SPICEDB_ENDPOINT
 preview_log "Bootstrapping preview auth for tenant ${TENANT_ID:-default} via ${API_URL}."
 
 export INKEEP_AGENTS_API_URL="${API_URL}"
+export INKEEP_AGENTS_MANAGE_DATABASE_URL="${MANAGE_DB_URL}"
 export INKEEP_AGENTS_RUN_DATABASE_URL="${RUN_DB_URL}"
 export SPICEDB_ENDPOINT
 export TENANT_ID="${TENANT_ID:-default}"
@@ -167,6 +173,11 @@ if [ -n "${RAILWAY_API_TOKEN:-}" ] &&
   RAILWAY_ENV_NAME="$(pr_env_name "${PR_NUMBER}")"
   RAILWAY_ENV_ID="$(railway_wait_for_environment_id "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" 10 2)"
 fi
+
+echo "::group::Run preview manage (Doltgres) migrations"
+preview_log "Running preview manage database migrations."
+pnpm db:manage:migrate
+echo "::endgroup::"
 
 echo "::group::Run preview runtime migrations"
 preview_log "Running preview runtime migrations."
@@ -223,6 +234,7 @@ if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
     echo "## Preview Auth Bootstrap"
     echo "- Tenant: \`${TENANT_ID}\`"
     echo "- Admin email: \`${INKEEP_AGENTS_MANAGE_UI_USERNAME}\`"
+    echo "- Manage migrations: \`pnpm db:manage:migrate\`"
     echo "- Runtime migrations: \`pnpm db:run:migrate\`"
     echo "- SpiceDB datastore migration: \`docker run ${SPICEDB_MIGRATE_IMAGE:-authzed/spicedb:v1.49.2} datastore migrate head\`"
     echo "- Railway deployment gate: \`${RAILWAY_SPICEDB_SERVICE:-spicedb}\` latest deployment ready"
