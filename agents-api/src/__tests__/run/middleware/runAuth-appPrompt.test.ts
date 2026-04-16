@@ -36,6 +36,7 @@ const { getAnonJwtSecretMock } = vi.hoisted(() => ({
 
 vi.mock('@inkeep/agents-core', () => ({
   validateAndGetApiKey: validateAndGetApiKeyMock,
+  getAgentById: vi.fn(() => vi.fn().mockResolvedValue({ id: 'agent-1' })),
   getAppById: getAppByIdMock,
   validateOrigin: validateOriginMock,
   updateAppLastUsed: updateAppLastUsedMock,
@@ -78,6 +79,10 @@ vi.mock('../../../domains/run/routes/auth', () => ({
 }));
 
 vi.mock('../../../data/db/runDbClient', () => ({
+  default: {},
+}));
+
+vi.mock('../../../data/db/manageDbClient', () => ({
   default: {},
 }));
 
