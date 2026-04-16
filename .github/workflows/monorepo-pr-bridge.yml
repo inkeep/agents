@@ -15,6 +15,8 @@ concurrency:
 
 jobs:
   sync:
+    # Skip PRs that originated from agents-private via Copybara (prevents circular sync)
+    if: github.event.pull_request.head.ref != 'copybara/sync'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
