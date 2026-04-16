@@ -168,6 +168,11 @@ if [ -n "${RAILWAY_API_TOKEN:-}" ] &&
   RAILWAY_ENV_ID="$(railway_wait_for_environment_id "${RAILWAY_PROJECT_ID}" "${RAILWAY_ENV_NAME}" 10 2)"
 fi
 
+echo "::group::Run preview manage (Doltgres) migrations"
+preview_log "Running preview manage database migrations."
+pnpm db:manage:migrate
+echo "::endgroup::"
+
 echo "::group::Run preview runtime migrations"
 preview_log "Running preview runtime migrations."
 pnpm db:run:migrate
@@ -223,6 +228,7 @@ if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
     echo "## Preview Auth Bootstrap"
     echo "- Tenant: \`${TENANT_ID}\`"
     echo "- Admin email: \`${INKEEP_AGENTS_MANAGE_UI_USERNAME}\`"
+    echo "- Manage migrations: \`pnpm db:manage:migrate\`"
     echo "- Runtime migrations: \`pnpm db:run:migrate\`"
     echo "- SpiceDB datastore migration: \`docker run ${SPICEDB_MIGRATE_IMAGE:-authzed/spicedb:v1.49.2} datastore migrate head\`"
     echo "- Railway deployment gate: \`${RAILWAY_SPICEDB_SERVICE:-spicedb}\` latest deployment ready"
