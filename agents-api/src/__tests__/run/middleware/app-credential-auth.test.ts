@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
   validateAndGetApiKeyMock,
+  getAgentByIdMock,
   getAppByIdMock,
   validateOriginMock,
   updateAppLastUsedMock,
@@ -14,6 +15,7 @@ const {
   verifyPoWMock,
 } = vi.hoisted(() => ({
   validateAndGetApiKeyMock: vi.fn(),
+  getAgentByIdMock: vi.fn(() => vi.fn().mockResolvedValue({ id: 'agent-1' })),
   getAppByIdMock: vi.fn(() => vi.fn()),
   validateOriginMock: vi.fn(),
   updateAppLastUsedMock: vi.fn(() => vi.fn().mockResolvedValue(undefined)),
@@ -39,6 +41,7 @@ vi.mock('@inkeep/agents-core', async () => {
   return {
     createApiError: actual.createApiError,
     validateAndGetApiKey: validateAndGetApiKeyMock,
+    getAgentById: getAgentByIdMock,
     getAppById: getAppByIdMock,
     validateOrigin: validateOriginMock,
     updateAppLastUsed: updateAppLastUsedMock,
@@ -82,6 +85,10 @@ vi.mock('../../../domains/run/routes/auth', () => ({
 }));
 
 vi.mock('../../../data/db/runDbClient', () => ({
+  default: {},
+}));
+
+vi.mock('../../../data/db/manageDbClient', () => ({
   default: {},
 }));
 

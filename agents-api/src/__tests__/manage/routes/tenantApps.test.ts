@@ -30,7 +30,7 @@ describe('Tenant Apps Routes - Integration Tests', () => {
             ? { type: 'api', api: {} }
             : {
                 type: 'support_copilot',
-                supportCopilot: { credentialReferenceIds: [] },
+                supportCopilot: { platform: 'zendesk' },
               },
     };
 

@@ -40,9 +40,47 @@ const webClientFields = {
   audience: z.string().optional(),
 };
 
+import { SUPPORT_COPILOT_PLATFORMS } from '@inkeep/agents-core/client-exports';
+
+export const SUPPORT_COPILOT_PLATFORM_OPTIONS = SUPPORT_COPILOT_PLATFORMS.map((p) => ({
+  value: p.slug,
+  label: p.label,
+}));
+
+const PLATFORM_SLUGS = SUPPORT_COPILOT_PLATFORMS.map((p) => p.slug) as [
+  (typeof SUPPORT_COPILOT_PLATFORMS)[number]['slug'],
+  ...(typeof SUPPORT_COPILOT_PLATFORMS)[number]['slug'][],
+];
+
 const supportCopilotFields = {
-  credentialReferenceIds: z.array(z.string()).optional(),
+  supportCopilotPlatform: z.enum(PLATFORM_SLUGS).optional(),
+  supportCopilotCredentialReferenceId: z.string().optional(),
 };
+
+export function refineSupportCopilotFields(
+  data: {
+    supportCopilotPlatform?: (typeof PLATFORM_SLUGS)[number];
+    supportCopilotCredentialReferenceId?: string;
+  },
+  ctx: z.RefinementCtx
+) {
+  if (!data.supportCopilotPlatform) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['supportCopilotPlatform'],
+      message: 'Platform is required',
+    });
+    return;
+  }
+  const entry = SUPPORT_COPILOT_PLATFORMS.find((p) => p.slug === data.supportCopilotPlatform);
+  if (entry?.credentialRequired && !data.supportCopilotCredentialReferenceId) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['supportCopilotCredentialReferenceId'],
+      message: 'Credential is required for this platform',
+    });
+  }
+}
 
 export const AppCreateFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),

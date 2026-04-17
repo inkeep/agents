@@ -1,5 +1,6 @@
 import { parse } from '@babel/parser';
 import { z } from '@hono/zod-openapi';
+import { SUPPORT_COPILOT_PLATFORM_SLUGS } from '../auth/support-copilot-platforms';
 import { schemaValidationDefaults } from '../constants/schema-validation/defaults';
 // Config DB imports (Doltgres - versioned)
 import {
@@ -1898,11 +1899,16 @@ export const ApiConfigSchema = z
   })
   .openapi('ApiConfig');
 
+export const SupportCopilotPlatformSchema = z
+  .enum(SUPPORT_COPILOT_PLATFORM_SLUGS as [string, ...string[]])
+  .openapi('SupportCopilotPlatform');
+
 export const SupportCopilotConfigSchema = z
   .object({
     type: z.literal('support_copilot'),
     supportCopilot: z.object({
-      credentialReferenceIds: z.array(z.string()).default([]),
+      platform: SupportCopilotPlatformSchema,
+      credentialReferenceId: z.string().min(1).optional(),
     }),
   })
   .openapi('SupportCopilotConfig');

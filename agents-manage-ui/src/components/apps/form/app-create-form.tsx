@@ -20,8 +20,12 @@ import { Separator } from '@/components/ui/separator';
 import { addAppAuthKeyAction } from '@/lib/actions/app-auth-keys';
 import { createAppAction } from '@/lib/actions/apps';
 import type { AppCreateResponse } from '@/lib/api/apps';
-import { CredentialMultiSelect } from './credential-multi-select';
-import { type AppCreateFormInput, AppCreateFormSchema } from './validation';
+import { SupportCopilotConfigSection } from './credential-access-section';
+import {
+  type AppCreateFormInput,
+  AppCreateFormSchema,
+  refineSupportCopilotFields,
+} from './validation';
 
 interface AppCreateFormProps {
   appType: 'web_client' | 'api' | 'support_copilot';
@@ -42,8 +46,13 @@ export function AppCreateForm({
   const [kidsToDelete, setKidsToDelete] = useState<string[]>([]);
   const [requireAuth, setRequireAuth] = useState(true);
 
+  const schema =
+    appType === 'support_copilot'
+      ? AppCreateFormSchema.superRefine(refineSupportCopilotFields)
+      : AppCreateFormSchema;
+
   const form = useForm<AppCreateFormInput>({
-    resolver: zodResolver(AppCreateFormSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       name: '',
       description: '',
@@ -51,7 +60,8 @@ export function AppCreateForm({
       prompt: '',
       allowedDomains: appType === 'web_client' ? '' : undefined,
       audience: '',
-      credentialReferenceIds: [],
+      supportCopilotPlatform: undefined,
+      supportCopilotCredentialReferenceId: '',
     },
     mode: 'onChange',
   });
@@ -91,7 +101,8 @@ export function AppCreateForm({
               ? {
                   type: 'support_copilot',
                   supportCopilot: {
-                    credentialReferenceIds: data.credentialReferenceIds ?? [],
+                    platform: data.supportCopilotPlatform,
+                    credentialReferenceId: data.supportCopilotCredentialReferenceId || undefined,
                   },
                 }
               : { type: 'api', api: {} },
@@ -173,15 +184,10 @@ export function AppCreateForm({
           className="max-h-96"
         />
 
-        {appType === 'support_copilot' && credentialOptions.length > 0 && (
-          <CredentialMultiSelect
+        {appType === 'support_copilot' && (
+          <SupportCopilotConfigSection
             control={form.control}
-            name="credentialReferenceIds"
-            label="Credentials"
-            description="Optional. Grant this app access to stored credentials for connecting to external services."
-            options={credentialOptions}
-            placeholder="Select credentials..."
-            searchPlaceholder="Search credentials..."
+            credentialOptions={credentialOptions}
           />
         )}
 

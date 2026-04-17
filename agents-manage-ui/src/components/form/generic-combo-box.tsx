@@ -26,6 +26,7 @@ interface GenericComboBoxProps<FV extends FieldValues, TV = FieldValues> {
   options: SelectOption[];
   searchPlaceholder?: string;
   placeholder?: string;
+  description?: React.ReactNode;
   disabled?: boolean;
   isRequired?: boolean;
   clearable?: boolean;
@@ -41,6 +42,7 @@ export function GenericComboBox<
   options,
   searchPlaceholder = 'Search...',
   placeholder,
+  description,
   disabled = false,
   isRequired = false,
   clearable = false,
@@ -48,7 +50,13 @@ export function GenericComboBox<
   const [open, setOpen] = useState(false);
 
   return (
-    <FormFieldWrapper control={control} name={name} label={label} isRequired={isRequired}>
+    <FormFieldWrapper
+      control={control}
+      name={name}
+      label={label}
+      description={description}
+      isRequired={isRequired}
+    >
       {(field) => (
         <Popover open={open} onOpenChange={setOpen}>
           <ButtonGroup className="w-full">

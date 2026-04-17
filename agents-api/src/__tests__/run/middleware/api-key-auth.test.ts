@@ -77,6 +77,10 @@ vi.mock('../../../data/db/runDbClient', () => ({
   default: {},
 }));
 
+vi.mock('../../../data/db/manageDbClient', () => ({
+  default: {},
+}));
+
 vi.mock('../../../env.js', () => ({
   env: {
     INKEEP_AGENTS_RUN_API_BYPASS_SECRET: undefined as string | undefined,

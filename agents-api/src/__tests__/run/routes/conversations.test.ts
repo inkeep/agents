@@ -14,16 +14,19 @@ const createTestWebClientApp = async ({
   tenantId,
   projectId,
   allowedDomains = ['help.customer.com'],
+  defaultAgentId = 'test-agent',
 }: {
   tenantId: string;
   projectId: string;
   allowedDomains?: string[];
+  defaultAgentId?: string;
 }) => {
   const createRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/apps`, {
     method: 'POST',
     body: JSON.stringify({
       name: 'Test Web Client',
       type: 'web_client',
+      defaultAgentId,
       config: {
         type: 'web_client',
         webClient: {

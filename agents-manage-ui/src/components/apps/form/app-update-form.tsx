@@ -24,8 +24,12 @@ import {
 } from '@/lib/actions/app-auth-keys';
 import { updateAppAction } from '@/lib/actions/apps';
 import type { App } from '@/lib/api/apps';
-import { CredentialMultiSelect } from './credential-multi-select';
-import { type AppUpdateFormInput, AppUpdateFormSchema } from './validation';
+import { SupportCopilotConfigSection } from './credential-access-section';
+import {
+  type AppUpdateFormInput,
+  AppUpdateFormSchema,
+  refineSupportCopilotFields,
+} from './validation';
 
 interface AppUpdateFormProps {
   tenantId: string;
@@ -58,7 +62,7 @@ export function AppUpdateForm({
   const supportCopilotConfig =
     app.type === 'support_copilot'
       ? ((app.config as Record<string, unknown>)?.supportCopilot as
-          | { credentialReferenceIds?: string[] }
+          | { platform?: string; credentialReferenceId?: string }
           | undefined)
       : null;
 
@@ -80,8 +84,13 @@ export function AppUpdateForm({
     loadKeys();
   }, [tenantId, projectId, app.type, app.id]);
 
+  const schema =
+    app.type === 'support_copilot'
+      ? AppUpdateFormSchema.superRefine(refineSupportCopilotFields)
+      : AppUpdateFormSchema;
+
   const form = useForm<AppUpdateFormInput>({
-    resolver: zodResolver(AppUpdateFormSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       name: app.name,
       description: app.description ?? '',
@@ -94,7 +103,14 @@ export function AppUpdateForm({
             audience: webConfig?.audience ?? '',
           }
         : {}),
-      credentialReferenceIds: supportCopilotConfig?.credentialReferenceIds ?? [],
+      ...(app.type === 'support_copilot'
+        ? {
+            supportCopilotPlatform: supportCopilotConfig?.platform as
+              | AppUpdateFormInput['supportCopilotPlatform']
+              | undefined,
+            supportCopilotCredentialReferenceId: supportCopilotConfig?.credentialReferenceId ?? '',
+          }
+        : {}),
     },
     mode: 'onChange',
   });
@@ -128,11 +144,12 @@ export function AppUpdateForm({
           type: 'web_client',
           webClient: webClientConfig,
         };
-      } else if (app.type === 'support_copilot') {
+      } else if (app.type === 'support_copilot' && data.supportCopilotPlatform) {
         payload.config = {
           type: 'support_copilot',
           supportCopilot: {
-            credentialReferenceIds: data.credentialReferenceIds ?? [],
+            platform: data.supportCopilotPlatform,
+            credentialReferenceId: data.supportCopilotCredentialReferenceId || undefined,
           },
         };
       }
@@ -234,16 +251,14 @@ export function AppUpdateForm({
           className="max-h-96"
         />
 
-        {app.type === 'support_copilot' && credentialOptions.length > 0 && (
-          <CredentialMultiSelect
-            control={form.control}
-            name="credentialReferenceIds"
-            label="Credentials"
-            description="Optional. Grant this app access to stored credentials for connecting to external services."
-            options={credentialOptions}
-            placeholder="Select credentials..."
-            searchPlaceholder="Search credentials..."
-          />
+        {app.type === 'support_copilot' && (
+          <>
+            <Separator />
+            <SupportCopilotConfigSection
+              control={form.control}
+              credentialOptions={credentialOptions}
+            />
+          </>
         )}
 
         {app.type === 'web_client' && !isLoadingKeys && (

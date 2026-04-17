@@ -28,6 +28,7 @@ const TitleToIcon: Record<keyof typeof TagToDescription, string> = {
   'Context Configs': 'LuCirclePlus',
   Conversations: 'LuMessageSquare',
   Credentials: 'LuKey',
+  'Credential Gateway': 'LuKeySquare',
   'Credential Stores': 'LuDatabase',
   'Data Components': 'LuBlocks',
   Entitlements: 'LuShieldCheck',

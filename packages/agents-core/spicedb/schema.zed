@@ -112,3 +112,30 @@ definition project {
      */
     permission edit = organization->manage + project_admin
 }
+
+/**
+ * app represents a configured application (e.g., support_copilot).
+ *
+ * `app` exists only as a subject type — it carries no relations of its own.
+ * Tenant isolation for apps is structural: `apps.id` is a globally-unique
+ * random identifier (`app_${nanoid()}`) enforced as a top-level primary key
+ * in the backing store, so the SpiceDB object `app:<id>` is safely used with
+ * no tenant prefix.
+ */
+definition app {}
+
+/**
+ * credential_reference represents a stored credential pointer.
+ * app_reader grants an app permission to read (fetch) this credential.
+ *
+ * The SpiceDB object ID is tenant+project-scoped (`{tenantId}/{projectId}/{id}`)
+ * via `toSpiceDbCredentialReferenceId` because the backing-store primary key
+ * is composite `(tenantId, projectId, id)` — the ID slug alone is NOT unique.
+ * Do not write or read tuples for this definition without going through the
+ * credential-gateway helpers.
+ */
+definition credential_reference {
+    relation app_reader: app
+
+    permission read = app_reader
+}
