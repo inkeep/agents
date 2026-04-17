@@ -62,7 +62,7 @@ jobs:
       - name: Generate GitHub App Token
         id: app-token
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
-        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3 # v3.1.1
         with:
           app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
           private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
@@ -75,7 +75,7 @@ jobs:
 
       - name: Setup pnpm
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+        uses: pnpm/action-setup@08c4be7e2e672a47d11bd04269e27e5f3e8529cb # v6.0.0
         with:
           version: 10.33.0
           run_install: false
@@ -93,7 +93,7 @@ jobs:
 
       - name: Setup pnpm cache
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ${{ env.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
