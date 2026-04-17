@@ -1,5 +1,24 @@
 name: Publish
 
+# Responsibility split (see agents-private for the other half):
+#
+#   agents-private  -> owns the "Version Packages" PR for the 10 public
+#                      @inkeep/agents-* packages. When that PR merges,
+#                      copybara syncs the version bumps here and deletes
+#                      the .changeset/*.md files.
+#   inkeep/agents   -> THIS file. On push to main with no pending
+#                      changesets, publish the bumped packages to npm via
+#                      Trusted Publishing (OIDC), then fire a
+#                      repository_dispatch back to agents-private with
+#                      the outcome.
+#
+# We intentionally do NOT create Version Packages PRs here. If you see a
+# .changeset/*.md on main it means copybara hasn't caught up yet, or
+# someone added a changeset directly to this repo (shouldn't happen).
+# In either case this workflow no-ops on that run — the next sync will
+# consume the changesets once the corresponding Version PR merges on
+# agents-private.
+
 on:
   workflow_dispatch:
   push:
@@ -14,9 +33,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
-  issues: write
-  packages: write
   id-token: write
 
 jobs:
@@ -28,11 +44,6 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
-          # Do not persist the default GITHUB_TOKEN credentials. actions/checkout
-          # sets http.https://github.com/.extraheader with an AUTHORIZATION header
-          # that overrides URL-embedded tokens. This prevents changesets/action from
-          # pushing with the App token (set via github-token input), causing GitHub
-          # to treat the push as GITHUB_TOKEN and skip triggering downstream workflows.
           persist-credentials: false
 
       - name: Install
@@ -72,70 +83,106 @@ jobs:
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
-      # Generate a GitHub App token so that PRs and releases created by this
-      # workflow trigger downstream CI workflows. The default GITHUB_TOKEN
-      # cannot do this (GitHub security restriction).
       - name: Generate GitHub App Token
         id: app-token
         uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
         with:
           app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
           private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
+          owner: inkeep
+          repositories: |
+            agents
+            agents-private
 
-      # Pass the App token as the github-token INPUT to changesets/action.
-      # The action internally runs `git remote set-url` using its github-token
-      # input before pushing. If only the GITHUB_TOKEN env var is overridden,
-      # the action's input still defaults to github.token (the built-in token),
-      # and GitHub silently ignores pushes from GITHUB_TOKEN for triggering
-      # downstream workflows. Passing the App token as the input ensures the
-      # force-push to changeset-release/main fires pull_request.synchronize.
-      - name: Publish packages
-        id: changesets
-        uses: changesets/action@6a0a831ff30acef54f2c6aa1cbbc1096b066edaf # v1
-        with:
-          publish: pnpm release
-          createGithubReleases: false
-          github-token: ${{ steps.app-token.outputs.token }}
-        env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-          HUSKY: 0
-
-      - name: Release to snapshot tag
-        if: steps.changesets.outputs.published != 'true'
+      - name: Detect changesets
+        id: detect
         run: |
-          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
-          if [ "$BRANCH_NAME" = "chat-to-edit" ]; then
-            TAG_NAME="chat-to-edit"
+          count=$(find .changeset -maxdepth 1 -name '*.md' -not -name 'README.md' -type f 2>/dev/null | wc -l | tr -d ' ')
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          if [ "$count" -gt 0 ]; then
+            echo "has_changesets=true" >> "$GITHUB_OUTPUT"
+            echo "Found $count pending changeset(s). Agents-private owns Version Packages PR creation; skipping publish."
           else
-            TAG_NAME="dev"
+            echo "has_changesets=false" >> "$GITHUB_OUTPUT"
+            echo "No pending changesets; will attempt to publish any unreleased versions."
           fi
-          echo "Publishing to tag: $TAG_NAME"
-          git checkout $BRANCH_NAME
-          pnpm changeset version --snapshot $TAG_NAME
-          pnpm changeset publish --tag $TAG_NAME
+
+      # chat-to-edit still gets a dev-like snapshot publish on every push.
+      # Skip this branch entirely for main — main is the production path.
+      - name: Publish chat-to-edit snapshot
+        id: snapshot
+        if: github.ref == 'refs/heads/chat-to-edit'
+        run: |
+          set -euo pipefail
+          pnpm changeset version --snapshot chat-to-edit
+          pnpm changeset publish --tag chat-to-edit --provenance
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           HUSKY: 0
 
-      - name: Create GitHub Release
-        if: steps.changesets.outputs.published == 'true'
-        shell: bash
+      # Main branch: publish whatever package versions are ahead of npm.
+      # This is the "Version PR got merged on agents-private, copybara
+      # delivered the bump, now ship it" path.
+      - name: Publish main release
+        id: publish
+        if: github.ref == 'refs/heads/main' && steps.detect.outputs.has_changesets == 'false'
         run: |
-          VERSION=$(echo '${{ steps.changesets.outputs.publishedPackages }}' | jq -r '.[0].version')
-          RELEASE_DATE=$(date +%Y-%m-%d)
+          set -euo pipefail
+          # --provenance required for npm Trusted Publishing attestations.
+          pnpm changeset publish --provenance | tee /tmp/publish.log
 
-          # Get the most recently merged PR's body
-          PR_BODY=$(gh pr list --state merged --base main --json body,mergedAt --jq 'sort_by(.mergedAt) | last | .body')
+          VERSION=$(grep -oE "Publishing \"[^\"]+\" at \"[0-9]+\.[0-9]+\.[0-9]+\"" /tmp/publish.log \
+            | head -1 \
+            | sed -E 's/.*at "([0-9]+\.[0-9]+\.[0-9]+)"/\1/')
 
-          # Extract everything from "# Releases" onward and replace with "# Changelog"
-          CHANGELOG=$(echo "$PR_BODY" | sed -n '/^# Releases/,$p' | sed '1s/^# Releases/# Changelog/')
+          PACKAGES=$(grep -oE "Publishing \"[^\"]+\" at \"[0-9]+\.[0-9]+\.[0-9]+\"" /tmp/publish.log \
+            | sed -E 's/Publishing "([^"]+)".*/\1/' \
+            | jq -R . | jq -sc .)
 
-          # Pin the release tag to the exact commit that was built and published.
-          # The app token ensures the release:published event triggers the
-          # downstream Vercel production deploy workflow.
-          gh release create "v${VERSION}" \
-            --target "${{ github.sha }}" \
-            --title "${RELEASE_DATE}" \
-            --notes "$CHANGELOG"
+          if [ -n "${VERSION:-}" ]; then
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+            echo "packages=$PACKAGES" >> "$GITHUB_OUTPUT"
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          HUSKY: 0
+
+      # Reverse-sync: tell agents-private the outcome so its
+      # release-handler.yml can create the GitHub Release (which
+      # triggers the existing Vercel prod deploy) or open an issue.
+      - name: Notify agents-private (success)
+        if: github.ref == 'refs/heads/main' && steps.publish.outputs.published == 'true'
+        uses: peter-evans/repository-dispatch@ff45666b9427631e3450c54a1bcbee4d9ff4d7c0 # v3
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          repository: inkeep/agents-private
+          event-type: agents-release-success
+          client-payload: |
+            {
+              "version": "${{ steps.publish.outputs.version }}",
+              "packages": ${{ steps.publish.outputs.packages }},
+              "run_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+              "commit_sha": "${{ github.sha }}"
+            }
+
+      - name: Notify agents-private (failure)
+        if: github.ref == 'refs/heads/main' && failure() && steps.detect.outputs.has_changesets == 'false'
+        uses: peter-evans/repository-dispatch@ff45666b9427631e3450c54a1bcbee4d9ff4d7c0 # v3
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          repository: inkeep/agents-private
+          event-type: agents-release-failure
+          # Pass whatever partial version info we got before the failure.
+          # If the publish step errored before extracting a version, this
+          # will be empty — the receiver handles that with ${VERSION:-unknown}.
+          client-payload: |
+            {
+              "version": "${{ steps.publish.outputs.version }}",
+              "run_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+              "commit_sha": "${{ github.sha }}",
+              "conclusion": "failure",
+              "error": "npm publish step failed — see run logs"
+            }
