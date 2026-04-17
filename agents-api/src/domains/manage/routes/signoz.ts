@@ -14,9 +14,18 @@ function getSignozConfig() {
   const url = env.SIGNOZ_URL;
   const apiKey = env.SIGNOZ_API_KEY;
   if (!url || !apiKey) return null;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  // JWTs always start with 'eyJ' (base64 of `{"`). Route those through
+  // Bearer auth; SigNoz PATs use the SIGNOZ-API-KEY header. The preview stack
+  // uses a refresh JWT because v0.119 enterprise PAT minting panics.
+  if (apiKey.startsWith('eyJ')) {
+    headers.Authorization = `Bearer ${apiKey}`;
+  } else {
+    headers['SIGNOZ-API-KEY'] = apiKey;
+  }
   return {
     endpoint: `${url}/api/v5/query_range`,
-    headers: { 'Content-Type': 'application/json', 'SIGNOZ-API-KEY': apiKey },
+    headers,
     healthUrl: url,
   };
 }

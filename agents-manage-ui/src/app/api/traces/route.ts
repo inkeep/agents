@@ -63,6 +63,10 @@ function extractRequestContext(request: NextRequest) {
   if (cookieHeader) {
     headers.Cookie = cookieHeader;
   }
+  const bypassSecret = process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET;
+  if (bypassSecret) {
+    headers.Authorization = `Bearer ${bypassSecret}`;
+  }
 
   return { tenantId, mode, headers };
 }
@@ -204,17 +208,7 @@ export async function GET(request: NextRequest) {
   const logger = getLogger('traces-config-check');
 
   try {
-    const url = new URL(request.url);
-    const tenantId = url.searchParams.get('tenantId') || 'default';
-
-    const cookieHeader = request.headers.get('cookie');
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    if (cookieHeader) {
-      headers.Cookie = cookieHeader;
-    }
-
+    const { tenantId, headers } = extractRequestContext(request);
     const agentsApiUrl = getAgentsApiUrl();
     const endpoint = `${agentsApiUrl}/manage/tenants/${tenantId}/signoz/health`;
 
