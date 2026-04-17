@@ -300,6 +300,72 @@ OPENAI_API_KEY=optional
 LOG_LEVEL=debug|info|warn|error
 ```
 
+### Logger & Scoped Context (AsyncLocalStorage)
+
+The codebase uses a **scoped context logger** built on Pino + `AsyncLocalStorage`. Request-level context (tenantId, projectId, agentId) is set once in middleware and automatically included in every downstream log call — no need to pass these fields manually.
+
+**Key files:**
+- `packages/agents-core/src/utils/logger.ts` — `PinoLogger`, `getLogger()`, `runWithLogContext()`
+- `agents-api/src/logger.ts` — re-exports `getLogger` and `runWithLogContext` from `@inkeep/agents-core`
+- `agents-api/src/createApp.ts` — middleware that wraps request handlers with `runWithLogContext()`
+
+#### Imports
+
+```typescript
+// From agents-core (preferred in packages)
+import { getLogger, runWithLogContext } from '@inkeep/agents-core';
+
+// From agents-api (convenience re-export within agents-api)
+import { getLogger, runWithLogContext } from '../logger';
+```
+
+#### Usage patterns
+
+**1. Module-level logger (most common):**
+```typescript
+const logger = getLogger('MyService');
+
+logger.info('operation completed');                    // string-only
+logger.error({ code: 'ERR_001' }, 'operation failed'); // data + message
+```
+
+**2. Class member logger with `.with()` (snapshot semantics):**
+```typescript
+class AgentSession {
+  private logger: PinoLogger;
+
+  constructor(sessionId: string) {
+    this.logger = getLogger('AgentSession').with({ sessionId });
+  }
+
+  process() {
+    this.logger.info('processing'); // includes sessionId + ALS context at construction time
+  }
+}
+```
+
+**3. Operation-level scoping:**
+```typescript
+runWithLogContext({ requestId, conversationId }, async () => {
+  logger.info('step completed'); // requestId + conversationId included automatically
+});
+```
+
+#### How it works
+
+1. **Middleware** calls `runWithLogContext({ tenantId, projectId, agentId }, () => next())` once per request.
+2. **`getLogger(name)`** returns a `PinoLogger` that resolves the current ALS store on every log call, merging the module name with whatever context is active.
+3. **`logger.with(bindings)`** creates a snapshot logger that captures the current ALS context plus the given bindings at call time. The snapshot does **not** pick up later ALS changes — use this for class members constructed once per request.
+4. **Nesting** is supported: `runWithLogContext` inside another scope inherits the parent's bindings.
+
+#### Rules
+
+- **Do not** pass `tenantId`, `projectId`, or `agentId` in individual log calls — these are set by middleware.
+- **Do not** inject a logger as a function/constructor parameter. Use `getLogger('Name')` at module scope instead.
+- **Do** use `runWithLogContext()` when entering a new logical scope (e.g., processing a specific conversation or trigger).
+- **Do** use `.with()` for class members that need instance-specific bindings.
+- Follow the `api-logging-guidelines` skill for log levels and what to log.
+
 ### Isolated Parallel Environments
 
 Run multiple full dev stacks simultaneously with zero port conflicts. Each isolated environment gets its own Docker containers, volumes, and network with dynamically assigned ports.
