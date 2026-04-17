@@ -404,7 +404,6 @@ export abstract class BaseCompressor {
     };
 
     if (oversized.isOversized) {
-      summaryData._oversizedWarning = oversized.oversizedWarning;
       summaryData._structureInfo = oversized.structureInfo;
     }
 
@@ -461,7 +460,6 @@ export abstract class BaseCompressor {
       toolName: block.toolName,
       toolArgs: artifactData.metadata.toolArgs ?? undefined,
       structureInfo: artifactData.summaryData._structureInfo,
-      oversizedWarning: artifactData.summaryData._oversizedWarning,
       summaryData: artifactData.summaryData,
       artifactType: artifactData.artifactType,
     };
