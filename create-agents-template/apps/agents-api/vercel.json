@@ -1,5 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "hono",
-  "installCommand": "pnpm install && pnpm --dir ../../ db:migrate"
+  "installCommand": "INKEEP_QUICKSTART_EXPORT=1 pnpm install && pnpm --dir ../../ db:migrate"
 }
