@@ -1,0 +1,53 @@
+name: Auto-approve sync PRs
+
+# Syncs from agents-private land here as PRs authored by the
+# inkeep-oss-sync bot. Branch protection on main requires one approval
+# and dismisses prior approvals on every new push
+# (require_last_push_approval=true), so each sync update needs a fresh
+# approval that isn't from the pusher.
+#
+# This workflow posts that approval automatically for PRs whose author
+# is the sync bot. It re-approves on every synchronize so the approval
+# stays valid after copybara pushes new commits.
+#
+# NOTE: This file is mirrored here from inkeep/agents-private via
+# copybara. Edit the source at
+# inkeep/agents-private/public/agents/.github/workflows/auto-approve-sync.yml
+# — edits made directly to inkeep/agents will be overwritten on next sync.
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  approve:
+    if: ${{ github.event.pull_request.user.login == 'inkeep-oss-sync[bot]' && github.event.pull_request.head.ref == 'copybara/sync' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Approve sync PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          # Skip if an approving review from github-actions[bot] is already
+          # standing on the current head SHA. Re-approving is cheap but noisy.
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          EXISTING=$(gh api \
+            "repos/${{ github.repository }}/pulls/${PR_NUMBER}/reviews" \
+            --jq "[.[] | select(.user.login == \"github-actions[bot]\" and .state == \"APPROVED\" and .commit_id == \"${HEAD_SHA}\")] | length")
+
+          if [ "${EXISTING:-0}" -gt 0 ]; then
+            echo "Already approved head ${HEAD_SHA}; nothing to do."
+            exit 0
+          fi
+
+          gh pr review "${PR_NUMBER}" \
+            --repo "${{ github.repository }}" \
+            --approve \
+            --body "Automated approval: this PR is an agents-private → inkeep/agents mirror from the inkeep-oss-sync app. Approval posted by auto-approve-sync.yml to satisfy the 1-review branch protection rule on main. The source of truth for these changes is the agents-private monorepo; edits here are overwritten on the next copybara sync."
