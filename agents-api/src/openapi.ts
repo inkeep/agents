@@ -17,6 +17,7 @@ export const TagToDescription = {
   'Context Configs': 'Operations for managing context configurations',
   Conversations: 'Operations for managing conversations',
   Credentials: 'Operations for managing credentials',
+  'Credential Gateway': 'RFC 8693 token exchange and platform discovery endpoints',
   'Credential Stores': 'Operations for managing credential stores',
   'Data Components': 'Operations for managing data components',
   Entitlements: 'Operations for managing organization entitlements',

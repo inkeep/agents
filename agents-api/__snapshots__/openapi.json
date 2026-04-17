@@ -9668,14 +9668,17 @@
         "properties": {
           "supportCopilot": {
             "properties": {
-              "credentialReferenceIds": {
-                "default": [],
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
+              "credentialReferenceId": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "platform": {
+                "$ref": "#/components/schemas/SupportCopilotPlatform"
               }
             },
+            "required": [
+              "platform"
+            ],
             "type": "object"
           },
           "type": {
@@ -9690,6 +9693,22 @@
           "supportCopilot"
         ],
         "type": "object"
+      },
+      "SupportCopilotPlatform": {
+        "enum": [
+          "atlas",
+          "freshdesk",
+          "front",
+          "github",
+          "helpscout",
+          "intercom",
+          "jira",
+          "missive",
+          "plain",
+          "salesforce",
+          "zendesk"
+        ],
+        "type": "string"
       },
       "TeamAgent": {
         "properties": {
@@ -11417,6 +11436,261 @@
         "summary": "Restart scheduler workflow on new deployment",
         "tags": [
           "Workflows"
+        ]
+      }
+    },
+    "/credential-gateway/.well-known/platforms": {
+      "get": {
+        "description": "Returns the list of supported platforms along with URL matchers. Consumed by browser extensions to detect the current tab platform and ticket ID. Public — safe to cache.",
+        "operationId": "list-credential-gateway-platforms",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "platforms": {
+                      "items": {
+                        "properties": {
+                          "credentialRequired": {
+                            "type": "boolean"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "pageMatchers": {
+                            "items": {
+                              "properties": {
+                                "hostGlob": {
+                                  "type": "string"
+                                },
+                                "pageType": {
+                                  "type": "string"
+                                },
+                                "pathPattern": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "pageType",
+                                "hostGlob",
+                                "pathPattern"
+                              ],
+                              "type": "object"
+                            },
+                            "type": "array"
+                          },
+                          "slug": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "slug",
+                          "label",
+                          "credentialRequired",
+                          "pageMatchers"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "platforms"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Platform catalog"
+          }
+        },
+        "security": [],
+        "summary": "Support Copilot platform catalog",
+        "tags": [
+          "Credential Gateway"
+        ]
+      }
+    },
+    "/credential-gateway/token": {
+      "post": {
+        "description": "Exchange a user JWT for a third-party credential via RFC 8693 token exchange. Server-to-server only.",
+        "operationId": "exchange-credential-gateway-token",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "properties": {
+                  "audience": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "grant_type": {
+                    "enum": [
+                      "urn:ietf:params:oauth:grant-type:token-exchange"
+                    ],
+                    "type": "string"
+                  },
+                  "inkeep_app_id": {
+                    "type": "string"
+                  },
+                  "resource": {
+                    "type": "string"
+                  },
+                  "subject_token": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "subject_token_type": {
+                    "enum": [
+                      "urn:ietf:params:oauth:token-type:access_token"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "grant_type",
+                  "subject_token",
+                  "subject_token_type",
+                  "audience",
+                  "inkeep_app_id"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "access_token": {
+                      "type": "string"
+                    },
+                    "expires_in": {
+                      "type": "number"
+                    },
+                    "issued_token_type": {
+                      "enum": [
+                        "urn:ietf:params:oauth:token-type:access_token"
+                      ],
+                      "type": "string"
+                    },
+                    "token_type": {
+                      "enum": [
+                        "Bearer"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "access_token",
+                    "token_type",
+                    "expires_in",
+                    "issued_token_type"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Token exchange successful"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "error_description"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Bad request (invalid_request, invalid_target)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "error_description"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Unauthorized (invalid_client, invalid_grant)"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "error_description"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Forbidden (access_denied)"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "error_description": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "error_description"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Upstream credential store error"
+          }
+        },
+        "security": [],
+        "summary": "Token Exchange (RFC 8693)",
+        "tags": [
+          "Credential Gateway"
         ]
       }
     },
@@ -49544,6 +49818,10 @@
     {
       "description": "Operations for managing credentials",
       "name": "Credentials"
+    },
+    {
+      "description": "RFC 8693 token exchange and platform discovery endpoints",
+      "name": "Credential Gateway"
     },
     {
       "description": "Operations for managing credential stores",
