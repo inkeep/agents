@@ -2,7 +2,6 @@ import {
   type BaseExecutionContext,
   canUseProjectStrict,
   createApiError,
-  getAgentById,
   getAppById,
   getPoWErrorMessage,
   isSlackUserToken,
@@ -20,7 +19,6 @@ import { trace } from '@opentelemetry/api';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import { decodeProtectedHeader, errors, importSPKI, jwtVerify } from 'jose';
-import manageDbClient from '../data/db/manageDbClient';
 import runDbClient from '../data/db/runDbClient';
 import { getAnonJwtSecret } from '../domains/run/routes/auth';
 import { env } from '../env';
@@ -810,22 +808,6 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
             isGlobalApp: true,
             appLogger,
           });
-
-          if (resolvedAgentId) {
-            const agent = await getAgentById(manageDbClient)({
-              scopes: { tenantId: tid, projectId: pid, agentId: resolvedAgentId },
-            });
-            if (!agent) {
-              appLogger.warn(
-                { agentId: resolvedAgentId, tenantId: tid, projectId: pid },
-                'Global app auth: resolved agent not found in project'
-              );
-              throw createApiError({
-                code: 'forbidden',
-                message: 'Requested agent is not authorized for this app',
-              });
-            }
-          }
         } else {
           // Tenant-scoped app — scope comes from app record
           if (!app.projectId) {
