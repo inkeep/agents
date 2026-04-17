@@ -19,6 +19,7 @@ import {
   CONVERSATION_ARTIFACTS_LIMIT,
   CONVERSATION_HISTORY_DEFAULT_LIMIT,
 } from '../constants/execution-limits';
+import { fromBlobUri, getBlobStorageProvider, isBlobUri } from '../services/blob-storage';
 
 const logger = getLogger('conversations');
 
@@ -627,6 +628,18 @@ async function performActualCompression(
     return messages;
   }
 
+  // Preserve messages that contain file parts — these must survive compression
+  // because the widget may not re-send files on follow-up messages (diffed by content),
+  // and the compressor cannot meaningfully summarize binary file content.
+  const fileMessages = messages.filter((msg) => {
+    const parts = msg.content?.parts;
+    if (!Array.isArray(parts)) return false;
+    return parts.some((p) => {
+      const kind = (p as { kind?: string; type?: string }).kind ?? (p as { type?: string }).type;
+      return kind === 'file';
+    });
+  });
+
   logger.info(
     {
       conversationId,
@@ -676,9 +689,9 @@ async function performActualCompression(
         'Conversation compression saved to messages table'
       );
 
-      // Return just the compression summary message
+      // Return compression summary + any preserved file-bearing messages
       compressor.fullCleanup();
-      return [compressionMessage];
+      return [...fileMessages, compressionMessage];
     }
 
     compressor.fullCleanup();
@@ -866,10 +879,74 @@ function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): st
 }
 
 /**
+ * A `file` part can reach history reconstruction in two shapes:
+ *  - A2A wire shape (persisted by `a2a/handlers.ts` from inbound delegation requests):
+ *      `{ kind: 'file', file: { bytes } | { uri }, metadata }`
+ *  - Persisted-content shape (written by `makeMessageContentParts` on the widget upload path):
+ *      `{ kind: 'file', data: '<blob://…>' | '<data:…>' | '<http(s)://…>', metadata }`
+ */
+type FilePartLike = {
+  kind: 'file';
+  file?: { bytes?: string; uri?: string };
+  data?: string;
+  metadata?: { filename?: string; mimeType?: string; [key: string]: unknown };
+};
+
+function tryDecodeDataUri(uri: string): string | undefined {
+  const base64Data = uri.split(',')[1];
+  if (!base64Data) return undefined;
+  try {
+    return Buffer.from(base64Data, 'base64').toString('utf-8');
+  } catch {
+    return undefined;
+  }
+}
+
+async function reconstructFilePart(part: FilePartLike): Promise<string> {
+  const filename = part.metadata?.filename;
+  const file = part.file;
+  const persistedData = part.data;
+
+  let fileContent: string | undefined;
+
+  if (file?.bytes) {
+    try {
+      fileContent = Buffer.from(file.bytes, 'base64').toString('utf-8');
+    } catch {
+      // binary or invalid base64 — fall through to placeholder
+    }
+  } else if (file?.uri?.startsWith('data:')) {
+    fileContent = tryDecodeDataUri(file.uri);
+  } else if (persistedData?.startsWith('data:')) {
+    fileContent = tryDecodeDataUri(persistedData);
+  } else if (persistedData && isBlobUri(persistedData)) {
+    try {
+      const downloaded = await getBlobStorageProvider().download(fromBlobUri(persistedData));
+      fileContent = Buffer.from(downloaded.data).toString('utf-8');
+    } catch (err) {
+      logger.warn(
+        { err, filename },
+        'reconstructMessageText: failed to download file part from blob storage'
+      );
+    }
+  }
+  // External http(s) URIs are not inlined — fall through to the filename placeholder.
+
+  if (fileContent) {
+    const label = filename ? `<file name="${filename}">` : '<file>';
+    return `${label}\n${fileContent}\n</file>`;
+  }
+  if (filename) {
+    return `<file name="${filename}" />`;
+  }
+  return '';
+}
+
+/**
  * Reconstruct message text from multi-part content, converting artifact data parts to `<artifact:ref>` tags.
  * Falls back to `content.text` when there are no parts or when parts yield no reconstructable text.
  */
-export function reconstructMessageText(msg: Pick<MessageSelect, 'content'>): string {
+export async function reconstructMessageText(msg: Pick<MessageSelect, 'content'>): Promise<string> {
   const parts = msg.content?.parts ?? [];
   const textFallback = msg.content?.text ?? '';
 
@@ -877,13 +954,16 @@ export function reconstructMessageText(msg: Pick<MessageSelect, 'content'>): str
     return textFallback;
   }
 
-  const fromParts = parts
-    .map((part: any) => {
+  const fromParts = await Promise.all(
+    parts.map(async (part: any) => {
       // Canonical `MessageContent.parts` use `kind`; older persisted rows and some external payloads might still use `type`.
       const partKind = part.kind ?? part.type;
 
       if (partKind === 'text') {
         return part.text ?? '';
+      }
+      if (partKind === 'file') {
+        return await reconstructFilePart(part as FilePartLike);
       }
       if (partKind === 'data') {
         try {
@@ -897,9 +977,9 @@ export function reconstructMessageText(msg: Pick<MessageSelect, 'content'>): str
       }
       return '';
     })
-    .join('');
+  );
 
-  return fromParts || textFallback;
+  return fromParts.join('') || textFallback;
 }
 
 export async function formatMessagesAsConversationHistory(
@@ -935,7 +1015,7 @@ export async function formatMessagesAsConversationHistory(
         roleLabel = msg.role || 'system';
       }
 
-      const reconstructedMessage = reconstructMessageText(msg);
+      const reconstructedMessage = await reconstructMessageText(msg);
       if (!reconstructedMessage) {
         return null;
       }

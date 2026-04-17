@@ -2,7 +2,9 @@ import {
   AGENT_EXECUTION_TRANSFER_COUNT_DEFAULT,
   createMessage,
   createTask,
+  type DataPart,
   DURABLE_APPROVAL_ARTIFACT_TYPE,
+  type FilePart,
   type FullExecutionContext,
   generateId,
   generateServiceToken,
@@ -14,6 +16,7 @@ import {
   type Part,
   type SendMessageResponse,
   setSpanWithError,
+  type TextPart,
   unwrapError,
   updateTask,
 } from '@inkeep/agents-core';
@@ -329,12 +332,21 @@ export class ExecutionHandler {
             messageMetadata.approved_tool_calls = JSON.stringify(params.approvedToolCalls ?? {});
           }
 
-          // On the first iteration, use the original message parts if provided (includes data parts from triggers)
-          // On subsequent iterations (after transfers), use text-only since currentMessage is updated
-          const partsToSend: Part[] =
-            iterations === 1 && messageParts && messageParts.length > 0
-              ? messageParts
-              : [{ kind: 'text', text: currentMessage }];
+          // On the first iteration, use the original message parts if provided (includes data parts from triggers).
+          // On subsequent iterations (after transfers), preserve non-text parts (files, images) from the
+          // original message alongside the updated text — so transferred agents can see file attachments.
+          let partsToSend: Part[];
+          if (iterations === 1 && messageParts && messageParts.length > 0) {
+            partsToSend = messageParts;
+          } else {
+            const nonTextParts: Part[] = messageParts
+              ? messageParts.filter((p): p is FilePart | DataPart => p.kind !== 'text')
+              : [];
+            partsToSend = [
+              { kind: 'text', text: currentMessage } satisfies TextPart,
+              ...nonTextParts,
+            ];
+          }
 
           messageResponse = await a2aClient.sendMessage({
             message: {

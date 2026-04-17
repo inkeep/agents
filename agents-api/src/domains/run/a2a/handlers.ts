@@ -4,6 +4,7 @@ import {
   generateId,
   type Message,
   type MessageSendParams,
+  type Part,
   type Task,
   TaskState,
   updateTask,
@@ -225,6 +226,20 @@ async function handleMessageSend(
         .map((part) => (part as any).text)
         .join(' ');
 
+      // Serialize file parts for JSONB storage — ensure bytes are a base64 string, not a
+      // Buffer/typed array that would lose fidelity when JSON-encoded.
+      const serializableParts: Part[] = params.message.parts.map((part) => {
+        if (part.kind === 'file' && 'bytes' in part.file && part.file.bytes) {
+          const rawBytes = part.file.bytes as unknown;
+          const bytesStr =
+            typeof rawBytes === 'string'
+              ? rawBytes
+              : Buffer.from(rawBytes as Uint8Array).toString('base64');
+          return { ...part, file: { ...part.file, bytes: bytesStr } };
+        }
+        return part;
+      });
+
       try {
         const messageData: any = {
           id: generateId(),
@@ -234,6 +249,7 @@ async function handleMessageSend(
           role: 'agent',
           content: {
             text: messageText,
+            parts: serializableParts,
           },
           visibility: params.message.metadata?.fromExternalAgentId ? 'external' : 'internal',
           messageType: 'a2a-request',
