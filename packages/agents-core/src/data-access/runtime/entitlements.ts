@@ -33,6 +33,22 @@ export async function dalResolveEntitlement(
   return rows[0].maxValue;
 }
 
+export async function dalSelectEntitlementForUpdate(
+  tx: AgentsRunDatabaseClient,
+  orgId: string,
+  resourceType: string
+): Promise<number | null> {
+  const rows = await tx
+    .select({ maxValue: orgEntitlement.maxValue })
+    .from(orgEntitlement)
+    .where(
+      and(eq(orgEntitlement.organizationId, orgId), eq(orgEntitlement.resourceType, resourceType))
+    )
+    .for('update');
+
+  return rows.length === 0 ? null : rows[0].maxValue;
+}
+
 export async function dalGetServiceAccountUserId(
   db: AgentsRunDatabaseClient,
   orgId: string
