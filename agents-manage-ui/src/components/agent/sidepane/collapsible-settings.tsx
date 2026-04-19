@@ -1,22 +1,23 @@
 import { ChevronRight } from 'lucide-react';
+import type { ComponentProps, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
 
-interface CollapsibleSettingsProps {
-  defaultOpen?: boolean;
-  children: React.ReactNode;
-  title: string | React.ReactNode;
+interface CollapsibleSettingsProps extends Omit<ComponentProps<typeof Collapsible>, 'title'> {
+  title: ReactNode;
 }
 
 export function CollapsibleSettings({
-  defaultOpen = false,
   title,
   children,
+  className,
+  ...props
 }: CollapsibleSettingsProps) {
   return (
     <Collapsible
-      defaultOpen={defaultOpen}
-      className="border rounded-md bg-muted/30 dark:bg-muted/20"
+      className={cn('border rounded-md bg-muted/30 dark:bg-muted/20', className)}
+      {...props}
     >
       <CollapsibleTrigger asChild>
         <Button

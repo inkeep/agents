@@ -51,10 +51,9 @@ const ListSection: FC<{
 export function SubAgentNode({ data, selected, id }: NodeProps & { data: AgentNodeData }) {
   const status = getNodeStatus(data);
   const { control } = useFullAgentFormContext();
-  const formKey = `subAgents.${id}` as const;
   const [subAgent, defaultSubAgentNodeId, agentModel] = useWatch({
     control,
-    name: [formKey, 'defaultSubAgentNodeId', 'models'],
+    name: [`subAgents.${id}`, 'defaultSubAgentNodeId', 'models'],
   });
   const processedErrors = useProcessedErrors('subAgents', id);
   const { data: project } = useProjectQuery();

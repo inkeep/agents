@@ -23,3 +23,10 @@ export function createCustomHeadersSchema(customHeaders?: string) {
     );
   }
 }
+
+export const StringToJsonSchema = z
+  .string()
+  .trim()
+  .transform((value, ctx) => (value === '' ? undefined : transformToJson(value, ctx)))
+  .refine((v) => v !== null, 'Cannot be null')
+  .optional();

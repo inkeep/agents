@@ -127,8 +127,8 @@ export const MetadataEditor: FC = () => {
           }
         />
         <ModelConfiguration
-          value={models.base.model}
-          providerOptions={models.base.providerOptions}
+          control={form.control}
+          name="models.base"
           inheritedValue={project?.models.base?.model}
           inheritedProviderOptions={project?.models.base?.providerOptions}
           label={
@@ -145,27 +145,9 @@ export const MetadataEditor: FC = () => {
             </div>
           }
           description="Primary model for general agent responses"
-          onModelChange={(value) => {
-            form.setValue('models.base.model', value, { shouldDirty: true });
-          }}
-          onProviderOptionsChange={(value) => {
-            form.setValue('models.base.providerOptions', value, { shouldDirty: true });
-          }}
           editorNamePrefix="agent-base"
-          fallbackModels={models.base.fallbackModels ?? undefined}
           inheritedFallbackModels={project?.models.base?.fallbackModels ?? undefined}
-          onFallbackModelsChange={(value) => {
-            form.setValue('models.base.fallbackModels', value.length ? value : undefined, {
-              shouldDirty: true,
-            });
-          }}
-          allowedProviders={models.base.allowedProviders ?? undefined}
           inheritedAllowedProviders={project?.models.base?.allowedProviders ?? undefined}
-          onAllowedProvidersChange={(value) => {
-            form.setValue('models.base.allowedProviders', value.length ? value : undefined, {
-              shouldDirty: true,
-            });
-          }}
         />
 
         <CollapsibleSettings
@@ -173,8 +155,8 @@ export const MetadataEditor: FC = () => {
           title="Advanced model options"
         >
           <ModelConfiguration
-            value={models.structuredOutput?.model}
-            providerOptions={models.structuredOutput?.providerOptions}
+            control={form.control}
+            name="models.structuredOutput"
             inheritedValue={
               project?.models.structuredOutput?.model ||
               models.base.model ||
@@ -200,14 +182,6 @@ export const MetadataEditor: FC = () => {
             }
             description="Model for structured outputs and components (defaults to base model)"
             canClear
-            onModelChange={(value) => {
-              form.setValue('models.structuredOutput.model', value, { shouldDirty: true });
-            }}
-            onProviderOptionsChange={(value) => {
-              form.setValue('models.structuredOutput.providerOptions', value, {
-                shouldDirty: true,
-              });
-            }}
             editorNamePrefix="agent-structured"
             getJsonPlaceholder={(model) => {
               if (model?.startsWith('azure/')) {
@@ -215,39 +189,23 @@ export const MetadataEditor: FC = () => {
               }
               return structuredOutputModelProviderOptionsTemplate;
             }}
-            fallbackModels={models.structuredOutput?.fallbackModels ?? undefined}
             inheritedFallbackModels={
               project?.models.structuredOutput?.fallbackModels ??
               models.base.fallbackModels ??
               project?.models.base?.fallbackModels ??
               undefined
             }
-            onFallbackModelsChange={(value) => {
-              form.setValue(
-                'models.structuredOutput.fallbackModels',
-                value.length ? value : undefined,
-                { shouldDirty: true }
-              );
-            }}
-            allowedProviders={models.structuredOutput?.allowedProviders ?? undefined}
             inheritedAllowedProviders={
               project?.models.structuredOutput?.allowedProviders ??
               models.base.allowedProviders ??
               project?.models.base?.allowedProviders ??
               undefined
             }
-            onAllowedProvidersChange={(value) => {
-              form.setValue(
-                'models.structuredOutput.allowedProviders',
-                value.length ? value : undefined,
-                { shouldDirty: true }
-              );
-            }}
           />
 
           <ModelConfiguration
-            value={models.summarizer?.model}
-            providerOptions={models.summarizer?.providerOptions}
+            control={form.control}
+            name="models.summarizer"
             inheritedValue={
               project?.models.summarizer?.model || models.base.model || project?.models.base?.model
             }
@@ -271,12 +229,6 @@ export const MetadataEditor: FC = () => {
             }
             description="Model for summarization tasks (defaults to base model)"
             canClear
-            onModelChange={(value) => {
-              form.setValue('models.summarizer.model', value, { shouldDirty: true });
-            }}
-            onProviderOptionsChange={(value) => {
-              form.setValue('models.summarizer.providerOptions', value, { shouldDirty: true });
-            }}
             editorNamePrefix="agent-summarizer"
             getJsonPlaceholder={(model) => {
               if (model?.startsWith('azure/')) {
@@ -284,32 +236,18 @@ export const MetadataEditor: FC = () => {
               }
               return summarizerModelProviderOptionsTemplate;
             }}
-            fallbackModels={models.summarizer?.fallbackModels ?? undefined}
             inheritedFallbackModels={
               project?.models.summarizer?.fallbackModels ??
               models.base.fallbackModels ??
               project?.models.base?.fallbackModels ??
               undefined
             }
-            onFallbackModelsChange={(value) => {
-              form.setValue('models.summarizer.fallbackModels', value.length ? value : undefined, {
-                shouldDirty: true,
-              });
-            }}
-            allowedProviders={models.summarizer?.allowedProviders ?? undefined}
             inheritedAllowedProviders={
               project?.models.summarizer?.allowedProviders ??
               models.base.allowedProviders ??
               project?.models.base?.allowedProviders ??
               undefined
             }
-            onAllowedProvidersChange={(value) => {
-              form.setValue(
-                'models.summarizer.allowedProviders',
-                value.length ? value : undefined,
-                { shouldDirty: true }
-              );
-            }}
           />
         </CollapsibleSettings>
       </div>

@@ -1,24 +1,33 @@
 import { z } from 'zod';
+import { StringToJsonSchema } from '@/lib/validation';
 
 const modelSettingsSchema = z.object({
   model: z.string().optional(), // Allow empty model - system will fall back to defaults
-  providerOptions: z.record(z.string(), z.any()).optional().nullable(),
+  providerOptions: StringToJsonSchema.pipe(z.record(z.string(), z.any()).optional()),
   fallbackModels: z.array(z.string()).optional().nullable(),
   allowedProviders: z.array(z.string()).optional().nullable(),
 });
 
 const baseModelSettingsSchema = z.object({
   model: z.string().min(1, 'Base model is required'),
-  providerOptions: z.record(z.string(), z.any()).optional().nullable(),
+  providerOptions: StringToJsonSchema.pipe(z.record(z.string(), z.any()).optional()),
   fallbackModels: z.array(z.string()).optional().nullable(),
   allowedProviders: z.array(z.string()).optional().nullable(),
 });
 
-const projectModelsSchema = z.object({
-  base: baseModelSettingsSchema,
-  structuredOutput: modelSettingsSchema.optional(),
-  summarizer: modelSettingsSchema.optional(),
-});
+const projectModelsSchema = z
+  .object({
+    base: baseModelSettingsSchema,
+    structuredOutput: modelSettingsSchema.optional(),
+    summarizer: modelSettingsSchema.optional(),
+  })
+  .transform(({ base, structuredOutput, summarizer }) => {
+    return {
+      base,
+      ...(structuredOutput?.model && { structuredOutput }),
+      ...(summarizer?.model && { summarizer }),
+    };
+  });
 
 // Use the shared StopWhen schema with optional and nullable modifiers
 const projectStopWhenSchema = z
@@ -45,4 +54,5 @@ export const projectSchema = z.object({
   stopWhen: projectStopWhenSchema,
 });
 
-export type ProjectFormData = z.infer<typeof projectSchema>;
+export type ProjectFormInputValues = z.input<typeof projectSchema>;
+export type ProjectFormData = z.output<typeof projectSchema>;
