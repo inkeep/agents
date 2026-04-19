@@ -47,6 +47,37 @@ function formatZodValidationError(c: Context, zodIssues: ZodIssue[]) {
 }
 
 /**
+ * Serialize an error's cause chain into a loggable object.
+ * Native Error properties (message, stack, code) are non-enumerable so
+ * JSON.stringify produces "{}". This helper extracts them explicitly.
+ */
+function serializeCause(cause: unknown, depth = 0): Record<string, unknown> | undefined {
+  if (!cause || depth > 3) return undefined;
+  if (cause instanceof Error) {
+    return {
+      message: cause.message,
+      name: cause.name,
+      stack: cause.stack,
+      ...('code' in cause ? { code: (cause as any).code } : {}),
+      ...('severity' in cause ? { severity: (cause as any).severity } : {}),
+      ...('detail' in cause ? { detail: (cause as any).detail } : {}),
+      ...('hint' in cause ? { hint: (cause as any).hint } : {}),
+      ...(cause.cause ? { cause: serializeCause(cause.cause, depth + 1) } : {}),
+    };
+  }
+  if (typeof cause === 'object') {
+    const obj = cause as Record<string, unknown>;
+    return {
+      ...(obj.message != null ? { message: obj.message } : {}),
+      ...(obj.code != null ? { code: obj.code } : {}),
+      ...(obj.severity != null ? { severity: obj.severity } : {}),
+      ...(obj.detail != null ? { detail: obj.detail } : {}),
+    };
+  }
+  return { value: String(cause) };
+}
+
+/**
  * Log server errors with appropriate context
  */
 function logServerError(
@@ -56,15 +87,17 @@ function logServerError(
   status: number,
   isExpectedError: boolean
 ) {
+  const errorMessage = err instanceof Error ? err.message : String(err);
+  const errorStack = err instanceof Error ? err.stack : undefined;
+  const cause = err instanceof Error ? serializeCause(err.cause) : undefined;
+
   if (!isExpectedError) {
-    const errorMessage = err instanceof Error ? err.message : String(err);
-    const errorStack = err instanceof Error ? err.stack : undefined;
     logger.error(
       {
-        error: err,
         ...getDatabaseErrorLogContext(err),
         message: errorMessage,
         stack: errorStack,
+        ...(cause && { errorCause: cause }),
         path,
         requestId,
       },
@@ -73,8 +106,9 @@ function logServerError(
   } else {
     logger.error(
       {
-        error: err,
         ...getDatabaseErrorLogContext(err),
+        message: errorMessage,
+        ...(cause && { errorCause: cause }),
         path,
         requestId,
         status,

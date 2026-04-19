@@ -1,4 +1,8 @@
-import type { AgentsManageDatabaseClient, ResolvedRef } from '@inkeep/agents-core';
+import type {
+  AgentsManageDatabaseClient,
+  CheckoutBranchResult,
+  ResolvedRef,
+} from '@inkeep/agents-core';
 import {
   checkoutBranch,
   doltAddAndCommit,
@@ -15,6 +19,8 @@ import manageDbClient from '../data/db/manageDbClient';
 import { getLogger } from '../logger';
 
 const logger = getLogger('branch-scoped-db');
+
+const MAX_SCHEMA_SYNC_RETRIES = 2;
 
 export function isProjectDeleteOperation(path: string, method: string): boolean {
   const projectDeletePattern = /^\/tenants\/[^/]+\/(?:projects|project-full)\/[^/]+\/?$/;
@@ -85,11 +91,50 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
 
     if (resolvedRef.type === 'branch') {
       logger.debug({ branch: resolvedRef.name }, 'Checking out branch');
+      let checkoutResult: CheckoutBranchResult | undefined;
+      let syncAttempts = 0;
+
       const checkoutStart = Date.now();
-      await checkoutBranch(requestDb)({ branchName: resolvedRef.name, autoCommitPending: true });
+      checkoutResult = await checkoutBranch(requestDb)({
+        branchName: resolvedRef.name,
+        autoCommitPending: true,
+      });
       const checkoutMs = Date.now() - checkoutStart;
       if (checkoutMs > 5_000) {
         logger.info({ ref: resolvedRef.name, checkoutMs }, 'Slow checkoutBranch in branchScopedDb');
+      }
+
+      // Retry schema sync only when skipped due to advisory lock contention.
+      // Other failure modes (merge conflicts, uncommitted changes) are not retryable.
+      while (checkoutResult.schemaSync.skippedDueToLock && syncAttempts < MAX_SCHEMA_SYNC_RETRIES) {
+        syncAttempts++;
+        logger.warn(
+          {
+            branch: resolvedRef.name,
+            reason: 'skipped due to lock contention',
+            attempt: syncAttempts,
+          },
+          'Schema sync not performed, retrying'
+        );
+        await new Promise((resolve) =>
+          setTimeout(resolve, 50 * syncAttempts * (1 + Math.random() * 0.5))
+        );
+        checkoutResult = await checkoutBranch(requestDb)({
+          branchName: resolvedRef.name,
+          syncSchema: true,
+          autoCommitPending: true,
+        });
+      }
+
+      if (checkoutResult.schemaSync.hadDifferences && !checkoutResult.schemaSync.performed) {
+        logger.error(
+          {
+            branch: resolvedRef.name,
+            syncError: checkoutResult.schemaSync.error,
+            attempts: syncAttempts + 1,
+          },
+          'Schema sync failed after retries — queries may fail due to outdated schema'
+        );
       }
     } else {
       // For tags/commits, create temporary branch (needed for reads)
