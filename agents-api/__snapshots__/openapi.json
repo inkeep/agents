@@ -9674,6 +9674,12 @@
               },
               "platform": {
                 "$ref": "#/components/schemas/SupportCopilotPlatform"
+              },
+              "quickActions": {
+                "items": {
+                  "$ref": "#/components/schemas/SupportCopilotQuickActionGroup"
+                },
+                "type": "array"
               }
             },
             "required": [
@@ -9709,6 +9715,46 @@
           "zendesk"
         ],
         "type": "string"
+      },
+      "SupportCopilotQuickAction": {
+        "properties": {
+          "label": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "prompt": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "prompt"
+        ],
+        "type": "object"
+      },
+      "SupportCopilotQuickActionGroup": {
+        "properties": {
+          "actions": {
+            "items": {
+              "$ref": "#/components/schemas/SupportCopilotQuickAction"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "group": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "group",
+          "actions"
+        ],
+        "type": "object"
       },
       "TeamAgent": {
         "properties": {
