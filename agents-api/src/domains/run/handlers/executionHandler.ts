@@ -312,6 +312,7 @@ export class ExecutionHandler {
           const a2aClient = new A2AClient(agentBaseUrl, {
             headers: mergeHeadersWithoutOverrides(trustedHeaders, forwardedHeaders || {}),
             fetchFn: getInProcessFetch(),
+            ref: executionContext.resolvedRef,
           });
 
           let messageResponse: SendMessageResponse | null = null;

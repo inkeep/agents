@@ -36,6 +36,7 @@ export * from './runtime/conversations';
 export * from './runtime/entitlements';
 export * from './runtime/evalRuns';
 export * from './runtime/feedback';
+export * from './runtime/improvementRuns';
 export * from './runtime/github-work-app-installations';
 export * from './runtime/ledgerArtifacts';
 export * from './runtime/messages';

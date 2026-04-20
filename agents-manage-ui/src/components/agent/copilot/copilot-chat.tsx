@@ -4,7 +4,7 @@ import { InkeepSidebarChat } from '@inkeep/agents-ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { apiToFormValues } from '@/components/agent/form/validation';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import { useCopilotToken } from '@/hooks/use-copilot-token';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { useSidePane } from '@/hooks/use-side-pane';
+import { createCoPilotRunAction } from '@/lib/actions/improvements';
 import { getFullProjectAction } from '@/lib/actions/project-full';
 import { projectQueryKeys } from '@/lib/query/keys/projects';
 import { useMcpToolsQuery } from '@/lib/query/mcp-tools';
@@ -52,6 +53,7 @@ export function CopilotChat() {
     isCopilotConfigured,
   } = useCopilotContext();
   const [conversationId, setConversationId] = useState(generateId);
+  const copilotRunCreatedRef = useRef(false);
   const posthog = usePostHog();
   const { tenantId, projectId, agentId } = useParams<{
     tenantId: string;
@@ -237,6 +239,10 @@ export function CopilotChat() {
               }
               if (event.eventName === 'user_message_submitted') {
                 setIsStreaming(true);
+                if (!copilotRunCreatedRef.current) {
+                  copilotRunCreatedRef.current = true;
+                  createCoPilotRunAction(tenantId, projectId, conversationId).catch(() => {});
+                }
               }
               if (event.eventName === 'assistant_message_received') {
                 setIsStreaming(false);
@@ -245,6 +251,7 @@ export function CopilotChat() {
                 setDynamicHeaders({});
                 setConversationId(generateId());
                 setIsStreaming(false);
+                copilotRunCreatedRef.current = false;
               }
               if (event.eventName === 'chat_error') {
                 sentry.captureException(new Error('Copilot chat error'), {

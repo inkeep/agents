@@ -3,9 +3,11 @@ import { makeManagementApiRequest } from './api-config';
 
 export interface ImprovementRun {
   branchName: string;
-  agentId: string;
-  timestamp: string;
-  agentStatus?: string;
+  conversationIds: string[];
+  triggeredBy: string;
+  status: string;
+  feedbackIds: string[] | null;
+  createdAt: string;
 }
 
 export interface ImprovementListResponse {
@@ -22,31 +24,63 @@ export async function fetchImprovements(
   return response;
 }
 
-export interface PrepareImprovementResponse {
+export interface TriggerImprovementResponse {
   branchName: string;
   conversationId: string;
-  chatPayload: {
-    model: string;
-    messages: Array<{ role: string; content: string }>;
-    stream: boolean;
-    conversationId: string;
-    headers: Record<string, string>;
-  };
-  targetHeaders: Record<string, string>;
 }
 
-export async function prepareImprovement(
+export async function triggerImprovement(
   tenantId: string,
   projectId: string,
   feedbackIds: string[],
-  agentId?: string,
   additionalContext?: string
-): Promise<PrepareImprovementResponse> {
-  const response = await makeManagementApiRequest<PrepareImprovementResponse>(
+): Promise<TriggerImprovementResponse> {
+  const response = await makeManagementApiRequest<TriggerImprovementResponse>(
     `tenants/${tenantId}/projects/${projectId}/improvements/trigger`,
     {
       method: 'POST',
-      body: JSON.stringify({ feedbackIds, agentId, additionalContext }),
+      body: JSON.stringify({ feedbackIds, additionalContext }),
+    }
+  );
+  return response;
+}
+
+export interface CreateCoPilotRunResponse {
+  id: string;
+  conversationIds: string[];
+}
+
+export async function createCoPilotRun(
+  tenantId: string,
+  projectId: string,
+  conversationId: string
+): Promise<CreateCoPilotRunResponse> {
+  const response = await makeManagementApiRequest<CreateCoPilotRunResponse>(
+    `tenants/${tenantId}/projects/${projectId}/improvements/copilot-runs`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ conversationId }),
+    }
+  );
+  return response;
+}
+
+export interface ContinueImprovementResponse {
+  conversationId: string;
+}
+
+export async function continueImprovement(
+  tenantId: string,
+  projectId: string,
+  branchName: string,
+  message: string,
+): Promise<ContinueImprovementResponse> {
+  const encoded = encodeURIComponent(branchName);
+  const response = await makeManagementApiRequest<ContinueImprovementResponse>(
+    `tenants/${tenantId}/projects/${projectId}/improvements/${encoded}/continue`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ message }),
     }
   );
   return response;
@@ -67,6 +101,11 @@ export interface FkColumnLink {
 
 export interface ImprovementDiffResponse {
   branchName: string;
+  targetBranch: string;
+  sourceHash?: string;
+  targetHash?: string;
+  hasConflicts: boolean;
+  conflicts: ConflictItem[];
   summary: ImprovementDiffSummary[];
   tables: Record<string, Record<string, unknown>[]>;
   fkLinks?: FkColumnLink[];
@@ -76,11 +115,15 @@ export interface ImprovementDiffResponse {
 export async function fetchImprovementDiff(
   tenantId: string,
   projectId: string,
-  branchName: string
+  branchName: string,
+  options?: { targetBranch?: string }
 ): Promise<ImprovementDiffResponse> {
   const encoded = encodeURIComponent(branchName);
+  const query = options?.targetBranch
+    ? `?targetBranch=${encodeURIComponent(options.targetBranch)}`
+    : '';
   const response = await makeManagementApiRequest<ImprovementDiffResponse>(
-    `tenants/${tenantId}/projects/${projectId}/improvements/${encoded}/diff`
+    `tenants/${tenantId}/projects/${projectId}/improvements/${encoded}/diff${query}`
   );
   return response;
 }
@@ -106,26 +149,53 @@ export interface MergeConflictResponse {
   conflicts: ConflictItem[];
 }
 
+export interface MergeImprovementResponse {
+  success: boolean;
+  message: string;
+  mergeCommitHash?: string;
+  sourceBranch: string;
+  targetBranch: string;
+}
+
 export type MergeResult =
-  | { success: true; message: string }
+  | {
+      success: true;
+      message: string;
+      mergeCommitHash?: string;
+      sourceBranch: string;
+      targetBranch: string;
+    }
   | { success: false; conflicts: ConflictItem[]; message: string };
+
+export interface MergeImprovementOptions {
+  resolutions?: ConflictResolution[];
+  targetBranch?: string;
+}
 
 export async function mergeImprovement(
   tenantId: string,
   projectId: string,
   branchName: string,
-  resolutions?: ConflictResolution[]
+  options?: MergeImprovementOptions
 ): Promise<MergeResult> {
   const encoded = encodeURIComponent(branchName);
   const url = `tenants/${tenantId}/projects/${projectId}/improvements/${encoded}/merge`;
-  const body = resolutions ? JSON.stringify({ resolutions }) : JSON.stringify({});
+  const payload: Record<string, unknown> = {};
+  if (options?.resolutions) payload.resolutions = options.resolutions;
+  if (options?.targetBranch) payload.targetBranch = options.targetBranch;
 
   try {
-    const response = await makeManagementApiRequest<{ success: boolean; message: string }>(url, {
+    const response = await makeManagementApiRequest<MergeImprovementResponse>(url, {
       method: 'POST',
-      body,
+      body: JSON.stringify(payload),
     });
-    return { success: true, message: response.message };
+    return {
+      success: true,
+      message: response.message,
+      mergeCommitHash: response.mergeCommitHash,
+      sourceBranch: response.sourceBranch,
+      targetBranch: response.targetBranch,
+    };
   } catch (error) {
     if (error instanceof ApiError && error.status === 409) {
       const errorData = error.data as MergeConflictResponse | undefined;
@@ -150,14 +220,17 @@ export async function revertImprovementRows(
   tenantId: string,
   projectId: string,
   branchName: string,
-  rows: RevertRowInput[]
+  rows: RevertRowInput[],
+  options?: { targetBranch?: string }
 ): Promise<{ success: boolean; message: string }> {
   const encoded = encodeURIComponent(branchName);
+  const body: Record<string, unknown> = { rows };
+  if (options?.targetBranch) body.targetBranch = options.targetBranch;
   const response = await makeManagementApiRequest<{ success: boolean; message: string }>(
     `tenants/${tenantId}/projects/${projectId}/improvements/${encoded}/revert`,
     {
       method: 'POST',
-      body: JSON.stringify({ rows }),
+      body: JSON.stringify(body),
     }
   );
   return response;
@@ -169,10 +242,18 @@ export interface ImprovementConversationMessage {
   createdAt?: string;
 }
 
+export interface ImprovementFeedbackItem {
+  id: string;
+  type: string | null;
+  details: unknown | null;
+  createdAt: string | null;
+}
+
 export interface ImprovementConversationResponse {
-  conversationId: string | null;
-  agentStatus?: string;
+  conversationIds: string[];
+  status?: string;
   messages: ImprovementConversationMessage[];
+  feedbackItems?: ImprovementFeedbackItem[];
 }
 
 export async function fetchImprovementConversation(

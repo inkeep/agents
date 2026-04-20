@@ -1,4 +1,3 @@
-import { and, eq, getTableColumns, sql } from 'drizzle-orm';
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   areBranchesSchemaCompatible,
@@ -10,19 +9,15 @@ import {
   doltAddAndCommit,
   doltCheckout,
   doltDiff,
-  doltDiffSummary,
   doltGetBranchNamespace,
-  doltMerge,
+  doltHashOf,
   doltPreviewMergeConflicts,
   doltPreviewMergeConflictsSummary,
-  getConversationHistory,
   getDatasetById,
   getEvaluatorById,
   getFeedbackByIds,
+  getInProcessFetch,
   getMessagesByConversation,
-  getWorkflowExecutionByConversation,
-  listBranches,
-  listConversations,
   listDatasetRuns,
   listEvaluationResultsByRun,
   listEvaluationRunsByJobConfigId,
@@ -30,22 +25,31 @@ import {
   manageFkColumnLinks,
   managePkMap,
   manageTableMap,
-  MergeConflictError,
   syncSchemaFromMain,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
+import { and, eq, getTableColumns, sql } from 'drizzle-orm';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
-import { prepareImprovement } from '../../run/services/ImprovementService';
-
-const IMPROVEMENT_PROJECT_ID = 'chat-to-edit';
+import {
+  createCoPilotRun,
+  deleteCoPilotRunByBranchName,
+  generateId,
+  getCoPilotRunByBranchName,
+  getProjectMainResolvedRef,
+  listCoPilotRuns,
+} from '@inkeep/agents-core';
+import { continueImprovement, triggerImprovement } from '../../run/services/ImprovementService';
 
 const logger = getLogger('improvements');
 
-function buildDynWhere(tableObj: Parameters<typeof getTableColumns>[0], pk: Record<string, string>) {
+function buildDynWhere(
+  tableObj: Parameters<typeof getTableColumns>[0],
+  pk: Record<string, string>
+) {
   const columns = getTableColumns(tableObj);
   const colByDbName = new Map(Object.values(columns).map((c) => [c.name, c]));
   const conditions = Object.entries(pk).map(([dbName, val]) => {
@@ -84,9 +88,11 @@ const EVAL_INFRASTRUCTURE_TABLES = new Set([
 const ImprovementRunSchema = z
   .object({
     branchName: z.string(),
-    agentId: z.string(),
-    timestamp: z.string(),
-    agentStatus: z.string().optional(),
+    conversationIds: z.array(z.string()),
+    triggeredBy: z.string().nullable(),
+    status: z.string(),
+    feedbackIds: z.array(z.string()).nullable(),
+    createdAt: z.string(),
   })
   .openapi('ImprovementRun');
 
@@ -129,64 +135,19 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
-    const db = c.get('db');
 
-    const [branches, { conversations }] = await Promise.all([
-      listBranches(db)({ tenantId, projectId }),
-      listConversations(runDbClient)({
-        scopes: { tenantId, projectId: IMPROVEMENT_PROJECT_ID },
-        pagination: { page: 1, limit: 200 },
-      }),
-    ]);
+    const runs = await listCoPilotRuns(runDbClient)({
+      scopes: { tenantId, projectId },
+    });
 
-    const branchConversationMap = new Map<string, string>();
-    for (const conv of conversations) {
-      const meta = conv.metadata as Record<string, unknown> | null;
-      const branch = meta?.improvementBranch as string | undefined;
-      if (branch) {
-        branchConversationMap.set(branch, conv.id);
-      }
-    }
-
-    const improvementBranches = branches.filter((b) =>
-      b.baseName.startsWith(IMPROVEMENT_BRANCH_PREFIX)
-    );
-
-    const workflowStatusMap = new Map<string, string>();
-    await Promise.all(
-      improvementBranches.map(async (b) => {
-        const convId = branchConversationMap.get(b.baseName);
-        if (!convId) return;
-        const execution = await getWorkflowExecutionByConversation(runDbClient)({
-          tenantId,
-          projectId: IMPROVEMENT_PROJECT_ID,
-          conversationId: convId,
-        });
-        if (execution?.status) {
-          workflowStatusMap.set(b.baseName, execution.status);
-        }
-      })
-    );
-
-    const improvements = improvementBranches
-      .map((b) => {
-        const afterPrefix = b.baseName.slice(IMPROVEMENT_BRANCH_PREFIX.length);
-        const sep = afterPrefix.startsWith('/') ? '/' : '_';
-        const parts = afterPrefix.slice(1).split(sep);
-        const rawTimestamp = parts.pop() ?? '';
-        const isoTimestamp = rawTimestamp.replace(
-          /^(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})-(\d+)Z$/,
-          '$1T$2:$3:$4.$5Z'
-        );
-        const agentId = parts.join(sep) === 'project' ? '' : (parts.join(sep) ?? '');
-        return {
-          branchName: b.baseName,
-          agentId,
-          timestamp: isoTimestamp || rawTimestamp,
-          agentStatus: workflowStatusMap.get(b.baseName),
-        };
-      })
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    const improvements = runs.map((r) => ({
+      branchName: r.ref?.name ?? '',
+      conversationIds: r.conversationIds ?? [],
+      triggeredBy: r.triggeredBy,
+      status: r.status ?? 'running',
+      feedbackIds: r.feedbackIds ?? null,
+      createdAt: r.createdAt,
+    }));
 
     return c.json({ data: improvements });
   }
@@ -212,7 +173,6 @@ app.openapi(
                 .array(z.string())
                 .min(1)
                 .describe('One or more feedback IDs to base the improvement on'),
-              agentId: z.string().optional().describe('Optionally scope to a specific agent'),
               additionalContext: z
                 .string()
                 .optional()
@@ -224,19 +184,12 @@ app.openapi(
     },
     responses: {
       200: {
-        description: 'Improvement prepared — client should fire the chat API call',
+        description: 'Improvement triggered — agent runs in the background',
         content: {
           'application/json': {
             schema: z.object({
               branchName: z.string(),
               conversationId: z.string(),
-              chatPayload: z.object({
-                model: z.string(),
-                messages: z.array(z.object({ role: z.string(), content: z.string() })),
-                stream: z.boolean(),
-                conversationId: z.string(),
-              }),
-              targetHeaders: z.record(z.string(), z.string()),
             }),
           },
         },
@@ -246,7 +199,7 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
-    const { feedbackIds, agentId, additionalContext } = c.req.valid('json');
+    const { feedbackIds, additionalContext } = c.req.valid('json');
 
     const feedbackItems = await getFeedbackByIds(runDbClient)({
       scopes: { tenantId, projectId },
@@ -268,16 +221,30 @@ app.openapi(
         message: `All feedback must belong to the same agent. Found feedback from multiple agents: ${[...agentIds].join(', ')}`,
       });
     }
+    const agentId = [...agentIds][0];
+    if (!agentId) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Could not derive target agentId from feedback',
+      });
+    }
 
-    const resolvedAgentId = agentId ?? (agentIds.size === 1 ? [...agentIds][0] : undefined) ?? undefined;
     const db = c.get('db');
+    const userId = c.get('userId');
+    if (!userId) {
+      throw createApiError({ code: 'unauthorized', message: 'userId is required' });
+    }
+    const forwardedCookie =
+      c.req.header('x-forwarded-cookie') || c.req.header('cookie') || undefined;
 
-    const result = await prepareImprovement({
+    const result = await triggerImprovement({
       tenantId,
       projectId,
-      agentId: resolvedAgentId,
+      agentId,
       feedbackIds,
       additionalContext,
+      userId,
+      forwardedCookie,
       db,
     });
 
@@ -287,33 +254,92 @@ app.openapi(
 
 app.openapi(
   createProtectedRoute({
-    method: 'get',
-    path: '/{branchName}/diff',
-    summary: 'Get Improvement Diff',
+    method: 'post',
+    path: '/copilot-runs',
+    summary: 'Create CoPilot Run',
     description:
-      'Get the diff between an improvement branch and main, showing what changes would be applied on merge.',
-    operationId: 'get-improvement-diff',
+      'Track an interactive copilot session. Called on the first user message in a copilot chat.',
+    operationId: 'create-copilot-run',
     tags: ['Improvements'],
-    permission: requireProjectPermission('view'),
+    permission: requireProjectPermission('edit'),
     request: {
-      params: ImprovementBranchParamsSchema,
-    },
-    responses: {
-      200: {
-        description: 'Diff between improvement branch and main',
+      params: TenantProjectParamsSchema,
+      body: {
         content: {
           'application/json': {
             schema: z.object({
-              branchName: z.string(),
-              summary: z.array(
-                z.object({
-                  tableName: z.string(),
-                  diffType: z.string(),
-                  dataChange: z.boolean(),
-                  schemaChange: z.boolean(),
-                })
-              ),
-              tables: z.record(z.string(), z.array(z.record(z.string(), z.unknown()))),
+              conversationId: z.string().describe('The conversation ID from the copilot chat'),
+            }),
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'CoPilot run tracked',
+        content: {
+          'application/json': {
+            schema: z.object({
+              id: z.string(),
+              conversationIds: z.array(z.string()),
+            }),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId } = c.req.valid('param');
+    const { conversationId } = c.req.valid('json');
+    const userId = c.get('userId');
+    const db = c.get('db');
+
+    const mainRef = await getProjectMainResolvedRef(db)(tenantId, projectId);
+
+    const run = await createCoPilotRun(runDbClient)({
+      tenantId,
+      projectId,
+      id: generateId(),
+      ref: mainRef,
+      conversationIds: [conversationId],
+      triggeredBy: userId,
+      status: 'running',
+    });
+
+    return c.json({ id: run.id, conversationIds: run.conversationIds ?? [] });
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'post',
+    path: '/{branchName}/continue',
+    summary: 'Continue Improvement',
+    description:
+      'Send a follow-up message to an improvement branch. Creates a new conversation and appends it to the existing copilot run.',
+    operationId: 'continue-improvement',
+    tags: ['Improvements'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: ImprovementBranchParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: z.object({
+              message: z.string().min(1).describe('The follow-up instruction for the agent'),
+            }),
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Continuation triggered — new conversation created',
+        content: {
+          'application/json': {
+            schema: z.object({
+              conversationId: z.string(),
             }),
           },
         },
@@ -323,9 +349,84 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, branchName } = c.req.valid('param');
+    const { message } = c.req.valid('json');
+    const userId = c.get('userId');
+    if (!userId) {
+      throw createApiError({ code: 'unauthorized', message: 'userId is required' });
+    }
+    const db = c.get('db');
+    const forwardedCookie =
+      c.req.header('x-forwarded-cookie') || c.req.header('cookie') || undefined;
+
+    const result = await continueImprovement({
+      tenantId,
+      projectId,
+      branchName: decodeURIComponent(branchName),
+      message,
+      userId,
+      forwardedCookie,
+      db,
+    });
+
+    return c.json(result);
+  }
+);
+
+const ImprovementDiffQuerySchema = z.object({
+  targetBranch: z.string().optional(),
+});
+
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/{branchName}/diff',
+    summary: 'Get Improvement Diff',
+    description:
+      'Get the diff between an improvement branch and a target branch (defaults to main), showing what changes would be applied on merge. Delegates conflict detection and hashes to the generic branches merge preview endpoint, and enriches with per-row table data and foreign-key metadata.',
+    operationId: 'get-improvement-diff',
+    tags: ['Improvements'],
+    permission: requireProjectPermission('view'),
+    request: {
+      params: ImprovementBranchParamsSchema,
+      query: ImprovementDiffQuerySchema,
+    },
+    responses: {
+      200: {
+        description: 'Diff between improvement branch and target branch',
+        content: {
+          'application/json': {
+            schema: z.object({
+              branchName: z.string(),
+              targetBranch: z.string(),
+              sourceHash: z.string().optional(),
+              targetHash: z.string().optional(),
+              hasConflicts: z.boolean(),
+              conflicts: z.array(ConflictItemSchema),
+              summary: z.array(
+                z.object({
+                  tableName: z.string(),
+                  diffType: z.string(),
+                  dataChange: z.boolean(),
+                  schemaChange: z.boolean(),
+                })
+              ),
+              tables: z.record(z.string(), z.array(z.record(z.string(), z.unknown()))),
+              fkLinks: z.array(z.unknown()).optional(),
+              pkMap: z.record(z.string(), z.array(z.string())).optional(),
+            }),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, branchName } = c.req.valid('param');
+    const { targetBranch: targetBranchParam } = c.req.valid('query');
     const db = c.get('db');
 
     const decodedBranchName = decodeURIComponent(branchName);
+    const targetBranch = targetBranchParam ?? 'main';
 
     if (!decodedBranchName.startsWith(IMPROVEMENT_BRANCH_PREFIX)) {
       throw createApiError({
@@ -342,44 +443,74 @@ app.openapi(
     const targetFullName = doltGetBranchNamespace({
       tenantId,
       projectId,
-      branchName: 'main',
+      branchName: targetBranch,
     })();
 
-    let summaryRows: any[];
-    try {
-      summaryRows = await doltDiffSummary(db)({
-        fromRevision: targetFullName,
-        toRevision: sourceFullName,
-      });
-    } catch (err) {
-      logger.warn({ sourceFullName, targetFullName, err }, 'Diff summary query failed — branch may not exist');
+    const requestUrl = new URL(c.req.url);
+    const previewUrl = `${requestUrl.origin}/manage/tenants/${encodeURIComponent(
+      tenantId
+    )}/projects/${encodeURIComponent(projectId)}/branches/merge/preview`;
+
+    const forwardedHeaders = new Headers(c.req.raw.headers);
+    forwardedHeaders.set('Content-Type', 'application/json');
+    forwardedHeaders.delete('content-length');
+
+    const previewResponse = await getInProcessFetch()(previewUrl, {
+      method: 'POST',
+      headers: forwardedHeaders,
+      body: JSON.stringify({ sourceBranch: decodedBranchName, targetBranch }),
+    });
+
+    if (!previewResponse.ok) {
+      // Branch missing or other upstream issue — surface an empty diff so UI can still render.
+      const errorBody = (await previewResponse.json().catch(() => null)) as
+        | { error?: { message?: string } }
+        | null;
+      logger.warn(
+        {
+          sourceFullName,
+          targetFullName,
+          status: previewResponse.status,
+          message: errorBody?.error?.message,
+        },
+        'Merge preview failed for improvement diff'
+      );
       return c.json({
         branchName: decodedBranchName,
+        targetBranch,
+        hasConflicts: false,
+        conflicts: [],
         summary: [],
         tables: {},
       });
     }
 
-    logger.info({ summaryRows, sourceFullName, targetFullName }, 'Diff summary raw rows');
+    const preview = (await previewResponse.json()) as {
+      data: {
+        hasConflicts: boolean;
+        sourceHash: string;
+        targetHash: string;
+        diffSummary: Array<{
+          table: string;
+          diffType: string;
+          dataChange: boolean;
+          schemaChange: boolean;
+        }>;
+        conflicts: z.infer<typeof ConflictItemSchema>[];
+      };
+    };
+    const summary = preview.data.diffSummary
+      .filter((row) => !EVAL_INFRASTRUCTURE_TABLES.has(row.table))
+      .map((row) => ({
+        tableName: row.table,
+        diffType: row.diffType,
+        dataChange: row.dataChange,
+        schemaChange: row.schemaChange,
+      }));
 
-    const summary = summaryRows
-      .map((row: any) => {
-        const tableName = row.table_name ?? row.to_table_name ?? row.from_table_name ?? undefined;
-        if (!tableName) return null;
-        const name = String(tableName);
-        if (EVAL_INFRASTRUCTURE_TABLES.has(name)) return null;
-        const dataChange =
-          row.data_change === true || row.data_change === 't' || row.data_change === 1;
-        const schemaChange =
-          row.schema_change === true || row.schema_change === 't' || row.schema_change === 1;
-        return {
-          tableName: name,
-          diffType: String(row.diff_type ?? 'modified'),
-          dataChange,
-          schemaChange,
-        };
-      })
-      .filter((s: any): s is NonNullable<typeof s> => s !== null);
+    const conflicts = preview.data.conflicts.filter(
+      (c) => !EVAL_INFRASTRUCTURE_TABLES.has(c.table)
+    );
 
     const tables: Record<string, any[]> = {};
     for (const s of summary) {
@@ -404,6 +535,11 @@ app.openapi(
 
     return c.json({
       branchName: decodedBranchName,
+      targetBranch,
+      sourceHash: preview.data.sourceHash,
+      targetHash: preview.data.targetHash,
+      hasConflicts: conflicts.length > 0,
+      conflicts,
       summary,
       tables,
       fkLinks: relevantFkLinks,
@@ -414,13 +550,21 @@ app.openapi(
   }
 );
 
+const MergeImprovementResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  mergeCommitHash: z.string().optional(),
+  sourceBranch: z.string(),
+  targetBranch: z.string(),
+});
+
 app.openapi(
   createProtectedRoute({
     method: 'post',
     path: '/{branchName}/merge',
     summary: 'Merge Improvement',
     description:
-      'Approve and merge an improvement branch into main. If conflicts exist, returns 409 with conflict details. Re-submit with resolutions to resolve.',
+      'Approve and merge an improvement branch into a target branch (defaults to main). Delegates the actual merge to the generic branches merge endpoint for locking and concurrency handling, then runs improvement-specific cleanup on success. If conflicts exist, returns 409 with conflict details. Re-submit with resolutions to resolve.',
     operationId: 'merge-improvement',
     tags: ['Improvements'],
     permission: requireProjectPermission('edit'),
@@ -430,6 +574,7 @@ app.openapi(
         content: {
           'application/json': {
             schema: z.object({
+              targetBranch: z.string().optional(),
               resolutions: z.array(ConflictResolutionSchema).optional(),
             }),
           },
@@ -442,7 +587,7 @@ app.openapi(
         description: 'Improvement merged successfully',
         content: {
           'application/json': {
-            schema: z.object({ success: z.boolean(), message: z.string() }),
+            schema: MergeImprovementResponseSchema,
           },
         },
       },
@@ -467,6 +612,14 @@ app.openapi(
 
     const body = c.req.valid('json');
     const resolutions = body?.resolutions;
+    const targetBranch = body?.targetBranch ?? 'main';
+
+    if (targetBranch === decodedBranchName) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Source and target branch must differ',
+      });
+    }
 
     const sourceFullName = doltGetBranchNamespace({
       tenantId,
@@ -476,7 +629,7 @@ app.openapi(
     const targetFullName = doltGetBranchNamespace({
       tenantId,
       projectId,
-      branchName: 'main',
+      branchName: targetBranch,
     })();
 
     const schemaCompat = await areBranchesSchemaCompatible(db)(sourceFullName, targetFullName);
@@ -497,24 +650,34 @@ app.openapi(
       }
     }
 
-    try {
-      await doltMerge(db)({
-        fromBranch: sourceFullName,
-        toBranch: targetFullName,
-        message: `Merge improvement "${decodedBranchName}" into main`,
-        resolutions,
-      });
-    } catch (error) {
-      if (error instanceof MergeConflictError) {
-        const conflicts = await buildImprovementConflictItems(db, targetFullName, sourceFullName);
+    const [sourceHash, targetHash] = await Promise.all([
+      doltHashOf(db)({ revision: sourceFullName }),
+      doltHashOf(db)({ revision: targetFullName }),
+    ]);
 
-        throw createApiError({
-          code: 'conflict',
-          message: `Merge has ${error.conflictCount} conflict(s) that need resolution.`,
-          extensions: { conflicts },
-        });
-      }
+    const requestUrl = new URL(c.req.url);
+    const mergeUrl = `${requestUrl.origin}/manage/tenants/${encodeURIComponent(
+      tenantId
+    )}/projects/${encodeURIComponent(projectId)}/branches/merge`;
 
+    const forwardedHeaders = new Headers(c.req.raw.headers);
+    forwardedHeaders.set('Content-Type', 'application/json');
+    forwardedHeaders.delete('content-length');
+
+    const mergeResponse = await getInProcessFetch()(mergeUrl, {
+      method: 'POST',
+      headers: forwardedHeaders,
+      body: JSON.stringify({
+        sourceBranch: decodedBranchName,
+        targetBranch,
+        sourceHash,
+        targetHash,
+        message: `Merge improvement "${decodedBranchName}" into ${targetBranch}`,
+        ...(resolutions ? { resolutions } : {}),
+      }),
+    });
+
+    if (mergeResponse.status === 409) {
       const conflicts = await buildImprovementConflictItems(
         db,
         targetFullName,
@@ -529,12 +692,63 @@ app.openapi(
         });
       }
 
-      throw error;
+      const errorBody = (await mergeResponse.json().catch(() => null)) as
+        | { error?: { message?: string } }
+        | null;
+      throw createApiError({
+        code: 'conflict',
+        message: errorBody?.error?.message ?? 'Merge conflict',
+      });
     }
+
+    if (!mergeResponse.ok) {
+      const errorBody = (await mergeResponse.json().catch(() => null)) as
+        | { error?: { message?: string } }
+        | null;
+      const message = errorBody?.error?.message ?? `Merge failed with status ${mergeResponse.status}`;
+      if (mergeResponse.status === 400) {
+        throw createApiError({ code: 'bad_request', message });
+      }
+      if (mergeResponse.status === 404) {
+        throw createApiError({ code: 'not_found', message });
+      }
+      throw createApiError({ code: 'internal_server_error', message });
+    }
+
+    const mergeResult = (await mergeResponse.json()) as {
+      data: {
+        status: 'success';
+        mergeCommitHash: string;
+        sourceBranch: string;
+        targetBranch: string;
+      };
+    };
+
+    await deleteBranch(db)({
+      tenantId,
+      projectId,
+      branchName: decodedBranchName,
+      force: true,
+    }).catch((err: unknown) => {
+      logger.warn({ err, branchName: decodedBranchName }, 'Failed to delete branch after merge');
+    });
+
+    await deleteCoPilotRunByBranchName(runDbClient)({
+      scopes: { tenantId, projectId },
+      branchName: decodedBranchName,
+    }).catch((err: unknown) => {
+      logger.warn(
+        { err, branchName: decodedBranchName },
+        'Failed to delete copilot run after merge'
+      );
+    });
 
     return c.json({
       success: true,
-      message: `Improvement branch "${decodedBranchName}" merged into main`,
+      message: `Improvement branch "${decodedBranchName}" merged into ${targetBranch}`,
+      mergeCommitHash: mergeResult.data.mergeCommitHash,
+      sourceBranch: decodedBranchName,
+      targetBranch,
     });
   }
 );
@@ -551,7 +765,7 @@ app.openapi(
     path: '/{branchName}/revert',
     summary: 'Revert Changes on Improvement Branch',
     description:
-      'Revert specific changes on the improvement branch before merging, allowing selective merge.',
+      'Revert specific changes on the improvement branch before merging, allowing selective merge. Baseline values for modified/removed rows are read from the target branch (defaults to main).',
     operationId: 'revert-improvement',
     tags: ['Improvements'],
     permission: requireProjectPermission('edit'),
@@ -562,6 +776,7 @@ app.openapi(
           'application/json': {
             schema: z.object({
               rows: z.array(RevertRowSchema),
+              targetBranch: z.string().optional(),
             }),
           },
         },
@@ -592,7 +807,16 @@ app.openapi(
       });
     }
 
-    const { rows } = c.req.valid('json');
+    const { rows, targetBranch: targetBranchParam } = c.req.valid('json');
+    const targetBranch = targetBranchParam ?? 'main';
+
+    if (targetBranch === decodedBranchName) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Source and target branch must differ',
+      });
+    }
+
     if (rows.length === 0) {
       return c.json({ success: true, message: 'No rows to revert' });
     }
@@ -602,28 +826,28 @@ app.openapi(
       projectId,
       branchName: decodedBranchName,
     })();
-    const mainFullName = doltGetBranchNamespace({
+    const targetFullName = doltGetBranchNamespace({
       tenantId,
       projectId,
-      branchName: 'main',
+      branchName: targetBranch,
     })();
 
-    const rowsNeedingMain = rows.filter(
+    const rowsNeedingBaseline = rows.filter(
       (r) => r.diffType === 'modified' || r.diffType === 'removed'
     );
-    const mainData = new Map<string, Record<string, unknown>>();
+    const baselineData = new Map<string, Record<string, unknown>>();
 
-    if (rowsNeedingMain.length > 0) {
-      await doltCheckout(db)({ branch: mainFullName });
-      for (const row of rowsNeedingMain) {
+    if (rowsNeedingBaseline.length > 0) {
+      await doltCheckout(db)({ branch: targetFullName });
+      for (const row of rowsNeedingBaseline) {
         const table = row.table.replace(/^public\./, '');
         const tableObj = manageTableMap[table];
         if (!tableObj) continue;
 
         const whereCondition = buildDynWhere(tableObj, row.primaryKey);
-        const [mainRow] = await db.select().from(tableObj).where(whereCondition).limit(1);
-        if (mainRow) {
-          mainData.set(`${row.table}:${JSON.stringify(row.primaryKey)}`, mainRow);
+        const [baselineRow] = await db.select().from(tableObj).where(whereCondition).limit(1);
+        if (baselineRow) {
+          baselineData.set(`${row.table}:${JSON.stringify(row.primaryKey)}`, baselineRow);
         }
       }
     }
@@ -640,36 +864,39 @@ app.openapi(
       if (row.diffType === 'added') {
         await db.delete(tableObj).where(whereCondition);
       } else if (row.diffType === 'modified') {
-        const mainRow = mainData.get(`${row.table}:${JSON.stringify(row.primaryKey)}`);
-        if (mainRow) {
+        const baselineRow = baselineData.get(`${row.table}:${JSON.stringify(row.primaryKey)}`);
+        if (baselineRow) {
           const pkCols = new Set(managePkMap[table] ?? []);
           const columns = getTableColumns(tableObj) as Record<string, { name: string }>;
           const setData: Record<string, unknown> = {};
           for (const [prop, col] of Object.entries(columns)) {
             if (!pkCols.has(col.name)) {
-              setData[prop] = mainRow[prop as keyof typeof mainRow];
+              setData[prop] = baselineRow[prop as keyof typeof baselineRow];
             }
           }
           await db.update(tableObj).set(setData).where(whereCondition);
         }
       } else if (row.diffType === 'removed') {
-        const mainRow = mainData.get(`${row.table}:${JSON.stringify(row.primaryKey)}`);
-        if (mainRow) {
-          await db.insert(tableObj).values(mainRow);
+        const baselineRow = baselineData.get(`${row.table}:${JSON.stringify(row.primaryKey)}`);
+        if (baselineRow) {
+          await db.insert(tableObj).values(baselineRow);
         }
       }
     }
 
     try {
       await doltAddAndCommit(db)({
-        message: `Revert ${rows.length} excluded row(s) before merge`,
+        message: `Revert ${rows.length} excluded row(s) before merge into ${targetBranch}`,
       });
     } catch {
-      logger.info({ tenantId, projectId, branchName: decodedBranchName, rowCount: rows.length }, 'No changes to commit (rows may already match main)');
+      logger.info(
+        { tenantId, projectId, branchName: decodedBranchName, targetBranch, rowCount: rows.length },
+        'No changes to commit (rows may already match target)'
+      );
     }
 
     logger.info(
-      { tenantId, projectId, branchName: decodedBranchName, rowCount: rows.length },
+      { tenantId, projectId, branchName: decodedBranchName, targetBranch, rowCount: rows.length },
       'Reverted excluded rows on improvement branch'
     );
 
@@ -719,6 +946,16 @@ app.openapi(
 
     await deleteBranch(db)({ tenantId, projectId, branchName: decodedBranchName, force: true });
 
+    await deleteCoPilotRunByBranchName(runDbClient)({
+      scopes: { tenantId, projectId },
+      branchName: decodedBranchName,
+    }).catch((err: unknown) => {
+      logger.warn(
+        { err, branchName: decodedBranchName },
+        'Failed to delete copilot run after reject'
+      );
+    });
+
     return c.json({
       success: true,
       message: `Improvement branch "${decodedBranchName}" rejected and deleted`,
@@ -744,8 +981,8 @@ app.openapi(
         content: {
           'application/json': {
             schema: z.object({
-              conversationId: z.string().nullable(),
-              agentStatus: z.string().optional(),
+              conversationIds: z.array(z.string()),
+              status: z.string().optional(),
               messages: z.array(
                 z.object({
                   role: z.string(),
@@ -753,6 +990,16 @@ app.openapi(
                   createdAt: z.string().optional(),
                 })
               ),
+              feedbackItems: z
+                .array(
+                  z.object({
+                    id: z.string(),
+                    type: z.string().nullable(),
+                    details: z.unknown().nullable(),
+                    createdAt: z.string().nullable(),
+                  })
+                )
+                .optional(),
             }),
           },
         },
@@ -761,51 +1008,41 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, branchName } = c.req.valid('param');
+    const { tenantId, projectId, branchName } = c.req.valid('param');
     const decodedBranchName = decodeURIComponent(branchName);
 
-    if (!decodedBranchName.startsWith(IMPROVEMENT_BRANCH_PREFIX)) {
-      throw createApiError({
-        code: 'bad_request',
-        message: 'Not an improvement branch',
-      });
-    }
-
-    const { conversations } = await listConversations(runDbClient)({
-      scopes: { tenantId, projectId: IMPROVEMENT_PROJECT_ID },
-      pagination: { page: 1, limit: 100 },
+    const run = await getCoPilotRunByBranchName(runDbClient)({
+      scopes: { tenantId, projectId },
+      branchName: decodedBranchName,
     });
 
-    const match = conversations.find((conv) => {
-      const meta = conv.metadata as Record<string, unknown> | null;
-      return meta?.improvementBranch === decodedBranchName;
-    });
-
-    if (!match) {
-      return c.json({ conversationId: null, agentStatus: undefined, messages: [] });
+    if (!run) {
+      return c.json({ conversationIds: [], status: undefined, messages: [], feedbackItems: undefined });
     }
 
-    const [messages, execution] = await Promise.all([
-      getConversationHistory(runDbClient)({
-        scopes: { tenantId, projectId: IMPROVEMENT_PROJECT_ID },
-        conversationId: match.id,
-        options: { limit: 200 },
-      }),
-      getWorkflowExecutionByConversation(runDbClient)({
-        tenantId,
-        projectId: IMPROVEMENT_PROJECT_ID,
-        conversationId: match.id,
-      }),
-    ]);
+    const feedbackIds = run.feedbackIds ?? [];
+
+    const feedbackItems =
+      feedbackIds.length > 0
+        ? await getFeedbackByIds(runDbClient)({
+            scopes: { tenantId, projectId },
+            feedbackIds,
+          }).catch(() => [])
+        : [];
 
     return c.json({
-      conversationId: match.id,
-      agentStatus: execution?.status,
-      messages: messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-        createdAt: m.createdAt,
-      })),
+      conversationIds: run.conversationIds ?? [],
+      status: run.status,
+      messages: [],
+      feedbackItems:
+        feedbackItems.length > 0
+          ? feedbackItems.map((f) => ({
+              id: f.id,
+              type: f.type,
+              details: f.details,
+              createdAt: f.createdAt,
+            }))
+          : undefined,
     });
   }
 );
@@ -1056,6 +1293,7 @@ app.openapi(
           id: run.id,
           datasetId: run.datasetId,
           datasetName: dataset?.name ?? run.datasetId,
+          datasetCreatedAt: dataset?.createdAt ?? null,
           runConfigName: run.datasetRunConfigId ?? null,
           createdAt: run.createdAt,
           phase: 'unknown' as 'baseline' | 'post_change' | 'unknown',

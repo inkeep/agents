@@ -13,23 +13,17 @@ export const metadata = {
 
 export default async function ImprovementBranchPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ tenantId: string; projectId: string; branchName: string }>;
-  searchParams: Promise<{ status?: string; conversationId?: string }>;
 }) {
   const { tenantId, projectId, branchName } = await params;
-  const { status } = await searchParams;
   const decodedBranch = decodeURIComponent(branchName);
-  const isNewRun = status === 'running';
 
   try {
     const [diff, conversation] = await Promise.all([
       fetchImprovementDiff(tenantId, projectId, decodedBranch),
       fetchImprovementConversation(tenantId, projectId, decodedBranch).catch(() => null),
     ]);
-
-    const agentStatus = conversation?.agentStatus ?? (isNewRun ? 'running' : undefined);
 
     return (
       <>
@@ -39,9 +33,9 @@ export default async function ImprovementBranchPage({
           projectId={projectId}
           diff={diff}
           branchName={decodedBranch}
-          isNewRun={isNewRun}
-          agentStatus={agentStatus}
-          conversationId={conversation?.conversationId ?? undefined}
+          status={conversation?.status}
+          conversationIds={conversation?.conversationIds ?? []}
+          feedbackItems={conversation?.feedbackItems}
         />
       </>
     );

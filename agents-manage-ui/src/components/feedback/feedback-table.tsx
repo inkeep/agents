@@ -39,12 +39,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Textarea } from '@/components/ui/textarea';
-import { getCopilotTokenAction } from '@/lib/actions/copilot-token';
-import { prepareImprovementAction } from '@/lib/actions/improvements';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { triggerImprovementAction } from '@/lib/actions/improvements';
 import type { Feedback } from '@/lib/api/feedback';
-import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { formatDateTimeTable } from '@/lib/utils/format-date';
 
 function truncate(value: string, max = 120): string {
@@ -81,7 +79,6 @@ export function FeedbackTable({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { PUBLIC_INKEEP_AGENTS_API_URL, PUBLIC_INKEEP_COPILOT_APP_ID } = useRuntimeConfig();
   const [typeFilter, setTypeFilter] = React.useState<'positive' | 'negative' | undefined>(
     filters.type
   );
@@ -122,65 +119,27 @@ export function FeedbackTable({
     setIsTriggering(true);
 
     const context = additionalContext.trim() || undefined;
-    const prepareResult = await prepareImprovementAction(
+    const triggerResult = await triggerImprovementAction(
       tenantId,
       projectId,
       Array.from(selectedIds),
-      undefined,
       context
     ).catch((error) => {
       toast.error(error instanceof Error ? error.message : 'Failed to trigger improvement');
       return null;
     });
 
-    if (!prepareResult?.success || !prepareResult.data) {
-      if (prepareResult) toast.error(prepareResult.error || 'Failed to prepare improvement');
+    if (!triggerResult?.success || !triggerResult.data) {
+      if (triggerResult) toast.error(triggerResult.error || 'Failed to trigger improvement');
       setIsTriggering(false);
       return;
     }
 
-    const { branchName, conversationId, chatPayload, targetHeaders } = prepareResult.data;
-
-    const tokenResult = await getCopilotTokenAction().catch(() => null);
-    if (!tokenResult?.success) {
-      toast.error('Failed to get auth token');
-      setIsTriggering(false);
-      return;
-    }
-
-    const appId = PUBLIC_INKEEP_COPILOT_APP_ID || tokenResult.data.appId;
-
-    const payloadWithCookie = {
-      ...chatPayload,
-      headers: {
-        ...chatPayload.headers,
-        ...(tokenResult.data.cookieHeader && {
-          'x-forwarded-cookie': tokenResult.data.cookieHeader,
-        }),
-      },
-    };
-
-    fetch(`${PUBLIC_INKEEP_AGENTS_API_URL}/run/v1/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${tokenResult.data.apiKey}`,
-        ...(appId && { 'x-inkeep-app-id': appId }),
-        ...(tokenResult.data.cookieHeader && {
-          'x-forwarded-cookie': tokenResult.data.cookieHeader,
-        }),
-        ...targetHeaders,
-      },
-      body: JSON.stringify(payloadWithCookie),
-    }).catch((err) => {
-      console.error('Improvement chat API call failed:', err);
-    });
+    const { branchName } = triggerResult.data;
 
     setIsTriggering(false);
     const branchEncoded = encodeURIComponent(branchName);
-    router.push(
-      `/${tenantId}/projects/${projectId}/improvements/${branchEncoded}?status=running&conversationId=${conversationId}`
-    );
+    router.push(`/${tenantId}/projects/${projectId}/improvements/${branchEncoded}`);
   };
 
   React.useEffect(() => {

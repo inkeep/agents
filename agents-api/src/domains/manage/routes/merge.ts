@@ -149,7 +149,7 @@ app.openapi(
     ]);
 
     const formattedDiff = diffSummary.map((row) => ({
-      table: row.table_name,
+      table: row.to_table_name ?? row.from_table_name ?? '',
       diffType: row.diff_type,
       dataChange: row.data_change,
       schemaChange: row.schema_change,

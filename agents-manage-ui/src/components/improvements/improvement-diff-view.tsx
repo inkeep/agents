@@ -91,7 +91,10 @@ function getRowPk(
 
 function getRowKey(tableName: string, pk: Record<string, string>): string {
   const raw = tableName.replace(/^public\./, '');
-  return `${raw}::${Object.entries(pk).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${k}=${v}`).join('&')}`;
+  return `${raw}::${Object.entries(pk)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}=${v}`)
+    .join('&')}`;
 }
 
 function getRowColValue(row: Record<string, unknown>, col: string): string {
@@ -118,15 +121,13 @@ function findChildren(
 
   for (const link of childLinks) {
     const childTableKey =
-      Object.keys(allTables).find(
-        (t) => t.replace(/^public\./, '') === link.childTable
-      ) ?? link.childTable;
+      Object.keys(allTables).find((t) => t.replace(/^public\./, '') === link.childTable) ??
+      link.childTable;
     const childRows = allTables[childTableKey] ?? [];
 
     for (const childRow of childRows) {
       const matches = link.columns.every(
-        ({ child, parent }) =>
-          getRowColValue(childRow, child) === getRowColValue(parentRow, parent)
+        ({ child, parent }) => getRowColValue(childRow, child) === getRowColValue(parentRow, parent)
       );
       if (matches) {
         const pk = getRowPk(childTableKey, childRow, pkMap);
@@ -159,9 +160,7 @@ function buildEntityGroups(
   const diffTableNames = new Set(diff.summary.map((s) => s.tableName.replace(/^public\./, '')));
 
   const childTableNames = new Set(
-    fkLinks
-      .filter((l) => diffTableNames.has(l.parentTable))
-      .map((l) => l.childTable)
+    fkLinks.filter((l) => diffTableNames.has(l.parentTable)).map((l) => l.childTable)
   );
 
   const rootSummaries = diff.summary.filter(
@@ -270,9 +269,7 @@ function RowDiffCard({
         <span className="font-mono text-muted-foreground font-medium">
           {tableName.replace(/^public\./, '')}
         </span>
-        {idDisplay && (
-          <span className="font-mono text-muted-foreground/70">{idDisplay}</span>
-        )}
+        {idDisplay && <span className="font-mono text-muted-foreground/70">{idDisplay}</span>}
         {isCascaded && !isExcluded && (
           <Badge variant="outline" className="text-xs text-amber-600 border-amber-300 gap-1">
             <Link2 className="h-3 w-3" />
@@ -287,9 +284,7 @@ function RowDiffCard({
               key={cf.field}
               className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1 items-start text-xs"
             >
-              <span className="font-mono font-medium text-muted-foreground pt-0.5">
-                {cf.field}
-              </span>
+              <span className="font-mono font-medium text-muted-foreground pt-0.5">{cf.field}</span>
               <div className="space-y-1">
                 {cf.diffType !== 'added' && (
                   <div className="flex items-start gap-1">
@@ -347,11 +342,7 @@ function EntityGroupCard({
             className="flex items-center gap-2 flex-1 cursor-pointer select-none"
             onClick={() => setExpanded(!expanded)}
           >
-            {expanded ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
+            {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
             <CardTitle className="text-sm font-mono">
               {group.parentTable.replace(/^public\./, '')}
             </CardTitle>

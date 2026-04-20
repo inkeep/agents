@@ -581,6 +581,25 @@ export const feedback = pgTable(
   ]
 );
 
+export const coPilotRuns = pgTable(
+  'copilot_runs',
+  {
+    ...projectScoped,
+    ref: jsonb('ref').$type<ResolvedRef>(),
+    conversationIds: jsonb('conversation_ids').$type<string[]>().notNull(),
+    feedbackIds: jsonb('feedback_ids').$type<string[]>(),
+    triggeredBy: varchar('triggered_by', { length: 256 }),
+    status: varchar('status', { length: 50 })
+      .$type<'running' | 'suspended' | 'completed' | 'failed'>()
+      .notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    index('copilot_runs_status_idx').on(table.tenantId, table.projectId, table.status),
+  ]
+);
+
 export const taskRelations = pgTable(
   'task_relations',
   {

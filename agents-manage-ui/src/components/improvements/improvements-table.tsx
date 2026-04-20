@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/table';
 import { mergeImprovementAction, rejectImprovementAction } from '@/lib/actions/improvements';
 import type { ImprovementRun } from '@/lib/api/improvements';
+import { formatDateTimeTable } from '@/lib/utils/format-date';
 
 interface ImprovementsTableProps {
   tenantId: string;
@@ -84,7 +85,6 @@ export function ImprovementsTable({ tenantId, projectId, improvements }: Improve
       <TableHeader>
         <TableRow>
           <TableHead>Branch</TableHead>
-          <TableHead>Agent</TableHead>
           <TableHead>Created</TableHead>
           <TableHead>Status</TableHead>
           <TableHead className="text-right">Actions</TableHead>
@@ -100,39 +100,31 @@ export function ImprovementsTable({ tenantId, projectId, improvements }: Improve
                   {improvement.branchName}
                 </Link>
               </TableCell>
-              <TableCell>{improvement.agentId || 'All agents'}</TableCell>
               <TableCell className="text-muted-foreground text-sm">
-                {improvement.timestamp
-                  ? new Date(improvement.timestamp).toLocaleString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                      hour: 'numeric',
-                      minute: '2-digit',
-                      hour12: true,
-                    })
+                {improvement.createdAt
+                  ? formatDateTimeTable(improvement.createdAt, { local: true })
                   : '—'}
               </TableCell>
               <TableCell>
-                {improvement.agentStatus === 'running' && (
+                {improvement.status === 'running' && (
                   <Badge variant="secondary" className="gap-1.5">
                     <Loader2 className="h-3 w-3 animate-spin" />
                     Running
                   </Badge>
                 )}
-                {improvement.agentStatus === 'completed' && (
+                {improvement.status === 'completed' && (
                   <Badge variant="default" className="gap-1.5">
                     <Check className="h-3 w-3" />
                     Completed
                   </Badge>
                 )}
-                {improvement.agentStatus === 'failed' && (
+                {improvement.status === 'failed' && (
                   <Badge variant="destructive" className="gap-1.5">
                     <XCircle className="h-3 w-3" />
                     Failed
                   </Badge>
                 )}
-                {!improvement.agentStatus && <Badge variant="outline">Ready for review</Badge>}
+                {!improvement.status && <Badge variant="outline">Ready for review</Badge>}
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-2">

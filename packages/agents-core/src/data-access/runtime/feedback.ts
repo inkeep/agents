@@ -145,6 +145,9 @@ export const getFeedbackByIds =
       .select({
         id: feedback.id,
         conversationId: feedback.conversationId,
+        type: feedback.type,
+        details: feedback.details,
+        createdAt: feedback.createdAt,
         agentId: conversations.agentId,
       })
       .from(feedback)
