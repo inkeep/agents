@@ -288,7 +288,7 @@ const updateAppHandler: ManageRouteHandler<typeof updateAppRouteConfig> = async 
   let nextCredentialReferenceId: string | undefined;
   if (data.config?.type === 'support_copilot') {
     assertCredentialRequirementMet(data.config.supportCopilot);
-    const { platform, credentialReferenceId } = data.config.supportCopilot;
+    const { platform, credentialReferenceId, quickActions } = data.config.supportCopilot;
 
     if (credentialReferenceId) {
       const db = c.get('db');
@@ -315,7 +315,7 @@ const updateAppHandler: ManageRouteHandler<typeof updateAppRouteConfig> = async 
 
     data.config = {
       type: 'support_copilot' as const,
-      supportCopilot: { platform, credentialReferenceId },
+      supportCopilot: { platform, credentialReferenceId, quickActions },
     };
   }
 

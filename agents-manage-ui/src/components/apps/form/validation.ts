@@ -52,9 +52,41 @@ const PLATFORM_SLUGS = SUPPORT_COPILOT_PLATFORMS.map((p) => p.slug) as [
   ...(typeof SUPPORT_COPILOT_PLATFORMS)[number]['slug'][],
 ];
 
+const supportCopilotQuickActionSchema = z.object({
+  label: z.string().min(1, 'Label is required').max(100, 'Label must be 100 characters or less'),
+  prompt: z
+    .string()
+    .min(1, 'User message is required')
+    .max(4000, 'User message must be 4000 characters or less'),
+});
+
+const supportCopilotQuickActionGroupSchema = z.object({
+  group: z
+    .string()
+    .min(1, 'Group name is required')
+    .max(100, 'Group name must be 100 characters or less'),
+  actions: z.array(supportCopilotQuickActionSchema).min(1, 'At least one action is required'),
+});
+
+export type SupportCopilotQuickActionGroupFormInput = z.infer<
+  typeof supportCopilotQuickActionGroupSchema
+>;
+
+export const DEFAULT_SUPPORT_COPILOT_QUICK_ACTIONS: SupportCopilotQuickActionGroupFormInput[] = [
+  {
+    group: 'Analyze',
+    actions: [
+      { label: 'Smart Assist', prompt: 'Run Smart Assist on this ticket' },
+      { label: 'Summarize thread', prompt: 'Summarize this thread' },
+      { label: 'Draft reply', prompt: 'Draft a reply for this ticket' },
+    ],
+  },
+];
+
 const supportCopilotFields = {
   supportCopilotPlatform: z.enum(PLATFORM_SLUGS).optional(),
   supportCopilotCredentialReferenceId: z.string().optional(),
+  supportCopilotQuickActions: z.array(supportCopilotQuickActionGroupSchema).optional(),
 };
 
 export function refineSupportCopilotFields(

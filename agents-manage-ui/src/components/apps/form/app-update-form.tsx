@@ -25,10 +25,12 @@ import {
 import { updateAppAction } from '@/lib/actions/apps';
 import type { App } from '@/lib/api/apps';
 import { SupportCopilotConfigSection } from './credential-access-section';
+import { SupportCopilotQuickActionsSection } from './support-copilot-quick-actions-section';
 import {
   type AppUpdateFormInput,
   AppUpdateFormSchema,
   refineSupportCopilotFields,
+  type SupportCopilotQuickActionGroupFormInput,
 } from './validation';
 
 interface AppUpdateFormProps {
@@ -62,7 +64,11 @@ export function AppUpdateForm({
   const supportCopilotConfig =
     app.type === 'support_copilot'
       ? ((app.config as Record<string, unknown>)?.supportCopilot as
-          | { platform?: string; credentialReferenceId?: string }
+          | {
+              platform?: string;
+              credentialReferenceId?: string;
+              quickActions?: SupportCopilotQuickActionGroupFormInput[];
+            }
           | undefined)
       : null;
 
@@ -109,6 +115,7 @@ export function AppUpdateForm({
               | AppUpdateFormInput['supportCopilotPlatform']
               | undefined,
             supportCopilotCredentialReferenceId: supportCopilotConfig?.credentialReferenceId ?? '',
+            supportCopilotQuickActions: supportCopilotConfig?.quickActions ?? [],
           }
         : {}),
     },
@@ -150,6 +157,9 @@ export function AppUpdateForm({
           supportCopilot: {
             platform: data.supportCopilotPlatform,
             credentialReferenceId: data.supportCopilotCredentialReferenceId || undefined,
+            quickActions: data.supportCopilotQuickActions?.length
+              ? data.supportCopilotQuickActions
+              : undefined,
           },
         };
       }
@@ -258,6 +268,8 @@ export function AppUpdateForm({
               control={form.control}
               credentialOptions={credentialOptions}
             />
+            <Separator />
+            <SupportCopilotQuickActionsSection control={form.control} />
           </>
         )}
 
