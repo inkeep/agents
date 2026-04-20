@@ -21,9 +21,11 @@ import { addAppAuthKeyAction } from '@/lib/actions/app-auth-keys';
 import { createAppAction } from '@/lib/actions/apps';
 import type { AppCreateResponse } from '@/lib/api/apps';
 import { SupportCopilotConfigSection } from './credential-access-section';
+import { SupportCopilotQuickActionsSection } from './support-copilot-quick-actions-section';
 import {
   type AppCreateFormInput,
   AppCreateFormSchema,
+  DEFAULT_SUPPORT_COPILOT_QUICK_ACTIONS,
   refineSupportCopilotFields,
 } from './validation';
 
@@ -62,6 +64,8 @@ export function AppCreateForm({
       audience: '',
       supportCopilotPlatform: undefined,
       supportCopilotCredentialReferenceId: '',
+      supportCopilotQuickActions:
+        appType === 'support_copilot' ? DEFAULT_SUPPORT_COPILOT_QUICK_ACTIONS : [],
     },
     mode: 'onChange',
   });
@@ -103,6 +107,9 @@ export function AppCreateForm({
                   supportCopilot: {
                     platform: data.supportCopilotPlatform,
                     credentialReferenceId: data.supportCopilotCredentialReferenceId || undefined,
+                    quickActions: data.supportCopilotQuickActions?.length
+                      ? data.supportCopilotQuickActions
+                      : undefined,
                   },
                 }
               : { type: 'api', api: {} },
@@ -185,10 +192,14 @@ export function AppCreateForm({
         />
 
         {appType === 'support_copilot' && (
-          <SupportCopilotConfigSection
-            control={form.control}
-            credentialOptions={credentialOptions}
-          />
+          <>
+            <SupportCopilotConfigSection
+              control={form.control}
+              credentialOptions={credentialOptions}
+            />
+            <Separator />
+            <SupportCopilotQuickActionsSection control={form.control} />
+          </>
         )}
 
         {appType === 'web_client' && (

@@ -1903,12 +1903,27 @@ export const SupportCopilotPlatformSchema = z
   .enum(SUPPORT_COPILOT_PLATFORM_SLUGS as [string, ...string[]])
   .openapi('SupportCopilotPlatform');
 
+export const SupportCopilotQuickActionSchema = z
+  .object({
+    label: z.string().min(1).max(100),
+    prompt: z.string().min(1).max(4000),
+  })
+  .openapi('SupportCopilotQuickAction');
+
+export const SupportCopilotQuickActionGroupSchema = z
+  .object({
+    group: z.string().min(1).max(100),
+    actions: z.array(SupportCopilotQuickActionSchema).min(1),
+  })
+  .openapi('SupportCopilotQuickActionGroup');
+
 export const SupportCopilotConfigSchema = z
   .object({
     type: z.literal('support_copilot'),
     supportCopilot: z.object({
       platform: SupportCopilotPlatformSchema,
       credentialReferenceId: z.string().min(1).optional(),
+      quickActions: z.array(SupportCopilotQuickActionGroupSchema).optional(),
     }),
   })
   .openapi('SupportCopilotConfig');

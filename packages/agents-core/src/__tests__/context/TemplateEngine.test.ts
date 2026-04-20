@@ -434,6 +434,138 @@ describe('TemplateEngine', () => {
     });
   });
 
+  describe('renderPrompt with runtimeBuiltins', () => {
+    let originalEnv: string | undefined;
+
+    beforeAll(() => {
+      originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+    });
+
+    afterAll(() => {
+      if (originalEnv !== undefined) {
+        process.env.NODE_ENV = originalEnv;
+      } else {
+        delete process.env.NODE_ENV;
+      }
+    });
+
+    test('should resolve $-prefixed path from runtimeBuiltins', () => {
+      const template = 'Conversation: {{$conversation.id}}';
+      const result = TemplateEngine.renderPrompt(template, sampleContext, {
+        runtimeBuiltins: { $conversation: { id: 'conv_abc' } },
+      });
+      expect(result).toBe('Conversation: conv_abc');
+    });
+
+    test('should fall through to processBuiltinVariable when runtimeBuiltins lacks the path', () => {
+      const template = 'Env: {{$env.NODE_ENV}}';
+      const result = TemplateEngine.renderPrompt(template, sampleContext, {
+        runtimeBuiltins: {},
+      });
+      expect(result).toBe('Env: production');
+    });
+
+    test('should behave identically to render() when no runtimeBuiltins provided', () => {
+      const template = 'Hello {{user.name}} from {{organization.name}}!';
+      const promptResult = TemplateEngine.renderPrompt(template, sampleContext);
+      const renderResult = TemplateEngine.render(template, sampleContext);
+      expect(promptResult).toBe(renderResult);
+      expect(promptResult).toBe('Hello John Doe from Inkeep!');
+    });
+
+    test('should return empty string for unknown $-prefix path not in runtimeBuiltins (lenient)', () => {
+      const template = 'Unknown: {{$conversation.id}}';
+      const result = TemplateEngine.renderPrompt(template, sampleContext, {
+        runtimeBuiltins: {},
+      });
+      expect(result).toBe('Unknown: ');
+    });
+
+    test('should still render non-$ variables via JMESPath alongside $-prefix paths', () => {
+      const template = '{{user.name}} in {{$conversation.id}}';
+      const result = TemplateEngine.renderPrompt(template, sampleContext, {
+        runtimeBuiltins: { $conversation: { id: 'conv_xyz' } },
+      });
+      expect(result).toBe('John Doe in conv_xyz');
+    });
+
+    test('should resolve nested $-prefix paths via dotted walk', () => {
+      const template = 'Task: {{$task.metadata.name}}';
+      const result = TemplateEngine.renderPrompt(template, sampleContext, {
+        runtimeBuiltins: { $task: { metadata: { name: 'resolve-ticket' } } },
+      });
+      expect(result).toBe('Task: resolve-ticket');
+    });
+
+    test('should JSON-stringify object values from runtimeBuiltins', () => {
+      const template = 'Obj: {{$conversation}}';
+      const result = TemplateEngine.renderPrompt(template, sampleContext, {
+        runtimeBuiltins: { $conversation: { id: 'conv_abc' } },
+      });
+      expect(result).toBe('Obj: {"id":"conv_abc"}');
+    });
+
+    test('should preserve render() behavior — runtimeBuiltins is not accepted on TemplateRenderOptions', () => {
+      // @ts-expect-error — runtimeBuiltins is not a field on TemplateRenderOptions;
+      // only PromptRenderOptions accepts it. Passing it to render() must be a type error.
+      TemplateEngine.render('plain', sampleContext, { runtimeBuiltins: {} });
+    });
+  });
+
+  describe('Scope invariant — non-prompt render sites (D6)', () => {
+    const headersContext: TemplateContext = {
+      headers: { 'x-trace-id': 'trace-real', authorization: 'Bearer secret' },
+    };
+
+    test('relationTools.ts:383 (isTeam delegation header, strict) does not resolve {{$conversation.id}}', () => {
+      const result = TemplateEngine.render('{{$conversation.id}}', headersContext, {
+        strict: true,
+      });
+      expect(result).toBe('');
+      expect(result).not.toContain('conv_');
+    });
+
+    test('ContextFetcher.ts:281 (URL interpolation, lenient + preserveUnresolved) does not resolve {{$conversation.id}}', () => {
+      const urlTemplate = 'https://api.example.com/convs/{{$conversation.id}}/events';
+      const result = TemplateEngine.render(urlTemplate, headersContext, {
+        strict: false,
+        preserveUnresolved: true,
+      });
+      expect(result).toBe('https://api.example.com/convs//events');
+      expect(result).not.toContain('conv_');
+    });
+
+    test('CredentialStuffer.ts:215 (MCP credential header, strict) does not resolve {{$conversation.id}}', () => {
+      const result = TemplateEngine.render(
+        'Bearer {{$conversation.id}}',
+        { headers: headersContext.headers },
+        { strict: true }
+      );
+      expect(result).toBe('Bearer ');
+      expect(result).not.toContain('conv_');
+    });
+
+    test('non-prompt render sites preserve $env.* behavior (regression)', () => {
+      const previousValue = process.env.__TEST_VAR_FOR_D6__;
+      process.env.__TEST_VAR_FOR_D6__ = 'env-value';
+      try {
+        const result = TemplateEngine.render(
+          '{{$env.__TEST_VAR_FOR_D6__}}',
+          {},
+          { strict: false, preserveUnresolved: true }
+        );
+        expect(result).toBe('env-value');
+      } finally {
+        if (previousValue === undefined) {
+          delete process.env.__TEST_VAR_FOR_D6__;
+        } else {
+          process.env.__TEST_VAR_FOR_D6__ = previousValue;
+        }
+      }
+    });
+  });
+
   describe('Performance', () => {
     test('should handle many variables efficiently', () => {
       const manyVarsTemplate = Array.from({ length: 100 }, (_, i) => `{{user.name}}_${i}`).join(
