@@ -1,5 +1,14 @@
 # @inkeep/agents-sdk
 
+## 0.69.0
+
+### Patch Changes
+
+- Updated dependencies [52d0831]
+- Updated dependencies [c63567e]
+- Updated dependencies [32bce4f]
+  - @inkeep/agents-core@0.69.0
+
 ## 0.68.4
 
 ### Patch Changes
@@ -743,11 +752,9 @@
   Skills are reusable instruction blocks that can be attached to sub-agents to govern behavior, reasoning, and tool usage.
 
   ### Features
-
   - **Visual Builder**: Create, edit, and delete skills from the new Skills page. Attach skills to sub-agents via the sidepane picker with drag-to-reorder support.
 
   - **TypeScript SDK**:
-
     - New `SkillDefinition` and `SkillReference` types
     - `loadSkills(directoryPath)` helper to load skills from `SKILL.md` files
     - `skills` config option on `SubAgent` and `Project`
@@ -757,7 +764,6 @@
   - **CLI**: `inkeep pull` now generates skill files in the `skills/` directory
 
   ### Loading Modes
-
   - **Always loaded**: Skill content is included in every prompt
   - **On-demand**: Skill appears as an outline in the system prompt and can be loaded via the built-in `load_skill` tool when needed
 
@@ -904,12 +910,10 @@
   This major version removes the legacy `signingSecret` parameter from the `trigger()` builder function and replaces it with a flexible signature verification system.
 
   **Breaking Changes:**
-
   - Removed `signingSecret` parameter from `trigger()` builder function
   - Triggers now require `signingSecretCredentialReference` and `signatureVerification` configuration for signature verification
 
   **New Features:**
-
   - Added `signatureVerification` parameter to `trigger()` with validation
   - Exported `SignatureVerificationConfig`, `SignatureSource`, and `SignedComponent` types
   - Added validation at trigger creation time for JMESPath and regex patterns
@@ -1614,7 +1618,6 @@
 
 - dba5a31: Update quickstart port check
 - b0817aa: Fix CLI bugs
-
   - Quickstart inkeep.config.ts indents and types
   - inkeep init run API and manage API urls
 
@@ -2502,12 +2505,10 @@
   ## Migration Guide
 
   Update all API calls by removing `/crud/` from endpoint paths:
-
   - **Before**: `/tenants/{tenantId}/crud/projects/{projectId}/...`
   - **After**: `/tenants/{tenantId}/projects/{projectId}/...`
 
   ## Changes
-
   - Removed `/crud/` segment from all manage-api route definitions
   - Updated all API client code in manage-ui, cli, and SDK packages
   - Cleaned up OpenAPI tags to remove "CRUD" prefix
