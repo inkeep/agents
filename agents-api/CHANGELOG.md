@@ -1,5 +1,105 @@
 # @inkeep/agents-api
 
+## 0.68.4
+
+### Patch Changes
+
+- Updated dependencies [7438f76]
+  - @inkeep/agents-work-apps@0.68.4
+  - @inkeep/agents-core@0.68.4
+  - @inkeep/agents-email@0.68.4
+  - @inkeep/agents-mcp@0.68.4
+
+## 0.68.3
+
+### Patch Changes
+
+- e8776f5: Add Microsoft as a social sign-in provider
+- Updated dependencies [e8776f5]
+  - @inkeep/agents-core@0.68.3
+  - @inkeep/agents-work-apps@0.68.3
+  - @inkeep/agents-email@0.68.3
+  - @inkeep/agents-mcp@0.68.3
+
+## 0.68.2
+
+### Patch Changes
+
+- 557f700: Add support_copilot app type with OAuth 2.1 JWT auth, tenant-level app discovery endpoint, and apps UI for configuring support copilot apps with credentials
+- 4e0fd65: Add POST /manage/api/invitations endpoint supporting bulk invite with project assignments
+- Updated dependencies [557f700]
+- Updated dependencies [4e0fd65]
+  - @inkeep/agents-core@0.68.2
+  - @inkeep/agents-work-apps@0.68.2
+  - @inkeep/agents-email@0.68.2
+  - @inkeep/agents-mcp@0.68.2
+
+## 0.68.1
+
+### Patch Changes
+
+- 0018f02: Filters out evaluators whose scope doesn't include the conversation's agent in batched evaluations
+- Updated dependencies [a074f63]
+  - @inkeep/agents-mcp@0.68.1
+  - @inkeep/agents-core@0.68.1
+  - @inkeep/agents-email@0.68.1
+  - @inkeep/agents-work-apps@0.68.1
+
+## 0.68.0
+
+### Minor Changes
+
+- d1e18a8: Add OAuth 2.1 / OIDC provider support via Better Auth oauth-provider plugin
+
+### Patch Changes
+
+- e223ac8: Fix tool chaining schema breaking Anthropic constrained JSON generation by replacing per-property anyOf wrapping with a map approach
+- accbb2e: Update MCP server catalog: fix broken URLs, migrate SSE to Streamable HTTP, add 17 new servers
+- Updated dependencies [d1e18a8]
+  - @inkeep/agents-core@0.68.0
+  - @inkeep/agents-work-apps@0.68.0
+  - @inkeep/agents-email@0.68.0
+  - @inkeep/agents-mcp@0.68.0
+
+## 0.67.4
+
+### Patch Changes
+
+- @inkeep/agents-core@0.67.4
+- @inkeep/agents-email@0.67.4
+- @inkeep/agents-mcp@0.67.4
+- @inkeep/agents-work-apps@0.67.4
+
+## 0.67.3
+
+### Patch Changes
+
+- ab65543: Fix text file artifacts being returned as base64-encoded file parts instead of decoded text content
+  - @inkeep/agents-core@0.67.3
+  - @inkeep/agents-email@0.67.3
+  - @inkeep/agents-mcp@0.67.3
+  - @inkeep/agents-work-apps@0.67.3
+
+## 0.67.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.67.2
+- @inkeep/agents-email@0.67.2
+- @inkeep/agents-mcp@0.67.2
+- @inkeep/agents-work-apps@0.67.2
+
+## 0.67.1
+
+### Patch Changes
+
+- 2bf0d15: Add GET /agents/{agentId}/tool-status endpoint returning deduped MCP tool health per agent
+- ad12123: Skip artifact creation for text document attachments that are already inlined into the prompt
+  - @inkeep/agents-core@0.67.1
+  - @inkeep/agents-email@0.67.1
+  - @inkeep/agents-mcp@0.67.1
+  - @inkeep/agents-work-apps@0.67.1
+
 ## 0.67.0
 
 ### Minor Changes

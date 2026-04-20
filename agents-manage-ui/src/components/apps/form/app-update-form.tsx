@@ -24,13 +24,19 @@ import {
 } from '@/lib/actions/app-auth-keys';
 import { updateAppAction } from '@/lib/actions/apps';
 import type { App } from '@/lib/api/apps';
-import { type AppUpdateFormInput, AppUpdateFormSchema } from './validation';
+import { SupportCopilotConfigSection } from './credential-access-section';
+import {
+  type AppUpdateFormInput,
+  AppUpdateFormSchema,
+  refineSupportCopilotFields,
+} from './validation';
 
 interface AppUpdateFormProps {
   tenantId: string;
   projectId: string;
   app: App;
   agentOptions: SelectOption[];
+  credentialOptions: SelectOption[];
   onAppUpdated: () => void;
 }
 
@@ -45,11 +51,19 @@ export function AppUpdateForm({
   projectId,
   app,
   agentOptions,
+  credentialOptions,
   onAppUpdated,
 }: AppUpdateFormProps) {
   const webConfig: WebClientConfigShape | null =
     app.type === 'web_client'
       ? (((app.config as Record<string, unknown>)?.webClient as WebClientConfigShape) ?? null)
+      : null;
+
+  const supportCopilotConfig =
+    app.type === 'support_copilot'
+      ? ((app.config as Record<string, unknown>)?.supportCopilot as
+          | { platform?: string; credentialReferenceId?: string }
+          | undefined)
       : null;
 
   const [serverKeys, setServerKeys] = useState<PublicKeyDisplay[]>([]);
@@ -70,8 +84,13 @@ export function AppUpdateForm({
     loadKeys();
   }, [tenantId, projectId, app.type, app.id]);
 
+  const schema =
+    app.type === 'support_copilot'
+      ? AppUpdateFormSchema.superRefine(refineSupportCopilotFields)
+      : AppUpdateFormSchema;
+
   const form = useForm<AppUpdateFormInput>({
-    resolver: zodResolver(AppUpdateFormSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       name: app.name,
       description: app.description ?? '',
@@ -82,6 +101,14 @@ export function AppUpdateForm({
         ? {
             allowedDomains: webConfig.allowedDomains?.join(', ') ?? '',
             audience: webConfig?.audience ?? '',
+          }
+        : {}),
+      ...(app.type === 'support_copilot'
+        ? {
+            supportCopilotPlatform: supportCopilotConfig?.platform as
+              | AppUpdateFormInput['supportCopilotPlatform']
+              | undefined,
+            supportCopilotCredentialReferenceId: supportCopilotConfig?.credentialReferenceId ?? '',
           }
         : {}),
     },
@@ -116,6 +143,14 @@ export function AppUpdateForm({
         payload.config = {
           type: 'web_client',
           webClient: webClientConfig,
+        };
+      } else if (app.type === 'support_copilot' && data.supportCopilotPlatform) {
+        payload.config = {
+          type: 'support_copilot',
+          supportCopilot: {
+            platform: data.supportCopilotPlatform,
+            credentialReferenceId: data.supportCopilotCredentialReferenceId || undefined,
+          },
         };
       }
 
@@ -215,6 +250,16 @@ export function AppUpdateForm({
           rows={4}
           className="max-h-96"
         />
+
+        {app.type === 'support_copilot' && (
+          <>
+            <Separator />
+            <SupportCopilotConfigSection
+              control={form.control}
+              credentialOptions={credentialOptions}
+            />
+          </>
+        )}
 
         {app.type === 'web_client' && !isLoadingKeys && (
           <>

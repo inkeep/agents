@@ -1,3 +1,7 @@
+import {
+  oauthProviderAuthServerMetadata,
+  oauthProviderOpenIdConfigMetadata,
+} from '@better-auth/oauth-provider';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { getInProcessFetch, getWaitUntil, registerAppFetch } from '@inkeep/agents-core';
 import { githubRoutes } from '@inkeep/agents-work-apps/github';
@@ -5,6 +9,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { requestId } from 'hono/request-id';
 import { pinoLogger } from 'hono-pino';
+import { credentialGatewayRoutes } from './domains/credential-gateway/routes';
 import { evalRoutes } from './domains/evals';
 import { workflowRoutes } from './domains/evals/workflow/routes';
 import { manageRoutes } from './domains/manage';
@@ -16,6 +21,8 @@ import { flushBatchProcessor } from './instrumentation';
 import { getLogger, runWithLogContext } from './logger';
 import {
   authCorsConfig,
+  credentialGatewayCatalogCorsConfig,
+  credentialGatewayCorsConfig,
   defaultCorsConfig,
   errorHandler,
   manageBearerOrSessionAuth,
@@ -124,6 +131,17 @@ function createAgentsHono(config: AppConfig) {
     app.on(['POST', 'GET'], '/api/auth/*', (c) => {
       return auth.handler(c.req.raw);
     });
+
+    // OIDC / OAuth 2.1 discovery endpoints
+    const openIdConfigHandler = oauthProviderOpenIdConfigMetadata(auth);
+    const authServerMetadataHandler = oauthProviderAuthServerMetadata(auth);
+
+    app.get('/.well-known/openid-configuration', (c) => {
+      return openIdConfigHandler(c.req.raw);
+    });
+    app.get('/.well-known/oauth-authorization-server/*', (c) => {
+      return authServerMetadataHandler(c.req.raw);
+    });
   }
   // Run routes - permissive CORS (origin: '*')
   app.use('/run/*', cors(runCorsConfig));
@@ -135,6 +153,9 @@ function createAgentsHono(config: AppConfig) {
 
   // Work Apps routes - specific CORS config for dashboard integration
   app.use('/work-apps/*', cors(workAppsCorsConfig));
+
+  app.use('/credential-gateway/.well-known/platforms', cors(credentialGatewayCatalogCorsConfig));
+  app.use('/credential-gateway/*', cors(credentialGatewayCorsConfig));
 
   // Global CORS middleware - handles all other routes
   app.use('*', async (c, next) => {
@@ -152,6 +173,9 @@ function createAgentsHono(config: AppConfig) {
       return next();
     }
     if (c.req.path.includes('/signoz/')) {
+      return next();
+    }
+    if (c.req.path.startsWith('/credential-gateway/')) {
       return next();
     }
 
@@ -338,6 +362,9 @@ function createAgentsHono(config: AppConfig) {
 
   // Mount MCP routes at top level
   app.route('/mcp', mcpRoutes);
+
+  // Mount Credential Gateway (server-to-server token exchange)
+  app.route('/credential-gateway', credentialGatewayRoutes);
 
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);

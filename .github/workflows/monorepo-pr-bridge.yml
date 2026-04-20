@@ -1,0 +1,76 @@
+name: Monorepo PR Bridge
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review, converted_to_draft, edited, closed]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: monorepo-pr-bridge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    # Skip PRs that originated from agents-private via Copybara (prevents circular sync)
+    if: github.event.pull_request.head.ref != 'copybara/sync'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout public repo automation
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+
+      - name: Generate agents-private app token
+        id: app-token
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        with:
+          app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
+          private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
+          owner: inkeep
+          repositories: agents-private
+
+      - name: Checkout agents-private
+        if: github.event.action != 'closed'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          repository: inkeep/agents-private
+          ref: main
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+          path: agents-private
+
+      - name: Sync public PR into agents-private
+        if: github.event.action != 'closed'
+        env:
+          INTERNAL_BASE_REF: main
+          INTERNAL_BRANCH_PREFIX: public-pr/agents
+          INTERNAL_REPO: inkeep/agents-private
+          INTERNAL_REPO_DIR: ${{ github.workspace }}/agents-private
+          INTERNAL_TOKEN: ${{ steps.app-token.outputs.token }}
+          MONOREPO_PATH_PREFIX: public/agents
+          PUBLIC_PR_ACTION: ${{ github.event.action }}
+          PUBLIC_PR_NUMBER: ${{ github.event.pull_request.number }}
+          PUBLIC_REPO: ${{ github.repository }}
+          PUBLIC_TOKEN: ${{ github.token }}
+        run: node .github/scripts/bridge-public-pr-to-monorepo.mjs sync
+
+      - name: Handle public PR closure
+        if: github.event.action == 'closed'
+        env:
+          INTERNAL_BRANCH_PREFIX: public-pr/agents
+          INTERNAL_REPO: inkeep/agents-private
+          INTERNAL_TOKEN: ${{ steps.app-token.outputs.token }}
+          PUBLIC_PR_NUMBER: ${{ github.event.pull_request.number }}
+          PUBLIC_REPO: ${{ github.repository }}
+          PUBLIC_TOKEN: ${{ github.token }}
+        run: node .github/scripts/bridge-public-pr-to-monorepo.mjs close

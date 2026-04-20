@@ -11,8 +11,10 @@ import type { createAuth } from '@inkeep/agents-core/auth';
 import { registerAuthzMeta } from '@inkeep/agents-core/middleware';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
+import { jwtVerify } from 'jose';
 import runDbClient from '../data/db/runDbClient';
 import { env } from '../env';
+import { getOAuthIssuer, getOAuthJwks } from '../utils/oauthJwks';
 import { sessionAuth } from './sessionAuth';
 
 /**
@@ -39,8 +41,9 @@ const logger = getLogger('env-key-auth');
  * Authentication priority:
  * 1. Bypass secret (INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET)
  * 2. Better-auth session token (from device authorization flow)
- * 3. Slack user JWT token (for Slack work app delegation)
- * 4. Internal service token
+ * 3. OAuth access token (JWT or opaque, from oauthProvider plugin)
+ * 4. Slack user JWT token (for Slack work app delegation)
+ * 5. Internal service token
  *
  * NOTE: Database API keys are intentionally NOT accepted on manage endpoints,
  * EXCEPT for the legacy exception on GET /manage/tenants/:t/projects/:p/conversations/:id
@@ -119,7 +122,39 @@ export const manageBearerAuth = () =>
       logger.debug({ error }, 'Better-auth session validation failed, trying other auth methods');
     }
 
-    // 3. Validate as a Slack user JWT token (for Slack work app delegation)
+    // 3. Validate as an OAuth JWT access token (from oauthProvider plugin)
+    // Only JWT tokens are handled here — opaque tokens are not issued by the copilot flow.
+    // OAuth JWT auth is disabled entirely when COPILOT_OAUTH_CLIENT_ID is unset, so an
+    // unconfigured deployment cannot be tricked into accepting a JWT intended for a different
+    // OAuth client on the same provider.
+    if (env.COPILOT_OAUTH_CLIENT_ID && token.split('.').length === 3) {
+      try {
+        const { payload } = await jwtVerify(token, getOAuthJwks(), {
+          issuer: getOAuthIssuer(),
+        });
+        const azp = payload.azp as string | undefined;
+        if (azp !== env.COPILOT_OAUTH_CLIENT_ID) {
+          throw new HTTPException(401, { message: 'Invalid OAuth client' });
+        }
+        const sub = payload.sub;
+        const tenantId = payload['https://inkeep.com/tenantId'] as string | undefined;
+        const email = payload['https://inkeep.com/email'] as string | undefined;
+        if (sub) {
+          logger.info({ userId: sub, tenantId }, 'OAuth JWT authenticated successfully');
+          c.set('userId', sub);
+          if (email) c.set('userEmail', email);
+          if (tenantId) c.set('tenantId', tenantId);
+          c.set('oauthClientId' as any, azp);
+          await next();
+          return;
+        }
+      } catch (error) {
+        if (error instanceof HTTPException) throw error;
+        logger.debug({ error }, 'OAuth JWT validation failed, trying other auth methods');
+      }
+    }
+
+    // 4. Validate as a Slack user JWT token (for Slack work app delegation)
     if (isSlackUserToken(token)) {
       const result = await verifySlackUserToken(token);
 
@@ -149,7 +184,7 @@ export const manageBearerAuth = () =>
       return;
     }
 
-    // 4. Validate as an internal service token if not already authenticated
+    // 5. Validate as an internal service token if not already authenticated
     if (isInternalServiceToken(token)) {
       const result = await verifyInternalServiceAuthHeader(authHeader);
       if (!result.valid || !result.payload) {
@@ -180,7 +215,7 @@ export const manageBearerAuth = () =>
       return;
     }
 
-    // 5. Legacy exception: allow database API keys on the get-conversation-by-ID endpoint only
+    // 6. Legacy exception: allow database API keys on the get-conversation-by-ID endpoint only
     if (isLegacyApiKeyAllowedRoute(c.req.method, c.req.path)) {
       try {
         const apiKeyRecord = await validateAndGetApiKey(token, runDbClient);

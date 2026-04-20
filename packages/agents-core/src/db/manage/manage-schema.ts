@@ -5,6 +5,7 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   numeric,
   pgTable,
   primaryKey,
@@ -36,7 +37,6 @@ import type {
   StopWhen,
   SubAgentStopWhen,
 } from '../../validation/schemas';
-import { jsonb } from './dolt-safe-jsonb';
 
 const tenantScoped = {
   tenantId: varchar('tenant_id', { length: 256 }).notNull(),

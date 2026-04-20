@@ -11,8 +11,10 @@ FOUR WAYS TO ACCESS ARTIFACT DATA:
    Saves a new artifact from a tool result. Only summary/preview fields are captured in context.
 
 3. TOOL CHAINING (PREFERRED) → the way data flows between tools
-   Pass data to another tool: { "$artifact": "id", "$tool": "toolCallId" } or { "$tool": "toolCallId", "$select": "..." }
-   The system resolves the data automatically. Use this regardless of whether the value is already visible in context.
+   To chain a parameter "foo" from a prior tool or artifact, set "foo": null at the top level and add an entry in "{{SENTINEL_REFS}}":
+     { "foo": null, "{{SENTINEL_REFS}}": { "foo": { "{{SENTINEL_TOOL}}": "<toolCallId>", "{{SENTINEL_SELECT}}": "<JMESPath, optional>" } } }
+   For artifacts, use { "{{SENTINEL_ARTIFACT}}": "id", "{{SENTINEL_TOOL}}": "toolCallId" } as the ref entry value.
+   The system resolves references before execution. Use this regardless of whether the value is already visible in context.
    Tool chaining is about how data moves between tools, not about data size or visibility.
    ALWAYS tool-chain when data flows to another tool.
 

@@ -26,7 +26,7 @@ const defaultConfig: ServerConfig = {
 export function createAgentsAuth(
   userAuthConfig?: UserAuthConfig,
   emailService?: EmailServiceConfig
-) {
+): ReturnType<typeof createAuth> {
   return createAuth({
     baseURL: env.INKEEP_AGENTS_API_URL || `http://localhost:3002`,
     secret: env.BETTER_AUTH_SECRET || 'development-secret-change-in-production',

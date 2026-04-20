@@ -1,6 +1,7 @@
 import {
   createEvaluationResult,
   generateId,
+  getAgentIdsForEvaluators,
   getConversation,
   getEvaluatorById,
   getEvaluatorsByIds,
@@ -124,6 +125,48 @@ async function executeEvaluatorStep(
   }
 }
 
+async function filterEvaluatorsByAgentStep(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string | null;
+  evaluatorIds: string[];
+}): Promise<string[]> {
+  'use step';
+
+  const { tenantId, projectId, agentId, evaluatorIds } = params;
+
+  if (!agentId) return evaluatorIds;
+
+  const projectMain = await getProjectMainResolvedRef(manageDbClient)(tenantId, projectId);
+
+  const agentIdsMap = await withRef(manageDbPool, projectMain, (db) =>
+    getAgentIdsForEvaluators(db)({
+      scopes: { tenantId, projectId },
+      evaluatorIds,
+    })
+  );
+
+  const filtered = evaluatorIds.filter((evalId) => {
+    const scopedAgents = agentIdsMap.get(evalId);
+    if (!scopedAgents || scopedAgents.length === 0) return true;
+    return scopedAgents.includes(agentId);
+  });
+
+  if (filtered.length < evaluatorIds.length) {
+    logger.info(
+      {
+        agentId,
+        originalCount: evaluatorIds.length,
+        filteredCount: filtered.length,
+        excluded: evaluatorIds.filter((id) => !filtered.includes(id)),
+      },
+      'Filtered evaluators by agent scoping in conversation evaluation'
+    );
+  }
+
+  return filtered;
+}
+
 /**
  * Step: Log workflow progress
  */
@@ -142,15 +185,36 @@ async function logStep(message: string, data: Record<string, any>) {
 async function _evaluateConversationWorkflow(payload: EvaluationPayload) {
   'use workflow';
 
-  const { conversationId, evaluatorIds } = payload;
+  const { tenantId, projectId, conversationId, evaluatorIds } = payload;
 
   await logStep('Starting conversation evaluation', payload);
 
   const conversation = await getConversationStep(payload);
-  const evaluators = await getEvaluatorsStep(payload);
+
+  const filteredEvaluatorIds = await filterEvaluatorsByAgentStep({
+    tenantId,
+    projectId,
+    agentId: conversation.agentId,
+    evaluatorIds,
+  });
+
+  if (filteredEvaluatorIds.length === 0) {
+    await logStep('No evaluators applicable after agent scoping', {
+      conversationId,
+      evaluatorIds,
+      agentId: conversation.agentId,
+    });
+    return { success: true, conversationId, resultCount: 0 };
+  }
+
+  const filteredPayload = { ...payload, evaluatorIds: filteredEvaluatorIds };
+  const evaluators = await getEvaluatorsStep(filteredPayload);
 
   if (evaluators.length === 0) {
-    await logStep('No valid evaluators found', { conversationId, evaluatorIds });
+    await logStep('No valid evaluators found', {
+      conversationId,
+      evaluatorIds: filteredEvaluatorIds,
+    });
     return { success: false, reason: 'No valid evaluators' };
   }
 

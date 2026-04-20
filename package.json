@@ -33,7 +33,7 @@
     "typecheck": "turbo typecheck --filter='!agents-cookbook-templates'",
     "typecheck:watch": "turbo typecheck:watch",
     "precheck": "pnpm install --frozen-lockfile",
-    "check": "turbo check --filter='!agents-cookbook-templates' && pnpm format:check && pnpm check:env-descriptions && pnpm check:route-handler-patterns && pnpm check:dal-boundary && pnpm check:changeset-packages && pnpm knip",
+    "check": "turbo check --filter='!agents-cookbook-templates' && pnpm format:check && pnpm check:env-descriptions && pnpm check:route-handler-patterns && pnpm check:dal-boundary && pnpm check:changeset-packages && pnpm check:packagemanager-sync && pnpm knip",
     "check:husky": "turbo check:husky --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'",
     "check:prepush": "turbo check:prepush --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'",
     "check:fix": "biome check --write",
@@ -85,7 +85,10 @@
     "check:dal-boundary": "bash scripts/lint-data-access-boundary.sh",
     "check:env-descriptions": "node scripts/check-env-descriptions.mjs",
     "check:route-handler-patterns": "node scripts/check-route-handler-patterns.mjs",
-    "setup-slack-dev": "tsx scripts/setup-slack-dev.ts"
+    "check:packagemanager-sync": "node scripts/check-packagemanager-sync.mjs",
+    "setup-slack-dev": "tsx scripts/setup-slack-dev.ts",
+    "setup-oauth-client": "tsx scripts/setup-oauth-client.ts",
+    "setup-gateway-client": "tsx scripts/setup-gateway-client.ts"
   },
   "version": "0.1.0",
   "dependencies": {

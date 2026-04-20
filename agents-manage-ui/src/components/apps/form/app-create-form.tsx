@@ -20,23 +20,39 @@ import { Separator } from '@/components/ui/separator';
 import { addAppAuthKeyAction } from '@/lib/actions/app-auth-keys';
 import { createAppAction } from '@/lib/actions/apps';
 import type { AppCreateResponse } from '@/lib/api/apps';
-import { type AppCreateFormInput, AppCreateFormSchema } from './validation';
+import { SupportCopilotConfigSection } from './credential-access-section';
+import {
+  type AppCreateFormInput,
+  AppCreateFormSchema,
+  refineSupportCopilotFields,
+} from './validation';
 
 interface AppCreateFormProps {
-  appType: 'web_client' | 'api';
+  appType: 'web_client' | 'api' | 'support_copilot';
   agentOptions: SelectOption[];
+  credentialOptions: SelectOption[];
   onAppCreated: (result: AppCreateResponse) => void;
 }
 
-export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreateFormProps) {
+export function AppCreateForm({
+  appType,
+  agentOptions,
+  credentialOptions,
+  onAppCreated,
+}: AppCreateFormProps) {
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
 
   const [pendingKeysToAdd, setPendingKeysToAdd] = useState<PendingKey[]>([]);
   const [kidsToDelete, setKidsToDelete] = useState<string[]>([]);
   const [requireAuth, setRequireAuth] = useState(true);
 
+  const schema =
+    appType === 'support_copilot'
+      ? AppCreateFormSchema.superRefine(refineSupportCopilotFields)
+      : AppCreateFormSchema;
+
   const form = useForm<AppCreateFormInput>({
-    resolver: zodResolver(AppCreateFormSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       name: '',
       description: '',
@@ -44,6 +60,8 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
       prompt: '',
       allowedDomains: appType === 'web_client' ? '' : undefined,
       audience: '',
+      supportCopilotPlatform: undefined,
+      supportCopilotCredentialReferenceId: '',
     },
     mode: 'onChange',
   });
@@ -79,7 +97,15 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
                   ...authConfig,
                 },
               }
-            : { type: 'api', api: {} },
+            : appType === 'support_copilot'
+              ? {
+                  type: 'support_copilot',
+                  supportCopilot: {
+                    platform: data.supportCopilotPlatform,
+                    credentialReferenceId: data.supportCopilotCredentialReferenceId || undefined,
+                  },
+                }
+              : { type: 'api', api: {} },
       };
 
       const result = await createAppAction(tenantId, projectId, payload);
@@ -157,6 +183,13 @@ export function AppCreateForm({ appType, agentOptions, onAppCreated }: AppCreate
           rows={4}
           className="max-h-96"
         />
+
+        {appType === 'support_copilot' && (
+          <SupportCopilotConfigSection
+            control={form.control}
+            credentialOptions={credentialOptions}
+          />
+        )}
 
         {appType === 'web_client' && (
           <>

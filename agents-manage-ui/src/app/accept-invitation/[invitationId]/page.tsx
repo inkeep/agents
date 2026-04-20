@@ -25,7 +25,8 @@ export default function AcceptInvitationPage({
   const { user, isLoading: isAuthLoading } = useAuthSession();
   const { invitationId } = use(params);
   const authClient = useAuthClient();
-  const { PUBLIC_GOOGLE_CLIENT_ID, PUBLIC_IS_SMTP_CONFIGURED } = useRuntimeConfig();
+  const { PUBLIC_GOOGLE_CLIENT_ID, PUBLIC_MICROSOFT_CLIENT_ID, PUBLIC_IS_SMTP_CONFIGURED } =
+    useRuntimeConfig();
 
   const [invitationVerification, setInvitationVerification] =
     useState<InvitationVerification | null>(null);
@@ -196,7 +197,7 @@ export default function AcceptInvitationPage({
       const result =
         method === 'social'
           ? await authClient.signIn.social({
-              provider: identifier as 'google',
+              provider: identifier as 'google' | 'microsoft',
               callbackURL: getFullCallbackURL(),
               ...(emailFromUrl && { loginHint: emailFromUrl }),
             })
@@ -298,6 +299,7 @@ export default function AcceptInvitationPage({
         invitationVerification={invitationVerification}
         email={emailFromUrl}
         googleClientId={PUBLIC_GOOGLE_CLIENT_ID}
+        microsoftClientId={PUBLIC_MICROSOFT_CLIENT_ID}
         isSmtpConfigured={!!PUBLIC_IS_SMTP_CONFIGURED}
         isSubmitting={isSubmitting}
         error={error}

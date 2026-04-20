@@ -1,5 +1,69 @@
 # @inkeep/agents-manage-ui
 
+## 0.68.4
+
+### Patch Changes
+
+- @inkeep/agents-core@0.68.4
+
+## 0.68.3
+
+### Patch Changes
+
+- e8776f5: Add Microsoft as a social sign-in provider
+- Updated dependencies [e8776f5]
+  - @inkeep/agents-core@0.68.3
+
+## 0.68.2
+
+### Patch Changes
+
+- 557f700: Add support_copilot app type with OAuth 2.1 JWT auth, tenant-level app discovery endpoint, and apps UI for configuring support copilot apps with credentials
+- Updated dependencies [557f700]
+- Updated dependencies [4e0fd65]
+  - @inkeep/agents-core@0.68.2
+
+## 0.68.1
+
+### Patch Changes
+
+- 7b3b8b6: Fix cost page timeout by aggregating cost queries at the database level
+  - @inkeep/agents-core@0.68.1
+
+## 0.68.0
+
+### Patch Changes
+
+- Updated dependencies [d1e18a8]
+  - @inkeep/agents-core@0.68.0
+
+## 0.67.4
+
+### Patch Changes
+
+- b2c15cd: Fix DynamicComponentRenderer not rendering in production by allowing unsafe-eval in CSP
+  - @inkeep/agents-core@0.67.4
+
+## 0.67.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.67.3
+
+## 0.67.2
+
+### Patch Changes
+
+- cad720b: improve UnsavedChangesDialog typings to fix `Type error: Type 'Control<{ tools: Record...>' is not assignable to type 'Control<any>'`
+  - @inkeep/agents-core@0.67.2
+
+## 0.67.1
+
+### Patch Changes
+
+- 284864a: Fix Cost Over Time chart showing a single dot by querying per-trace aggregates instead of deriving from a 200-event sample
+  - @inkeep/agents-core@0.67.1
+
 ## 0.67.0
 
 ### Minor Changes
