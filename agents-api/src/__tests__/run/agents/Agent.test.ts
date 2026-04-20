@@ -2176,3 +2176,378 @@ describe('Agent tool result persistence', () => {
     });
   });
 });
+
+describe('buildSystemPrompt $conversation.id rendering', () => {
+  let mockExecutionContext: any;
+  let baseAgentConfig: AgentConfig;
+
+  const makeRuntimeContext = (conversationId: string | undefined) => {
+    if (conversationId === undefined) {
+      return undefined;
+    }
+    return {
+      contextId: conversationId,
+      metadata: {
+        conversationId,
+        threadId: 'thread-1',
+        taskId: 'task-1',
+      },
+    };
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockExecutionContext = createMockExecutionContext();
+    baseAgentConfig = {
+      id: 'test-agent',
+      tenantId: 'test-tenant',
+      agentId: 'test-agent',
+      projectId: 'test-project',
+      baseUrl: 'http://localhost:3000',
+      name: 'Test Agent',
+      description: 'Test agent for $conversation.id rendering',
+      prompt: '',
+      subAgentRelations: [],
+      transferRelations: [],
+      delegateRelations: [],
+      tools: [],
+      dataComponents: [],
+      models: {
+        base: { model: 'anthropic/claude-sonnet-4-5' },
+      },
+    };
+  });
+
+  const getCorePromptSentToBuilder = (agent: any): string => {
+    const systemPromptBuilder = agent.ctx.systemPromptBuilder;
+    const call = systemPromptBuilder.buildSystemPrompt.mock.calls.at(-1);
+    return call[0].corePrompt as string;
+  };
+
+  test('resolves {{$conversation.id}} when agent has contextConfig', async () => {
+    const agentConfig: AgentConfig = {
+      ...baseAgentConfig,
+      prompt: 'Use conversation {{$conversation.id}} for tracking.',
+      contextConfigId: 'ctx-config-1',
+    } as AgentConfig;
+
+    mockExecutionContext.project.agents['test-agent'].contextConfig = {
+      id: 'ctx-config-1',
+      name: 'test-config',
+      createdAt: '2024-01-01',
+      updatedAt: '2024-01-01',
+    };
+
+    const agent = new Agent(agentConfig, mockExecutionContext);
+    (agent as any).ctx.contextResolver = {
+      resolve: vi.fn().mockResolvedValue({
+        resolvedContext: { extra: 'context-value' },
+        cacheHits: [],
+        cacheMisses: [],
+        fetchedDefinitions: [],
+        errors: [],
+      }),
+    };
+
+    await buildSystemPrompt((agent as any).ctx, makeRuntimeContext('conv_abc123'), false, {
+      mcpResult: { tools: {}, toolSets: [] },
+      functionTools: {},
+      relationTools: {},
+    });
+
+    expect(getCorePromptSentToBuilder(agent)).toBe('Use conversation conv_abc123 for tracking.');
+  });
+
+  test('resolves {{$conversation.id}} when agent has no contextConfig', async () => {
+    const agentConfig: AgentConfig = {
+      ...baseAgentConfig,
+      prompt: 'Conversation id is {{$conversation.id}}.',
+    };
+    const agent = new Agent(agentConfig, mockExecutionContext);
+
+    await buildSystemPrompt((agent as any).ctx, makeRuntimeContext('conv_xyz'), false, {
+      mcpResult: { tools: {}, toolSets: [] },
+      functionTools: {},
+      relationTools: {},
+    });
+
+    expect(getCorePromptSentToBuilder(agent)).toBe('Conversation id is conv_xyz.');
+  });
+
+  test('preserves non-$ {{...}} literals when no contextConfig and prompt has $conversation', async () => {
+    const agentConfig: AgentConfig = {
+      ...baseAgentConfig,
+      prompt: 'Hello {{example}} for conversation {{$conversation.id}}.',
+    };
+    const agent = new Agent(agentConfig, mockExecutionContext);
+
+    await buildSystemPrompt((agent as any).ctx, makeRuntimeContext('conv_xyz'), false, {
+      mcpResult: { tools: {}, toolSets: [] },
+      functionTools: {},
+      relationTools: {},
+    });
+
+    expect(getCorePromptSentToBuilder(agent)).toBe('Hello {{example}} for conversation conv_xyz.');
+  });
+
+  test('skips rendering when no contextConfig and no $conversation reference (G4)', async () => {
+    const promptText = 'Hello {{example}} — no variable reference.';
+    const agentConfig: AgentConfig = {
+      ...baseAgentConfig,
+      prompt: promptText,
+    };
+    const agent = new Agent(agentConfig, mockExecutionContext);
+
+    await buildSystemPrompt((agent as any).ctx, makeRuntimeContext('conv_xyz'), false, {
+      mcpResult: { tools: {}, toolSets: [] },
+      functionTools: {},
+      relationTools: {},
+    });
+
+    expect(getCorePromptSentToBuilder(agent)).toBe(promptText);
+  });
+
+  test('resolves to empty string when conversationId is the default sentinel', async () => {
+    const agentConfig: AgentConfig = {
+      ...baseAgentConfig,
+      prompt: 'id=[{{$conversation.id}}]',
+    };
+    const agent = new Agent(agentConfig, mockExecutionContext);
+
+    await buildSystemPrompt((agent as any).ctx, makeRuntimeContext('default'), false, {
+      mcpResult: { tools: {}, toolSets: [] },
+      functionTools: {},
+      relationTools: {},
+    });
+
+    expect(getCorePromptSentToBuilder(agent)).toBe('id=[]');
+  });
+
+  test('resolves to empty string when runtimeContext is undefined', async () => {
+    const agentConfig: AgentConfig = {
+      ...baseAgentConfig,
+      prompt: 'id=[{{$conversation.id}}]',
+    };
+    const agent = new Agent(agentConfig, mockExecutionContext);
+
+    await buildSystemPrompt((agent as any).ctx, undefined, false, {
+      mcpResult: { tools: {}, toolSets: [] },
+      functionTools: {},
+      relationTools: {},
+    });
+
+    expect(getCorePromptSentToBuilder(agent)).toBe('id=[]');
+  });
+});
+
+describe('A2A delegation propagates parent conversationId to child {{$conversation.id}}', () => {
+  let mockExecutionContext: any;
+  let baseAgentConfig: AgentConfig;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockExecutionContext = createMockExecutionContext();
+    baseAgentConfig = {
+      id: 'child-sub-agent',
+      tenantId: 'test-tenant',
+      agentId: 'test-agent',
+      projectId: 'test-project',
+      baseUrl: 'http://localhost:3000',
+      name: 'Child Sub Agent',
+      description: 'Child sub-agent for delegation propagation tests',
+      prompt: '',
+      subAgentRelations: [],
+      transferRelations: [],
+      delegateRelations: [],
+      tools: [],
+      dataComponents: [],
+      models: {
+        base: { model: 'anthropic/claude-sonnet-4-5' },
+      },
+    };
+  });
+
+  const buildDelegationMessageToSend = (parentConversationId: string) => ({
+    role: 'agent' as const,
+    parts: [{ text: 'please handle this sub-task', kind: 'text' as const }],
+    messageId: 'msg-parent-to-child',
+    kind: 'message' as const,
+    contextId: parentConversationId,
+    metadata: {
+      conversationId: parentConversationId,
+      threadId: parentConversationId,
+      isDelegation: true,
+      delegationId: 'del_test',
+      fromSubAgentId: 'parent-sub-agent',
+    },
+  });
+
+  const resolveEffectiveContextIdFromHandler = (message: {
+    contextId?: string;
+    metadata?: { conversationId?: string; [key: string]: unknown };
+  }): string => {
+    let effectiveContextId: string | undefined = message.contextId;
+    if (!effectiveContextId || effectiveContextId === 'default') {
+      effectiveContextId = message.metadata?.conversationId;
+    }
+    if (!effectiveContextId || effectiveContextId === 'default') {
+      if (message.metadata?.conversationId && message.metadata.conversationId !== 'default') {
+        effectiveContextId = message.metadata.conversationId;
+      }
+    }
+    if (!effectiveContextId || effectiveContextId === 'default') {
+      effectiveContextId = 'default';
+    }
+    return effectiveContextId;
+  };
+
+  const buildChildTaskFromMessage = (message: any, taskId = 'task_child_1') => ({
+    id: taskId,
+    input: { parts: message.parts },
+    context: {
+      conversationId: message.contextId,
+      metadata: {
+        blocking: false,
+        custom: { agent_id: 'test-agent' },
+        ...message.metadata,
+      },
+    },
+  });
+
+  const extractContextIdForGenerate = (task: {
+    id: string;
+    context: { conversationId?: string };
+  }) => {
+    let contextId = task.context?.conversationId;
+    if (!contextId || contextId === 'default' || contextId === '') {
+      const taskIdMatch = task.id.match(/^task_([^-]+-[^-]+-\d+)-/);
+      contextId = taskIdMatch ? taskIdMatch[1] : 'default';
+    }
+    return contextId as string;
+  };
+
+  const buildRuntimeContextFromTask = (task: any, contextId: string) => ({
+    contextId,
+    metadata: {
+      conversationId: contextId,
+      taskId: task.id,
+      threadId: contextId,
+    },
+  });
+
+  test('parent conversationId propagates through A2A delegation into child system prompt', async () => {
+    const parentConversationId = 'parent_conv_X';
+
+    const messageToSend = buildDelegationMessageToSend(parentConversationId);
+    expect(messageToSend.contextId).toBe(parentConversationId);
+    expect(messageToSend.metadata.conversationId).toBe(parentConversationId);
+
+    const effectiveContextId = resolveEffectiveContextIdFromHandler(messageToSend);
+    expect(effectiveContextId).toBe(parentConversationId);
+
+    const childTask = buildChildTaskFromMessage(messageToSend);
+    expect(childTask.context.conversationId).toBe(parentConversationId);
+
+    const childContextId = extractContextIdForGenerate(childTask);
+    expect(childContextId).toBe(parentConversationId);
+
+    const runtimeContext = buildRuntimeContextFromTask(childTask, childContextId);
+    expect(runtimeContext.metadata.conversationId).toBe(parentConversationId);
+
+    const childConfig: AgentConfig = {
+      ...baseAgentConfig,
+      prompt:
+        'Set the "inkeep_conversation" custom field to {{$conversation.id}} on the Zendesk ticket.',
+    };
+    const child = new Agent(childConfig, mockExecutionContext);
+
+    await buildSystemPrompt((child as any).ctx, runtimeContext, false, {
+      mcpResult: { tools: {}, toolSets: [] },
+      functionTools: {},
+      relationTools: {},
+    });
+
+    const rendered = (child as any).ctx.systemPromptBuilder.buildSystemPrompt.mock.calls.at(-1)[0]
+      .corePrompt as string;
+
+    expect(rendered).toBe(
+      'Set the "inkeep_conversation" custom field to parent_conv_X on the Zendesk ticket.'
+    );
+    expect(rendered).toContain(parentConversationId);
+    expect(rendered).not.toContain('{{$conversation.id}}');
+  });
+
+  test('transfer preserves parent conversationId in target sub-agent prompt (same execution loop)', async () => {
+    const parentConversationId = 'parent_conv_transfer_Y';
+
+    const runtimeContext = {
+      contextId: parentConversationId,
+      metadata: {
+        conversationId: parentConversationId,
+        taskId: 'task-parent-1',
+        threadId: parentConversationId,
+      },
+    };
+
+    const targetConfig: AgentConfig = {
+      ...baseAgentConfig,
+      id: 'transfer-target-sub-agent',
+      prompt: 'Continuing conversation {{$conversation.id}} after transfer.',
+    };
+    const target = new Agent(targetConfig, mockExecutionContext);
+
+    await buildSystemPrompt((target as any).ctx, runtimeContext, false, {
+      mcpResult: { tools: {}, toolSets: [] },
+      functionTools: {},
+      relationTools: {},
+    });
+
+    const rendered = (target as any).ctx.systemPromptBuilder.buildSystemPrompt.mock.calls.at(-1)[0]
+      .corePrompt as string;
+
+    expect(rendered).toBe('Continuing conversation parent_conv_transfer_Y after transfer.');
+  });
+
+  test('propagation falls back to default when parent conversationId is missing', async () => {
+    const messageToSend = {
+      role: 'agent' as const,
+      parts: [{ text: 'sub-task', kind: 'text' as const }],
+      messageId: 'msg-no-conv',
+      kind: 'message' as const,
+      contextId: undefined as string | undefined,
+      metadata: { isDelegation: true },
+    };
+
+    const effectiveContextId = resolveEffectiveContextIdFromHandler(messageToSend);
+    expect(effectiveContextId).toBe('default');
+
+    const childTask = {
+      id: 'task_plain_child',
+      input: { parts: messageToSend.parts },
+      context: {
+        conversationId: effectiveContextId,
+        metadata: { blocking: false, custom: { agent_id: 'test-agent' } },
+      },
+    };
+    const childContextId = extractContextIdForGenerate(childTask);
+    expect(childContextId).toBe('default');
+
+    const runtimeContext = buildRuntimeContextFromTask(childTask, childContextId);
+
+    const childConfig: AgentConfig = {
+      ...baseAgentConfig,
+      prompt: 'id=[{{$conversation.id}}]',
+    };
+    const child = new Agent(childConfig, mockExecutionContext);
+
+    await buildSystemPrompt((child as any).ctx, runtimeContext, false, {
+      mcpResult: { tools: {}, toolSets: [] },
+      functionTools: {},
+      relationTools: {},
+    });
+
+    const rendered = (child as any).ctx.systemPromptBuilder.buildSystemPrompt.mock.calls.at(-1)[0]
+      .corePrompt as string;
+    expect(rendered).toBe('id=[]');
+  });
+});

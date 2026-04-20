@@ -12,6 +12,10 @@ export interface TemplateRenderOptions {
   preserveUnresolved?: boolean; // If true, keep unresolved templates as-is
 }
 
+export interface PromptRenderOptions extends TemplateRenderOptions {
+  runtimeBuiltins?: Record<string, unknown>;
+}
+
 export class TemplateEngine {
   private static readonly DEFAULT_OPTIONS: Required<TemplateRenderOptions> = {
     strict: false,
@@ -26,11 +30,37 @@ export class TemplateEngine {
     context: TemplateContext,
     options: TemplateRenderOptions = {}
   ): string {
+    return TemplateEngine.renderInternal(template, context, options);
+  }
+
+  /**
+   * Render an agent prompt with runtime-provided builtins. $-prefixed paths are
+   * first resolved against `runtimeBuiltins` via a dotted-path walk; unresolved
+   * $-paths fall through to the standard built-in dispatch.
+   */
+  static renderPrompt(
+    template: string,
+    context: TemplateContext,
+    options: PromptRenderOptions = {}
+  ): string {
+    return TemplateEngine.renderInternal(template, context, options);
+  }
+
+  private static renderInternal(
+    template: string,
+    context: TemplateContext,
+    options: PromptRenderOptions
+  ): string {
     const opts = { ...TemplateEngine.DEFAULT_OPTIONS, ...options };
 
     try {
       // Process template variables using JMESPath
-      const rendered = TemplateEngine.processVariables(template, context, opts);
+      const rendered = TemplateEngine.processVariables(
+        template,
+        context,
+        opts,
+        options.runtimeBuiltins
+      );
 
       // Check for unresolved variables if strict mode
       if (opts.strict && TemplateEngine.hasTemplateVariables(rendered)) {
@@ -58,7 +88,8 @@ export class TemplateEngine {
   private static processVariables(
     template: string,
     context: TemplateContext,
-    options: Required<TemplateRenderOptions>
+    options: Required<TemplateRenderOptions>,
+    runtimeBuiltins?: Record<string, unknown>
   ): string {
     return template.replace(/\{\{([^}]+)\}\}/g, (match, path) => {
       const trimmedPath = path.trim();
@@ -66,6 +97,12 @@ export class TemplateEngine {
       try {
         // Handle special built-in variables
         if (trimmedPath.startsWith('$')) {
+          if (runtimeBuiltins) {
+            const resolved = TemplateEngine.resolveRuntimeBuiltin(trimmedPath, runtimeBuiltins);
+            if (resolved !== undefined) {
+              return resolved;
+            }
+          }
           return TemplateEngine.processBuiltinVariable(trimmedPath);
         }
 
@@ -138,6 +175,38 @@ export class TemplateEngine {
         return options.preserveUnresolved ? match : '';
       }
     });
+  }
+
+  /**
+   * Walk a dotted `$`-prefix path against runtime-provided builtins. Returns
+   * the stringified value if found and non-null, or undefined to signal
+   * fall-through to the default built-in dispatch.
+   */
+  private static resolveRuntimeBuiltin(
+    path: string,
+    runtimeBuiltins: Record<string, unknown>
+  ): string | undefined {
+    const segments = path.split('.');
+    let current: unknown = runtimeBuiltins;
+    for (const segment of segments) {
+      if (current === null || current === undefined) {
+        return undefined;
+      }
+      if (typeof current !== 'object') {
+        return undefined;
+      }
+      current = (current as Record<string, unknown>)[segment];
+    }
+
+    if (current === undefined || current === null) {
+      return undefined;
+    }
+
+    if (typeof current === 'object') {
+      return JSON.stringify(current);
+    }
+
+    return String(current);
   }
 
   /**
