@@ -1,5 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": {
+      "main": false
+    }
+  },
   "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" = \"changeset-release/main\" ]; then exit 0; fi; npx -y turbo-ignore @inkeep/agents-api --fallback=HEAD^10",
   "framework": "hono",
   "installCommand": "pnpm install",

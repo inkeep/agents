@@ -123,6 +123,16 @@ jobs:
       # Main branch: publish whatever package versions are ahead of npm.
       # This is the "Version PR got merged on agents-private, copybara
       # delivered the bump, now ship it" path.
+      #
+      # History: the original version used a grep pattern matching
+      # changesets v1's "Publishing ... at ..." log format. Under
+      # `set -o pipefail`, grep-no-match exited 1 and failed the whole
+      # step - which fired agents-release-failure even though npm publish
+      # had actually succeeded. Packages at 0.69.0 shipped but the GH
+      # Release and Vercel prod deploy were skipped. Defensive rewrite
+      # below: derive `published` from a presence check in the log, and
+      # fall back to package.json for the version so grep format drift
+      # never again misreports a successful publish.
       - name: Publish main release
         id: publish
         if: github.ref == 'refs/heads/main' && steps.detect.outputs.has_changesets == 'false'
@@ -131,17 +141,16 @@ jobs:
           # --provenance required for npm Trusted Publishing attestations.
           pnpm changeset publish --provenance | tee /tmp/publish.log
 
-          VERSION=$(grep -oE "Publishing \"[^\"]+\" at \"[0-9]+\.[0-9]+\.[0-9]+\"" /tmp/publish.log \
-            | head -1 \
-            | sed -E 's/.*at "([0-9]+\.[0-9]+\.[0-9]+)"/\1/')
-
-          PACKAGES=$(grep -oE "Publishing \"[^\"]+\" at \"[0-9]+\.[0-9]+\.[0-9]+\"" /tmp/publish.log \
-            | sed -E 's/Publishing "([^"]+)".*/\1/' \
-            | jq -R . | jq -sc .)
-
-          if [ -n "${VERSION:-}" ]; then
+          # Changesets v2 emits "packages published successfully" after a
+          # successful publish of >=1 package; a no-op (no pending bumps)
+          # does not. Use that as the ground truth instead of relying on
+          # a regex that matches the old "Publishing \"X\" at \"Y\"" line.
+          if grep -q "packages published successfully" /tmp/publish.log; then
+            # All packages in the public-agents release group share a
+            # version by design (see config/release-groups.json), so
+            # reading agents-core's package.json is authoritative.
+            VERSION=$(node -p "require('./packages/agents-core/package.json').version")
             echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-            echo "packages=$PACKAGES" >> "$GITHUB_OUTPUT"
             echo "published=true" >> "$GITHUB_OUTPUT"
           else
             echo "published=false" >> "$GITHUB_OUTPUT"
@@ -153,6 +162,13 @@ jobs:
       # Reverse-sync: tell agents-private the outcome so its
       # release-handler.yml can create the GitHub Release (which
       # triggers the existing Vercel prod deploy) or open an issue.
+      # The simplified publish step above no longer emits a `packages`
+      # output (deleting the fragile grep pipeline was the point), and
+      # release-handler.yml doesn't read the packages array from the
+      # payload anyway, so we drop it from the dispatch too. Including
+      # it would evaluate to an empty string -> invalid JSON -> silent
+      # dispatch failure -> no GH Release, no prod deploy: the exact
+      # class of bug this PR is trying to close.
       - name: Notify agents-private (success)
         if: github.ref == 'refs/heads/main' && steps.publish.outputs.published == 'true'
         uses: peter-evans/repository-dispatch@ff45666b9427631e3450c54a1bcbee4d9ff4d7c0 # v3
@@ -163,7 +179,6 @@ jobs:
           client-payload: |
             {
               "version": "${{ steps.publish.outputs.version }}",
-              "packages": ${{ steps.publish.outputs.packages }},
               "run_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
               "commit_sha": "${{ github.sha }}"
             }
