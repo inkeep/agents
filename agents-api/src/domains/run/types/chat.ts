@@ -1,9 +1,12 @@
 import { z } from '@hono/zod-openapi';
 import {
   DATA_URI_IMAGE_BASE64_REGEX,
+  DATA_URI_OFFICE_BASE64_REGEX,
   DATA_URI_PDF_BASE64_REGEX,
   DATA_URI_TEXT_BASE64_REGEX,
+  isOfficeDocumentMimeType,
   normalizeMimeType,
+  ZIP_DOCUMENT_EXTENSIONS_LABEL,
 } from '@inkeep/agents-core/constants/allowed-file-formats';
 import { isTextDocumentMimeType } from '../utils/text-document-attachments';
 
@@ -34,8 +37,75 @@ const TextDocumentDataUriSchema = z
   .refine(hasValidBase64Payload, 'Invalid base64 data in text document data URI');
 
 export const ImageUrlSchema = z.union([z.httpUrl(), ImageDataUriSchema]);
+const normalizeDataUriMimeType = (val: unknown): unknown => {
+  if (typeof val !== 'string') return val;
+  return val.replace(
+    /^(data:)([^;,]+)/i,
+    (_, prefix, mimeType) => `${prefix}${mimeType.toLowerCase()}`
+  );
+};
+
+const OFFICE_DOCUMENT_DATA_URI_MESSAGE = `File must be a supported ZIP-based document data URI (${ZIP_DOCUMENT_EXTENSIONS_LABEL})`;
+const INVALID_OFFICE_DOCUMENT_DATA_URI_BASE64_MESSAGE = `Invalid base64 data in ZIP-based document data URI (${ZIP_DOCUMENT_EXTENSIONS_LABEL})`;
+
+const getDataUriMimeType = (val: string): string | undefined =>
+  normalizeMimeType(/^data:([^;,]+)/i.exec(val)?.[1] ?? '');
+
+const getFirstIssueMessage = (issues: unknown): string | undefined => {
+  if (!Array.isArray(issues)) return undefined;
+
+  for (const issue of issues) {
+    if (
+      issue &&
+      typeof issue === 'object' &&
+      'message' in issue &&
+      typeof issue.message === 'string' &&
+      issue.message !== 'Invalid input'
+    ) {
+      return issue.message;
+    }
+  }
+
+  return undefined;
+};
+
+const getInlineDocumentUnionErrorMessage = (issue: {
+  code?: string;
+  input?: unknown;
+  errors?: unknown;
+}): string | undefined => {
+  if (issue.code !== 'invalid_union' || typeof issue.input !== 'string') {
+    return undefined;
+  }
+
+  const mimeType = getDataUriMimeType(issue.input);
+  if (!mimeType) {
+    return undefined;
+  }
+
+  if (mimeType === 'application/zip' || isOfficeDocumentMimeType(mimeType)) {
+    return (
+      getFirstIssueMessage(Array.isArray(issue.errors) ? issue.errors[2] : undefined) ??
+      OFFICE_DOCUMENT_DATA_URI_MESSAGE
+    );
+  }
+
+  return undefined;
+};
+
+const OfficeDocumentDataUriSchema = z.preprocess(
+  normalizeDataUriMimeType,
+  z
+    .string()
+    .regex(DATA_URI_OFFICE_BASE64_REGEX, OFFICE_DOCUMENT_DATA_URI_MESSAGE)
+    .refine(hasValidBase64Payload, INVALID_OFFICE_DOCUMENT_DATA_URI_BASE64_MESSAGE)
+);
+
 export const PdfDataOrUrlSchema = z.union([PdfDataUriSchema, z.httpUrl()]);
-export const InlineDocumentDataSchema = z.union([PdfDataOrUrlSchema, TextDocumentDataUriSchema]);
+export const InlineDocumentDataSchema = z.union(
+  [PdfDataOrUrlSchema, TextDocumentDataUriSchema, OfficeDocumentDataUriSchema],
+  { error: getInlineDocumentUnionErrorMessage }
+);
 
 /** OpenAI-specific image detail level. Has no effect on other providers. */
 export const ImageDetailEnum = ['auto', 'low', 'high'] as const;
@@ -84,10 +154,20 @@ export const VercelFilePartSchema = z
   .superRefine((part, ctx) => {
     const mimeType = normalizeMimeType(part.mediaType);
 
-    if (isTextDocumentMimeType(mimeType) && !DATA_URI_TEXT_BASE64_REGEX.test(part.url)) {
+    const normalizedUrl = normalizeDataUriMimeType(part.url) as string;
+
+    if (isTextDocumentMimeType(mimeType) && !DATA_URI_TEXT_BASE64_REGEX.test(normalizedUrl)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Text document file parts must use inline base64 data URIs',
+        path: ['url'],
+      });
+    }
+
+    if (isOfficeDocumentMimeType(mimeType) && !DATA_URI_OFFICE_BASE64_REGEX.test(normalizedUrl)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `ZIP-based document file parts (${ZIP_DOCUMENT_EXTENSIONS_LABEL}) must use inline base64 data URIs`,
         path: ['url'],
       });
     }

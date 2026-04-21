@@ -63,6 +63,9 @@ overrides:
   express-rate-limit: '>=8.2.2'
 
 patchedDependencies:
+  '@ai-sdk/openai@3.0.7':
+    hash: 21d48c8376ca8dccb540b33bfe66dd74c7b2f0f6bc5f12e2c54a4b3cc255bde8
+    path: patches/@ai-sdk__openai@3.0.7.patch
   '@changesets/assemble-release-plan@6.0.9':
     hash: 21bcca36fc59d072f544537c124b3cb2b4ee547b3559679007e9a378db05bb2c
     path: patches/@changesets__assemble-release-plan.patch
@@ -883,7 +886,7 @@ importers:
         version: 3.0.4(zod@4.3.6)
       '@ai-sdk/openai':
         specifier: 3.0.7
-        version: 3.0.7(zod@4.3.6)
+        version: 3.0.7(patch_hash=21d48c8376ca8dccb540b33bfe66dd74c7b2f0f6bc5f12e2c54a4b3cc255bde8)(zod@4.3.6)
       '@ai-sdk/openai-compatible':
         specifier: 2.0.4
         version: 2.0.4(zod@4.3.6)
@@ -16189,7 +16192,7 @@ snapshots:
 
   '@ai-sdk/azure@3.0.7(zod@4.3.6)':
     dependencies:
-      '@ai-sdk/openai': 3.0.7(zod@4.3.6)
+      '@ai-sdk/openai': 3.0.7(patch_hash=21d48c8376ca8dccb540b33bfe66dd74c7b2f0f6bc5f12e2c54a4b3cc255bde8)(zod@4.3.6)
       '@ai-sdk/provider': 3.0.2
       '@ai-sdk/provider-utils': 4.0.4(zod@4.3.6)
       zod: 4.3.6
@@ -16226,7 +16229,7 @@ snapshots:
       '@ai-sdk/provider-utils': 4.0.8(zod@4.3.6)
       zod: 4.3.6
 
-  '@ai-sdk/openai@3.0.7(zod@4.3.6)':
+  '@ai-sdk/openai@3.0.7(patch_hash=21d48c8376ca8dccb540b33bfe66dd74c7b2f0f6bc5f12e2c54a4b3cc255bde8)(zod@4.3.6)':
     dependencies:
       '@ai-sdk/provider': 3.0.2
       '@ai-sdk/provider-utils': 4.0.4(zod@4.3.6)
@@ -18685,7 +18688,7 @@ snapshots:
       '@ai-sdk/azure': 3.0.7(zod@4.3.6)
       '@ai-sdk/gateway': 3.0.9(zod@4.3.6)
       '@ai-sdk/google': 3.0.4(zod@4.3.6)
-      '@ai-sdk/openai': 3.0.7(zod@4.3.6)
+      '@ai-sdk/openai': 3.0.7(patch_hash=21d48c8376ca8dccb540b33bfe66dd74c7b2f0f6bc5f12e2c54a4b3cc255bde8)(zod@4.3.6)
       '@ai-sdk/openai-compatible': 2.0.4(zod@4.3.6)
       '@better-auth/sso': 1.4.19(@better-auth/utils@0.3.0)(better-auth@1.4.19(drizzle-kit@0.31.8)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.14)(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(bun-types@1.3.5)(kysely@0.28.11)(pg@8.20.0)(postgres@3.4.8))(mongodb@7.1.0)(next@16.1.0(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0(patch_hash=fb57ddbf6d253ca059e800cec47d55e177a15be89f100146c8ed5e4ba56697ed))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.20.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(vitest@3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.19.3)(jiti@2.6.1)(jsdom@29.0.2(@noble/hashes@2.0.1))(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)))(better-call@1.1.8(zod@4.3.6))
       '@composio/core': 0.2.6(ws@8.19.0)(zod@4.3.6)

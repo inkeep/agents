@@ -18,6 +18,10 @@ import { agentSessionManager } from '../../session/AgentSession';
 import { getStreamHelper } from '../../stream/stream-registry';
 import { withJsonPostProcessing } from '../../utils/json-postprocessor';
 import { extractTextFromParts } from '../../utils/message-parts';
+import {
+  buildStrippedPartsNote,
+  stripIncompatibleOfficeParts,
+} from '../../utils/model-file-support';
 import { setSpanWithError, tracer } from '../../utils/tracer';
 import type { AgentRunContext, ResolvedGenerationResponse } from '../agent-types';
 import { hasToolCallWithPrefix, resolveGenerationResponse } from '../agent-types';
@@ -221,11 +225,33 @@ export async function runGenerate(
 
         const { primaryModelSettings, modelSettings, hasStructuredOutput, timeoutMs } =
           configureModelSettings(ctx);
-        const inlinePdfFileCount = fileParts.filter(
+
+        const resolvedModelId = primaryModelSettings.model ?? '';
+        const { compatible: compatibleFileParts, stripped } = stripIncompatibleOfficeParts(
+          fileParts,
+          resolvedModelId
+        );
+
+        let effectiveUserMessage = userMessage;
+        if (stripped.length > 0) {
+          const note = buildStrippedPartsNote(stripped);
+          effectiveUserMessage = `${userMessage}\n\n${note}`;
+          logger.warn(
+            {
+              agentId: ctx.config.id,
+              modelId: primaryModelSettings.model,
+              strippedParts: stripped,
+            },
+            'Stripped incompatible office document parts before generation'
+          );
+          span.setAttribute('input.stripped_file_count', stripped.length);
+        }
+
+        const inlinePdfFileCount = compatibleFileParts.filter(
           (part) => part.file.mimeType?.toLowerCase().startsWith('application/pdf') === true
         ).length;
         span.setAttributes({
-          'input.file_count': fileParts.length,
+          'input.file_count': compatibleFileParts.length,
           'input.pdf_file_count': inlinePdfFileCount,
         });
         let response: ResolvedGenerationResponse;
@@ -240,8 +266,8 @@ export async function runGenerate(
         const messages = await buildInitialMessages(
           systemPrompt,
           conversationHistory,
-          userMessage,
-          fileParts
+          effectiveUserMessage,
+          compatibleFileParts
         );
 
         const { originalMessageCount, compressor } = setupCompression(
