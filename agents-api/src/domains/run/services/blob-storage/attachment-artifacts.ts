@@ -10,6 +10,7 @@ const logger = getLogger('attachment-artifacts');
 export type AttachmentArtifactRef = {
   artifactId: string;
   toolCallId: string;
+  blobUri: string;
 };
 
 function extractContentHashFromBlobUri(blobUri: string): string | null {
@@ -44,8 +45,10 @@ function buildAttachmentDescription(
   return mimeType ? `${base} (${mimeType})` : base;
 }
 
+export const MESSAGE_ATTACHMENT_TOOL_CALL_PREFIX = 'message_attachment:';
+
 export function buildMessageAttachmentToolCallId(messageId: string): string {
-  return `message_attachment:${messageId}`;
+  return `${MESSAGE_ATTACHMENT_TOOL_CALL_PREFIX}${messageId}`;
 }
 
 export async function createAttachmentArtifacts(
@@ -113,7 +116,7 @@ export async function createAttachmentArtifacts(
       createdAt: new Date().toISOString(),
     });
 
-    refs.push({ artifactId, toolCallId: ctx.toolCallId });
+    refs.push({ artifactId, toolCallId: ctx.toolCallId, blobUri: file.uri });
     fileIndex += 1;
   }
 

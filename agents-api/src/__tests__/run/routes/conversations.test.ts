@@ -1,4 +1,4 @@
-import { createConversation, createMessage } from '@inkeep/agents-core';
+import { addLedgerArtifacts, createConversation, createMessage } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { jwtVerify } from 'jose';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -557,6 +557,26 @@ describe('Run API - End-User Conversation History', () => {
         title: 'Artifact parts conversation',
       });
 
+      const artifactId = 'art-123';
+      const toolCallId = 'call-456';
+      await addLedgerArtifacts(runDbClient)({
+        scopes: { tenantId, projectId },
+        contextId: conv.id,
+        taskId: `task-${crypto.randomUUID()}`,
+        toolCallId,
+        artifacts: [
+          {
+            artifactId,
+            name: 'Code Example',
+            description: 'A code snippet',
+            type: 'code',
+            parts: [{ kind: 'data', data: { summary: { content: 'some artifact content' } } }],
+            metadata: { artifactType: 'code' },
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      });
+
       await createMessage(runDbClient)({
         scopes: { tenantId, projectId },
         data: {
@@ -569,11 +589,7 @@ describe('Run API - End-User Conversation History', () => {
               { kind: 'text', text: 'Here is the artifact' },
               {
                 kind: 'data',
-                data: JSON.stringify({
-                  artifactId: 'art-123',
-                  toolCallId: 'call-456',
-                  content: 'some artifact content',
-                }),
+                data: JSON.stringify({ artifactId, toolCallId }),
               },
             ],
           },
@@ -592,7 +608,14 @@ describe('Run API - End-User Conversation History', () => {
       expect(msg.parts).toHaveLength(2);
       expect(msg.parts[1]).toEqual({
         type: 'data-artifact',
-        data: { artifactId: 'art-123', toolCallId: 'call-456', content: 'some artifact content' },
+        data: {
+          artifactId,
+          toolCallId,
+          name: 'Code Example',
+          description: 'A code snippet',
+          type: 'code',
+          artifactSummary: { content: 'some artifact content' },
+        },
       });
     });
 

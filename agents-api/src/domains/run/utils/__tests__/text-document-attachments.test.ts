@@ -4,6 +4,7 @@ import {
   TextDocumentControlCharacterError,
 } from '../../services/blob-storage/file-security-errors';
 import {
+  buildAttachedFileMarker,
   buildDecodedTextAttachmentBlock,
   buildTextAttachmentBlock,
   decodeTextDocumentBytes,
@@ -136,6 +137,64 @@ describe('text-document-attachments', () => {
           filename: 'bad.txt',
         })
       ).toThrow(TextDocumentControlCharacterError);
+    });
+  });
+
+  describe('buildAttachedFileMarker', () => {
+    it('renders a self-closing marker with filename and media_type', () => {
+      expect(buildAttachedFileMarker({ mimeType: 'image/png', filename: 'screenshot.png' })).toBe(
+        '<attached_file filename="screenshot.png" media_type="image/png" />'
+      );
+    });
+
+    it('normalizes the mimeType via normalizeMimeType', () => {
+      expect(buildAttachedFileMarker({ mimeType: 'IMAGE/PNG', filename: 'a.png' })).toBe(
+        '<attached_file filename="a.png" media_type="image/png" />'
+      );
+    });
+
+    it('omits filename when not provided', () => {
+      expect(buildAttachedFileMarker({ mimeType: 'application/pdf' })).toBe(
+        '<attached_file media_type="application/pdf" />'
+      );
+    });
+
+    it('omits media_type when mimeType is empty', () => {
+      expect(buildAttachedFileMarker({ filename: 'unknown.bin' })).toBe(
+        '<attached_file filename="unknown.bin" />'
+      );
+    });
+
+    it('renders a bare marker when neither filename nor mimeType is provided', () => {
+      expect(buildAttachedFileMarker({})).toBe('<attached_file />');
+    });
+
+    it('escapes filenames with quotes via JSON.stringify', () => {
+      expect(
+        buildAttachedFileMarker({
+          mimeType: 'image/png',
+          filename: 'name"with"quotes.png',
+        })
+      ).toBe('<attached_file filename="name\\"with\\"quotes.png" media_type="image/png" />');
+    });
+
+    it('includes artifact_id and tool_call_id so the model can fetch the attachment', () => {
+      expect(
+        buildAttachedFileMarker({
+          mimeType: 'image/png',
+          filename: 'photo.png',
+          artifactId: 'attachment_msg_abc123',
+          toolCallId: 'message_attachment:msg',
+        })
+      ).toBe(
+        '<attached_file filename="photo.png" media_type="image/png" artifact_id="attachment_msg_abc123" tool_call_id="message_attachment:msg" />'
+      );
+    });
+
+    it('omits artifact_id and tool_call_id attributes when not provided', () => {
+      expect(buildAttachedFileMarker({ mimeType: 'image/png', filename: 'photo.png' })).toBe(
+        '<attached_file filename="photo.png" media_type="image/png" />'
+      );
     });
   });
 });
