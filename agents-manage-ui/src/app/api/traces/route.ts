@@ -63,10 +63,6 @@ function extractRequestContext(request: NextRequest) {
   if (cookieHeader) {
     headers.Cookie = cookieHeader;
   }
-  const bypassSecret = process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET;
-  if (bypassSecret) {
-    headers.Authorization = `Bearer ${bypassSecret}`;
-  }
 
   return { tenantId, mode, headers };
 }
