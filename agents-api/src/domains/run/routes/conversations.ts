@@ -19,6 +19,14 @@ import { stream } from 'hono/streaming';
 import { getRun } from 'workflow/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
+import {
+  asArtifactRef,
+  createReplayHydrationContext,
+  hydrateArtifactRef,
+  isAttachmentBookkeepingRef,
+  parseDataPart,
+  type ReplayHydrationContext,
+} from '../artifacts/replay-hydration';
 import { resolveMessagesListBlobUris } from '../services/blob-storage/resolve-blob-uris';
 import { streamBufferRegistry } from '../stream/stream-buffer-registry';
 
@@ -64,12 +72,15 @@ function extractText(content: MessageContent): string {
   return '';
 }
 
-function toVercelMessage(msg: {
-  id: string;
-  role: string;
-  content: MessageContent;
-  createdAt: string;
-}): VercelMessage {
+async function toVercelMessage(
+  msg: {
+    id: string;
+    role: string;
+    content: MessageContent;
+    createdAt: string;
+  },
+  hydration: ReplayHydrationContext
+): Promise<VercelMessage> {
   const role = normalizeRole(msg.role);
   const text = extractText(msg.content);
   const parts: Array<Record<string, unknown>> = [];
@@ -82,20 +93,29 @@ function toVercelMessage(msg: {
           parts.push({ type: 'text', text: p.text });
         }
       } else if (kind === 'data') {
-        let parsed = p.data;
-        if (typeof parsed === 'string') {
-          try {
-            parsed = JSON.parse(parsed);
-          } catch {
-            // keep as string
+        const parsed = parseDataPart(p.data);
+        const ref = asArtifactRef(parsed);
+        if (ref) {
+          // Attachment bookkeeping refs are paired with a sibling `file` part
+          // that already carries everything the UI needs — drop them.
+          if (isAttachmentBookkeepingRef(ref)) continue;
+          const hydrated = await hydrateArtifactRef(hydration, ref);
+          // Ledger miss drops the part entirely, matching streaming behavior.
+          if (hydrated) {
+            parts.push(hydrated);
+          } else {
+            logger.debug(
+              {
+                messageId: msg.id,
+                artifactId: ref.artifactId,
+                toolCallId: ref.toolCallId,
+              },
+              'Dropped data-artifact part on replay (ledger miss or hydration failure)'
+            );
           }
+        } else {
+          parts.push({ type: 'data-component', data: parsed });
         }
-        const isArtifact =
-          parsed &&
-          typeof parsed === 'object' &&
-          (parsed as Record<string, unknown>).artifactId &&
-          (parsed as Record<string, unknown>).toolCallId;
-        parts.push({ type: isArtifact ? 'data-artifact' : 'data-component', data: parsed });
       } else if (kind === 'file') {
         const url = typeof p.data === 'string' ? p.data : undefined;
         if (!url) {
@@ -355,13 +375,20 @@ app.openapi(
       messageList.map((msg) => ({ ...msg, content: msg.content as MessageContent }))
     );
 
-    const formattedMessages = resolvedMessages.map((msg) =>
-      toVercelMessage({
-        id: msg.id,
-        role: msg.role,
-        content: msg.content,
-        createdAt: msg.createdAt,
-      })
+    const hydration = await createReplayHydrationContext({ tenantId, projectId }, resolvedMessages);
+
+    const formattedMessages = await Promise.all(
+      resolvedMessages.map((msg) =>
+        toVercelMessage(
+          {
+            id: msg.id,
+            role: msg.role,
+            content: msg.content,
+            createdAt: msg.createdAt,
+          },
+          hydration
+        )
+      )
     );
 
     let title = conversation.title;

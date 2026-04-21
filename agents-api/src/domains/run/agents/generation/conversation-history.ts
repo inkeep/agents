@@ -11,19 +11,8 @@ import {
   formatMessagesAsConversationHistory,
   getConversationHistoryWithCompression,
 } from '../../data/conversations';
-import {
-  type BlobStorageDownloadResult,
-  fromBlobUri,
-  getBlobStorageProvider,
-  isBlobUri,
-} from '../../services/blob-storage';
-import { normalizeInlineFileBytes } from '../../services/blob-storage/file-content-security';
-import { UnsupportedTextAttachmentSourceError } from '../../services/blob-storage/file-security-errors';
-import {
-  buildDecodedTextAttachmentBlock,
-  buildTextAttachmentBlock,
-  isTextDocumentMimeType,
-} from '../../utils/text-document-attachments';
+import { resolveTextAttachmentBlock } from '../../services/blob-storage/text-attachment-resolver';
+import { isTextDocumentMimeType } from '../../utils/text-document-attachments';
 import type { AgentRunContext, AiSdkContentPart } from '../agent-types';
 import { getPrimaryModel, getSummarizerModel } from './model-config';
 
@@ -125,47 +114,11 @@ export async function buildConversationHistory(
   return { conversationHistory, contextBreakdown: updatedContextBreakdown };
 }
 
-async function buildTextAttachmentPart(
-  part: FilePart,
-  mimeType: string
-): Promise<AiSdkContentPart> {
-  const filename = typeof part.metadata?.filename === 'string' ? part.metadata.filename : undefined;
-  const file = part.file;
-  let bytes: Uint8Array;
-
-  if ('bytes' in file && file.bytes) {
-    bytes = (await normalizeInlineFileBytes(file)).data;
-  } else if ('uri' in file && file.uri && isBlobUri(file.uri)) {
-    let downloaded: BlobStorageDownloadResult;
-    try {
-      downloaded = await getBlobStorageProvider().download(fromBlobUri(file.uri));
-    } catch (err) {
-      logger.warn(
-        { err, uri: file.uri, mimeType, failureKind: 'download' },
-        'Failed to download text attachment from blob storage'
-      );
-      return {
-        type: 'text',
-        text: buildTextAttachmentBlock({ mimeType, content: '[Attachment unavailable]', filename }),
-      };
-    }
-    bytes = downloaded.data;
-  } else {
-    throw new UnsupportedTextAttachmentSourceError(mimeType);
-  }
-
-  try {
-    return {
-      type: 'text',
-      text: buildDecodedTextAttachmentBlock({ data: bytes, mimeType, filename }),
-    };
-  } catch (err) {
-    logger.warn({ err, mimeType, failureKind: 'decode' }, 'Failed to decode text attachment');
-    return {
-      type: 'text',
-      text: buildTextAttachmentBlock({ mimeType, content: '[Attachment unavailable]', filename }),
-    };
-  }
+async function buildTextAttachmentPart(part: FilePart): Promise<AiSdkContentPart> {
+  return {
+    type: 'text',
+    text: await resolveTextAttachmentBlock(part, { throwIfUnresolvable: true }),
+  };
 }
 
 export async function buildInitialMessages(
@@ -209,7 +162,7 @@ export async function buildUserMessageContent(
     const mimeType = normalizeMimeType(file.mimeType ?? '');
 
     if (isTextDocumentMimeType(mimeType)) {
-      content.push(await buildTextAttachmentPart(part, mimeType));
+      content.push(await buildTextAttachmentPart(part));
       continue;
     }
 

@@ -38,7 +38,13 @@ describe('createAttachmentArtifacts', () => {
       source: 'user-message',
     });
 
-    expect(refs).toEqual([{ artifactId: 'attachment_message_deadbeef', toolCallId: 'tool_1' }]);
+    expect(refs).toEqual([
+      {
+        artifactId: 'attachment_message_deadbeef',
+        toolCallId: 'tool_1',
+        blobUri: 'blob://v1/t_tenant/media/p_project/conv/c_conv/m_msg/sha256-deadbeef.png',
+      },
+    ]);
     expect(addLedgerArtifactsMock).toHaveBeenCalledWith({
       scopes: { tenantId: 'tenant', projectId: 'project' },
       contextId: 'conversation',
@@ -104,7 +110,13 @@ describe('createAttachmentArtifacts', () => {
       source: 'user-message',
     });
 
-    expect(refs).toEqual([{ artifactId: 'attachment_message_cafebabe', toolCallId: 'tool_1' }]);
+    expect(refs).toEqual([
+      {
+        artifactId: 'attachment_message_cafebabe',
+        toolCallId: 'tool_1',
+        blobUri: 'blob://v1/t_tenant/media/p_project/conv/c_conv/m_msg/sha256-cafebabe.pdf',
+      },
+    ]);
     expect(addLedgerArtifactsMock).toHaveBeenCalledOnce();
   });
 });

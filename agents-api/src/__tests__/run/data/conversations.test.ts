@@ -138,6 +138,112 @@ describe('reconstructMessageText', () => {
     };
     expect(reconstructMessageText(msg)).toBe('');
   });
+
+  it('emits a self-closing attached_file marker for non-text file parts', () => {
+    const msg = {
+      content: {
+        parts: [
+          {
+            kind: 'file',
+            data: 'blob://img-1',
+            metadata: { mimeType: 'image/png', filename: 'screenshot.png' },
+          },
+        ],
+      },
+    };
+    expect(reconstructMessageText(msg)).toBe(
+      '<attached_file filename="screenshot.png" media_type="image/png" />'
+    );
+  });
+
+  it('emits a marker for PDF file parts', () => {
+    const msg = {
+      content: {
+        parts: [
+          {
+            kind: 'file',
+            data: 'blob://pdf-1',
+            metadata: { mimeType: 'application/pdf', filename: 'report.pdf' },
+          },
+        ],
+      },
+    };
+    expect(reconstructMessageText(msg)).toBe(
+      '<attached_file filename="report.pdf" media_type="application/pdf" />'
+    );
+  });
+
+  it('omits filename/media_type attributes when metadata is missing', () => {
+    const msg = {
+      content: {
+        parts: [{ kind: 'file', data: 'blob://x' }],
+      },
+    };
+    expect(reconstructMessageText(msg)).toBe('<attached_file />');
+  });
+
+  it('emits artifact_id + tool_call_id when file-part metadata carries them', () => {
+    const msg = {
+      content: {
+        parts: [
+          {
+            kind: 'file',
+            data: 'blob://img-2',
+            metadata: {
+              mimeType: 'image/png',
+              filename: 'photo.png',
+              artifactId: 'attachment_msg_abc',
+              toolCallId: 'message_attachment:msg',
+            },
+          },
+        ],
+      },
+    };
+    expect(reconstructMessageText(msg)).toBe(
+      '<attached_file filename="photo.png" media_type="image/png" artifact_id="attachment_msg_abc" tool_call_id="message_attachment:msg" />'
+    );
+  });
+
+  it('skips marker for text-mime file parts (content is provided by sibling text part)', () => {
+    const msg = {
+      content: {
+        parts: [
+          {
+            kind: 'text',
+            text: '<attached_file filename="notes.txt" media_type="text/plain">\nhello\n</attached_file>',
+          },
+          {
+            kind: 'file',
+            data: 'blob://notes-1',
+            metadata: { mimeType: 'text/plain', filename: 'notes.txt' },
+          },
+        ],
+      },
+    };
+    expect(reconstructMessageText(msg)).toBe(
+      '<attached_file filename="notes.txt" media_type="text/plain">\nhello\n</attached_file>'
+    );
+  });
+
+  it('interleaves text, file markers, and artifact refs in order', () => {
+    const msg = {
+      content: {
+        parts: [
+          { kind: 'text', text: 'Here: ' },
+          {
+            kind: 'file',
+            data: 'blob://img',
+            metadata: { mimeType: 'image/jpeg', filename: 'a.jpg' },
+          },
+          { kind: 'text', text: ' and ' },
+          { kind: 'data', data: { artifactId: 'art-1', toolCallId: 'tool-1' } },
+        ],
+      },
+    };
+    expect(reconstructMessageText(msg)).toBe(
+      'Here: <attached_file filename="a.jpg" media_type="image/jpeg" /> and <artifact:ref id="art-1" tool="tool-1" />'
+    );
+  });
 });
 
 describe('formatMessagesAsConversationHistory', () => {
