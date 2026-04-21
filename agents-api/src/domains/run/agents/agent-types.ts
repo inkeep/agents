@@ -8,6 +8,7 @@ import type {
   FullExecutionContext,
   McpTool,
   MessageContent,
+  ModelSettings,
   Models,
   ResolvedRef,
   SubAgentStopWhen,
@@ -280,6 +281,7 @@ export interface AgentRunContext {
   isDelegatedAgent: boolean;
   artifactComponents: ArtifactComponentApiInsert[];
   currentCompressor: MidGenerationCompressor | null;
+  currentModelSettings?: ModelSettings;
   functionToolRelationshipIdByName: Map<string, string>;
   taskDenialRedirects: Array<{ toolName: string; toolCallId: string; reason: string }>;
   durableWorkflowRunId?: string;
