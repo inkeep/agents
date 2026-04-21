@@ -49,20 +49,21 @@ This guide shows how to call your agent directly over HTTP and stream responses 
 - **`content` + `parts` together** — Both are accepted. `content` is prepended as a text part unless an identical text part already exists.
 - **`conversationId`** — Optional; server generates one if omitted
 
-## File inputs (images, PDFs, and text documents)
+## File inputs (images, PDFs, text documents, and office documents)
 
 The chat endpoint supports files in message content parts with different rules by type:
 
 - **Images (`image_url`)**: support either remote URLs (`https://...`) or base64 `data:` URIs
-- **Files (`file`)**: support PDFs plus these inline text document types:
-  - `text/plain`
-  - `text/markdown`
-  - `text/html`
-  - `text/csv`
-  - `text/x-log`
-  - `application/json`
+- **Files (`file`)**: support PDFs, inline text document types, and inline office document types:
+  - **Text documents:** `text/plain`, `text/markdown`, `text/html`, `text/csv`, `text/x-log`, `application/json`
+  - **Office documents:** `application/vnd.openxmlformats-officedocument.wordprocessingml.document` (`.docx`), `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` (`.xlsx`), `application/vnd.openxmlformats-officedocument.presentationml.presentation` (`.pptx`), `application/vnd.oasis.opendocument.text` (`.odt`), `application/vnd.oasis.opendocument.spreadsheet` (`.ods`), `application/vnd.oasis.opendocument.presentation` (`.odp`), `application/vnd.apple.pages` (`.pages`), `application/vnd.apple.numbers` (`.numbers`), `application/vnd.apple.keynote` (`.key`)
 - **PDF file inputs**: support either remote URLs (`https://...`) or base64 `data:` payloads
 - **Text document file inputs**: support inline base64 `data:` payloads only. Remote URLs are not accepted for these text document MIME types.
+- **Office document file inputs**: support inline base64 `data:` payloads only. Remote URLs are not accepted for office document MIME types.
+
+<Note>
+  **Provider compatibility for office documents:** Office document file parts are passed through natively to OpenAI and Azure OpenAI models. For other providers (Anthropic, Google Gemini, etc.), office document parts are automatically stripped from the request and the model receives a note explaining that the attachment was unavailable.
+</Note>
 
 ### Request shape for file parts
 
@@ -129,6 +130,24 @@ The chat endpoint supports files in message content parts with different rules b
         },
         {
           "type": "file",
+          "url": "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,UEsDBBQAAAAIAA...",
+          "mediaType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "filename": "report.docx"
+        },
+        {
+          "type": "file",
+          "url": "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,UEsDBBQAAAAIAA...",
+          "mediaType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "filename": "budget.xlsx"
+        },
+        {
+          "type": "file",
+          "url": "data:application/vnd.openxmlformats-officedocument.presentationml.presentation;base64,UEsDBBQAAAAIAA...",
+          "mediaType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+          "filename": "slides.pptx"
+        },
+        {
+          "type": "file",
           "url": "https://example.com/document.pdf",
           "mediaType": "application/pdf",
           "filename": "document.pdf"
@@ -143,7 +162,7 @@ The chat endpoint supports files in message content parts with different rules b
 
 - **Encoding**: data URIs must include a valid base64 payload
 - **Maximum size**:
-  - Images and PDFs: each inline file payload is limited to **10 MB**
+  - Images, PDFs, and office documents: each inline file payload is limited to **10 MB**
   - Text documents (`text/plain`, `text/markdown`, `text/html`, `text/csv`, `text/x-log`, `application/json`): each inline file payload is limited to **256 KB**
 - **Vercel `parts` file typing**: for `/run/api/chat`, file parts use Vercel-compatible shape
   with `url` (data URI or `https://` for PDFs) and required `mediaType`
@@ -151,10 +170,12 @@ The chat endpoint supports files in message content parts with different rules b
   - Images are validated against supported image bytes
   - PDFs must start with the `%PDF-` signature bytes
   - Text documents must decode as valid UTF-8 text and are rejected if they contain binary-style control characters
+  - Office documents must begin with valid ZIP magic bytes (`PK`)
 - **Model input handling for text documents**: text attachments are injected into the prompt only on the turn where the user sends them; persisted text attachments are not re-injected from later conversation history
 - **HTML semantics**: `text/html` files are treated as raw source text. The API does not render, sanitize, or convert HTML to visible page text before injection.
 - **Remote PDF URLs**: must be reachable over `http` or `https` from the Run API. Unreachable hosts, non-PDF responses, or oversized bodies result in **HTTP 400** with an error message (query strings and fragments on the URL are not preserved in stored metadata).
 - **Remote text document URLs**: are not supported. Use inline base64 `data:text/...;base64,...` or `data:application/json;base64,...` payloads instead.
+- **Remote office document URLs**: are not supported. Use inline base64 `data:` payloads instead.
 
 ### Optional Headers
 
