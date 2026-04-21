@@ -2821,7 +2821,7 @@ class SigNozStatsAPI {
             {
               type: QUERY_TYPES.BUILDER_QUERY,
               spec: {
-                name: 'usageEvents',
+                name: QUERY_EXPRESSIONS.USAGE_EVENTS,
                 signal: SIGNALS.TRACES,
                 filter: { expression: buildFilterExpression(filterItems) },
                 selectFields: [
@@ -2854,7 +2854,8 @@ class SigNozStatsAPI {
 
       const resp = await this.makeRequest(payload, projectId);
       const rows =
-        resp?.data?.data?.results?.find((r: any) => r?.queryName === 'usageEvents')?.rows ?? [];
+        resp?.data?.data?.results?.find((r: any) => r?.queryName === QUERY_EXPRESSIONS.USAGE_EVENTS)
+          ?.rows ?? [];
 
       return rows.map((row: any) => {
         const d = row?.data ?? row;
