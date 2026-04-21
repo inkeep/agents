@@ -27,12 +27,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
-import { GENERATION_TYPES } from '@/constants/signoz';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { hasConversationFeedbackAction } from '@/lib/actions/feedback';
 import { rerunScheduledTriggerInvocationAction } from '@/lib/actions/scheduled-triggers';
 import { rerunTriggerAction } from '@/lib/actions/triggers';
-import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
 import { throwError } from '@/lib/utils';
 import { formatDateTime, formatDuration } from '@/lib/utils/format-date';
 import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
@@ -229,15 +227,10 @@ export default function ConversationDetail({
         setLoading(true);
         setError(null);
 
-        const client = getSigNozStatsClient(tenantId);
-        const start = new Date('2020-01-01T00:00:00Z').getTime();
-        const end = Date.now();
-
-        const [traceResponse, eventsResult, feedbackResult] = await Promise.allSettled([
+        const [traceResponse, feedbackResult] = await Promise.allSettled([
           fetch(
             `/api/traces/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`
           ),
-          client.getUsageEventsList(start, end, projectId, conversationId, 200),
           hasConversationFeedbackAction(tenantId, projectId, conversationId),
         ]);
 
@@ -247,15 +240,7 @@ export default function ConversationDetail({
         const data = await traceResponse.value.json();
         setConversation(data);
 
-        setUsageEvents(
-          eventsResult.status === 'fulfilled'
-            ? eventsResult.value.filter(
-                (e: { generationType: string }) =>
-                  e.generationType !== GENERATION_TYPES.EVAL_SCORING &&
-                  e.generationType !== GENERATION_TYPES.EVAL_SIMULATION
-              )
-            : []
-        );
+        setUsageEvents(Array.isArray(data?.usageEvents) ? data.usageEvents : []);
 
         setHasFeedback(feedbackResult.status === 'fulfilled' && feedbackResult.value === true);
       } catch (err) {
