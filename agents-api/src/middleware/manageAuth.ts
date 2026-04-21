@@ -18,16 +18,37 @@ import { getOAuthIssuer, getOAuthJwks } from '../utils/oauthJwks';
 import { sessionAuth } from './sessionAuth';
 
 /**
- * Legacy exception: allow database API keys on GET /manage/tenants/:t/projects/:p/conversations/:id
- * A customer uses the deprecated API key and needs read access to this single endpoint.
- * The caller must already know the conversationId. Only GET with a specific conversation ID is allowed —
- * list, bounds, media, and all other manage endpoints remain session-only.
+ * Legacy exceptions: specific manage routes where deprecated database API keys are still
+ * accepted. Every other manage endpoint remains session-only. Project match on the API key
+ * is enforced separately below (see `extractProjectIdFromPath`) so a key can only act on
+ * routes within its own project.
+ *
+ * Current exceptions:
+ *   - GET  /manage/tenants/:t/projects/:p/conversations/:id
+ *     Read a single conversation by ID. Caller must already know the conversationId;
+ *     list, bounds, and media sub-endpoints remain session-only.
+ *   - POST /manage/tenants/:t/projects/:p/feedback
+ *     Create feedback tied to a conversation. Supports external integrations.
+ *     Update/list/delete on feedback remain session-only.
  */
-const LEGACY_API_KEY_CONVERSATION_ROUTE =
-  /^\/manage\/tenants\/[^/]+\/projects\/[^/]+\/conversations\/[^/]+\/?$/;
+const LEGACY_API_KEY_ALLOWED_ROUTES: ReadonlyArray<{
+  method: string;
+  path: RegExp;
+}> = [
+  {
+    method: 'GET',
+    path: /^\/manage\/tenants\/[^/]+\/projects\/[^/]+\/conversations\/[^/]+\/?$/,
+  },
+  {
+    method: 'POST',
+    path: /^\/manage\/tenants\/[^/]+\/projects\/[^/]+\/feedback\/?$/,
+  },
+];
 
 function isLegacyApiKeyAllowedRoute(method: string, path: string): boolean {
-  return method === 'GET' && LEGACY_API_KEY_CONVERSATION_ROUTE.test(path);
+  return LEGACY_API_KEY_ALLOWED_ROUTES.some(
+    (entry) => entry.method === method && entry.path.test(path)
+  );
 }
 
 function extractProjectIdFromPath(path: string): string | undefined {
@@ -45,9 +66,9 @@ const logger = getLogger('env-key-auth');
  * 4. Slack user JWT token (for Slack work app delegation)
  * 5. Internal service token
  *
- * NOTE: Database API keys are intentionally NOT accepted on manage endpoints,
- * EXCEPT for the legacy exception on GET /manage/tenants/:t/projects/:p/conversations/:id
- * (see isLegacyApiKeyAllowedRoute). API keys are otherwise restricted to the run domain only.
+ * NOTE: Database API keys are intentionally NOT accepted on manage endpoints, except for
+ * the narrow legacy exceptions enumerated in `LEGACY_API_KEY_ALLOWED_ROUTES`. API keys
+ * are otherwise restricted to the run domain only.
  */
 export const manageBearerAuth = () =>
   createMiddleware<{
@@ -215,7 +236,8 @@ export const manageBearerAuth = () =>
       return;
     }
 
-    // 6. Legacy exception: allow database API keys on the get-conversation-by-ID endpoint only
+    // 6. Legacy exception: allow database API keys on a narrow allowlist of routes
+    //    (see LEGACY_API_KEY_ALLOWED_ROUTES above). Project match is enforced below.
     if (isLegacyApiKeyAllowedRoute(c.req.method, c.req.path)) {
       try {
         const apiKeyRecord = await validateAndGetApiKey(token, runDbClient);
@@ -237,8 +259,13 @@ export const manageBearerAuth = () =>
           }
 
           logger.info(
-            { apiKeyId: apiKeyRecord.id, tenantId: apiKeyRecord.tenantId },
-            'Legacy API key authenticated for manage conversation endpoint'
+            {
+              apiKeyId: apiKeyRecord.id,
+              tenantId: apiKeyRecord.tenantId,
+              method: c.req.method,
+              path: c.req.path,
+            },
+            'Legacy API key authenticated for manage endpoint'
           );
           c.set('userId', `apikey:${apiKeyRecord.id}`);
           c.set('tenantId', apiKeyRecord.tenantId);
