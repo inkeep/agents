@@ -195,6 +195,7 @@ export async function streamAgentResponse(params: {
         body: JSON.stringify({
           messages: [{ role: 'user', content: question }],
           stream: true,
+          executionMode: 'durable',
           ...(conversationId && { conversationId }),
         }),
         signal: abortController.signal,
