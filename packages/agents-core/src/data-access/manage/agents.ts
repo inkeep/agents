@@ -34,7 +34,6 @@ import { getContextConfigById } from './contextConfigs';
 import { getExternalAgent } from './externalAgents';
 import { getFunction } from './functions';
 import { listFunctionTools } from './functionTools';
-import { listScheduledTriggers } from './scheduledTriggers';
 import {
   agentScopedWhere,
   projectScopedWhere,
@@ -47,7 +46,7 @@ import { getAgentRelations, getAgentRelationsByAgent } from './subAgentRelations
 import { getSubAgentById } from './subAgents';
 import { getSubAgentTeamAgentRelationsByAgent } from './subAgentTeamAgentRelations';
 import { listTools } from './tools';
-import { listTriggers } from './triggers';
+import { getTriggerUsersBatch, listTriggers } from './triggers';
 
 export const getAgentById =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
@@ -919,6 +918,12 @@ const getFullAgentDefinitionInternal =
       agentsLogger.debug({ agentId, count: triggersList.length }, 'Fetched triggers for agent');
 
       if (triggersList.length > 0) {
+        const triggerIds = triggersList.map((t) => t.id);
+        const usersByTrigger = await getTriggerUsersBatch(db)({
+          scopes: { tenantId, projectId, agentId },
+          triggerIds,
+        });
+
         const triggersObject: Record<string, any> = {};
         for (const trigger of triggersList) {
           triggersObject[trigger.id] = {
@@ -932,7 +937,9 @@ const getFullAgentDefinitionInternal =
             authentication: trigger.authentication,
             signingSecretCredentialReferenceId: trigger.signingSecretCredentialReferenceId,
             signatureVerification: trigger.signatureVerification,
+            dispatchDelayMs: trigger.dispatchDelayMs,
             runAsUserId: trigger.runAsUserId,
+            runAsUserIds: usersByTrigger.get(trigger.id) ?? [],
             createdBy: trigger.createdBy,
           };
         }
@@ -944,38 +951,6 @@ const getFullAgentDefinitionInternal =
       }
     } catch (error) {
       agentsLogger.warn({ error }, 'Failed to load triggers');
-    }
-
-    // Fetch scheduled triggers (agent-scoped)
-    try {
-      const scheduledTriggersList = await listScheduledTriggers(db)({
-        scopes: { tenantId, projectId, agentId },
-      });
-
-      if (scheduledTriggersList.length > 0) {
-        const scheduledTriggersObject: Record<string, any> = {};
-        for (const scheduledTrigger of scheduledTriggersList) {
-          scheduledTriggersObject[scheduledTrigger.id] = {
-            id: scheduledTrigger.id,
-            name: scheduledTrigger.name,
-            description: scheduledTrigger.description,
-            enabled: scheduledTrigger.enabled,
-            cronExpression: scheduledTrigger.cronExpression,
-            cronTimezone: scheduledTrigger.cronTimezone,
-            runAt: scheduledTrigger.runAt,
-            payload: scheduledTrigger.payload,
-            messageTemplate: scheduledTrigger.messageTemplate,
-            maxRetries: scheduledTrigger.maxRetries,
-            retryDelaySeconds: scheduledTrigger.retryDelaySeconds,
-            timeoutSeconds: scheduledTrigger.timeoutSeconds,
-            runAsUserId: scheduledTrigger.runAsUserId,
-            createdBy: scheduledTrigger.createdBy,
-          };
-        }
-        result.scheduledTriggers = scheduledTriggersObject;
-      }
-    } catch (error) {
-      agentsLogger.warn({ error }, 'Failed to load scheduled triggers');
     }
 
     return result;

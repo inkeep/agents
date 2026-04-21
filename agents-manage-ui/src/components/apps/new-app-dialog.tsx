@@ -3,6 +3,7 @@
 import { ChevronDown, Plus } from 'lucide-react';
 import { useState } from 'react';
 import type { SelectOption } from '@/components/form/generic-select';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 import type { AppCreateResponse } from '@/lib/api/apps';
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
@@ -18,11 +19,24 @@ import { APP_TYPE_OPTIONS } from './form/validation';
 
 interface NewAppDialogProps {
   agentOptions: SelectOption[];
+  credentialOptions: SelectOption[];
+  hasSupportCopilotEntitlement: boolean;
 }
 
-type AppType = 'web_client' | 'api';
+type AppType = 'web_client' | 'api' | 'support_copilot';
 
-export function NewAppDialog({ agentOptions }: NewAppDialogProps) {
+export function NewAppDialog({
+  agentOptions,
+  credentialOptions,
+  hasSupportCopilotEntitlement,
+}: NewAppDialogProps) {
+  const { PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
+  const isCloudDeployment = PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true';
+  const supportCopilotEnabled = isCloudDeployment && hasSupportCopilotEntitlement;
+  const appTypeOptions = APP_TYPE_OPTIONS.filter(
+    (opt) => opt.value !== 'support_copilot' || supportCopilotEnabled
+  );
+
   const [isOpen, setIsOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<AppType | null>(null);
   const [createdApp, setCreatedApp] = useState<AppCreateResponse | null>(null);
@@ -58,7 +72,7 @@ export function NewAppDialog({ agentOptions }: NewAppDialogProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          {APP_TYPE_OPTIONS.map((opt) => (
+          {appTypeOptions.map((opt) => (
             <DropdownMenuItem
               key={opt.value}
               className="flex flex-col items-start gap-0.5 py-2"
@@ -72,7 +86,7 @@ export function NewAppDialog({ agentOptions }: NewAppDialogProps) {
       </DropdownMenu>
 
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>
               New {APP_TYPE_OPTIONS.find((o) => o.value === selectedType)?.label}
@@ -84,6 +98,7 @@ export function NewAppDialog({ agentOptions }: NewAppDialogProps) {
               <AppCreateForm
                 appType={selectedType}
                 agentOptions={agentOptions}
+                credentialOptions={credentialOptions}
                 onAppCreated={handleAppCreated}
               />
             )}

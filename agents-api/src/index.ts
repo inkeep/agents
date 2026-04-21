@@ -16,6 +16,7 @@ const logger = getLogger('agents-api-init');
 import { createEmailService } from '@inkeep/agents-email';
 import { Hono } from 'hono';
 import { createAgentsHono } from './createApp';
+import { startSchedulerWorkflow } from './domains/run/services/SchedulerService';
 import { createAgentsAuth } from './factory';
 import type { SandboxConfig } from './types';
 import { recoverOrphanedWorkflows, world } from './workflow/world';
@@ -63,7 +64,7 @@ const sandboxConfig: SandboxConfig =
       }
     : { provider: 'native', runtime: 'node22', timeout: 30000, vcpus: 2 };
 
-const socialProviders =
+const googleProvider =
   process.env.PUBLIC_GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
     ? {
         google: {
@@ -75,9 +76,26 @@ const socialProviders =
       }
     : undefined;
 
+const microsoftProvider =
+  process.env.PUBLIC_MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET
+    ? {
+        microsoft: {
+          prompt: 'select_account' as const,
+          clientId: process.env.PUBLIC_MICROSOFT_CLIENT_ID,
+          clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
+        },
+      }
+    : undefined;
+
+const socialProviders =
+  googleProvider || microsoftProvider ? { ...googleProvider, ...microsoftProvider } : undefined;
+
 const emailService = createEmailService();
 
-export const auth = createAgentsAuth({ socialProviders }, emailService);
+export const auth: ReturnType<typeof createAgentsAuth> = createAgentsAuth(
+  { socialProviders },
+  emailService
+);
 
 // Create default credential stores
 const defaultStores = createDefaultCredentialStores();
@@ -125,10 +143,27 @@ if (workflowWorld === '@workflow/world-postgres' || workflowWorld === 'local') {
       if (recoveredCount > 0) {
         logger.info({ recoveredCount }, 'Recovered orphaned workflow(s)');
       }
+      await startSchedulerWorkflow();
+      logger.info({}, 'Scheduler workflow started');
     } catch (err) {
       logger.error({ error: err }, 'Failed to start workflow world');
     }
   }, STARTUP_DELAY_MS);
+}
+
+import { cleanupExpiredStreamChunks } from '@inkeep/agents-core';
+import runDbClient from './data/db/runDbClient';
+
+if (!process.env.VERCEL) {
+  const STREAM_CHUNK_CLEANUP_INTERVAL_MS = 60_000;
+  const streamChunkCleanupTimer = setInterval(async () => {
+    try {
+      await cleanupExpiredStreamChunks(runDbClient)();
+    } catch (err) {
+      logger.error({ error: err }, 'Failed to cleanup expired stream chunks');
+    }
+  }, STREAM_CHUNK_CLEANUP_INTERVAL_MS);
+  streamChunkCleanupTimer.unref();
 }
 
 // Start Slack Socket Mode client for local development (when configured)

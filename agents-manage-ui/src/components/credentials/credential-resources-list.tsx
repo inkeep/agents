@@ -5,9 +5,16 @@ import Link from 'next/link';
 import { Label } from '@/components/ui/label';
 import { useMcpToolStatusQuery } from '@/lib/query/mcp-tools';
 
+interface AppReaderInfo {
+  id: string;
+  name: string;
+  type: string;
+}
+
 interface CredentialResourcesListProps {
   tools?: McpTool[];
   externalAgents?: ExternalAgentApiSelect[];
+  apps?: AppReaderInfo[];
   toolId?: string;
   label?: string;
   tenantId?: string;
@@ -98,16 +105,56 @@ function ExternalAgentItem({ externalAgent, tenantId, projectId }: ExternalAgent
   );
 }
 
+function AppItem({
+  app,
+  tenantId,
+  projectId,
+}: {
+  app: AppReaderInfo;
+  tenantId?: string;
+  projectId?: string;
+}) {
+  const canNavigate = tenantId && projectId;
+  const href = canNavigate ? `/${tenantId}/projects/${projectId}/apps` : undefined;
+
+  const content = (
+    <div className="flex items-center gap-3">
+      <div>
+        <p className="font-medium text-sm">{app.name}</p>
+        <p className="text-xs text-muted-foreground">{app.type}</p>
+      </div>
+    </div>
+  );
+
+  if (canNavigate && href) {
+    return (
+      <Link
+        href={href}
+        className="flex items-center justify-between p-3 bg-background border rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-between p-3 bg-background border rounded-md">
+      {content}
+    </div>
+  );
+}
+
 export function CredentialResourcesList({
   tools,
   externalAgents,
+  apps,
   toolId,
   label = 'Resources using this credential',
   tenantId,
   projectId,
 }: CredentialResourcesListProps) {
   const canFetchTool = !!(toolId && tenantId && projectId);
-  const { data: fetchedTool, isLoading: isLoadingTool } = useMcpToolStatusQuery({
+  const { data: fetchedTool, isFetching: isFetchingTool } = useMcpToolStatusQuery({
     tenantId: tenantId ?? '',
     projectId: projectId ?? '',
     toolId: toolId ?? '',
@@ -117,14 +164,15 @@ export function CredentialResourcesList({
   const resolvedTools = toolId ? (fetchedTool ? [fetchedTool] : []) : tools;
   const hasTools = resolvedTools && resolvedTools.length > 0;
   const hasExternalAgents = externalAgents && externalAgents.length > 0;
-  const hasAnyResources = hasTools || hasExternalAgents;
+  const hasApps = apps && apps.length > 0;
+  const hasAnyResources = hasTools || hasExternalAgents || hasApps;
 
   return (
     <div className="space-y-3">
       <Label>{label}</Label>
       {hasAnyResources ? (
         <div className="space-y-4">
-          {isLoadingTool && canFetchTool && (
+          {isFetchingTool && canFetchTool && (
             <div className="text-sm text-muted-foreground p-3 py-2">Loading...</div>
           )}
           {hasTools && (
@@ -149,6 +197,16 @@ export function CredentialResourcesList({
                   tenantId={tenantId}
                   projectId={projectId}
                 />
+              ))}
+            </div>
+          )}
+          {hasApps && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Apps
+              </p>
+              {apps?.map((app) => (
+                <AppItem key={app.id} app={app} tenantId={tenantId} projectId={projectId} />
               ))}
             </div>
           )}

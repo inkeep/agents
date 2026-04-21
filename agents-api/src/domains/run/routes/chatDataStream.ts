@@ -1,5 +1,7 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  APPROVAL_NEEDED_EVENT,
+  APPROVAL_RESOLVED_EVENT,
   buildConversationMetadata,
   type CredentialStoreRegistry,
   commonGetErrorResponses,
@@ -15,6 +17,7 @@ import {
   type Part,
   PartSchema,
   setActiveAgentForConversation,
+  TOOL_APPROVAL_HOOK_PREFIX,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
@@ -27,6 +30,7 @@ import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
+import { buildMessageAttachmentToolCallId } from '../services/blob-storage/attachment-artifacts';
 import {
   FileSecurityError,
   PdfUrlIngestionError,
@@ -37,8 +41,10 @@ import {
 } from '../services/blob-storage/file-upload-helpers';
 import { pendingToolApprovalManager } from '../session/PendingToolApprovalManager';
 import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
+import { streamBufferRegistry } from '../stream/stream-buffer-registry';
 import { createBufferingStreamHelper, createVercelStreamHelper } from '../stream/stream-helpers';
 import { VercelMessageSchema } from '../types/chat';
+import { getUserIdFromContext } from '../types/executionContext';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromVercelContent } from '../utils/message-parts';
 import { agentExecutionWorkflow, toolApprovalHook } from '../workflow/functions/agentExecution';
@@ -76,6 +82,12 @@ const chatDataStreamRoute = createProtectedRoute({
               .optional()
               .describe('Headers data for template processing'),
             runConfig: z.record(z.string(), z.unknown()).optional().describe('Run configuration'),
+            executionMode: z
+              .enum(['classic', 'durable'])
+              .optional()
+              .describe(
+                'Override the agent execution mode for this request. Takes precedence over the agent config default. Falls back to classic if unset.'
+              ),
             userProperties: z
               .record(z.string(), z.unknown())
               .optional()
@@ -157,7 +169,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
             const toolCallId = approvalPart.toolCallId as string;
             const approved = !!approvalPart.approval?.approved;
             const reason = approvalPart.approval?.reason as string | undefined;
-            const token = `tool-approval:${conversationId}:${durableExecution.id}:${toolCallId}`;
+            const token = `${TOOL_APPROVAL_HOOK_PREFIX}${conversationId}:${durableExecution.id}:${toolCallId}`;
             try {
               await toolApprovalHook.resume(token, {
                 approved,
@@ -389,12 +401,21 @@ app.openapi(chatDataStreamRoute, async (c) => {
         }
       }
       const userMessageId = generateId();
+      const hasAttachedFiles = messageParts.some((part) => part.kind === 'file');
+      const attachmentTaskId = hasAttachedFiles ? `message_${userMessageId}` : undefined;
+
+      if (messageSpan) {
+        messageSpan.setAttribute('message.id', userMessageId);
+      }
 
       const messageContent = await buildPersistedMessageContent(userText, messageParts, {
         tenantId,
         projectId,
         conversationId,
         messageId: userMessageId,
+        taskId: `message_${userMessageId}`,
+        toolCallId: buildMessageAttachmentToolCallId(userMessageId),
+        source: 'user-message',
       });
 
       await createMessage(runDbClient)({
@@ -406,17 +427,21 @@ app.openapi(chatDataStreamRoute, async (c) => {
           content: messageContent,
           visibility: 'user-facing',
           messageType: 'chat',
+          ...(attachmentTaskId ? { taskId: attachmentTaskId } : {}),
         },
       });
       if (messageSpan) {
         messageSpan.addEvent('user.message.stored', {
-          'message.id': conversationId,
+          'message.id': userMessageId,
           'database.operation': 'insert',
         });
       }
 
-      if (agent.executionMode === 'durable') {
+      const effectiveExecutionMode = body.executionMode ?? agent.executionMode ?? 'classic';
+
+      if (effectiveExecutionMode === 'durable') {
         const requestId = `chatds-${Date.now()}`;
+        const userId = getUserIdFromContext(executionContext);
         const run = await start(agentExecutionWorkflow, [
           {
             tenantId,
@@ -430,6 +455,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
             forwardedHeaders:
               Object.keys(forwardedHeaders).length > 0 ? forwardedHeaders : undefined,
             outputFormat: 'vercel',
+            userId,
           },
         ]);
         logger.info(
@@ -442,12 +468,16 @@ app.openapi(chatDataStreamRoute, async (c) => {
         c.header('connection', 'keep-alive');
         c.header('x-vercel-ai-data-stream', 'v2');
         c.header('x-accel-buffering', 'no');
+        streamBufferRegistry.register({ tenantId, projectId, conversationId });
         return stream(c, async (s) => {
           try {
+            const encoder = new TextEncoder();
             const reader = run.readable.getReader();
             while (true) {
               const { done, value } = await reader.read();
               if (done) break;
+              const encoded = typeof value === 'string' ? encoder.encode(value) : value;
+              streamBufferRegistry.push({ tenantId, projectId, conversationId }, encoded);
               await s.write(value);
             }
           } catch (error) {
@@ -456,6 +486,8 @@ app.openapi(chatDataStreamRoute, async (c) => {
               'Error streaming durable execution via /chat'
             );
             await s.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
+          } finally {
+            await streamBufferRegistry.complete({ tenantId, projectId, conversationId });
           }
         });
       }
@@ -539,7 +571,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
             const seenOutputs = new Set<string>();
 
             unsubscribe = toolApprovalUiBus.subscribe(requestId, async (event) => {
-              if (event.type === 'approval-needed') {
+              if (event.type === APPROVAL_NEEDED_EVENT) {
                 if (seenToolCalls.has(event.toolCallId)) return;
                 seenToolCalls.add(event.toolCallId);
 
@@ -569,7 +601,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
                   toolName: event.toolName,
                   input: event.input as Record<string, unknown>,
                 });
-              } else if (event.type === 'approval-resolved') {
+              } else if (event.type === APPROVAL_RESOLVED_EVENT) {
                 if (seenOutputs.has(event.toolCallId)) return;
                 seenOutputs.add(event.toolCallId);
 
@@ -623,13 +655,29 @@ app.openapi(chatDataStreamRoute, async (c) => {
       c.header('x-vercel-ai-data-stream', 'v2');
       c.header('x-accel-buffering', 'no'); // disable nginx buffering
 
-      return stream(c, (stream) =>
-        stream.pipe(
-          dataStream
-            .pipeThrough(new JsonToSseTransformStream())
-            .pipeThrough(new TextEncoderStream())
-        )
-      );
+      const encodedStream = dataStream
+        .pipeThrough(new JsonToSseTransformStream())
+        .pipeThrough(new TextEncoderStream());
+
+      const [clientStream, bufferStream] = encodedStream.tee();
+
+      streamBufferRegistry.register({ tenantId, projectId, conversationId });
+      (async () => {
+        const reader = bufferStream.getReader();
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            streamBufferRegistry.push({ tenantId, projectId, conversationId }, value);
+          }
+        } catch (error) {
+          logger.error({ error, conversationId }, 'Error buffering stream for resumption');
+        } finally {
+          await streamBufferRegistry.complete({ tenantId, projectId, conversationId });
+        }
+      })();
+
+      return stream(c, (s) => s.pipe(clientStream));
     });
   } catch (error) {
     if (error instanceof FileSecurityError) {

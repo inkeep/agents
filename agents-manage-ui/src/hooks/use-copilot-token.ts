@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getCopilotTokenAction } from '@/lib/actions/copilot-token';
 
 const MAX_RETRIES = 3;
@@ -6,6 +6,7 @@ const INITIAL_RETRY_DELAY_MS = 1000;
 
 interface UseCopilotTokenResult {
   apiKey: string | null;
+  appId: string | null;
   cookieHeader: string | null;
   isLoading: boolean;
   error: Error | null;
@@ -16,7 +17,7 @@ interface UseCopilotTokenResult {
 async function fetchWithRetry(
   maxRetries: number,
   onRetry?: (attempt: number, delay: number) => void
-): Promise<{ apiKey: string; expiresAt: string; cookieHeader?: string }> {
+): Promise<{ apiKey: string; expiresAt: string; appId?: string; cookieHeader?: string }> {
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -50,6 +51,7 @@ async function fetchWithRetry(
 
 export function useCopilotToken(): UseCopilotTokenResult {
   const [apiKey, setApiKey] = useState<string | null>(null);
+  const [appId, setAppId] = useState<string | null>(null);
   const [cookieHeader, setCookieHeader] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,7 +59,7 @@ export function useCopilotToken(): UseCopilotTokenResult {
   const [retryCount, setRetryCount] = useState(0);
   const isMountedRef = useRef(true);
 
-  const fetchToken = useCallback(async () => {
+  async function fetchToken() {
     try {
       setIsLoading(true);
       setError(null);
@@ -71,6 +73,7 @@ export function useCopilotToken(): UseCopilotTokenResult {
 
       if (isMountedRef.current) {
         setApiKey(data.apiKey);
+        setAppId(data.appId ?? null);
         setCookieHeader(data.cookieHeader ?? null);
         setExpiresAt(data.expiresAt);
         setError(null);
@@ -82,12 +85,11 @@ export function useCopilotToken(): UseCopilotTokenResult {
         setError(new Error(errorMessage));
         console.error('Copilot token fetch failed after all retries:', errorMessage);
       }
-    } finally {
-      if (isMountedRef.current) {
-        setIsLoading(false);
-      }
     }
-  }, []);
+    if (isMountedRef.current) {
+      setIsLoading(false);
+    }
+  }
 
   // Track mounted state
   useEffect(() => {
@@ -100,7 +102,10 @@ export function useCopilotToken(): UseCopilotTokenResult {
   // Initial fetch
   useEffect(() => {
     fetchToken();
-  }, [fetchToken]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchToken,
+  ]);
 
   // Auto-refresh before expiry
   useEffect(() => {
@@ -118,7 +123,11 @@ export function useCopilotToken(): UseCopilotTokenResult {
     }, refreshTime);
 
     return () => clearTimeout(timer);
-  }, [expiresAt, fetchToken]);
+  }, [
+    expiresAt,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    fetchToken,
+  ]);
 
-  return { apiKey, cookieHeader, isLoading, error, retryCount, refresh: fetchToken };
+  return { apiKey, appId, cookieHeader, isLoading, error, retryCount, refresh: fetchToken };
 }

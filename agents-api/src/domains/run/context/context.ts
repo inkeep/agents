@@ -37,7 +37,7 @@ async function handleContextConfigChange(
   newContextConfigId: string,
   credentialStores?: CredentialStoreRegistry
 ): Promise<void> {
-  const { tenantId, projectId, agentId } = executionContext;
+  const { tenantId, projectId } = executionContext;
   const conversation = await getConversation(runDbClient)({
     scopes: { tenantId, projectId },
     conversationId,
@@ -51,7 +51,6 @@ async function handleContextConfigChange(
     logger.info(
       {
         conversationId,
-        agentId,
         contextConfigId: newContextConfigId,
       },
       'Potential context config change for existing conversation, cache cleared'
@@ -86,7 +85,7 @@ async function handleContextResolution({
         const contextConfig = agent.contextConfig;
 
         if (!contextConfig) {
-          logger.debug({ agentId: agentId }, 'No context config found for agent');
+          logger.debug('No context config found for agent');
           return null;
         }
 
@@ -135,7 +134,6 @@ async function handleContextResolution({
         logger.info(
           {
             conversationId,
-            agentId: agentId,
             contextConfigId: contextConfig.id,
             trigger,
             resolvedKeys: Object.keys(resolvedContext),

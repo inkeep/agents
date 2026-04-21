@@ -1,4 +1,5 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { jwtVerify } from 'jose';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -63,13 +64,7 @@ vi.mock('@inkeep/agents-work-apps/github', () => ({
   fetchInstallationRepositories: fetchInstallationRepositoriesMock,
 }));
 
-vi.mock('../../../logger', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
+vi.mock('../../../logger', () => createMockLoggerModule().module);
 
 import githubRoutes, {
   STATE_JWT_AUDIENCE,
@@ -189,7 +184,7 @@ describe('GitHub Manage Routes', () => {
       expect(response.status).toBe(500);
       const body = await response.json();
       expect(body.status).toBe(500);
-      expect(body.error.message).toContain('not configured');
+      expect(body.error.message).toBe('An internal server error occurred. Please try again later.');
     });
 
     it('should return 500 when GitHub App name is not configured', async () => {
@@ -202,7 +197,7 @@ describe('GitHub Manage Routes', () => {
       expect(response.status).toBe(500);
       const body = await response.json();
       expect(body.status).toBe(500);
-      expect(body.error.message).toContain('not configured');
+      expect(body.error.message).toBe('An internal server error occurred. Please try again later.');
     });
 
     it('should URL-encode the state parameter', async () => {
@@ -671,7 +666,7 @@ describe('GitHub Manage Routes', () => {
 
       expect(body.status).toBe(500);
       expect(body.error.code).toBe('internal_server_error');
-      expect(body.error.message).toBe('Failed to disconnect installation');
+      expect(body.error.message).toBe('An internal server error occurred. Please try again later.');
     });
 
     it('should disconnect installation with pending status', async () => {
@@ -820,7 +815,7 @@ describe('GitHub Manage Routes', () => {
 
       expect(body.status).toBe(500);
       expect(body.error.code).toBe('internal_server_error');
-      expect(body.error.message).toBe('Failed to reconnect installation');
+      expect(body.error.message).toBe('An internal server error occurred. Please try again later.');
     });
 
     it('should return 503 when GitHub App JWT creation fails', async () => {

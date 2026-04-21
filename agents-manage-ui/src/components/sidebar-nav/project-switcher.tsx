@@ -44,7 +44,6 @@ const ProjectItem: FC<{
 };
 
 export const ProjectSwitcher: FC = () => {
-  'use memo';
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
   const [search, setSearch] = useState('');
   const { isAdmin: canCreateProject } = useIsOrgAdmin();

@@ -19,6 +19,7 @@ The framework uses **two separate PostgreSQL databases**:
 | **Runtime** (Postgres) | `drizzle.run.config.ts` | `src/db/runtime/runtime-schema.ts` | Transactional data: conversations, messages, tasks, API keys |
 
 **Key Distinction:**
+
 - **Manage DB**: Configuration that changes infrequently (agent definitions, tool configs). Supports Dolt versioning.
 - **Runtime DB**: High-frequency transactional data (conversations, messages). No cross-DB foreign keys to manage tables.
 
@@ -353,6 +354,34 @@ pnpm db:generate
 pnpm db:migrate
 ```
 
+### Step 8: Validate manage migrations across Dolt branches
+
+If your change touches the **manage** schema, don't stop after the migration succeeds on `main`. You should verify that the schema change can be merged from the `main` schema branch into existing project branches containing real data.
+Doltgres is still in beta and there may be discrepancies between valid postgres and doltgres behavior. These discrepancies may cause migrations to fail when merged into project branches.
+
+Recommended validation flow:
+
+```bash
+# 1. Ensure your local Dolt DB already has representative test data
+#    in main and in one or more non-main branches
+
+# 2. Apply the migration on main
+pnpm db:manage:migrate
+
+# 3. Push the schema change from main to all non-main branches
+pnpm --filter @inkeep/agents-core db:manage:sync-all-branches
+```
+
+What to look for:
+
+- `SYNCED` means the schema updated cleanly on that branch
+- `NOOP` means the branch was already up to date
+- Any failure means the migration likely has a branch-merge problem that must be fixed before shipping
+
+This catches:
+
+- Dolt-specific merge failures around constraints, indexes, or table rewrites
+
 ---
 
 ## Adding a Column to Existing Table
@@ -447,6 +476,7 @@ export const entityAEntityBRelations = pgTable(
 ## Migration Rules
 
 ⚠️ **Critical Rules:**
+
 - **NEVER** manually edit files in `drizzle/meta/`
 - **NEVER** edit existing migration SQL files after they've been applied
 - **NEVER** manually delete migration files - use `pnpm db:drop`
@@ -463,11 +493,13 @@ pnpm bump minor --pkg agents-core "Add myNewTable for storing X"
 ```
 
 Use **minor** version for:
+
 - New tables
 - New required columns
 - Breaking schema changes
 
 Use **patch** version for:
+
 - New optional columns with defaults
 - New indexes
 - Non-breaking additions
@@ -487,5 +519,6 @@ Before completing any data model change, verify:
 - [ ] Entity types exported
 - [ ] Data access functions created
 - [ ] Migration generated and reviewed
+- [ ] If manage schema changed: tested `pnpm --filter @inkeep/agents-core db:manage:sync-all-branches` against existing branch data
 - [ ] Changeset created
 - [ ] Tests written for new data access functions

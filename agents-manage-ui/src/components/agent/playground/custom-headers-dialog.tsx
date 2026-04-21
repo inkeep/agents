@@ -39,7 +39,6 @@ export const CustomHeadersDialog: FC<CustomHeadersDialogProps> = ({
   setIsOpen,
   headersTemplate,
 }) => {
-  'use memo';
   const onSubmit = form.handleSubmit(({ headers }) => {
     setCustomHeaders(headers);
     toast.success('Custom headers applied, you can now use them in the chat.');

@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/inheritance-indicator';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { DOCS_BASE_URL } from '@/constants/theme';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useProjectPermissionsQuery, useProjectQuery } from '@/lib/query/projects';
@@ -56,7 +57,6 @@ const executionLimitInheritanceInfo = (
 );
 
 export const MetadataEditor: FC = () => {
-  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const baseUrl = PUBLIC_INKEEP_AGENTS_API_URL;
@@ -67,11 +67,16 @@ export const MetadataEditor: FC = () => {
   const { data: project } = useProjectQuery();
   const form = useFullAgentFormContext();
 
-  const isStatusUpdateEnabled = useWatch({ control: form.control, name: 'statusUpdates.enabled' });
-  const numEvents = useWatch({ control: form.control, name: 'statusUpdates.numEvents' });
-  const timeInSeconds = useWatch({ control: form.control, name: 'statusUpdates.timeInSeconds' });
-  const transferCountIs = useWatch({ control: form.control, name: 'stopWhen.transferCountIs' });
-  const models = useWatch({ control: form.control, name: 'models' });
+  const [isStatusUpdateEnabled, numEvents, timeInSeconds, transferCountIs, models] = useWatch({
+    control: form.control,
+    name: [
+      'statusUpdates.enabled',
+      'statusUpdates.numEvents',
+      'statusUpdates.timeInSeconds',
+      'stopWhen.transferCountIs',
+      'models',
+    ],
+  });
 
   return (
     <div className="space-y-8">
@@ -147,6 +152,20 @@ export const MetadataEditor: FC = () => {
             form.setValue('models.base.providerOptions', value, { shouldDirty: true });
           }}
           editorNamePrefix="agent-base"
+          fallbackModels={models.base.fallbackModels ?? undefined}
+          inheritedFallbackModels={project?.models.base?.fallbackModels ?? undefined}
+          onFallbackModelsChange={(value) => {
+            form.setValue('models.base.fallbackModels', value.length ? value : undefined, {
+              shouldDirty: true,
+            });
+          }}
+          allowedProviders={models.base.allowedProviders ?? undefined}
+          inheritedAllowedProviders={project?.models.base?.allowedProviders ?? undefined}
+          onAllowedProvidersChange={(value) => {
+            form.setValue('models.base.allowedProviders', value.length ? value : undefined, {
+              shouldDirty: true,
+            });
+          }}
         />
 
         <CollapsibleSettings
@@ -196,6 +215,34 @@ export const MetadataEditor: FC = () => {
               }
               return structuredOutputModelProviderOptionsTemplate;
             }}
+            fallbackModels={models.structuredOutput?.fallbackModels ?? undefined}
+            inheritedFallbackModels={
+              project?.models.structuredOutput?.fallbackModels ??
+              models.base.fallbackModels ??
+              project?.models.base?.fallbackModels ??
+              undefined
+            }
+            onFallbackModelsChange={(value) => {
+              form.setValue(
+                'models.structuredOutput.fallbackModels',
+                value.length ? value : undefined,
+                { shouldDirty: true }
+              );
+            }}
+            allowedProviders={models.structuredOutput?.allowedProviders ?? undefined}
+            inheritedAllowedProviders={
+              project?.models.structuredOutput?.allowedProviders ??
+              models.base.allowedProviders ??
+              project?.models.base?.allowedProviders ??
+              undefined
+            }
+            onAllowedProvidersChange={(value) => {
+              form.setValue(
+                'models.structuredOutput.allowedProviders',
+                value.length ? value : undefined,
+                { shouldDirty: true }
+              );
+            }}
           />
 
           <ModelConfiguration
@@ -236,6 +283,32 @@ export const MetadataEditor: FC = () => {
                 return azureModelSummarizerProviderOptionsTemplate;
               }
               return summarizerModelProviderOptionsTemplate;
+            }}
+            fallbackModels={models.summarizer?.fallbackModels ?? undefined}
+            inheritedFallbackModels={
+              project?.models.summarizer?.fallbackModels ??
+              models.base.fallbackModels ??
+              project?.models.base?.fallbackModels ??
+              undefined
+            }
+            onFallbackModelsChange={(value) => {
+              form.setValue('models.summarizer.fallbackModels', value.length ? value : undefined, {
+                shouldDirty: true,
+              });
+            }}
+            allowedProviders={models.summarizer?.allowedProviders ?? undefined}
+            inheritedAllowedProviders={
+              project?.models.summarizer?.allowedProviders ??
+              models.base.allowedProviders ??
+              project?.models.base?.allowedProviders ??
+              undefined
+            }
+            onAllowedProvidersChange={(value) => {
+              form.setValue(
+                'models.summarizer.allowedProviders',
+                value.length ? value : undefined,
+                { shouldDirty: true }
+              );
             }}
           />
         </CollapsibleSettings>
@@ -289,8 +362,14 @@ export const MetadataEditor: FC = () => {
         <SectionHeader
           title="Execution mode"
           description="Choose how agent execution is managed. Classic streams with low latency. Durable persists execution state across workflow steps, enabling crash recovery at the cost of higher time-to-first-byte."
-          learnMoreHref="https://docs.inkeep.com/visual-builder/execution-modes"
-        />
+        >
+          <ExternalLink
+            href={`${DOCS_BASE_URL}/visual-builder/execution-modes`}
+            className="text-xs"
+          >
+            Learn more
+          </ExternalLink>
+        </SectionHeader>
         <GenericSelect
           control={form.control}
           name="executionMode"

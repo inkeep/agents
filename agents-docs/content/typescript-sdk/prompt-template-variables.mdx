@@ -1,0 +1,62 @@
+---
+title: Prompt template variables
+sidebarTitle: Template variables
+description: Reference for the template variables you can use inside agent prompts — contextVariable, headers, and $conversation.
+icon: LuBraces
+keywords: template variables, prompt interpolation, conversation id
+---
+
+## Overview
+
+Agent prompts support three template variable families. Each is rendered into the system prompt before the LLM sees it, so the model receives concrete values and can pass them through to tool calls as plain strings.
+
+| Variable | Syntax | Resolves to | Details |
+| --- | --- | --- | --- |
+| Context variable | `{{contextVariable.<name>.<path>}}` | Value from a context fetcher | [Context Fetchers](/typescript-sdk/context-fetchers) |
+| Header | `{{headers.<name>}}` | Value from a validated request header | [Headers](/typescript-sdk/headers) |
+| Conversation ID | `{{$conversation.id}}` | The current conversation's ID | [Below](#conversation-id) |
+
+<Note>
+  Template variables only resolve inside **agent prompts**. The same `{{...}}` syntax appears in some other templated fields (context fetcher URLs, MCP credential templates, team agent delegation headers), but those fields only resolve `{{contextVariable.*}}` and `{{headers.*}}`.
+</Note>
+
+## Context variables and headers
+
+See [Context Fetchers](/typescript-sdk/context-fetchers) and [Headers](/typescript-sdk/headers) for full coverage — how to define them, how their schemas work, and how `toTemplate()` gives you type-safe references with autocomplete.
+
+## Conversation ID
+
+`{{$conversation.id}}` resolves to the current conversation's ID at prompt-render time. Works in any agent prompt — no `contextConfig` required.
+
+### When to use it
+
+When you want the LLM to pass the conversation ID into tool arguments. Typical use: writing to an external system (ticketing, CRM, analytics) where you want a correlation key that links the external record back to the conversation.
+
+### Example — Zendesk ticket correlation
+
+```typescript
+const zendeskAgent = subAgent({
+  id: 'zendesk-agent',
+  name: 'Zendesk Support Agent',
+  description: 'Creates Zendesk tickets with conversation correlation',
+  prompt: `You are a support agent with access to Zendesk.
+    When creating a Zendesk ticket, set the "inkeep_conversation" custom field
+    to {{$conversation.id}} so support engineers can trace the ticket back to
+    this conversation.`,
+  canUse: () => [zendeskMcpTool.with({ selectedTools: ['create_zendesk_ticket'] })],
+});
+```
+
+See the [customer-support cookbook template](https://github.com/inkeep/agents/tree/main/agents-cookbook/template-projects/customer-support) for a complete working example.
+
+### Resolution behavior
+
+| Situation | Rendered value |
+| --- | --- |
+| Request has a conversation ID | The conversation ID string (e.g. `conv_abc123`) |
+| Request has no conversation context | Empty string |
+| Conversation ID is the framework's `'default'` fallback sentinel | Empty string |
+
+### Delegation and transfer
+
+When an agent delegates to a sub-agent via A2A or transfers control, the sub-agent's `{{$conversation.id}}` resolves to **the parent's conversation ID** — the user-initiated one. This ensures records written by delegated sub-agents correlate back to the conversation the user started.

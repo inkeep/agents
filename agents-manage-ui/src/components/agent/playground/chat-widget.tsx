@@ -10,7 +10,7 @@ import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useTempApiKey } from '@/hooks/use-temp-api-key';
 import { useDataComponentsQuery } from '@/lib/query/data-components';
 import { css } from '@/lib/utils';
-import { FeedbackDialog } from './feedback-dialog';
+import { ImproveDialog } from './improve-dialog';
 
 interface ChatWidgetProps {
   agentId?: string;
@@ -76,12 +76,10 @@ export function ChatWidget({
   setShowTraces,
   hasHeadersError,
 }: ChatWidgetProps) {
-  'use memo';
-
   const { PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
-  const { isCopilotConfigured } = useCopilotContext();
+  const copilotCtx = useCopilotContext();
   const { data: dataComponents } = useDataComponentsQuery();
-  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
+  const [isImproveDialogOpen, setIsImproveDialogOpen] = useState(false);
   const [messageId, setMessageId] = useState<string | undefined>(undefined);
   const {
     apiKey: tempApiKey,
@@ -241,36 +239,30 @@ export function ChatWidget({
             },
             isChatHistoryButtonVisible: false,
             isViewOnly: hasHeadersError,
-            conversationId,
+            conversationIdOverride: conversationId,
             baseUrl: PUBLIC_INKEEP_AGENTS_API_URL,
-            ...(playgroundAppId ? { appId: playgroundAppId } : {}),
+            appId: playgroundAppId ?? undefined,
             headers: {
-              ...(playgroundAppId
-                ? {}
-                : {
-                    'x-inkeep-tenant-id': tenantId,
-                    'x-inkeep-project-id': projectId,
-                    'x-inkeep-agent-id': agentId || '',
-                    Authorization: `Bearer ${tempApiKey}`,
-                  }),
               'x-emit-operations': 'true',
               ...customHeaders,
             },
-            messageActions: isCopilotConfigured
-              ? [
-                  {
-                    label: 'Improve with AI',
-                    icon: { builtIn: 'LuSparkles' },
-                    action: {
-                      type: 'invoke_message_callback',
-                      callback({ messageId }) {
-                        setMessageId(messageId);
-                        setIsFeedbackDialogOpen(true);
+            messageActions: [
+              ...(copilotCtx.isCopilotConfigured
+                ? [
+                    {
+                      label: 'Improve with AI',
+                      icon: { builtIn: 'LuSparkles' as const },
+                      action: {
+                        type: 'invoke_message_callback' as const,
+                        callback({ messageId }: { messageId?: string }) {
+                          setMessageId(messageId);
+                          setIsImproveDialogOpen(true);
+                        },
                       },
                     },
-                  },
-                ]
-              : undefined,
+                  ]
+                : []),
+            ],
             components: new Proxy(
               {},
               {
@@ -299,10 +291,10 @@ export function ChatWidget({
           }}
         />
       </div>
-      {isFeedbackDialogOpen && (
-        <FeedbackDialog
-          isOpen={isFeedbackDialogOpen}
-          onOpenChange={setIsFeedbackDialogOpen}
+      {isImproveDialogOpen && (
+        <ImproveDialog
+          isOpen={isImproveDialogOpen}
+          onOpenChange={setIsImproveDialogOpen}
           conversationId={conversationId}
           messageId={messageId}
           setShowTraces={setShowTraces}

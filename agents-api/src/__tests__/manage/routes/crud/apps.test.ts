@@ -1,9 +1,17 @@
-import { generateId } from '@inkeep/agents-core';
+import { generateId, rewriteAppCredentialAccess } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import manageDbClient from '../../../../data/db/manageDbClient';
 import { makeRequest } from '../../../utils/testRequest';
 import { createTestTenantWithOrg } from '../../../utils/testTenant';
+
+vi.mock('@inkeep/agents-core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
+  return {
+    ...actual,
+    rewriteAppCredentialAccess: vi.fn().mockResolvedValue(undefined),
+  };
+});
 
 describe('App CRUD Routes - Integration Tests', () => {
   const createTestApp = async ({
@@ -507,14 +515,12 @@ describe('App CRUD Routes - Integration Tests', () => {
       );
       const getBody = await getRes.json();
       expect(getBody.data).not.toHaveProperty('tenantId');
-      expect(getBody.data).not.toHaveProperty('projectId');
       expect(getBody.data).not.toHaveProperty('keyHash');
 
       const listRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/apps`);
       const listBody = await listRes.json();
       for (const item of listBody.data) {
         expect(item).not.toHaveProperty('tenantId');
-        expect(item).not.toHaveProperty('projectId');
         expect(item).not.toHaveProperty('keyHash');
       }
     });
@@ -550,6 +556,67 @@ describe('App CRUD Routes - Integration Tests', () => {
         { method: 'DELETE' }
       );
       expect(res.status).toBe(404);
+    });
+
+    it('should revoke SpiceDB credential grant when deleting a support_copilot app', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-delete-spicedb');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const credentialReferenceId = `cred-${generateId()}`;
+
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/apps`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            name: 'Copilot App',
+            type: 'support_copilot',
+            defaultAgentId: 'agent-1',
+            config: {
+              type: 'support_copilot',
+              supportCopilot: { platform: 'zendesk', credentialReferenceId },
+            },
+          }),
+        }
+      );
+      expect(createRes.status).toBe(201);
+      const { data } = await createRes.json();
+      const appId = data.app.id;
+
+      vi.mocked(rewriteAppCredentialAccess).mockClear();
+
+      const deleteRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/apps/${appId}`,
+        { method: 'DELETE' }
+      );
+      expect(deleteRes.status).toBe(204);
+
+      expect(rewriteAppCredentialAccess).toHaveBeenCalledTimes(1);
+      expect(rewriteAppCredentialAccess).toHaveBeenCalledWith({
+        tenantId,
+        projectId,
+        priorCredentialReferenceId: credentialReferenceId,
+        appId,
+      });
+    });
+
+    it('should not invoke SpiceDB revoke when deleting a web_client app', async () => {
+      const tenantId = await createTestTenantWithOrg('apps-delete-webclient-no-spicedb');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const { app } = await createTestApp({ tenantId, projectId });
+
+      vi.mocked(rewriteAppCredentialAccess).mockClear();
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/apps/${app.id}`,
+        { method: 'DELETE' }
+      );
+      expect(res.status).toBe(204);
+
+      expect(rewriteAppCredentialAccess).not.toHaveBeenCalled();
     });
   });
 

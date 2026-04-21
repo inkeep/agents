@@ -12,12 +12,16 @@ import {
   ErrorResponseSchema,
   generateAppCredential,
   getAppByIdForProject,
+  getCredentialReference,
   listAppsPaginated,
   PaginationQueryParamsSchema,
+  rewriteAppCredentialAccess,
+  SUPPORT_COPILOT_PLATFORMS,
   sanitizeAppConfig,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateAppForProject,
+  WebClientConfigSchema,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
@@ -43,7 +47,10 @@ app.openapi(
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema.extend({
-        type: z.enum(['web_client', 'api']).optional().describe('Filter by app type'),
+        type: z
+          .enum(['web_client', 'api', 'support_copilot'])
+          .optional()
+          .describe('Filter by app type'),
       }),
     },
     responses: {
@@ -63,7 +70,7 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
-    const type = c.req.query('type') as 'web_client' | 'api' | undefined;
+    const type = c.req.query('type') as 'web_client' | 'api' | 'support_copilot' | undefined;
 
     const result = await listAppsPaginated(runDbClient)({
       scopes: { tenantId, projectId },
@@ -157,6 +164,10 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
 
+    if (body.config?.type === 'support_copilot') {
+      assertCredentialRequirementMet(body.config.supportCopilot);
+    }
+
     const credential = generateAppCredential();
 
     const result = await createApp(runDbClient)({
@@ -168,6 +179,19 @@ app.openapi(
       enabled: body.enabled ?? true,
     });
 
+    // Grant explicitly on create — the update handler's diff path only fires on transitions.
+    if (
+      body.config?.type === 'support_copilot' &&
+      body.config.supportCopilot.credentialReferenceId
+    ) {
+      await rewriteAppCredentialAccess({
+        tenantId,
+        projectId,
+        nextCredentialReferenceId: body.config.supportCopilot.credentialReferenceId,
+        appId: credential.id,
+      });
+    }
+
     return c.json(
       {
         data: {
@@ -178,6 +202,19 @@ app.openapi(
     );
   }
 );
+
+function assertCredentialRequirementMet(supportCopilot: {
+  platform: string;
+  credentialReferenceId?: string;
+}) {
+  const entry = SUPPORT_COPILOT_PLATFORMS.find((p) => p.slug === supportCopilot.platform);
+  if (entry?.credentialRequired && !supportCopilot.credentialReferenceId) {
+    throw createApiError({
+      code: 'bad_request',
+      message: `Platform '${supportCopilot.platform}' requires a credential`,
+    });
+  }
+}
 
 const updateAppRouteConfig = {
   path: '/{id}' as const,
@@ -217,6 +254,71 @@ const updateAppHandler: ManageRouteHandler<typeof updateAppRouteConfig> = async 
     data.defaultProjectId = data.defaultAgentId ? (data.defaultProjectId ?? projectId) : null;
   }
 
+  if (data.config && data.config.type === 'web_client') {
+    const parsed = WebClientConfigSchema.safeParse(data.config);
+    if (!parsed.success) {
+      throw createApiError({
+        code: 'bad_request',
+        message: `Invalid web client config: ${parsed.error.issues.map((i) => i.message).join(', ')}`,
+      });
+    }
+    const existingApp = await getAppByIdForProject(runDbClient)({
+      scopes: { tenantId, projectId },
+      id,
+    });
+    if (existingApp?.config?.type === 'web_client') {
+      const existingWc = existingApp.config.webClient;
+      const incomingWc = parsed.data.webClient;
+      data.config = {
+        type: 'web_client' as const,
+        webClient: {
+          ...existingWc,
+          allowedDomains: incomingWc.allowedDomains ?? existingWc.allowedDomains,
+          ...(incomingWc.allowAnonymous !== undefined && {
+            allowAnonymous: incomingWc.allowAnonymous,
+          }),
+          ...(incomingWc.audience !== undefined && { audience: incomingWc.audience }),
+        } as typeof existingWc,
+      };
+    }
+  }
+
+  // Track prior vs next credential so rewriteAppCredentialAccess below can diff them.
+  let priorCredentialReferenceId: string | undefined;
+  let nextCredentialReferenceId: string | undefined;
+  if (data.config?.type === 'support_copilot') {
+    assertCredentialRequirementMet(data.config.supportCopilot);
+    const { platform, credentialReferenceId, quickActions } = data.config.supportCopilot;
+
+    if (credentialReferenceId) {
+      const db = c.get('db');
+      const credRef = await getCredentialReference(db)({
+        scopes: { tenantId, projectId },
+        id: credentialReferenceId,
+      });
+      if (!credRef) {
+        throw createApiError({
+          code: 'not_found',
+          message: `Credential reference '${credentialReferenceId}' not found in project`,
+        });
+      }
+    }
+
+    const existingApp = await getAppByIdForProject(runDbClient)({
+      scopes: { tenantId, projectId },
+      id,
+    });
+    if (existingApp?.config?.type === 'support_copilot') {
+      priorCredentialReferenceId = existingApp.config.supportCopilot.credentialReferenceId;
+    }
+    nextCredentialReferenceId = credentialReferenceId;
+
+    data.config = {
+      type: 'support_copilot' as const,
+      supportCopilot: { platform, credentialReferenceId, quickActions },
+    };
+  }
+
   const updatedApp = await updateAppForProject(runDbClient)({
     scopes: { tenantId, projectId },
     id,
@@ -227,6 +329,16 @@ const updateAppHandler: ManageRouteHandler<typeof updateAppRouteConfig> = async 
     throw createApiError({
       code: 'not_found',
       message: 'App not found',
+    });
+  }
+
+  if (priorCredentialReferenceId !== nextCredentialReferenceId) {
+    await rewriteAppCredentialAccess({
+      tenantId,
+      projectId,
+      priorCredentialReferenceId,
+      nextCredentialReferenceId,
+      appId: id,
     });
   }
 
@@ -266,6 +378,11 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
 
+    const existingApp = await getAppByIdForProject(runDbClient)({
+      scopes: { tenantId, projectId },
+      id,
+    });
+
     const deleted = await deleteAppForProject(runDbClient)({
       scopes: { tenantId, projectId },
       id,
@@ -275,6 +392,18 @@ app.openapi(
       throw createApiError({
         code: 'not_found',
         message: 'App not found',
+      });
+    }
+
+    if (
+      existingApp?.config?.type === 'support_copilot' &&
+      existingApp.config.supportCopilot.credentialReferenceId
+    ) {
+      await rewriteAppCredentialAccess({
+        tenantId,
+        projectId,
+        priorCredentialReferenceId: existingApp.config.supportCopilot.credentialReferenceId,
+        appId: id,
       });
     }
 

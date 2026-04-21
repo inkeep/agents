@@ -1,3 +1,7 @@
+import {
+  oauthProviderAuthServerMetadata,
+  oauthProviderOpenIdConfigMetadata,
+} from '@better-auth/oauth-provider';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { getInProcessFetch, getWaitUntil, registerAppFetch } from '@inkeep/agents-core';
 import { githubRoutes } from '@inkeep/agents-work-apps/github';
@@ -5,6 +9,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { requestId } from 'hono/request-id';
 import { pinoLogger } from 'hono-pino';
+import { credentialGatewayRoutes } from './domains/credential-gateway/routes';
 import { evalRoutes } from './domains/evals';
 import { workflowRoutes } from './domains/evals/workflow/routes';
 import { manageRoutes } from './domains/manage';
@@ -13,9 +18,11 @@ import { runRoutes } from './domains/run';
 import { workAppsRoutes } from './domains/work-apps';
 import { env } from './env';
 import { flushBatchProcessor } from './instrumentation';
-import { getLogger } from './logger';
+import { getLogger, runWithLogContext } from './logger';
 import {
   authCorsConfig,
+  credentialGatewayCatalogCorsConfig,
+  credentialGatewayCorsConfig,
   defaultCorsConfig,
   errorHandler,
   manageBearerOrSessionAuth,
@@ -34,7 +41,9 @@ import { manageRefMiddleware, runRefMiddleware, writeProtectionMiddleware } from
 import { sessionContext } from './middleware/sessionAuth';
 import { executionBaggageMiddleware } from './middleware/tracing';
 import { setupOpenAPIRoutes } from './openapi';
+import { cleanupStreamChunksHandler } from './routes/cleanupStreamChunks';
 import { healthChecksHandler } from './routes/healthChecks';
+import { restartWorkflowHandler } from './routes/restartScheduler';
 import type { AppConfig, AppVariables } from './types';
 
 const logger = getLogger('agents-api');
@@ -51,6 +60,14 @@ function createAgentsHono(config: AppConfig) {
 
   // Core middleware
   app.use('*', requestId());
+
+  // Security response headers
+  app.use('*', async (c, next) => {
+    await next();
+    c.header('X-Content-Type-Options', 'nosniff');
+    c.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+    c.header('X-XSS-Protection', '0');
+  });
 
   // Route-specific CORS (must be registered before global CORS)
   // Better Auth routes
@@ -114,6 +131,17 @@ function createAgentsHono(config: AppConfig) {
     app.on(['POST', 'GET'], '/api/auth/*', (c) => {
       return auth.handler(c.req.raw);
     });
+
+    // OIDC / OAuth 2.1 discovery endpoints
+    const openIdConfigHandler = oauthProviderOpenIdConfigMetadata(auth);
+    const authServerMetadataHandler = oauthProviderAuthServerMetadata(auth);
+
+    app.get('/.well-known/openid-configuration', (c) => {
+      return openIdConfigHandler(c.req.raw);
+    });
+    app.get('/.well-known/oauth-authorization-server/*', (c) => {
+      return authServerMetadataHandler(c.req.raw);
+    });
   }
   // Run routes - permissive CORS (origin: '*')
   app.use('/run/*', cors(runCorsConfig));
@@ -125,6 +153,9 @@ function createAgentsHono(config: AppConfig) {
 
   // Work Apps routes - specific CORS config for dashboard integration
   app.use('/work-apps/*', cors(workAppsCorsConfig));
+
+  app.use('/credential-gateway/.well-known/platforms', cors(credentialGatewayCatalogCorsConfig));
+  app.use('/credential-gateway/*', cors(credentialGatewayCorsConfig));
 
   // Global CORS middleware - handles all other routes
   app.use('*', async (c, next) => {
@@ -142,6 +173,9 @@ function createAgentsHono(config: AppConfig) {
       return next();
     }
     if (c.req.path.includes('/signoz/')) {
+      return next();
+    }
+    if (c.req.path.startsWith('/credential-gateway/')) {
       return next();
     }
 
@@ -208,6 +242,12 @@ function createAgentsHono(config: AppConfig) {
   // Mount health check routes at root level
   app.route('/', healthChecksHandler);
 
+  // Deploy hook - restarts scheduler workflow on new deployment
+  app.route('/', restartWorkflowHandler);
+
+  // Vercel cron - cleanup expired stream chunks
+  app.route('/', cleanupStreamChunksHandler);
+
   // Authentication middleware for protected manage routes
   app.use('/manage/tenants/*', manageBearerOrSessionAuth());
 
@@ -241,7 +281,8 @@ function createAgentsHono(config: AppConfig) {
 
   // Fetch project config upfront for authenticated execution routes
   // Skip for lightweight endpoints that only need base execution context (tenant/project/user scoping)
-  const isLightweightRunRoute = (path: string) => path.startsWith('/run/v1/conversations');
+  const isLightweightRunRoute = (path: string) =>
+    path.startsWith('/run/v1/conversations') || path.startsWith('/run/v1/feedback');
   app.use('/run/tenants/*', projectConfigMiddlewareExcept(isWebhookRoute));
   app.use('/run/agents/*', projectConfigMiddleware);
   app.use('/run/v1/*', projectConfigMiddlewareExcept(isLightweightRunRoute));
@@ -250,6 +291,30 @@ function createAgentsHono(config: AppConfig) {
   // Baggage middleware for execution API - extracts context from API key authentication
   app.use('/run/*', async (c, next) => {
     return executionBaggageMiddleware()(c, next);
+  });
+
+  // Logger ALS context for run routes
+  app.use('/run/*', async (c, next) => {
+    const ctx = c.get('executionContext' as keyof typeof c.var) as
+      | { tenantId: string; projectId: string; agentId: string }
+      | undefined;
+    if (ctx) {
+      return runWithLogContext(
+        { tenantId: ctx.tenantId, projectId: ctx.projectId, agentId: ctx.agentId },
+        () => next()
+      );
+    }
+    return next();
+  });
+
+  // Logger ALS context for manage routes
+  app.use('/manage/tenants/*', async (c, next) => {
+    const tenantId = c.get('tenantId');
+    if (tenantId) {
+      const projectId = c.req.param('projectId');
+      return runWithLogContext({ tenantId, ...(projectId && { projectId }) }, () => next());
+    }
+    return next();
   });
 
   // management routes
@@ -297,6 +362,9 @@ function createAgentsHono(config: AppConfig) {
 
   // Mount MCP routes at top level
   app.route('/mcp', mcpRoutes);
+
+  // Mount Credential Gateway (server-to-server token exchange)
+  app.route('/credential-gateway', credentialGatewayRoutes);
 
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);

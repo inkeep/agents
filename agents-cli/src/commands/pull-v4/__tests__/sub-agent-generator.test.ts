@@ -345,5 +345,36 @@ describe('Sub-Agent Generator', () => {
         });
       }).not.toThrow();
     });
+
+    it('should preserve $-prefixed template variables verbatim (no contextConfig)', async () => {
+      const definition = generateSubAgentDefinition({
+        id: 'zendesk-agent',
+        name: 'Zendesk Agent',
+        description: 'Writes Zendesk tickets using conversation correlation.',
+        prompt:
+          'Set the inkeep_conversation custom field to {{$conversation.id}} on the ticket. Env={{$env.MY_ENV}}.',
+      });
+
+      expect(definition).toContain('{{$conversation.id}}');
+      expect(definition).toContain('{{$env.MY_ENV}}');
+      expect(definition).not.toContain('toTemplate("$conversation.id")');
+      expect(definition).not.toContain('toTemplate("$env.MY_ENV")');
+    });
+
+    it('should preserve $-prefixed template variables verbatim when prompt also has context variables', async () => {
+      const definition = generateSubAgentDefinition({
+        id: 'hybrid-agent',
+        name: 'Hybrid Agent',
+        description: 'Uses both contextVariable and $conversation.id.',
+        prompt:
+          'Hi {{userName}}, your conversation id is {{$conversation.id}}, header {{headers.requestId}}.',
+        contextConfigId: 'hybrid-context',
+      });
+
+      expect(definition).toContain('{{$conversation.id}}');
+      expect(definition).not.toContain('toTemplate("$conversation.id")');
+      expect(definition).toContain('toTemplate("userName")');
+      expect(definition).toContain('toTemplate("requestId")');
+    });
   });
 });

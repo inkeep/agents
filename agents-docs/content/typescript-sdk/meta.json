@@ -11,6 +11,7 @@
     "memory",
     "headers",
     "context-fetchers",
+    "prompt-template-variables",
     "structured-outputs",
     "data-operations",
     "evaluations",

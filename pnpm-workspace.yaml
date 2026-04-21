@@ -12,6 +12,7 @@ catalog:
   better-auth: 1.5.5
   "@better-auth/sso": 1.5.5
   "@better-auth/infra": 0.1.11
+  "@better-auth/oauth-provider": 1.5.5
   "@opentelemetry/api": ^1.9.0
   "@opentelemetry/auto-instrumentations-node": ^0.70.0
   "@opentelemetry/baggage-span-processor": ^0.5.0
@@ -28,10 +29,18 @@ publicHoistPattern:
   - "@types/react-dom"
 
 ignorePatchFailures: false
+minimumReleaseAge: 1440
+minimumReleaseAgeExclude:
+  - '@inkeep/*'
 
 patchedDependencies:
   "@changesets/assemble-release-plan@6.0.9": patches/@changesets__assemble-release-plan.patch
   fumadocs-core: patches/fumadocs-core.patch
+  babel-plugin-react-compiler: patches/babel-plugin-react-compiler.patch
+  # Adds ZIP-based document (docx/xlsx/pptx/odt/ods/odp/pages/numbers/key) passthrough for
+  # Chat and Responses APIs. Patch authored against
+  # @ai-sdk/openai@3.0.7 (dist/index.mjs). Remove once upstream Vercel AI SDK supports office MIME types natively.
+  "@ai-sdk/openai@3.0.7": patches/@ai-sdk__openai@3.0.7.patch
 
 overrides:
   next: ^16.1.6 # https://github.com/advisories/GHSA-5f7q-jpqc-wp7h

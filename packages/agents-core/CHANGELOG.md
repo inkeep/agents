@@ -1,5 +1,160 @@
 # @inkeep/agents-core
 
+## 0.69.0
+
+### Minor Changes
+
+- 52d0831: Add `TemplateEngine.renderPrompt()` with `PromptRenderOptions` for prompt-time resolution of built-in template variables. The new method accepts a `runtimeBuiltins` option that lets callers inject runtime values (e.g. `{ $conversation: { id } }`) to be resolved inside `{{$...}}` expressions before falling through to the existing `$env.*` handling. Existing `render()` behavior and the three non-prompt callers (delegation headers, context-fetcher URLs, MCP credential templating) are unchanged.
+
+### Patch Changes
+
+- c63567e: Add SpiceDB helpers for app credential access (app_reader relation)
+- 32bce4f: Add quickActions support to support_copilot app config (schema, persistence, editor UI)
+
+## 0.68.4
+
+## 0.68.3
+
+### Patch Changes
+
+- e8776f5: Add Microsoft as a social sign-in provider
+
+## 0.68.2
+
+### Patch Changes
+
+- 557f700: Add support_copilot app type with OAuth 2.1 JWT auth, tenant-level app discovery endpoint, and apps UI for configuring support copilot apps with credentials
+- 4e0fd65: Add invitation project assignments: automatically grant project access when invitation is accepted
+
+## 0.68.1
+
+## 0.68.0
+
+### Minor Changes
+
+- d1e18a8: Add OAuth 2.1 / OIDC provider support via Better Auth oauth-provider plugin
+
+## 0.67.4
+
+## 0.67.3
+
+## 0.67.2
+
+## 0.67.1
+
+## 0.67.0
+
+### Minor Changes
+
+- 757ac77: Add multi-user webhook triggers with per-user dispatch delay and invocation tracking.
+
+## 0.66.1
+
+## 0.66.0
+
+### Minor Changes
+
+- 5596ecb: Remove logger dependency injection from agentFull and projectFull data access functions. Agent CRUD operations now log via module-scope logger instead of silently swallowing logs. Removes exported `AgentLogger` interface and `ProjectLogger` type (zero external consumers).
+
+### Patch Changes
+
+- 63a1358: Migrate logger calls to use scoped context — remove repeated ambient fields, adopt string-only logger calls
+- 01a960d: Extract repeated string literals into shared constant modules for tool names, approval events, workflow tokens, session events, and relation types
+- 4d0169b: Add createMockLoggerModule factory in test-utils export for shared test mocks
+
+## 0.65.2
+
+### Patch Changes
+
+- fa18f84: Return static error message for all 500-level API responses to prevent information leakage
+- 34e1d67: Fix Doltgres error logging to surface root cause details, redact SQL bind params, and re-throw auto-commit failures to prevent silent data loss
+- 93eb31e: Add scoped logger context via AsyncLocalStorage for automatic request-level field propagation
+
+## 0.65.1
+
+### Patch Changes
+
+- 3735393: fix so project deletion cant delete other projects' branches
+- dbee04b: Add feedback CRUD API, database table, and Manage UI for collecting user feedback on conversations and messages
+
+## 0.65.0
+
+### Minor Changes
+
+- e332202: Add multi-user scheduled trigger support with per-user dispatch, sub-resource endpoints, and dispatch delay
+
+## 0.64.10
+
+## 0.64.9
+
+## 0.64.8
+
+## 0.64.7
+
+## 0.64.6
+
+### Patch Changes
+
+- 09c6eb0: Add stream resumption for interrupted conversations with Postgres-backed chunk buffering
+- 3237c45: Fix release workflow npm bootstrap for OIDC publishing
+- 528f69c: logging for for Doltgres database operations"
+- 6fddd34: Bugfix App Prompt Security Vulerability
+
+## 0.64.5
+
+### Patch Changes
+
+- e91d67b: Patched Doltgres Backslash Escaping
+
+## 0.64.4
+
+## 0.64.3
+
+### Patch Changes
+
+- 7aa1fac: Remove dead signTempToken function and rename derivePlaygroundKid to deriveKidFromPublicKey
+- 4ace590: Remove axios dependency in favor of native fetch for improved security
+
+## 0.64.2
+
+### Patch Changes
+
+- f099221: Fix app prompt encoding errors by resolving prompt from database via appId instead of forwarding text in HTTP headers
+
+## 0.64.1
+
+## 0.64.0
+
+### Patch Changes
+
+- 47915b3: Add agent-scoped datasets and evaluators with direct agent execution for dataset runs
+- 2ebe1c4: Add fallbackModels field to ModelSettings for gateway-based model failover
+- 68a55f5: Fix false positive 'Needs Login' status for connected MCP servers with valid credentials
+- abc3b5d: Add per-role seat limit enforcement to invitations and members UI
+
+## 0.63.3
+
+## 0.63.2
+
+### Patch Changes
+
+- dc818c0: Backfill SKILL.md files for legacy skills when migrating to nested skill files.
+- dc818c0: Add support for nested files and folders within Skills. Each skill is now a directory containing a `SKILL.md` entry file plus any number of nested reference files (templates, checklists, examples). The SDK `loadSkills()` function recursively discovers all files under each skill directory. The CLI `pull` command writes one file per skill file path. The Visual Builder shows a file-tree sidebar with per-file editing, context menus for adding and removing files, and breadcrumb navigation. The API accepts a `files` array for skill create and update, with four new file-level endpoints for individual CRUD operations. `SKILL.md` frontmatter remains the source of truth for skill name, description, and metadata.
+
+## 0.63.1
+
+## 0.63.0
+
+### Minor Changes
+
+- 0f77d00: Add scheduler workflow with centralized trigger dispatch and deploy restart endpoint
+
+## 0.62.2
+
+### Patch Changes
+
+- f614c56: Add environment-aware domain verification for the playground app
+
 ## 0.62.1
 
 ## 0.62.0
@@ -310,7 +465,6 @@
 ### Patch Changes
 
 - e623802: Add channel-based agent authorization for Slack with configurable `grantAccessToMembers` toggle
-
   - Extend `SlackAccessTokenPayloadSchema` with `authorized`, `authSource`, `channelId`, `authorizedProjectId` claims
   - Add `grantAccessToMembers` column to `work_app_slack_channel_agent_configs` table (default `true`)
   - Extend `BaseExecutionContext` with `metadata.slack` for channel auth context
@@ -383,11 +537,9 @@
   Skills are reusable instruction blocks that can be attached to sub-agents to govern behavior, reasoning, and tool usage.
 
   ### Features
-
   - **Visual Builder**: Create, edit, and delete skills from the new Skills page. Attach skills to sub-agents via the sidepane picker with drag-to-reorder support.
 
   - **TypeScript SDK**:
-
     - New `SkillDefinition` and `SkillReference` types
     - `loadSkills(directoryPath)` helper to load skills from `SKILL.md` files
     - `skills` config option on `SubAgent` and `Project`
@@ -397,7 +549,6 @@
   - **CLI**: `inkeep pull` now generates skill files in the `skills/` directory
 
   ### Loading Modes
-
   - **Always loaded**: Skill content is included in every prompt
   - **On-demand**: Skill appears as an outline in the system prompt and can be loaded via the built-in `load_skill` tool when needed
 
@@ -420,7 +571,6 @@
 - f981006: Unwrap generic Vercel AI SDK errors (e.g., "fetch failed") to surface root cause in logs and traces
 - e11fae9: Fix props field type in data components to be non-null and improve type safety with JsonSchemaForLlmSchemaType
 - 228d4e2: Fix nested error message display in form validation
-
   - Add `firstNestedMessage` helper to recursively extract error messages from nested Zod validation objects
   - Display error path location (e.g., `→ at ["foo", "bar"]`) for deeply nested validation errors
   - Refactor `createCustomHeadersSchema` to use Zod `.pipe()` for cleaner error path propagation
@@ -530,14 +680,12 @@
   This major version removes the legacy `signingSecret` field from triggers and replaces it with a flexible signature verification system that supports GitHub, Slack, Stripe, Zendesk, and other webhook providers.
 
   **Breaking Changes:**
-
   - Removed `signingSecret` column from triggers table (database migration required)
   - Removed `signingSecret` parameter from TriggerInsertSchema, TriggerUpdateSchema, and TriggerApiInsert
   - Removed `verifySigningSecret()` function from trigger-auth.ts
   - Triggers now require `signingSecretCredentialReferenceId` and `signatureVerification` configuration for signature verification
 
   **New Features:**
-
   - Added `SignatureVerificationConfig` type supporting:
     - Multiple HMAC algorithms: sha256, sha512, sha384, sha1, md5
     - Multiple encodings: hex, base64
@@ -946,7 +1094,6 @@
 ### Patch Changes
 
 - 185db71: fix validation errors of form fields for:
-
   - `subAgent.id`
   - `subAgent.prompt`
   - `agent.name`
@@ -956,15 +1103,12 @@
 - 8d8b6dd: Fix runtime configuration implementation to properly apply environment variable overrides
 
   This change fixes a critical bug where runtime configuration environment variables were parsed but never actually used by the runtime execution code. The fix includes:
-
   1. **Core Changes (agents-core)**:
-
      - Removed `getEnvNumber()` helper function
      - Bundled all 56 runtime constants into a `runtimeConsts` export object for cleaner imports
      - Constants now use plain default values instead of reading from `process.env` directly
 
   2. **Environment Parsing (manage-api & run-api)**:
-
      - Updated env.ts files to import `runtimeConsts` instead of individual constants
      - Added missing `AGENTS_VALIDATION_PAGINATION_DEFAULT_LIMIT` to manage-api parsing
      - Both APIs now properly parse environment variables and create `runtimeConfig` objects
@@ -1064,7 +1208,6 @@
 
 - dba5a31: Update quickstart port check
 - b0817aa: Fix CLI bugs
-
   - Quickstart inkeep.config.ts indents and types
   - inkeep init run API and manage API urls
 

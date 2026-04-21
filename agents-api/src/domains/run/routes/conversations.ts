@@ -8,15 +8,27 @@ import {
   createApiError,
   getConversation,
   getVisibleMessages,
+  getWorkflowExecutionByConversation,
   ListResponseSchema,
   listConversations,
   type MessageContent,
   toISODateString,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
+import { stream } from 'hono/streaming';
+import { getRun } from 'workflow/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
+import {
+  asArtifactRef,
+  createReplayHydrationContext,
+  hydrateArtifactRef,
+  isAttachmentBookkeepingRef,
+  parseDataPart,
+  type ReplayHydrationContext,
+} from '../artifacts/replay-hydration';
 import { resolveMessagesListBlobUris } from '../services/blob-storage/resolve-blob-uris';
+import { streamBufferRegistry } from '../stream/stream-buffer-registry';
 
 const logger = getLogger('run-conversations');
 
@@ -60,12 +72,15 @@ function extractText(content: MessageContent): string {
   return '';
 }
 
-function toVercelMessage(msg: {
-  id: string;
-  role: string;
-  content: MessageContent;
-  createdAt: string;
-}): VercelMessage {
+async function toVercelMessage(
+  msg: {
+    id: string;
+    role: string;
+    content: MessageContent;
+    createdAt: string;
+  },
+  hydration: ReplayHydrationContext
+): Promise<VercelMessage> {
   const role = normalizeRole(msg.role);
   const text = extractText(msg.content);
   const parts: Array<Record<string, unknown>> = [];
@@ -78,20 +93,29 @@ function toVercelMessage(msg: {
           parts.push({ type: 'text', text: p.text });
         }
       } else if (kind === 'data') {
-        let parsed = p.data;
-        if (typeof parsed === 'string') {
-          try {
-            parsed = JSON.parse(parsed);
-          } catch {
-            // keep as string
+        const parsed = parseDataPart(p.data);
+        const ref = asArtifactRef(parsed);
+        if (ref) {
+          // Attachment bookkeeping refs are paired with a sibling `file` part
+          // that already carries everything the UI needs — drop them.
+          if (isAttachmentBookkeepingRef(ref)) continue;
+          const hydrated = await hydrateArtifactRef(hydration, ref);
+          // Ledger miss drops the part entirely, matching streaming behavior.
+          if (hydrated) {
+            parts.push(hydrated);
+          } else {
+            logger.debug(
+              {
+                messageId: msg.id,
+                artifactId: ref.artifactId,
+                toolCallId: ref.toolCallId,
+              },
+              'Dropped data-artifact part on replay (ledger miss or hydration failure)'
+            );
           }
+        } else {
+          parts.push({ type: 'data-component', data: parsed });
         }
-        const isArtifact =
-          parsed &&
-          typeof parsed === 'object' &&
-          (parsed as Record<string, unknown>).artifactId &&
-          (parsed as Record<string, unknown>).toolCallId;
-        parts.push({ type: isArtifact ? 'data-artifact' : 'data-component', data: parsed });
       } else if (kind === 'file') {
         const url = typeof p.data === 'string' ? p.data : undefined;
         if (!url) {
@@ -347,17 +371,24 @@ app.openapi(
       }),
     ]);
 
-    const resolvedMessages = resolveMessagesListBlobUris(
+    const resolvedMessages = await resolveMessagesListBlobUris(
       messageList.map((msg) => ({ ...msg, content: msg.content as MessageContent }))
     );
 
-    const formattedMessages = resolvedMessages.map((msg) =>
-      toVercelMessage({
-        id: msg.id,
-        role: msg.role,
-        content: msg.content,
-        createdAt: msg.createdAt,
-      })
+    const hydration = await createReplayHydrationContext({ tenantId, projectId }, resolvedMessages);
+
+    const formattedMessages = await Promise.all(
+      resolvedMessages.map((msg) =>
+        toVercelMessage(
+          {
+            id: msg.id,
+            role: msg.role,
+            content: msg.content,
+            createdAt: msg.createdAt,
+          },
+          hydration
+        )
+      )
     );
 
     let title = conversation.title;
@@ -392,6 +423,211 @@ app.openapi(
         limit,
         total,
         pages,
+      },
+    });
+  }
+);
+
+const resumeConversationStreamRoute = createProtectedRoute({
+  method: 'get',
+  path: '/{conversationId}/stream',
+  summary: 'Resume Conversation Stream',
+  description:
+    'Reconnects to an active in-progress stream for the conversation. Returns 204 if no active stream exists.',
+  operationId: 'resume-conversation-stream',
+  tags: ['Conversations'],
+  security: [{ bearerAuth: [] }],
+  permission: inheritedRunApiKeyAuth(),
+  request: {
+    params: z.object({ conversationId: z.string() }),
+    query: z.object({
+      afterIdx: z.coerce.number().int().optional().openapi({
+        description: 'Resume from after this chunk index (omit for full replay)',
+      }),
+    }),
+  },
+  responses: {
+    200: {
+      description: 'Active stream — replays from given index or beginning',
+      content: { 'text/event-stream': { schema: z.string() } },
+    },
+    204: { description: 'No active stream' },
+    ...commonGetErrorResponses,
+  },
+});
+
+app.openapi(resumeConversationStreamRoute, async (c) => {
+  const executionContext = c.get('executionContext');
+  const { tenantId, projectId } = executionContext;
+  const endUserId = executionContext.metadata?.endUserId;
+  const { conversationId } = c.req.valid('param');
+  const { afterIdx } = c.req.valid('query');
+
+  const conversation = await getConversation(runDbClient)({
+    scopes: { tenantId, projectId },
+    conversationId,
+  });
+
+  if (!conversation) {
+    throw createApiError({ code: 'not_found', message: 'Conversation not found' });
+  }
+
+  if (conversation.userId && conversation.userId !== endUserId) {
+    throw createApiError({ code: 'not_found', message: 'Conversation not found' });
+  }
+
+  const durableExecution = await getWorkflowExecutionByConversation(runDbClient)({
+    tenantId,
+    projectId,
+    conversationId,
+  });
+
+  const setStreamHeaders = () => {
+    c.header('content-type', 'text/event-stream');
+    c.header('cache-control', 'no-cache');
+    c.header('connection', 'keep-alive');
+    c.header('x-vercel-ai-data-stream', 'v2');
+    c.header('x-accel-buffering', 'no');
+  };
+
+  if (durableExecution) {
+    const startIndex = afterIdx !== undefined ? afterIdx + 1 : 0;
+    const run = getRun(durableExecution.id);
+    setStreamHeaders();
+    return stream(c, async (s) => {
+      try {
+        const readable = run.getReadable({ startIndex });
+        const reader = readable.getReader();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          await s.write(value);
+        }
+      } catch (error) {
+        logger.error({ error, conversationId }, 'Error resuming durable stream');
+        await s.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
+      }
+    });
+  }
+
+  const scope = { tenantId, projectId, conversationId };
+  const hasStream = await streamBufferRegistry.hasChunks(scope);
+
+  if (hasStream) {
+    setStreamHeaders();
+    const readable = streamBufferRegistry.createReadable(scope, afterIdx);
+    return stream(c, async (s) => {
+      const reader = readable.getReader();
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          await s.write(value);
+        }
+      } catch (error) {
+        logger.error({ error, conversationId }, 'Error resuming classic stream');
+        await s.write(`event: error\ndata: ${JSON.stringify({ error: 'Stream error' })}\n\n`);
+      } finally {
+        reader.releaseLock();
+      }
+    });
+  }
+
+  return new Response(null, { status: 204 });
+});
+
+const PendingToolApprovalSchema = z
+  .object({
+    toolCallId: z.string(),
+    toolName: z.string(),
+    args: z.unknown().optional(),
+    isDelegated: z.boolean(),
+  })
+  .openapi('PendingToolApproval');
+
+const PendingApprovalsResponseSchema = z
+  .object({
+    hasPending: z.boolean(),
+    approval: PendingToolApprovalSchema.extend({
+      workflowRunId: z.string(),
+      updatedAt: z.string(),
+    }).optional(),
+  })
+  .openapi('PendingApprovalsResponse');
+
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/{conversationId}/pending-approvals',
+    summary: 'Get Pending Approvals',
+    description:
+      'Discover pending tool approval requests for a conversation. Use this to recover approval state when an SSE stream is interrupted or on page load.',
+    operationId: 'get-conversation-pending-approvals',
+    tags: ['Conversations'],
+    security: [{ bearerAuth: [] }],
+    permission: inheritedRunApiKeyAuth(),
+    request: {
+      params: z.object({ conversationId: z.string() }),
+    },
+    responses: {
+      200: {
+        description: 'Pending approval status for the conversation',
+        content: {
+          'application/json': {
+            schema: PendingApprovalsResponseSchema,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const executionContext = c.get('executionContext');
+    const { tenantId, projectId } = executionContext;
+    const { conversationId } = c.req.valid('param');
+
+    const conversation = await getConversation(runDbClient)({
+      scopes: { tenantId, projectId },
+      conversationId,
+    });
+
+    if (!conversation) {
+      throw createApiError({ code: 'not_found', message: 'Conversation not found' });
+    }
+
+    const endUserId = executionContext.metadata?.endUserId;
+    if (conversation.userId && conversation.userId !== endUserId) {
+      throw createApiError({ code: 'not_found', message: 'Conversation not found' });
+    }
+
+    const execution = await getWorkflowExecutionByConversation(runDbClient)({
+      tenantId,
+      projectId,
+      conversationId,
+    });
+
+    if (!execution || execution.status !== 'suspended') {
+      return c.json({ hasPending: false });
+    }
+
+    const metadata = execution.metadata as Record<string, unknown> | null;
+    const parsed = PendingToolApprovalSchema.safeParse(metadata?.pendingToolApproval);
+
+    if (!parsed.success) {
+      return c.json({ hasPending: false });
+    }
+
+    const pendingToolApproval = parsed.data;
+
+    return c.json({
+      hasPending: true,
+      approval: {
+        toolCallId: pendingToolApproval.toolCallId,
+        toolName: pendingToolApproval.toolName,
+        args: pendingToolApproval.args,
+        isDelegated: pendingToolApproval.isDelegated,
+        workflowRunId: execution.id,
+        updatedAt: execution.updatedAt,
       },
     });
   }

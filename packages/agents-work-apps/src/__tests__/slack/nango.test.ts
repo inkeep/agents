@@ -7,6 +7,7 @@
  * - Type definitions for workspace connections
  */
 
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import { computeWorkspaceConnectionId, getSlackIntegrationId } from '../../slack/services/nango';
 
@@ -19,14 +20,7 @@ vi.mock('../../env', () => ({
   },
 }));
 
-vi.mock('../../logger', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
+vi.mock('../../logger', () => createMockLoggerModule().module);
 
 describe('nango service', () => {
   describe('computeWorkspaceConnectionId', () => {

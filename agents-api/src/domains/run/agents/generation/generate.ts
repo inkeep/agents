@@ -4,7 +4,9 @@ import {
   type FilePart,
   GENERATION_TYPES,
   type Part,
+  SESSION_EVENT_AGENT_GENERATE,
   SPAN_KEYS,
+  TRANSFER_TOOL_PREFIX,
 } from '@inkeep/agents-core';
 import type { Span } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
@@ -16,6 +18,10 @@ import { agentSessionManager } from '../../session/AgentSession';
 import { getStreamHelper } from '../../stream/stream-registry';
 import { withJsonPostProcessing } from '../../utils/json-postprocessor';
 import { extractTextFromParts } from '../../utils/message-parts';
+import {
+  buildStrippedPartsNote,
+  stripIncompatibleOfficeParts,
+} from '../../utils/model-file-support';
 import { setSpanWithError, tracer } from '../../utils/tracer';
 import type { AgentRunContext, ResolvedGenerationResponse } from '../agent-types';
 import { hasToolCallWithPrefix, resolveGenerationResponse } from '../agent-types';
@@ -130,7 +136,6 @@ export function handleGenerationError(ctx: AgentRunContext, error: unknown, span
   const errorToThrow = error instanceof Error ? error : new Error(String(error));
   logger.error(
     {
-      agentId: ctx.config.id,
       errorMessage: errorToThrow.message,
       errorStack: errorToThrow.stack,
       errorName: errorToThrow.name,
@@ -220,11 +225,33 @@ export async function runGenerate(
 
         const { primaryModelSettings, modelSettings, hasStructuredOutput, timeoutMs } =
           configureModelSettings(ctx);
-        const inlinePdfFileCount = fileParts.filter(
+
+        const resolvedModelId = primaryModelSettings.model ?? '';
+        const { compatible: compatibleFileParts, stripped } = stripIncompatibleOfficeParts(
+          fileParts,
+          resolvedModelId
+        );
+
+        let effectiveUserMessage = userMessage;
+        if (stripped.length > 0) {
+          const note = buildStrippedPartsNote(stripped);
+          effectiveUserMessage = `${userMessage}\n\n${note}`;
+          logger.warn(
+            {
+              agentId: ctx.config.id,
+              modelId: primaryModelSettings.model,
+              strippedParts: stripped,
+            },
+            'Stripped incompatible office document parts before generation'
+          );
+          span.setAttribute('input.stripped_file_count', stripped.length);
+        }
+
+        const inlinePdfFileCount = compatibleFileParts.filter(
           (part) => part.file.mimeType?.toLowerCase().startsWith('application/pdf') === true
         ).length;
         span.setAttributes({
-          'input.file_count': fileParts.length,
+          'input.file_count': compatibleFileParts.length,
           'input.pdf_file_count': inlinePdfFileCount,
         });
         let response: ResolvedGenerationResponse;
@@ -239,8 +266,8 @@ export async function runGenerate(
         const messages = await buildInitialMessages(
           systemPrompt,
           conversationHistory,
-          userMessage,
-          fileParts
+          effectiveUserMessage,
+          compatibleFileParts
         );
 
         const { originalMessageCount, compressor } = setupCompression(
@@ -264,7 +291,7 @@ export async function runGenerate(
             dataComponentsSchema = buildDataComponentsSchema(ctx);
           } catch (err) {
             logger.error(
-              { agentId: ctx.config.id, err },
+              { err },
               'Failed to build data components schema — continuing without structured output'
             );
           }
@@ -297,7 +324,6 @@ export async function runGenerate(
 
         logger.info(
           {
-            agentId: ctx.config.id,
             hasStructuredOutput,
             shouldStream,
           },
@@ -322,7 +348,6 @@ export async function runGenerate(
 
         logger.info(
           {
-            agentId: ctx.config.id,
             hasOutput: !!rawResponse.output,
             dataComponentsCount:
               (rawResponse.output as { dataComponents?: unknown[] } | undefined)?.dataComponents
@@ -339,14 +364,13 @@ export async function runGenerate(
 
           logger.info(
             {
-              agentId: ctx.config.id,
               dataComponentsCount: response.output?.dataComponents?.length || 0,
               dataComponentNames: response.output?.dataComponents?.map((dc: any) => dc.name) || [],
             },
             'Processing response with data components'
           );
           textResponse = JSON.stringify(response.output, null, 2);
-        } else if (hasToolCallWithPrefix('transfer_to_')(response)) {
+        } else if (hasToolCallWithPrefix(TRANSFER_TOOL_PREFIX)(response)) {
           textResponse = response.steps[response.steps.length - 1].text || '';
         } else {
           textResponse = response.text || '';
@@ -364,7 +388,6 @@ export async function runGenerate(
 
           logger.warn(
             {
-              agentId: ctx.config.id,
               finishReason: response.finishReason,
               conversationId: conversationIdForSpan,
             },
@@ -392,18 +415,23 @@ export async function runGenerate(
         if (streamRequestId) {
           const generationType = response.object ? 'object_generation' : 'text_generation';
 
-          agentSessionManager.recordEvent(streamRequestId, 'agent_generate', ctx.config.id, {
-            parts: (formattedResponse.formattedContent?.parts || []).map((part: any) => ({
-              type:
-                part.kind === 'text'
-                  ? ('text' as const)
-                  : part.kind === 'data'
-                    ? ('tool_result' as const)
-                    : ('text' as const),
-              content: part.text || JSON.stringify(part.data),
-            })),
-            generationType,
-          });
+          agentSessionManager.recordEvent(
+            streamRequestId,
+            SESSION_EVENT_AGENT_GENERATE,
+            ctx.config.id,
+            {
+              parts: (formattedResponse.formattedContent?.parts || []).map((part: any) => ({
+                type:
+                  part.kind === 'text'
+                    ? ('text' as const)
+                    : part.kind === 'data'
+                      ? ('tool_result' as const)
+                      : ('text' as const),
+                content: part.text || JSON.stringify(part.data),
+              })),
+              generationType,
+            }
+          );
         }
 
         if (compressor) {

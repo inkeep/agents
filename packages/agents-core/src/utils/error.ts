@@ -2,9 +2,96 @@ import { z } from '@hono/zod-openapi';
 import { HTTPException } from 'hono/http-exception';
 import { getLogger } from './logger';
 
+const PG_ERROR_KEYS = [
+  'code',
+  'detail',
+  'hint',
+  'severity',
+  'schema',
+  'table',
+  'column',
+  'constraint',
+  'routine',
+  'position',
+  'internalPosition',
+  'internalQuery',
+  'where',
+  'dataType',
+  'line',
+  'file',
+] as const;
+
+const DRIZZLE_EXTRA_KEYS = ['query', 'params'] as const;
+
+/**
+ * Builds structured fields from an error chain (Drizzle → pg DatabaseError / Doltgres).
+ * Outer wrappers often omit SQLSTATE and server detail; those live on nested `.cause`.
+ */
+export function getDatabaseErrorLogContext(error: unknown): Record<string, unknown> {
+  const chain: Record<string, unknown>[] = [];
+  const seen = new Set<unknown>();
+  let current: unknown = error;
+  let depth = 0;
+
+  while (current != null && typeof current === 'object' && !seen.has(current)) {
+    seen.add(current);
+    const e = current as Record<string, unknown>;
+    const slice: Record<string, unknown> = {};
+
+    if (typeof e.message === 'string' && e.message.length > 0) {
+      slice.message = e.message;
+    }
+    if (depth === 0 && typeof e.stack === 'string' && e.stack.length > 0) {
+      slice.stack = e.stack;
+    }
+    for (const k of PG_ERROR_KEYS) {
+      const v = e[k];
+      if (v !== undefined && v !== null && v !== '') {
+        slice[k] = v;
+      }
+    }
+    for (const k of DRIZZLE_EXTRA_KEYS) {
+      if (e[k] !== undefined) {
+        slice[k] =
+          k === 'params'
+            ? `[${Array.isArray(e[k]) ? (e[k] as unknown[]).length : '?'} params redacted]`
+            : e[k];
+      }
+    }
+    if (Object.keys(slice).length > 0) {
+      chain.push(slice);
+    }
+    depth += 1;
+    current = 'cause' in e ? e.cause : undefined;
+  }
+
+  if (chain.length === 0) {
+    return {};
+  }
+
+  const root = chain[chain.length - 1] as Record<string, unknown>;
+  const out: Record<string, unknown> = { dbErrorChain: chain };
+
+  if (root.message !== undefined) {
+    out.dbRootMessage = root.message;
+  }
+  if (root.code !== undefined) {
+    out.dbRootCode = root.code;
+  }
+  if (root.detail !== undefined) {
+    out.dbRootDetail = root.detail;
+  }
+  if (root.hint !== undefined) {
+    out.dbRootHint = root.hint;
+  }
+
+  return out;
+}
+
 export const ErrorCode = z.enum([
   'bad_request',
   'unauthorized',
+  'payment_required',
   'forbidden',
   'not_found',
   'conflict',
@@ -16,6 +103,7 @@ export const ErrorCode = z.enum([
 const errorCodeToHttpStatus: Record<z.infer<typeof ErrorCode>, number> = {
   bad_request: 400,
   unauthorized: 401,
+  payment_required: 402,
   forbidden: 403,
   not_found: 404,
   conflict: 409,
@@ -79,6 +167,8 @@ export const errorResponseSchema = z
 
 export type ErrorResponse = z.infer<typeof errorResponseSchema>;
 
+const STATIC_500_MESSAGE = 'An internal server error occurred. Please try again later.';
+
 export function createApiError({
   code,
   message,
@@ -96,16 +186,19 @@ export function createApiError({
   const title = getTitleFromCode(code);
   const _type = `${ERROR_DOCS_BASE_URL}#${code}`;
 
+  const externalMessage = status >= 500 ? STATIC_500_MESSAGE : message;
+
   const problemDetails: ProblemDetails = {
     title,
     status,
-    detail: message,
+    detail: externalMessage,
     code,
     ...(instance && { instance }),
     ...(requestId && { requestId }),
   };
 
-  const errorMessage = message.length > 100 ? `${message.substring(0, 97)}...` : message;
+  const errorMessage =
+    externalMessage.length > 100 ? `${externalMessage.substring(0, 97)}...` : externalMessage;
 
   const responseBody = {
     ...problemDetails,
@@ -157,15 +250,8 @@ export async function handleApiError(
     }
 
     if (error.status >= 500) {
-      getLogger('core').error(
-        {
-          error,
-          status: error.status,
-          message: responseJson.detail || responseJson.error.message,
-          requestId: responseJson.requestId || requestId || 'unknown',
-        },
-        'API server error occurred'
-      );
+      responseJson.detail = STATIC_500_MESSAGE;
+      responseJson.error.message = STATIC_500_MESSAGE;
     } else {
       getLogger('core').info(
         {
@@ -182,35 +268,15 @@ export async function handleApiError(
     return responseJson;
   }
 
-  const errorMessage = error instanceof Error ? error.message : String(error);
-  const errorStack = error instanceof Error ? error.stack : undefined;
-
-  getLogger('core').error(
-    {
-      error,
-      message: errorMessage,
-      stack: errorStack,
-      status: 500,
-      requestId: requestId || 'unknown',
-    },
-    'Unhandled API error occurred'
-  );
-
-  const sanitizedErrorMessage =
-    error instanceof Error
-      ? error.message.replace(/\b(password|token|key|secret|auth)\b/gi, '[REDACTED]')
-      : 'Unknown error';
-
   const problemDetails: ProblemDetails & { error: { code: ErrorCodes; message: string } } = {
-    // type: `${ERROR_DOCS_BASE_URL}#internal_server_error`,
     title: 'Internal Server Error',
     status: 500,
-    detail: `Server error occurred: ${sanitizedErrorMessage}`,
+    detail: STATIC_500_MESSAGE,
     code: 'internal_server_error',
     ...(requestId && { requestId }),
     error: {
       code: 'internal_server_error',
-      message: 'An internal server error occurred. Please try again later.',
+      message: STATIC_500_MESSAGE,
     },
   };
 
@@ -223,6 +289,8 @@ function getTitleFromCode(code: ErrorCodes): string {
       return 'Bad Request';
     case 'unauthorized':
       return 'Unauthorized';
+    case 'payment_required':
+      return 'Payment Required';
     case 'forbidden':
       return 'Forbidden';
     case 'not_found':

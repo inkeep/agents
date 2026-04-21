@@ -68,7 +68,7 @@ app.openapi(
       });
     }
 
-    const publicKeys = appRecord.config.webClient.auth?.publicKeys ?? [];
+    const publicKeys = appRecord.config.webClient.publicKeys ?? [];
     return c.json({ data: publicKeys });
   }
 );
@@ -124,7 +124,7 @@ app.openapi(
       });
     }
 
-    const existingKeys = appRecord.config.webClient.auth?.publicKeys ?? [];
+    const existingKeys = appRecord.config.webClient.publicKeys ?? [];
 
     if (existingKeys.some((k) => k.kid === kid)) {
       throw createApiError({
@@ -149,10 +149,6 @@ app.openapi(
     };
 
     const updatedKeys = [...existingKeys, newKey];
-    const updatedAuth = {
-      ...appRecord.config.webClient.auth,
-      publicKeys: updatedKeys,
-    };
 
     await updateAppAuthKeysForProject(runDbClient)({
       scopes: { tenantId, projectId },
@@ -161,7 +157,7 @@ app.openapi(
         type: 'web_client',
         webClient: {
           ...appRecord.config.webClient,
-          auth: updatedAuth,
+          publicKeys: updatedKeys,
         },
       },
     });
@@ -208,7 +204,7 @@ app.openapi(
       });
     }
 
-    const existingKeys = appRecord.config.webClient.auth?.publicKeys ?? [];
+    const existingKeys = appRecord.config.webClient.publicKeys ?? [];
     const keyIndex = existingKeys.findIndex((k) => k.kid === kid);
 
     if (keyIndex === -1) {
@@ -219,10 +215,6 @@ app.openapi(
     }
 
     const updatedKeys = existingKeys.filter((k) => k.kid !== kid);
-    const updatedAuth = {
-      ...appRecord.config.webClient.auth,
-      publicKeys: updatedKeys,
-    };
 
     await updateAppAuthKeysForProject(runDbClient)({
       scopes: { tenantId, projectId },
@@ -231,7 +223,7 @@ app.openapi(
         type: 'web_client',
         webClient: {
           ...appRecord.config.webClient,
-          auth: updatedAuth,
+          publicKeys: updatedKeys,
         },
       },
     });

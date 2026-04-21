@@ -187,6 +187,11 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
               detail: 'Environment variable',
               sortText: '1',
             },
+            {
+              label: '$conversation.id',
+              detail: 'Current conversation ID',
+              sortText: '1',
+            },
           ];
           return {
             suggestions: completionItems.map((item) => ({

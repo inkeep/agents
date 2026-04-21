@@ -3,22 +3,24 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createContext, type FC, type ReactNode, use, useEffect } from 'react';
 import { type UseFormReturn, useForm } from 'react-hook-form';
-import type { z } from 'zod';
-import { FullAgentFormSchema } from '@/components/agent/form/validation';
+import {
+  type FullAgentFormInputValues,
+  FullAgentFormSchema,
+  type FullAgentFormValues,
+} from '@/components/agent/form/validation';
 import { Form } from '@/components/ui/form';
 
-type Input = z.input<typeof FullAgentFormSchema>;
-type Output = z.output<typeof FullAgentFormSchema>;
-
 const resolver = zodResolver(FullAgentFormSchema);
-const FullAgentFormContext = createContext<UseFormReturn<Input, unknown, Output> | null>(null);
+const FullAgentFormContext = createContext<UseFormReturn<
+  FullAgentFormInputValues,
+  unknown,
+  FullAgentFormValues
+> | null>(null);
 
 export const FullAgentFormProvider: FC<{
   children: ReactNode;
-  defaultValues: Input;
+  defaultValues: FullAgentFormInputValues;
 }> = ({ defaultValues, children }) => {
-  'use memo';
-
   const form = useForm({
     defaultValues,
     resolver,

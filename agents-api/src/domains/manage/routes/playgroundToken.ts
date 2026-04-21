@@ -2,7 +2,7 @@ import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   canUseProject,
   createApiError,
-  derivePlaygroundKid,
+  deriveKidFromPublicKey,
   ErrorResponseSchema,
   getAgentById,
   type OrgRole,
@@ -14,7 +14,6 @@ import { exportSPKI, importPKCS8, SignJWT } from 'jose';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import type { ManageAppVariables } from '../../../types/app';
-import { isCopilotAgent } from '../../../utils/copilot';
 
 const logger = getLogger('playgroundToken');
 
@@ -28,6 +27,7 @@ const PlaygroundTokenRequestSchema = z.object({
 const PlaygroundTokenResponseSchema = z.object({
   apiKey: z.string().describe('Temporary API key for playground use'),
   expiresAt: z.string().describe('ISO 8601 timestamp when the key expires'),
+  appId: z.string().describe('App ID for client authentication'),
 });
 
 app.openapi(
@@ -84,49 +84,29 @@ app.openapi(
       });
     }
 
-    logger.info(
-      { userId, tenantId, projectId, agentId },
-      'Generating temporary JWT token for playground'
-    );
+    logger.info({ userId }, 'Generating temporary JWT token for playground');
 
-    // Copilot bypass — skip SpiceDB check when targeting the copilot agent.
-    // Any authenticated user can use the copilot; target-resource authz is
-    // enforced by the copilot agent via forwarded session cookies.
-    const isCopilotRequest = isCopilotAgent({ tenantId, projectId, agentId });
+    // Check SpiceDB 'use' permission for this project
+    // This allows project_admin and project_member roles, but not project_viewer
+    const canUse = await canUseProject({
+      userId,
+      tenantId,
+      projectId,
+      orgRole: tenantRole,
+    });
 
-    if (isCopilotRequest) {
-      logger.info(
-        { userId, tenantId, projectId, agentId },
-        'Copilot bypass: skipping canUseProject check'
-      );
-    }
-
-    if (!isCopilotRequest) {
-      // Check SpiceDB 'use' permission for this project
-      // This allows project_admin and project_member roles, but not project_viewer
-      const canUse = await canUseProject({
-        userId,
-        tenantId,
-        projectId,
-        orgRole: tenantRole,
+    if (!canUse) {
+      logger.warn({ userId }, 'User does not have use permission on project');
+      throw createApiError({
+        code: 'not_found',
+        message: 'Project not found',
       });
-
-      if (!canUse) {
-        logger.warn(
-          { userId, tenantId, projectId },
-          'User does not have use permission on project'
-        );
-        throw createApiError({
-          code: 'not_found',
-          message: 'Project not found',
-        });
-      }
     }
 
     // Verify project exists and belongs to the tenant
     const projectExistsCheck = await projectExists(db)({ tenantId, projectId });
     if (!projectExistsCheck) {
-      logger.warn({ userId, tenantId, projectId }, 'Project not found or access denied');
+      logger.warn({ userId }, 'Project not found or access denied');
       throw createApiError({
         code: 'not_found',
         message: 'Project not found',
@@ -136,7 +116,7 @@ app.openapi(
     // Verify agent exists and belongs to the project
     const agent = await getAgentById(db)({ scopes: { tenantId, projectId, agentId } });
     if (!agent) {
-      logger.warn({ userId, tenantId, projectId, agentId }, 'Agent not found or access denied');
+      logger.warn({ userId }, 'Agent not found or access denied');
       throw createApiError({
         code: 'not_found',
         message: 'Agent not found',
@@ -159,7 +139,7 @@ app.openapi(
     const publicKeyPem = env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY
       ? Buffer.from(env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY, 'base64').toString('utf-8')
       : await exportSPKI(privateKey);
-    const kid = await derivePlaygroundKid(publicKeyPem);
+    const kid = await deriveKidFromPublicKey(publicKeyPem);
 
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 

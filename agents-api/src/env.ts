@@ -67,6 +67,28 @@ const envSchema = z
       })
       .describe('Admin password for management UI login (min 8 characters)'),
 
+    // OAuth 2.1 Support Copilot
+    COPILOT_OAUTH_CLIENT_ID: z
+      .string()
+      .optional()
+      .describe(
+        'OAuth 2.1 client ID for the Support Copilot app (created by pnpm setup-oauth-client)'
+      ),
+
+    // Credential Gateway (confidential client for server-to-server token exchange)
+    COPILOT_GATEWAY_CLIENT_ID: z
+      .string()
+      .optional()
+      .describe(
+        'Credential gateway client ID for token exchange (created by pnpm setup-gateway-client)'
+      ),
+    COPILOT_GATEWAY_CLIENT_SECRET: z
+      .string()
+      .optional()
+      .describe(
+        'Credential gateway client secret for token exchange (created by pnpm setup-gateway-client)'
+      ),
+
     // API Bypass Secrets (for local development and testing, skips auth)
     INKEEP_AGENTS_API_BYPASS_SECRET: z
       .string()
@@ -84,6 +106,12 @@ const envSchema = z
       .string()
       .optional()
       .describe('Eval API bypass secret for local development and testing (skips auth)'),
+
+    // Vercel Cron
+    CRON_SECRET: z
+      .string()
+      .optional()
+      .describe('Secret used by Vercel Cron to authenticate cron job requests'),
 
     // Anonymous Session JWT
     INKEEP_ANON_JWT_SECRET: z
@@ -244,17 +272,6 @@ const envSchema = z
       .optional()
       .describe('Number of concurrent workflow workers'),
 
-    // Copilot (chat-to-edit) — bypass tenant/project access checks for this agent
-    INKEEP_COPILOT_TENANT_ID: z
-      .string()
-      .optional()
-      .describe('Tenant ID that hosts the copilot agent'),
-    INKEEP_COPILOT_PROJECT_ID: z
-      .string()
-      .optional()
-      .describe('Project ID that hosts the copilot agent'),
-    INKEEP_COPILOT_AGENT_ID: z.string().optional().describe('Agent ID of the copilot agent'),
-
     // Blob Storage (local filesystem fallback, or inferred S3/Vercel)
     BLOB_STORAGE_LOCAL_PATH: z
       .string()
@@ -294,6 +311,16 @@ const envSchema = z
       .describe(
         'Force path-style S3 URLs: false for AWS S3 (default), true for path-style/self-hosted S3-compatible.'
       ),
+    BLOB_STORAGE_PRESIGNED_URL_EXPIRY_SECONDS: z.coerce
+      .number()
+      .int()
+      .min(60)
+      .max(604800)
+      .optional()
+      .default(7200)
+      .describe(
+        'Expiry in seconds for S3 presigned media URLs. Must be between 60 and 604800 (7 days). Default 7200 (2 hours).'
+      ),
   })
   .superRefine((data, ctx) => {
     const hasS3Bucket =
@@ -327,25 +354,6 @@ const envSchema = z
         path: ['BLOB_STORAGE_LOCAL_PATH'],
         message: 'BLOB_STORAGE_LOCAL_PATH must be set and non-empty. Default is .blob-storage.',
       });
-    }
-
-    // Copilot env vars must be all-or-none to prevent partial bypass misconfiguration.
-    const copilotVars = [
-      { key: 'INKEEP_COPILOT_TENANT_ID', val: data.INKEEP_COPILOT_TENANT_ID },
-      { key: 'INKEEP_COPILOT_PROJECT_ID', val: data.INKEEP_COPILOT_PROJECT_ID },
-      { key: 'INKEEP_COPILOT_AGENT_ID', val: data.INKEEP_COPILOT_AGENT_ID },
-    ] as const;
-    const setCopilot = copilotVars.filter(({ val }) => val !== undefined && val.trim() !== '');
-    if (setCopilot.length > 0 && setCopilot.length < copilotVars.length) {
-      for (const { key, val } of copilotVars) {
-        if (val === undefined || val.trim() === '') {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: [key],
-            message: `All copilot env vars must be set together. ${key} is missing.`,
-          });
-        }
-      }
     }
   });
 

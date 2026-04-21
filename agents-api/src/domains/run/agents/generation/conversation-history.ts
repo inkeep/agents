@@ -4,26 +4,18 @@ import {
   calculateBreakdownTotal,
   estimateTokens,
 } from '@inkeep/agents-core';
-import { normalizeMimeType } from '@inkeep/agents-core/constants/allowed-file-formats';
+import {
+  isOfficeDocumentMimeType,
+  normalizeMimeType,
+} from '@inkeep/agents-core/constants/allowed-file-formats';
 import { getLogger } from '../../../../logger';
 import {
   createDefaultConversationHistoryConfig,
   formatMessagesAsConversationHistory,
   getConversationHistoryWithCompression,
 } from '../../data/conversations';
-import {
-  type BlobStorageDownloadResult,
-  fromBlobUri,
-  getBlobStorageProvider,
-  isBlobUri,
-} from '../../services/blob-storage';
-import { normalizeInlineFileBytes } from '../../services/blob-storage/file-content-security';
-import { UnsupportedTextAttachmentSourceError } from '../../services/blob-storage/file-security-errors';
-import {
-  buildTextAttachmentBlock,
-  decodeTextDocumentBytes,
-  isTextDocumentMimeType,
-} from '../../utils/text-document-attachments';
+import { resolveTextAttachmentBlock } from '../../services/blob-storage/text-attachment-resolver';
+import { isTextDocumentMimeType } from '../../utils/text-document-attachments';
 import type { AgentRunContext, AiSdkContentPart } from '../agent-types';
 import { getPrimaryModel, getSummarizerModel } from './model-config';
 
@@ -45,11 +37,11 @@ function mapFileToAiSdkContentPart(
     };
   }
 
-  if (mimeType === PDF_MEDIA_TYPE) {
+  if (mimeType === PDF_MEDIA_TYPE || isOfficeDocumentMimeType(mimeType)) {
     return {
       type: 'file',
       data: fileValue,
-      mediaType: PDF_MEDIA_TYPE,
+      mediaType: mimeType,
       ...(metadata?.filename ? { filename: metadata.filename } : {}),
     };
   }
@@ -125,50 +117,10 @@ export async function buildConversationHistory(
   return { conversationHistory, contextBreakdown: updatedContextBreakdown };
 }
 
-async function buildTextAttachmentPart(
-  part: FilePart,
-  mimeType: string
-): Promise<AiSdkContentPart> {
-  const filename = typeof part.metadata?.filename === 'string' ? part.metadata.filename : undefined;
-  const file = part.file;
-  let content: string;
-
-  if ('bytes' in file && file.bytes) {
-    const normalized = await normalizeInlineFileBytes(file);
-    content = decodeTextDocumentBytes(normalized.data);
-  } else if ('uri' in file && file.uri && isBlobUri(file.uri)) {
-    let downloaded: BlobStorageDownloadResult;
-    try {
-      downloaded = await getBlobStorageProvider().download(fromBlobUri(file.uri));
-    } catch (err) {
-      logger.warn(
-        { err, uri: file.uri, mimeType, failureKind: 'download' },
-        'Failed to download text attachment from blob storage'
-      );
-      return {
-        type: 'text',
-        text: buildTextAttachmentBlock({ mimeType, content: '[Attachment unavailable]', filename }),
-      };
-    }
-    try {
-      content = decodeTextDocumentBytes(downloaded.data);
-    } catch (err) {
-      logger.warn(
-        { err, uri: file.uri, mimeType, failureKind: 'decode' },
-        'Failed to decode text attachment from blob storage'
-      );
-      return {
-        type: 'text',
-        text: buildTextAttachmentBlock({ mimeType, content: '[Attachment unavailable]', filename }),
-      };
-    }
-  } else {
-    throw new UnsupportedTextAttachmentSourceError(mimeType);
-  }
-
+async function buildTextAttachmentPart(part: FilePart): Promise<AiSdkContentPart> {
   return {
     type: 'text',
-    text: buildTextAttachmentBlock({ mimeType, content, filename }),
+    text: await resolveTextAttachmentBlock(part, { throwIfUnresolvable: true }),
   };
 }
 
@@ -213,7 +165,7 @@ export async function buildUserMessageContent(
     const mimeType = normalizeMimeType(file.mimeType ?? '');
 
     if (isTextDocumentMimeType(mimeType)) {
-      content.push(await buildTextAttachmentPart(part, mimeType));
+      content.push(await buildTextAttachmentPart(part));
       continue;
     }
 

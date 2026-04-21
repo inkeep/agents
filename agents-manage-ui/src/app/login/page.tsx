@@ -5,9 +5,10 @@ import { authLookupResponseSchema } from '@inkeep/agents-core/auth/auth-types';
 import { AlertCircleIcon, ArrowLeft, Globe, Loader2, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { GoogleColorIcon } from '@/components/icons/google';
 import { InkeepIcon } from '@/components/icons/inkeep';
+import { MicrosoftColorIcon } from '@/components/icons/microsoft';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,9 +49,21 @@ function LoginForm() {
 
   const lastMethod = authClient.getLastUsedLoginMethod();
 
+  // Detect OAuth authorization flow: better-auth's oauthProvider passes signed
+  // query params (client_id, redirect_uri, state, code_challenge, sig, etc.)
+  // when redirecting unauthenticated users to the login page. After login,
+  // we must redirect back to the authorize endpoint with those same params
+  // so the OAuth flow can resume and issue the authorization code.
+  const isOAuthFlow = searchParams.has('client_id');
+  const oauthAuthorizeUrl = isOAuthFlow
+    ? `${PUBLIC_INKEEP_AGENTS_API_URL}/api/auth/oauth2/authorize?${searchParams.toString()}`
+    : null;
+
   useEffect(() => {
     if (!isSessionLoading && isAuthenticated) {
-      if (invitationId) {
+      if (oauthAuthorizeUrl) {
+        window.location.href = oauthAuthorizeUrl;
+      } else if (invitationId) {
         router.replace(`/accept-invitation/${invitationId}`);
       } else if (returnUrl && isValidReturnUrl(returnUrl)) {
         router.replace(returnUrl);
@@ -58,15 +71,23 @@ function LoginForm() {
         router.replace('/');
       }
     }
-  }, [isAuthenticated, isSessionLoading, invitationId, returnUrl, router]);
+  }, [isAuthenticated, isSessionLoading, invitationId, returnUrl, oauthAuthorizeUrl, router]);
 
   const getRedirectUrl = (): string => {
+    if (oauthAuthorizeUrl) return oauthAuthorizeUrl;
     if (invitationId) return `/accept-invitation/${invitationId}`;
     return getSafeReturnUrl(returnUrl, '/');
   };
 
-  const getFullCallbackURL = useCallback(() => {
+  function getFullCallbackURL() {
     if (typeof window === 'undefined') return '/';
+    if (oauthAuthorizeUrl) {
+      // After SSO/Google login, redirect back to the OAuth authorize endpoint
+      // so the flow can resume and issue the authorization code.
+      // We route through the login page which will detect the session and redirect.
+      return `${window.location.origin}/login?${searchParams.toString()}`;
+    }
+
     const baseURL = window.location.origin;
     const params = new URLSearchParams();
     if (invitationId) params.set('invitation', invitationId);
@@ -74,7 +95,7 @@ function LoginForm() {
       params.set('returnUrl', returnUrl);
     const queryString = params.toString();
     return queryString ? `${baseURL}/?${queryString}` : `${baseURL}/`;
-  }, [invitationId, returnUrl]);
+  }
 
   const executeMethodSignIn = async (method: MethodOption) => {
     setError(null);
@@ -102,6 +123,16 @@ function LoginForm() {
         });
         if (result?.error) {
           setError(result.error.message || 'Google sign in failed');
+          setIsLoading(false);
+        }
+      } else if (method.method === 'microsoft') {
+        const result = await authClient.signIn.social({
+          provider: 'microsoft',
+          callbackURL: getFullCallbackURL(),
+          loginHint: email,
+        });
+        if (result?.error) {
+          setError(result.error.message || 'Microsoft sign in failed');
           setIsLoading(false);
         }
       } else {
@@ -142,9 +173,8 @@ function LoginForm() {
       }
     } catch {
       setState({ step: 'password' });
-    } finally {
-      setIsLookingUp(false);
     }
+    setIsLookingUp(false);
   };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
@@ -168,7 +198,12 @@ function LoginForm() {
         });
       }
 
-      router.replace(getRedirectUrl());
+      const redirect = getRedirectUrl();
+      if (oauthAuthorizeUrl) {
+        window.location.href = redirect;
+      } else {
+        router.replace(redirect);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed');
       setIsLoading(false);
@@ -447,6 +482,7 @@ function LoginForm() {
 
 function MethodIcon({ method }: { method: MethodOption }) {
   if (method.method === 'google') return <GoogleColorIcon className="h-5 w-5 shrink-0" />;
+  if (method.method === 'microsoft') return <MicrosoftColorIcon className="h-5 w-5 shrink-0" />;
   if (method.method === 'sso') return <Globe className="h-5 w-5 text-muted-foreground shrink-0" />;
   return <Mail className="h-5 w-5 text-muted-foreground shrink-0" />;
 }
@@ -456,6 +492,7 @@ function getMethodDisplayLabel(method: MethodOption): string {
     return method.displayName ? `Continue with ${method.displayName}` : 'Continue with SSO';
   }
   if (method.method === 'google') return 'Continue with Google';
+  if (method.method === 'microsoft') return 'Continue with Microsoft';
   return 'Continue with email and password';
 }
 
@@ -464,6 +501,7 @@ function isLastUsedMethod(method: MethodOption, lastMethod: string | null): bool
   if (method.method === 'email-password')
     return lastMethod === 'email' || lastMethod === 'credential';
   if (method.method === 'google') return lastMethod === 'google';
+  if (method.method === 'microsoft') return lastMethod === 'microsoft';
   if (method.method === 'sso') return method.providerId === lastMethod;
   return false;
 }

@@ -7,7 +7,6 @@ interface ComponentHeaderProps {
 }
 
 export function ComponentHeader({ label, count }: ComponentHeaderProps) {
-  'use memo';
   return (
     <div className="flex gap-2">
       <Label>{label}</Label>

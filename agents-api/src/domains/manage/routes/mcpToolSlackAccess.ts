@@ -94,7 +94,7 @@ app.openapi(
     const { tenantId, projectId, toolId } = c.req.valid('param');
     const db = c.get('db');
 
-    logger.info({ tenantId, projectId, toolId }, 'Getting MCP tool Slack access configuration');
+    logger.info({ toolId }, 'Getting MCP tool Slack access configuration');
 
     await validateSlackWorkappTool(db, tenantId, projectId, toolId);
 
@@ -150,10 +150,7 @@ const setMcpToolSlackAccessHandler: ManageRouteHandler<
   const { channelAccessMode, dmEnabled, channelIds } = c.req.valid('json');
   const db = c.get('db');
 
-  logger.info(
-    { tenantId, projectId, toolId, channelAccessMode },
-    'Setting MCP tool Slack access configuration'
-  );
+  logger.info({ toolId, channelAccessMode }, 'Setting MCP tool Slack access configuration');
 
   await validateSlackWorkappTool(db, tenantId, projectId, toolId);
 
@@ -186,7 +183,7 @@ const setMcpToolSlackAccessHandler: ManageRouteHandler<
     });
 
     logger.info(
-      { tenantId, projectId, toolId, channelCount: channelIds.length },
+      { toolId, channelCount: channelIds.length },
       'MCP tool Slack access set to selected channels'
     );
 
@@ -209,7 +206,7 @@ const setMcpToolSlackAccessHandler: ManageRouteHandler<
     channelIds: [],
   });
 
-  logger.info({ tenantId, projectId, toolId }, 'MCP tool Slack access set to all channels');
+  logger.info({ toolId }, 'MCP tool Slack access set to all channels');
 
   return c.json(
     {

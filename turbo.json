@@ -11,10 +11,19 @@
     "ENVIRONMENT",
     "INKEEP_AGENTS_MANAGE_DATABASE_URL",
     "INKEEP_AGENTS_RUN_DATABASE_URL",
+    "INKEEP_AGENTS_API_URL",
+    "PUBLIC_INKEEP_AGENTS_API_URL",
+    "NEXT_PUBLIC_INKEEP_AGENTS_API_URL",
+    "INKEEP_AGENTS_MANAGE_UI_URL",
     "PORT",
     "AGENTS_API_PORT",
     "MANAGE_UI_PORT",
-    "LOG_LEVEL"
+    "LOG_LEVEL",
+    "SPICEDB_ENDPOINT",
+    "SPICEDB_PRESHARED_KEY",
+    "SPICEDB_TLS_ENABLED",
+    "SMTP_HOST",
+    "SMTP_PORT"
   ],
   "globalDependencies": ["pnpm-lock.yaml"],
   "tasks": {
@@ -59,6 +68,7 @@
       "dependsOn": ["build"],
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
       "env": ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"],
+      "passThroughEnv": ["PW_TEST_CONNECT_WS_ENDPOINT", "INKEEP_PRIVATE_MONOREPO"],
       "outputs": ["coverage/**"]
     },
     "@inkeep/agents-mcp#build": {

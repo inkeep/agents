@@ -17,13 +17,12 @@ import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from '
 import { Handle } from './handle';
 
 export function FunctionToolNode({ data, selected }: NodeProps & { data: FunctionToolNodeData }) {
-  'use memo';
   const { control } = useFullAgentFormContext();
   const id = data.toolId;
   const status = getNodeStatus(data);
 
   const functionTool = useWatch({ control, name: `functionTools.${id}` });
-  const functionId = useWatch({ control, name: `functionTools.${id}.functionId` }) as string;
+  const functionId = functionTool?.functionId ?? '';
   const processedErrors = [
     ...useProcessedErrors('functionTools', id),
     ...useProcessedErrors('functions', functionId),

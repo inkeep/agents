@@ -34,8 +34,6 @@ export const StandaloneJsonEditor: FC<StandaloneJsonEditorProps> = ({
   uri,
   ...props
 }) => {
-  'use memo';
-
   return (
     <JsonEditor
       value={value}

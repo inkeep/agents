@@ -8,12 +8,15 @@ import {
   Blocks,
   Coins,
   Component,
+  CreditCard,
+  Database,
   Globe,
   Key,
   Layers,
   Library,
   Lock,
   LucideHexagon,
+  MessageSquare,
   Settings,
   Users,
   Workflow,
@@ -21,7 +24,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
-import type { ComponentProps, Dispatch, FC } from 'react';
+import { type ComponentProps, type Dispatch, type FC, useEffect, useState } from 'react';
 import { MCPIcon } from '@/components/icons/mcp-icon';
 import { NavGroup, type NavItemProps } from '@/components/sidebar-nav/nav-group';
 import { ProjectSwitcher } from '@/components/sidebar-nav/project-switcher';
@@ -35,6 +38,8 @@ import {
 import { STATIC_LABELS } from '@/constants/theme';
 import { useAuthSession } from '@/hooks/use-auth';
 import { InkeepLogo } from '@/icons';
+import { fetchEntitlements } from '@/lib/api/entitlements';
+import { useCapabilitiesQuery } from '@/lib/query/capabilities';
 import { cn } from '@/lib/utils';
 import { throttle } from '@/lib/utils/throttle';
 
@@ -44,12 +49,32 @@ interface AppSidebarProps extends ComponentProps<typeof Sidebar> {
 }
 
 export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => {
-  'use memo';
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId?: string }>();
   const pathname = usePathname();
   const { user } = useAuthSession();
 
   const isWorkAppsEnabled = process.env.NEXT_PUBLIC_ENABLE_WORK_APPS === 'true';
+  const { data: capabilities } = useCapabilitiesQuery();
+  const costTrackingEnabled = capabilities?.costTracking?.enabled;
+  const [hasEntitlements, setHasEntitlements] = useState(false);
+
+  useEffect(() => {
+    setHasEntitlements(false);
+    if (!tenantId) return;
+
+    let cancelled = false;
+    fetchEntitlements(tenantId)
+      .then((entitlements) => {
+        if (!cancelled) setHasEntitlements(entitlements.length > 0);
+      })
+      .catch(() => {
+        if (!cancelled) setHasEntitlements(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId]);
 
   const topNavItems: NavItemProps[] = projectId
     ? []
@@ -64,11 +89,15 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           url: `/${tenantId}/stats`,
           icon: BarChart3,
         },
-        {
-          title: 'Cost',
-          url: `/${tenantId}/cost`,
-          icon: Coins,
-        },
+        ...(costTrackingEnabled
+          ? [
+              {
+                title: 'Cost',
+                url: `/${tenantId}/cost`,
+                icon: Coins,
+              },
+            ]
+          : []),
         ...(isWorkAppsEnabled
           ? [
               {
@@ -86,6 +115,15 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
       url: `/${tenantId}/members`,
       icon: Users,
     },
+    ...(hasEntitlements
+      ? [
+          {
+            title: STATIC_LABELS.billing,
+            url: `/${tenantId}/billing`,
+            icon: CreditCard,
+          },
+        ]
+      : []),
     {
       title: STATIC_LABELS.settings,
       url: `/${tenantId}/settings`,
@@ -175,22 +213,30 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           url: `/${tenantId}/projects/${projectId}/traces`,
           icon: Activity,
         },
-        // Disabling test suites
-        // {
-        //   title: 'Test Suites',
-        //   url: `/${tenantId}/projects/${projectId}/datasets`,
-        //   icon: Database,
-        // },
+        {
+          title: STATIC_LABELS.feedback,
+          url: `/${tenantId}/projects/${projectId}/feedback`,
+          icon: MessageSquare,
+        },
+        {
+          title: 'Test Suites',
+          url: `/${tenantId}/projects/${projectId}/datasets`,
+          icon: Database,
+        },
         {
           title: STATIC_LABELS.evaluations,
           url: `/${tenantId}/projects/${projectId}/evaluations`,
           icon: BarChart3,
         },
-        {
-          title: 'Cost',
-          url: `/${tenantId}/projects/${projectId}/cost`,
-          icon: Coins,
-        },
+        ...(costTrackingEnabled
+          ? [
+              {
+                title: 'Cost',
+                url: `/${tenantId}/projects/${projectId}/cost`,
+                icon: Coins,
+              },
+            ]
+          : []),
       ]
     : [];
 

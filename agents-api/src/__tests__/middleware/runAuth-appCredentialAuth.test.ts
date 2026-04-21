@@ -1,18 +1,13 @@
 import type { BaseExecutionContext } from '@inkeep/agents-core';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { Hono } from 'hono';
 import { exportSPKI, generateKeyPair, SignJWT } from 'jose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../data/db/runDbClient.js', () => ({ default: {} }));
+vi.mock('../../data/db/manageDbClient.js', () => ({ default: {} }));
 
-vi.mock('../../logger.js', () => ({
-  getLogger: () => ({
-    debug: vi.fn(),
-    error: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-  }),
-}));
+vi.mock('../../logger.js', () => createMockLoggerModule().module);
 
 vi.mock('../../env.js', () => ({
   env: {
@@ -28,14 +23,19 @@ vi.mock('../../domains/run/routes/auth.js', () => ({
   getAnonJwtSecret: vi.fn(() => new TextEncoder().encode('test-anon-secret-for-jwt-signing-1234')),
 }));
 
-const { mockGetAppById, mockValidateOrigin, mockVerifyPoW, mockCanUseProjectStrict } = vi.hoisted(
-  () => ({
-    mockGetAppById: vi.fn(() => vi.fn().mockResolvedValue(null)),
-    mockValidateOrigin: vi.fn().mockReturnValue(true),
-    mockVerifyPoW: vi.fn().mockResolvedValue({ ok: true }),
-    mockCanUseProjectStrict: vi.fn().mockResolvedValue(true),
-  })
-);
+const {
+  mockGetAppById,
+  mockGetAgentById,
+  mockValidateOrigin,
+  mockVerifyPoW,
+  mockCanUseProjectStrict,
+} = vi.hoisted(() => ({
+  mockGetAppById: vi.fn(() => vi.fn().mockResolvedValue(null)),
+  mockGetAgentById: vi.fn(() => vi.fn().mockResolvedValue({ id: 'agent-1' })),
+  mockValidateOrigin: vi.fn().mockReturnValue(true),
+  mockVerifyPoW: vi.fn().mockResolvedValue({ ok: true }),
+  mockCanUseProjectStrict: vi.fn().mockResolvedValue(true),
+}));
 
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
@@ -43,6 +43,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     ...actual,
     validateAndGetApiKey: vi.fn().mockResolvedValue(null),
     canUseProjectStrict: mockCanUseProjectStrict,
+    getAgentById: mockGetAgentById,
     getAppById: mockGetAppById,
     updateAppLastUsed: vi.fn(() => vi.fn().mockResolvedValue(undefined)),
     validateOrigin: mockValidateOrigin,
@@ -52,10 +53,6 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     verifySlackUserToken: vi.fn().mockResolvedValue({ valid: false }),
   };
 });
-
-vi.mock('../../utils/copilot.js', () => ({
-  isCopilotAgent: vi.fn().mockReturnValue(false),
-}));
 
 import { runApiKeyAuth } from '../../middleware/runAuth';
 
@@ -102,11 +99,9 @@ function makeAppWithAuth(
       type: 'web_client',
       webClient: {
         allowedDomains: ['https://example.com'],
-        auth: {
-          publicKeys,
-          ...(audience !== undefined ? { audience } : {}),
-          ...authOverrides,
-        },
+        publicKeys,
+        ...(audience !== undefined ? { audience } : {}),
+        ...authOverrides,
       },
     },
     ...overrides,
@@ -576,7 +571,7 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
           },
         ],
         undefined,
-        { tenantId: null, projectId: null }
+        { tenantId: null, projectId: null, defaultAgentId: 'agent-g' }
       );
       mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(app));
       mockCanUseProjectStrict.mockResolvedValue(true);
@@ -603,7 +598,11 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
       expect(ctx?.projectId).toBe('project-g');
       expect(ctx?.agentId).toBe('agent-g');
       expect(ctx?.metadata?.endUserId).toBe('user_global');
-      expect(mockCanUseProjectStrict).not.toHaveBeenCalled();
+      expect(mockCanUseProjectStrict).toHaveBeenCalledWith({
+        userId: 'user_global',
+        tenantId: 'tenant-g',
+        projectId: 'project-g',
+      });
     });
 
     it('should return 401 when global app token is missing tid/pid claims', async () => {
@@ -635,7 +634,7 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
       expect(res.status).toBe(401);
     });
 
-    it('should return 403 when canUseProjectStrict denies access for global app with validateScopeClaims', async () => {
+    it('should return 403 when canUseProjectStrict denies access for global app', async () => {
       const app = makeAppWithAuth(
         [
           {
@@ -646,8 +645,7 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
           },
         ],
         undefined,
-        { tenantId: null, projectId: null },
-        { validateScopeClaims: true }
+        { tenantId: null, projectId: null }
       );
       mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(app));
       mockCanUseProjectStrict.mockResolvedValue(false);
@@ -814,6 +812,35 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
     });
   });
 
+  describe('misconfiguration guard', () => {
+    it('should return 401 when allowAnonymous is false but no public keys configured', async () => {
+      const anonSecret = new TextEncoder().encode('test-anon-secret-for-jwt-signing-1234');
+      const anonToken = await new SignJWT({ app: 'app_test123', type: 'anonymous' })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setSubject('anon_test_user')
+        .setIssuer('inkeep')
+        .setIssuedAt()
+        .setExpirationTime(Math.floor(Date.now() / 1000) + 3600)
+        .sign(anonSecret);
+
+      const appRecord = makeAppWithAuth([], undefined, {}, { allowAnonymous: false });
+      mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
+
+      const { app: testApp } = createTestApp();
+      const res = await testApp.request('/test', {
+        headers: {
+          Authorization: `Bearer ${anonToken}`,
+          'x-inkeep-app-id': 'app_test123',
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(401);
+      const body = await res.json();
+      expect(body.detail).toContain('no public keys are configured');
+    });
+  });
+
   describe('error response formatting', () => {
     it('should return unauthorized code (not internal_server_error) for auth failures', async () => {
       const token = await signJwt(rsaPrivateKey, 'RS256', {}, { kid: 'wrong-kid', sub: 'user_1' });
@@ -845,6 +872,95 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
       expect(res.status).toBe(401);
       const body = await res.json();
       expect(body.error?.code).toBe('unauthorized');
+    });
+  });
+
+  describe('enforceAppDefaultAgent', () => {
+    async function makeAnonToken() {
+      const { getAnonJwtSecret } = await import('../../domains/run/routes/auth');
+      const secret = (getAnonJwtSecret as ReturnType<typeof vi.fn>)();
+      const now = Math.floor(Date.now() / 1000);
+      return new SignJWT({ app: 'app_test123', type: 'anonymous' })
+        .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+        .setSubject('anon_user_1')
+        .setIssuer('inkeep')
+        .setIssuedAt(now)
+        .setExpirationTime(now + 3600)
+        .sign(secret);
+    }
+
+    it('should return 500 when tenant-scoped app has no defaultAgentId', async () => {
+      const appRecord = makeAppRecord({ defaultAgentId: null });
+      mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
+      const token = await makeAnonToken();
+
+      const { app: testApp } = createTestApp();
+      const res = await testApp.request('/test', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(500);
+    });
+
+    it('should use defaultAgentId when no agent is requested', async () => {
+      const appRecord = makeAppRecord({ defaultAgentId: 'default-agent' });
+      mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
+      const token = await makeAnonToken();
+
+      const { app: testApp, getContext } = createTestApp();
+      const res = await testApp.request('/test', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(getContext()?.agentId).toBe('default-agent');
+    });
+
+    it('should succeed when requested agent matches defaultAgentId', async () => {
+      const appRecord = makeAppRecord({ defaultAgentId: 'agent-1' });
+      mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
+      const token = await makeAnonToken();
+
+      const { app: testApp, getContext } = createTestApp();
+      const res = await testApp.request('/test', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          'x-inkeep-agent-id': 'agent-1',
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(getContext()?.agentId).toBe('agent-1');
+    });
+
+    it('should return 403 when requested agent does not match defaultAgentId', async () => {
+      const appRecord = makeAppRecord({ defaultAgentId: 'agent-1' });
+      mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
+      const token = await makeAnonToken();
+
+      const { app: testApp } = createTestApp();
+      const res = await testApp.request('/test', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          'x-inkeep-agent-id': 'wrong-agent',
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(403);
+      const body = await res.json();
+      expect(body.detail).toContain('not authorized for this app');
     });
   });
 });

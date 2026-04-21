@@ -1,6 +1,6 @@
 import { useRouter } from 'next/navigation';
-import { type FC, useEffect, useRef, useState } from 'react';
-import { useFormState } from 'react-hook-form';
+import { useEffect, useRef, useState } from 'react';
+import { type Control, type FieldValues, useFormState } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,23 +10,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useFullAgentFormContext } from '@/contexts/full-agent-form';
-import { useAgentStore } from '@/features/agent/state/use-agent-store';
 
 type PendingNavigation = () => void;
 
-interface UnsavedChangesDialogProps {
+interface UnsavedChangesDialogProps<FV extends FieldValues, TV extends FieldValues> {
+  dirty?: boolean;
   onSubmit: () => Promise<void>;
+  control: Control<FV, unknown, TV>;
 }
 
-export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }) => {
-  'use memo';
+export function UnsavedChangesDialog<
+  TFieldValues extends FieldValues,
+  TTransformedValues extends FieldValues,
+>({ dirty, onSubmit, control }: UnsavedChangesDialogProps<TFieldValues, TTransformedValues>) {
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
-
-  const { control } = useFullAgentFormContext();
-  const agentDirtyState = useAgentStore((state) => state.dirty);
   const { isDirty: rhfDirtyState, isSubmitting, isValid } = useFormState({ control });
-  const isDirty = agentDirtyState || rhfDirtyState;
+  const isDirty = dirty || rhfDirtyState;
 
   const pendingNavigationRef = useRef<PendingNavigation>(null);
   const isNavigatingRef = useRef(false);
@@ -161,4 +160,4 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
       </DialogContent>
     </Dialog>
   );
-};
+}

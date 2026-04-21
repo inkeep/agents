@@ -44,7 +44,7 @@ export default function DatasetForm({
   const { isSubmitting } = form.formState;
   const router = useRouter();
 
-  const onSubmit = async (data: DatasetFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     try {
       const payload: Partial<Dataset> = {
         name: data.name,
@@ -71,12 +71,12 @@ export default function DatasetForm({
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
-  };
+  });
 
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 max-w-2xl mx-auto">
+        <form onSubmit={onSubmit} className="space-y-8 max-w-2xl mx-auto">
           <GenericInput
             control={form.control}
             name="name"

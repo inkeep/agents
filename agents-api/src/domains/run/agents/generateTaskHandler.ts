@@ -1,9 +1,11 @@
 import {
   type AgentConversationHistoryConfig,
   type CredentialStoreRegistry,
+  DURABLE_APPROVAL_ARTIFACT_TYPE,
   type FilePart,
   type FullExecutionContext,
   generateId,
+  getAppByIdForProject,
   getMcpToolById,
   type McpTool,
   type Part,
@@ -13,6 +15,7 @@ import {
   withRef,
 } from '@inkeep/agents-core';
 import manageDbPool from '../../../data/db/manageDbPool';
+import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import type { A2ATask, A2ATaskResult } from '../a2a/types';
 import { agentSessionManager } from '../session/AgentSession';
@@ -28,6 +31,7 @@ import {
   getToolsForSubAgent,
 } from '../utils/project';
 import { Agent } from './Agent';
+import type { PendingDurableApproval } from './agent-types';
 import { buildTransferRelationConfig } from './relationTools';
 import { toolSessionManager } from './services/ToolSessionManager';
 
@@ -49,6 +53,37 @@ export interface TaskHandlerConfig {
   sandboxConfig?: SandboxConfig;
   /** User ID for user-scoped credential lookups (available when request is from authenticated user) */
   userId?: string;
+}
+
+// Returns a TaskState.Completed result with a `durable-approval-required` data artifact.
+// We use Completed (not InputRequired) because the parent agent's tool-wrapper parses
+// the artifact from the A2A response — using a different state would require changes to
+// the A2A result handling pipeline. The artifact's `type` field distinguishes it.
+function buildDurableApprovalResult(pendingApproval: PendingDurableApproval): A2ATaskResult {
+  logger.info(
+    { toolCallId: pendingApproval.toolCallId, toolName: pendingApproval.toolName },
+    'Returning durable-approval-required artifact'
+  );
+  return {
+    status: { state: TaskState.Completed },
+    artifacts: [
+      {
+        artifactId: generateId(),
+        parts: [
+          {
+            kind: 'data' as const,
+            data: {
+              type: DURABLE_APPROVAL_ARTIFACT_TYPE,
+              toolCallId: pendingApproval.toolCallId,
+              toolName: pendingApproval.toolName,
+              args: pendingApproval.args,
+            },
+          },
+        ],
+        createdAt: new Date().toISOString(),
+      },
+    ],
+  };
 }
 
 export const createTaskHandler = (
@@ -85,6 +120,33 @@ export const createTaskHandler = (
       const forwardedHeaders = task.context?.metadata?.forwardedHeaders as
         | Record<string, string>
         | undefined;
+
+      // Resolve appPrompt from DB using project-scoped lookup.
+      if (config.executionContext.metadata?.appId) {
+        try {
+          const app = await getAppByIdForProject(runDbClient)({
+            id: config.executionContext.metadata.appId,
+            scopes: {
+              tenantId: config.executionContext.tenantId,
+              projectId: config.executionContext.projectId,
+            },
+          });
+          if (app?.prompt) {
+            config.executionContext.metadata = {
+              ...config.executionContext.metadata,
+              appPrompt: app.prompt,
+            };
+          }
+        } catch (error) {
+          logger.warn(
+            {
+              appId: config.executionContext.metadata.appId,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            },
+            'Failed to resolve app prompt, continuing without it'
+          );
+        }
+      }
 
       // Get data from project context instead of database
       const { project, agentId, tenantId, projectId, resolvedRef } = config.executionContext;
@@ -189,7 +251,7 @@ export const createTaskHandler = (
           );
         })) ?? [];
 
-      const skills = getSkillsForSubAgent({ subAgent: currentSubAgent });
+      const skills = getSkillsForSubAgent({ project, subAgent: currentSubAgent });
 
       agent = new Agent(
         {
@@ -342,12 +404,9 @@ export const createTaskHandler = (
           ? typeof approvedToolCallsRaw === 'string'
             ? (JSON.parse(approvedToolCallsRaw) as Record<
                 string,
-                Array<{ approved: boolean; reason?: string; originalToolCallId?: string }>
+                { approved: boolean; reason?: string }
               >)
-            : (approvedToolCallsRaw as Record<
-                string,
-                Array<{ approved: boolean; reason?: string; originalToolCallId?: string }>
-              >)
+            : (approvedToolCallsRaw as Record<string, { approved: boolean; reason?: string }>)
           : undefined;
 
       agent.setDurableWorkflowRunId(durableWorkflowRunId);
@@ -400,26 +459,7 @@ export const createTaskHandler = (
 
       const pendingApproval = agent.getPendingDurableApproval();
       if (pendingApproval) {
-        return {
-          status: { state: TaskState.Completed },
-          artifacts: [
-            {
-              artifactId: generateId(),
-              parts: [
-                {
-                  kind: 'data' as const,
-                  data: {
-                    type: 'durable-approval-required',
-                    toolCallId: pendingApproval.toolCallId,
-                    toolName: pendingApproval.toolName,
-                    args: pendingApproval.args,
-                  },
-                },
-              ],
-              createdAt: new Date().toISOString(),
-            },
-          ],
-        };
+        return buildDurableApprovalResult(pendingApproval);
       }
 
       const stepContents =
@@ -570,6 +610,19 @@ export const createTaskHandler = (
         ],
       };
     } catch (error) {
+      const pendingApproval = agent?.getPendingDurableApproval();
+      if (pendingApproval) {
+        logger.info(
+          {
+            toolCallId: pendingApproval.toolCallId,
+            toolName: pendingApproval.toolName,
+            error: error instanceof Error ? error.message : String(error),
+          },
+          'Task handler caught error during durable approval flow, returning approval artifact'
+        );
+        return buildDurableApprovalResult(pendingApproval);
+      }
+
       console.error('Task handler error:', error);
 
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';

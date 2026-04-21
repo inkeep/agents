@@ -16,6 +16,7 @@ import {
   type DelegateRelation,
   type ExternalAgentRelationConfig,
   hasToolCallWithPrefix,
+  type PendingDurableApproval,
   type ResolvedGenerationResponse,
   resolveGenerationResponse,
   type TeamAgentRelationConfig,
@@ -151,14 +152,12 @@ export class Agent {
   }
 
   setApprovedToolCalls(
-    approvedToolCalls:
-      | Record<string, Array<{ approved: boolean; reason?: string; originalToolCallId?: string }>>
-      | undefined
+    approvedToolCalls: Record<string, { approved: boolean; reason?: string }> | undefined
   ) {
     this.ctx.approvedToolCalls = approvedToolCalls;
   }
 
-  getPendingDurableApproval(): { toolCallId: string; toolName: string; args: unknown } | undefined {
+  getPendingDurableApproval(): PendingDurableApproval | undefined {
     return this.ctx.pendingDurableApproval;
   }
 
@@ -230,6 +229,7 @@ export type {
   ExternalAgentRelationConfig,
   TeamAgentRelationConfig,
   DelegateRelation,
+  PendingDurableApproval,
   ToolType,
   ResolvedGenerationResponse,
   AgentRunContext,

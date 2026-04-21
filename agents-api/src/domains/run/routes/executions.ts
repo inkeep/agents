@@ -9,6 +9,7 @@ import {
   getConversationId,
   getWorkflowExecution,
   PartSchema,
+  TOOL_APPROVAL_HOOK_PREFIX,
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
 import { stream } from 'hono/streaming';
@@ -16,6 +17,7 @@ import { getRun, start } from 'workflow/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
+import { buildMessageAttachmentToolCallId } from '../services/blob-storage/attachment-artifacts';
 import { buildPersistedMessageContent } from '../services/blob-storage/file-upload-helpers';
 import type { Message } from '../types/chat';
 import { ImageContentItemSchema } from '../types/chat';
@@ -97,7 +99,7 @@ const createExecutionRoute = createProtectedRoute({
 
 const getExecutionRoute = createProtectedRoute({
   method: 'get',
-  path: '/executions/:executionId',
+  path: '/executions/{executionId}',
   tags: ['Executions'],
   summary: 'Get execution status',
   description: 'Returns the status of a durable execution.',
@@ -131,7 +133,7 @@ const getExecutionRoute = createProtectedRoute({
 
 const reconnectExecutionStreamRoute = createProtectedRoute({
   method: 'get',
-  path: '/executions/:executionId/stream',
+  path: '/executions/{executionId}/stream',
   tags: ['Executions'],
   summary: 'Reconnect to execution stream',
   description: 'Reconnects to the SSE stream of an existing durable execution.',
@@ -154,7 +156,7 @@ const reconnectExecutionStreamRoute = createProtectedRoute({
 
 const approveToolCallRoute = createProtectedRoute({
   method: 'post',
-  path: '/executions/:executionId/approvals/:toolCallId',
+  path: '/executions/{executionId}/approvals/{toolCallId}',
   tags: ['Executions'],
   summary: 'Approve or deny a tool call',
   description: 'Resumes a suspended durable execution by approving or denying a pending tool call.',
@@ -217,11 +219,17 @@ app.openapi(createExecutionRoute, async (c) => {
   const userMessage = extractTextFromParts(messageParts);
 
   const messageId = generateId();
+  const hasAttachedFiles = messageParts.some((part) => part.kind === 'file');
+  const attachmentTaskId = hasAttachedFiles ? `message_${messageId}` : undefined;
+
   const messageContent = await buildPersistedMessageContent(userMessage, messageParts, {
     tenantId,
     projectId,
     conversationId,
     messageId,
+    taskId: `message_${messageId}`,
+    toolCallId: buildMessageAttachmentToolCallId(messageId),
+    source: 'user-message',
   });
 
   const fullAgent = executionContext.project.agents[agentId];
@@ -246,6 +254,7 @@ app.openapi(createExecutionRoute, async (c) => {
       content: messageContent,
       visibility: 'user-facing',
       messageType: 'chat',
+      ...(attachmentTaskId ? { taskId: attachmentTaskId } : {}),
     },
   });
 
@@ -267,7 +276,7 @@ app.openapi(createExecutionRoute, async (c) => {
     },
   ]);
 
-  logger.info({ runId: run.runId, conversationId, agentId }, 'Durable execution started');
+  logger.info({ runId: run.runId, conversationId }, 'Durable execution started');
 
   c.header('Content-Type', 'text/event-stream');
   c.header('Cache-Control', 'no-cache');
@@ -370,7 +379,7 @@ app.openapi(approveToolCallRoute, async (c) => {
     throw createApiError({ code: 'not_found', message: 'Execution not found' });
   }
 
-  const token = `tool-approval:${execution.conversationId}:${executionId}:${toolCallId}`;
+  const token = `${TOOL_APPROVAL_HOOK_PREFIX}${execution.conversationId}:${executionId}:${toolCallId}`;
 
   try {
     await toolApprovalHook.resume(token, {

@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, ChevronDown, Loader2, RotateCcw } from 'lucide-react';
-import { memo, useState } from 'react';
+import { type FC, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Command,
@@ -26,14 +26,14 @@ interface ChannelAgentCellProps {
   onResetToDefault: (channelId: string, channelName: string) => void;
 }
 
-export const ChannelAgentCell = memo(function ChannelAgentCell({
+export const ChannelAgentCell: FC<ChannelAgentCellProps> = ({
   channel,
   agents,
   savingChannel,
   hasWorkspaceDefault,
   onSetAgent,
   onResetToDefault,
-}: ChannelAgentCellProps) {
+}) => {
   const [popoverOpen, setPopoverOpen] = useState(false);
 
   const isSaving = savingChannel === channel.id;
@@ -120,4 +120,4 @@ export const ChannelAgentCell = memo(function ChannelAgentCell({
       </Popover>
     </div>
   );
-});
+};

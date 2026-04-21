@@ -13,7 +13,6 @@ const HeadersSchema = schema.shape.headersSchema;
 const ContextVariablesSchema = schema.shape.contextVariables;
 
 export const ContextConfigForm: FC = () => {
-  'use memo';
   const form = useFullAgentFormContext();
   const { setVariableSuggestions } = useAgentActions();
 

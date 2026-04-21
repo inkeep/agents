@@ -121,6 +121,8 @@ export const QUERY_EXPRESSIONS = {
   COMPRESSION: 'compression',
   MAX_STEPS_REACHED: 'maxStepsReached',
   STREAM_LIFETIME_EXCEEDED: 'streamLifetimeExceeded',
+  DURABLE_TOOL_EXECUTIONS: 'durableToolExecutions',
+  USAGE_EVENTS: 'usageEvents',
 } as const;
 
 /** Query Order Directions */

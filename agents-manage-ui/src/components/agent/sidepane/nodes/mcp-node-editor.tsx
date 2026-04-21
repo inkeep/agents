@@ -34,15 +34,13 @@ interface MCPServerNodeEditorProps {
 }
 
 export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) {
-  'use memo';
   const form = useFullAgentFormContext();
   const { toolId } = selectedNode.data;
   const nodeId = selectedNode.id;
   const relationKey = getMcpRelationFormKey({ nodeId });
-  const tool = useWatch({ control: form.control, name: `tools.${toolId}` });
-  const mcpRelation = useWatch({
+  const [tool, mcpRelation] = useWatch({
     control: form.control,
-    name: `mcpRelations.${relationKey}`,
+    name: [`tools.${toolId}`, `mcpRelations.${relationKey}`],
   });
 
   const path = <K extends string>(key: K) => `tools.${toolId}.${key}` as const;
@@ -57,7 +55,7 @@ export function MCPServerNodeEditor({ selectedNode }: MCPServerNodeEditorProps) 
   const skeletonToolLookup = createLookup(mcpTools);
 
   // Lazy-load actual tool status
-  const { data: liveToolData, isLoading: isLoadingToolStatus } = useMcpToolStatusQuery({
+  const { data: liveToolData, isFetching: isLoadingToolStatus } = useMcpToolStatusQuery({
     tenantId,
     projectId,
     toolId,

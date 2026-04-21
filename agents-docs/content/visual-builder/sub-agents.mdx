@@ -91,8 +91,10 @@ The following are configurable options for the Sub Agent through the Visual Buil
 | `name`                | string | Yes      | Human-readable name for the Sub Agent                                                                                        |
 | `description`         | string | No       | Brief description of the Sub Agent's purpose and capabilities                                                                |
 | `prompt`              | string | Yes      | Detailed behavior guidelines and system prompt for the Sub Agent                                                             |
-| `model`               | string | No       | AI model identifier (e.g., "anthropic/claude-sonnet-4-20250514"). Choose a model that you prefer                              |
+| `model`               | string | No       | AI model identifier (e.g., "anthropic/claude-sonnet-4-20250514"). See [Model Configuration](/typescript-sdk/models)           |
 | `providerOptions`     | object | No       | Model-specific configuration options (temperature, maxOutputTokens, etc.)                                                          |
+| `fallbackModels`      | array  | No       | Ordered backup models if the primary fails. Requires [AI Gateway](/typescript-sdk/models#ai-gateway)                               |
+| `allowedProviders`    | array  | No       | Restrict and prioritize which providers serve requests. Requires [AI Gateway](/typescript-sdk/models#ai-gateway)                    |
 | `Data components`     | object | No       | Data components that the Sub Agent can use. See [Data Components](/visual-builder/structured-outputs/data-components) for details               |
 | `Artifact components` | array  | No       | Artifact components that the Sub Agent can use. See [Artifact Components](/visual-builder/structured-outputs/artifact-components) for details   |
 

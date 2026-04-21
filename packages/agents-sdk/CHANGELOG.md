@@ -1,5 +1,239 @@
 # @inkeep/agents-sdk
 
+## 0.69.0
+
+### Patch Changes
+
+- Updated dependencies [52d0831]
+- Updated dependencies [c63567e]
+- Updated dependencies [32bce4f]
+  - @inkeep/agents-core@0.69.0
+
+## 0.68.4
+
+### Patch Changes
+
+- @inkeep/agents-core@0.68.4
+
+## 0.68.3
+
+### Patch Changes
+
+- Updated dependencies [e8776f5]
+  - @inkeep/agents-core@0.68.3
+
+## 0.68.2
+
+### Patch Changes
+
+- Updated dependencies [557f700]
+- Updated dependencies [4e0fd65]
+  - @inkeep/agents-core@0.68.2
+
+## 0.68.1
+
+### Patch Changes
+
+- 22d6068: Adding option to set execution mode on SDK
+  - @inkeep/agents-core@0.68.1
+
+## 0.68.0
+
+### Patch Changes
+
+- Updated dependencies [d1e18a8]
+  - @inkeep/agents-core@0.68.0
+
+## 0.67.4
+
+### Patch Changes
+
+- @inkeep/agents-core@0.67.4
+
+## 0.67.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.67.3
+
+## 0.67.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.67.2
+
+## 0.67.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.67.1
+
+## 0.67.0
+
+### Patch Changes
+
+- Updated dependencies [757ac77]
+  - @inkeep/agents-core@0.67.0
+
+## 0.66.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.66.1
+
+## 0.66.0
+
+### Patch Changes
+
+- 63a1358: Migrate logger calls to use scoped context — remove repeated ambient fields, adopt string-only logger calls
+- Updated dependencies [5596ecb]
+- Updated dependencies [63a1358]
+- Updated dependencies [01a960d]
+- Updated dependencies [4d0169b]
+  - @inkeep/agents-core@0.66.0
+
+## 0.65.2
+
+### Patch Changes
+
+- Updated dependencies [fa18f84]
+- Updated dependencies [34e1d67]
+- Updated dependencies [93eb31e]
+  - @inkeep/agents-core@0.65.2
+
+## 0.65.1
+
+### Patch Changes
+
+- Updated dependencies [3735393]
+- Updated dependencies [dbee04b]
+  - @inkeep/agents-core@0.65.1
+
+## 0.65.0
+
+### Patch Changes
+
+- Updated dependencies [e332202]
+  - @inkeep/agents-core@0.65.0
+
+## 0.64.10
+
+### Patch Changes
+
+- @inkeep/agents-core@0.64.10
+
+## 0.64.9
+
+### Patch Changes
+
+- @inkeep/agents-core@0.64.9
+
+## 0.64.8
+
+### Patch Changes
+
+- @inkeep/agents-core@0.64.8
+
+## 0.64.7
+
+### Patch Changes
+
+- @inkeep/agents-core@0.64.7
+
+## 0.64.6
+
+### Patch Changes
+
+- Updated dependencies [09c6eb0]
+- Updated dependencies [3237c45]
+- Updated dependencies [528f69c]
+- Updated dependencies [6fddd34]
+  - @inkeep/agents-core@0.64.6
+
+## 0.64.5
+
+### Patch Changes
+
+- Updated dependencies [e91d67b]
+  - @inkeep/agents-core@0.64.5
+
+## 0.64.4
+
+### Patch Changes
+
+- @inkeep/agents-core@0.64.4
+
+## 0.64.3
+
+### Patch Changes
+
+- Updated dependencies [7aa1fac]
+- Updated dependencies [4ace590]
+  - @inkeep/agents-core@0.64.3
+
+## 0.64.2
+
+### Patch Changes
+
+- b55675b: Add createDatasetRunConfig and fix triggerDatasetRun to use run configuration workflow
+- Updated dependencies [f099221]
+  - @inkeep/agents-core@0.64.2
+
+## 0.64.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.64.1
+
+## 0.64.0
+
+### Patch Changes
+
+- Updated dependencies [47915b3]
+- Updated dependencies [2ebe1c4]
+- Updated dependencies [68a55f5]
+- Updated dependencies [abc3b5d]
+  - @inkeep/agents-core@0.64.0
+
+## 0.63.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.63.3
+
+## 0.63.2
+
+### Patch Changes
+
+- dc818c0: Add support for nested files and folders within Skills. Each skill is now a directory containing a `SKILL.md` entry file plus any number of nested reference files (templates, checklists, examples). The SDK `loadSkills()` function recursively discovers all files under each skill directory. The CLI `pull` command writes one file per skill file path. The Visual Builder shows a file-tree sidebar with per-file editing, context menus for adding and removing files, and breadcrumb navigation. The API accepts a `files` array for skill create and update, with four new file-level endpoints for individual CRUD operations. `SKILL.md` frontmatter remains the source of truth for skill name, description, and metadata.
+- Updated dependencies [dc818c0]
+- Updated dependencies [dc818c0]
+  - @inkeep/agents-core@0.63.2
+
+## 0.63.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.63.1
+
+## 0.63.0
+
+### Minor Changes
+
+- 0f77d00: Add scheduler workflow with centralized trigger dispatch and deploy restart endpoint
+
+### Patch Changes
+
+- Updated dependencies [0f77d00]
+  - @inkeep/agents-core@0.63.0
+
+## 0.62.2
+
+### Patch Changes
+
+- Updated dependencies [f614c56]
+  - @inkeep/agents-core@0.62.2
+
 ## 0.62.1
 
 ### Patch Changes
@@ -518,11 +752,9 @@
   Skills are reusable instruction blocks that can be attached to sub-agents to govern behavior, reasoning, and tool usage.
 
   ### Features
-
   - **Visual Builder**: Create, edit, and delete skills from the new Skills page. Attach skills to sub-agents via the sidepane picker with drag-to-reorder support.
 
   - **TypeScript SDK**:
-
     - New `SkillDefinition` and `SkillReference` types
     - `loadSkills(directoryPath)` helper to load skills from `SKILL.md` files
     - `skills` config option on `SubAgent` and `Project`
@@ -532,7 +764,6 @@
   - **CLI**: `inkeep pull` now generates skill files in the `skills/` directory
 
   ### Loading Modes
-
   - **Always loaded**: Skill content is included in every prompt
   - **On-demand**: Skill appears as an outline in the system prompt and can be loaded via the built-in `load_skill` tool when needed
 
@@ -679,12 +910,10 @@
   This major version removes the legacy `signingSecret` parameter from the `trigger()` builder function and replaces it with a flexible signature verification system.
 
   **Breaking Changes:**
-
   - Removed `signingSecret` parameter from `trigger()` builder function
   - Triggers now require `signingSecretCredentialReference` and `signatureVerification` configuration for signature verification
 
   **New Features:**
-
   - Added `signatureVerification` parameter to `trigger()` with validation
   - Exported `SignatureVerificationConfig`, `SignatureSource`, and `SignedComponent` types
   - Added validation at trigger creation time for JMESPath and regex patterns
@@ -1389,7 +1618,6 @@
 
 - dba5a31: Update quickstart port check
 - b0817aa: Fix CLI bugs
-
   - Quickstart inkeep.config.ts indents and types
   - inkeep init run API and manage API urls
 
@@ -2277,12 +2505,10 @@
   ## Migration Guide
 
   Update all API calls by removing `/crud/` from endpoint paths:
-
   - **Before**: `/tenants/{tenantId}/crud/projects/{projectId}/...`
   - **After**: `/tenants/{tenantId}/projects/{projectId}/...`
 
   ## Changes
-
   - Removed `/crud/` segment from all manage-api route definitions
   - Updated all API client code in manage-ui, cli, and SDK packages
   - Cleaned up OpenAPI tags to remove "CRUD" prefix

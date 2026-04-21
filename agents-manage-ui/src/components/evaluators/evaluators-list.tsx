@@ -2,7 +2,7 @@
 
 import type { ColumnDef } from '@tanstack/react-table';
 import { MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -31,91 +31,86 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
   const [deletingEvaluator, setDeletingEvaluator] = useState<Evaluator | undefined>();
   const [viewingEvaluator, setViewingEvaluator] = useState<Evaluator | undefined>();
 
-  const columns = useMemo<ColumnDef<Evaluator>[]>(
-    () => [
-      {
-        accessorKey: 'name',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
-        sortingFn: 'text',
-        cell: ({ row }) => (
-          <button
-            type="button"
-            onClick={() => setViewingEvaluator(row.original)}
-            className="font-medium text-foreground hover:underline text-left"
-          >
-            {row.original.name}
-          </button>
-        ),
-      },
-      {
-        accessorKey: 'description',
-        header: 'Description',
-        enableSorting: false,
-        meta: { className: 'max-w-md' },
-        cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground whitespace-normal">
-            {row.original.description}
-          </span>
-        ),
-      },
-      {
-        id: 'model',
-        accessorFn: (row) => row.model?.model || 'N/A',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Model" />,
-        sortingFn: 'text',
-        cell: ({ row }) => (
-          <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-sm font-mono">
-            {row.original.model?.model || 'N/A'}
-          </code>
-        ),
-      },
-      {
-        id: 'updatedAt',
-        accessorFn: (row) => new Date(row.updatedAt),
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Updated" />,
-        sortingFn: 'datetime',
-        cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground">
-            {formatDate(row.original.updatedAt)}
-          </span>
-        ),
-      },
-      {
-        id: 'actions',
-        header: '',
-        enableSorting: false,
-        meta: { className: 'w-12' },
-        cell: ({ row }) => (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <MoreVertical />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => {
-                  setEditingEvaluator(row.original);
-                  setIsEditDialogOpen(true);
-                }}
-              >
-                <Pencil />
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setDeletingEvaluator(row.original)}
-                variant="destructive"
-              >
-                <Trash2 className="text-inherit" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ),
-      },
-    ],
-    []
-  );
+  const columns: ColumnDef<Evaluator>[] = [
+    {
+      accessorKey: 'name',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+      sortingFn: 'text',
+      cell: ({ row }) => (
+        <button
+          type="button"
+          onClick={() => setViewingEvaluator(row.original)}
+          className="font-medium text-foreground hover:underline text-left"
+        >
+          {row.original.name}
+        </button>
+      ),
+    },
+    {
+      accessorKey: 'description',
+      header: 'Description',
+      enableSorting: false,
+      meta: { className: 'max-w-md' },
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground whitespace-normal">
+          {row.original.description}
+        </span>
+      ),
+    },
+    {
+      id: 'model',
+      accessorFn: (row) => row.model?.model || 'N/A',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Model" />,
+      sortingFn: 'text',
+      cell: ({ row }) => (
+        <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-sm font-mono">
+          {row.original.model?.model || 'N/A'}
+        </code>
+      ),
+    },
+    {
+      id: 'updatedAt',
+      accessorFn: (row) => new Date(row.updatedAt),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Updated" />,
+      sortingFn: 'datetime',
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">{formatDate(row.original.updatedAt)}</span>
+      ),
+    },
+    {
+      id: 'actions',
+      header: '',
+      enableSorting: false,
+      meta: { className: 'w-12' },
+      cell: ({ row }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm">
+              <MoreVertical />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={() => {
+                setEditingEvaluator(row.original);
+                setIsEditDialogOpen(true);
+              }}
+            >
+              <Pencil />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setDeletingEvaluator(row.original)}
+              variant="destructive"
+            >
+              <Trash2 className="text-inherit" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ];
 
   return (
     <>
@@ -177,6 +172,8 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
 
       {viewingEvaluator && (
         <EvaluatorViewDialog
+          tenantId={tenantId}
+          projectId={projectId}
           evaluator={viewingEvaluator}
           isOpen={!!viewingEvaluator}
           onOpenChange={(open) => {

@@ -13,7 +13,6 @@ import {
   verifyPoW,
   verifyServiceToken,
   verifySlackUserToken,
-  verifyTempToken,
   type WebClientConfig,
 } from '@inkeep/agents-core';
 import { trace } from '@opentelemetry/api';
@@ -25,7 +24,7 @@ import { getAnonJwtSecret } from '../domains/run/routes/auth';
 import { env } from '../env';
 import { getLogger } from '../logger';
 import { createBaseExecutionContext } from '../types/runExecutionContext';
-import { isCopilotAgent } from '../utils/copilot';
+import { getOAuthIssuer, getOAuthJwks } from '../utils/oauthJwks';
 
 const logger = getLogger('env-key-auth');
 
@@ -53,7 +52,6 @@ interface RequestData {
   baseUrl: string;
   runAsUserId?: string;
   appId?: string;
-  appPrompt?: string;
   origin?: string;
 }
 
@@ -82,7 +80,6 @@ function extractRequestData(c: { req: any }): RequestData {
   const subAgentId = c.req.header('x-inkeep-sub-agent-id');
   const runAsUserId = c.req.header('x-inkeep-run-as-user-id');
   const appId = c.req.header('x-inkeep-app-id');
-  const appPrompt = c.req.header('x-inkeep-app-prompt');
   const origin = c.req.header('Origin');
   const proto = c.req.header('x-forwarded-proto')?.split(',')[0].trim();
   const fwdHost = c.req.header('x-forwarded-host')?.split(',')[0].trim();
@@ -109,7 +106,6 @@ function extractRequestData(c: { req: any }): RequestData {
     baseUrl,
     runAsUserId,
     appId,
-    appPrompt,
     origin,
   };
 }
@@ -118,14 +114,15 @@ function extractRequestData(c: { req: any }): RequestData {
  * Build the final execution context from auth result and request data
  */
 function buildExecutionContext(authResult: AuthResult, reqData: RequestData): BaseExecutionContext {
-  // For team delegation, use the parent agent ID from the request header (x-inkeep-agent-id)
-  // instead of the JWT's audience (which is the sub-agent being called).
-  // The parent agent ID is needed for project lookup (project.agents[agentId].subAgents[subAgentId]).
-  const agentId =
-    authResult.metadata?.teamDelegation && reqData.agentId ? reqData.agentId : authResult.agentId;
+  let agentId = authResult.agentId;
+  let subAgentId: string | undefined;
 
-  if (
-    !authResult.metadata?.teamDelegation &&
+  if (authResult.metadata?.teamDelegation) {
+    // Team delegation: JWT aud = target sub-agent, JWT sub = parent agent (originAgentId).
+    // Both values come from the cryptographically verified service token.
+    subAgentId = authResult.agentId;
+    agentId = authResult.metadata.originAgentId || authResult.agentId;
+  } else if (
     reqData.agentId &&
     reqData.agentId !== authResult.agentId &&
     authResult.apiKeyId &&
@@ -153,7 +150,7 @@ function buildExecutionContext(authResult: AuthResult, reqData: RequestData): Ba
     agentId,
     apiKeyId: authResult.apiKeyId,
     baseUrl: reqData.baseUrl,
-    subAgentId: reqData.subAgentId,
+    subAgentId,
     ref: reqData.ref,
     metadata: authResult.metadata,
   });
@@ -162,88 +159,6 @@ function buildExecutionContext(authResult: AuthResult, reqData: RequestData): Ba
 // ============================================================================
 // Auth Strategies
 // ============================================================================
-
-/**
- * Attempts to authenticate using a JWT temporary token
- *
- * Throws HTTPException(403) if the JWT is valid but the user lacks permission.
- * Returns null if the token is not a temp JWT (allowing fallback to other auth methods).
- */
-async function tryTempJwtAuth(apiKey: string): Promise<AuthAttempt> {
-  if (!apiKey.startsWith('eyJ')) {
-    return { authResult: null, failureMessage: 'not a JWT' };
-  }
-
-  if (!env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY) {
-    return { authResult: null, failureMessage: 'no public key configured' };
-  }
-
-  try {
-    const publicKeyPem = Buffer.from(env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY, 'base64').toString(
-      'utf-8'
-    );
-    const payload = await verifyTempToken(publicKeyPem, apiKey);
-
-    const userId = payload.sub;
-    const projectId = payload.projectId;
-    const agentId = payload.agentId;
-
-    if (!projectId || !agentId) {
-      logger.warn({ userId }, 'Missing projectId or agentId in JWT');
-      throw new HTTPException(400, {
-        message: 'Invalid token: missing projectId or agentId',
-      });
-    }
-
-    const isCopilotToken = isCopilotAgent({
-      tenantId: payload.tenantId,
-      projectId,
-      agentId,
-    });
-
-    if (isCopilotToken) {
-      logger.info({ userId, projectId, agentId }, 'Copilot bypass: skipping SpiceDB check');
-    }
-
-    if (!isCopilotToken) {
-      let canUse: boolean;
-      try {
-        canUse = await canUseProjectStrict({ userId, tenantId: payload.tenantId, projectId });
-      } catch (error) {
-        logger.error({ error, userId, projectId }, 'SpiceDB permission check failed');
-        throw new HTTPException(503, {
-          message: 'Authorization service temporarily unavailable',
-        });
-      }
-
-      if (!canUse) {
-        logger.warn({ userId, projectId }, 'User does not have use permission on project');
-        throw new HTTPException(403, {
-          message: 'Access denied: insufficient permissions',
-        });
-      }
-    }
-
-    logger.info({ projectId, agentId }, 'JWT temp token authenticated successfully');
-
-    return {
-      authResult: {
-        apiKey,
-        tenantId: payload.tenantId,
-        projectId,
-        agentId,
-        apiKeyId: 'temp-jwt',
-        metadata: { initiatedBy: payload.initiatedBy },
-      },
-    };
-  } catch (error) {
-    if (error instanceof HTTPException) {
-      throw error;
-    }
-    logger.debug({ error }, 'JWT verification failed');
-    return { authResult: null, failureMessage: 'JWT verification failed' };
-  }
-}
 
 /**
  * Authenticate using a regular API key
@@ -448,6 +363,7 @@ async function tryTeamAgentAuth(token: string, expectedSubAgentId?: string): Pro
         teamDelegation: true,
         originAgentId: payload.sub,
         ...(payload.initiatedBy ? { initiatedBy: payload.initiatedBy } : {}),
+        ...(payload.appId ? { appId: payload.appId } : {}),
       },
     },
   };
@@ -471,7 +387,7 @@ function tryBypassAuth(apiKey: string, reqData: RequestData): AuthAttempt {
     });
   }
 
-  logger.info({}, 'Bypass secret authenticated successfully');
+  logger.info('Bypass secret authenticated successfully');
 
   return {
     authResult: {
@@ -487,6 +403,118 @@ function tryBypassAuth(apiKey: string, reqData: RequestData): AuthAttempt {
   };
 }
 
+async function tryOAuthSupportCopilotAuth(
+  app: NonNullable<Awaited<ReturnType<ReturnType<typeof getAppById>>>>,
+  reqData: RequestData
+): Promise<AuthAttempt> {
+  const appLogger = logger.child({ appId: app.id });
+  const { apiKey: bearerToken, agentId: requestedAgentId } = reqData;
+
+  if (!bearerToken) {
+    return { authResult: null, failureMessage: 'Bearer token required for support_copilot app' };
+  }
+
+  // OAuth JWT auth is disabled entirely when COPILOT_OAUTH_CLIENT_ID is unset so an
+  // unconfigured deployment cannot be tricked into accepting a JWT intended for a
+  // different OAuth client on the same provider.
+  if (!env.COPILOT_OAUTH_CLIENT_ID) {
+    appLogger.warn(
+      'support_copilot app credential auth attempted but COPILOT_OAUTH_CLIENT_ID is not configured'
+    );
+    return { authResult: null, failureMessage: 'OAuth is not configured for support_copilot' };
+  }
+
+  let payload: Record<string, unknown>;
+  try {
+    const result = await jwtVerify(bearerToken, getOAuthJwks(), {
+      issuer: getOAuthIssuer(),
+    });
+    payload = result.payload as Record<string, unknown>;
+  } catch (err) {
+    appLogger.debug({ error: err }, 'OAuth JWT verification failed for support_copilot');
+    return { authResult: null, failureMessage: 'Invalid or expired OAuth JWT' };
+  }
+
+  const sub = payload.sub as string | undefined;
+  const azp = payload.azp as string | undefined;
+  const jwtTenantId = payload['https://inkeep.com/tenantId'] as string | undefined;
+
+  if (!sub) {
+    return { authResult: null, failureMessage: 'OAuth JWT missing sub claim' };
+  }
+
+  if (!jwtTenantId) {
+    appLogger.warn({ userId: sub }, 'OAuth JWT missing tenantId claim');
+    return { authResult: null, failureMessage: 'OAuth JWT missing tenantId claim' };
+  }
+
+  if (azp !== env.COPILOT_OAUTH_CLIENT_ID) {
+    appLogger.warn({ azp }, 'OAuth JWT azp mismatch');
+    throw new HTTPException(401, { message: 'Invalid OAuth client' });
+  }
+
+  if (app.tenantId && app.tenantId !== jwtTenantId) {
+    appLogger.warn({ appTenantId: app.tenantId, jwtTenantId }, 'OAuth JWT tenant mismatch');
+    throw new HTTPException(403, { message: 'Tenant mismatch' });
+  }
+
+  if (!app.projectId) {
+    appLogger.error('support_copilot app missing projectId');
+    throw createApiError({ code: 'internal_server_error', message: 'App configuration error' });
+  }
+
+  try {
+    const canUse = await canUseProjectStrict({
+      userId: sub,
+      tenantId: app.tenantId || '',
+      projectId: app.projectId,
+    });
+    if (!canUse) {
+      appLogger.warn(
+        { userId: sub, tenantId: app.tenantId, projectId: app.projectId },
+        'OAuth JWT: user does not have access to requested project'
+      );
+      throw new HTTPException(403, { message: 'Access denied: insufficient permissions' });
+    }
+  } catch (error) {
+    if (error instanceof HTTPException) throw error;
+    appLogger.error(
+      { error, userId: sub, projectId: app.projectId },
+      'SpiceDB permission check failed for OAuth JWT'
+    );
+    throw new HTTPException(503, { message: 'Authorization service temporarily unavailable' });
+  }
+
+  if (Math.random() < 0.1) {
+    updateAppLastUsed(runDbClient)(app.id).catch((err) => {
+      appLogger.error({ error: err }, 'Failed to update app lastUsedAt');
+    });
+  }
+
+  appLogger.info({ userId: sub }, 'OAuth support_copilot authenticated successfully');
+
+  return {
+    authResult: {
+      apiKey: bearerToken,
+      tenantId: app.tenantId || '',
+      projectId: app.projectId,
+      agentId: enforceAppDefaultAgent({
+        requestedAgentId,
+        defaultAgentId: app.defaultAgentId,
+        isGlobalApp: !app.tenantId,
+        appLogger,
+      }),
+      apiKeyId: `app:${app.id}`,
+      metadata: {
+        endUserId: sub,
+        initiatedBy: { type: 'user' as const, id: sub },
+        authMethod: 'app_credential_support_copilot',
+        appId: app.id,
+      },
+    },
+  };
+}
+
 /**
  * Authenticate using an app credential (X-Inkeep-App-Id header).
  * Supports web_client (end-user JWT) and api (app secret) types.
@@ -495,7 +523,7 @@ async function tryAsymmetricJwtVerification(
   bearerToken: string,
   publicKeys: PublicKeyConfig[],
   audience: string | undefined,
-  appId: string
+  appLogger: ReturnType<typeof logger.child>
 ): Promise<
   | { ok: true; endUserId: string; kid: string; claims: Record<string, unknown> }
   | { ok: false; failureMessage: string }
@@ -504,7 +532,7 @@ async function tryAsymmetricJwtVerification(
   try {
     header = decodeProtectedHeader(bearerToken);
   } catch (err) {
-    logger.debug({ error: err, appId }, 'Failed to decode JWT protected header');
+    appLogger.debug({ error: err }, 'Failed to decode JWT protected header');
     return { ok: false, failureMessage: 'Failed to decode JWT header' };
   }
 
@@ -514,7 +542,7 @@ async function tryAsymmetricJwtVerification(
 
   const matchedKey = publicKeys.find((k) => k.kid === header.kid);
   if (!matchedKey) {
-    logger.warn({ kid: header.kid, appId }, 'App auth: kid not found in app public keys');
+    appLogger.warn({ kid: header.kid }, 'App auth: kid not found in app public keys');
     return { ok: false, failureMessage: `kid "${header.kid}" not found on app` };
   }
 
@@ -522,8 +550,8 @@ async function tryAsymmetricJwtVerification(
   try {
     cryptoKey = await importSPKI(matchedKey.publicKey, matchedKey.algorithm);
   } catch (err) {
-    logger.error(
-      { error: err, kid: header.kid, appId },
+    appLogger.error(
+      { error: err, kid: header.kid },
       'Failed to import public key for verification'
     );
     return { ok: false, failureMessage: 'Failed to import public key' };
@@ -548,10 +576,10 @@ async function tryAsymmetricJwtVerification(
       return { ok: false, failureMessage: 'Signature verification failed' };
     }
     if (err instanceof errors.JWTClaimValidationFailed) {
-      logger.debug({ error: err.message, appId }, 'JWT claim validation failed');
+      appLogger.debug({ error: err.message }, 'JWT claim validation failed');
       return { ok: false, failureMessage: 'JWT claim validation failed' };
     }
-    logger.debug({ error: err, appId }, 'JWT verification failed');
+    appLogger.debug({ error: err }, 'JWT verification failed');
     return { ok: false, failureMessage: 'JWT verification failed' };
   }
 
@@ -581,6 +609,43 @@ async function tryAsymmetricJwtVerification(
   };
 }
 
+function enforceAppDefaultAgent({
+  requestedAgentId,
+  defaultAgentId,
+  isGlobalApp,
+  appLogger,
+}: {
+  requestedAgentId: string | undefined;
+  defaultAgentId: string | null;
+  isGlobalApp: boolean;
+  appLogger: ReturnType<typeof logger.child>;
+}): string {
+  if (!defaultAgentId) {
+    if (isGlobalApp) {
+      return requestedAgentId || '';
+    }
+    appLogger.warn('App credential auth: app has no defaultAgentId configured');
+    throw createApiError({
+      code: 'internal_server_error',
+      message: 'App configuration error: no default agent',
+    });
+  }
+  if (!requestedAgentId) {
+    return defaultAgentId;
+  }
+  if (requestedAgentId === defaultAgentId) {
+    return requestedAgentId;
+  }
+  appLogger.warn(
+    { requestedAgentId, defaultAgentId },
+    'App credential auth: requested agent does not match app default agent'
+  );
+  throw createApiError({
+    code: 'forbidden',
+    message: 'Requested agent is not authorized for this app',
+  });
+}
+
 async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> {
   const { appId: appIdHeader, apiKey: bearerToken, origin, agentId: requestedAgentId } = reqData;
 
@@ -596,7 +661,11 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
     return { authResult: null, failureMessage: 'App is disabled' };
   }
 
+  const appLogger = logger.child({ appId: app.id });
+
   let endUserId: string | undefined;
+  let anonTid: string | undefined;
+  let anonPid: string | undefined;
   let authMethod:
     | 'app_credential_web_client'
     | 'app_credential_api'
@@ -606,39 +675,49 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
     const config = app.config as WebClientConfig;
 
     if (!validateOrigin(origin, config.webClient.allowedDomains)) {
-      logger.warn(
-        { origin, allowedDomains: config.webClient.allowedDomains, appId: app.id },
+      appLogger.warn(
+        { origin, allowedDomains: config.webClient.allowedDomains },
         'App credential auth: origin not allowed'
       );
-      return { authResult: null, failureMessage: 'Origin not allowed for this app' };
+      throw createApiError({ code: 'forbidden', message: 'Origin not allowed for this app' });
     }
 
     if (!bearerToken) {
       return { authResult: null, failureMessage: 'Bearer token required for web_client app' };
     }
 
-    const publicKeys = config.webClient.auth?.publicKeys ?? [];
+    const publicKeys = config.webClient.publicKeys ?? [];
     const hasAuthConfigured = publicKeys.length > 0;
+    const allowAnonymous = config.webClient.allowAnonymous !== false;
+
+    if (!hasAuthConfigured && !allowAnonymous) {
+      appLogger.debug(
+        'Anonymous access disabled but no public keys configured — rejecting request'
+      );
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'Authentication is required but no public keys are configured for this app',
+      });
+    }
 
     if (hasAuthConfigured) {
       const asymResult = await tryAsymmetricJwtVerification(
         bearerToken,
         publicKeys,
-        config.webClient.auth?.audience,
-        app.id
+        config.webClient.audience,
+        appLogger
       );
 
       if (!asymResult.ok) {
-        const allowAnonymous = config.webClient.auth?.allowAnonymous !== false;
         if (!allowAnonymous) {
-          logger.debug(
-            { appId: app.id, reason: asymResult.failureMessage },
+          appLogger.debug(
+            { reason: asymResult.failureMessage },
             'Asymmetric JWT verification failed, anonymous not allowed'
           );
           throw createApiError({ code: 'unauthorized', message: asymResult.failureMessage });
         }
-        logger.debug(
-          { appId: app.id, reason: asymResult.failureMessage },
+        appLogger.debug(
+          { reason: asymResult.failureMessage },
           'Asymmetric JWT verification failed, falling back to anonymous'
         );
         // Don't return — fall through to anonymous path below
@@ -696,8 +775,8 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
             });
           }
 
-          // Opt-in SpiceDB validation for global apps
-          if (config.webClient.auth?.validateScopeClaims) {
+          // SpiceDB validation for global apps — always verify scope claims
+          {
             try {
               const canUse = await canUseProjectStrict({
                 userId: asymResult.endUserId,
@@ -713,7 +792,7 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
             } catch (error) {
               if (error instanceof HTTPException) throw error;
               if ((error as { status?: number })?.status === 403) throw error;
-              logger.error({ error }, 'SpiceDB permission check failed for global app auth');
+              appLogger.error({ error }, 'SpiceDB permission check failed for global app auth');
               throw createApiError({
                 code: 'internal_server_error',
                 message: 'Authorization service temporarily unavailable',
@@ -723,14 +802,16 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
 
           resolvedTenantId = tid;
           resolvedProjectId = pid;
-          resolvedAgentId = claimAgentId || requestedAgentId || app.defaultAgentId || '';
+          resolvedAgentId = enforceAppDefaultAgent({
+            requestedAgentId: claimAgentId || requestedAgentId,
+            defaultAgentId: app.defaultAgentId,
+            isGlobalApp: true,
+            appLogger,
+          });
         } else {
           // Tenant-scoped app — scope comes from app record
           if (!app.projectId) {
-            logger.error(
-              { appId: app.id },
-              'App credential auth: tenant-scoped app missing projectId'
-            );
+            appLogger.error('App credential auth: tenant-scoped app missing projectId');
             throw createApiError({
               code: 'internal_server_error',
               message: 'App configuration error',
@@ -739,17 +820,22 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
 
           resolvedTenantId = app.tenantId;
           resolvedProjectId = app.projectId;
-          resolvedAgentId = requestedAgentId || app.defaultAgentId || '';
+          resolvedAgentId = enforceAppDefaultAgent({
+            requestedAgentId,
+            defaultAgentId: app.defaultAgentId,
+            isGlobalApp: false,
+            appLogger,
+          });
         }
 
         if (Math.random() < 0.1) {
           updateAppLastUsed(runDbClient)(app.id).catch((err) => {
-            logger.error({ error: err, appId: app.id }, 'Failed to update app lastUsedAt');
+            appLogger.error({ error: err }, 'Failed to update app lastUsedAt');
           });
         }
 
-        logger.info(
-          { appId: app.id, kid: asymResult.kid, endUserId, authMethod, global: !app.tenantId },
+        appLogger.info(
+          { kid: asymResult.kid, endUserId, authMethod, global: !app.tenantId },
           'App credential authenticated (asymmetric)'
         );
 
@@ -762,7 +848,9 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
             apiKeyId: `app:${app.id}`,
             metadata: {
               endUserId,
+              initiatedBy: { type: 'user' as const, id: endUserId },
               authMethod,
+              appId: app.id,
               ...(Object.keys(verifiedClaims).length > 0 ? { verifiedClaims } : {}),
             },
           },
@@ -770,9 +858,11 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       } // end if (asymResult.ok)
     } // end if (hasAuthConfigured)
 
-    const pow = await verifyPoW(reqData.request, env.INKEEP_POW_HMAC_SECRET);
-    if (!pow.ok) {
-      throw new HTTPException(400, { message: getPoWErrorMessage(pow.error) });
+    if (reqData.request.method !== 'GET') {
+      const pow = await verifyPoW(reqData.request, env.INKEEP_POW_HMAC_SECRET);
+      if (!pow.ok) {
+        throw new HTTPException(400, { message: getPoWErrorMessage(pow.error) });
+      }
     }
 
     authMethod = 'app_credential_web_client';
@@ -791,6 +881,8 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       }
 
       endUserId = payload.sub;
+      anonTid = typeof payload.tid === 'string' ? payload.tid : undefined;
+      anonPid = typeof payload.pid === 'string' ? payload.pid : undefined;
     } catch (err) {
       const errorType =
         err instanceof errors.JWTExpired
@@ -798,40 +890,48 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
           : err instanceof errors.JWSSignatureVerificationFailed
             ? 'signature_invalid'
             : 'unknown';
-      logger.debug({ errorType, appId: appIdHeader }, 'Anonymous JWT verification failed');
+      appLogger.debug({ errorType }, 'Anonymous JWT verification failed');
       if (hasAuthConfigured) {
         throw createApiError({ code: 'unauthorized', message: 'Invalid or expired token' });
       }
       return { authResult: null, failureMessage: 'Invalid end-user JWT' };
     }
+  } else if (app.type === 'support_copilot') {
+    return tryOAuthSupportCopilotAuth(app, reqData);
   } else {
     return { authResult: null, failureMessage: 'Unsupported app type' };
   }
 
-  const agentId = requestedAgentId || app.defaultAgentId || '';
+  const agentId = enforceAppDefaultAgent({
+    requestedAgentId,
+    defaultAgentId: app.defaultAgentId,
+    isGlobalApp: !app.tenantId,
+    appLogger,
+  });
 
   if (Math.random() < 0.1) {
     updateAppLastUsed(runDbClient)(app.id).catch((err) => {
-      logger.error({ error: err, appId: app.id }, 'Failed to update app lastUsedAt');
+      appLogger.error({ error: err }, 'Failed to update app lastUsedAt');
     });
   }
 
-  logger.info(
-    { appId: app.id, appType: app.type, agentId, endUserId, authMethod },
+  appLogger.info(
+    { appType: app.type, agentId, endUserId, authMethod },
     'App credential authenticated successfully'
   );
 
   return {
     authResult: {
       apiKey: bearerToken || appIdHeader,
-      tenantId: app.tenantId || reqData.tenantId || '',
-      projectId: app.projectId || reqData.projectId || '',
+      tenantId: app.tenantId || anonTid || '',
+      projectId: app.projectId || anonPid || '',
       agentId,
       apiKeyId: `app:${app.id}`,
       metadata: {
         endUserId,
+        ...(endUserId ? { initiatedBy: { type: 'user' as const, id: endUserId } } : {}),
         authMethod,
-        appPrompt: app.prompt || undefined,
+        appId: app.id,
       },
     },
   };
@@ -880,7 +980,9 @@ function createDevContext(reqData: RequestData): AuthResult {
 async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
   const { apiKey, subAgentId } = reqData;
 
-  if (reqData.appId) {
+  // When subAgentId is set, this is an internal A2A call — skip app credential auth.
+  // The sub-agent authenticates via its own service token (which carries appId in the JWT).
+  if (reqData.appId && !subAgentId) {
     if (!apiKey) {
       return { authResult: null, failureMessage: 'Bearer token required for app credential auth' };
     }
@@ -892,12 +994,6 @@ async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
   }
 
   const failures: Array<{ strategy: string; reason: string }> = [];
-
-  const jwtAttempt = await tryTempJwtAuth(apiKey);
-  if (jwtAttempt.authResult) return jwtAttempt;
-  if (jwtAttempt.failureMessage) {
-    failures.push({ strategy: 'JWT temp token', reason: jwtAttempt.failureMessage });
-  }
 
   const bypassAttempt = tryBypassAuth(apiKey, reqData);
   if (bypassAttempt.authResult) return bypassAttempt;
@@ -950,17 +1046,11 @@ async function runApiKeyAuthHandler(
 
   // Development/test environment handling
   if (isDev) {
-    logger.info({}, 'development environment');
+    logger.info('development environment');
 
     const attempt = await authenticateRequest(reqData);
 
     if (attempt.authResult) {
-      if (reqData.appPrompt && !attempt.authResult.metadata?.appPrompt) {
-        attempt.authResult.metadata = {
-          ...attempt.authResult.metadata,
-          appPrompt: reqData.appPrompt,
-        };
-      }
       c.set('executionContext', buildExecutionContext(attempt.authResult, reqData));
     } else {
       logger.info(
@@ -972,8 +1062,8 @@ async function runApiKeyAuthHandler(
       c.set('executionContext', buildExecutionContext(createDevContext(reqData), reqData));
     }
 
-    if (reqData.appId && attempt.authResult) {
-      trace.getActiveSpan()?.setAttribute('app.id', reqData.appId);
+    if (attempt.authResult?.metadata?.appId) {
+      trace.getActiveSpan()?.setAttribute('app.id', attempt.authResult.metadata.appId);
     }
     await next();
     return;
@@ -1023,14 +1113,9 @@ async function runApiKeyAuthHandler(
     'API key authenticated successfully'
   );
 
-  // Forward appPrompt from internal A2A header when not already set by auth strategy
-  if (reqData.appPrompt && !attempt.authResult.metadata?.appPrompt) {
-    attempt.authResult.metadata = { ...attempt.authResult.metadata, appPrompt: reqData.appPrompt };
-  }
-
   c.set('executionContext', buildExecutionContext(attempt.authResult, reqData));
-  if (reqData.appId) {
-    trace.getActiveSpan()?.setAttribute('app.id', reqData.appId);
+  if (attempt.authResult.metadata?.appId) {
+    trace.getActiveSpan()?.setAttribute('app.id', attempt.authResult.metadata.appId);
   }
   await next();
 }

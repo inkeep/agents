@@ -2,7 +2,7 @@
 
 import { Coins, ExternalLink, Hash, Layers, Zap } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AreaChartCard } from '@/components/traces/charts/area-chart-card';
 import { StatCard } from '@/components/traces/charts/stat-card';
 import { Badge } from '@/components/ui/badge';
@@ -49,75 +49,92 @@ interface UsageSummaryRow {
 
 export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostDashboardProps) {
   const [summaryByModel, setSummaryByModel] = useState<UsageSummaryRow[]>([]);
+  const [summaryByAgent, setSummaryByAgent] = useState<UsageSummaryRow[]>([]);
   const [summaryByType, setSummaryByType] = useState<UsageSummaryRow[]>([]);
+  const [summaryByProvider, setSummaryByProvider] = useState<UsageSummaryRow[]>([]);
   const [events, setEvents] = useState<SigNozUsageEvent[]>([]);
+  const [chartData, setChartData] = useState<Array<{ date: string; cost: number }>>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const client = getSigNozStatsClient(tenantId);
-      const start = new Date(startTime).getTime();
-      const end = new Date(endTime).getTime();
-
-      const [byModel, byType, eventsList] = await Promise.all([
-        client.getUsageCostSummary(start, end, 'model', projectId),
-        client.getUsageCostSummary(start, end, 'generation_type', projectId),
-        client.getUsageEventsList(start, end, projectId, undefined, 200),
-      ]);
-
-      setSummaryByModel(byModel);
-      setSummaryByType(byType);
-      setEvents(eventsList);
-    } catch (error) {
-      console.error('Failed to fetch usage data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [tenantId, projectId, startTime, endTime]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    let cancelled = false;
+    async function fetchData() {
+      setIsLoading(true);
+      setLoadError(null);
+      try {
+        const client = getSigNozStatsClient(tenantId);
+        const start = new Date(startTime).getTime();
+        const end = new Date(endTime).getTime();
 
-  const totals = useMemo(() => {
-    return summaryByModel.reduce(
-      (acc, row) => ({
-        totalTokens: acc.totalTokens + row.totalTokens,
-        totalInputTokens: acc.totalInputTokens + row.totalInputTokens,
-        totalOutputTokens: acc.totalOutputTokens + row.totalOutputTokens,
-        totalCost: acc.totalCost + row.totalEstimatedCostUsd,
-        totalEvents: acc.totalEvents + row.eventCount,
-      }),
-      { totalTokens: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCost: 0, totalEvents: 0 }
-    );
-  }, [summaryByModel]);
+        const [summaries, eventsList, costPerDay] = await Promise.all([
+          client.getUsageCostSummaries(
+            start,
+            end,
+            ['model', 'agent', 'generation_type', 'provider'] as const,
+            projectId
+          ),
+          client.getUsageEventsList(start, end, projectId, undefined, 200),
+          client.getUsageCostPerDay(start, end, projectId),
+        ]);
 
-  const chartData = useMemo(() => {
-    const buckets = new Map<string, number>();
-    for (const event of events) {
-      if (!event.timestamp) continue;
-      const date = new Date(event.timestamp);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-      buckets.set(key, (buckets.get(key) ?? 0) + event.estimatedCostUsd);
+        if (cancelled) return;
+
+        setSummaryByModel(summaries.model);
+        setSummaryByAgent(summaries.agent);
+        setSummaryByType(summaries.generation_type);
+        setSummaryByProvider(summaries.provider);
+        setEvents(eventsList);
+        setChartData(costPerDay);
+      } catch (error) {
+        console.error('Failed to fetch usage data:', error);
+        if (cancelled) return;
+        setLoadError(error instanceof Error ? error.message : 'Failed to load cost data');
+      }
+      if (!cancelled) setIsLoading(false);
     }
-    return [...buckets.entries()]
-      .map(([date, cost]) => ({ date, cost }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-  }, [events]);
+    fetchData();
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId, projectId, startTime, endTime]);
+
+  const totals = summaryByModel.reduce(
+    (acc, row) => ({
+      totalTokens: acc.totalTokens + row.totalTokens,
+      totalInputTokens: acc.totalInputTokens + row.totalInputTokens,
+      totalOutputTokens: acc.totalOutputTokens + row.totalOutputTokens,
+      totalCost: acc.totalCost + row.totalEstimatedCostUsd,
+      totalEvents: acc.totalEvents + row.eventCount,
+    }),
+    { totalTokens: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCost: 0, totalEvents: 0 }
+  );
 
   return (
     <>
+      {loadError && (
+        <div
+          role="alert"
+          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+        >
+          {loadError}
+        </div>
+      )}
       <UsageStatCards totals={totals} modelCount={summaryByModel.length} isLoading={isLoading} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         <UsageBreakdownTable title="Cost by Model" data={summaryByModel} isLoading={isLoading} />
         <UsageBreakdownTable
-          title="Cost by Type"
-          data={summaryByType}
+          title="Cost by Agent"
+          data={summaryByAgent}
           isLoading={isLoading}
-          formatGroupKey={(key) => key.replace(/_/g, ' ')}
-          groupLabel="Generation Type"
+          groupLabel="Agent"
+        />
+        <UsageBreakdownTable
+          title="Cost by Provider"
+          data={summaryByProvider}
+          isLoading={isLoading}
+          groupLabel="Provider"
         />
       </div>
 
@@ -169,6 +186,14 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
           />
         </div>
       </div>
+
+      <UsageBreakdownTable
+        title="Cost by Generation Type"
+        data={summaryByType}
+        isLoading={isLoading}
+        formatGroupKey={(key) => key.replace(/_/g, ' ')}
+        groupLabel="Generation Type"
+      />
     </>
   );
 }
@@ -311,70 +336,70 @@ function UsageEventsTable({
         ) : events.length === 0 ? (
           <p className="text-sm text-muted-foreground">No cost events for this period</p>
         ) : (
-          <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Model</TableHead>
-                  <TableHead className="text-right">Cost</TableHead>
-                  <TableHead className="text-right">In</TableHead>
-                  <TableHead className="text-right">Out</TableHead>
-                  <TableHead>Agent</TableHead>
-                  <TableHead>Sub Agent</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Conversation</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {events.map((event) => (
-                  <TableRow key={event.spanId}>
-                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                      {formatDateAgo(event.timestamp)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="font-mono text-xs">
-                        {event.generationType.replace(/_/g, ' ')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">{event.model}</TableCell>
-                    <TableCell className="text-right font-medium">
-                      {event.estimatedCostUsd ? formatCost(event.estimatedCostUsd) : '—'}
-                    </TableCell>
-                    <TableCell className="text-right text-muted-foreground">
-                      {formatTokens(event.inputTokens)}
-                    </TableCell>
-                    <TableCell className="text-right text-muted-foreground">
-                      {formatTokens(event.outputTokens)}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">{event.agentId || '—'}</TableCell>
-                    <TableCell className="font-mono text-xs">{event.subAgentId || '—'}</TableCell>
-                    <TableCell>
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[event.status] ?? ''}`}
+          <Table className="min-w-max" containerClassName="max-h-[500px] overflow-y-auto">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Time</TableHead>
+                <TableHead>Conversation</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Model</TableHead>
+                <TableHead>Provider</TableHead>
+                <TableHead className="text-right">Cost</TableHead>
+                <TableHead className="text-right">In</TableHead>
+                <TableHead className="text-right">Out</TableHead>
+                <TableHead>Agent</TableHead>
+                <TableHead>Sub Agent</TableHead>
+                <TableHead>Type</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {events.map((event) => (
+                <TableRow key={event.spanId}>
+                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                    {formatDateAgo(event.timestamp)}
+                  </TableCell>
+                  <TableCell>
+                    {projectId && event.conversationId ? (
+                      <Link
+                        href={`/${tenantId}/projects/${projectId}/traces/conversations/${event.conversationId}`}
+                        className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                       >
-                        {event.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {projectId && event.conversationId ? (
-                        <Link
-                          href={`/${tenantId}/projects/${projectId}/traces/conversations/${event.conversationId}`}
-                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                        >
-                          <ExternalLink className="h-3 w-3" />
-                          View trace
-                        </Link>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                        <ExternalLink className="h-3 w-3" />
+                        View trace
+                      </Link>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[event.status] ?? ''}`}
+                    >
+                      {event.status}
+                    </span>
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">{event.model}</TableCell>
+                  <TableCell className="font-mono text-xs">{event.provider || '—'}</TableCell>
+                  <TableCell className="text-right font-medium">
+                    {event.estimatedCostUsd ? formatCost(event.estimatedCostUsd) : '—'}
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground">
+                    {formatTokens(event.inputTokens)}
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground">
+                    {formatTokens(event.outputTokens)}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">{event.agentId || '—'}</TableCell>
+                  <TableCell className="font-mono text-xs">{event.subAgentId || '—'}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="font-mono text-xs">
+                      {event.generationType.replace(/_/g, ' ')}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </CardContent>
     </Card>

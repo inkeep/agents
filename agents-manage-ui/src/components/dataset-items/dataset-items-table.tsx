@@ -2,8 +2,8 @@
 
 import type { ColumnDef } from '@tanstack/react-table';
 import { MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
-import { type FC, useMemo, useState } from 'react';
-import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
+import { type FC, useState } from 'react';
+import { ReadOnlyJsonView } from '@/components/editors/read-only-json-view';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -25,23 +25,10 @@ interface DatasetItemsTableProps {
   items: DatasetItem[];
 }
 
-const ReadOnlyEditor: FC<{
-  name: string;
+const ReadOnlyJsonCell: FC<{
   value: unknown;
-}> = ({ name, value }) => {
-  return (
-    <ExpandableJsonEditor
-      name={name}
-      value={JSON.stringify(value, null, 2)}
-      readOnly
-      editorOptions={{
-        wordWrap: 'off',
-        scrollbar: {
-          alwaysConsumeMouseWheel: true,
-        },
-      }}
-    />
-  );
+}> = ({ value }) => {
+  return <ReadOnlyJsonView value={JSON.stringify(value, null, 2)} />;
 };
 
 export function DatasetItemsTable({
@@ -59,89 +46,67 @@ export function DatasetItemsTable({
     ? items.find((item) => item.id === deletingItemId)
     : undefined;
 
-  const columns = useMemo<ColumnDef<DatasetItem>[]>(
-    () => [
-      {
-        id: 'updatedAt',
-        accessorFn: (row) => new Date(row.updatedAt),
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Updated At" />,
-        sortingFn: 'datetime',
-        cell: ({ row }) => (
-          <span className="text-sm text-muted-foreground">
-            {formatDateTimeTable(row.original.updatedAt)}
-          </span>
+  const columns: ColumnDef<DatasetItem>[] = [
+    {
+      id: 'updatedAt',
+      accessorFn: (row) => new Date(row.updatedAt),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Updated At" />,
+      sortingFn: 'datetime',
+      meta: { className: 'w-[160px]' },
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground whitespace-nowrap">
+          {formatDateTimeTable(row.original.updatedAt, { local: true })}
+        </span>
+      ),
+    },
+    {
+      id: 'input',
+      header: 'Input',
+      enableSorting: false,
+      meta: { className: 'w-1/2 whitespace-normal' },
+      cell: ({ row }) => <ReadOnlyJsonCell value={row.original.input} />,
+    },
+    {
+      id: 'expectedOutput',
+      header: 'Expected Output',
+      enableSorting: false,
+      meta: { className: 'w-1/2 whitespace-normal' },
+      cell: ({ row }) =>
+        row.original.expectedOutput ? (
+          <ReadOnlyJsonCell value={row.original.expectedOutput} />
+        ) : (
+          <span className="text-sm text-muted-foreground italic">None</span>
         ),
-      },
-      {
-        id: 'input',
-        header: 'Input',
-        enableSorting: false,
-        cell: ({ row }) => (
-          <ReadOnlyEditor name={`input_${row.index}`} value={row.original.input} />
-        ),
-      },
-      {
-        id: 'expectedOutput',
-        header: 'Expected Output',
-        enableSorting: false,
-        cell: ({ row }) =>
-          row.original.expectedOutput ? (
-            <ReadOnlyEditor name={`output_${row.index}`} value={row.original.expectedOutput} />
-          ) : (
-            <span className="text-sm text-muted-foreground italic">None</span>
-          ),
-      },
-      {
-        id: 'simulationAgent',
-        header: 'Simulation Agent',
-        enableSorting: false,
-        cell: ({ row }) => {
-          const hasSimulationAgent = !!(
-            row.original.simulationAgent &&
-            typeof row.original.simulationAgent === 'object' &&
-            !Array.isArray(row.original.simulationAgent) &&
-            (row.original.simulationAgent.prompt || row.original.simulationAgent.model)
-          );
-          return hasSimulationAgent ? (
-            <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-              Configured
-            </span>
-          ) : (
-            <span className="text-sm text-muted-foreground italic">None</span>
-          );
-        },
-      },
-      {
-        id: 'actions',
-        header: '',
-        enableSorting: false,
-        meta: { className: 'w-12' },
-        cell: ({ row }) => (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <MoreVertical />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setEditingItemId(row.original.id)}>
-                <Pencil />
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setDeletingItemId(row.original.id)}
-                variant="destructive"
-              >
-                <Trash2 className="text-inherit" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ),
-      },
-    ],
-    []
-  );
+    },
+    {
+      id: 'actions',
+      header: '',
+      enableSorting: false,
+      meta: { className: 'w-12' },
+      cell: ({ row }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm">
+              <MoreVertical />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setEditingItemId(row.original.id)}>
+              <Pencil />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setDeletingItemId(row.original.id)}
+              variant="destructive"
+            >
+              <Trash2 className="text-inherit" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ];
 
   return (
     <>
@@ -151,6 +116,7 @@ export function DatasetItemsTable({
           data={items}
           defaultSort={[{ id: 'updatedAt', desc: true }]}
           getRowId={(row) => row.id}
+          containerClassName="[&_table]:table-fixed"
           emptyState={
             <div className="flex flex-col items-center gap-4">
               <span>No items yet</span>

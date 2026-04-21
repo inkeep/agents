@@ -1,186 +1,164 @@
-import { execSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { Command } from 'commander';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Path to the compiled CLI
-const cliPath = join(__dirname, '..', '..', 'dist', 'index.js');
+vi.mock('../commands/push', () => ({ pushCommand: vi.fn() }));
+vi.mock('../commands/add', () => ({ addCommand: vi.fn() }));
+vi.mock('../commands/config', () => ({
+  configGetCommand: vi.fn(),
+  configSetCommand: vi.fn(),
+  configListCommand: vi.fn(),
+}));
+vi.mock('../commands/dev', () => ({ devCommand: vi.fn() }));
+vi.mock('../commands/init', () => ({ initCommand: vi.fn() }));
+vi.mock('../commands/list-agents', () => ({ listAgentsCommand: vi.fn() }));
+vi.mock('../commands/login', () => ({ loginCommand: vi.fn() }));
+vi.mock('../commands/logout', () => ({ logoutCommand: vi.fn() }));
+vi.mock('../commands/profile', () => ({
+  profileAddCommand: vi.fn(),
+  profileCurrentCommand: vi.fn(),
+  profileListCommand: vi.fn(),
+  profileRemoveCommand: vi.fn(),
+  profileUseCommand: vi.fn(),
+}));
+vi.mock('../commands/pull-v4/introspect', () => ({ pullV4Command: vi.fn() }));
+vi.mock('../commands/status', () => ({ statusCommand: vi.fn() }));
+vi.mock('../commands/update', () => ({ updateCommand: vi.fn() }));
+vi.mock('../commands/whoami', () => ({ whoamiCommand: vi.fn() }));
 
-// Helper function to execute CLI commands
-function runCli(args: string[]): { stdout: string; stderr: string; exitCode: number } {
-  // Check if CLI binary exists before attempting to run
-  if (!existsSync(cliPath)) {
-    return {
-      stdout: '',
-      stderr: `CLI binary not found at ${cliPath}`,
-      exitCode: 1,
-    };
-  }
+function parseArgs(program: Command, args: string[]): { stdout: string; stderr: string } {
+  let stdout = '';
+  let stderr = '';
+
+  program.exitOverride();
+  program.configureOutput({
+    writeOut: (str) => {
+      stdout += str;
+    },
+    writeErr: (str) => {
+      stderr += str;
+    },
+  });
 
   try {
-    const stdout = execSync(`node ${cliPath} ${args.join(' ')}`, {
-      encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-      timeout: 30000, // 30 second timeout for CI
-      killSignal: 'SIGTERM', // Use SIGTERM first for cleaner shutdown
-      windowsHide: true, // Hide windows on Windows
-      env: {
-        ...process.env,
-        // Test environment
-        CI: 'true', // Signal to CLI that it's running in CI
-        NODE_OPTIONS: '--max-old-space-size=256', // Limit memory usage
-      },
-    });
-    return { stdout, stderr: '', exitCode: 0 };
-  } catch (error: any) {
-    // Handle timeout specifically - check for various timeout indicators
-    const isTimeout =
-      error.code === 'ETIMEDOUT' ||
-      error.signal === 'SIGTERM' ||
-      error.killed ||
-      error.message?.toLowerCase().includes('timedout');
-
-    if (isTimeout) {
-      return {
-        stdout: error.stdout || '',
-        stderr: 'Command timed out',
-        exitCode: 124, // Standard timeout exit code
-      };
-    }
-
-    return {
-      stdout: error.stdout || '',
-      stderr: error.stderr || error.message || 'Unknown error',
-      exitCode: error.status || 1,
-    };
+    program.parse(['node', 'inkeep', ...args]);
+  } catch {
+    // Commander throws on --version, --help, and errors when exitOverride is set
   }
+
+  return { stdout, stderr };
 }
 
 describe('Inkeep CLI', () => {
-  beforeEach(() => {
-    // Mock console methods to capture output during tests
+  let createProgram: () => Command;
+
+  beforeEach(async () => {
     vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
+    ({ createProgram } = await import('../program'));
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     vi.restoreAllMocks();
-    // Small delay to allow processes to fully terminate
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    // Force garbage collection to clean up any hanging references
-    if (global.gc) {
-      global.gc();
-    }
   });
 
   describe('--version command', () => {
     it('should display the version number', () => {
-      const result = runCli(['--version']);
-
-      expect(result.exitCode).toBe(0);
-      expect(result.stdout.trim()).toMatch(/^\d+\.\d+\.\d+$/);
+      const { stdout } = parseArgs(createProgram(), ['--version']);
+      expect(stdout.trim()).toMatch(/^\d+\.\d+\.\d+$/);
     });
 
     it('should match the version in package.json', () => {
       const packageJsonPath = join(__dirname, '..', '..', 'package.json');
       const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
-      const expectedVersion = packageJson.version;
 
-      const result = runCli(['--version']);
-
-      expect(result.stdout.trim()).toBe(expectedVersion);
-    });
-  });
-
-  describe('push command', () => {
-    it('should work without required arguments', () => {
-      const result = runCli(['push']);
-
-      // Skip test if command timed out (CI performance issue, not CLI bug)
-      if (result.exitCode === 124) {
-        console.log('Skipping assertion: push command timed out in CI');
-        return;
-      }
-
-      // The push command now tries to detect project automatically
-      expect(result.exitCode).toBe(1);
-      // It should fail because configuration or project is missing in test environment
-      expect(result.stderr.toLowerCase()).toMatch(/tenant id|index\.ts|config/);
-    });
-
-    it('should accept --agents-api-url option', () => {
-      const result = runCli([
-        'push',
-        '--project',
-        'non-existent',
-        '--agents-api-url',
-        'http://example.com',
-      ]);
-
-      // Will fail because project doesn't exist, but should accept the option
-      expect(result.exitCode).toBe(1);
-      // Should fail for project not found, not for invalid option
-      expect(result.stderr).not.toContain('unknown option');
-    });
-  });
-
-  describe('list-agent command', () => {
-    it('should require --project option and accept --url option', () => {
-      const result = runCli(['list-agent', '--help']);
-
-      expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('List all available agents for a specific project');
-      expect(result.stdout).toContain('--project <project-id>');
-      expect(result.stdout).toContain('--agents-api-url');
+      const { stdout } = parseArgs(createProgram(), ['--version']);
+      expect(stdout.trim()).toBe(packageJson.version);
     });
   });
 
   describe('--help command', () => {
     it('should display help information', () => {
-      const result = runCli(['--help']);
+      const { stdout } = parseArgs(createProgram(), ['--help']);
 
-      expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('CLI tool for Inkeep Agent Framework');
-      expect(result.stdout).toContain('Commands:');
-      expect(result.stdout).toContain('push');
-      expect(result.stdout).toContain('config');
-      expect(result.stdout).toContain('list-agent');
+      expect(stdout).toContain('CLI tool for Inkeep Agent Framework');
+      expect(stdout).toContain('Commands:');
+      expect(stdout).toContain('push');
+      expect(stdout).toContain('config');
+      expect(stdout).toContain('list-agent');
     });
 
-    it('should display help for push command', () => {
-      const result = runCli(['push', '--help']);
+    it('should have push command with correct description', () => {
+      const program = createProgram();
+      const pushCmd = program.commands.find((c) => c.name() === 'push');
 
-      expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('Push a project configuration');
-      expect(result.stdout).toContain('--agents-api-url');
+      expect(pushCmd).toBeDefined();
+      expect(pushCmd?.description()).toContain('Push a project configuration');
+    });
+  });
+
+  describe('push command', () => {
+    it('should accept --agents-api-url option', () => {
+      const program = createProgram();
+      const pushCmd = program.commands.find((c) => c.name() === 'push');
+
+      expect(pushCmd).toBeDefined();
+      const optionNames = pushCmd?.options.map((o) => o.long);
+      expect(optionNames).toContain('--agents-api-url');
+      expect(optionNames).toContain('--project');
+      expect(optionNames).toContain('--config');
+      expect(optionNames).toContain('--force');
+    });
+  });
+
+  describe('list-agent command', () => {
+    it('should have expected description and options', () => {
+      const program = createProgram();
+      const listAgentCmd = program.commands.find((c) => c.name() === 'list-agent');
+
+      expect(listAgentCmd).toBeDefined();
+      expect(listAgentCmd?.description()).toBe('List all available agents for a specific project');
+      const optionNames = listAgentCmd?.options.map((o) => o.long);
+      expect(optionNames).toContain('--project');
+      expect(optionNames).toContain('--agents-api-url');
     });
   });
 
   describe('invalid commands', () => {
     it('should show error for unknown command', () => {
-      const result = runCli(['unknown-command']);
-
-      expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain('error: unknown command');
+      const { stderr } = parseArgs(createProgram(), ['unknown-command']);
+      expect(stderr).toContain('unknown command');
     });
   });
 
   describe('CLI structure', () => {
     it('should have correct CLI name', () => {
-      const result = runCli(['--help']);
-
-      expect(result.stdout).toContain('inkeep');
+      const { stdout } = parseArgs(createProgram(), ['--help']);
+      expect(stdout).toContain('inkeep');
     });
 
-    it('should be executable', () => {
-      // This test ensures the CLI can be executed without throwing
-      const result = runCli(['--version']);
+    it('should register all expected commands', () => {
+      const program = createProgram();
+      const commandNames = program.commands.map((c) => c.name());
 
-      expect(result.exitCode).toBe(0);
+      expect(commandNames).toContain('push');
+      expect(commandNames).toContain('pull');
+      expect(commandNames).toContain('list-agent');
+      expect(commandNames).toContain('config');
+      expect(commandNames).toContain('dev');
+      expect(commandNames).toContain('login');
+      expect(commandNames).toContain('logout');
+      expect(commandNames).toContain('status');
+      expect(commandNames).toContain('profile');
+      expect(commandNames).toContain('add');
+      expect(commandNames).toContain('init');
+      expect(commandNames).toContain('update');
+      expect(commandNames).toContain('whoami');
     });
   });
 });

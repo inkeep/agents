@@ -1,5 +1,7 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  APPROVAL_NEEDED_EVENT,
+  APPROVAL_RESOLVED_EVENT,
   buildConversationMetadata,
   type CredentialStoreRegistry,
   createApiError,
@@ -22,6 +24,7 @@ import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
+import { buildMessageAttachmentToolCallId } from '../services/blob-storage/attachment-artifacts';
 import {
   FileSecurityError,
   PdfUrlIngestionError,
@@ -34,6 +37,7 @@ import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
 import { createSSEStreamHelper } from '../stream/stream-helpers';
 import type { Message } from '../types/chat';
 import { FileContentItemSchema, ImageContentItemSchema } from '../types/chat';
+import { getUserIdFromContext } from '../types/executionContext';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromOpenAIContent } from '../utils/message-parts';
 import { agentExecutionWorkflow } from '../workflow/functions/agentExecution';
@@ -99,6 +103,12 @@ const chatCompletionsRoute = createProtectedRoute({
             conversationId: z.string().optional().describe('Conversation ID for multi-turn chat'),
             tools: z.array(z.string()).optional().describe('Available tools'),
             runConfig: z.record(z.string(), z.unknown()).optional().describe('Run configuration'),
+            executionMode: z
+              .enum(['classic', 'durable'])
+              .optional()
+              .describe(
+                'Override the agent execution mode for this request. Takes precedence over the agent config default. Falls back to classic if unset.'
+              ),
             headers: z
               .record(z.string(), z.unknown())
               .optional()
@@ -201,13 +211,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
     const executionContext = c.get('executionContext');
     const { tenantId, projectId, agentId } = executionContext;
 
-    getLogger('chat').debug(
-      {
-        tenantId,
-        agentId,
-      },
-      'Extracted chat parameters from API key context'
-    );
+    getLogger('chat').debug('Extracted chat parameters from API key context');
 
     const body = c.get('requestBody') || {};
     const conversationId = body.conversationId || getConversationId();
@@ -361,12 +365,21 @@ app.openapi(chatCompletionsRoute, async (c) => {
         }
       }
       const userMessageId = generateId();
+      const hasAttachedFiles = messageParts.some((part) => part.kind === 'file');
+      const attachmentTaskId = hasAttachedFiles ? `message_${userMessageId}` : undefined;
+
+      if (messageSpan) {
+        messageSpan.setAttribute('message.id', userMessageId);
+      }
 
       const messageContent = await buildPersistedMessageContent(userMessage, messageParts, {
         tenantId,
         projectId,
         conversationId,
         messageId: userMessageId,
+        taskId: `message_${userMessageId}`,
+        toolCallId: buildMessageAttachmentToolCallId(userMessageId),
+        source: 'user-message',
       });
 
       await createMessage(runDbClient)({
@@ -378,12 +391,13 @@ app.openapi(chatCompletionsRoute, async (c) => {
           content: messageContent,
           visibility: 'user-facing',
           messageType: 'chat',
+          ...(attachmentTaskId ? { taskId: attachmentTaskId } : {}),
         },
       });
 
       if (messageSpan) {
         messageSpan.addEvent('user.message.stored', {
-          'message.id': conversationId,
+          'message.id': userMessageId,
           'database.operation': 'insert',
         });
       }
@@ -430,10 +444,13 @@ app.openapi(chatCompletionsRoute, async (c) => {
         );
       }
 
-      if (agent.executionMode === 'durable') {
+      const effectiveExecutionMode = body.executionMode ?? agent.executionMode ?? 'classic';
+
+      if (effectiveExecutionMode === 'durable') {
         const emitOperationsHeader = c.req.header('x-emit-operations');
         const emitOperations = emitOperationsHeader === 'true';
 
+        const userId = getUserIdFromContext(executionContext);
         const run = await start(agentExecutionWorkflow, [
           {
             tenantId,
@@ -447,10 +464,11 @@ app.openapi(chatCompletionsRoute, async (c) => {
             forwardedHeaders:
               Object.keys(forwardedHeaders).length > 0 ? forwardedHeaders : undefined,
             emitOperations: emitOperations || undefined,
+            userId,
           },
         ]);
 
-        logger.info({ runId: run.runId, conversationId, agentId }, 'Durable execution started');
+        logger.info({ runId: run.runId, conversationId }, 'Durable execution started');
 
         c.header('Content-Type', 'text/event-stream');
         c.header('Cache-Control', 'no-cache');
@@ -489,7 +507,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
           const seenOutputs = new Set<string>();
 
           unsubscribe = toolApprovalUiBus.subscribe(requestId, async (event) => {
-            if (event.type === 'approval-needed') {
+            if (event.type === APPROVAL_NEEDED_EVENT) {
               if (seenToolCalls.has(event.toolCallId)) return;
               seenToolCalls.add(event.toolCallId);
 
@@ -517,7 +535,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
                 approvalId: event.approvalId,
                 toolCallId: event.toolCallId,
               });
-            } else if (event.type === 'approval-resolved') {
+            } else if (event.type === APPROVAL_RESOLVED_EVENT) {
               if (seenOutputs.has(event.toolCallId)) return;
               seenOutputs.add(event.toolCallId);
 

@@ -1,10 +1,6 @@
 name: Cypress
 
 on:
-  push:
-    branches:
-      - main
-      - master
   pull_request:
     branches: ["*"]
   merge_group:
@@ -18,15 +14,30 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  cypress-e2e:
-    if: ${{ github.event_name != 'push' || github.actor != 'github-merge-queue[bot]' }}
-    name: Cypress E2E Tests
+  # Lightweight check on a cheap runner — avoids spinning up expensive service
+  # containers (Doltgres, Postgres) on ubuntu-32gb just to skip everything.
+  changeset-check:
+    runs-on: ubuntu-latest
+    outputs:
+      is_changeset: ${{ steps.check.outputs.is_changeset }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          sparse-checkout: .github/composite-actions/changeset-check
+          fetch-depth: 1
+      - uses: ./.github/composite-actions/changeset-check
+        id: check
+
+  cypress-e2e-run:
+    needs: changeset-check
+    if: needs.changeset-check.outputs.is_changeset != 'true'
+    name: Cypress E2E Tests (run)
     runs-on: ubuntu-32gb
     timeout-minutes: 30
 
     services:
       doltgres:
-        image: dolthub/doltgresql:0.55.4
+        image: dolthub/doltgresql:0.56.1
         env:
           DOLTGRES_USER: appuser
           DOLTGRES_PASSWORD: password
@@ -55,92 +66,31 @@ jobs:
           - 5433:5432
 
     steps:
-      - name: Check if changeset PR
-        id: changeset-check
-        run: |
-          IS_CHANGESET=false
-
-          if [ "$HEAD_REF" = "changeset-release/main" ]; then
-            IS_CHANGESET=true
-            echo "Changeset PR detected via branch name"
-          fi
-
-          if [ "$GITHUB_EVENT_NAME" = "merge_group" ] && [ "$IS_CHANGESET" = "false" ]; then
-            PR_NUM=$(echo "$MERGE_GROUP_HEAD_REF" | sed -n 's|.*/pr-\([0-9]*\)-.*|\1|p')
-            if [ -n "$PR_NUM" ]; then
-              BRANCH=$(gh pr view "$PR_NUM" --repo "$GITHUB_REPOSITORY" --json headRefName -q .headRefName 2>/dev/null || echo "")
-              if [ "$BRANCH" = "changeset-release/main" ]; then
-                IS_CHANGESET=true
-                echo "Changeset PR detected via merge group (PR #$PR_NUM)"
-              fi
-            fi
-          fi
-
-          # Check if PR only contains .changeset/ file changes
-          if [ "$IS_CHANGESET" = "false" ] && [ "$GITHUB_EVENT_NAME" != "push" ]; then
-            if [ "$GITHUB_EVENT_NAME" = "pull_request" ] && [ -n "$PR_NUMBER" ]; then
-              if ! CHANGED_FILES=$(gh pr diff "$PR_NUMBER" --name-only --repo "$GITHUB_REPOSITORY" 2>&1); then
-                echo "::warning::Failed to fetch PR diff for #$PR_NUMBER: $CHANGED_FILES"
-                CHANGED_FILES=""
-              fi
-            elif [ "$GITHUB_EVENT_NAME" = "merge_group" ] && [ -n "$PR_NUM" ]; then
-              if ! CHANGED_FILES=$(gh pr diff "$PR_NUM" --name-only --repo "$GITHUB_REPOSITORY" 2>&1); then
-                echo "::warning::Failed to fetch PR diff for #$PR_NUM: $CHANGED_FILES"
-                CHANGED_FILES=""
-              fi
-            fi
-
-            if [ -n "$CHANGED_FILES" ]; then
-              NON_CHANGESET=$(echo "$CHANGED_FILES" | grep -v '^\.changeset/' || true)
-              if [ -z "$NON_CHANGESET" ]; then
-                IS_CHANGESET=true
-                echo "Only .changeset/ files changed — skipping Cypress tests"
-              fi
-            fi
-          fi
-
-          echo "is_changeset=$IS_CHANGESET" >> $GITHUB_OUTPUT
-          if [ "$IS_CHANGESET" = "true" ]; then
-            echo "Changeset PR — skipping Cypress tests"
-          fi
-        env:
-          HEAD_REF: ${{ github.head_ref }}
-          GITHUB_EVENT_NAME: ${{ github.event_name }}
-          MERGE_GROUP_HEAD_REF: ${{ github.event.merge_group.head_ref }}
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-
       - name: Checkout code
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Setup Node.js
-        if: steps.changeset-check.outputs.is_changeset != 'true'
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: 22.x
 
       - name: Setup pnpm
-        if: steps.changeset-check.outputs.is_changeset != 'true'
-        uses: pnpm/action-setup@c5ba7f7862a0f64c1b1a05fbac13e0b8e86ba08c # v4
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
         with:
-          version: 10.10.0
+          version: 10.33.0
           run_install: false
 
       - name: Get pnpm store directory
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         shell: bash
         run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
       # Create necessary directories for postinstall scripts
       - name: Prepare directories
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: |
           mkdir -p agents-docs/.source
           touch agents-docs/.source/index.ts
 
       - name: Setup pnpm cache
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ${{ env.STORE_PATH }}
@@ -148,7 +98,6 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Setup Turborepo cache
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .turbo
@@ -156,21 +105,18 @@ jobs:
           restore-keys: ${{ runner.os }}-turbo-
 
       - name: Install dependencies
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: pnpm install --frozen-lockfile
         env:
           HUSKY: 0
 
       # Clean database files before running tests
       - name: Clean database files
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: |
           echo "Cleaning up any existing database files..."
           find . -name "*.db" -o -name "*.sqlite" | grep -v node_modules | xargs -r rm -f
 
       # Start SpiceDB (needs explicit `serve` subcommand, so can't use service container)
       - name: Start SpiceDB
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         run: |
           docker run -d --name spicedb \
             --network host \
@@ -190,7 +136,6 @@ jobs:
 
       # Run Cypress E2E tests using composite action
       - name: Run Cypress E2E Tests
-        if: steps.changeset-check.outputs.is_changeset != 'true'
         uses: ./.github/composite-actions/cypress-e2e
         env:
           NODE_OPTIONS: --max-old-space-size=8192
@@ -212,3 +157,17 @@ jobs:
           OTEL_SDK_DISABLED: true
           CYPRESS_NO_COMMAND_LOG: 1
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  # Gate job: satisfy the required "Cypress E2E Tests" branch-protection check
+  # even when the heavy job is skipped on changeset PRs.
+  cypress-e2e:
+    name: Cypress E2E Tests
+    needs: [changeset-check, cypress-e2e-run]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check result
+        run: |
+          if [ "${{ needs.cypress-e2e-run.result }}" = "failure" ] || [ "${{ needs.cypress-e2e-run.result }}" = "cancelled" ]; then
+            exit 1
+          fi

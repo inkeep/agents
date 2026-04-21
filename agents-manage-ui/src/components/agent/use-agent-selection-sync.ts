@@ -25,7 +25,6 @@ export function useAgentSelectionSync({
   nodeId,
   edgeId,
 }: UseAgentSelectionSyncParams) {
-  'use memo';
   const { setNodes, setEdges } = useAgentActions();
   const { setQueryState } = useSidePane();
 

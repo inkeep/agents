@@ -19,11 +19,12 @@ describe('Agent Prompt', () => {
     cy.get('[aria-label=Suggest]').contains('contextVariablesValue');
     cy.get('[aria-label=Suggest]').contains('headers.testHeadersJsonSchemaValue');
     cy.get('[aria-label=Suggest]').contains('$env.');
+    cy.get('[aria-label=Suggest]').contains('$conversation.id');
   });
 
   it('should highlight as error unknown variables', () => {
     cy.visit('/default/projects/activities-planner/agents/activities-planner?pane=agent');
-    cy.typeInMonaco('prompt.template', 'Hello {{unknown}} {{$env.MY_ENV}}');
+    cy.typeInMonaco('prompt.template', 'Hello {{unknown}} {{$env.MY_ENV}} {{$conversation.id}}');
     cy.get('.squiggly-error').should('have.length', 1);
   });
 });

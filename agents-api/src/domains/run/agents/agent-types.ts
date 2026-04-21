@@ -10,7 +10,6 @@ import type {
   MessageContent,
   Models,
   ResolvedRef,
-  SubAgentSkillWithIndex,
   SubAgentStopWhen,
 } from '@inkeep/agents-core';
 import type { FinishReason, StepResult, ToolSet } from 'ai';
@@ -21,6 +20,7 @@ import type { ImageDetail } from '../types/chat';
 import type { SandboxConfig } from '../types/executionContext';
 import type { SystemPromptBuilder } from './SystemPromptBuilder';
 import type { AgentMcpManager } from './services/AgentMcpManager';
+import type { SkillData } from './types';
 
 export type AiSdkTextPart = {
   type: 'text';
@@ -183,7 +183,7 @@ export type AgentConfig = {
   }>;
   contextConfigId?: string;
   dataComponents?: DataComponentApiInsert[];
-  skills?: SubAgentSkillWithIndex[];
+  skills?: SkillData[];
   artifactComponents?: ArtifactComponentApiInsert[];
   conversationHistoryConfig?: AgentConversationHistoryConfig;
   models?: Models;
@@ -222,6 +222,18 @@ export type DelegateRelation =
   | { type: 'external'; config: ExternalAgentRelationConfig }
   | { type: 'team'; config: TeamAgentRelationConfig };
 
+export interface PendingDurableApproval {
+  toolCallId: string;
+  toolName: string;
+  args: unknown;
+  delegatedApproval?: {
+    toolCallId: string;
+    toolName: string;
+    args: unknown;
+    subAgentId: string;
+  };
+}
+
 export type ToolType = 'transfer' | 'delegation' | 'mcp' | 'tool';
 
 export function isValidTool(tool: unknown): tool is {
@@ -241,6 +253,11 @@ export type AiSdkToolDefinition = {
   description?: string;
   inputSchema?: unknown;
   parameters?: {
+    safeParse?: (
+      args: unknown
+    ) => { success: true; error?: never } | { success: false; error: { message: string } };
+  };
+  baseInputSchema?: {
     safeParse?: (
       args: unknown
     ) => { success: true; error?: never } | { success: false; error: { message: string } };
@@ -266,9 +283,12 @@ export interface AgentRunContext {
   functionToolRelationshipIdByName: Map<string, string>;
   taskDenialRedirects: Array<{ toolName: string; toolCallId: string; reason: string }>;
   durableWorkflowRunId?: string;
-  approvedToolCalls?: Record<
-    string,
-    Array<{ approved: boolean; reason?: string; originalToolCallId?: string }>
-  >;
-  pendingDurableApproval?: { toolCallId: string; toolName: string; args: unknown };
+  approvedToolCalls?: Record<string, { approved: boolean; reason?: string }>;
+  pendingDurableApproval?: PendingDurableApproval;
+  delegatedToolApproval?: {
+    toolCallId: string;
+    toolName: string;
+    approved: boolean;
+    reason?: string;
+  };
 }

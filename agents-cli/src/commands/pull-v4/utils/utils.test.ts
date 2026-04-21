@@ -204,6 +204,31 @@ describe('template variable replacement', () => {
       'Time: ${supportContext.toTemplate("time")}, TZ: ${supportContextHeaders.toTemplate("tz")}'
     );
   });
+
+  test('should preserve $-prefixed variables verbatim (not rewrite to toTemplate)', () => {
+    expect(
+      formatTemplate('Conv {{$conversation.id}} in env {{$env.MY_ENV}}', {
+        contextReference: 'supportContext',
+        headersReference: 'supportContextHeaders',
+      })
+    ).toBe('Conv {{$conversation.id}} in env {{$env.MY_ENV}}');
+  });
+
+  test('should preserve $-prefixed variables even when mixed with rewriteable variables', () => {
+    expect(
+      formatTemplate('User {{user.name}} conv {{$conversation.id}} tz {{headers.tz}}', {
+        contextReference: 'supportContext',
+        headersReference: 'supportContextHeaders',
+      })
+    ).toBe(
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: test assert
+      'User ${supportContext.toTemplate("user.name")} conv {{$conversation.id}} tz ${supportContextHeaders.toTemplate("tz")}'
+    );
+  });
+
+  test('should preserve $-prefixed variables when no references are supplied', () => {
+    expect(formatTemplate('Conv {{$conversation.id}}', {})).toBe('Conv {{$conversation.id}}');
+  });
 });
 
 describe('createFactoryDefinition', () => {

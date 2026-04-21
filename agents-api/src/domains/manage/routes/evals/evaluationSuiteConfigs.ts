@@ -66,7 +66,7 @@ app.openapi(
         },
       }) as any;
     } catch (error) {
-      logger.error({ error, tenantId, projectId }, 'Failed to list evaluation suite configs');
+      logger.error({ error }, 'Failed to list evaluation suite configs');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -119,10 +119,7 @@ app.openapi(
 
       return c.json({ data: config as any }) as any;
     } catch (error) {
-      logger.error(
-        { error, tenantId, projectId, configId },
-        'Failed to get evaluation suite config'
-      );
+      logger.error({ error, configId }, 'Failed to get evaluation suite config');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -194,13 +191,10 @@ app.openapi(
         );
       }
 
-      logger.info({ tenantId, projectId, configId: id }, 'Evaluation suite config created');
+      logger.info({ configId: id }, 'Evaluation suite config created');
       return c.json({ data: created as any }, 201) as any;
     } catch (error) {
-      logger.error(
-        { error, tenantId, projectId, configData },
-        'Failed to create evaluation suite config'
-      );
+      logger.error({ error, configData }, 'Failed to create evaluation suite config');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -260,13 +254,10 @@ app.openapi(
         ) as any;
       }
 
-      logger.info({ tenantId, projectId, configId }, 'Evaluation suite config updated');
+      logger.info({ configId }, 'Evaluation suite config updated');
       return c.json({ data: updated as any }) as any;
     } catch (error) {
-      logger.error(
-        { error, tenantId, projectId, configId },
-        'Failed to update evaluation suite config'
-      );
+      logger.error({ error, configId }, 'Failed to update evaluation suite config');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -312,13 +303,10 @@ app.openapi(
         ) as any;
       }
 
-      logger.info({ tenantId, projectId, configId }, 'Evaluation suite config deleted');
+      logger.info({ configId }, 'Evaluation suite config deleted');
       return c.body(null, 204) as any;
     } catch (error) {
-      logger.error(
-        { error, tenantId, projectId, configId },
-        'Failed to delete evaluation suite config'
-      );
+      logger.error({ error, configId }, 'Failed to delete evaluation suite config');
       return c.json(
         createApiError({
           code: 'internal_server_error',

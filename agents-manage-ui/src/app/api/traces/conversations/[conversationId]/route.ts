@@ -3,8 +3,6 @@ import {
   parseContextBreakdownFromSpan,
   V1_BREAKDOWN_SCHEMA,
 } from '@inkeep/agents-core/client-exports';
-import axios from 'axios';
-import axiosRetry from 'axios-retry';
 import { type NextRequest, NextResponse } from 'next/server';
 import {
   ACTIVITY_NAMES,
@@ -12,8 +10,11 @@ import {
   ACTIVITY_TYPES,
   AGENT_IDS,
   AI_OPERATIONS,
+  buildFilterExpression,
   FIELD_CONTEXTS,
   FIELD_DATA_TYPES,
+  GENERATION_TYPES,
+  OPERATORS,
   ORDER_DIRECTIONS,
   QUERY_DEFAULTS,
   QUERY_EXPRESSIONS,
@@ -23,20 +24,16 @@ import {
   SPAN_KEYS,
   SPAN_NAMES,
   UNKNOWN_VALUE,
+  USAGE_GENERATION_TYPES,
 } from '@/constants/signoz';
 import { getAgentsApiUrl } from '@/lib/api/api-config';
+import { fetchWithRetry } from '@/lib/api/fetch-with-retry';
 import {
   DEFAULT_LOOKBACK_MS,
   getConversationTimeRange,
 } from '@/lib/api/signoz-conversation-time-range';
 import { requireApiRouteSessionOrBearer } from '@/lib/auth/api-route-auth';
 import { getLogger } from '@/lib/logger';
-
-// Configure axios retry
-axiosRetry(axios, {
-  retries: 3,
-  retryDelay: axiosRetry.exponentialDelay,
-});
 
 export const dynamic = 'force-dynamic';
 
@@ -120,13 +117,34 @@ async function signozQuery(
 
     logger.debug({ endpoint }, 'Calling agents-api for conversation traces');
 
-    const response = await axios.post(endpoint, payload, {
+    const response = await fetchWithRetry(endpoint, {
+      method: 'POST',
       headers,
+      body: JSON.stringify(payload),
+      credentials: 'include',
       timeout: 30000,
-      withCredentials: true,
+      maxAttempts: 3,
+      label: 'signoz-conversation-query',
     });
 
-    const json = response.data;
+    if (!response.ok) {
+      const statusText = response.statusText;
+      if (response.status === 401 || response.status === 403) {
+        throw new Error(`SigNoz authentication failed: ${statusText}`);
+      }
+      if (response.status === 400) {
+        throw new Error(`Invalid SigNoz query: ${statusText}`);
+      }
+      if (response.status === 429) {
+        throw new Error(`SigNoz rate limit exceeded: ${statusText}`);
+      }
+      if (response.status >= 500) {
+        throw new Error(`SigNoz server error: ${statusText}`);
+      }
+      throw new Error(`SigNoz request failed: ${statusText}`);
+    }
+
+    const json = await response.json();
     const results = json?.data?.data?.results ?? [];
     logger.debug(
       {
@@ -136,28 +154,33 @@ async function signozQuery(
     );
     return { results };
   } catch (e) {
-    logger.error({ error: e }, 'SigNoz query error');
+    const err = e as {
+      message?: string;
+      name?: string;
+      stack?: string;
+      code?: unknown;
+      cause?: { code?: string; message?: string };
+    };
+    logger.error(
+      {
+        error: e,
+        errorName: err?.name,
+        errorMessage: err?.message,
+        errorStack: err?.stack,
+        errorCode: err?.code,
+        causeCode: err?.cause?.code,
+        causeMessage: err?.cause?.message,
+      },
+      'SigNoz query error'
+    );
 
-    // Re-throw the error with more context for proper error handling
-    if (axios.isAxiosError(e)) {
-      if (e.code === 'ECONNREFUSED' || e.code === 'ENOTFOUND' || e.code === 'ETIMEDOUT') {
-        throw new Error(`SigNoz service unavailable: ${e.message}`);
-      }
-      if (e.response?.status === 401 || e.response?.status === 403) {
-        throw new Error(`SigNoz authentication failed: ${e.response.statusText}`);
-      }
-      if (e.response?.status === 400) {
-        throw new Error(`Invalid SigNoz query: ${e.response.statusText}`);
-      }
-      if (e.response?.status === 429) {
-        throw new Error(`SigNoz rate limit exceeded: ${e.response.statusText}`);
-      }
-      if (e.response?.status && e.response.status >= 500) {
-        throw new Error(`SigNoz server error: ${e.response.statusText}`);
-      }
-      throw new Error(`SigNoz request failed: ${e.message}`);
+    if (e instanceof TypeError) {
+      throw new Error(`SigNoz service unavailable: ${e.message}`);
     }
-    throw new Error(`SigNoz query failed: ${e instanceof Error ? e.message : 'Unknown error'}`);
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      throw new Error(`SigNoz service unavailable: request timed out`);
+    }
+    throw e instanceof Error ? e : new Error(`SigNoz query failed: ${String(e)}`);
   }
 }
 
@@ -271,12 +294,14 @@ function buildConversationPayloads(
         sf(SPAN_KEYS.MESSAGE_CONTENT, str, attr),
         sf(SPAN_KEYS.MESSAGE_PARTS, str, attr),
         sf(SPAN_KEYS.MESSAGE_TIMESTAMP, str, attr),
+        sf(SPAN_KEYS.MESSAGE_ID, str, attr),
         sf(SPAN_KEYS.AGENT_ID, str, attr),
         sf(SPAN_KEYS.AGENT_NAME, str, attr),
         sf(SPAN_KEYS.INVOCATION_TYPE, str, attr),
         sf(SPAN_KEYS.INVOCATION_ENTRY_POINT, str, attr),
         sf(SPAN_KEYS.TRIGGER_ID, str, attr),
         sf(SPAN_KEYS.TRIGGER_INVOCATION_ID, str, attr),
+        sf(SPAN_KEYS.TRIGGER_RUN_AS_USER_ID, str, attr),
       ]
     ),
     buildQueryEnvelope(
@@ -290,6 +315,7 @@ function buildConversationPayloads(
         sf(SPAN_KEYS.DURATION_NANO, float64, span),
         sf(SPAN_KEYS.AI_RESPONSE_CONTENT, str, attr),
         sf(SPAN_KEYS.AI_RESPONSE_TIMESTAMP, str, attr),
+        sf(SPAN_KEYS.MESSAGE_ID, str, attr),
         sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
         sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
         sf(SPAN_KEYS.OTEL_STATUS_DESCRIPTION, str, attr),
@@ -476,6 +502,20 @@ function buildConversationPayloads(
         sf(SPAN_KEYS.STREAM_BUFFER_SIZE_BYTES, int64, attr),
       ]
     ),
+    buildQueryEnvelope(
+      QUERY_EXPRESSIONS.DURABLE_TOOL_EXECUTIONS,
+      `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.DURABLE_TOOL_EXECUTION}'`,
+      [
+        sf(SPAN_KEYS.SPAN_ID, str, span),
+        sf(SPAN_KEYS.TIMESTAMP, int64, span),
+        sf(SPAN_KEYS.HAS_ERROR, bool, span),
+        sf(SPAN_KEYS.TOOL_NAME, str, attr),
+        sf(SPAN_KEYS.TOOL_CALL_ID, str, attr),
+        sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
+        sf(SPAN_KEYS.TOOL_RESPONSE_CONTENT, str, attr),
+        sf(SPAN_KEYS.TOOL_RESPONSE_TIMESTAMP, str, attr),
+      ]
+    ),
   ];
 
   return [
@@ -483,6 +523,130 @@ function buildConversationPayloads(
     wrapQueries(contextQueries, start, end, projectId),
     wrapQueries(eventQueries, start, end, projectId),
   ];
+}
+
+// ---------- Usage events (cost / token usage for this conversation)
+
+// Subset of USAGE_GENERATION_TYPES that the conversation detail UI actually renders.
+const CONVERSATION_USAGE_GENERATION_TYPES = USAGE_GENERATION_TYPES.filter(
+  (t) => t !== GENERATION_TYPES.EVAL_SCORING && t !== GENERATION_TYPES.EVAL_SIMULATION
+);
+
+type ConversationUsageEvent = {
+  spanId: string;
+  parentSpanId: string;
+  traceId: string;
+  timestamp: string;
+  generationType: string;
+  model: string;
+  provider: string;
+  agentId: string;
+  subAgentId: string;
+  conversationId: string;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  estimatedCostUsd: number;
+  finishReason: string;
+  status: 'failed' | 'succeeded';
+};
+
+function buildUsageEventsPayload(
+  conversationId: string,
+  start: number,
+  end: number,
+  projectId?: string,
+  limit = 200
+) {
+  const filterItems: Array<{ key: string; op: string; value: unknown }> = [
+    {
+      key: SPAN_KEYS.AI_OPERATION_ID,
+      op: OPERATORS.IN,
+      value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+    },
+    {
+      key: SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE,
+      op: OPERATORS.IN,
+      value: CONVERSATION_USAGE_GENERATION_TYPES,
+    },
+    { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EQUALS, value: conversationId },
+    ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
+  ];
+
+  return {
+    start,
+    end,
+    requestType: REQUEST_TYPES.RAW,
+    ...(projectId && { projectId }),
+    compositeQuery: {
+      queries: [
+        {
+          type: QUERY_TYPES.BUILDER_QUERY,
+          spec: {
+            name: QUERY_EXPRESSIONS.USAGE_EVENTS,
+            signal: SIGNALS.TRACES,
+            filter: { expression: buildFilterExpression(filterItems) },
+            selectFields: [
+              sf(SPAN_KEYS.SPAN_ID, str, span),
+              sf(SPAN_KEYS.PARENT_SPAN_ID, str, span),
+              sf(SPAN_KEYS.TRACE_ID, str, span),
+              sf(SPAN_KEYS.HAS_ERROR, bool, span),
+              sf(SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, str, attr),
+              sf(SPAN_KEYS.AI_MODEL_ID, str, attr),
+              sf(SPAN_KEYS.AI_MODEL_PROVIDER, str, attr),
+              sf(SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER, str, attr),
+              sf(SPAN_KEYS.AGENT_ID, str, attr),
+              sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
+              sf(SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, str, attr),
+              sf(SPAN_KEYS.CONVERSATION_ID, str, attr),
+              sf(SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, float64, attr),
+              sf(SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, float64, attr),
+              sf(SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, float64, attr),
+              sf(SPAN_KEYS.AI_RESPONSE_FINISH_REASON, str, attr),
+            ],
+            order: [{ key: { name: SPAN_KEYS.TIMESTAMP }, direction: ORDER_DIRECTIONS.DESC }],
+            limit,
+            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+            disabled: QUERY_DEFAULTS.DISABLED,
+          },
+        },
+      ],
+    },
+  };
+}
+
+function parseUsageEvents(resp: SigNozResp): ConversationUsageEvent[] {
+  const rows = resp.results.find((r) => r.queryName === QUERY_EXPRESSIONS.USAGE_EVENTS)?.rows ?? [];
+  return rows.map((row: any) => {
+    const d = row?.data ?? row;
+    const ts = row.timestamp || d.timestamp || '';
+
+    const inputTokens =
+      Number(d[SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS] || d[SPAN_KEYS.AI_USAGE_PROMPT_TOKENS]) || 0;
+    const outputTokens =
+      Number(d[SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS] || d[SPAN_KEYS.AI_USAGE_COMPLETION_TOKENS]) ||
+      0;
+    const cost = Number(d[SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD]) || 0;
+
+    return {
+      spanId: d.spanID || '',
+      parentSpanId: d.parentSpanID || '',
+      traceId: d.traceID || '',
+      timestamp: ts,
+      generationType: d[SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE] || 'unknown',
+      model: d[SPAN_KEYS.AI_MODEL_ID] || 'unknown',
+      provider: d[SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER] || d[SPAN_KEYS.AI_MODEL_PROVIDER] || '',
+      agentId: d[SPAN_KEYS.AGENT_ID] || '',
+      subAgentId: d[SPAN_KEYS.SUB_AGENT_ID] || d[SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID] || '',
+      conversationId: d[SPAN_KEYS.CONVERSATION_ID] || '',
+      inputTokens,
+      outputTokens,
+      totalTokens: inputTokens + outputTokens,
+      estimatedCostUsd: cost,
+      finishReason: d[SPAN_KEYS.AI_RESPONSE_FINISH_REASON] || '',
+      status: d.hasError === true || d.hasError === 'true' ? 'failed' : 'succeeded',
+    };
+  });
 }
 
 export async function GET(
@@ -511,36 +675,70 @@ export async function GET(
     const logger = getLogger('conversation-detail');
     const t0 = Date.now();
 
-    const { start, end } = await getConversationTimeRange({
+    const timeRange = await getConversationTimeRange({
       startParam,
       endParam,
       projectId,
       tenantId,
       conversationId,
     });
+
+    if (timeRange.notFound) {
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+    }
+
+    const { start, end } = timeRange;
     const tTimeRange = Date.now();
 
     const payloads = buildConversationPayloads(conversationId, start, end, projectId);
     const batchLabels = ['core', 'context', 'events'] as const;
+    const usageEventsPayload = buildUsageEventsPayload(conversationId, start, end, projectId);
 
-    const batchResults = await Promise.all(
-      payloads.map(async (p, i) => {
+    const [batchResults, usageEventsResp] = await Promise.all([
+      Promise.all(
+        payloads.map(async (p, i) => {
+          const batchStart = Date.now();
+          const result = await signozQuery(p, tenantId, authResult.headers);
+          logger.info(
+            {
+              batch: batchLabels[i],
+              queries: p.compositeQuery.queries.length,
+              ms: Date.now() - batchStart,
+            },
+            `signoz batch complete`
+          );
+          return result;
+        })
+      ),
+      (async () => {
         const batchStart = Date.now();
-        const result = await signozQuery(p, tenantId, authResult.headers);
-        logger.info(
-          {
-            batch: batchLabels[i],
-            queries: p.compositeQuery.queries.length,
-            ms: Date.now() - batchStart,
-          },
-          `signoz batch complete`
-        );
-        return result;
-      })
-    );
+        try {
+          const result = await signozQuery(usageEventsPayload, tenantId, cookieHeader, authHeader);
+          logger.info(
+            { batch: 'usage-events', ms: Date.now() - batchStart },
+            'signoz batch complete'
+          );
+          return result;
+        } catch (err) {
+          logger.warn(
+            {
+              conversationId,
+              tenantId,
+              projectId,
+              ms: Date.now() - batchStart,
+              error: err instanceof Error ? err.message : String(err),
+            },
+            'usage events query failed; returning empty list'
+          );
+          return { results: [] } as SigNozResp;
+        }
+      })(),
+    ]);
     const tSignoz = Date.now();
 
     const resp: SigNozResp = { results: batchResults.flatMap((r) => r.results) };
+
+    const usageEvents = parseUsageEvents(usageEventsResp);
 
     const toolCallSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_CALLS);
     const userMessageSpans = parseList(resp, QUERY_EXPRESSIONS.USER_MESSAGES);
@@ -587,6 +785,7 @@ export async function GET(
     const compressionSpans = parseList(resp, QUERY_EXPRESSIONS.COMPRESSION);
     const maxStepsReachedSpans = parseList(resp, QUERY_EXPRESSIONS.MAX_STEPS_REACHED);
     const streamLifetimeExceededSpans = parseList(resp, QUERY_EXPRESSIONS.STREAM_LIFETIME_EXCEEDED);
+    const durableToolExecutionSpans = parseList(resp, QUERY_EXPRESSIONS.DURABLE_TOOL_EXECUTIONS);
 
     logger.info(
       {
@@ -604,6 +803,7 @@ export async function GET(
     let invocationEntryPoint: string | null = null;
     let triggerId: string | null = null;
     let triggerInvocationId: string | null = null;
+    let triggerRunAsUserId: string | null = null;
     for (const s of userMessageSpans) {
       agentId = getString(s, SPAN_KEYS.AGENT_ID, '') || null;
       agentName = getString(s, SPAN_KEYS.AGENT_NAME, '') || null;
@@ -613,6 +813,7 @@ export async function GET(
         invocationEntryPoint = getString(s, SPAN_KEYS.INVOCATION_ENTRY_POINT, '') || null;
         triggerId = getString(s, SPAN_KEYS.TRIGGER_ID, '') || null;
         triggerInvocationId = getString(s, SPAN_KEYS.TRIGGER_INVOCATION_ID, '') || null;
+        triggerRunAsUserId = getString(s, SPAN_KEYS.TRIGGER_RUN_AS_USER_ID, '') || null;
       }
       if (agentId || agentName) break;
     }
@@ -652,6 +853,7 @@ export async function GET(
     // activities
     type Activity = {
       id: string;
+      messageId?: string;
       type:
         | 'tool_call'
         | 'ai_generation'
@@ -667,7 +869,8 @@ export async function GET(
         | 'tool_approval_denied'
         | 'compression'
         | 'max_steps_reached'
-        | 'stream_lifetime_exceeded';
+        | 'stream_lifetime_exceeded'
+        | 'durable_tool_execution';
       description: string;
       timestamp: string;
       parentSpanId?: string | null;
@@ -761,6 +964,9 @@ export async function GET(
       streamCleanupReason?: string;
       streamMaxLifetimeMs?: number;
       streamBufferSizeBytes?: number;
+      // durable tool execution
+      toolCallId?: string;
+      toolResponseContent?: string;
     };
 
     const activities: Activity[] = [];
@@ -909,6 +1115,7 @@ export async function GET(
 
       activities.push({
         id: userMessageSpanId,
+        messageId: getString(span, SPAN_KEYS.MESSAGE_ID, '') || undefined,
         type: ACTIVITY_TYPES.USER_MESSAGE,
         description,
         timestamp: getString(span, SPAN_KEYS.MESSAGE_TIMESTAMP),
@@ -925,7 +1132,6 @@ export async function GET(
           : `Message received successfully (${durMs.toFixed(2)}ms)`,
         messageContent: getString(span, SPAN_KEYS.MESSAGE_CONTENT, ''),
         messageParts: getString(span, SPAN_KEYS.MESSAGE_PARTS, ''),
-        // Trigger-specific attributes
         invocationType: invocationType || undefined,
         invocationEntryPoint: spanEntryPoint || undefined,
         triggerId: triggerId || undefined,
@@ -944,6 +1150,7 @@ export async function GET(
         : '';
       activities.push({
         id: aiAssistantMessageSpanId,
+        messageId: getString(span, SPAN_KEYS.MESSAGE_ID, '') || undefined,
         type: ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE,
         description: 'AI Assistant responded',
         timestamp: getString(span, SPAN_KEYS.AI_RESPONSE_TIMESTAMP),
@@ -963,6 +1170,10 @@ export async function GET(
 
     // ai generations
     for (const span of aiGenerationSpans) {
+      const genType = getString(span, SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, '');
+      if (genType === GENERATION_TYPES.EVAL_SCORING || genType === GENERATION_TYPES.EVAL_SIMULATION)
+        continue;
+
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
 
@@ -971,7 +1182,6 @@ export async function GET(
       const aiPromptMessages = getString(span, SPAN_KEYS.AI_PROMPT_MESSAGES, '');
 
       const aiGeneration = getString(span, SPAN_KEYS.SPAN_ID, '');
-      const genType = getString(span, SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, '');
       const genResponseText = getString(span, SPAN_KEYS.AI_RESPONSE_TEXT, '');
       const formatted = genType
         ? formatGenerationType(genType, genResponseText)
@@ -1280,6 +1490,30 @@ export async function GET(
       });
     }
 
+    for (const span of durableToolExecutionSpans) {
+      const spanId = getString(span, SPAN_KEYS.SPAN_ID, '');
+      const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
+      const toolName = getString(span, SPAN_KEYS.TOOL_NAME, '');
+      const toolCallId = getString(span, SPAN_KEYS.TOOL_CALL_ID, '');
+      const subAgentId = getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT);
+      const toolResponseContent = getString(span, SPAN_KEYS.TOOL_RESPONSE_CONTENT, '');
+
+      activities.push({
+        id: spanId,
+        type: ACTIVITY_TYPES.DURABLE_TOOL_EXECUTION,
+        description: hasError
+          ? `Durable tool execution failed: ${toolName}`
+          : `Durable tool executed: ${toolName}`,
+        timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(spanId) || undefined,
+        status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
+        subAgentId,
+        toolName: toolName || undefined,
+        toolCallId: toolCallId || undefined,
+        toolResponseContent: toolResponseContent || undefined,
+      });
+    }
+
     // Pre-parse all timestamps once for better performance
     const allSpanTimes = durationSpans.map((s) => new Date(s.timestamp).getTime());
     const operationStartTime = allSpanTimes.length > 0 ? Math.min(...allSpanTimes) : null;
@@ -1461,19 +1695,37 @@ export async function GET(
       spansWithErrorsCount: spansWithErrorsList.length,
       errorCount: finalErrorCount,
       warningCount: finalWarningCount,
+      usageEvents,
       // Trigger-specific info (null if not a trigger invocation)
       invocationType,
       invocationEntryPoint,
       triggerId,
       triggerInvocationId,
+      triggerRunAsUserId,
     });
   } catch (error) {
     const logger = getLogger('conversation-details');
-    logger.error({ error }, 'Error fetching conversation details');
-
-    // Provide more specific error responses based on the error type
     const errorMessage =
       error instanceof Error ? error.message : 'Failed to fetch conversation details';
+    const err = error as {
+      message?: string;
+      name?: string;
+      stack?: string;
+      code?: unknown;
+      cause?: { code?: string; message?: string };
+    };
+    logger.error(
+      {
+        error,
+        errorName: err?.name,
+        errorMessage: err?.message,
+        errorStack: err?.stack,
+        errorCode: err?.code,
+        causeCode: err?.cause?.code,
+        causeMessage: err?.cause?.message,
+      },
+      'Error fetching conversation details'
+    );
 
     if (errorMessage.includes('SIGNOZ_API_KEY is not configured')) {
       return NextResponse.json({ error: errorMessage }, { status: 501 });

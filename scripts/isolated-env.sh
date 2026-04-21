@@ -318,8 +318,8 @@ cmd_status() {
     return
   fi
 
-  printf "%-20s %-25s %-10s %-10s %-10s %-10s %-10s\n" "NAME" "PROJECT" "DOLTGRES" "POSTGRES" "SPICEDB" "API" "UI"
-  printf "%-20s %-25s %-10s %-10s %-10s %-10s %-10s\n" "----" "-------" "--------" "--------" "-------" "---" "--"
+  printf "%-20s %-25s %-10s %-10s %-12s %-10s %-10s\n" "NAME" "PROJECT" "DOLTGRES" "POSTGRES" "SPICEDB-PG" "API" "UI"
+  printf "%-20s %-25s %-10s %-10s %-12s %-10s %-10s\n" "----" "-------" "--------" "--------" "----------" "---" "--"
 
   for state_file in "$STATE_DIR"/*.json; do
     [ -f "$state_file" ] || continue
@@ -329,7 +329,8 @@ d = json.load(open(sys.argv[1]))
 p = d['ports']
 api = p.get('agents_api', '-')
 ui = p.get('manage_ui', '-')
-print(f"{d['name']:20s} {d['project']:25s} {p['doltgres']:<10} {p['postgres']:<10} {p['spicedb_grpc']:<10} {api:<10} {ui:<10}")
+spicedb_pg = p.get('spicedb_pg', '-')
+print(f"{d['name']:20s} {d['project']:25s} {p['doltgres']:<10} {p['postgres']:<10} {spicedb_pg:<12} {api:<10} {ui:<10}")
 PYEOF
   done
 }
@@ -361,6 +362,9 @@ print(f"export MANAGE_UI_PORT='{ui}'")
 print(f"export INKEEP_AGENTS_API_URL='http://localhost:{api}'")
 print(f"export PUBLIC_INKEEP_AGENTS_API_URL='http://localhost:{api}'")
 print(f"export NEXT_PUBLIC_INKEEP_AGENTS_API_URL='http://localhost:{api}'")
+print(f"export INKEEP_AGENTS_MANAGE_UI_URL='http://localhost:{ui}'")
+print(f"export NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_UI_URL='http://localhost:{ui}'")
+print(f"export TRUSTED_ORIGIN='http://localhost:{ui}'")
 PYEOF
 }
 

@@ -5,10 +5,16 @@ const {
   getPendingInvitationsByEmailMock,
   listUserInvitationsMock,
   getFilteredAuthMethodsForEmailMock,
+  resolveEntitlementMock,
+  countSeatsByRoleMock,
+  getUserByEmailMock,
 } = vi.hoisted(() => ({
   getPendingInvitationsByEmailMock: vi.fn(),
   listUserInvitationsMock: vi.fn(),
   getFilteredAuthMethodsForEmailMock: vi.fn().mockResolvedValue([]),
+  resolveEntitlementMock: vi.fn().mockResolvedValue(null),
+  countSeatsByRoleMock: vi.fn().mockResolvedValue(0),
+  getUserByEmailMock: vi.fn().mockResolvedValue(null),
 }));
 
 // Mock @inkeep/agents-core
@@ -18,6 +24,9 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     ...original,
     getPendingInvitationsByEmail: () => getPendingInvitationsByEmailMock,
     getFilteredAuthMethodsForEmail: () => getFilteredAuthMethodsForEmailMock,
+    getUserByEmail: () => getUserByEmailMock,
+    resolveEntitlement: resolveEntitlementMock,
+    countSeatsByRole: countSeatsByRoleMock,
     createApiError: original.createApiError,
   };
 });
@@ -66,7 +75,7 @@ describe('Invitations Route', () => {
 
       expect(res.status).toBe(500);
       const body = await res.json();
-      expect(body.error.message).toContain('Auth not configured');
+      expect(body.error.message).toBe('An internal server error occurred. Please try again later.');
     });
 
     describe('with auth configured', () => {
@@ -256,7 +265,9 @@ describe('Invitations Route', () => {
 
         expect(res.status).toBe(500);
         const body = await res.json();
-        expect(body.error.message).toContain('Failed to validate invitation');
+        expect(body.error.message).toBe(
+          'An internal server error occurred. Please try again later.'
+        );
       });
     });
   });

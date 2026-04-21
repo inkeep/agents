@@ -1,10 +1,9 @@
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 
 const { downloadMock } = vi.hoisted(() => ({ downloadMock: vi.fn() }));
 
-vi.mock('../../../../logger', () => ({
-  getLogger: () => ({ warn: vi.fn(), info: vi.fn(), debug: vi.fn(), error: vi.fn() }),
-}));
+vi.mock('../../../../logger', () => createMockLoggerModule().module);
 
 vi.mock('../../../domains/run/services/blob-storage', async (importOriginal) => {
   const actual =
@@ -13,6 +12,8 @@ vi.mock('../../../domains/run/services/blob-storage', async (importOriginal) => 
 });
 
 import { buildUserMessageContent } from '../../../domains/run/agents/generation/conversation-history';
+
+const PPTX_MIME = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
 
 describe('buildUserMessageContent', () => {
   it('injects inline text attachments as XML attachment blocks', async () => {
@@ -103,6 +104,33 @@ describe('buildUserMessageContent', () => {
           '',
           '</attached_file>',
         ].join('\n'),
+      },
+    ]);
+  });
+
+  it('passes ZIP-based binary document attachments through as file content parts', async () => {
+    const zipBytes = Buffer.from([0x50, 0x4b, 0x03, 0x04, ...Array(8).fill(0)]).toString('base64');
+
+    const content = await buildUserMessageContent('Review this deck', [
+      {
+        kind: 'file',
+        file: {
+          bytes: zipBytes,
+          mimeType: PPTX_MIME,
+        },
+        metadata: {
+          filename: 'deck.pptx',
+        },
+      },
+    ]);
+
+    expect(content).toEqual([
+      { type: 'text', text: 'Review this deck' },
+      {
+        type: 'file',
+        data: `data:${PPTX_MIME};base64,${zipBytes}`,
+        mediaType: PPTX_MIME,
+        filename: 'deck.pptx',
       },
     ]);
   });

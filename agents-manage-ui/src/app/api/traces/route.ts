@@ -1,16 +1,9 @@
-import axios from 'axios';
-import axiosRetry from 'axios-retry';
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getAgentsApiUrl } from '@/lib/api/api-config';
+import { fetchWithRetry } from '@/lib/api/fetch-with-retry';
 import { requireApiRouteSessionOrBearer } from '@/lib/auth/api-route-auth';
 import { getLogger } from '@/lib/logger';
-
-// Configure axios retry
-axiosRetry(axios, {
-  retries: 3,
-  retryDelay: axiosRetry.exponentialDelay,
-});
 
 const queryEnvelopeSchema = z.object({
   type: z.string(),
@@ -80,12 +73,6 @@ function handleProxyError(error: unknown, logger: ReturnType<typeof getLogger>) 
     'Error proxying to agents-api'
   );
 
-  if (axios.isAxiosError(error)) {
-    const status = error.response?.status || 500;
-    const message = error.response?.data?.message || error.message;
-    return NextResponse.json({ error: 'Failed to query SigNoz', details: message }, { status });
-  }
-
   return NextResponse.json(
     {
       error: 'Failed to query SigNoz',
@@ -150,13 +137,25 @@ export async function POST(request: NextRequest) {
       const endpoint = `${agentsApiUrl}/manage/tenants/${tenantId}/signoz/query-batch`;
       logger.info({ endpoint }, 'Forwarding batch request to agents-api');
 
-      const response = await axios.post(endpoint, validationResult.data, {
+      const response = await fetchWithRetry(endpoint, {
+        method: 'POST',
         headers,
+        body: JSON.stringify(validationResult.data),
+        credentials: 'include',
         timeout: 60000,
-        withCredentials: true,
+        maxAttempts: 3,
+        label: 'signoz-batch-query',
       });
 
-      return NextResponse.json(response.data);
+      const data = await response.json();
+      if (!response.ok) {
+        return NextResponse.json(
+          { error: 'Failed to query SigNoz', details: data?.message ?? response.statusText },
+          { status: response.status }
+        );
+      }
+
+      return NextResponse.json(data);
     }
 
     const validationResult = signozPayloadSchema.safeParse(body);
@@ -180,15 +179,27 @@ export async function POST(request: NextRequest) {
     const endpoint = `${agentsApiUrl}/manage/tenants/${tenantId}/signoz/query`;
     logger.info({ endpoint }, 'Forwarding validated query to agents-api');
 
-    const response = await axios.post(endpoint, validatedBody, {
+    const response = await fetchWithRetry(endpoint, {
+      method: 'POST',
       headers,
+      body: JSON.stringify(validatedBody),
+      credentials: 'include',
       timeout: 30000,
-      withCredentials: true,
+      maxAttempts: 3,
+      label: 'signoz-query',
     });
+
+    const data = await response.json();
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: 'Failed to query SigNoz', details: data?.message ?? response.statusText },
+        { status: response.status }
+      );
+    }
 
     logger.info({ status: response.status }, 'Agents-api response received');
 
-    return NextResponse.json(response.data);
+    return NextResponse.json(data);
   } catch (error) {
     return handleProxyError(error, logger);
   }
@@ -202,57 +213,68 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Extract tenantId from query params
-    const url = new URL(request.url);
-    const tenantId = url.searchParams.get('tenantId') || 'default';
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...authResult.headers,
-    };
-
-    // Forward to agents-api health endpoint
+    const { tenantId, headers } = extractRequestContext(request);
+    // cc @shagun, is it correct now after rebase?
+    Object.assign(headers, authResult.headers);
     const agentsApiUrl = getAgentsApiUrl();
     const endpoint = `${agentsApiUrl}/manage/tenants/${tenantId}/signoz/health`;
 
     logger.info({ endpoint }, 'Checking SigNoz configuration via agents-api');
 
-    const response = await axios.get(endpoint, {
+    const response = await fetchWithRetry(endpoint, {
+      method: 'GET',
       headers,
+      credentials: 'include',
       timeout: 5000,
-      withCredentials: true,
+      maxAttempts: 3,
+      label: 'signoz-health',
     });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      logger.error(
+        {
+          error: data,
+          status: response.status,
+        },
+        'SigNoz health check failed'
+      );
+
+      let errorMessage = 'Failed to check SigNoz configuration';
+      if (response.status === 401 || response.status === 403) {
+        errorMessage = 'Authentication required';
+      } else if (data?.error) {
+        errorMessage = data.error;
+      }
+
+      return NextResponse.json({
+        status: 'connection_failed',
+        configured: false,
+        error: errorMessage,
+      });
+    }
 
     logger.info({ status: response.status }, 'SigNoz health check successful');
 
-    return NextResponse.json(response.data);
+    return NextResponse.json(data);
   } catch (error) {
     logger.error(
       {
         error,
         message: error instanceof Error ? error.message : 'Unknown error',
-        code: axios.isAxiosError(error) ? error.code : undefined,
-        status: axios.isAxiosError(error) ? error.response?.status : undefined,
       },
       'SigNoz health check failed'
     );
 
     let errorMessage = 'Failed to check SigNoz configuration';
-    const configured = false;
-
-    if (axios.isAxiosError(error)) {
-      if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
-        errorMessage = 'Management API not reachable';
-      } else if (error.response?.status === 401 || error.response?.status === 403) {
-        errorMessage = 'Authentication required';
-      } else if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      }
+    if (error instanceof TypeError) {
+      errorMessage = 'Management API not reachable';
     }
 
     return NextResponse.json({
       status: 'connection_failed',
-      configured,
+      configured: false,
       error: errorMessage,
     });
   }

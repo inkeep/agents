@@ -1,5 +1,306 @@
 # @inkeep/agents-manage-ui
 
+## 0.69.0
+
+### Minor Changes
+
+- 52d0831: Recognize `{{$conversation.id}}` in the Monaco prompt editor. Lint no longer marks it as "Unknown variable" and autocomplete surfaces `$conversation.id` when the author types `{{$`. Gated on no config — works in any agent prompt.
+
+### Patch Changes
+
+- 06479a2: fix the overflowing code in dataset ui
+- Improve performance of datasets and evaluation results loading
+- 32bce4f: Add quickActions support to support_copilot app config (schema, persistence, editor UI)
+- Updated dependencies [52d0831]
+- Updated dependencies [c63567e]
+- Updated dependencies [32bce4f]
+  - @inkeep/agents-core@0.69.0
+
+## 0.68.4
+
+### Patch Changes
+
+- @inkeep/agents-core@0.68.4
+
+## 0.68.3
+
+### Patch Changes
+
+- e8776f5: Add Microsoft as a social sign-in provider
+- Updated dependencies [e8776f5]
+  - @inkeep/agents-core@0.68.3
+
+## 0.68.2
+
+### Patch Changes
+
+- 557f700: Add support_copilot app type with OAuth 2.1 JWT auth, tenant-level app discovery endpoint, and apps UI for configuring support copilot apps with credentials
+- Updated dependencies [557f700]
+- Updated dependencies [4e0fd65]
+  - @inkeep/agents-core@0.68.2
+
+## 0.68.1
+
+### Patch Changes
+
+- 7b3b8b6: Fix cost page timeout by aggregating cost queries at the database level
+  - @inkeep/agents-core@0.68.1
+
+## 0.68.0
+
+### Patch Changes
+
+- Updated dependencies [d1e18a8]
+  - @inkeep/agents-core@0.68.0
+
+## 0.67.4
+
+### Patch Changes
+
+- b2c15cd: Fix DynamicComponentRenderer not rendering in production by allowing unsafe-eval in CSP
+  - @inkeep/agents-core@0.67.4
+
+## 0.67.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.67.3
+
+## 0.67.2
+
+### Patch Changes
+
+- cad720b: improve UnsavedChangesDialog typings to fix `Type error: Type 'Control<{ tools: Record...>' is not assignable to type 'Control<any>'`
+  - @inkeep/agents-core@0.67.2
+
+## 0.67.1
+
+### Patch Changes
+
+- 284864a: Fix Cost Over Time chart showing a single dot by querying per-trace aggregates instead of deriving from a 200-event sample
+  - @inkeep/agents-core@0.67.1
+
+## 0.67.0
+
+### Minor Changes
+
+- 757ac77: Add multi-user webhook triggers with per-user dispatch delay and invocation tracking.
+
+### Patch Changes
+
+- Updated dependencies [757ac77]
+  - @inkeep/agents-core@0.67.0
+
+## 0.66.1
+
+### Patch Changes
+
+- e6f0111: Fix authentication return URL validation to reject backslash-based redirect bypasses that could send users off-site after login.
+- 7383bf1: logging for traces
+  - @inkeep/agents-core@0.66.1
+
+## 0.66.0
+
+### Patch Changes
+
+- 98399ec: Add Improve with AI dialog to playground for copilot-assisted agent iteration
+  Tweak styling on feedback page
+  Bump agents-ui packages
+  Remove custom feedback on playground widget since latest version has feedback built in
+  Remove redundant feedback type in form
+- Updated dependencies [5596ecb]
+- Updated dependencies [63a1358]
+- Updated dependencies [01a960d]
+- Updated dependencies [4d0169b]
+  - @inkeep/agents-core@0.66.0
+
+## 0.65.2
+
+### Patch Changes
+
+- 259797c: Fix `useFormState` reactivity under React Compiler by isolating proxy-backed error reads
+- ebdd24f: fix timezone calculation for datasets and evaluators
+- 1f1b4b9: Auto-replace spaces with dashes in skill name input
+- 1a504c7: Add nested folder documentation and info tooltip for skill file paths
+- Updated dependencies [fa18f84]
+- Updated dependencies [34e1d67]
+- Updated dependencies [93eb31e]
+  - @inkeep/agents-core@0.65.2
+
+## 0.65.1
+
+### Patch Changes
+
+- 16fb544: Batch useWatch calls to reduce React Hook Form subscriptions and re-renders
+- 4077b67: Update agents-ui and agents-ui-cloud versions to 0.15.29
+- dbee04b: Add feedback CRUD API, database table, and Manage UI for collecting user feedback on conversations and messages
+- Updated dependencies [3735393]
+- Updated dependencies [dbee04b]
+  - @inkeep/agents-core@0.65.1
+
+## 0.65.0
+
+### Patch Changes
+
+- 27f2620: Enable `validateNoDerivedComputationsInEffects` in React Compiler
+- b43f5e1: sort trigger invocations by started at time
+- Updated dependencies [e332202]
+  - @inkeep/agents-core@0.65.0
+
+## 0.64.10
+
+### Patch Changes
+
+- 4082cfd: Revert of [#3012](https://github.com/inkeep/agents/pull/3012)
+  - @inkeep/agents-core@0.64.10
+
+## 0.64.9
+
+### Patch Changes
+
+- fa20781: Enable `validateNoImpureFunctionsInRender` in React Compiler via pnpm patch and fix impure `Math.random()` call in SidebarMenuSkeleton
+  - @inkeep/agents-core@0.64.9
+
+## 0.64.8
+
+### Patch Changes
+
+- 701e8c9: fix `Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render.
+  - @inkeep/agents-core@0.64.8
+
+## 0.64.7
+
+### Patch Changes
+
+- daee0b6: Revert
+  - @inkeep/agents-core@0.64.7
+
+## 0.64.6
+
+### Patch Changes
+
+- Updated dependencies [09c6eb0]
+- Updated dependencies [3237c45]
+- Updated dependencies [528f69c]
+- Updated dependencies [6fddd34]
+  - @inkeep/agents-core@0.64.6
+
+## 0.64.5
+
+### Patch Changes
+
+- dee33a4: Remove manual `useMemo` and `useCallback` usages in favor of React Compiler
+- e91d67b: Patched Doltgres Backslash Escaping
+- Updated dependencies [e91d67b]
+  - @inkeep/agents-core@0.64.5
+
+## 0.64.4
+
+### Patch Changes
+
+- 707333c: Enable React Compiler for all components, removing annotation mode and manual memoization
+  - @inkeep/agents-core@0.64.4
+
+## 0.64.3
+
+### Patch Changes
+
+- d10ccf6: Remove legacy auth headers from playground chat widget
+- 63b1062: Update the agents-ui package
+- 7aa1fac: Add copilot app credential auth with manage-UI-signed JWT
+- 4ace590: Remove axios dependency in favor of native fetch for improved security
+- ee1d23a: Tweak modal widths, remove edit skills button in agents view
+- Updated dependencies [7aa1fac]
+- Updated dependencies [4ace590]
+  - @inkeep/agents-core@0.64.3
+
+## 0.64.2
+
+### Patch Changes
+
+- f0081f7: fix loading `.svg` files as React components in tests
+- a41b6c7: Remove unused `ExpandablePromptEditor` component
+- 8c16740: Fix cost page loading state by using isFetching instead of isLoading to prevent premature redirects on initial load
+- Updated dependencies [f099221]
+  - @inkeep/agents-core@0.64.2
+
+## 0.64.1
+
+### Patch Changes
+
+- 9bf97a7: Dockerize visual regression tests for cross-OS screenshot consistency
+  - @inkeep/agents-core@0.64.1
+
+## 0.64.0
+
+### Minor Changes
+
+- a929847: Add Require Authentication toggle for web client apps
+
+### Patch Changes
+
+- 254edb8: fast fail signoz for conversations not in db
+- 47915b3: Add agent-scoped datasets and evaluators with direct agent execution for dataset runs
+- 981ba48: Fix active sidebar item when file or folder path contains whitespace
+- ba40c53: Fix breadcrumbs in cost page
+- 47a3df7: Remove evaluations from conversation traces
+- d27011a: Reuse existing TanStack Query hooks for project fetching instead of manual fetch calls
+- 1512a7b: fix `Uncaught Error: Previous layout not found for panel index 2` when resizing `Try it` side-pane
+- abc3b5d: Add per-role seat limit enforcement to invitations and members UI
+- Updated dependencies [47915b3]
+- Updated dependencies [2ebe1c4]
+- Updated dependencies [68a55f5]
+- Updated dependencies [abc3b5d]
+  - @inkeep/agents-core@0.64.0
+
+## 0.63.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.63.3
+
+## 0.63.2
+
+### Patch Changes
+
+- 8e2f1e0: Fix Monaco Editor WebAssembly `CompileError` by adding `wasm-unsafe-eval` to CSP `script-src` directive
+- dc818c0: Add support for nested files and folders within Skills. Each skill is now a directory containing a `SKILL.md` entry file plus any number of nested reference files (templates, checklists, examples). The SDK `loadSkills()` function recursively discovers all files under each skill directory. The CLI `pull` command writes one file per skill file path. The Visual Builder shows a file-tree sidebar with per-file editing, context menus for adding and removing files, and breadcrumb navigation. The API accepts a `files` array for skill create and update, with four new file-level endpoints for individual CRUD operations. `SKILL.md` frontmatter remains the source of truth for skill name, description, and metadata.
+- Updated dependencies [dc818c0]
+- Updated dependencies [dc818c0]
+  - @inkeep/agents-core@0.63.2
+
+## 0.63.1
+
+### Patch Changes
+
+- 02eb244: Updated Cost UI
+- e222844: Omit falsy model configs in agent form to prevent empty model objects in payload
+- 4fa11aa: Making agent timeout more noticeable in trace conversation view
+  - @inkeep/agents-core@0.63.1
+
+## 0.63.0
+
+### Minor Changes
+
+- 0f77d00: Add scheduler workflow with centralized trigger dispatch and deploy restart endpoint
+
+### Patch Changes
+
+- Updated dependencies [0f77d00]
+  - @inkeep/agents-core@0.63.0
+
+## 0.62.2
+
+### Patch Changes
+
+- fe4b442: Prevent sidebar links rerenders on query param changes
+- c799d92: Fix ExternalLink icon shrinking in flex containers
+- 9ee6ab7: Remove redundant client-side `validateProjectId` and `validateTenantId` calls that duplicated server-side Zod validation
+- 9bba8fc: Fix CSP policy for PostHog and Sentry to use wildcard subdomains instead of exact host URLs
+- ea88f5f: Fix local login CSP defaults so auth requests reach the API without extra public env vars.
+- Updated dependencies [f614c56]
+  - @inkeep/agents-core@0.62.2
+
 ## 0.62.1
 
 ### Patch Changes
@@ -24,31 +325,26 @@
 - 1e4f05d: Refactor agent graph editor to use deterministic graph keys and single source of truth for form state
 
   ### Graph identity system
-
   - Add deterministic graph key derivation for all node types (`getSubAgentGraphKey`, `getMcpGraphKey`, `getFunctionToolGraphKey`, `getExternalAgentGraphKey`, `getTeamAgentGraphKey`) via new `graph-keys.ts`, `graph-identity.ts`, `sub-agent-identity.ts`, and `function-tool-identity.ts` modules
   - Replace unstable `generateId()` UUIDs with stable, domain-meaningful identifiers derived from persisted IDs (relation IDs, tool IDs, agent IDs)
   - URL-based sidepane selection now uses graph keys instead of raw React Flow IDs, so deep-links survive re-renders and saves
 
   ### RHF as single source of truth
-
   - Strip `node.data` down to a thin identity envelope (`nodeKey` + minimal refs like `toolId`) — all business fields (name, description, prompt, models, code, etc.) are read exclusively from React Hook Form state
   - Remove `hydrateNodesWithFormData()` entirely; `editorToPayload()` now reads all business data directly from a `SerializeAgentFormState` bundle with `requireFormValue()` fail-fast guards
   - Rename `FullAgentUpdateSchema` → `FullAgentFormSchema`, remove `.transform()` from schema (resolution now happens at serialize-time), split types into `FullAgentFormValues` / `FullAgentFormInputValues`
 
   ### Connection state consolidation
-
   - Collapse scattered `tempSelectedTools`/`tempHeaders`/`tempToolPolicies` on node data into `mcpRelations` and `functionToolRelations` RHF record maps with factory helpers (`createMcpRelationFormInput`, `createFunctionToolRelationFormInput`)
   - Edge removal triggers synchronous `form.unregister()` instead of deferred `requestAnimationFrame` — only `relationshipId` is unregistered for MCP relations to avoid a race condition where headers would be set to empty string on removal
   - Remove `subAgentId` manipulation from Zustand store's `onEdgesChange`
 
   ### Save-cycle reconciliation
-
   - Expand `syncSavedAgentGraph` to reconcile three categories of server-assigned IDs: tool `canUse` relations, external agent delegate relations, and team agent delegate relations
   - Rename MCP node IDs to deterministic graph keys post-save; preserve URL selection state via `findNodeByGraphKey`/`findEdgeByGraphKey`
   - Collapse redundant double `isNodeType` patterns into single guards
 
   ### Bug fixes
-
   - Fix function tool "requires approval" flag not persisting across save/reload by hydrating `needsApproval` tool policies from `canUse` relations back into form state during `apiToFormValues()`
   - Fix model inheritance display: use `getModelInheritanceStatus()` instead of bare `!subAgent.models` check to correctly show "(inherited)" label
   - Fix MCP node editor crash on deep-link/reload: consolidate null guards for `toolData`, `tool`, and `mcpRelation` with proper JSX fallback UI
@@ -56,18 +352,15 @@
   - Fix race condition when MCP relation is removed but component is still mounted
 
   ### Performance
-
   - Replace `useWatch({ name: 'functionTools' })` with targeted `useWatch({ name: 'functionTools.${id}.functionId' })` to eliminate O(N²) re-renders across function tool nodes
   - Remove `getFunctionIdForTool` helper that iterated the entire `functionTools` map
 
   ### Schema changes
-
   - Rename form field `defaultSubAgentId` → `defaultSubAgentNodeId` to clarify it holds a node key; translation to persisted ID happens at serialization time
   - Add `FunctionToolRelationSchema` and `functionToolRelations` record field to form schema
   - OpenAPI: `defaultSubAgentId` uses `$ref` to `ResourceId`, `maxTransferCount` type corrected to `integer`, function tool `dependencies` simplified to `StringRecord`
 
   ### Test coverage
-
   - Add 7 new test files covering graph identity, function tool identity, form-state defaults, and sync-saved-agent-graph scenarios
   - Expand serialize and deserialize test suites with new architecture patterns
   - Add roundtrip test for approval policy hydration
@@ -690,11 +983,9 @@
   Skills are reusable instruction blocks that can be attached to sub-agents to govern behavior, reasoning, and tool usage.
 
   ### Features
-
   - **Visual Builder**: Create, edit, and delete skills from the new Skills page. Attach skills to sub-agents via the sidepane picker with drag-to-reorder support.
 
   - **TypeScript SDK**:
-
     - New `SkillDefinition` and `SkillReference` types
     - `loadSkills(directoryPath)` helper to load skills from `SKILL.md` files
     - `skills` config option on `SubAgent` and `Project`
@@ -704,7 +995,6 @@
   - **CLI**: `inkeep pull` now generates skill files in the `skills/` directory
 
   ### Loading Modes
-
   - **Always loaded**: Skill content is included in every prompt
   - **On-demand**: Skill appears as an outline in the system prompt and can be loaded via the built-in `load_skill` tool when needed
 
@@ -731,7 +1021,6 @@
 - 5d3f136: Add `GenericJsonEditor` and `GenericPromptEditor` components with react-hook-form integration
 - 5b0b1f1: fix max height for card content on traces conversation page
 - 228d4e2: Fix nested error message display in form validation
-
   - Add `firstNestedMessage` helper to recursively extract error messages from nested Zod validation objects
   - Display error path location (e.g., `→ at ["foo", "bar"]`) for deeply nested validation errors
   - Refactor `createCustomHeadersSchema` to use Zod `.pipe()` for cleaner error path propagation
@@ -907,7 +1196,6 @@
   Added comprehensive UI for configuring webhook signature verification with support for GitHub, Slack, Stripe, Zendesk, and custom webhook providers.
 
   **New Features:**
-
   - Replaced plaintext signing secret input with credential reference selector
   - Added algorithm selector (sha256, sha512, sha384, sha1, md5) with deprecation warnings
   - Added encoding selector (hex, base64)
@@ -920,7 +1208,6 @@
   - All new fields integrate with existing trigger form validation and submission
 
   **UI Improvements:**
-
   - Collapsible "Advanced Validation Options" section reduces visual clutter
   - Provider preset buttons enable one-click configuration for common webhooks
   - Dynamic field labels and placeholders based on selected options
@@ -1394,7 +1681,6 @@
 ### Minor Changes
 
 - 7f0f13a: 1. Add persistence in localStorage for the sidebar open state.
-
   2. Make the `project switcher`, `Next.js DevTools logo`, and `breadcrumbs` elements to not trigger sidebar expansion.
 
 ### Patch Changes
@@ -1685,7 +1971,6 @@
 ### Patch Changes
 
 - 185db71: fix validation errors of form fields for:
-
   - `subAgent.id`
   - `subAgent.prompt`
   - `agent.name`
@@ -1866,7 +2151,6 @@
 - 9ca1b6c: fix `ProjectSelector` make items active if their names and descriptions are identical
 - dba5a31: Update quickstart port check
 - b0817aa: Fix CLI bugs
-
   - Quickstart inkeep.config.ts indents and types
   - inkeep init run API and manage API urls
 
@@ -3093,12 +3377,10 @@
   ## Migration Guide
 
   Update all API calls by removing `/crud/` from endpoint paths:
-
   - **Before**: `/tenants/{tenantId}/crud/projects/{projectId}/...`
   - **After**: `/tenants/{tenantId}/projects/{projectId}/...`
 
   ## Changes
-
   - Removed `/crud/` segment from all manage-api route definitions
   - Updated all API client code in manage-ui, cli, and SDK packages
   - Cleaned up OpenAPI tags to remove "CRUD" prefix

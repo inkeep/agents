@@ -1,22 +1,10 @@
 import { Braces } from 'lucide-react';
-import type { ComponentProps, FC } from 'react';
-import { useState } from 'react';
-import { PromptEditor } from '@/components/editors/prompt-editor';
-import { ExpandableField } from '@/components/form/expandable-field';
+import type { FC } from 'react';
 import { Button } from '@/components/ui/button';
 import { useMonacoActions, useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
 
-type PromptEditorProps = ComponentProps<typeof PromptEditor> & {
-  name: string;
-  label: string;
-  isRequired?: boolean;
-  error?: string;
-};
-
-/** @lintignore */
 export const AddVariableAction: FC<{ uri: string; className?: string }> = ({ uri, className }) => {
-  'use memo';
   const monaco = useMonacoStore((state) => state.monaco);
   const { getEditorByUri } = useMonacoActions();
 
@@ -50,42 +38,3 @@ export const AddVariableAction: FC<{ uri: string; className?: string }> = ({ uri
     </Button>
   );
 };
-
-export function ExpandablePromptEditor({
-  label,
-  isRequired = false,
-  className,
-  error,
-  name,
-  ...props
-}: PromptEditorProps) {
-  'use memo';
-  const [open, onOpenChange] = useState(false);
-  const $uri = props.uri ?? `${name}.template`;
-  const uri = `${open ? 'expanded-' : ''}${$uri}` as const;
-  const id = `${name}-label`;
-
-  return (
-    <ExpandableField
-      id={id}
-      open={open}
-      onOpenChange={onOpenChange}
-      uri={uri}
-      label={label}
-      isRequired={isRequired}
-      hasError={!!error}
-      actions={uri.endsWith('.template') && <AddVariableAction uri={uri} />}
-    >
-      <PromptEditor
-        autoFocus={open}
-        aria-invalid={error ? 'true' : undefined}
-        className={cn(!open && 'max-h-96', 'min-h-16', className)}
-        hasDynamicHeight={!open}
-        aria-labelledby={id}
-        {...props}
-        uri={uri}
-      />
-      {error && <p className="text-sm text-destructive">{error}</p>}
-    </ExpandableField>
-  );
-}

@@ -4,6 +4,8 @@ import {
   TextDocumentControlCharacterError,
 } from '../../services/blob-storage/file-security-errors';
 import {
+  buildAttachedFileMarker,
+  buildDecodedTextAttachmentBlock,
   buildTextAttachmentBlock,
   decodeTextDocumentBytes,
   getDefaultTextDocumentFilename,
@@ -84,6 +86,115 @@ describe('text-document-attachments', () => {
       });
 
       expect(result).toContain('filename="file\\"with\\"quotes.txt"');
+    });
+  });
+
+  describe('buildDecodedTextAttachmentBlock', () => {
+    it('decodes bytes and wraps in attached_file', () => {
+      const result = buildDecodedTextAttachmentBlock({
+        data: new TextEncoder().encode('hello world\n'),
+        mimeType: 'text/markdown',
+        filename: 'notes.md',
+      });
+
+      expect(result).toBe(
+        '<attached_file filename="notes.md" media_type="text/markdown">\nhello world\n\n</attached_file>'
+      );
+    });
+
+    it('matches the output of decode + buildTextAttachmentBlock composed manually', () => {
+      const bytes = new TextEncoder().encode('Important Context:\nphone number: 123-456-7890\n');
+
+      const viaHelper = buildDecodedTextAttachmentBlock({
+        data: bytes,
+        mimeType: 'text/plain',
+        filename: 'context.txt',
+      });
+      const viaCompose = buildTextAttachmentBlock({
+        mimeType: 'text/plain',
+        content: decodeTextDocumentBytes(bytes),
+        filename: 'context.txt',
+      });
+
+      expect(viaHelper).toBe(viaCompose);
+    });
+
+    it('throws InvalidUtf8TextDocumentError on invalid UTF-8', () => {
+      expect(() =>
+        buildDecodedTextAttachmentBlock({
+          data: Uint8Array.from([0xc3, 0x28]),
+          mimeType: 'text/plain',
+          filename: 'bad.txt',
+        })
+      ).toThrow(InvalidUtf8TextDocumentError);
+    });
+
+    it('throws TextDocumentControlCharacterError on disallowed control characters', () => {
+      expect(() =>
+        buildDecodedTextAttachmentBlock({
+          data: Uint8Array.from(Buffer.from(`before${String.fromCharCode(0x01)}after`, 'utf8')),
+          mimeType: 'text/plain',
+          filename: 'bad.txt',
+        })
+      ).toThrow(TextDocumentControlCharacterError);
+    });
+  });
+
+  describe('buildAttachedFileMarker', () => {
+    it('renders a self-closing marker with filename and media_type', () => {
+      expect(buildAttachedFileMarker({ mimeType: 'image/png', filename: 'screenshot.png' })).toBe(
+        '<attached_file filename="screenshot.png" media_type="image/png" />'
+      );
+    });
+
+    it('normalizes the mimeType via normalizeMimeType', () => {
+      expect(buildAttachedFileMarker({ mimeType: 'IMAGE/PNG', filename: 'a.png' })).toBe(
+        '<attached_file filename="a.png" media_type="image/png" />'
+      );
+    });
+
+    it('omits filename when not provided', () => {
+      expect(buildAttachedFileMarker({ mimeType: 'application/pdf' })).toBe(
+        '<attached_file media_type="application/pdf" />'
+      );
+    });
+
+    it('omits media_type when mimeType is empty', () => {
+      expect(buildAttachedFileMarker({ filename: 'unknown.bin' })).toBe(
+        '<attached_file filename="unknown.bin" />'
+      );
+    });
+
+    it('renders a bare marker when neither filename nor mimeType is provided', () => {
+      expect(buildAttachedFileMarker({})).toBe('<attached_file />');
+    });
+
+    it('escapes filenames with quotes via JSON.stringify', () => {
+      expect(
+        buildAttachedFileMarker({
+          mimeType: 'image/png',
+          filename: 'name"with"quotes.png',
+        })
+      ).toBe('<attached_file filename="name\\"with\\"quotes.png" media_type="image/png" />');
+    });
+
+    it('includes artifact_id and tool_call_id so the model can fetch the attachment', () => {
+      expect(
+        buildAttachedFileMarker({
+          mimeType: 'image/png',
+          filename: 'photo.png',
+          artifactId: 'attachment_msg_abc123',
+          toolCallId: 'message_attachment:msg',
+        })
+      ).toBe(
+        '<attached_file filename="photo.png" media_type="image/png" artifact_id="attachment_msg_abc123" tool_call_id="message_attachment:msg" />'
+      );
+    });
+
+    it('omits artifact_id and tool_call_id attributes when not provided', () => {
+      expect(buildAttachedFileMarker({ mimeType: 'image/png', filename: 'photo.png' })).toBe(
+        '<attached_file filename="photo.png" media_type="image/png" />'
+      );
     });
   });
 });
