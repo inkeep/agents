@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.69.1
+
+### Patch Changes
+
+- a6bd5ec: cost usage events window for signoz fixed
+
 ## 0.69.0
 
 ### Minor Changes

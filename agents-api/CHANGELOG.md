@@ -1,5 +1,18 @@
 # @inkeep/agents-api
 
+## 0.69.1
+
+### Patch Changes
+
+- 53bc4df: Allow deprecated API keys to POST /manage feedback
+- ae8ebe1: Fix attachment content being dropped from conversation history on resume
+- ae8ebe1: Hydrate artifact references returned by `GET /conversations/:id` so replay matches the shape streaming emits, and drop redundant attachment bookkeeping refs (`toolCallId: message_attachment:*`) that were paired with a sibling `file` part.
+- Updated dependencies [a6bd5ec]
+  - @inkeep/agents-core@0.69.1
+  - @inkeep/agents-work-apps@0.69.1
+  - @inkeep/agents-email@0.69.1
+  - @inkeep/agents-mcp@0.69.1
+
 ## 0.69.0
 
 ### Minor Changes
