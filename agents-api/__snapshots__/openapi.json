@@ -47237,6 +47237,10 @@
                                               {
                                                 "pattern": "^data:(text\\/(plain|markdown|html|csv|x-log)|application\\/json);base64,",
                                                 "type": "string"
+                                              },
+                                              {
+                                                "pattern": "^data:(?:application\\/vnd\\.openxmlformats-officedocument\\.wordprocessingml\\.document|application\\/vnd\\.openxmlformats-officedocument\\.spreadsheetml\\.sheet|application\\/vnd\\.openxmlformats-officedocument\\.presentationml\\.presentation|application\\/vnd\\.oasis\\.opendocument\\.text|application\\/vnd\\.oasis\\.opendocument\\.spreadsheet|application\\/vnd\\.oasis\\.opendocument\\.presentation|application\\/vnd\\.apple\\.pages|application\\/vnd\\.apple\\.numbers|application\\/vnd\\.apple\\.keynote);base64,",
+                                                "type": "string"
                                               }
                                             ]
                                           },

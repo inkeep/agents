@@ -4,7 +4,10 @@ import {
   calculateBreakdownTotal,
   estimateTokens,
 } from '@inkeep/agents-core';
-import { normalizeMimeType } from '@inkeep/agents-core/constants/allowed-file-formats';
+import {
+  isOfficeDocumentMimeType,
+  normalizeMimeType,
+} from '@inkeep/agents-core/constants/allowed-file-formats';
 import { getLogger } from '../../../../logger';
 import {
   createDefaultConversationHistoryConfig,
@@ -34,11 +37,11 @@ function mapFileToAiSdkContentPart(
     };
   }
 
-  if (mimeType === PDF_MEDIA_TYPE) {
+  if (mimeType === PDF_MEDIA_TYPE || isOfficeDocumentMimeType(mimeType)) {
     return {
       type: 'file',
       data: fileValue,
-      mediaType: PDF_MEDIA_TYPE,
+      mediaType: mimeType,
       ...(metadata?.filename ? { filename: metadata.filename } : {}),
     };
   }
