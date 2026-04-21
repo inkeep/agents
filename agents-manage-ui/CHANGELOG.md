@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.69.1
+
+### Patch Changes
+
+- 41e04cf: drop bypass secret injection for signoz
+- a6bd5ec: cost usage events window for signoz fixed
+- Updated dependencies [a6bd5ec]
+  - @inkeep/agents-core@0.69.1
+
 ## 0.69.0
 
 ### Minor Changes
@@ -1680,8 +1689,7 @@
 
 ### Minor Changes
 
-- 7f0f13a: 1. Add persistence in localStorage for the sidebar open state.
-  2. Make the `project switcher`, `Next.js DevTools logo`, and `breadcrumbs` elements to not trigger sidebar expansion.
+- 7f0f13a: 1. Add persistence in localStorage for the sidebar open state. 2. Make the `project switcher`, `Next.js DevTools logo`, and `breadcrumbs` elements to not trigger sidebar expansion.
 
 ### Patch Changes
 
