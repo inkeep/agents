@@ -221,6 +221,47 @@ describe('uploadPartsFiles', () => {
     });
   });
 
+  it('uploads inline YAML file parts and rewrites to blob URI', async () => {
+    const yamlBytes = Buffer.from('name: alpha\ncount: 1\n', 'utf8');
+    vi.mocked(normalizeInlineFileBytes).mockResolvedValueOnce({
+      data: Uint8Array.from(yamlBytes),
+      mimeType: 'application/yaml',
+    });
+    const parts: Part[] = [
+      {
+        kind: 'file',
+        file: {
+          bytes: yamlBytes.toString('base64'),
+          mimeType: 'application/yaml',
+        },
+        metadata: { filename: 'config.yml' },
+      },
+    ];
+
+    const uploaded = await uploadPartsFiles(parts, uploadContext);
+
+    expect(normalizeInlineFileBytes).toHaveBeenCalledWith({
+      bytes: yamlBytes.toString('base64'),
+      mimeType: 'application/yaml',
+    });
+    expect(mockUpload).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: expect.stringMatching(/\.yaml$/),
+        contentType: 'application/yaml',
+      })
+    );
+    expect(uploaded[0]).toMatchObject({
+      kind: 'file',
+      file: {
+        uri: expect.stringContaining('blob://v1/t_tenant/media/p_project/conv/c_conversation'),
+        mimeType: 'application/yaml',
+      },
+      metadata: {
+        filename: 'config.yml',
+      },
+    });
+  });
+
   it('preserves non-file parts and metadata while uploading files', async () => {
     const textPart: TextPart = { kind: 'text', text: 'hello' };
     const filePart: FilePart = {

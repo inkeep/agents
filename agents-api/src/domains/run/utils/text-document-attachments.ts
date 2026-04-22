@@ -1,5 +1,6 @@
 import {
   ALLOWED_TEXT_DOCUMENT_MIME_TYPES,
+  getExtensionFromMimeType,
   normalizeMimeType,
 } from '@inkeep/agents-core/constants/allowed-file-formats';
 import {
@@ -33,20 +34,8 @@ export function isTextDocumentMimeType(mimeType: string | undefined): mimeType i
 }
 
 export function getDefaultTextDocumentFilename(mimeType: string): string {
-  switch (normalizeMimeType(mimeType)) {
-    case 'text/markdown':
-      return 'unnamed.md';
-    case 'text/html':
-      return 'unnamed.html';
-    case 'text/csv':
-      return 'unnamed.csv';
-    case 'text/x-log':
-      return 'unnamed.log';
-    case 'application/json':
-      return 'unnamed.json';
-    default:
-      return 'unnamed.txt';
-  }
+  const extension = getExtensionFromMimeType(normalizeMimeType(mimeType));
+  return `unnamed.${extension === 'bin' ? 'txt' : extension}`;
 }
 
 export function decodeTextDocumentBytes(data: Uint8Array): string {

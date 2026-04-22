@@ -202,6 +202,58 @@ describe('AgentSession', () => {
       });
     });
 
+    it('should record agent_generate events with mixed_generation type', () => {
+      session.recordEvent('agent_generate', 'test-agent', {
+        parts: [
+          { type: 'text', content: 'Let me search our knowledge base...' },
+          {
+            type: 'tool_result',
+            toolName: 'search',
+            result: { hits: ['article-1', 'article-2'] },
+          },
+        ],
+        generationType: 'mixed_generation',
+      });
+
+      expect(session.getEvents()).toHaveLength(1);
+      expect(session.getEvents()[0]).toMatchObject({
+        eventType: 'agent_generate',
+        subAgentId: 'test-agent',
+        data: {
+          parts: expect.arrayContaining([
+            { type: 'text', content: 'Let me search our knowledge base...' },
+          ]),
+          generationType: 'mixed_generation',
+        },
+      });
+    });
+
+    it('should accept data_component and data_artifact part types without error', () => {
+      session.recordEvent('agent_generate', 'test-agent', {
+        parts: [
+          { type: 'text', content: 'Here are the results:' },
+          { type: 'data_component', data: { id: 'card-1', name: 'Card', props: { title: 'Hi' } } },
+          {
+            type: 'data_artifact',
+            data: { artifactId: 'art-1', toolCallId: 'tc-1', name: 'MyArtifact' },
+          },
+        ],
+        generationType: 'mixed_generation',
+      });
+
+      expect(session.getEvents()).toHaveLength(1);
+      expect(session.getEvents()[0]).toMatchObject({
+        eventType: 'agent_generate',
+        data: {
+          generationType: 'mixed_generation',
+        },
+      });
+      const recordedParts = (session.getEvents()[0].data as any).parts;
+      expect(recordedParts).toHaveLength(3);
+      expect(recordedParts[1].type).toBe('data_component');
+      expect(recordedParts[2].type).toBe('data_artifact');
+    });
+
     it('should record transfer events', () => {
       session.recordEvent('transfer', 'router-agent', {
         fromSubAgent: 'router-agent',

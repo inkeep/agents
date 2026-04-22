@@ -214,6 +214,30 @@ describe('file-content-security', () => {
       expect(Buffer.from(result.data).toString('utf8')).toContain('"count":1');
     });
 
+    it('accepts inline application/javascript bytes when they are valid UTF-8 text', async () => {
+      const jsBytes = Buffer.from('export const answer = 42;\n', 'utf8');
+
+      const result = await normalizeInlineFileBytes({
+        bytes: jsBytes.toString('base64'),
+        mimeType: 'application/javascript',
+      });
+
+      expect(result.mimeType).toBe('application/javascript');
+      expect(Buffer.from(result.data).toString('utf8')).toContain('answer = 42');
+    });
+
+    it('accepts inline application/yaml bytes when they are valid UTF-8 text', async () => {
+      const yamlBytes = Buffer.from('name: alpha\ncount: 1\n', 'utf8');
+
+      const result = await normalizeInlineFileBytes({
+        bytes: yamlBytes.toString('base64'),
+        mimeType: 'application/yaml',
+      });
+
+      expect(result.mimeType).toBe('application/yaml');
+      expect(Buffer.from(result.data).toString('utf8')).toContain('name: alpha');
+    });
+
     it('rejects binary bytes masquerading as text/plain', async () => {
       const binaryBytes = Buffer.from([0x00, 0x9f, 0x92, 0x96, 0xff, 0x00]);
 

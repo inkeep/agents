@@ -10,9 +10,10 @@ import {
 } from '@inkeep/agents-core';
 import type { Span } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
-import type { ToolSet } from 'ai';
+import type { StepResult, ToolSet } from 'ai';
 import { generateText, Output, streamText } from 'ai';
 import { getLogger } from '../../../../logger';
+import type { StreamPart } from '../../artifacts/ArtifactParser';
 import type { MidGenerationCompressor } from '../../compression/MidGenerationCompressor';
 import { agentSessionManager } from '../../session/AgentSession';
 import { getStreamHelper } from '../../stream/stream-registry';
@@ -125,6 +126,118 @@ export function buildTelemetryConfig(ctx: AgentRunContext, phase?: string): obje
       ...(ctx.conversationId && { conversationId: ctx.conversationId }),
     },
   };
+}
+
+export function computeGenerationType(
+  parts: Array<{ kind?: string }> | undefined | null,
+  hasObject: boolean
+): 'text_generation' | 'object_generation' | 'mixed_generation' {
+  const hasText = (parts || []).some((p) => p?.kind === 'text');
+  if (hasText && hasObject) return 'mixed_generation';
+  if (hasObject) return 'object_generation';
+  return 'text_generation';
+}
+
+export function buildStructuredSuccessText(response: ResolvedGenerationResponse): string {
+  const prelude = response.text?.trim();
+  const json = JSON.stringify(response.output, null, 2);
+  if (!prelude) return json;
+  if (preludeEqualsOutput(prelude, response.output)) return json;
+  return `${prelude}\n\n${json}`;
+}
+
+function preludeEqualsOutput(prelude: string, output: unknown): boolean {
+  try {
+    const parsed = JSON.parse(prelude);
+    // Canonicalise key order before comparing — two objects with identical content but different
+    // key order (possible when the model's prelude text and the SDK's parsed output take
+    // different serialization paths) would otherwise compare unequal and produce a duplicated
+    // prelude in the rendered response.
+    return canonicalJsonString(parsed) === canonicalJsonString(output);
+  } catch {
+    return false;
+  }
+}
+
+function canonicalJsonString(value: unknown): string {
+  return JSON.stringify(sortObjectKeysDeep(value));
+}
+
+function sortObjectKeysDeep(value: unknown): unknown {
+  if (value === null || typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.map(sortObjectKeysDeep);
+  return Object.keys(value as Record<string, unknown>)
+    .sort()
+    .reduce<Record<string, unknown>>((acc, key) => {
+      acc[key] = sortObjectKeysDeep((value as Record<string, unknown>)[key]);
+      return acc;
+    }, {});
+}
+
+export function selectStructuredFallbackText(response: ResolvedGenerationResponse): string {
+  if (response.text) return response.text;
+  const stepText = response.steps
+    ?.map((s: StepResult<ToolSet> | undefined) => s?.text)
+    .filter((t): t is string => Boolean(t))
+    .join('\n\n');
+  return stepText || '';
+}
+
+export function mapPartsToEventParts(
+  parts: Array<{ kind?: string; text?: string; data?: unknown } | StreamPart> | undefined | null
+): Array<{
+  type: 'text' | 'data_component' | 'data_artifact';
+  content?: string;
+  data?: unknown;
+}> {
+  return (parts || []).map((part) => {
+    if (part.kind === 'text') {
+      return { type: 'text' as const, content: (part as StreamPart).text ?? '' };
+    }
+    if (part.kind === 'data') {
+      const data = (part as StreamPart).data as
+        | { artifactId?: unknown; toolCallId?: unknown }
+        | undefined;
+      const isArtifact = Boolean(data?.artifactId && data?.toolCallId);
+      return {
+        type: isArtifact ? ('data_artifact' as const) : ('data_component' as const),
+        data: (part as StreamPart).data,
+      };
+    }
+    logger.warn(
+      { kind: part.kind, op: 'mapPartsToEventParts' },
+      'unknown part kind — mapping to empty text part'
+    );
+    return { type: 'text' as const, content: '' };
+  });
+}
+
+export function resolveTextResponseAndWarn({
+  response,
+  hasStructuredOutput,
+  hasTransferToolCall,
+  logger: log,
+  warnContext,
+}: {
+  response: ResolvedGenerationResponse;
+  hasStructuredOutput: boolean;
+  hasTransferToolCall: boolean;
+  logger: {
+    warn: (obj: Record<string, unknown>, msg: string) => void;
+  };
+  warnContext: Record<string, unknown>;
+}): string {
+  if (hasStructuredOutput && response.output) {
+    return buildStructuredSuccessText(response);
+  }
+  if (hasTransferToolCall) {
+    return response.steps?.[response.steps.length - 1]?.text || '';
+  }
+  if (hasStructuredOutput) {
+    log.warn(warnContext, 'Structured output expected but not produced; surfacing fallback text');
+    return selectStructuredFallbackText(response);
+  }
+  return response.text || '';
 }
 
 export function handleGenerationError(ctx: AgentRunContext, error: unknown, span: Span): never {
@@ -255,7 +368,6 @@ export async function runGenerate(
           'input.pdf_file_count': inlinePdfFileCount,
         });
         let response: ResolvedGenerationResponse;
-        let textResponse: string;
 
         const toolsForLlm = options?.schemaOnlyTools
           ? Object.fromEntries(
@@ -317,6 +429,80 @@ export async function runGenerate(
                   dataComponents: z.array(dataComponentsSchema),
                 }),
               }),
+              // ---------------------------------------------------------------------------
+              // Anthropic: force synthetic-tool path for token-level structured-output streaming
+              // ---------------------------------------------------------------------------
+              //
+              // Default behaviour ('auto' / 'outputFormat') on Claude Sonnet 4.5 / Opus 4.5 /
+              // Opus 4.1 routes through Anthropic's native structured-outputs beta
+              // (`output_format: { type: "json_schema" }`, beta header
+              // `structured-outputs-2025-11-13`). In streaming mode that path has a
+              // client-visible failure: the final structured JSON arrives as ONE giant
+              // text-delta event after 20+ seconds of silence post-tool-result, instead of
+              // token-by-token. We measured a single 3197-char text-delta in diagnostics.
+              //
+              // Root cause is in the Vercel AI SDK's `createOutputTransformStream`
+              // (ai/dist/index.mjs): the transform only publishes a text chunk when
+              // `parsePartialOutput` produces a new parseable result. For deeply nested
+              // schemas like `{ dataComponents: [...] }`, `parsePartialJson` can't produce a
+              // valid partial until the full JSON closes, so every intermediate text-delta is
+              // swallowed and the whole buffer is dumped at `finish-step`. Anthropic's HTTP
+              // API itself streams `text_delta` events fine — confirmed by Anthropic's own
+              // docs and Vercel's AI Gateway examples. Upgrading `ai` (6.0.14 → 6.0.168) and
+              // `@ai-sdk/anthropic` (3.0.7 → 3.0.71) does NOT fix this — the transform-gate
+              // has not changed upstream. Community tracking: vercel/ai#3422, #12427, #12298,
+              // #7220, #9351 (all open or recent, multiple reporters, no upstream fix).
+              //
+              // `structuredOutputMode: 'jsonTool'` forces the Anthropic provider's
+              // synthetic-tool fallback: instead of `output_format`, it injects a synthetic
+              // tool named "json" with `tool_choice: required` and streams tokens as
+              // `input_json_delta` → `text-delta` events. That path bypasses
+              // `createOutputTransformStream` entirely and gives us smooth token-level
+              // streaming of the final structured output.
+              //
+              // Known tradeoff: `tool_choice: required` prefills the assistant turn, so
+              // Claude does NOT emit pre-tool-call reasoning text ("Let me search..."). This
+              // is documented API behaviour in Anthropic's tool-use docs:
+              // "the API prefills the assistant message to force a tool to be used... models
+              //  will not emit a natural language response or explanation before tool_use
+              //  content blocks, even if explicitly asked to do so."
+              // We accept this loss because our existing data-operation wire events (tool_call,
+              // tool_result) still surface tool activity to the UI, and immediate streaming of
+              // the final answer is better UX than a long silent window.
+              //
+              // The alternative escape hatches all have significant cost:
+              //   - Keep `auto` and accept the 20s burst — worst UX overall.
+              //   - Drop `Output.object()` and parse JSON ourselves — loses API-enforced
+              //     schema validation (model could emit malformed JSON or wrong shape).
+              //   - Two-call architecture (streamText without `output` for reasoning + tool
+              //     calls, then generateObject/streamText with `output` for the structured
+              //     answer) — doubles API round-trips and complicates state management.
+              //
+              // Namespaced under `anthropic`, so other providers (OpenAI, Google, Bedrock)
+              // ignore this option completely. If those providers show similar structured-
+              // output buffering in the future, a sibling `providerOptions.<provider>` entry
+              // can be added without touching this one.
+              //
+              // References:
+              //   - @ai-sdk/anthropic@3.0.7 dist/index.js:744-750 (structuredOutputMode schema)
+              //   - @ai-sdk/anthropic@3.0.7 dist/index.js:2413-2477 (mode routing)
+              //   - @ai-sdk/anthropic@3.0.7 dist/index.js:2644 (tool_choice: required)
+              //   - ai@6.0.14 dist/index.mjs:5698-5758 (createOutputTransformStream gate)
+              //   - Anthropic docs: https://platform.claude.com/docs/en/build-with-claude/structured-outputs
+              //   - Anthropic tool_choice: https://docs.anthropic.com/en/docs/build-with-claude/tool-use
+              //   - vercel/ai#12427 (open, most recent reproduction)
+              //   - vercel/ai#9351 (community middleware workaround)
+              providerOptions: {
+                ...(baseConfig as { providerOptions?: Record<string, unknown> }).providerOptions,
+                anthropic: {
+                  ...((
+                    baseConfig as {
+                      providerOptions?: { anthropic?: Record<string, unknown> };
+                    }
+                  ).providerOptions?.anthropic ?? {}),
+                  structuredOutputMode: 'jsonTool',
+                },
+              },
             }
           : baseConfig;
 
@@ -369,12 +555,20 @@ export async function runGenerate(
             },
             'Processing response with data components'
           );
-          textResponse = JSON.stringify(response.output, null, 2);
-        } else if (hasToolCallWithPrefix(TRANSFER_TOOL_PREFIX)(response)) {
-          textResponse = response.steps[response.steps.length - 1].text || '';
-        } else {
-          textResponse = response.text || '';
         }
+
+        const hasTransferToolCall = hasToolCallWithPrefix(TRANSFER_TOOL_PREFIX)(response);
+        const textResponse = resolveTextResponseAndWarn({
+          response,
+          hasStructuredOutput,
+          hasTransferToolCall,
+          logger,
+          warnContext: {
+            agentId: ctx.config.id,
+            conversationId: conversationIdForSpan,
+            finishReason: response.finishReason,
+          },
+        });
 
         const actualInputTokens = response.totalUsage?.inputTokens ?? response.usage?.inputTokens;
         if (actualInputTokens != null) {
@@ -413,22 +607,17 @@ export async function runGenerate(
         );
 
         if (streamRequestId) {
-          const generationType = response.object ? 'object_generation' : 'text_generation';
+          const generationType = computeGenerationType(
+            formattedResponse.formattedContent?.parts,
+            !!response.object
+          );
 
           agentSessionManager.recordEvent(
             streamRequestId,
             SESSION_EVENT_AGENT_GENERATE,
             ctx.config.id,
             {
-              parts: (formattedResponse.formattedContent?.parts || []).map((part: any) => ({
-                type:
-                  part.kind === 'text'
-                    ? ('text' as const)
-                    : part.kind === 'data'
-                      ? ('tool_result' as const)
-                      : ('text' as const),
-                content: part.text || JSON.stringify(part.data),
-              })),
+              parts: mapPartsToEventParts(formattedResponse.formattedContent?.parts),
               generationType,
             }
           );

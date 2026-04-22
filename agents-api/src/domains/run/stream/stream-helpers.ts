@@ -504,15 +504,22 @@ export class VercelDataStreamHelper implements StreamHelper {
         id,
       });
 
-      if (delayMs > 0) {
-        await new Promise((r) => setTimeout(r, delayMs));
+      // Word-split the input and emit one text-delta per word (whitespace preserved) inside
+      // this single text-start/text-end pair. Upstream producers sometimes hand us a multi-word
+      // chunk in a single call — without the split the UI would see the whole thing land as
+      // one text-delta and render in a visible burst. All deltas are emitted back-to-back with
+      // no artificial delay: granularity is what makes rendering feel smooth, not pacing.
+      const chunks = text.match(/\S+|\s+/g) ?? [text];
+      for (let i = 0; i < chunks.length; i++) {
+        if (delayMs > 0 && i > 0) {
+          await new Promise((r) => setTimeout(r, delayMs));
+        }
+        this.writer.write({
+          type: 'text-delta',
+          id,
+          delta: chunks[i],
+        });
       }
-
-      this.writer.write({
-        type: 'text-delta',
-        id,
-        delta: text,
-      });
 
       this.writer.write({
         type: 'text-end',

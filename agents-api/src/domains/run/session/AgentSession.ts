@@ -104,22 +104,24 @@ type MakeAgentSessionEvent<T extends AgentSessionEventType> = BaseAgentSessionEv
 
 export interface AgentGenerateData {
   parts: Array<{
-    type: 'text' | 'tool_call' | 'tool_result';
+    type: 'text' | 'tool_call' | 'tool_result' | 'data_component' | 'data_artifact';
     content?: string;
     toolName?: string;
     args?: any;
     result?: any;
+    data?: any;
   }>;
-  generationType: 'text_generation' | 'object_generation';
+  generationType: 'text_generation' | 'object_generation' | 'mixed_generation';
 }
 
 export interface AgentReasoningData {
   parts: Array<{
-    type: 'text' | 'tool_call' | 'tool_result';
+    type: 'text' | 'tool_call' | 'tool_result' | 'data_component' | 'data_artifact';
     content?: string;
     toolName?: string;
     args?: any;
     result?: any;
+    data?: any;
   }>;
 }
 
