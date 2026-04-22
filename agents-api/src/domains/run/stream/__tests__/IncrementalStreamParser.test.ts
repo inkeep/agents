@@ -1,8 +1,9 @@
-import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ArtifactParser } from '../../artifacts/ArtifactParser';
 import { IncrementalStreamParser } from '../IncrementalStreamParser';
 import type { StreamHelper } from '../stream-helpers';
+
+const refs = vi.hoisted(() => ({ mockLogger: null as any }));
 
 // Mock dependencies
 vi.mock('../../artifacts/ArtifactParser');
@@ -11,7 +12,12 @@ vi.mock('../../session/AgentSession', () => ({
     getArtifactParser: vi.fn().mockReturnValue(null),
   },
 }));
-vi.mock('../../logger', () => createMockLoggerModule().module);
+vi.mock('../../../../logger', async () => {
+  const { createMockLoggerModule } = await import('@inkeep/agents-core/test-utils');
+  const result = createMockLoggerModule();
+  refs.mockLogger = result.mockLogger;
+  return result.module;
+});
 
 describe('IncrementalStreamParser', () => {
   let parser: IncrementalStreamParser;
@@ -42,6 +48,10 @@ describe('IncrementalStreamParser', () => {
             data: { id: component.id, name: component.name, props: component.props || {} },
           },
         ]);
+      }),
+      parseText: vi.fn().mockImplementation(async (text: string) => {
+        if (!text) return [];
+        return [{ kind: 'text', text }];
       }),
       hasIncompleteArtifact: vi.fn().mockReturnValue(false),
       getContextArtifacts: vi.fn().mockResolvedValue(new Map()),
@@ -324,8 +334,56 @@ describe('IncrementalStreamParser', () => {
       await parser.processObjectDelta(delta2);
 
       // Text components should stream incrementally as text
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('Hello', 50);
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith(' world', 50);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('Hello', 0);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith(' world', 0);
+    });
+
+    it('inserts a \\n\\n separator between distinct Text components so they do not run together', async () => {
+      // First Text component's initial snapshot.
+      await parser.processObjectDelta({
+        dataComponents: [{ id: 'text1', name: 'Text', props: { text: 'First paragraph.' } }],
+      });
+
+      // Second Text component arrives as a new id — separator should fire before its text.
+      await parser.processObjectDelta({
+        dataComponents: [
+          { id: 'text1', name: 'Text', props: { text: 'First paragraph.' } },
+          { id: 'text2', name: 'Text', props: { text: 'Second paragraph.' } },
+        ],
+      });
+
+      const calls = (mockStreamHelper.streamText as ReturnType<typeof vi.fn>).mock.calls.map(
+        (c) => c[0]
+      );
+      expect(calls).toEqual(['First paragraph.', '\n\n', 'Second paragraph.']);
+    });
+
+    it('does not insert a separator before the first Text component', async () => {
+      await parser.processObjectDelta({
+        dataComponents: [{ id: 'text1', name: 'Text', props: { text: 'Only paragraph.' } }],
+      });
+
+      const calls = (mockStreamHelper.streamText as ReturnType<typeof vi.fn>).mock.calls.map(
+        (c) => c[0]
+      );
+      expect(calls).toEqual(['Only paragraph.']);
+    });
+
+    it('does not insert a separator on incremental updates to the same Text component', async () => {
+      await parser.processObjectDelta({
+        dataComponents: [{ id: 'text1', name: 'Text', props: { text: 'Hello' } }],
+      });
+      await parser.processObjectDelta({
+        dataComponents: [{ id: 'text1', name: 'Text', props: { text: 'Hello world' } }],
+      });
+      await parser.processObjectDelta({
+        dataComponents: [{ id: 'text1', name: 'Text', props: { text: 'Hello world!' } }],
+      });
+
+      const calls = (mockStreamHelper.streamText as ReturnType<typeof vi.fn>).mock.calls.map(
+        (c) => c[0]
+      );
+      expect(calls).toEqual(['Hello', ' world', '!']);
     });
 
     it.skip('should handle mixed Text and data components in order', async () => {
@@ -347,7 +405,7 @@ describe('IncrementalStreamParser', () => {
       await parser.processObjectDelta(delta2);
 
       // Text should stream as text, weather as data component
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('Here is the weather:', 50);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('Here is the weather:', 0);
       expect(mockArtifactParser.parseObject).toHaveBeenCalledTimes(1); // Only weather component
       expect(mockStreamHelper.writeData).toHaveBeenCalledTimes(1);
     });
@@ -467,6 +525,181 @@ describe('IncrementalStreamParser', () => {
       // Should complete within reasonable time and only stream once when stable
       expect(duration).toBeLessThan(1000); // < 1 second
       expect(mockArtifactParser.parseObject).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('write queue serialization', () => {
+    it('serializes interleaved processTextChunk and processObjectDelta calls in enqueue order', async () => {
+      const order: string[] = [];
+      (mockStreamHelper.streamText as any).mockImplementation(async (text: string) => {
+        order.push(text);
+      });
+
+      const p1 = parser.processTextChunk('A');
+      const p2 = parser.processObjectDelta({
+        dataComponents: [{ id: 't1', name: 'Text', props: { text: 'X' } }],
+      });
+      const p3 = parser.processTextChunk('B');
+      const p4 = parser.processObjectDelta({
+        dataComponents: [{ id: 't2', name: 'Text', props: { text: 'Y' } }],
+      });
+      const p5 = parser.processTextChunk('C');
+
+      await Promise.all([p1, p2, p3, p4, p5]);
+
+      // When transitioning between distinct Text components (t1 → t2), the parser emits a
+      // '\n\n' paragraph separator so consecutive Text blocks don't render as one run-on
+      // paragraph in Markdown.
+      expect(order).toEqual(['A', 'X', 'B', '\n\n', 'Y', 'C']);
+    });
+
+    it('produces deterministic getCollectedParts ordering across repeated runs', async () => {
+      const snapshots: string[] = [];
+
+      for (let run = 0; run < 20; run++) {
+        const mockStreamHelperLocal = {
+          writeRole: vi.fn(),
+          streamText: vi.fn(),
+          writeData: vi.fn(),
+        } as any;
+
+        const mockExecutionContext = {
+          apiKey: 'k',
+          apiKeyId: 'id',
+          tenantId: 't',
+          projectId: 'p',
+          agentId: 'a',
+          baseUrl: 'http://localhost',
+          resolvedRef: { name: 'main', type: 'branch' as const, hash: 'h' },
+          project: {
+            id: 'p',
+            tenantId: 't',
+            name: 'P',
+            description: null,
+            models: null,
+            stopWhen: null,
+            createdAt: '2024-01-01T00:00:00Z',
+            updatedAt: '2024-01-01T00:00:00Z',
+            agents: {},
+            tools: {},
+            functionTools: {},
+            functions: {},
+            dataComponents: {},
+            artifactComponents: {},
+            externalAgents: {},
+            credentialReferences: {},
+            statusUpdates: null,
+          },
+        };
+
+        const local = new IncrementalStreamParser(
+          mockStreamHelperLocal,
+          mockExecutionContext,
+          'ctx',
+          { subAgentId: 'a', streamRequestId: 'req' }
+        );
+        await local.initializeArtifactMap();
+
+        const p1 = local.processTextChunk('one ');
+        const p2 = local.processObjectDelta({
+          dataComponents: [{ id: 'tA', name: 'Text', props: { text: 'two ' } }],
+        });
+        const p3 = local.processTextChunk('three ');
+        const p4 = local.processObjectDelta({
+          dataComponents: [{ id: 'tB', name: 'Text', props: { text: 'four ' } }],
+        });
+        const p5 = local.processTextChunk('five');
+
+        await Promise.all([p1, p2, p3, p4, p5]);
+
+        const parts = local
+          .getCollectedParts()
+          .map((p) => (p.kind === 'text' ? p.text : `data:${(p as any).data?.id ?? ''}`));
+        snapshots.push(parts.join('|'));
+      }
+
+      const unique = new Set(snapshots);
+      expect(unique.size).toBe(1);
+    });
+
+    it('calls writeRole exactly once across a batch of concurrent writes', async () => {
+      const p1 = parser.processTextChunk('A');
+      const p2 = parser.processObjectDelta({
+        dataComponents: [{ id: 't1', name: 'Text', props: { text: 'X' } }],
+      });
+      const p3 = parser.processTextChunk('B');
+      const p4 = parser.processObjectDelta({
+        dataComponents: [{ id: 't2', name: 'Text', props: { text: 'Y' } }],
+      });
+
+      await Promise.all([p1, p2, p3, p4]);
+
+      expect(mockStreamHelper.writeRole).toHaveBeenCalledTimes(1);
+      expect(mockStreamHelper.writeRole).toHaveBeenCalledWith('assistant');
+    });
+
+    it('continues processing subsequent writes after an earlier write throws', async () => {
+      (mockStreamHelper.streamText as any)
+        .mockImplementationOnce(() => {
+          throw new Error('boom');
+        })
+        .mockImplementation(async () => undefined);
+
+      const p1 = parser.processTextChunk('A');
+      const p2 = parser.processTextChunk('B');
+
+      await expect(p1).rejects.toThrow('boom');
+      await expect(p2).resolves.toBeUndefined();
+    });
+
+    it('logs an error on the queue chain when a write throws (no silent absorption)', async () => {
+      refs.mockLogger.error.mockClear();
+
+      (mockStreamHelper.streamText as any).mockImplementationOnce(() => {
+        throw new Error('queue chain failure');
+      });
+
+      // Kick off a second write so the queue's .catch handler has a reason to flush
+      // before we assert. p1 rejects; p2's then() chains after p1's .catch so p2
+      // resolving guarantees the catch handler ran.
+      const p1 = parser.processTextChunk('A');
+      const p2 = parser.processTextChunk('B');
+
+      await expect(p1).rejects.toThrow('queue chain failure');
+      await expect(p2).resolves.toBeUndefined();
+
+      expect(refs.mockLogger.error).toHaveBeenCalled();
+      const writeQueueCalls = refs.mockLogger.error.mock.calls.filter(
+        (c: any[]) => typeof c[1] === 'string' && c[1].includes('writeQueue entry failed')
+      );
+      expect(writeQueueCalls.length).toBeGreaterThanOrEqual(1);
+      expect(writeQueueCalls[0][0]).toMatchObject({
+        op: 'processTextChunk',
+        contextId: 'test-context',
+      });
+    });
+
+    it('keeps hasStartedRole, collectedParts, and allStreamedContent internally consistent under interleaved writes', async () => {
+      const promises: Promise<void>[] = [];
+      for (let i = 0; i < 10; i++) {
+        promises.push(parser.processTextChunk(`t${i}`));
+        promises.push(
+          parser.processObjectDelta({
+            dataComponents: [{ id: `c${i}`, name: 'Text', props: { text: `d${i}` } }],
+          })
+        );
+      }
+      await Promise.all(promises);
+
+      const collected = parser.getCollectedParts();
+      const streamed = parser.getAllStreamedContent();
+
+      expect(mockStreamHelper.writeRole).toHaveBeenCalledTimes(1);
+      expect(collected.length).toBeGreaterThan(0);
+      expect(streamed.length).toBeGreaterThan(0);
+      for (const part of collected) {
+        expect(['text', 'data']).toContain(part.kind);
+      }
     });
   });
 });

@@ -82,6 +82,16 @@ When a user asks "Show me my tasks", the agent will respond with:
 }
 ```
 
+## Response Shape
+
+A response from a `dataComponents`-enabled agent can take three shapes, exposed on the `agent_generate` data operation as `generationType`:
+
+- **`object_generation`** — only data components, no prose (the example above).
+- **`text_generation`** — only text. The framework returns the model's prose if it does not produce a valid structured object, so users see the response instead of a blank message.
+- **`mixed_generation`** — text and one or more data components in the same message. `parts` is ordered by emission, so a reasoning prelude can precede a component, narration can sit between components, or commentary can follow them.
+
+The `agent_generate` event records `parts` with `type: 'text' | 'data_component' | 'data_artifact'` (plus `'tool_call' | 'tool_result'` for internal tool events). Iterate `parts` in order and render each entry by its `type`. See [Data Operations](/typescript-sdk/data-operations#agent_generate) for the full event shape.
+
 ## Frontend Integration
 
 Create a React component that receives the props defined by your data component schema:
