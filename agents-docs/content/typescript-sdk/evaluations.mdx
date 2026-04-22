@@ -214,6 +214,7 @@ await client.triggerBatchEvaluation({
 | `triggerDatasetRun(runConfigId, { evaluatorIds?, branchName? }?)` | Start a run; returns `datasetRunId`, `status`, `totalItems` |
 | `listDatasetRuns(testSuiteId)` | List runs for a test suite |
 | `getDatasetRun(runId)` | Fetch a run with items and conversations |
+| `rerunDatasetRun(runId, { branchName?, evaluatorIds? }?)` | Rerun a past run with the same configuration; returns `datasetRunId`, `status`, `totalItems` |
 
 ### Batch evaluation
 
