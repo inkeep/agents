@@ -213,9 +213,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { tenantId, headers } = extractRequestContext(request);
-    // cc @shagun, is it correct now after rebase?
-    Object.assign(headers, authResult.headers);
+const { tenantId, headers } = extractRequestContext(request, authResult.headers);
     const agentsApiUrl = getAgentsApiUrl();
     const endpoint = `${agentsApiUrl}/manage/tenants/${tenantId}/signoz/health`;
 
