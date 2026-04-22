@@ -29,9 +29,6 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/traces/s
       'Content-Type': 'application/json',
       ...authResult.headers,
     };
-    if (cookieHeader) {
-      headers.Cookie = cookieHeader;
-    }
 
     const response = await fetchWithRetry(endpoint, {
       method: 'POST',
