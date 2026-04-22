@@ -121,6 +121,60 @@ describe('Dataset Runs Routes - Integration Tests', () => {
     });
   });
 
+  describe('POST /{runId}/rerun', () => {
+    it('should return 404 when the source run does not exist', async () => {
+      const tenantId = await createTestTenantWithOrg('runs-rerun-not-found');
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/evals/dataset-runs/non-existent-id/rerun`,
+        {
+          method: 'POST',
+          body: JSON.stringify({}),
+        }
+      );
+
+      expect(res.status).toBe(404);
+    });
+
+    it('should return 400 when the source run has no datasetRunConfigId', async () => {
+      // Runs created outside of a run config (no `datasetRunConfigId`) cannot
+      // be rerun because there is no config to drive the new execution.
+      const tenantId = await createTestTenantWithOrg('runs-rerun-no-config');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { datasetId } = await createTestDataset({ tenantId });
+      const { runId } = await createTestDatasetRun({ tenantId, datasetId });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/evals/dataset-runs/${runId}/rerun`,
+        {
+          method: 'POST',
+          body: JSON.stringify({}),
+        }
+      );
+
+      expect(res.status).toBe(400);
+    });
+
+    it('should accept an empty body without a validation error', async () => {
+      // `RerunBodySchema` is `.optional()` — empty `{}` must be accepted.
+      // A non-existent run then short-circuits with a 404, which proves the
+      // request body was not rejected by Zod.
+      const tenantId = await createTestTenantWithOrg('runs-rerun-empty-body');
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/evals/dataset-runs/non-existent-id/rerun`,
+        {
+          method: 'POST',
+          body: JSON.stringify({}),
+        }
+      );
+
+      expect(res.status).toBe(404);
+    });
+  });
+
   describe('End-to-End Workflow', () => {
     it.skip('should complete workflow for viewing dataset runs', async () => {
       const tenantId = await createTestTenantWithOrg('runs-e2e');
