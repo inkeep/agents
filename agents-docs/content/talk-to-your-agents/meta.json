@@ -9,6 +9,7 @@
     "vercel-ai-sdk",
     "a2a",
     "slack",
+    "zendesk",
     "../troubleshooting",
     "..."
   ]
