@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.70.0
+
+### Patch Changes
+
+- 60a0c60: Expand inline text document attachment support to cover a broad set of text, code, config, and markup formats, including `.yml` as an alias for YAML uploads.
+- 1570c2a: Add ZIP-based document attachment support for .pptx, .odt, .ods, .odp, .pages, .numbers, and .key alongside .docx and .xlsx, with model-aware stripping for providers that do not support these inline document parts
+
 ## 0.69.1
 
 ### Patch Changes

@@ -1,5 +1,22 @@
 # @inkeep/agents-api
 
+## 0.70.0
+
+### Minor Changes
+
+- 947928d: Capture intermediate text in structured-output generation via dual-stream consumption; post-stream fallback walks all steps' text when the final structured object fails to emit; new `mixed_generation` value on `generationType` when a response contains both text and data parts; extend `AgentGenerateData.parts[].type` and `AgentReasoningData.parts[].type` unions to include `data_component` and `data_artifact` so data parts are accurately labeled rather than mislabeled as `tool_result`; WARN log on structured-output generation failure
+
+### Patch Changes
+
+- 60a0c60: Expand inline text document attachment support to cover a broad set of text, code, config, and markup formats, including `.yml` as an alias for YAML uploads.
+- 1570c2a: Add ZIP-based document attachment support for .pptx, .odt, .ods, .odp, .pages, .numbers, and .key alongside .docx and .xlsx, with model-aware stripping for providers that do not support these inline document parts
+- Updated dependencies [60a0c60]
+- Updated dependencies [1570c2a]
+  - @inkeep/agents-core@0.70.0
+  - @inkeep/agents-work-apps@0.70.0
+  - @inkeep/agents-email@0.70.0
+  - @inkeep/agents-mcp@0.70.0
+
 ## 0.69.1
 
 ### Patch Changes
