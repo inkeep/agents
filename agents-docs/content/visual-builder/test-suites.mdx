@@ -35,6 +35,28 @@ Each item has:
 
 <img src="/images/test-suite-item.png" alt="Create Test Suite Item dialog showing input messages and optional expected output" style={{ borderRadius: '8px' }} />
 
+### Bulk upload from CSV
+
+From the **Items** tab on a test suite, choose **Upload CSV** to create many items at once. The file must be UTF-8 and include a header row.
+
+Recognized headers (case-insensitive):
+
+- **input** (required)
+- **expectedOutput** (optional)
+
+Each cell can contain either:
+
+- **Plain text** — a single-turn input becomes `{ messages: [{ role: 'user', content: '<text>' }] }`, and a plain-text expected output becomes `[{ role: 'assistant', content: '<text>' }]`.
+- **JSON** — paste the full `input`/`expectedOutput` shape directly when you need multi-turn conversations, system prompts, or structured `parts` content.
+
+```csv
+input,expectedOutput
+"What is 2+2?","4"
+"{""messages"":[{""role"":""system"",""content"":""Be terse.""},{""role"":""user"",""content"":""Ping""}]}","[{""role"":""assistant"",""content"":""Pong""}]"
+```
+
+Rows with missing `input` or invalid JSON are skipped and reported before upload so you can fix them and re-try. Successfully parsed rows are sent to `POST .../dataset-items/{datasetId}/items/bulk` in a single request.
+
 ## Agents
 
 You can **link agents to a test suite** so you can filter or scope which agents are associated with that suite (for example when choosing who runs the items). Run configurations still declare which agents actually execute a given run.
@@ -51,6 +73,16 @@ Create a run configuration from the test suite detail page (**Runs** tab). When 
 <img src="/images/test-suite-run.png" alt="Create Test Suite Run dialog showing name, description, agent selection, and optional evaluators" style={{ borderRadius: '8px' }} />
 
 Open a run to see per-item invocations, conversation links, and evaluation output when evaluators are configured.
+
+### Rerun a past run
+
+Each row on the **Runs** tab has a **Rerun** action, and the run detail page exposes a **Rerun** button in the header. Triggering a rerun creates a new row in the runs table using:
+
+- The **current** items in the test suite (any items you've added since the source run are included; deleted items are skipped).
+- The **same run configuration** (agents, name) as the source run.
+- The **same evaluators** that were attached to the source run, unless you pass overrides.
+
+The rerun endpoint is `POST .../dataset-runs/{runId}/rerun`. The response includes the new `datasetRunId` so you can navigate straight to the in-progress run. Runs that were not created from a run configuration can't be rerun — the button is disabled for those rows.
 
 ## Programmatic access
 
