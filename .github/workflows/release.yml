@@ -162,42 +162,79 @@ jobs:
       # Reverse-sync: tell agents-private the outcome so its
       # release-handler.yml can create the GitHub Release (which
       # triggers the existing Vercel prod deploy) or open an issue.
-      # The simplified publish step above no longer emits a `packages`
-      # output (deleting the fragile grep pipeline was the point), and
-      # release-handler.yml doesn't read the packages array from the
-      # payload anyway, so we drop it from the dispatch too. Including
-      # it would evaluate to an empty string -> invalid JSON -> silent
-      # dispatch failure -> no GH Release, no prod deploy: the exact
-      # class of bug this PR is trying to close.
+      #
+      # Both success and failure dispatches run through a bash retry
+      # loop rather than `peter-evans/repository-dispatch` because the
+      # action has no built-in retry. If GitHub's API flakes transiently
+      # (5xx / rate limit) during the dispatch, npm publish has already
+      # committed but the reverse-sync is silently lost — no GH Release,
+      # no Vercel prod deploy, no tracking issue. That was the shape of
+      # at least one prior silent stranding. 3 attempts with backoff.
       - name: Notify agents-private (success)
         if: github.ref == 'refs/heads/main' && steps.publish.outputs.published == 'true'
-        uses: peter-evans/repository-dispatch@ff45666b9427631e3450c54a1bcbee4d9ff4d7c0 # v3
-        with:
-          token: ${{ steps.app-token.outputs.token }}
-          repository: inkeep/agents-private
-          event-type: agents-release-success
-          client-payload: |
-            {
-              "version": "${{ steps.publish.outputs.version }}",
-              "run_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-              "commit_sha": "${{ github.sha }}"
-            }
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          VERSION: ${{ steps.publish.outputs.version }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          PAYLOAD=$(jq -n \
+            --arg version "$VERSION" \
+            --arg run_url "$RUN_URL" \
+            --arg commit_sha "$COMMIT_SHA" \
+            '{version: $version, run_url: $run_url, commit_sha: $commit_sha}')
+          for attempt in 1 2 3; do
+            if gh api repos/inkeep/agents-private/dispatches \
+              -X POST \
+              -f event_type=agents-release-success \
+              --raw-field "client_payload=$PAYLOAD"; then
+              echo "agents-release-success dispatched (attempt $attempt)"
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "::warning::dispatch attempt $attempt failed; retrying in $((attempt * 5))s"
+              sleep $((attempt * 5))
+            fi
+          done
+          echo "::error::Failed to dispatch agents-release-success after 3 attempts. npm published but downstream cascade (GH Release, Vercel deploy) will not fire automatically."
+          exit 1
 
+      # Catch-all failure notifier. Previously gated on
+      # `steps.detect.outputs.has_changesets == 'false'`, which meant
+      # failures BEFORE the detect step ran (install, build, token gen)
+      # evaluated the condition to false and silently skipped the
+      # dispatch — agents-private never opened a tracking issue and
+      # the red run sat invisibly in the Actions tab. `failure()` alone
+      # on main covers every pre-detect failure path too.
       - name: Notify agents-private (failure)
-        if: github.ref == 'refs/heads/main' && failure() && steps.detect.outputs.has_changesets == 'false'
-        uses: peter-evans/repository-dispatch@ff45666b9427631e3450c54a1bcbee4d9ff4d7c0 # v3
-        with:
-          token: ${{ steps.app-token.outputs.token }}
-          repository: inkeep/agents-private
-          event-type: agents-release-failure
-          # Pass whatever partial version info we got before the failure.
-          # If the publish step errored before extracting a version, this
-          # will be empty — the receiver handles that with ${VERSION:-unknown}.
-          client-payload: |
-            {
-              "version": "${{ steps.publish.outputs.version }}",
-              "run_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-              "commit_sha": "${{ github.sha }}",
-              "conclusion": "failure",
-              "error": "npm publish step failed — see run logs"
-            }
+        if: github.ref == 'refs/heads/main' && failure()
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          VERSION: ${{ steps.publish.outputs.version }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          PAYLOAD=$(jq -n \
+            --arg version "${VERSION:-}" \
+            --arg run_url "$RUN_URL" \
+            --arg commit_sha "$COMMIT_SHA" \
+            --arg conclusion "failure" \
+            --arg error "release.yml failed on main — see run logs" \
+            '{version: $version, run_url: $run_url, commit_sha: $commit_sha, conclusion: $conclusion, error: $error}')
+          for attempt in 1 2 3; do
+            if gh api repos/inkeep/agents-private/dispatches \
+              -X POST \
+              -f event_type=agents-release-failure \
+              --raw-field "client_payload=$PAYLOAD"; then
+              echo "agents-release-failure dispatched (attempt $attempt)"
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "::warning::failure-dispatch attempt $attempt failed; retrying in $((attempt * 5))s"
+              sleep $((attempt * 5))
+            fi
+          done
+          echo "::error::Failed to dispatch agents-release-failure after 3 attempts. The underlying failure is NOT being tracked on agents-private."
+          exit 1
