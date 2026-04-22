@@ -17,6 +17,10 @@ Before getting started, ensure you have the following installed on your system:
 - [Docker](https://docs.docker.com/get-docker/)
 - [pnpm](https://pnpm.io/installation) version 10.30.0 or higher (matches `packageManager`)
 
+<Tip>
+If you use [fnm](https://github.com/Schniz/fnm) or [nvm](https://github.com/nvm-sh/nvm), run `fnm use` or `nvm use` in the repository root before installing dependencies. This reads `.node-version` and switches to the correct Node version automatically. The repository enforces strict version checking — `pnpm install` will fail if your Node version doesn't match.
+</Tip>
+
 ### Step 1: Clone the repository
 
 ```
