@@ -1,0 +1,103 @@
+---
+title: Zendesk Support App
+sidebarTitle: Overview
+description: Integrate Inkeep agents into the Zendesk Support ticket sidebar.
+icon: LuHelpCircle
+---
+
+The Zendesk Support app embeds an Inkeep copilot directly in the ticket sidebar. Agents get instant access to ticket context — metadata, comments, custom fields, requester history, and linked tickets — and can draft replies or internal notes without leaving Zendesk.
+
+## Key features
+
+- **Ticket sidebar copilot** — An Inkeep agent loads inside any Zendesk ticket as a sidebar panel.
+- **Full ticket context** — The agent receives ticket metadata, conversation history, custom fields, requester profile, linked tickets, and recent tickets from the same requester.
+- **Draft to reply box** — Apply a generated draft directly to the reply composer as a public reply or an internal note via the Zendesk Apps Framework (ZAF).
+- **Marketplace or private app** — Install from the Zendesk Marketplace or upload as a private app for internal rollout.
+
+## How it works
+
+The app is a thin Zendesk App Framework wrapper that loads the Inkeep copilot-app URL inside an iframe. The ZAF SDK passes ticket context to the copilot and handles writing drafts back to the reply box.
+
+For production deployments, Zendesk uses a `signedUrls` flow: Zendesk POSTs a signed JWT to the copilot-app `/zendesk/auth` endpoint, which validates the token and issues a short-lived redirect token to load the iframe securely.
+
+## Installation
+
+<Steps>
+  <Step>
+    ### Download the app package
+
+    Obtain the latest `zendesk-package-prod.zip` from your Inkeep contact or build it yourself from the [source](https://github.com/inkeep/agents-private/tree/main/private/zendesk-package):
+
+    ```bash
+    pnpm package:zendesk
+    # produces private/zendesk-package/tmp/zendesk-package-prod.zip
+    ```
+  </Step>
+  <Step>
+    ### Upload to Zendesk
+
+    1. Open **Zendesk Admin Center**.
+    2. Go to **Apps and integrations** → **Zendesk Support apps**.
+    3. Click **Upload private app** and select the zip file.
+    4. Follow the on-screen prompts to complete installation.
+  </Step>
+  <Step>
+    ### Fetch and configure the app public key
+
+    On the **first upload only**, Zendesk generates an RSA public key tied to the installed app. Retrieve it and set it on your copilot-app deployment:
+
+    ```bash
+    curl -u <your-email>/token:<your-api-token> \
+      https://<your-subdomain>.zendesk.com/api/v2/apps/<app_id>/public_key.pem
+    ```
+
+    Set the output as the `ZENDESK_APP_PUBLIC_KEY` environment variable on the copilot-app deployment (see [Environment variables](#environment-variables) below).
+
+    <Note>
+    The key is tied to the `app_id`, not the zip. **Updating** an existing installed app preserves the same key — you only need to re-fetch if the app is uninstalled and re-uploaded as a brand-new private app.
+    </Note>
+  </Step>
+</Steps>
+
+## Environment variables
+
+These environment variables live on the **copilot-app deployment** (e.g., your Vercel project), not in the Zendesk app package itself.
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `ZENDESK_AUTH_SECRET` | Production | Signs the short-lived redirect token in the `signedUrls` flow. Generate with `openssl rand -hex 32`. |
+| `ZENDESK_APP_PUBLIC_KEY` | Production (after first upload) | Zendesk's RSA PEM; used to validate the JWT Zendesk POSTs to `/zendesk/auth`. |
+
+### Behavior when unset
+
+| State | Behavior |
+|---|---|
+| `ZENDESK_AUTH_SECRET` unset | Redirect-token validation is skipped on the `/zendesk` page. |
+| `ZENDESK_APP_PUBLIC_KEY` unset | Zendesk JWT validation is skipped. |
+| Both unset | `/zendesk` loads with no auth checks — equivalent to local dev mode. |
+
+<Warning>
+Run without both variables only in local development. Always set both for any production or staging deployment.
+</Warning>
+
+## Local development
+
+To test the app against a local copilot-app server before uploading:
+
+```bash
+# Terminal 1 — copilot-app on http://localhost:3100
+pnpm dev:copilot
+
+# Terminal 2 — zcli serves the Zendesk app package
+pnpm dev:zendesk
+```
+
+Then open any ticket in your Zendesk sandbox and append `?zcli_apps=true` to the URL. Zendesk loads the sidebar from your local zcli server, which iframes `localhost:3100/zendesk`.
+
+**Prerequisites:**
+
+```bash
+npm i -g @zendesk/zcli
+```
+
+The dev manifest (`manifest.dev.json`) targets `http://localhost:3100/zendesk` with `private: true` and no `signedUrls`. The prod manifest (`manifest.prod.json`) targets `https://copilot.inkeep.com/zendesk/auth` with `signedUrls: true`.
