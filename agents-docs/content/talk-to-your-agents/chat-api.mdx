@@ -49,14 +49,15 @@ This guide shows how to call your agent directly over HTTP and stream responses 
 - **`content` + `parts` together** — Both are accepted. `content` is prepended as a text part unless an identical text part already exists.
 - **`conversationId`** — Optional; server generates one if omitted
 
-## File inputs (images, PDFs, and text documents)
+## File inputs (images, PDFs, text documents, and office documents)
 
 The chat endpoint supports files in message content parts with different rules by type:
 
 - **Images (`image_url`)**: support either remote URLs (`https://...`) or base64 `data:` URIs
-- **Files (`file`)**: support PDFs plus inline UTF-8 text/code/config document formats such as plain text, Markdown, HTML, CSV, logs, JSON, JavaScript, XML, YAML (`.yaml` and `.yml`), CSS, shell scripts, source files, templates, subtitles, calendars, vCards, and RFC 822 email messages
+- **Files (`file`)**: support PDFs, inline UTF-8 text/code/config document formats (plain text, Markdown, HTML, CSV, logs, JSON, JavaScript, XML, YAML (`.yaml` and `.yml`), CSS, shell scripts, source files, templates, subtitles, calendars, vCards, and RFC 822 email messages), and ZIP-based office documents (`.docx`, `.xlsx`, `.pptx`, `.odt`, `.ods`, `.odp`, `.pages`, `.numbers`, `.key`)
 - **PDF file inputs**: support either remote URLs (`https://...`) or base64 `data:` payloads
 - **Text document file inputs**: support inline base64 `data:` payloads only. Remote URLs are not accepted for supported text/code document MIME types.
+- **Office document file inputs**: support inline base64 `data:` payloads only. Model-aware stripping is applied automatically for providers that do not support these inline document parts.
 
 ### Request shape for file parts
 
