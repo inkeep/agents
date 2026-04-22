@@ -162,6 +162,8 @@ docker compose -f docker-compose.visual.yml down
 
 **Why this matters:** The lockfile pins exact transitive dependency versions. Regenerating from scratch lets the resolver freely re-resolve the entire tree, which can silently pick different versions even when `package.json` ranges haven't changed. Starting from the base lockfile ensures only your intentional changes affect resolution.
 
+**When changing dependencies**: this monorepo has three lockfiles (root, `public/agents`, and `public/agents/create-agents-template`). Use `pnpm install:all` from the monorepo root to regenerate all three at once — stopping short of that is how `ERR_PNPM_OUTDATED_LOCKFILE` ends up blocking CI or Vercel.
+
 ## Architecture Overview
 
 This is the **Inkeep Agent Framework** - a multi-agent AI system with A2A (Agent-to-Agent) communication capabilities. The system provides OpenAI Chat Completions compatible API while supporting sophisticated agent orchestration.
