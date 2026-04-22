@@ -145,16 +145,69 @@ jobs:
           # successful publish of >=1 package; a no-op (no pending bumps)
           # does not. Use that as the ground truth instead of relying on
           # a regex that matches the old "Publishing \"X\" at \"Y\"" line.
-          if grep -q "packages published successfully" /tmp/publish.log; then
-            # All packages in the public-agents release group share a
-            # version by design (see config/release-groups.json), so
-            # reading agents-core's package.json is authoritative.
-            VERSION=$(node -p "require('./packages/agents-core/package.json').version")
-            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-            echo "published=true" >> "$GITHUB_OUTPUT"
-          else
+          if ! grep -q "packages published successfully" /tmp/publish.log; then
             echo "published=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+
+          # All packages in the public-agents release group share a
+          # version by design (see config/release-groups.json), so
+          # reading agents-core's package.json is authoritative.
+          VERSION=$(node -p "require('./packages/agents-core/package.json').version")
+
+          # Ground-truth check: `pnpm changeset publish` returning the
+          # success marker is necessary but not sufficient. Partial
+          # publish (package N fails after N-1 succeed) can still leave
+          # the marker in the log if the failure was cosmetic, and log
+          # phrase drift in changesets v3+ would also pass the grep.
+          # Verify every @inkeep/ workspace package is actually on npm
+          # at the declared VERSION before reporting success downstream.
+          # Missing packages → fail the step so the failure notifier
+          # fires on agents-private (versus silently reporting green).
+          #
+          # Registry propagation: `npm publish` commits to the registry
+          # synchronously but the read-path CDN can lag by seconds. Per
+          # package we retry up to 4x with escalating backoff (2s, 4s,
+          # 8s, 16s) before declaring it genuinely missing. 30s cumulative
+          # wait per package covers the widest propagation lags we've
+          # observed without meaningfully slowing the success path (each
+          # present package exits on attempt 1 with one `npm view` call).
+          MISSING=()
+          while IFS= read -r pkg_json; do
+            PKG_NAME=$(node -p "require('./$pkg_json').name" 2>/dev/null || echo "")
+            IS_PRIVATE=$(node -p "require('./$pkg_json').private ?? false" 2>/dev/null || echo "false")
+            [ -z "$PKG_NAME" ] && continue
+            [ "$IS_PRIVATE" = "true" ] && continue
+            case "$PKG_NAME" in
+              @inkeep/*) ;;
+              *) continue ;;
+            esac
+            FOUND=false
+            for attempt in 1 2 3 4; do
+              if npm view "$PKG_NAME@$VERSION" version >/dev/null 2>&1; then
+                FOUND=true
+                break
+              fi
+              if [ "$attempt" -lt 4 ]; then
+                sleep $((attempt * 2))
+              fi
+            done
+            if [ "$FOUND" = "false" ]; then
+              MISSING+=("$PKG_NAME")
+            fi
+          done < <(find packages -maxdepth 2 -name package.json -not -path '*/node_modules/*')
+
+          if [ ${#MISSING[@]} -gt 0 ]; then
+            echo "::error::Publish log reported success, but these packages are NOT on npm at v$VERSION after 30s of retries: ${MISSING[*]}"
+            echo "::error::Likely causes: partial publish (some packages published, others failed) or log-marker drift. Propagation lag is already ruled out by the retry loop."
+            echo "::error::Re-running this workflow is safe — changeset publish is idempotent (already-published versions no-op)."
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+          echo "All @inkeep/ workspace packages verified present on npm at v$VERSION."
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "published=true" >> "$GITHUB_OUTPUT"
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           HUSKY: 0
