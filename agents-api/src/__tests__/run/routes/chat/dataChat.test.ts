@@ -424,6 +424,62 @@ describe('Chat Data Stream Route', () => {
     expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
   });
 
+  it('should accept inline JavaScript file part in Vercel messages format', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Summarize this JavaScript file',
+          parts: [
+            { type: 'text', text: 'Summarize this JavaScript file' },
+            {
+              type: 'file',
+              url: 'data:application/javascript;base64,ZXhwb3J0IGNvbnN0IGFuc3dlciA9IDQyOwo=',
+              mediaType: 'application/javascript',
+              filename: 'answer.js',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
+  it('should accept inline YAML file part in Vercel messages format', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Summarize this YAML file',
+          parts: [
+            { type: 'text', text: 'Summarize this YAML file' },
+            {
+              type: 'file',
+              url: 'data:application/yaml;base64,bmFtZTogYWxwaGEKY291bnQ6IDEK',
+              mediaType: 'application/yaml',
+              filename: 'config.yml',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
   it('should accept inline text document file part without filename in Vercel messages format', async () => {
     const res = await makeRequest('/run/api/chat', {
       method: 'POST',

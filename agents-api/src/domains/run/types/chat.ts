@@ -28,15 +28,6 @@ const PdfDataUriSchema = z
   .regex(DATA_URI_PDF_BASE64_REGEX, 'File must be a PDF data URI')
   .refine(hasValidBase64Payload, 'Invalid base64 data in PDF data URI');
 
-const TextDocumentDataUriSchema = z
-  .string()
-  .regex(
-    DATA_URI_TEXT_BASE64_REGEX,
-    'File must be a text/plain, text/markdown, text/html, text/csv, text/x-log, or application/json data URI'
-  )
-  .refine(hasValidBase64Payload, 'Invalid base64 data in text document data URI');
-
-export const ImageUrlSchema = z.union([z.httpUrl(), ImageDataUriSchema]);
 const normalizeDataUriMimeType = (val: unknown): unknown => {
   if (typeof val !== 'string') return val;
   return val.replace(
@@ -44,6 +35,16 @@ const normalizeDataUriMimeType = (val: unknown): unknown => {
     (_, prefix, mimeType) => `${prefix}${mimeType.toLowerCase()}`
   );
 };
+
+const TextDocumentDataUriSchema = z.preprocess(
+  normalizeDataUriMimeType,
+  z
+    .string()
+    .regex(DATA_URI_TEXT_BASE64_REGEX, 'File must be a supported text/code document data URI')
+    .refine(hasValidBase64Payload, 'Invalid base64 data in text document data URI')
+);
+
+export const ImageUrlSchema = z.union([z.httpUrl(), ImageDataUriSchema]);
 
 const OFFICE_DOCUMENT_DATA_URI_MESSAGE = `File must be a supported ZIP-based document data URI (${ZIP_DOCUMENT_EXTENSIONS_LABEL})`;
 const INVALID_OFFICE_DOCUMENT_DATA_URI_BASE64_MESSAGE = `Invalid base64 data in ZIP-based document data URI (${ZIP_DOCUMENT_EXTENSIONS_LABEL})`;
