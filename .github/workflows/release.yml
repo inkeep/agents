@@ -179,16 +179,25 @@ jobs:
           COMMIT_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          PAYLOAD=$(jq -n \
-            --arg version "$VERSION" \
-            --arg run_url "$RUN_URL" \
-            --arg commit_sha "$COMMIT_SHA" \
-            '{version: $version, run_url: $run_url, commit_sha: $commit_sha}')
+          # `gh api -f` and `--raw-field` both send values as strings. The
+          # repository_dispatch endpoint requires client_payload to be a JSON
+          # object, so `--raw-field "client_payload=$JSON"` returns HTTP 422
+          # "is not an object" and the dispatch is lost. Build the full
+          # request body with jq and pipe it via `--input -` so client_payload
+          # arrives nested correctly.
+          #
+          # History: v0.70.0 stranded exactly this way - npm published, both
+          # success AND failure dispatches 422'd, no GitHub Release, no
+          # Vercel prod deploy, no tracking issue. Manual recovery required
+          # a synthetic dispatch with `-F 'client_payload[version]=...'`.
           for attempt in 1 2 3; do
-            if gh api repos/inkeep/agents-private/dispatches \
-              -X POST \
-              -f event_type=agents-release-success \
-              --raw-field "client_payload=$PAYLOAD"; then
+            if jq -n \
+                 --arg version "$VERSION" \
+                 --arg run_url "$RUN_URL" \
+                 --arg commit_sha "$COMMIT_SHA" \
+                 '{event_type: "agents-release-success",
+                   client_payload: {version: $version, run_url: $run_url, commit_sha: $commit_sha}}' \
+               | gh api repos/inkeep/agents-private/dispatches -X POST --input -; then
               echo "agents-release-success dispatched (attempt $attempt)"
               exit 0
             fi
@@ -216,18 +225,22 @@ jobs:
           COMMIT_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          PAYLOAD=$(jq -n \
-            --arg version "${VERSION:-}" \
-            --arg run_url "$RUN_URL" \
-            --arg commit_sha "$COMMIT_SHA" \
-            --arg conclusion "failure" \
-            --arg error "release.yml failed on main — see run logs" \
-            '{version: $version, run_url: $run_url, commit_sha: $commit_sha, conclusion: $conclusion, error: $error}')
+          # Same pipe-JSON-via-stdin pattern as the success dispatch above.
+          # Previously used `gh api --raw-field "client_payload=$PAYLOAD"`,
+          # which sends the JSON as a string and returns 422, meaning the
+          # failure-notify itself failed silently and agents-private never
+          # opened a tracking issue. Classic reporter-of-failures-cannot-
+          # report-its-own-failure class.
           for attempt in 1 2 3; do
-            if gh api repos/inkeep/agents-private/dispatches \
-              -X POST \
-              -f event_type=agents-release-failure \
-              --raw-field "client_payload=$PAYLOAD"; then
+            if jq -n \
+                 --arg version "${VERSION:-}" \
+                 --arg run_url "$RUN_URL" \
+                 --arg commit_sha "$COMMIT_SHA" \
+                 --arg conclusion "failure" \
+                 --arg error "release.yml failed on main - see run logs" \
+                 '{event_type: "agents-release-failure",
+                   client_payload: {version: $version, run_url: $run_url, commit_sha: $commit_sha, conclusion: $conclusion, error: $error}}' \
+               | gh api repos/inkeep/agents-private/dispatches -X POST --input -; then
               echo "agents-release-failure dispatched (attempt $attempt)"
               exit 0
             fi
