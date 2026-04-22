@@ -7,6 +7,8 @@ import {
   getDatasetRunById,
   getDatasetRunConfigById,
   getDatasetRunConversationRelations,
+  getEvaluationJobConfigEvaluatorRelations,
+  getInProcessFetch,
   getMessagesByConversation,
   ListResponseSchema,
   listDatasetItems,
@@ -17,6 +19,7 @@ import {
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../../data/db/runDbClient';
+import { env } from '../../../../env';
 import { getLogger } from '../../../../logger';
 import { requireProjectPermission } from '../../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../../types/app';
@@ -362,6 +365,166 @@ app.openapi(
         createApiError({
           code: 'internal_server_error',
           message: 'Failed to get dataset run items',
+        }),
+        500
+      );
+    }
+  }
+);
+
+const RerunBodySchema = z
+  .object({
+    branchName: z.string().optional().describe('Override the branch/ref used by the new run'),
+    evaluatorIds: z
+      .array(z.string())
+      .optional()
+      .describe('Override evaluator IDs. Defaults to the evaluators attached to the source run.'),
+  })
+  .optional();
+
+app.openapi(
+  createProtectedRoute({
+    method: 'post',
+    path: '/{runId}/rerun',
+    summary: 'Rerun a past dataset run',
+    operationId: 'rerun-dataset-run',
+    tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: TenantProjectParamsSchema.extend({ runId: z.string() }),
+      body: {
+        content: {
+          'application/json': {
+            schema: RerunBodySchema,
+          },
+        },
+      },
+    },
+    responses: {
+      202: {
+        description: 'Dataset run rerun triggered',
+        content: {
+          'application/json': {
+            schema: z.object({
+              datasetRunId: z.string(),
+              status: z.literal('pending'),
+              totalItems: z.number(),
+            }),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const db = c.get('db');
+    const { tenantId, projectId, runId } = c.req.valid('param');
+    const body = (c.req.valid('json') ?? {}) as { branchName?: string; evaluatorIds?: string[] };
+
+    try {
+      const sourceRun = await getDatasetRunById(runDbClient)({
+        scopes: { tenantId, projectId, datasetRunId: runId },
+      });
+
+      if (!sourceRun) {
+        return c.json(
+          createApiError({ code: 'not_found', message: 'Dataset run not found' }),
+          404
+        ) as any;
+      }
+
+      if (!sourceRun.datasetRunConfigId) {
+        return c.json(
+          createApiError({
+            code: 'bad_request',
+            message:
+              'This run was not created from a run config and cannot be rerun. Create a new run config instead.',
+          }),
+          400
+        ) as any;
+      }
+
+      let evaluatorIds = body.evaluatorIds;
+      if (!evaluatorIds && sourceRun.evaluationJobConfigId) {
+        const evaluatorRelations = await getEvaluationJobConfigEvaluatorRelations(db)({
+          scopes: {
+            tenantId,
+            projectId,
+            evaluationJobConfigId: sourceRun.evaluationJobConfigId,
+          },
+        });
+        if (evaluatorRelations.length > 0) {
+          evaluatorIds = evaluatorRelations.map((rel) => rel.evaluatorId);
+        }
+      }
+
+      const sourceRef = sourceRun.ref as { branchName?: string } | null | undefined;
+      const branchName = body.branchName ?? sourceRef?.branchName;
+
+      const triggerUrl = `${env.INKEEP_AGENTS_API_URL.replace(
+        /\/$/,
+        ''
+      )}/manage/tenants/${tenantId}/projects/${projectId}/evals/dataset-run-configs/${sourceRun.datasetRunConfigId}/run`;
+
+      const forwardedHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      const authHeader = c.req.header('authorization');
+      if (authHeader) forwardedHeaders.Authorization = authHeader;
+      const cookieHeader = c.req.header('cookie');
+      if (cookieHeader) forwardedHeaders.cookie = cookieHeader;
+      const adminSecret = c.req.header('x-inkeep-admin-secret');
+      if (adminSecret) forwardedHeaders['x-inkeep-admin-secret'] = adminSecret;
+      const apiKey = c.req.header('x-api-key');
+      if (apiKey) forwardedHeaders['x-api-key'] = apiKey;
+
+      const response = await getInProcessFetch()(triggerUrl, {
+        method: 'POST',
+        headers: forwardedHeaders,
+        body: JSON.stringify({
+          ...(evaluatorIds ? { evaluatorIds } : {}),
+          ...(branchName ? { branchName } : {}),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        logger.error(
+          { runId, status: response.status, body: errorBody },
+          'Rerun delegation to trigger endpoint failed'
+        );
+        try {
+          const parsed = JSON.parse(errorBody);
+          return c.json(parsed, response.status as any);
+        } catch {
+          return c.json(
+            createApiError({
+              code: 'internal_server_error',
+              message: `Rerun failed: ${response.status}`,
+            }),
+            response.status as any
+          );
+        }
+      }
+
+      const result = (await response.json()) as {
+        datasetRunId: string;
+        status: 'pending';
+        totalItems: number;
+      };
+
+      logger.info(
+        { sourceRunId: runId, newRunId: result.datasetRunId, totalItems: result.totalItems },
+        'Dataset run rerun triggered'
+      );
+
+      return c.json(result, 202);
+    } catch (error) {
+      logger.error({ error, runId }, 'Failed to rerun dataset run');
+      return c.json(
+        createApiError({
+          code: 'internal_server_error',
+          message: error instanceof Error ? error.message : 'Failed to rerun dataset run',
         }),
         500
       );
