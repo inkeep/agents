@@ -9,6 +9,7 @@
 import { revalidatePath } from 'next/cache';
 import {
   createDatasetItem as createDatasetItemApi,
+  createDatasetItemsBulk as createDatasetItemsBulkApi,
   type DatasetItemInsert,
   type DatasetItemUpdate,
   deleteDatasetItem as deleteDatasetItemApi,
@@ -36,6 +37,25 @@ export async function createDatasetItemAction(
     return { success: true };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to create dataset item';
+    return { success: false, error: errorMessage };
+  }
+}
+
+/**
+ * Create multiple dataset items in a single request.
+ */
+export async function createDatasetItemsBulkAction(
+  tenantId: string,
+  projectId: string,
+  datasetId: string,
+  items: DatasetItemInsert[]
+): Promise<ActionResult<{ created: number }>> {
+  try {
+    const created = await createDatasetItemsBulkApi(tenantId, projectId, datasetId, items);
+    revalidatePath(`/${tenantId}/projects/${projectId}/datasets/${datasetId}`);
+    return { success: true, data: { created: created.length } };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create dataset items';
     return { success: false, error: errorMessage };
   }
 }
