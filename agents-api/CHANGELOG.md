@@ -1,5 +1,16 @@
 # @inkeep/agents-api
 
+## 0.70.2
+
+### Patch Changes
+
+- a4d2360: improvement agent
+- Updated dependencies [a4d2360]
+  - @inkeep/agents-core@0.70.2
+  - @inkeep/agents-work-apps@0.70.2
+  - @inkeep/agents-email@0.70.2
+  - @inkeep/agents-mcp@0.70.2
+
 ## 0.70.1
 
 ### Patch Changes
