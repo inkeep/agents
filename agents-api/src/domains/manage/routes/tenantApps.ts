@@ -21,7 +21,8 @@ app.openapi(
     method: 'get',
     path: '/',
     summary: 'List Tenant Apps',
-    description: 'List all apps for a tenant across all projects, optionally filtered by type',
+    description:
+      'List apps for a tenant. Organization admins and owners see all apps across all projects. Other tenant members see only apps from projects where they have at least Use permission (project member role or higher). Results can be optionally filtered by app type.',
     operationId: 'list-tenant-apps',
     tags: ['Apps'],
     permission: inheritedManageTenantAuth(),
