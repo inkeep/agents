@@ -136,6 +136,7 @@ describe('getCopilotTokenAction', () => {
 
       const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
       expect(payload.sub).toBe('user-123');
+      expect(payload.aud).toBe('inkeep-copilot');
       expect(payload.iat).toBeDefined();
       expect(payload.exp).toBeDefined();
       expect(payload.exp - payload.iat).toBe(3600);

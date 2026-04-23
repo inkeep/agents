@@ -198,7 +198,9 @@ export async function buildSystemPrompt(
 ): Promise<AssembleResult> {
   const conversationId = runtimeContext?.metadata?.conversationId || runtimeContext?.contextId;
 
-  const resolvedContext = conversationId ? await getResolvedContext(ctx, conversationId) : null;
+  const resolvedContext = conversationId
+    ? await getResolvedContext(ctx, conversationId, ctx.config.forwardedHeaders)
+    : null;
 
   const runtimeBuiltins =
     conversationId && conversationId !== 'default'

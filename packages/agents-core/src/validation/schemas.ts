@@ -75,7 +75,7 @@ import {
   VALID_RELATION_TYPES,
 } from '../types/utility';
 import { jmespathString, validateJMESPathSecure, validateRegex } from '../utils/jmespath-utils';
-import { ResolvedRefSchema } from './dolt-schemas';
+import { ConflictItemSchema, ConflictResolutionSchema, ResolvedRefSchema } from './dolt-schemas';
 import {
   createInsertSchema,
   createSelectSchema,
@@ -3429,3 +3429,187 @@ export const WorkflowExecutionInsertSchema = createInsertSchema(workflowExecutio
   });
 
 export const WorkflowExecutionUpdateSchema = WorkflowExecutionInsertSchema.partial();
+
+export const ImprovementRunSchema = z
+  .object({
+    branchName: z.string(),
+    status: z.string(),
+    updatedAt: z.string(),
+  })
+  .openapi('ImprovementRun');
+
+export const ImprovementListResponseSchema = z
+  .object({
+    data: z.array(ImprovementRunSchema),
+  })
+  .openapi('ImprovementListResponse');
+
+export const ImprovementTriggerRequestSchema = z
+  .object({
+    feedbackIds: z
+      .array(z.string())
+      .min(1)
+      .describe('One or more feedback IDs to base the improvement on'),
+    additionalContext: z
+      .string()
+      .optional()
+      .describe('Free-form instructions or context to guide the improvement agent'),
+  })
+  .openapi('ImprovementTriggerRequest');
+
+export const ImprovementTriggerResponseSchema = z
+  .object({
+    branchName: z.string(),
+    conversationId: z.string(),
+  })
+  .openapi('ImprovementTriggerResponse');
+
+export const ImprovementDiffQuerySchema = z
+  .object({
+    targetBranch: z.string().optional(),
+  })
+  .openapi('ImprovementDiffQuery');
+
+const ImprovementDiffSummaryItemSchema = z.object({
+  tableName: z.string(),
+  diffType: z.string(),
+  dataChange: z.boolean(),
+  schemaChange: z.boolean(),
+});
+
+export const ImprovementDiffResponseSchema = z
+  .object({
+    branchName: z.string(),
+    targetBranch: z.string(),
+    sourceHash: z.string().optional(),
+    targetHash: z.string().optional(),
+    hasConflicts: z.boolean(),
+    conflicts: z.array(ConflictItemSchema),
+    summary: z.array(ImprovementDiffSummaryItemSchema),
+    tables: z.record(z.string(), z.array(z.record(z.string(), z.unknown()))),
+    fkLinks: z.array(z.unknown()).optional(),
+    pkMap: z.record(z.string(), z.array(z.string())).optional(),
+  })
+  .openapi('ImprovementDiffResponse');
+
+export const ImprovementMergeRequestSchema = z
+  .object({
+    targetBranch: z.string().optional(),
+    resolutions: z.array(ConflictResolutionSchema).optional(),
+  })
+  .openapi('ImprovementMergeRequest');
+
+export const ImprovementMergeResponseSchema = z
+  .object({
+    success: z.boolean(),
+    message: z.string(),
+    mergeCommitHash: z.string().optional(),
+    sourceBranch: z.string(),
+    targetBranch: z.string(),
+  })
+  .openapi('ImprovementMergeResponse');
+
+export const ImprovementRevertRowSchema = z
+  .object({
+    table: z.string(),
+    primaryKey: z.record(z.string(), z.string()),
+    diffType: z.enum(['added', 'modified', 'removed']),
+  })
+  .openapi('ImprovementRevertRow');
+
+export const ImprovementRevertRequestSchema = z
+  .object({
+    rows: z.array(ImprovementRevertRowSchema),
+    targetBranch: z.string().optional(),
+  })
+  .openapi('ImprovementRevertRequest');
+
+export const ImprovementSuccessMessageSchema = z
+  .object({
+    success: z.boolean(),
+    message: z.string(),
+  })
+  .openapi('ImprovementSuccessMessage');
+
+export const ImprovementFeedbackItemSchema = z
+  .object({
+    id: z.string(),
+    type: z.string().nullable(),
+    details: z.unknown().nullable(),
+    createdAt: z.string().nullable(),
+  })
+  .openapi('ImprovementFeedbackItem');
+
+export const ImprovementConversationResponseSchema = z
+  .object({
+    conversationIds: z.array(z.string()),
+    status: z.string().optional(),
+    feedbackItems: z.array(ImprovementFeedbackItemSchema).optional(),
+  })
+  .openapi('ImprovementConversationResponse');
+
+export const EvalSummaryItemStatusSchema = z
+  .object({
+    total: z.number(),
+    completed: z.number(),
+    failed: z.number(),
+    pending: z.number(),
+    running: z.number(),
+  })
+  .openapi('EvalSummaryItemStatus');
+
+export const EvalSummaryResultSchema = z
+  .object({
+    id: z.string(),
+    evaluatorId: z.string(),
+    evaluatorName: z.string(),
+    conversationId: z.string(),
+    input: z.string().nullable(),
+    output: z.unknown().nullable(),
+    passed: z.enum(['passed', 'failed', 'no_criteria', 'pending']),
+    createdAt: z.string(),
+  })
+  .openapi('EvalSummaryResult');
+
+export const EvalSummaryDatasetRunSchema = z
+  .object({
+    id: z.string(),
+    datasetId: z.string(),
+    datasetName: z.string(),
+    runConfigName: z.string().nullable(),
+    createdAt: z.string(),
+    phase: z.enum(['baseline', 'post_change', 'unknown']),
+    ref: z.object({ name: z.string(), hash: z.string(), type: z.string() }).nullable(),
+    items: EvalSummaryItemStatusSchema,
+    evaluationJobConfigId: z.string().nullable(),
+    evaluationResults: z.array(EvalSummaryResultSchema),
+  })
+  .openapi('EvalSummaryDatasetRun');
+
+export const EvalSummaryResponseSchema = z
+  .object({
+    datasetRuns: z.array(EvalSummaryDatasetRunSchema),
+  })
+  .openapi('EvalSummaryResponse');
+
+export const ImprovementBranchParamsSchema = z
+  .object({
+    tenantId: z.string().openapi({ param: { name: 'tenantId', in: 'path' } }),
+    projectId: z.string().openapi({ param: { name: 'projectId', in: 'path' } }),
+    branchName: z.string().openapi({ param: { name: 'branchName', in: 'path' } }),
+  })
+  .openapi('ImprovementBranchParams');
+
+export type ImprovementRun = z.infer<typeof ImprovementRunSchema>;
+export type ImprovementListResponse = z.infer<typeof ImprovementListResponseSchema>;
+export type ImprovementTriggerRequest = z.infer<typeof ImprovementTriggerRequestSchema>;
+export type ImprovementTriggerResponse = z.infer<typeof ImprovementTriggerResponseSchema>;
+export type ImprovementDiffResponse = z.infer<typeof ImprovementDiffResponseSchema>;
+export type ImprovementMergeRequest = z.infer<typeof ImprovementMergeRequestSchema>;
+export type ImprovementMergeResponse = z.infer<typeof ImprovementMergeResponseSchema>;
+export type ImprovementRevertRow = z.infer<typeof ImprovementRevertRowSchema>;
+export type ImprovementRevertRequest = z.infer<typeof ImprovementRevertRequestSchema>;
+export type ImprovementConversationResponse = z.infer<typeof ImprovementConversationResponseSchema>;
+export type EvalSummaryResponse = z.infer<typeof EvalSummaryResponseSchema>;
+export type EvalSummaryDatasetRun = z.infer<typeof EvalSummaryDatasetRunSchema>;
+export type EvalSummaryResult = z.infer<typeof EvalSummaryResultSchema>;

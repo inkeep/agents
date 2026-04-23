@@ -15,6 +15,7 @@ import evalsRoutes from './evals';
 import externalAgentsRoutes from './externalAgents';
 import functionsRoutes from './functions';
 import functionToolsRoutes from './functionTools';
+import improvementsRoutes from './improvements';
 import mcpCatalogRoutes from './mcpCatalog';
 import mergeRoutes from './merge';
 import projectMembersRoutes from './projectMembers';
@@ -103,6 +104,7 @@ app.route('/projects/:projectId/mcp-catalog', mcpCatalogRoutes);
 app.route('/projects/:projectId/third-party-mcp-servers', thirdPartyMCPServersRoutes);
 app.route('/projects/:projectId/agents/:agentId/triggers', triggersRoutes);
 app.route('/projects/:projectId/agents/:agentId/scheduled-triggers', scheduledTriggersRoutes);
+app.route('/projects/:projectId/improvements', improvementsRoutes);
 
 // Evaluation routes (datasets, evaluators, etc.)
 app.route('/projects/:projectId/evals', evalsRoutes);

@@ -28,6 +28,7 @@ export const TagToDescription = {
   'Function Tools': 'Operations for managing function tools',
   Functions: 'Operations for managing functions',
   GitHub: 'GitHub App integration endpoints',
+  Improvements: 'Operations for agent improvement runs (copilot-assisted edits)',
   Invitations: 'Operations for managing organization invitations',
   MCP: 'MCP (Model Context Protocol) endpoints',
   'MCP Catalog': 'Operations for MCP catalog',
