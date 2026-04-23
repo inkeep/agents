@@ -1,5 +1,15 @@
 # @inkeep/agents-api
 
+## 0.70.1
+
+### Patch Changes
+
+- fbfeb6d: Import CSV functionality for datasets and rerun test suite runs
+  - @inkeep/agents-core@0.70.1
+  - @inkeep/agents-email@0.70.1
+  - @inkeep/agents-mcp@0.70.1
+  - @inkeep/agents-work-apps@0.70.1
+
 ## 0.70.0
 
 ### Minor Changes
