@@ -73,7 +73,7 @@ app.openapi(
     const type = c.req.query('type') as 'web_client' | 'api' | 'support_copilot' | undefined;
 
     const result = await listAppsPaginated(runDbClient)({
-      scopes: { tenantId, projectId },
+      scopes: { tenantId, projectIds: [projectId] },
       pagination: { page, limit },
       type,
     });
