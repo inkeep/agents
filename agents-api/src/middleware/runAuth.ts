@@ -673,8 +673,22 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
 
   if (app.type === 'web_client') {
     const config = app.config as WebClientConfig;
+    const publicKeys = config.webClient.publicKeys ?? [];
+    const hasAuthConfigured = publicKeys.length > 0;
+    const allowAnonymous = config.webClient.allowAnonymous !== false;
 
-    if (!validateOrigin(origin, config.webClient.allowedDomains)) {
+    let asymResult: Awaited<ReturnType<typeof tryAsymmetricJwtVerification>> | null = null;
+    if (bearerToken && hasAuthConfigured) {
+      asymResult = await tryAsymmetricJwtVerification(
+        bearerToken,
+        publicKeys,
+        config.webClient.audience,
+        appLogger
+      );
+    }
+    const isInternalCaller = asymResult?.ok === true && asymResult.claims.internal === true;
+
+    if (!isInternalCaller && !validateOrigin(origin, config.webClient.allowedDomains)) {
       appLogger.warn(
         { origin, allowedDomains: config.webClient.allowedDomains },
         'App credential auth: origin not allowed'
@@ -682,13 +696,13 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
       throw createApiError({ code: 'forbidden', message: 'Origin not allowed for this app' });
     }
 
+    if (isInternalCaller) {
+      appLogger.debug('App credential auth: internal caller detected, Origin check skipped');
+    }
+
     if (!bearerToken) {
       return { authResult: null, failureMessage: 'Bearer token required for web_client app' };
     }
-
-    const publicKeys = config.webClient.publicKeys ?? [];
-    const hasAuthConfigured = publicKeys.length > 0;
-    const allowAnonymous = config.webClient.allowAnonymous !== false;
 
     if (!hasAuthConfigured && !allowAnonymous) {
       appLogger.debug(
@@ -701,12 +715,12 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
     }
 
     if (hasAuthConfigured) {
-      const asymResult = await tryAsymmetricJwtVerification(
-        bearerToken,
-        publicKeys,
-        config.webClient.audience,
-        appLogger
-      );
+      if (!asymResult) {
+        throw createApiError({
+          code: 'internal_server_error',
+          message: 'App credential auth: asymResult invariant violated',
+        });
+      }
 
       if (!asymResult.ok) {
         if (!allowAnonymous) {
@@ -739,6 +753,7 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
           tid: _tid,
           pid: _pid,
           agentId: _agentIdClaim,
+          internal: _internal,
           ...verifiedClaims
         } = asymResult.claims;
 

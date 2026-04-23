@@ -107,6 +107,22 @@ const envSchema = z
       .optional()
       .describe('Eval API bypass secret for local development and testing (skips auth)'),
 
+    // Copilot / Improvement Agent JWT (shared app credential)
+    INKEEP_COPILOT_JWT_PRIVATE_KEY: z
+      .string()
+      .optional()
+      .describe(
+        'Base64-encoded RSA private key for signing copilot/improvement JWTs. Shared by manage-ui and agents-api.'
+      ),
+    INKEEP_COPILOT_JWT_KID: z
+      .string()
+      .optional()
+      .describe('Key ID for the copilot/improvement JWT signing key'),
+    PUBLIC_INKEEP_COPILOT_APP_ID: z
+      .string()
+      .optional()
+      .describe('App ID for the copilot/improvement agent app credential'),
+
     // Vercel Cron
     CRON_SECRET: z
       .string()

@@ -110,6 +110,8 @@ export class ContextResolver {
           });
 
           if (options.headers && Object.keys(options.headers).length > 0) {
+            const cachedHeaderValues = (currentHeaders?.value as Record<string, unknown>) || {};
+            const mergedHeaders = { ...cachedHeaderValues, ...options.headers };
             await this.cache.invalidateHeaders(
               this.executionContext.tenantId,
               this.executionContext.projectId,
@@ -117,20 +119,15 @@ export class ContextResolver {
               contextConfig.id
             );
 
-            logger.info(
-              {
-                conversationId: options.conversationId,
-                contextConfigId: contextConfig.id,
-              },
-              'Invalidated headers in cache'
-            );
             await this.cache.set({
               contextConfigId: contextConfig.id,
               contextVariableKey: 'headers',
               conversationId: options.conversationId,
-              value: options.headers,
+              value: mergedHeaders,
               tenantId: this.executionContext.tenantId,
             });
+            result.headers = mergedHeaders;
+          } else if (currentHeaders) {
             logger.info(
               {
                 conversationId: options.conversationId,
@@ -138,7 +135,6 @@ export class ContextResolver {
               },
               'Headers set in cache'
             );
-          } else if (currentHeaders) {
             result.headers = currentHeaders.value as Record<string, unknown>;
           } else {
             result.headers = {};
