@@ -12,6 +12,7 @@ export const REQUEST_TYPES = {
 
 export const QUERY_TYPES = {
   BUILDER_QUERY: 'builder_query',
+  BUILDER_TRACE_OPERATOR: 'builder_trace_operator',
 } as const;
 
 export const FIELD_CONTEXTS = {
@@ -123,6 +124,8 @@ export const QUERY_EXPRESSIONS = {
   STREAM_LIFETIME_EXCEEDED: 'streamLifetimeExceeded',
   DURABLE_TOOL_EXECUTIONS: 'durableToolExecutions',
   USAGE_EVENTS: 'usageEvents',
+  AGG_TOOL_CALLS_BY_TYPE: 'aggToolCallsByType',
+  AGG_AI_CALLS: 'aggAICalls',
 } as const;
 
 /** Query Order Directions */
