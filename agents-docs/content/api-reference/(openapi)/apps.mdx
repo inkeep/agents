@@ -54,8 +54,10 @@ _openapi:
         id: delete-app
     contents:
       - content: >-
-          List all apps for a tenant across all projects, optionally filtered by
-          type
+          List apps for a tenant. Organization admins and owners see all apps
+          across all projects. Other tenant members see only apps from projects
+          where they have at least Use permission (project member role or
+          higher). Results can be optionally filtered by app type.
         heading: list-tenant-apps
       - content: List all app credentials for a project
         heading: list-apps
