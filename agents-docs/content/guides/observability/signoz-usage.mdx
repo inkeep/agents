@@ -65,6 +65,16 @@ duration > 1000ms
 agent.id = "customer-support-agent"
 ```
 
+##### Origin Filter
+
+In the Visual Builder Traces interface, you can filter traces by their origin using the **Origin** dropdown. This helps you find traces based on how the agent was invoked:
+
+| Origin Value | Display Label | Description |
+|--------------|---------------|-------------|
+| `slack` | Slack | Traces from Slack integrations |
+| `trigger` | Webhook | Traces from webhook trigger invocations |
+| `scheduled_trigger` | Trigger | Traces from scheduled trigger invocations |
+
 #### Analyzing Individual Traces
 
 When you click on a specific trace from the list, you'll see the detailed trace view with a flamegraph visualization:
