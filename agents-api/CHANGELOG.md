@@ -1,5 +1,15 @@
 # @inkeep/agents-api
 
+## 0.70.3
+
+### Patch Changes
+
+- 16b4daa: Filter tenant-wide apps list by caller's project use permissions to prevent cross-project enumeration
+  - @inkeep/agents-core@0.70.3
+  - @inkeep/agents-email@0.70.3
+  - @inkeep/agents-mcp@0.70.3
+  - @inkeep/agents-work-apps@0.70.3
+
 ## 0.70.2
 
 ### Patch Changes
