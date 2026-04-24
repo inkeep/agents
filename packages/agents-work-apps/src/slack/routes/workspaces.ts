@@ -63,6 +63,20 @@ function verifyTenantOwnership(
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
+const SlackTeamIdSchema = z
+  .string()
+  .regex(/^T[A-Z0-9]+$/, 'teamId must be a raw Slack team ID (e.g. T012AB3C4)')
+  .openapi({ example: 'T012AB3C4' });
+
+const WorkspaceTeamIdParams = z.object({
+  teamId: SlackTeamIdSchema,
+});
+
+const WorkspaceTeamAndChannelIdParams = z.object({
+  teamId: SlackTeamIdSchema,
+  channelId: z.string(),
+});
+
 const WorkspaceSettingsResponseSchema = z.object({
   defaultAgent: WorkAppSlackAgentConfigRequestSchema.optional(),
 });
@@ -176,9 +190,7 @@ app.openapi(
     tags: ['Work Apps', 'Slack', 'Workspaces'],
     permission: inheritedWorkAppsAuth(),
     request: {
-      params: z.object({
-        teamId: z.string(),
-      }),
+      params: WorkspaceTeamIdParams,
     },
     responses: {
       200: {
@@ -235,9 +247,7 @@ app.openapi(
     tags: ['Work Apps', 'Slack', 'Workspaces'],
     permission: inheritedWorkAppsAuth(),
     request: {
-      params: z.object({
-        teamId: z.string(),
-      }),
+      params: WorkspaceTeamIdParams,
     },
     responses: {
       200: {
@@ -281,9 +291,7 @@ app.openapi(
     tags: ['Work Apps', 'Slack', 'Workspaces'],
     permission: requireWorkspaceAdmin(),
     request: {
-      params: z.object({
-        teamId: z.string(),
-      }),
+      params: WorkspaceTeamIdParams,
       body: {
         content: {
           'application/json': {
@@ -380,9 +388,7 @@ app.openapi(
     tags: ['Work Apps', 'Slack', 'Workspaces'],
     permission: inheritedWorkAppsAuth(),
     request: {
-      params: z.object({
-        teamId: z.string(),
-      }),
+      params: WorkspaceTeamIdParams,
     },
     responses: {
       200: {
@@ -427,9 +433,7 @@ app.openapi(
     tags: ['Work Apps', 'Slack', 'Workspaces'],
     permission: requireWorkspaceAdmin(),
     request: {
-      params: z.object({
-        teamId: z.string(),
-      }),
+      params: WorkspaceTeamIdParams,
       body: {
         content: {
           'application/json': {
@@ -509,14 +513,13 @@ app.openapi(
     method: 'delete',
     path: '/{teamId}',
     summary: 'Uninstall Workspace',
-    description: 'Uninstall Slack app from workspace. Accepts either teamId or connectionId.',
+    description:
+      'Uninstall the Inkeep Slack app from a workspace. The path parameter must be the raw Slack team ID (e.g. T012AB3C4).',
     operationId: 'slack-delete-workspace',
     tags: ['Work Apps', 'Slack', 'Workspaces'],
     permission: requireWorkspaceAdmin(),
     request: {
-      params: z.object({
-        teamId: z.string(),
-      }),
+      params: WorkspaceTeamIdParams,
     },
     responses: {
       200: {
@@ -527,8 +530,8 @@ app.openapi(
           },
         },
       },
-      400: {
-        description: 'Invalid connectionId format',
+      403: {
+        description: 'Access denied',
       },
       404: {
         description: 'Workspace not found',
@@ -539,21 +542,9 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { teamId: workspaceIdentifier } = c.req.valid('param');
-
-    let teamId: string;
+    const { teamId } = c.req.valid('param');
 
     try {
-      if (workspaceIdentifier.includes(':')) {
-        const teamMatch = workspaceIdentifier.match(/T:([A-Z0-9]+)/);
-        if (!teamMatch) {
-          return c.json({ error: 'Invalid connectionId format' }, 400);
-        }
-        teamId = teamMatch[1];
-      } else {
-        teamId = workspaceIdentifier;
-      }
-
       const workspace = await findWorkspaceConnectionByTeamId(teamId);
       if (!workspace) {
         return c.json({ error: 'Workspace not found' }, 404);
@@ -572,7 +563,7 @@ app.openapi(
       logger.info({ teamId }, 'Workspace uninstalled via API');
       return c.json({ success: true });
     } catch (error) {
-      logger.error({ error, workspaceIdentifier }, 'Failed to uninstall workspace');
+      logger.error({ error, teamId }, 'Failed to uninstall workspace');
       return c.json({ error: 'Failed to uninstall workspace' }, 500);
     }
   }
@@ -588,9 +579,7 @@ app.openapi(
     tags: ['Work Apps', 'Slack', 'Channels'],
     permission: inheritedWorkAppsAuth(),
     request: {
-      params: z.object({
-        teamId: z.string(),
-      }),
+      params: WorkspaceTeamIdParams,
       query: z.object({
         limit: z.coerce.number().optional().default(100),
         cursor: z.string().optional(),
@@ -695,10 +684,7 @@ app.openapi(
     tags: ['Work Apps', 'Slack', 'Channels'],
     permission: inheritedWorkAppsAuth(),
     request: {
-      params: z.object({
-        teamId: z.string(),
-        channelId: z.string(),
-      }),
+      params: WorkspaceTeamAndChannelIdParams,
     },
     responses: {
       200: {
@@ -753,10 +739,7 @@ app.openapi(
     tags: ['Work Apps', 'Slack', 'Channels'],
     permission: requireChannelMemberOrAdmin(),
     request: {
-      params: z.object({
-        teamId: z.string(),
-        channelId: z.string(),
-      }),
+      params: WorkspaceTeamAndChannelIdParams,
       body: {
         content: {
           'application/json': {
@@ -858,9 +841,7 @@ app.openapi(
     tags: ['Work Apps', 'Slack', 'Channels'],
     permission: requireWorkspaceAdmin(),
     request: {
-      params: z.object({
-        teamId: z.string(),
-      }),
+      params: WorkspaceTeamIdParams,
       body: {
         content: {
           'application/json': {
@@ -1001,9 +982,7 @@ app.openapi(
     tags: ['Work Apps', 'Slack', 'Channels'],
     permission: requireWorkspaceAdmin(),
     request: {
-      params: z.object({
-        teamId: z.string(),
-      }),
+      params: WorkspaceTeamIdParams,
       body: {
         content: {
           'application/json': {
@@ -1067,10 +1046,7 @@ app.openapi(
     tags: ['Work Apps', 'Slack', 'Channels'],
     permission: requireChannelMemberOrAdmin(),
     request: {
-      params: z.object({
-        teamId: z.string(),
-        channelId: z.string(),
-      }),
+      params: WorkspaceTeamAndChannelIdParams,
     },
     responses: {
       200: {
@@ -1115,9 +1091,7 @@ app.openapi(
     tags: ['Work Apps', 'Slack', 'Users'],
     permission: inheritedWorkAppsAuth(),
     request: {
-      params: z.object({
-        teamId: z.string(),
-      }),
+      params: WorkspaceTeamIdParams,
     },
     responses: {
       200: {
@@ -1183,9 +1157,7 @@ app.openapi(
     tags: ['Work Apps', 'Slack', 'Workspaces'],
     permission: inheritedWorkAppsAuth(),
     request: {
-      params: z.object({
-        teamId: z.string(),
-      }),
+      params: WorkspaceTeamIdParams,
     },
     responses: {
       200: {
@@ -1300,9 +1272,7 @@ app.openapi(
     tags: ['Work Apps', 'Slack', 'Workspaces'],
     permission: requireWorkspaceAdmin(),
     request: {
-      params: z.object({
-        teamId: z.string(),
-      }),
+      params: WorkspaceTeamIdParams,
       body: {
         content: {
           'application/json': {

@@ -50486,7 +50486,7 @@
     },
     "/work-apps/slack/workspaces/{teamId}": {
       "delete": {
-        "description": "Uninstall Slack app from workspace. Accepts either teamId or connectionId.",
+        "description": "Uninstall the Inkeep Slack app from a workspace. The path parameter must be the raw Slack team ID (e.g. T012AB3C4).",
         "operationId": "slack-delete-workspace",
         "parameters": [
           {
@@ -50494,6 +50494,8 @@
             "name": "teamId",
             "required": true,
             "schema": {
+              "example": "T012AB3C4",
+              "pattern": "^T[A-Z0-9]+$",
               "type": "string"
             }
           }
@@ -50517,8 +50519,8 @@
             },
             "description": "Workspace uninstalled"
           },
-          "400": {
-            "description": "Invalid connectionId format"
+          "403": {
+            "description": "Access denied"
           },
           "404": {
             "description": "Workspace not found"
@@ -50548,6 +50550,8 @@
             "name": "teamId",
             "required": true,
             "schema": {
+              "example": "T012AB3C4",
+              "pattern": "^T[A-Z0-9]+$",
               "type": "string"
             }
           }
@@ -50627,6 +50631,8 @@
             "name": "teamId",
             "required": true,
             "schema": {
+              "example": "T012AB3C4",
+              "pattern": "^T[A-Z0-9]+$",
               "type": "string"
             }
           },
@@ -50754,6 +50760,8 @@
             "name": "teamId",
             "required": true,
             "schema": {
+              "example": "T012AB3C4",
+              "pattern": "^T[A-Z0-9]+$",
               "type": "string"
             }
           }
@@ -50824,6 +50832,8 @@
             "name": "teamId",
             "required": true,
             "schema": {
+              "example": "T012AB3C4",
+              "pattern": "^T[A-Z0-9]+$",
               "type": "string"
             }
           }
@@ -50945,6 +50955,8 @@
             "name": "teamId",
             "required": true,
             "schema": {
+              "example": "T012AB3C4",
+              "pattern": "^T[A-Z0-9]+$",
               "type": "string"
             }
           },
@@ -50996,6 +51008,8 @@
             "name": "teamId",
             "required": true,
             "schema": {
+              "example": "T012AB3C4",
+              "pattern": "^T[A-Z0-9]+$",
               "type": "string"
             }
           },
@@ -51067,6 +51081,8 @@
             "name": "teamId",
             "required": true,
             "schema": {
+              "example": "T012AB3C4",
+              "pattern": "^T[A-Z0-9]+$",
               "type": "string"
             }
           },
@@ -51167,6 +51183,8 @@
             "name": "teamId",
             "required": true,
             "schema": {
+              "example": "T012AB3C4",
+              "pattern": "^T[A-Z0-9]+$",
               "type": "string"
             }
           }
@@ -51250,6 +51268,8 @@
             "name": "teamId",
             "required": true,
             "schema": {
+              "example": "T012AB3C4",
+              "pattern": "^T[A-Z0-9]+$",
               "type": "string"
             }
           }
@@ -51296,6 +51316,8 @@
             "name": "teamId",
             "required": true,
             "schema": {
+              "example": "T012AB3C4",
+              "pattern": "^T[A-Z0-9]+$",
               "type": "string"
             }
           }
@@ -51369,6 +51391,8 @@
             "name": "teamId",
             "required": true,
             "schema": {
+              "example": "T012AB3C4",
+              "pattern": "^T[A-Z0-9]+$",
               "type": "string"
             }
           }
@@ -51426,6 +51450,8 @@
             "name": "teamId",
             "required": true,
             "schema": {
+              "example": "T012AB3C4",
+              "pattern": "^T[A-Z0-9]+$",
               "type": "string"
             }
           }
@@ -51510,6 +51536,8 @@
             "name": "teamId",
             "required": true,
             "schema": {
+              "example": "T012AB3C4",
+              "pattern": "^T[A-Z0-9]+$",
               "type": "string"
             }
           }
@@ -51589,6 +51617,8 @@
             "name": "teamId",
             "required": true,
             "schema": {
+              "example": "T012AB3C4",
+              "pattern": "^T[A-Z0-9]+$",
               "type": "string"
             }
           }
