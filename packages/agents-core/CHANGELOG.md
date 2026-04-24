@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.70.4
+
+### Patch Changes
+
+- 5bd4911: First class support for origin filtering in traces
+- 4ecbba7: performance improvements for traces page
+
 ## 0.70.3
 
 ## 0.70.2
