@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify(validationResult.data),
         credentials: 'include',
         timeout: 60000,
-        maxAttempts: 3,
+        maxAttempts: 2,
         label: 'signoz-batch-query',
       });
 
@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(validatedBody),
       credentials: 'include',
       timeout: 30000,
-      maxAttempts: 3,
+      maxAttempts: 2,
       label: 'signoz-query',
     });
 

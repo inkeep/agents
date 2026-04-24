@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import type { TraceOrigin } from '@/hooks/use-traces-query-state';
 import {
   type AggregateStats,
@@ -63,11 +63,16 @@ export function useConversationStats(
     PaginatedConversationStats['pagination'] | null
   >(null);
   const [aggregateStats, setAggregateStats] = useState<AggregateStats>(DEFAULT_AGGREGATE_STATS);
+  const abortRef = useRef<AbortController | null>(null);
 
-  // Extract stable values to avoid object recreation issues
   const pageSize = options.pagination?.pageSize || 50;
+  const filtersKey = options.filters ? JSON.stringify(options.filters) : '';
 
   function fetchData(page: number) {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     startLoading(async () => {
       try {
         setError(null);
@@ -87,8 +92,11 @@ export function useConversationStats(
           options.searchQuery,
           options.agentId,
           options.hasErrors,
-          options.origin
+          options.origin,
+          controller.signal
         );
+
+        if (controller.signal.aborted) return;
 
         setStats(result.data);
         setPaginationInfo(result.pagination);
@@ -96,6 +104,7 @@ export function useConversationStats(
           setAggregateStats(result.aggregateStats);
         }
       } catch (err) {
+        if (controller.signal.aborted) return;
         console.error('Error fetching conversation stats:', err);
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to fetch conversation stats';
@@ -137,10 +146,11 @@ export function useConversationStats(
   useEffect(() => {
     setCurrentPage(1);
     fetchData(1);
+    return () => abortRef.current?.abort();
   }, [
     options.startTime,
     options.endTime,
-    options.filters,
+    filtersKey,
     options.projectId,
     options.tenantId,
     options.searchQuery,
