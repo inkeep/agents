@@ -1,5 +1,18 @@
 # @inkeep/agents-api
 
+## 0.70.4
+
+### Patch Changes
+
+- 5bd4911: First class support for origin filtering in traces
+- Updated dependencies [5bd4911]
+- Updated dependencies [4ecbba7]
+- Updated dependencies [d96e872]
+  - @inkeep/agents-core@0.70.4
+  - @inkeep/agents-work-apps@0.70.4
+  - @inkeep/agents-email@0.70.4
+  - @inkeep/agents-mcp@0.70.4
+
 ## 0.70.3
 
 ### Patch Changes
