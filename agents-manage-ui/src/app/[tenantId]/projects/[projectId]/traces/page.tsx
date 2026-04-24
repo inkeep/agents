@@ -9,7 +9,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 import { AreaChartCard } from '@/components/traces/charts/area-chart-card';
 import { StatCard } from '@/components/traces/charts/stat-card';
 import { ConversationStatsCard } from '@/components/traces/conversation-stats/conversation-stats-card';
@@ -65,6 +65,7 @@ export default function TracesOverview({
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [activityData, setActivityData] = useState<{ date: string; count: number }[]>([]);
   const [activityLoading, setActivityLoading] = useState(true);
+  const activityAbortRef = useRef<AbortController | null>(null);
 
   // Calculate time range based on selection
   const { startTime, endTime } = (() => {
@@ -142,6 +143,10 @@ export default function TracesOverview({
 
   // Fetch conversations per day activity
   useEffect(() => {
+    activityAbortRef.current?.abort();
+    const controller = new AbortController();
+    activityAbortRef.current = controller;
+
     const fetchActivity = async () => {
       try {
         setActivityLoading(true);
@@ -152,18 +157,22 @@ export default function TracesOverview({
           endTime,
           agentId,
           projectId,
-          selectedOrigin
+          selectedOrigin,
+          controller.signal
         );
+        if (controller.signal.aborted) return;
         setActivityData(data);
       } catch (e) {
+        if (controller.signal.aborted) return;
         console.error('Failed to fetch conversation activity:', e);
         setActivityData([]);
       }
-      setActivityLoading(false);
+      if (!controller.signal.aborted) setActivityLoading(false);
     };
     if (startTime && endTime && tenantId) {
       fetchActivity();
     }
+    return () => controller.abort();
   }, [startTime, endTime, selectedAgent, selectedOrigin, projectId, tenantId]);
 
   // Filter stats based on selected agent (for aggregate calculations)
