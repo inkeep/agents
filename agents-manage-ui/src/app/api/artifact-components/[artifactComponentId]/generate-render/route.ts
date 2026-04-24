@@ -16,6 +16,7 @@ import type { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { fetchArtifactComponent } from '@/lib/api/artifact-components';
 import { fetchProject } from '@/lib/api/projects';
+import { requireApiRouteProjectPermission } from '@/lib/auth/api-route-auth';
 
 export async function POST(
   request: NextRequest,
@@ -28,6 +29,15 @@ export async function POST(
 
     if (!tenantId || !projectId) {
       return new Response('Missing tenantId or projectId', { status: 400 });
+    }
+
+    const authResult = await requireApiRouteProjectPermission(request, {
+      tenantId,
+      projectId,
+      level: 'edit',
+    });
+    if (!authResult.ok) {
+      return authResult.response;
     }
 
     // Fetch artifact component from agents-api

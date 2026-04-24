@@ -32,7 +32,7 @@ import {
   DEFAULT_LOOKBACK_MS,
   getConversationTimeRange,
 } from '@/lib/api/signoz-conversation-time-range';
-
+import { requireApiRouteSessionOrBearer } from '@/lib/auth/api-route-auth';
 import { getLogger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -102,8 +102,7 @@ function formatGenerationType(
 async function signozQuery(
   payload: any,
   tenantId: string,
-  cookieHeader: string | null,
-  authHeader: string | null
+  authHeaders: Record<string, string>
 ): Promise<SigNozResp> {
   const logger = getLogger('traces-query');
 
@@ -113,14 +112,8 @@ async function signozQuery(
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      ...authHeaders,
     };
-
-    if (cookieHeader) {
-      headers.Cookie = cookieHeader;
-    }
-    if (authHeader) {
-      headers.Authorization = authHeader;
-    }
 
     logger.debug({ endpoint }, 'Calling agents-api for conversation traces');
 
@@ -660,6 +653,10 @@ export async function GET(
   req: NextRequest,
   context: RouteContext<'/api/traces/conversations/[conversationId]'>
 ) {
+  const authResult = await requireApiRouteSessionOrBearer(req);
+  if (!authResult.ok) {
+    return authResult.response;
+  }
   const { conversationId } = await context.params;
   if (!conversationId) {
     return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 });
@@ -673,9 +670,6 @@ export async function GET(
   // Optional time range params to narrow the ClickHouse scan window
   const startParam = url.searchParams.get('start');
   const endParam = url.searchParams.get('end');
-
-  const cookieHeader = req.headers.get('cookie');
-  const authHeader = req.headers.get('authorization');
 
   try {
     const logger = getLogger('conversation-detail');
@@ -704,7 +698,7 @@ export async function GET(
       Promise.all(
         payloads.map(async (p, i) => {
           const batchStart = Date.now();
-          const result = await signozQuery(p, tenantId, cookieHeader, authHeader);
+          const result = await signozQuery(p, tenantId, authResult.headers);
           logger.info(
             {
               batch: batchLabels[i],
@@ -719,7 +713,7 @@ export async function GET(
       (async () => {
         const batchStart = Date.now();
         try {
-          const result = await signozQuery(usageEventsPayload, tenantId, cookieHeader, authHeader);
+          const result = await signozQuery(usageEventsPayload, tenantId, authResult.headers);
           logger.info(
             { batch: 'usage-events', ms: Date.now() - batchStart },
             'signoz batch complete'
