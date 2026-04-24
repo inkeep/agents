@@ -64,7 +64,7 @@ const sandboxConfig: SandboxConfig =
       }
     : { provider: 'native', runtime: 'node22', timeout: 30000, vcpus: 2 };
 
-const socialProviders =
+const googleProvider =
   process.env.PUBLIC_GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
     ? {
         google: {
@@ -76,9 +76,26 @@ const socialProviders =
       }
     : undefined;
 
+const microsoftProvider =
+  process.env.PUBLIC_MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET
+    ? {
+        microsoft: {
+          prompt: 'select_account' as const,
+          clientId: process.env.PUBLIC_MICROSOFT_CLIENT_ID,
+          clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
+        },
+      }
+    : undefined;
+
+const socialProviders =
+  googleProvider || microsoftProvider ? { ...googleProvider, ...microsoftProvider } : undefined;
+
 const emailService = createEmailService();
 
-export const auth = createAgentsAuth({ socialProviders }, emailService);
+export const auth: ReturnType<typeof createAgentsAuth> = createAgentsAuth(
+  { socialProviders },
+  emailService
+);
 
 // Create default credential stores
 const defaultStores = createDefaultCredentialStores();

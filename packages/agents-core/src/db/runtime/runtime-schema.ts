@@ -14,7 +14,7 @@ import {
   uniqueIndex,
   varchar,
 } from 'drizzle-orm/pg-core';
-import { organization, user } from '../../auth/auth-schema';
+import { invitation, organization, user } from '../../auth/auth-schema';
 import type { Part } from '../../types/a2a';
 import type {
   AppConfig,
@@ -578,6 +578,25 @@ export const feedback = pgTable(
       foreignColumns: [messages.tenantId, messages.projectId, messages.id],
       name: 'feedback_message_fk',
     }).onDelete('cascade'),
+  ]
+);
+
+export const coPilotRuns = pgTable(
+  'copilot_runs',
+  {
+    ...projectScoped,
+    ref: jsonb('ref').$type<ResolvedRef>(),
+    conversationId: varchar('conversation_id', { length: 256 }).notNull(),
+    feedbackIds: jsonb('feedback_ids').$type<string[]>(),
+    status: varchar('status', { length: 50 })
+      .$type<'running' | 'suspended' | 'completed' | 'failed'>()
+      .notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    index('copilot_runs_status_idx').on(table.tenantId, table.projectId, table.status),
+    uniqueIndex('copilot_runs_conversation_id_idx').on(table.conversationId),
   ]
 );
 
@@ -1154,6 +1173,29 @@ export const workAppSlackMcpToolAccessConfig = pgTable(
       columns: [table.tenantId],
       foreignColumns: [organization.id],
       name: 'work_app_slack_mcp_tool_access_config_tenant_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+// ============================================================================
+// INVITATION PROJECT ASSIGNMENTS
+// ============================================================================
+
+export const invitationProjectAssignment = pgTable(
+  'invitation_project_assignment',
+  {
+    id: text('id').primaryKey(),
+    invitationId: text('invitation_id').notNull(),
+    projectId: text('project_id').notNull(),
+    projectRole: text('project_role').notNull().default('project_member'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => [
+    index('invitation_project_assignment_invitation_idx').on(table.invitationId),
+    foreignKey({
+      columns: [table.invitationId],
+      foreignColumns: [invitation.id],
+      name: 'invitation_project_assignment_invitation_fk',
     }).onDelete('cascade'),
   ]
 );

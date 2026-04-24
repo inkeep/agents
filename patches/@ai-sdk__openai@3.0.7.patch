@@ -1,0 +1,87 @@
+diff --git a/dist/index.mjs b/dist/index.mjs
+index 649c027342d5bfcfc220253085000ce07609f2b3..b7a7c5d89d788a94e57bb7f2fa25481a8f609ce8 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -203,6 +203,40 @@ function convertToOpenAIChatMessages({
+                       file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`
+                     }
+                   };
++                } else if (
++                  part.mediaType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
++                  part.mediaType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
++                  part.mediaType === "application/vnd.openxmlformats-officedocument.presentationml.presentation" ||
++                  part.mediaType === "application/vnd.oasis.opendocument.text" ||
++                  part.mediaType === "application/vnd.oasis.opendocument.spreadsheet" ||
++                  part.mediaType === "application/vnd.oasis.opendocument.presentation" ||
++                  part.mediaType === "application/vnd.apple.pages" ||
++                  part.mediaType === "application/vnd.apple.numbers" ||
++                  part.mediaType === "application/vnd.apple.keynote"
++                ) {
++                  if (part.data instanceof URL) {
++                    throw new UnsupportedFunctionalityError({
++                      functionality: `file part media type ${part.mediaType} with URLs`
++                    });
++                  }
++                  const ext = {
++                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
++                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
++                    "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
++                    "application/vnd.oasis.opendocument.text": "odt",
++                    "application/vnd.oasis.opendocument.spreadsheet": "ods",
++                    "application/vnd.oasis.opendocument.presentation": "odp",
++                    "application/vnd.apple.pages": "pages",
++                    "application/vnd.apple.numbers": "numbers",
++                    "application/vnd.apple.keynote": "key"
++                  }[part.mediaType];
++                  return {
++                    type: "file",
++                    file: typeof part.data === "string" && part.data.startsWith("file-") ? { file_id: part.data } : {
++                      filename: (_c = part.filename) != null ? _c : `part-${index}.${ext}`,
++                      file_data: `data:${part.mediaType};base64,${convertToBase64(part.data)}`
++                    }
++                  };
+                 } else {
+                   throw new UnsupportedFunctionalityError({
+                     functionality: `file part media type ${part.mediaType}`
+@@ -2617,6 +2651,41 @@ async function convertToOpenAIResponsesInput({
+                       file_data: `data:application/pdf;base64,${convertToBase642(part.data)}`
+                     }
+                   };
++                } else if (
++                  part.mediaType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
++                  part.mediaType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
++                  part.mediaType === "application/vnd.openxmlformats-officedocument.presentationml.presentation" ||
++                  part.mediaType === "application/vnd.oasis.opendocument.text" ||
++                  part.mediaType === "application/vnd.oasis.opendocument.spreadsheet" ||
++                  part.mediaType === "application/vnd.oasis.opendocument.presentation" ||
++                  part.mediaType === "application/vnd.apple.pages" ||
++                  part.mediaType === "application/vnd.apple.numbers" ||
++                  part.mediaType === "application/vnd.apple.keynote"
++                ) {
++                  if (part.data instanceof URL) {
++                    return {
++                      type: "input_file",
++                      file_url: part.data.toString()
++                    };
++                  }
++                  const ext = {
++                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
++                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
++                    "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
++                    "application/vnd.oasis.opendocument.text": "odt",
++                    "application/vnd.oasis.opendocument.spreadsheet": "ods",
++                    "application/vnd.oasis.opendocument.presentation": "odp",
++                    "application/vnd.apple.pages": "pages",
++                    "application/vnd.apple.numbers": "numbers",
++                    "application/vnd.apple.keynote": "key"
++                  }[part.mediaType];
++                  return {
++                    type: "input_file",
++                    ...typeof part.data === "string" && isFileId(part.data, fileIdPrefixes) ? { file_id: part.data } : {
++                      filename: (_c2 = part.filename) != null ? _c2 : `part-${index}.${ext}`,
++                      file_data: `data:${part.mediaType};base64,${convertToBase642(part.data)}`
++                    }
++                  };
+                 } else {
+                   throw new UnsupportedFunctionalityError4({
+                     functionality: `file part media type ${part.mediaType}`

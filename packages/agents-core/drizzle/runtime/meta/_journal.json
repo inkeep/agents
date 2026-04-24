@@ -260,6 +260,20 @@
       "when": 1775838949041,
       "tag": "0036_swift_hammerhead",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1776112369985,
+      "tag": "0037_mysterious_gargoyle",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1776895249630,
+      "tag": "0038_windy_kinsey_walden",
+      "breakpoints": true
     }
   ]
 }

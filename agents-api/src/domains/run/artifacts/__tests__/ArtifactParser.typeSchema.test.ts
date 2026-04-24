@@ -1,6 +1,7 @@
 import type { ArtifactComponentApiInsert } from '@inkeep/agents-core';
 import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { SENTINEL_KEY } from '../../constants/artifact-syntax';
 import { ArtifactParser, ToolChainResolutionError } from '../ArtifactParser';
 
 // Hoisted mocks
@@ -296,7 +297,10 @@ describe('ArtifactParser — typeSchema in data parts', () => {
       mockArtifactService.getArtifactFull.mockResolvedValue({
         data: { title: 'Resolved Title', content: 'Full content' },
       });
-      const result = await parser.resolveArgs({ $artifact: 'art-1', $tool: 'tool-1' });
+      const result = await parser.resolveArgs({
+        [SENTINEL_KEY.ARTIFACT]: 'art-1',
+        [SENTINEL_KEY.TOOL]: 'tool-1',
+      });
       expect(mockArtifactService.getArtifactFull).toHaveBeenCalledWith('art-1', 'tool-1');
       expect(result).toEqual({ title: 'Resolved Title', content: 'Full content' });
     });
@@ -304,7 +308,7 @@ describe('ArtifactParser — typeSchema in data parts', () => {
     it('resolves a nested artifact ref inside an object', async () => {
       mockArtifactService.getArtifactFull.mockResolvedValue({ data: { content: 'Full content' } });
       const result = await parser.resolveArgs({
-        doc: { $artifact: 'art-2', $tool: 'tool-2' },
+        doc: { [SENTINEL_KEY.ARTIFACT]: 'art-2', [SENTINEL_KEY.TOOL]: 'tool-2' },
         other: 'value',
       });
       expect(result).toEqual({ doc: { content: 'Full content' }, other: 'value' });
@@ -313,7 +317,7 @@ describe('ArtifactParser — typeSchema in data parts', () => {
     it('resolves artifact refs inside arrays', async () => {
       mockArtifactService.getArtifactFull.mockResolvedValue({ data: { title: 'Array item' } });
       const result = await parser.resolveArgs([
-        { $artifact: 'art-3', $tool: 'tool-3' },
+        { [SENTINEL_KEY.ARTIFACT]: 'art-3', [SENTINEL_KEY.TOOL]: 'tool-3' },
         'plain-string',
       ]);
       expect(result).toEqual([{ title: 'Array item' }, 'plain-string']);
@@ -321,13 +325,13 @@ describe('ArtifactParser — typeSchema in data parts', () => {
 
     it('throws ToolChainResolutionError when resolution returns null', async () => {
       mockArtifactService.getArtifactFull.mockResolvedValue(null);
-      const ref = { $artifact: 'missing', $tool: 'tool-x' };
+      const ref = { [SENTINEL_KEY.ARTIFACT]: 'missing', [SENTINEL_KEY.TOOL]: 'tool-x' };
       await expect(parser.resolveArgs(ref)).rejects.toThrow(ToolChainResolutionError);
     });
 
     it('throws ToolChainResolutionError when resolution returns empty data', async () => {
       mockArtifactService.getArtifactFull.mockResolvedValue({ data: null });
-      const ref = { $artifact: 'bad', $tool: 'tool-y' };
+      const ref = { [SENTINEL_KEY.ARTIFACT]: 'bad', [SENTINEL_KEY.TOOL]: 'tool-y' };
       await expect(parser.resolveArgs(ref)).rejects.toThrow(ToolChainResolutionError);
     });
 
@@ -338,49 +342,52 @@ describe('ArtifactParser — typeSchema in data parts', () => {
       expect(await parser.resolveArgs(null)).toBe(null);
     });
 
-    describe('ephemeral {$tool} resolution (no $artifact)', () => {
-      it('resolves {$tool} to unwrapped text content from ToolSessionManager', async () => {
+    describe('ephemeral tool-ref resolution (no artifact)', () => {
+      it('resolves tool-ref to unwrapped text content from ToolSessionManager', async () => {
         mockArtifactService.getToolResultRaw.mockReturnValue('fetched html content');
-        const result = await parser.resolveArgs({ $tool: 'call-abc' });
+        const result = await parser.resolveArgs({ [SENTINEL_KEY.TOOL]: 'call-abc' });
         expect(mockArtifactService.getToolResultRaw).toHaveBeenCalledWith('call-abc');
         expect(result).toBe('fetched html content');
       });
 
-      it('resolves {$tool} to unwrapped image object for image content', async () => {
+      it('resolves tool-ref to unwrapped image object for image content', async () => {
         const imageResult = { data: 'base64data==', encoding: 'base64', mimeType: 'image/png' };
         mockArtifactService.getToolResultRaw.mockReturnValue(imageResult);
-        const result = await parser.resolveArgs({ $tool: 'call-img' });
+        const result = await parser.resolveArgs({ [SENTINEL_KEY.TOOL]: 'call-img' });
         expect(result).toEqual(imageResult);
       });
 
-      it('resolves {$tool} to raw non-MCP result as-is', async () => {
+      it('resolves tool-ref to raw non-MCP result as-is', async () => {
         const rawResult = { rows: [{ id: 1, name: 'Alice' }] };
         mockArtifactService.getToolResultRaw.mockReturnValue(rawResult);
-        const result = await parser.resolveArgs({ $tool: 'call-db' });
+        const result = await parser.resolveArgs({ [SENTINEL_KEY.TOOL]: 'call-db' });
         expect(result).toEqual(rawResult);
       });
 
       it('throws ToolChainResolutionError when toolCallId not found', async () => {
         mockArtifactService.getToolResultRaw.mockReturnValue(undefined);
-        await expect(parser.resolveArgs({ $tool: 'call-missing' })).rejects.toThrow(
+        await expect(parser.resolveArgs({ [SENTINEL_KEY.TOOL]: 'call-missing' })).rejects.toThrow(
           ToolChainResolutionError
         );
       });
 
-      it('resolves nested {$tool} reference inside a larger args object', async () => {
+      it('resolves nested tool-ref inside a larger args object', async () => {
         mockArtifactService.getToolResultRaw.mockReturnValue('<html>page</html>');
         const result = await parser.resolveArgs({
           selector: 'h1',
-          input: { $tool: 'call-fetch' },
+          input: { [SENTINEL_KEY.TOOL]: 'call-fetch' },
         });
         expect(result).toEqual({ selector: 'h1', input: '<html>page</html>' });
       });
 
-      it('does not invoke getToolResultRaw when both $artifact and $tool are present', async () => {
+      it('does not invoke getToolResultRaw when both artifact and tool are present', async () => {
         mockArtifactService.getArtifactFull.mockResolvedValue({
           data: { title: 'Artifact data' },
         });
-        await parser.resolveArgs({ $artifact: 'art-x', $tool: 'tool-x' });
+        await parser.resolveArgs({
+          [SENTINEL_KEY.ARTIFACT]: 'art-x',
+          [SENTINEL_KEY.TOOL]: 'tool-x',
+        });
         expect(mockArtifactService.getToolResultRaw).not.toHaveBeenCalled();
         expect(mockArtifactService.getArtifactFull).toHaveBeenCalledWith('art-x', 'tool-x');
       });

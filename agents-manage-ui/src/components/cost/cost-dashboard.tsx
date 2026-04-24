@@ -55,36 +55,48 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
   const [events, setEvents] = useState<SigNozUsageEvent[]>([]);
   const [chartData, setChartData] = useState<Array<{ date: string; cost: number }>>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     async function fetchData() {
       setIsLoading(true);
+      setLoadError(null);
       try {
         const client = getSigNozStatsClient(tenantId);
         const start = new Date(startTime).getTime();
         const end = new Date(endTime).getTime();
 
-        const [byModel, byAgent, byType, byProvider, eventsList, costPerDay] = await Promise.all([
-          client.getUsageCostSummary(start, end, 'model', projectId),
-          client.getUsageCostSummary(start, end, 'agent', projectId),
-          client.getUsageCostSummary(start, end, 'generation_type', projectId),
-          client.getUsageCostSummary(start, end, 'provider', projectId),
+        const [summaries, eventsList, costPerDay] = await Promise.all([
+          client.getUsageCostSummaries(
+            start,
+            end,
+            ['model', 'agent', 'generation_type', 'provider'] as const,
+            projectId
+          ),
           client.getUsageEventsList(start, end, projectId, undefined, 200),
           client.getUsageCostPerDay(start, end, projectId),
         ]);
 
-        setSummaryByModel(byModel);
-        setSummaryByAgent(byAgent);
-        setSummaryByType(byType);
-        setSummaryByProvider(byProvider);
+        if (cancelled) return;
+
+        setSummaryByModel(summaries.model);
+        setSummaryByAgent(summaries.agent);
+        setSummaryByType(summaries.generation_type);
+        setSummaryByProvider(summaries.provider);
         setEvents(eventsList);
         setChartData(costPerDay);
       } catch (error) {
         console.error('Failed to fetch usage data:', error);
+        if (cancelled) return;
+        setLoadError(error instanceof Error ? error.message : 'Failed to load cost data');
       }
-      setIsLoading(false);
+      if (!cancelled) setIsLoading(false);
     }
     fetchData();
+    return () => {
+      cancelled = true;
+    };
   }, [tenantId, projectId, startTime, endTime]);
 
   const totals = summaryByModel.reduce(
@@ -100,6 +112,14 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
 
   return (
     <>
+      {loadError && (
+        <div
+          role="alert"
+          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+        >
+          {loadError}
+        </div>
+      )}
       <UsageStatCards totals={totals} modelCount={summaryByModel.length} isLoading={isLoading} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">

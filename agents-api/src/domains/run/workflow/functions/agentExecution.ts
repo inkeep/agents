@@ -151,6 +151,7 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
       tenantId: payload.tenantId,
       projectId: payload.projectId,
       workflowRunId,
+      conversationId: payload.conversationId,
     });
 
     return { success: true };
@@ -160,6 +161,7 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
       tenantId: payload.tenantId,
       projectId: payload.projectId,
       workflowRunId,
+      conversationId: payload.conversationId,
       error: message,
     });
     throw error;

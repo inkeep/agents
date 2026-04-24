@@ -69,7 +69,7 @@ Data operations are hidden.
 
 #### `agent_generate`
 
-Emitted when an agent generates content (text or structured data).
+Emitted when an agent generates content — text, structured data, or a mix of both.
 
 ```json
 {
@@ -93,6 +93,26 @@ Emitted when an agent generates content (text or structured data).
   }
 }
 ```
+
+**`generationType` values:**
+
+| Value | Meaning |
+|-------|---------|
+| `text_generation` | The response is text only — no structured data components were emitted. |
+| `object_generation` | The response is a structured object only — the agent emitted a data component that matches a `dataComponents` schema, with no accompanying prose. |
+| `mixed_generation` | The response contains **both** text and one or more structured data components. Emitted when an agent configured with `dataComponents` also produces prose (for example, a reasoning prelude before a structured result, or narration alongside a data component). |
+
+**`data.parts[].type` values:**
+
+| Value | Payload fields | Notes |
+|-------|----------------|-------|
+| `text` | `content` | Prose emitted by the agent. |
+| `data_component` | `data` | A structured data component matching one of the agent's `dataComponents` schemas. |
+| `data_artifact` | `data` | A structured artifact (has both `artifactId` and `toolCallId` on `data`). |
+| `tool_call` | `toolName`, `args` | Internal tool invocation (rare in `agent_generate`; more common in `agent_reasoning`). |
+| `tool_result` | `toolName`, `result` | Internal tool result (rare in `agent_generate`; more common in `agent_reasoning`). |
+
+When `generationType` is `mixed_generation`, `data.parts` is ordered by emission: a text part may precede a data component, appear between components, or follow them. Consumers that render agent responses should iterate `parts` in order and render each entry according to its `type`.
 
 #### `agent_reasoning`
 

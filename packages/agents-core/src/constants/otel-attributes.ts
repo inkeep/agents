@@ -125,6 +125,7 @@ export const SPAN_KEYS = {
   // Core attributes
   NAME: 'name',
   PARENT_SPAN_ID: 'parentSpanID',
+  PARENT_SPAN_ID_V5: 'parent_span_id',
   CONVERSATION_ID: 'conversation.id',
 
   // Trigger/Invocation attributes

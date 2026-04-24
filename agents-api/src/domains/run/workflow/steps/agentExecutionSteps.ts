@@ -1181,12 +1181,16 @@ export async function markWorkflowCompleteStep(params: {
   tenantId: string;
   projectId: string;
   workflowRunId: string;
+  conversationId: string;
 }): Promise<void> {
   'use step';
-  const { tenantId, projectId, workflowRunId } = params;
+  const { tenantId, projectId, workflowRunId, conversationId } = params;
 
-  const { updateWorkflowExecutionStatus } = await import('@inkeep/agents-core');
+  const { updateWorkflowExecutionStatus, updateCoPilotRunStatusByConversationId } = await import(
+    '@inkeep/agents-core'
+  );
   const { default: runDbClient } = await import('../../../../data/db/runDbClient');
+  const { isCopilotScope } = await import('../../services/ImprovementService');
 
   await updateWorkflowExecutionStatus(runDbClient)({
     tenantId,
@@ -1195,6 +1199,20 @@ export async function markWorkflowCompleteStep(params: {
     status: 'completed',
   });
 
+  if (await isCopilotScope({ tenantId, projectId })) {
+    try {
+      const updated = await updateCoPilotRunStatusByConversationId(runDbClient)({
+        conversationId,
+        status: 'completed',
+      });
+      if (updated) {
+        logger.info({ conversationId }, 'CoPilot run marked as completed');
+      }
+    } catch (err) {
+      logger.warn({ err, conversationId }, 'Failed to update copilot run status on completion');
+    }
+  }
+
   logger.info({ workflowRunId }, 'Workflow execution marked as completed');
 }
 
@@ -1202,13 +1220,17 @@ export async function markWorkflowFailedStep(params: {
   tenantId: string;
   projectId: string;
   workflowRunId: string;
+  conversationId: string;
   error: string;
 }): Promise<void> {
   'use step';
-  const { tenantId, projectId, workflowRunId, error } = params;
+  const { tenantId, projectId, workflowRunId, conversationId, error } = params;
 
-  const { updateWorkflowExecutionStatus } = await import('@inkeep/agents-core');
+  const { updateWorkflowExecutionStatus, updateCoPilotRunStatusByConversationId } = await import(
+    '@inkeep/agents-core'
+  );
   const { default: runDbClient } = await import('../../../../data/db/runDbClient');
+  const { isCopilotScope } = await import('../../services/ImprovementService');
 
   await updateWorkflowExecutionStatus(runDbClient)({
     tenantId,
@@ -1217,6 +1239,20 @@ export async function markWorkflowFailedStep(params: {
     status: 'failed',
     metadata: { error },
   });
+
+  if (await isCopilotScope({ tenantId, projectId })) {
+    try {
+      const updated = await updateCoPilotRunStatusByConversationId(runDbClient)({
+        conversationId,
+        status: 'failed',
+      });
+      if (updated) {
+        logger.info({ conversationId }, 'CoPilot run marked as failed');
+      }
+    } catch (err) {
+      logger.warn({ err, conversationId }, 'Failed to update copilot run status on failure');
+    }
+  }
 
   logger.info({ workflowRunId, error }, 'Workflow execution marked as failed');
 }

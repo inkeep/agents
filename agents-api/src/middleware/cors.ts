@@ -149,6 +149,42 @@ export const signozCorsConfig: CorsOptions = {
 };
 
 /**
+ * CORS configuration for the Credential Gateway's public platform catalog endpoint
+ * (`GET /credential-gateway/.well-known/platforms`).
+ *
+ * This is the only credential-gateway endpoint browsers are allowed to hit — it
+ * is consumed by Support Copilot browser extensions to discover supported
+ * platforms and their URL matchers. Public, cacheable, and carries no credentials.
+ */
+export const credentialGatewayCatalogCorsConfig: CorsOptions = {
+  origin: '*',
+  allowMethods: ['GET', 'OPTIONS'],
+  allowHeaders: ['content-type', 'Content-Type'],
+  exposeHeaders: ['Content-Length'],
+  maxAge: 3600,
+  credentials: false,
+};
+
+/**
+ * CORS configuration for the Credential Gateway token-exchange endpoint
+ * (`POST /credential-gateway/token`) and any other non-catalog routes under
+ * `/credential-gateway/*`.
+ *
+ * Server-to-server only. `origin: () => null` causes the CORS middleware to
+ * reject every browser origin. Server-side callers (e.g. the Copilot backend
+ * performing RFC 8693 token exchange) are not subject to CORS and bypass this
+ * middleware at the HTTP layer.
+ */
+export const credentialGatewayCorsConfig: CorsOptions = {
+  origin: () => null,
+  allowMethods: ['POST', 'OPTIONS'],
+  allowHeaders: ['content-type', 'Content-Type', 'authorization', 'Authorization'],
+  exposeHeaders: ['Content-Length'],
+  maxAge: 600,
+  credentials: false,
+};
+
+/**
  * CORS configuration for work-apps routes (Slack, etc.)
  * Needs to allow cross-origin requests with credentials for dashboard integration
  */

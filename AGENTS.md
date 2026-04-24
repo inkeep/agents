@@ -110,6 +110,54 @@ pnpm build           # Build documentation for production
 - **Function Arguments**: When a function has more than 3 parameters, prefer a single object argument so that parameters are well-labeled, ordering doesn't matter, and callers can benefit from spread operators
 - **No Comments**: Do not add comments unless explicitly requested
 
+## TypeScript Configuration
+
+All TypeScript packages under `public/agents/packages/` and `public/agents/agents-*/` should extend the shared strict baseline at `public/agents/tsconfig.base.json`. This file defines the monorepo's strictness contract: `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, `noFallthroughCasesInSwitch`, `forceConsistentCasingInFileNames`, `skipLibCheck`, `esModuleInterop`, `resolveJsonModule`, `isolatedModules`, `moduleDetection: force`, and `verbatimModuleSyntax: false`.
+
+### New packages
+
+When creating a new workspace package under `public/agents/packages/<name>/`, the `tsconfig.json` should extend the base:
+
+```json
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": true,
+    "sourceMap": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+```
+
+Only override target/module/output settings in the per-package config. Strictness flags live in the base; do not duplicate them.
+
+### Why this matters
+
+- Enforces a consistent strictness floor across all TS packages (prevents drift over time)
+- Strictness flags catch real runtime bugs at compile time (e.g., optional-prop-spread issues caught 3 real bugs in `agents-email` during the pilot)
+- Bumping strictness later = edit one file instead of every package's tsconfig
+- New packages inherit the baseline automatically
+
+### Opt-out
+
+A package that legitimately cannot extend the base (e.g., needs older target, needs non-strict mode for generated code) should:
+
+1. Omit the `extends` line
+2. Add a top-level comment explaining why: `// Opt-out rationale: <reason>`
+3. Self-contain the compiler options it actually needs
+
+Unexplained opt-outs drift the monorepo's strictness contract and should be caught in review.
+
+### Path notes
+
+The base lives at `public/agents/tsconfig.base.json`. After Copybara mirrors the subtree to `inkeep/agents`, the base lives at `/tsconfig.base.json` on the public repo (prefix stripped). The relative `extends` path from `packages/<name>/tsconfig.json` is `../../tsconfig.base.json` in both repos, portable across the mirror boundary.
+
 ## Testing (Vitest)
 - Place tests in `__tests__/` directories adjacent to code
 - Name: `*.test.ts` or `*.spec.ts`
@@ -161,6 +209,8 @@ docker compose -f docker-compose.visual.yml down
 3. **Commit the updated lockfile** with your other changes.
 
 **Why this matters:** The lockfile pins exact transitive dependency versions. Regenerating from scratch lets the resolver freely re-resolve the entire tree, which can silently pick different versions even when `package.json` ranges haven't changed. Starting from the base lockfile ensures only your intentional changes affect resolution.
+
+**When changing dependencies**: this monorepo has three lockfiles (root, `public/agents`, and `public/agents/create-agents-template`). Use `pnpm install:all` from the monorepo root to regenerate all three at once — stopping short of that is how `ERR_PNPM_OUTDATED_LOCKFILE` ends up blocking CI or Vercel.
 
 ## Architecture Overview
 

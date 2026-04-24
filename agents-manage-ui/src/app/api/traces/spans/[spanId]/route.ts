@@ -1,15 +1,19 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { getAgentsApiUrl } from '@/lib/api/api-config';
 import { fetchWithRetry } from '@/lib/api/fetch-with-retry';
+import { requireApiRouteSessionOrBearer } from '@/lib/auth/api-route-auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest, context: RouteContext<'/api/traces/spans/[spanId]'>) {
+  const authResult = await requireApiRouteSessionOrBearer(req);
+  if (!authResult.ok) {
+    return authResult.response;
+  }
   const { spanId } = await context.params;
   if (!spanId) {
     return NextResponse.json({ error: 'Span ID is required' }, { status: 400 });
   }
-
   const url = new URL(req.url);
   const tenantId = url.searchParams.get('tenantId') || 'default';
   const conversationId = url.searchParams.get('conversationId');
@@ -18,15 +22,13 @@ export async function GET(req: NextRequest, context: RouteContext<'/api/traces/s
     return NextResponse.json({ error: 'conversationId query param is required' }, { status: 400 });
   }
 
-  const cookieHeader = req.headers.get('cookie');
-
   try {
     const agentsApiUrl = getAgentsApiUrl();
     const endpoint = `${agentsApiUrl}/manage/tenants/${tenantId}/signoz/span-lookup`;
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (cookieHeader) {
-      headers.Cookie = cookieHeader;
-    }
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...authResult.headers,
+    };
 
     const response = await fetchWithRetry(endpoint, {
       method: 'POST',

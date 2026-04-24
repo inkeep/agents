@@ -1,5 +1,152 @@
 # @inkeep/agents-api
 
+## 0.70.3
+
+### Patch Changes
+
+- 16b4daa: Filter tenant-wide apps list by caller's project use permissions to prevent cross-project enumeration
+  - @inkeep/agents-core@0.70.3
+  - @inkeep/agents-email@0.70.3
+  - @inkeep/agents-mcp@0.70.3
+  - @inkeep/agents-work-apps@0.70.3
+
+## 0.70.2
+
+### Patch Changes
+
+- a4d2360: improvement agent
+- Updated dependencies [a4d2360]
+  - @inkeep/agents-core@0.70.2
+  - @inkeep/agents-work-apps@0.70.2
+  - @inkeep/agents-email@0.70.2
+  - @inkeep/agents-mcp@0.70.2
+
+## 0.70.1
+
+### Patch Changes
+
+- fbfeb6d: Import CSV functionality for datasets and rerun test suite runs
+  - @inkeep/agents-core@0.70.1
+  - @inkeep/agents-email@0.70.1
+  - @inkeep/agents-mcp@0.70.1
+  - @inkeep/agents-work-apps@0.70.1
+
+## 0.70.0
+
+### Minor Changes
+
+- 947928d: Capture intermediate text in structured-output generation via dual-stream consumption; post-stream fallback walks all steps' text when the final structured object fails to emit; new `mixed_generation` value on `generationType` when a response contains both text and data parts; extend `AgentGenerateData.parts[].type` and `AgentReasoningData.parts[].type` unions to include `data_component` and `data_artifact` so data parts are accurately labeled rather than mislabeled as `tool_result`; WARN log on structured-output generation failure
+
+### Patch Changes
+
+- 60a0c60: Expand inline text document attachment support to cover a broad set of text, code, config, and markup formats, including `.yml` as an alias for YAML uploads.
+- 1570c2a: Add ZIP-based document attachment support for .pptx, .odt, .ods, .odp, .pages, .numbers, and .key alongside .docx and .xlsx, with model-aware stripping for providers that do not support these inline document parts
+- Updated dependencies [60a0c60]
+- Updated dependencies [1570c2a]
+  - @inkeep/agents-core@0.70.0
+  - @inkeep/agents-work-apps@0.70.0
+  - @inkeep/agents-email@0.70.0
+  - @inkeep/agents-mcp@0.70.0
+
+## 0.69.1
+
+### Patch Changes
+
+- 53bc4df: Allow deprecated API keys to POST /manage feedback
+- ae8ebe1: Fix attachment content being dropped from conversation history on resume
+- ae8ebe1: Hydrate artifact references returned by `GET /conversations/:id` so replay matches the shape streaming emits, and drop redundant attachment bookkeeping refs (`toolCallId: message_attachment:*`) that were paired with a sibling `file` part.
+- Updated dependencies [a6bd5ec]
+  - @inkeep/agents-core@0.69.1
+  - @inkeep/agents-work-apps@0.69.1
+  - @inkeep/agents-email@0.69.1
+  - @inkeep/agents-mcp@0.69.1
+
+## 0.69.0
+
+### Minor Changes
+
+- 52d0831: Resolve `{{$conversation.id}}` in agent prompts to the current conversation ID. Works with or without a `contextConfig`; propagates through A2A delegation so a child sub-agent resolves to the parent's (user-initiated) conversation ID. Agents whose prompts don't reference `{{$conversation.` see no behavior change.
+
+  Edge cases: when `conversationId` is absent, empty, or the literal `'default'` sentinel, the variable resolves to an empty string.
+
+  **Note for external A2A callers:** A2A JSON-RPC clients that bypass Inkeep's delegation tool must pass `contextId` in the message body for the variable to resolve to the user's overarching conversation. Without it, the handler falls back to `generateId()` and the variable resolves to an unrelated synthetic ID.
+
+### Patch Changes
+
+- 57a5b70: Ensure only default agent is permitted with app credentials
+- c63567e: Add credential gateway token-exchange endpoint (RFC 8693) for Support Copilot
+- 4f7396f: fix branch-unaware agent existence check
+- c63567e: Revoke SpiceDB credential grant when deleting a support_copilot app
+- 32bce4f: Add quickActions support to support_copilot app config (schema, persistence, editor UI)
+- Updated dependencies [52d0831]
+- Updated dependencies [c63567e]
+- Updated dependencies [32bce4f]
+  - @inkeep/agents-core@0.69.0
+  - @inkeep/agents-work-apps@0.69.0
+  - @inkeep/agents-email@0.69.0
+  - @inkeep/agents-mcp@0.69.0
+
+## 0.68.4
+
+### Patch Changes
+
+- Updated dependencies [7438f76]
+  - @inkeep/agents-work-apps@0.68.4
+  - @inkeep/agents-core@0.68.4
+  - @inkeep/agents-email@0.68.4
+  - @inkeep/agents-mcp@0.68.4
+
+## 0.68.3
+
+### Patch Changes
+
+- e8776f5: Add Microsoft as a social sign-in provider
+- Updated dependencies [e8776f5]
+  - @inkeep/agents-core@0.68.3
+  - @inkeep/agents-work-apps@0.68.3
+  - @inkeep/agents-email@0.68.3
+  - @inkeep/agents-mcp@0.68.3
+
+## 0.68.2
+
+### Patch Changes
+
+- 557f700: Add support_copilot app type with OAuth 2.1 JWT auth, tenant-level app discovery endpoint, and apps UI for configuring support copilot apps with credentials
+- 4e0fd65: Add POST /manage/api/invitations endpoint supporting bulk invite with project assignments
+- Updated dependencies [557f700]
+- Updated dependencies [4e0fd65]
+  - @inkeep/agents-core@0.68.2
+  - @inkeep/agents-work-apps@0.68.2
+  - @inkeep/agents-email@0.68.2
+  - @inkeep/agents-mcp@0.68.2
+
+## 0.68.1
+
+### Patch Changes
+
+- 0018f02: Filters out evaluators whose scope doesn't include the conversation's agent in batched evaluations
+- Updated dependencies [a074f63]
+  - @inkeep/agents-mcp@0.68.1
+  - @inkeep/agents-core@0.68.1
+  - @inkeep/agents-email@0.68.1
+  - @inkeep/agents-work-apps@0.68.1
+
+## 0.68.0
+
+### Minor Changes
+
+- d1e18a8: Add OAuth 2.1 / OIDC provider support via Better Auth oauth-provider plugin
+
+### Patch Changes
+
+- e223ac8: Fix tool chaining schema breaking Anthropic constrained JSON generation by replacing per-property anyOf wrapping with a map approach
+- accbb2e: Update MCP server catalog: fix broken URLs, migrate SSE to Streamable HTTP, add 17 new servers
+- Updated dependencies [d1e18a8]
+  - @inkeep/agents-core@0.68.0
+  - @inkeep/agents-work-apps@0.68.0
+  - @inkeep/agents-email@0.68.0
+  - @inkeep/agents-mcp@0.68.0
+
 ## 0.67.4
 
 ### Patch Changes
@@ -354,31 +501,26 @@
 - 1e4f05d: Refactor agent graph editor to use deterministic graph keys and single source of truth for form state
 
   ### Graph identity system
-
   - Add deterministic graph key derivation for all node types (`getSubAgentGraphKey`, `getMcpGraphKey`, `getFunctionToolGraphKey`, `getExternalAgentGraphKey`, `getTeamAgentGraphKey`) via new `graph-keys.ts`, `graph-identity.ts`, `sub-agent-identity.ts`, and `function-tool-identity.ts` modules
   - Replace unstable `generateId()` UUIDs with stable, domain-meaningful identifiers derived from persisted IDs (relation IDs, tool IDs, agent IDs)
   - URL-based sidepane selection now uses graph keys instead of raw React Flow IDs, so deep-links survive re-renders and saves
 
   ### RHF as single source of truth
-
   - Strip `node.data` down to a thin identity envelope (`nodeKey` + minimal refs like `toolId`) — all business fields (name, description, prompt, models, code, etc.) are read exclusively from React Hook Form state
   - Remove `hydrateNodesWithFormData()` entirely; `editorToPayload()` now reads all business data directly from a `SerializeAgentFormState` bundle with `requireFormValue()` fail-fast guards
   - Rename `FullAgentUpdateSchema` → `FullAgentFormSchema`, remove `.transform()` from schema (resolution now happens at serialize-time), split types into `FullAgentFormValues` / `FullAgentFormInputValues`
 
   ### Connection state consolidation
-
   - Collapse scattered `tempSelectedTools`/`tempHeaders`/`tempToolPolicies` on node data into `mcpRelations` and `functionToolRelations` RHF record maps with factory helpers (`createMcpRelationFormInput`, `createFunctionToolRelationFormInput`)
   - Edge removal triggers synchronous `form.unregister()` instead of deferred `requestAnimationFrame` — only `relationshipId` is unregistered for MCP relations to avoid a race condition where headers would be set to empty string on removal
   - Remove `subAgentId` manipulation from Zustand store's `onEdgesChange`
 
   ### Save-cycle reconciliation
-
   - Expand `syncSavedAgentGraph` to reconcile three categories of server-assigned IDs: tool `canUse` relations, external agent delegate relations, and team agent delegate relations
   - Rename MCP node IDs to deterministic graph keys post-save; preserve URL selection state via `findNodeByGraphKey`/`findEdgeByGraphKey`
   - Collapse redundant double `isNodeType` patterns into single guards
 
   ### Bug fixes
-
   - Fix function tool "requires approval" flag not persisting across save/reload by hydrating `needsApproval` tool policies from `canUse` relations back into form state during `apiToFormValues()`
   - Fix model inheritance display: use `getModelInheritanceStatus()` instead of bare `!subAgent.models` check to correctly show "(inherited)" label
   - Fix MCP node editor crash on deep-link/reload: consolidate null guards for `toolData`, `tool`, and `mcpRelation` with proper JSX fallback UI
@@ -386,18 +528,15 @@
   - Fix race condition when MCP relation is removed but component is still mounted
 
   ### Performance
-
   - Replace `useWatch({ name: 'functionTools' })` with targeted `useWatch({ name: 'functionTools.${id}.functionId' })` to eliminate O(N²) re-renders across function tool nodes
   - Remove `getFunctionIdForTool` helper that iterated the entire `functionTools` map
 
   ### Schema changes
-
   - Rename form field `defaultSubAgentId` → `defaultSubAgentNodeId` to clarify it holds a node key; translation to persisted ID happens at serialization time
   - Add `FunctionToolRelationSchema` and `functionToolRelations` record field to form schema
   - OpenAPI: `defaultSubAgentId` uses `$ref` to `ResourceId`, `maxTransferCount` type corrected to `integer`, function tool `dependencies` simplified to `StringRecord`
 
   ### Test coverage
-
   - Add 7 new test files covering graph identity, function tool identity, form-state defaults, and sync-saved-agent-graph scenarios
   - Expand serialize and deserialize test suites with new architecture patterns
   - Add roundtrip test for approval policy hydration
@@ -1241,11 +1380,9 @@
   Skills are reusable instruction blocks that can be attached to sub-agents to govern behavior, reasoning, and tool usage.
 
   ### Features
-
   - **Visual Builder**: Create, edit, and delete skills from the new Skills page. Attach skills to sub-agents via the sidepane picker with drag-to-reorder support.
 
   - **TypeScript SDK**:
-
     - New `SkillDefinition` and `SkillReference` types
     - `loadSkills(directoryPath)` helper to load skills from `SKILL.md` files
     - `skills` config option on `SubAgent` and `Project`
@@ -1255,7 +1392,6 @@
   - **CLI**: `inkeep pull` now generates skill files in the `skills/` directory
 
   ### Loading Modes
-
   - **Always loaded**: Skill content is included in every prompt
   - **On-demand**: Skill appears as an outline in the system prompt and can be loaded via the built-in `load_skill` tool when needed
 
@@ -1372,7 +1508,6 @@
 ### Patch Changes
 
 - 7fd85b6: Refactor: Consolidate to single-phase generation
-
   - Removed Phase 2 infrastructure (Phase2Config.ts, phase2/ template directories, thinking-preparation.xml)
   - Moved data component templates from phase2/ to shared/ for single-phase use
   - Updated Phase1Config to handle data components inline

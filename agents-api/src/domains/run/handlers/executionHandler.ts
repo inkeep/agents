@@ -109,11 +109,13 @@ export class ExecutionHandler {
         agentSessionManager.enableEmitOperations(requestId);
       }
 
-      logger.info({ emitOperations }, 'Created AgentSession for message execution');
+      logger.info(
+        { sessionId: requestId, agentId, conversationId, emitOperations },
+        'Created AgentSession for message execution'
+      );
 
       const agent = project.agents[agentId];
       try {
-        // Always resolve models for artifact naming, even if status updates are disabled
         let summarizerModel: ModelSettings | undefined;
         let baseModel: ModelSettings | undefined;
 
@@ -126,7 +128,6 @@ export class ExecutionHandler {
             summarizerModel = resolvedModels.summarizer;
             baseModel = resolvedModels.base;
           } else {
-            // Fallback when no defaultSubAgentId — walk the full chain
             summarizerModel = firstWithModel(
               agent.models?.summarizer,
               project.models?.summarizer,
@@ -136,7 +137,10 @@ export class ExecutionHandler {
           }
         } catch (modelError) {
           logger.warn(
-            { error: modelError instanceof Error ? modelError.message : 'Unknown error' },
+            {
+              error: modelError instanceof Error ? modelError.message : 'Unknown error',
+              agentId,
+            },
             'Failed to resolve models, using agent-level config'
           );
           summarizerModel = firstWithModel(
@@ -312,6 +316,7 @@ export class ExecutionHandler {
           const a2aClient = new A2AClient(agentBaseUrl, {
             headers: mergeHeadersWithoutOverrides(trustedHeaders, forwardedHeaders || {}),
             fetchFn: getInProcessFetch(),
+            ref: executionContext.resolvedRef,
           });
 
           let messageResponse: SendMessageResponse | null = null;

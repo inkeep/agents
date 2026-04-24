@@ -36,6 +36,7 @@ const { getAnonJwtSecretMock } = vi.hoisted(() => ({
 
 vi.mock('@inkeep/agents-core', () => ({
   validateAndGetApiKey: validateAndGetApiKeyMock,
+  getAgentById: vi.fn(() => vi.fn().mockResolvedValue({ id: 'agent-1' })),
   getAppById: getAppByIdMock,
   validateOrigin: validateOriginMock,
   updateAppLastUsed: updateAppLastUsedMock,
@@ -46,6 +47,7 @@ vi.mock('@inkeep/agents-core', () => ({
   canUseProjectStrict: canUseProjectStrictMock,
   validateTargetAgent: validateTargetAgentMock,
   verifyPoW: verifyPoWMock,
+  getInProcessFetch: () => vi.fn(),
   getPoWErrorMessage: (error: string) => {
     const messages: Record<string, string> = {
       pow_expired: 'Proof-of-work challenge has expired.',
@@ -64,6 +66,8 @@ vi.mock('@inkeep/agents-core', () => ({
 
 vi.mock('jose', () => ({
   jwtVerify: jwtVerifyMock,
+  createRemoteJWKSet: vi.fn(() => vi.fn()),
+  customFetch: Symbol('customFetch'),
   errors: {
     JWTExpired: class JWTExpired extends Error {},
     JWSSignatureVerificationFailed: class JWSSignatureVerificationFailed extends Error {},
@@ -75,6 +79,10 @@ vi.mock('../../../domains/run/routes/auth', () => ({
 }));
 
 vi.mock('../../../data/db/runDbClient', () => ({
+  default: {},
+}));
+
+vi.mock('../../../data/db/manageDbClient', () => ({
   default: {},
 }));
 

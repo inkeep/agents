@@ -1,5 +1,24 @@
 name: Publish
 
+# Responsibility split (see agents-private for the other half):
+#
+#   agents-private  -> owns the "Version Packages" PR for the 10 public
+#                      @inkeep/agents-* packages. When that PR merges,
+#                      copybara syncs the version bumps here and deletes
+#                      the .changeset/*.md files.
+#   inkeep/agents   -> THIS file. On push to main with no pending
+#                      changesets, publish the bumped packages to npm via
+#                      Trusted Publishing (OIDC), then fire a
+#                      repository_dispatch back to agents-private with
+#                      the outcome.
+#
+# We intentionally do NOT create Version Packages PRs here. If you see a
+# .changeset/*.md on main it means copybara hasn't caught up yet, or
+# someone added a changeset directly to this repo (shouldn't happen).
+# In either case this workflow no-ops on that run — the next sync will
+# consume the changesets once the corresponding Version PR merges on
+# agents-private.
+
 on:
   workflow_dispatch:
   push:
@@ -14,9 +33,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
-  issues: write
-  packages: write
   id-token: write
 
 jobs:
@@ -28,11 +44,6 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
-          # Do not persist the default GITHUB_TOKEN credentials. actions/checkout
-          # sets http.https://github.com/.extraheader with an AUTHORIZATION header
-          # that overrides URL-embedded tokens. This prevents changesets/action from
-          # pushing with the App token (set via github-token input), causing GitHub
-          # to treat the push as GITHUB_TOKEN and skip triggering downstream workflows.
           persist-credentials: false
 
       - name: Install
@@ -72,70 +83,224 @@ jobs:
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
-      # Generate a GitHub App token so that PRs and releases created by this
-      # workflow trigger downstream CI workflows. The default GITHUB_TOKEN
-      # cannot do this (GitHub security restriction).
       - name: Generate GitHub App Token
         id: app-token
         uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
         with:
           app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
           private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
+          owner: inkeep
+          repositories: |
+            agents
+            agents-private
 
-      # Pass the App token as the github-token INPUT to changesets/action.
-      # The action internally runs `git remote set-url` using its github-token
-      # input before pushing. If only the GITHUB_TOKEN env var is overridden,
-      # the action's input still defaults to github.token (the built-in token),
-      # and GitHub silently ignores pushes from GITHUB_TOKEN for triggering
-      # downstream workflows. Passing the App token as the input ensures the
-      # force-push to changeset-release/main fires pull_request.synchronize.
-      - name: Publish packages
-        id: changesets
-        uses: changesets/action@6a0a831ff30acef54f2c6aa1cbbc1096b066edaf # v1
-        with:
-          publish: pnpm release
-          createGithubReleases: false
-          github-token: ${{ steps.app-token.outputs.token }}
-        env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-          HUSKY: 0
-
-      - name: Release to snapshot tag
-        if: steps.changesets.outputs.published != 'true'
+      - name: Detect changesets
+        id: detect
         run: |
-          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
-          if [ "$BRANCH_NAME" = "chat-to-edit" ]; then
-            TAG_NAME="chat-to-edit"
+          count=$(find .changeset -maxdepth 1 -name '*.md' -not -name 'README.md' -type f 2>/dev/null | wc -l | tr -d ' ')
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          if [ "$count" -gt 0 ]; then
+            echo "has_changesets=true" >> "$GITHUB_OUTPUT"
+            echo "Found $count pending changeset(s). Agents-private owns Version Packages PR creation; skipping publish."
           else
-            TAG_NAME="dev"
+            echo "has_changesets=false" >> "$GITHUB_OUTPUT"
+            echo "No pending changesets; will attempt to publish any unreleased versions."
           fi
-          echo "Publishing to tag: $TAG_NAME"
-          git checkout $BRANCH_NAME
-          pnpm changeset version --snapshot $TAG_NAME
-          pnpm changeset publish --tag $TAG_NAME
+
+      # chat-to-edit still gets a dev-like snapshot publish on every push.
+      # Skip this branch entirely for main — main is the production path.
+      - name: Publish chat-to-edit snapshot
+        id: snapshot
+        if: github.ref == 'refs/heads/chat-to-edit'
+        run: |
+          set -euo pipefail
+          pnpm changeset version --snapshot chat-to-edit
+          pnpm changeset publish --tag chat-to-edit --provenance
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           HUSKY: 0
 
-      - name: Create GitHub Release
-        if: steps.changesets.outputs.published == 'true'
-        shell: bash
+      # Main branch: publish whatever package versions are ahead of npm.
+      # This is the "Version PR got merged on agents-private, copybara
+      # delivered the bump, now ship it" path.
+      #
+      # History: the original version used a grep pattern matching
+      # changesets v1's "Publishing ... at ..." log format. Under
+      # `set -o pipefail`, grep-no-match exited 1 and failed the whole
+      # step - which fired agents-release-failure even though npm publish
+      # had actually succeeded. Packages at 0.69.0 shipped but the GH
+      # Release and Vercel prod deploy were skipped. Defensive rewrite
+      # below: derive `published` from a presence check in the log, and
+      # fall back to package.json for the version so grep format drift
+      # never again misreports a successful publish.
+      - name: Publish main release
+        id: publish
+        if: github.ref == 'refs/heads/main' && steps.detect.outputs.has_changesets == 'false'
         run: |
-          VERSION=$(echo '${{ steps.changesets.outputs.publishedPackages }}' | jq -r '.[0].version')
-          RELEASE_DATE=$(date +%Y-%m-%d)
+          set -euo pipefail
+          # --provenance required for npm Trusted Publishing attestations.
+          pnpm changeset publish --provenance | tee /tmp/publish.log
 
-          # Get the most recently merged PR's body
-          PR_BODY=$(gh pr list --state merged --base main --json body,mergedAt --jq 'sort_by(.mergedAt) | last | .body')
+          # Changesets v2 emits "packages published successfully" after a
+          # successful publish of >=1 package; a no-op (no pending bumps)
+          # does not. Use that as the ground truth instead of relying on
+          # a regex that matches the old "Publishing \"X\" at \"Y\"" line.
+          if ! grep -q "packages published successfully" /tmp/publish.log; then
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
-          # Extract everything from "# Releases" onward and replace with "# Changelog"
-          CHANGELOG=$(echo "$PR_BODY" | sed -n '/^# Releases/,$p' | sed '1s/^# Releases/# Changelog/')
+          # All packages in the public-agents release group share a
+          # version by design (see config/release-groups.json), so
+          # reading agents-core's package.json is authoritative.
+          VERSION=$(node -p "require('./packages/agents-core/package.json').version")
 
-          # Pin the release tag to the exact commit that was built and published.
-          # The app token ensures the release:published event triggers the
-          # downstream Vercel production deploy workflow.
-          gh release create "v${VERSION}" \
-            --target "${{ github.sha }}" \
-            --title "${RELEASE_DATE}" \
-            --notes "$CHANGELOG"
+          # Ground-truth check: `pnpm changeset publish` returning the
+          # success marker is necessary but not sufficient. Partial
+          # publish (package N fails after N-1 succeed) can still leave
+          # the marker in the log if the failure was cosmetic, and log
+          # phrase drift in changesets v3+ would also pass the grep.
+          # Verify every @inkeep/ workspace package is actually on npm
+          # at the declared VERSION before reporting success downstream.
+          # Missing packages → fail the step so the failure notifier
+          # fires on agents-private (versus silently reporting green).
+          #
+          # Registry propagation: `npm publish` commits to the registry
+          # synchronously but the read-path CDN can lag by seconds. Per
+          # package we retry up to 4x with escalating backoff (2s, 4s,
+          # 8s, 16s) before declaring it genuinely missing. 30s cumulative
+          # wait per package covers the widest propagation lags we've
+          # observed without meaningfully slowing the success path (each
+          # present package exits on attempt 1 with one `npm view` call).
+          MISSING=()
+          while IFS= read -r pkg_json; do
+            PKG_NAME=$(node -p "require('./$pkg_json').name" 2>/dev/null || echo "")
+            IS_PRIVATE=$(node -p "require('./$pkg_json').private ?? false" 2>/dev/null || echo "false")
+            [ -z "$PKG_NAME" ] && continue
+            [ "$IS_PRIVATE" = "true" ] && continue
+            case "$PKG_NAME" in
+              @inkeep/*) ;;
+              *) continue ;;
+            esac
+            FOUND=false
+            for attempt in 1 2 3 4; do
+              if npm view "$PKG_NAME@$VERSION" version >/dev/null 2>&1; then
+                FOUND=true
+                break
+              fi
+              if [ "$attempt" -lt 4 ]; then
+                sleep $((attempt * 2))
+              fi
+            done
+            if [ "$FOUND" = "false" ]; then
+              MISSING+=("$PKG_NAME")
+            fi
+          done < <(find packages -maxdepth 2 -name package.json -not -path '*/node_modules/*')
+
+          if [ ${#MISSING[@]} -gt 0 ]; then
+            echo "::error::Publish log reported success, but these packages are NOT on npm at v$VERSION after 30s of retries: ${MISSING[*]}"
+            echo "::error::Likely causes: partial publish (some packages published, others failed) or log-marker drift. Propagation lag is already ruled out by the retry loop."
+            echo "::error::Re-running this workflow is safe — changeset publish is idempotent (already-published versions no-op)."
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+          echo "All @inkeep/ workspace packages verified present on npm at v$VERSION."
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "published=true" >> "$GITHUB_OUTPUT"
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          HUSKY: 0
+
+      # Reverse-sync: tell agents-private the outcome so its
+      # release-handler.yml can create the GitHub Release (which
+      # triggers the existing Vercel prod deploy) or open an issue.
+      #
+      # Both success and failure dispatches run through a bash retry
+      # loop rather than `peter-evans/repository-dispatch` because the
+      # action has no built-in retry. If GitHub's API flakes transiently
+      # (5xx / rate limit) during the dispatch, npm publish has already
+      # committed but the reverse-sync is silently lost — no GH Release,
+      # no Vercel prod deploy, no tracking issue. That was the shape of
+      # at least one prior silent stranding. 3 attempts with backoff.
+      - name: Notify agents-private (success)
+        if: github.ref == 'refs/heads/main' && steps.publish.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          VERSION: ${{ steps.publish.outputs.version }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          # `gh api -f` and `--raw-field` both send values as strings. The
+          # repository_dispatch endpoint requires client_payload to be a JSON
+          # object, so `--raw-field "client_payload=$JSON"` returns HTTP 422
+          # "is not an object" and the dispatch is lost. Build the full
+          # request body with jq and pipe it via `--input -` so client_payload
+          # arrives nested correctly.
+          #
+          # History: v0.70.0 stranded exactly this way - npm published, both
+          # success AND failure dispatches 422'd, no GitHub Release, no
+          # Vercel prod deploy, no tracking issue. Manual recovery required
+          # a synthetic dispatch with `-F 'client_payload[version]=...'`.
+          for attempt in 1 2 3; do
+            if jq -n \
+                 --arg version "$VERSION" \
+                 --arg run_url "$RUN_URL" \
+                 --arg commit_sha "$COMMIT_SHA" \
+                 '{event_type: "agents-release-success",
+                   client_payload: {version: $version, run_url: $run_url, commit_sha: $commit_sha}}' \
+               | gh api repos/inkeep/agents-private/dispatches -X POST --input -; then
+              echo "agents-release-success dispatched (attempt $attempt)"
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "::warning::dispatch attempt $attempt failed; retrying in $((attempt * 5))s"
+              sleep $((attempt * 5))
+            fi
+          done
+          echo "::error::Failed to dispatch agents-release-success after 3 attempts. npm published but downstream cascade (GH Release, Vercel deploy) will not fire automatically."
+          exit 1
+
+      # Catch-all failure notifier. Previously gated on
+      # `steps.detect.outputs.has_changesets == 'false'`, which meant
+      # failures BEFORE the detect step ran (install, build, token gen)
+      # evaluated the condition to false and silently skipped the
+      # dispatch — agents-private never opened a tracking issue and
+      # the red run sat invisibly in the Actions tab. `failure()` alone
+      # on main covers every pre-detect failure path too.
+      - name: Notify agents-private (failure)
+        if: github.ref == 'refs/heads/main' && failure()
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          VERSION: ${{ steps.publish.outputs.version }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          # Same pipe-JSON-via-stdin pattern as the success dispatch above.
+          # Previously used `gh api --raw-field "client_payload=$PAYLOAD"`,
+          # which sends the JSON as a string and returns 422, meaning the
+          # failure-notify itself failed silently and agents-private never
+          # opened a tracking issue. Classic reporter-of-failures-cannot-
+          # report-its-own-failure class.
+          for attempt in 1 2 3; do
+            if jq -n \
+                 --arg version "${VERSION:-}" \
+                 --arg run_url "$RUN_URL" \
+                 --arg commit_sha "$COMMIT_SHA" \
+                 --arg conclusion "failure" \
+                 --arg error "release.yml failed on main - see run logs" \
+                 '{event_type: "agents-release-failure",
+                   client_payload: {version: $version, run_url: $run_url, commit_sha: $commit_sha, conclusion: $conclusion, error: $error}}' \
+               | gh api repos/inkeep/agents-private/dispatches -X POST --input -; then
+              echo "agents-release-failure dispatched (attempt $attempt)"
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "::warning::failure-dispatch attempt $attempt failed; retrying in $((attempt * 5))s"
+              sleep $((attempt * 5))
+            fi
+          done
+          echo "::error::Failed to dispatch agents-release-failure after 3 attempts. The underlying failure is NOT being tracked on agents-private."
+          exit 1

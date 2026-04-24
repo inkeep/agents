@@ -37,9 +37,9 @@ export const slackApi = {
     return response.json();
   },
 
-  async uninstallWorkspace(connectionId: string): Promise<{ success: boolean }> {
+  async uninstallWorkspace(teamId: string): Promise<{ success: boolean }> {
     const response = await fetch(
-      `${getApiUrl()}/work-apps/slack/workspaces/${encodeURIComponent(connectionId)}`,
+      `${getApiUrl()}/work-apps/slack/workspaces/${encodeURIComponent(teamId)}`,
       { method: 'DELETE', credentials: 'include' }
     );
     if (!response.ok) {

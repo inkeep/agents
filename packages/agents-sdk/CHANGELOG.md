@@ -1,5 +1,84 @@
 # @inkeep/agents-sdk
 
+## 0.70.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.70.3
+
+## 0.70.2
+
+### Patch Changes
+
+- a4d2360: improvement agent
+- Updated dependencies [a4d2360]
+  - @inkeep/agents-core@0.70.2
+
+## 0.70.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.70.1
+
+## 0.70.0
+
+### Patch Changes
+
+- Updated dependencies [60a0c60]
+- Updated dependencies [1570c2a]
+  - @inkeep/agents-core@0.70.0
+
+## 0.69.1
+
+### Patch Changes
+
+- Updated dependencies [a6bd5ec]
+  - @inkeep/agents-core@0.69.1
+
+## 0.69.0
+
+### Patch Changes
+
+- Updated dependencies [52d0831]
+- Updated dependencies [c63567e]
+- Updated dependencies [32bce4f]
+  - @inkeep/agents-core@0.69.0
+
+## 0.68.4
+
+### Patch Changes
+
+- @inkeep/agents-core@0.68.4
+
+## 0.68.3
+
+### Patch Changes
+
+- Updated dependencies [e8776f5]
+  - @inkeep/agents-core@0.68.3
+
+## 0.68.2
+
+### Patch Changes
+
+- Updated dependencies [557f700]
+- Updated dependencies [4e0fd65]
+  - @inkeep/agents-core@0.68.2
+
+## 0.68.1
+
+### Patch Changes
+
+- 22d6068: Adding option to set execution mode on SDK
+  - @inkeep/agents-core@0.68.1
+
+## 0.68.0
+
+### Patch Changes
+
+- Updated dependencies [d1e18a8]
+  - @inkeep/agents-core@0.68.0
+
 ## 0.67.4
 
 ### Patch Changes
@@ -708,11 +787,9 @@
   Skills are reusable instruction blocks that can be attached to sub-agents to govern behavior, reasoning, and tool usage.
 
   ### Features
-
   - **Visual Builder**: Create, edit, and delete skills from the new Skills page. Attach skills to sub-agents via the sidepane picker with drag-to-reorder support.
 
   - **TypeScript SDK**:
-
     - New `SkillDefinition` and `SkillReference` types
     - `loadSkills(directoryPath)` helper to load skills from `SKILL.md` files
     - `skills` config option on `SubAgent` and `Project`
@@ -722,7 +799,6 @@
   - **CLI**: `inkeep pull` now generates skill files in the `skills/` directory
 
   ### Loading Modes
-
   - **Always loaded**: Skill content is included in every prompt
   - **On-demand**: Skill appears as an outline in the system prompt and can be loaded via the built-in `load_skill` tool when needed
 
@@ -869,12 +945,10 @@
   This major version removes the legacy `signingSecret` parameter from the `trigger()` builder function and replaces it with a flexible signature verification system.
 
   **Breaking Changes:**
-
   - Removed `signingSecret` parameter from `trigger()` builder function
   - Triggers now require `signingSecretCredentialReference` and `signatureVerification` configuration for signature verification
 
   **New Features:**
-
   - Added `signatureVerification` parameter to `trigger()` with validation
   - Exported `SignatureVerificationConfig`, `SignatureSource`, and `SignedComponent` types
   - Added validation at trigger creation time for JMESPath and regex patterns
@@ -1579,7 +1653,6 @@
 
 - dba5a31: Update quickstart port check
 - b0817aa: Fix CLI bugs
-
   - Quickstart inkeep.config.ts indents and types
   - inkeep init run API and manage API urls
 
@@ -2467,12 +2540,10 @@
   ## Migration Guide
 
   Update all API calls by removing `/crud/` from endpoint paths:
-
   - **Before**: `/tenants/{tenantId}/crud/projects/{projectId}/...`
   - **After**: `/tenants/{tenantId}/projects/{projectId}/...`
 
   ## Changes
-
   - Removed `/crud/` segment from all manage-api route definitions
   - Updated all API client code in manage-ui, cli, and SDK packages
   - Cleaned up OpenAPI tags to remove "CRUD" prefix

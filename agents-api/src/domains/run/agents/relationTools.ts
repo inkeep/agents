@@ -428,7 +428,9 @@ export function createDelegateToAgentTool({
             maxElapsedTime: DELEGATION_TOOL_BACKOFF_MAX_ELAPSED_TIME_MS,
           },
         },
-        ...(isInternal || isTeam ? { fetchFn: getInProcessFetch() } : {}),
+        ...(isInternal || isTeam
+          ? { fetchFn: getInProcessFetch(), ref: executionContext.resolvedRef }
+          : {}),
       });
 
       const baseDelegationMeta = getDelegationMetadata({

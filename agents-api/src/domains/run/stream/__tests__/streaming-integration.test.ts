@@ -172,18 +172,18 @@ describe('Streaming Integration Tests', () => {
       }
 
       // Should stream incremental text changes character by character
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('H', 50);
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('e', 50);
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('l', 50);
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('l', 50);
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('o', 50);
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith(' ', 50); // Space should now be preserved!
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('w', 50);
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('o', 50);
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('r', 50);
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('l', 50);
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('d', 50);
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('!', 50);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('H', 0);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('e', 0);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('l', 0);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('l', 0);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('o', 0);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith(' ', 0); // Space should now be preserved!
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('w', 0);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('o', 0);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('r', 0);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('l', 0);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('d', 0);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('!', 0);
 
       // Should stream every character change
       expect(mockStreamHelper.streamText).toHaveBeenCalledTimes(textUpdates.length);

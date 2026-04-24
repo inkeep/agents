@@ -9,6 +9,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { requestId } from 'hono/request-id';
 import { pinoLogger } from 'hono-pino';
+import { credentialGatewayRoutes } from './domains/credential-gateway/routes';
 import { evalRoutes } from './domains/evals';
 import { workflowRoutes } from './domains/evals/workflow/routes';
 import { manageRoutes } from './domains/manage';
@@ -20,6 +21,8 @@ import { flushBatchProcessor } from './instrumentation';
 import { getLogger, runWithLogContext } from './logger';
 import {
   authCorsConfig,
+  credentialGatewayCatalogCorsConfig,
+  credentialGatewayCorsConfig,
   defaultCorsConfig,
   errorHandler,
   manageBearerOrSessionAuth,
@@ -151,6 +154,9 @@ function createAgentsHono(config: AppConfig) {
   // Work Apps routes - specific CORS config for dashboard integration
   app.use('/work-apps/*', cors(workAppsCorsConfig));
 
+  app.use('/credential-gateway/.well-known/platforms', cors(credentialGatewayCatalogCorsConfig));
+  app.use('/credential-gateway/*', cors(credentialGatewayCorsConfig));
+
   // Global CORS middleware - handles all other routes
   app.use('*', async (c, next) => {
     // Skip CORS for routes with their own CORS config
@@ -167,6 +173,9 @@ function createAgentsHono(config: AppConfig) {
       return next();
     }
     if (c.req.path.includes('/signoz/')) {
+      return next();
+    }
+    if (c.req.path.startsWith('/credential-gateway/')) {
       return next();
     }
 
@@ -353,6 +362,9 @@ function createAgentsHono(config: AppConfig) {
 
   // Mount MCP routes at top level
   app.route('/mcp', mcpRoutes);
+
+  // Mount Credential Gateway (server-to-server token exchange)
+  app.route('/credential-gateway', credentialGatewayRoutes);
 
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);

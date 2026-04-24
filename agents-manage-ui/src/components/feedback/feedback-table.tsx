@@ -4,7 +4,9 @@ import {
   ArrowUpRight,
   ChevronLeft,
   ChevronRight,
+  Loader2,
   MessageSquare,
+  Sparkles,
   ThumbsDown,
   ThumbsUp,
   Trash2,
@@ -12,12 +14,23 @@ import {
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
+import { toast } from 'sonner';
 import { DeleteFeedbackConfirmation } from '@/components/feedback/delete-feedback-confirmation';
 import EmptyState from '@/components/layout/empty-state';
 import { AgentFilter } from '@/components/traces/filters/agent-filter';
 import { DatePickerWithPresets } from '@/components/traces/filters/date-picker';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -27,6 +40,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { triggerImprovementAction } from '@/lib/actions/improvements';
 import type { Feedback } from '@/lib/api/feedback';
 import { formatDateTimeTable } from '@/lib/utils/format-date';
 
@@ -68,6 +83,64 @@ export function FeedbackTable({
     filters.type
   );
   const [deleteFeedbackId, setDeleteFeedbackId] = React.useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+  const [isTriggering, setIsTriggering] = React.useState(false);
+  const [showContextDialog, setShowContextDialog] = React.useState(false);
+  const [additionalContext, setAdditionalContext] = React.useState('');
+
+  const toggleFeedback = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (selectedIds.size === feedback.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(feedback.map((f) => f.id)));
+    }
+  };
+
+  const handleTriggerImprovement = () => {
+    if (selectedIds.size === 0) return;
+    setAdditionalContext('');
+    setShowContextDialog(true);
+  };
+
+  const confirmTrigger = async () => {
+    setShowContextDialog(false);
+    setIsTriggering(true);
+
+    const context = additionalContext.trim() || undefined;
+    const triggerResult = await triggerImprovementAction(
+      tenantId,
+      projectId,
+      Array.from(selectedIds),
+      context
+    ).catch((error) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to trigger improvement');
+      return null;
+    });
+
+    if (!triggerResult?.success || !triggerResult.data) {
+      if (triggerResult) toast.error(triggerResult.error || 'Failed to trigger improvement');
+      setIsTriggering(false);
+      return;
+    }
+
+    const { branchName } = triggerResult.data;
+
+    setIsTriggering(false);
+    const branchEncoded = encodeURIComponent(branchName);
+    router.push(`/${tenantId}/projects/${projectId}/improvements/${branchEncoded}`);
+  };
 
   React.useEffect(() => {
     setTypeFilter(filters.type);
@@ -134,6 +207,11 @@ export function FeedbackTable({
     filters.startDate ||
     filters.endDate
   );
+
+  const clearFilters = () => {
+    setTypeFilter(undefined);
+    updateQuery({ type: '', agentId: '', startDate: '', endDate: '', page: 1 });
+  };
 
   if (!feedback.length && !hasActiveFilters) {
     return (
@@ -208,12 +286,36 @@ export function FeedbackTable({
               }}
             />
           </div>
+
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs">
+              Clear
+            </Button>
+          )}
+
+          {selectedIds.size > 0 && (
+            <Button size="sm" onClick={handleTriggerImprovement} disabled={isTriggering}>
+              {isTriggering ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              Run Improvement ({selectedIds.size})
+            </Button>
+          )}
         </div>
       </div>
 
       <Table containerClassName="rounded-lg border">
         <TableHeader>
           <TableRow noHover>
+            <TableHead className="w-10">
+              <Checkbox
+                checked={feedback.length > 0 && selectedIds.size === feedback.length}
+                onCheckedChange={toggleAll}
+                aria-label="Select all"
+              />
+            </TableHead>
             <TableHead className="w-[170px]">Created</TableHead>
             <TableHead className="w-[90px]">Type</TableHead>
             <TableHead>Feedback</TableHead>
@@ -236,7 +338,14 @@ export function FeedbackTable({
               : `/${tenantId}/projects/${projectId}/traces/conversations/${item.conversationId}`;
             return (
               <TableRow key={item.id}>
-                <TableCell className="text-muted-foreground whitespace-nowrap">
+                <TableCell>
+                  <Checkbox
+                    checked={selectedIds.has(item.id)}
+                    onCheckedChange={() => toggleFeedback(item.id)}
+                    aria-label={`Select feedback ${item.id}`}
+                  />
+                </TableCell>
+                <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
                   {formatDateTimeTable(item.createdAt, { local: true })}
                 </TableCell>
                 <TableCell className="whitespace-nowrap">
@@ -301,6 +410,37 @@ export function FeedbackTable({
           onDeleted={() => router.refresh()}
         />
       ) : null}
+
+      <Dialog open={showContextDialog} onOpenChange={setShowContextDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Run Improvement</DialogTitle>
+            <DialogDescription>
+              The improvement agent will analyze {selectedIds.size} selected feedback
+              {selectedIds.size > 1 ? ' items' : ''} and propose changes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="additional-context">Additional context (optional)</Label>
+            <Textarea
+              id="additional-context"
+              placeholder="e.g. Focus on improving the system prompt for handling edge cases..."
+              value={additionalContext}
+              onChange={(e) => setAdditionalContext(e.target.value)}
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowContextDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmTrigger}>
+              <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+              Run Improvement
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex items-center justify-between">
         <div className="text-xs text-muted-foreground">

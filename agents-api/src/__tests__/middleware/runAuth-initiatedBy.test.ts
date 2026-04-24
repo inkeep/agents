@@ -5,6 +5,7 @@ import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../data/db/runDbClient.js', () => ({ default: {} }));
+vi.mock('../../data/db/manageDbClient.js', () => ({ default: {} }));
 
 vi.mock('../../logger.js', () => createMockLoggerModule().module);
 
@@ -28,6 +29,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     ...actual,
     validateAndGetApiKey: vi.fn().mockResolvedValue(null),
     canUseProjectStrict: vi.fn().mockResolvedValue(false),
+    getAgentById: vi.fn(() => vi.fn().mockResolvedValue({ id: 'agent-1' })),
     getAppById: vi.fn(() => vi.fn().mockResolvedValue(null)),
     updateAppLastUsed: vi.fn(() => vi.fn().mockResolvedValue(undefined)),
     validateOrigin: vi.fn().mockReturnValue(false),

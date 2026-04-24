@@ -37,6 +37,10 @@ patchedDependencies:
   "@changesets/assemble-release-plan@6.0.9": patches/@changesets__assemble-release-plan.patch
   fumadocs-core: patches/fumadocs-core.patch
   babel-plugin-react-compiler: patches/babel-plugin-react-compiler.patch
+  # Adds ZIP-based document (docx/xlsx/pptx/odt/ods/odp/pages/numbers/key) passthrough for
+  # Chat and Responses APIs. Patch authored against
+  # @ai-sdk/openai@3.0.7 (dist/index.mjs). Remove once upstream Vercel AI SDK supports office MIME types natively.
+  "@ai-sdk/openai@3.0.7": patches/@ai-sdk__openai@3.0.7.patch
 
 overrides:
   next: ^16.1.6 # https://github.com/advisories/GHSA-5f7q-jpqc-wp7h

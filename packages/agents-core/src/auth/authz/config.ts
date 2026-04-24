@@ -21,18 +21,33 @@ export function getSpiceDbConfig() {
   };
 }
 
-const SPICEDB_PROJECT_ID_SEPARATOR = '/';
+const SPICEDB_ID_SEPARATOR = '/';
+
+/**
+ * Branded SpiceDB object ID types.
+ *
+ * SpiceDB object IDs are global — `credential_reference:cred_foo` refers to one
+ * object regardless of who wrote the tuple. To prevent cross-tenant collisions we
+ * namespace composite-PK resources under their scope (`{tenantId}/{projectId}/...`).
+ *
+ * The brand is enforcement, not decoration: downstream helpers accept only the
+ * branded type, so a raw DB ID can never be passed to a SpiceDB call without
+ * going through the appropriate `toSpiceDb*Id` constructor. This catches at
+ * compile time the "forgot to tenant-prefix" bug class.
+ */
+export type SpiceDbProjectId = string & { readonly __brand: 'SpiceDbProjectId' };
+export type SpiceDbCredentialReferenceId = string & {
+  readonly __brand: 'SpiceDbCredentialReferenceId';
+};
 
 /**
  * Compose a tenant-scoped SpiceDB project object ID.
  *
- * SpiceDB object IDs are global, so we namespace projects under their tenant
- * to prevent cross-tenant collisions (e.g. two orgs with a project called "default").
- *
- * Format: `{tenantId}/{projectId}`
+ * Format: `{tenantId}/{projectId}` — projects' backing-store PK is
+ * `(tenantId, projectId)`, so this mirrors that composite key verbatim.
  */
-export function toSpiceDbProjectId(tenantId: string, projectId: string): string {
-  return `${tenantId}${SPICEDB_PROJECT_ID_SEPARATOR}${projectId}`;
+export function toSpiceDbProjectId(tenantId: string, projectId: string): SpiceDbProjectId {
+  return `${tenantId}${SPICEDB_ID_SEPARATOR}${projectId}` as SpiceDbProjectId;
 }
 
 /**
@@ -41,11 +56,11 @@ export function toSpiceDbProjectId(tenantId: string, projectId: string): string 
  * @returns `{ tenantId, projectId }` extracted from the composite ID.
  * @throws if the ID does not contain the separator.
  */
-export function fromSpiceDbProjectId(spiceDbProjectId: string): {
+export function fromSpiceDbProjectId(spiceDbProjectId: SpiceDbProjectId | string): {
   tenantId: string;
   projectId: string;
 } {
-  const separatorIndex = spiceDbProjectId.indexOf(SPICEDB_PROJECT_ID_SEPARATOR);
+  const separatorIndex = spiceDbProjectId.indexOf(SPICEDB_ID_SEPARATOR);
   if (separatorIndex === -1) {
     throw new Error(`Invalid SpiceDB project ID format: ${spiceDbProjectId}`);
   }
@@ -53,4 +68,21 @@ export function fromSpiceDbProjectId(spiceDbProjectId: string): {
     tenantId: spiceDbProjectId.substring(0, separatorIndex),
     projectId: spiceDbProjectId.substring(separatorIndex + 1),
   };
+}
+
+/**
+ * Compose a tenant+project-scoped SpiceDB credential_reference object ID.
+ *
+ * Format: `{tenantId}/{projectId}/{credentialReferenceId}` — credentials' backing-store
+ * PK is `(tenantId, projectId, id)`, so this mirrors that composite key verbatim.
+ * Without this scoping, two tenants that each define a credential with the same
+ * slug (e.g. `cred_helpscout`) would share the same SpiceDB object and any grant
+ * on one would appear to grant the other.
+ */
+export function toSpiceDbCredentialReferenceId(
+  tenantId: string,
+  projectId: string,
+  credentialReferenceId: string
+): SpiceDbCredentialReferenceId {
+  return `${tenantId}${SPICEDB_ID_SEPARATOR}${projectId}${SPICEDB_ID_SEPARATOR}${credentialReferenceId}` as SpiceDbCredentialReferenceId;
 }

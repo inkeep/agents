@@ -183,6 +183,7 @@ export async function buildSystemPrompt(
         metadata: {
           conversationId: string;
           threadId: string;
+          taskId: string;
           streamRequestId?: string;
           streamBaseUrl?: string;
         };
@@ -197,26 +198,58 @@ export async function buildSystemPrompt(
 ): Promise<AssembleResult> {
   const conversationId = runtimeContext?.metadata?.conversationId || runtimeContext?.contextId;
 
-  const resolvedContext = conversationId ? await getResolvedContext(ctx, conversationId) : null;
+  const resolvedContext = conversationId
+    ? await getResolvedContext(ctx, conversationId, ctx.config.forwardedHeaders)
+    : null;
+
+  const runtimeBuiltins =
+    conversationId && conversationId !== 'default'
+      ? { $conversation: { id: conversationId } }
+      : { $conversation: { id: '' } };
 
   // ctx.config.prompt is the SUB-AGENT's own instructions (becomes corePrompt / <core_instructions>).
   // This is distinct from the overarching agent system's prompt fetched via getPrompt() below — not a duplicate.
   let processedPrompt = ctx.config.prompt || '';
-  if (resolvedContext && ctx.config.prompt) {
-    try {
-      processedPrompt = TemplateEngine.render(ctx.config.prompt, resolvedContext, {
-        strict: false,
-        preserveUnresolved: false,
-      });
-    } catch (error) {
-      logger.error(
-        {
-          conversationId,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-        'Failed to process agent prompt with context, using original'
-      );
-      processedPrompt = ctx.config.prompt;
+  if (ctx.config.prompt) {
+    const hasConversationVariable = ctx.config.prompt.includes('{{$conversation.');
+    if (resolvedContext) {
+      try {
+        processedPrompt = TemplateEngine.renderPrompt(ctx.config.prompt, resolvedContext, {
+          strict: false,
+          preserveUnresolved: false,
+          runtimeBuiltins,
+        });
+      } catch (error) {
+        logger.error(
+          {
+            conversationId,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          },
+          'Failed to process agent prompt with context, using original'
+        );
+        processedPrompt = ctx.config.prompt;
+      }
+    } else if (hasConversationVariable) {
+      try {
+        processedPrompt = TemplateEngine.renderPrompt(
+          ctx.config.prompt,
+          {},
+          {
+            strict: false,
+            preserveUnresolved: true,
+            runtimeBuiltins,
+          }
+        );
+      } catch (error) {
+        logger.error(
+          {
+            conversationId,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          },
+          'Failed to process agent prompt with runtime builtins, using original'
+        );
+        processedPrompt = ctx.config.prompt;
+      }
     }
   }
 
@@ -293,20 +326,44 @@ export async function buildSystemPrompt(
   // own instructions; this prompt is the agent system's broader context rendered into <agent_context>.
   let prompt = await getPrompt(ctx);
 
-  if (prompt && resolvedContext) {
-    try {
-      prompt = TemplateEngine.render(prompt, resolvedContext, {
-        strict: false,
-        preserveUnresolved: false,
-      });
-    } catch (error) {
-      logger.error(
-        {
-          conversationId,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-        'Failed to process agent prompt with context, using original'
-      );
+  if (prompt) {
+    const hasConversationVariable = prompt.includes('{{$conversation.');
+    if (resolvedContext) {
+      try {
+        prompt = TemplateEngine.renderPrompt(prompt, resolvedContext, {
+          strict: false,
+          preserveUnresolved: false,
+          runtimeBuiltins,
+        });
+      } catch (error) {
+        logger.error(
+          {
+            conversationId,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          },
+          'Failed to process agent prompt with context, using original'
+        );
+      }
+    } else if (hasConversationVariable) {
+      try {
+        prompt = TemplateEngine.renderPrompt(
+          prompt,
+          {},
+          {
+            strict: false,
+            preserveUnresolved: true,
+            runtimeBuiltins,
+          }
+        );
+      } catch (error) {
+        logger.error(
+          {
+            conversationId,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          },
+          'Failed to process agent prompt with runtime builtins, using original'
+        );
+      }
     }
   }
 

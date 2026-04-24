@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
+import type { TraceOrigin } from '@/hooks/use-traces-query-state';
 import {
   type AggregateStats,
   type ConversationStats,
@@ -40,6 +41,7 @@ interface UseConversationStatsOptions {
   searchQuery?: string;
   agentId?: string;
   hasErrors?: boolean;
+  origin?: TraceOrigin;
 }
 
 const DEFAULT_AGGREGATE_STATS: AggregateStats = {
@@ -84,7 +86,8 @@ export function useConversationStats(
           { page, limit: pageSize },
           options.searchQuery,
           options.agentId,
-          options.hasErrors
+          options.hasErrors,
+          options.origin
         );
 
         setStats(result.data);
@@ -143,6 +146,7 @@ export function useConversationStats(
     options.searchQuery,
     options.agentId,
     options.hasErrors,
+    options.origin,
     pageSize,
   ]);
 

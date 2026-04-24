@@ -113,42 +113,62 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
       resolvedRef.type === 'branch' && operationSuccess && !projectDeleteOperation && !isReadMethod;
 
     if (shouldCommit) {
-      try {
-        // Check if there are uncommitted changes
-        const statusResult = await doltStatus(requestDb)();
+      const path = c.req.path;
+      const commitMessage = generateCommitMessage(method, path);
+      const commitAuthor = {
+        name: userId ?? 'agents-api',
+        email: userEmail ?? 'api@inkeep.com',
+      };
 
-        // If there are uncommitted changes and the operation was successful, commit the changes
-        if (statusResult.length > 0 && operationSuccess) {
-          const path = c.req.path;
-          const commitMessage = generateCommitMessage(method, path);
+      let committed = false;
+      for (let attempt = 1; attempt <= 2 && !committed; attempt++) {
+        try {
+          const statusResult = await doltStatus(requestDb)();
 
-          logger.info(
-            { branch: resolvedRef.name, message: commitMessage },
-            'Auto-committing changes'
-          );
+          if (statusResult.length > 0 && operationSuccess) {
+            if (attempt === 1) {
+              logger.info(
+                { branch: resolvedRef.name, message: commitMessage },
+                'Auto-committing changes'
+              );
+            }
 
-          await doltAddAndCommit(requestDb)({
-            message: commitMessage,
-            author: {
-              name: userId ?? 'agents-api',
-              email: userEmail ?? 'api@inkeep.com',
-            },
-          });
+            await doltAddAndCommit(requestDb)({
+              message: commitMessage,
+              author: commitAuthor,
+            });
 
-          logger.info({ branch: resolvedRef.name }, 'Successfully committed changes');
-        } else if (statusResult.length > 0 && !operationSuccess) {
-          await doltReset(requestDb)();
-          logger.info(
-            { branch: resolvedRef.name },
-            'Successfully reset changes due to failed operation'
-          );
+            logger.info({ branch: resolvedRef.name }, 'Successfully committed changes');
+            committed = true;
+          } else if (statusResult.length > 0 && !operationSuccess) {
+            await doltReset(requestDb)();
+            logger.info(
+              { branch: resolvedRef.name },
+              'Successfully reset changes due to failed operation'
+            );
+            committed = true;
+          } else {
+            committed = true;
+          }
+        } catch (error) {
+          if (attempt < 2) {
+            logger.warn(
+              { error, ...getDatabaseErrorLogContext(error), branch: resolvedRef.name, attempt },
+              'Auto-commit attempt failed, retrying'
+            );
+          } else {
+            // Do NOT re-throw: the route handler already returned a successful
+            // response. Re-throwing replaces the handler's 2xx with a 500,
+            // making the client think the operation failed when the write
+            // is in Dolt's working set (persisted per-branch, survives
+            // checkout to main and connection release). The next request's
+            // checkoutBranch with autoCommitPending:true will commit it.
+            logger.error(
+              { error, ...getDatabaseErrorLogContext(error), branch: resolvedRef.name },
+              'Auto-commit failed after retry - writes remain in branch working set for next checkout'
+            );
+          }
         }
-      } catch (error) {
-        logger.error(
-          { error, ...getDatabaseErrorLogContext(error), branch: resolvedRef.name },
-          'Failed to auto-commit changes — uncommitted writes will be lost on connection release'
-        );
-        throw error;
       }
     }
   } finally {

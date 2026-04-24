@@ -8,6 +8,7 @@ export * from './auth/entitlement-constants';
 export { withEntitlementLock } from './auth/entitlement-lock';
 export { countSeatsByRole, resolveEntitlement } from './auth/entitlements';
 export * from './auth/password-reset-link-store';
+export * from './auth/support-copilot-platforms';
 export * from './constants/context-breakdown';
 export * from './constants/execution-limits-shared';
 export * from './constants/models';

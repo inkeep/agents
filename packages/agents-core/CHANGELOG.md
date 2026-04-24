@@ -1,5 +1,62 @@
 # @inkeep/agents-core
 
+## 0.70.3
+
+## 0.70.2
+
+### Patch Changes
+
+- a4d2360: improvement agent
+
+## 0.70.1
+
+## 0.70.0
+
+### Patch Changes
+
+- 60a0c60: Expand inline text document attachment support to cover a broad set of text, code, config, and markup formats, including `.yml` as an alias for YAML uploads.
+- 1570c2a: Add ZIP-based document attachment support for .pptx, .odt, .ods, .odp, .pages, .numbers, and .key alongside .docx and .xlsx, with model-aware stripping for providers that do not support these inline document parts
+
+## 0.69.1
+
+### Patch Changes
+
+- a6bd5ec: cost usage events window for signoz fixed
+
+## 0.69.0
+
+### Minor Changes
+
+- 52d0831: Add `TemplateEngine.renderPrompt()` with `PromptRenderOptions` for prompt-time resolution of built-in template variables. The new method accepts a `runtimeBuiltins` option that lets callers inject runtime values (e.g. `{ $conversation: { id } }`) to be resolved inside `{{$...}}` expressions before falling through to the existing `$env.*` handling. Existing `render()` behavior and the three non-prompt callers (delegation headers, context-fetcher URLs, MCP credential templating) are unchanged.
+
+### Patch Changes
+
+- c63567e: Add SpiceDB helpers for app credential access (app_reader relation)
+- 32bce4f: Add quickActions support to support_copilot app config (schema, persistence, editor UI)
+
+## 0.68.4
+
+## 0.68.3
+
+### Patch Changes
+
+- e8776f5: Add Microsoft as a social sign-in provider
+
+## 0.68.2
+
+### Patch Changes
+
+- 557f700: Add support_copilot app type with OAuth 2.1 JWT auth, tenant-level app discovery endpoint, and apps UI for configuring support copilot apps with credentials
+- 4e0fd65: Add invitation project assignments: automatically grant project access when invitation is accepted
+
+## 0.68.1
+
+## 0.68.0
+
+### Minor Changes
+
+- d1e18a8: Add OAuth 2.1 / OIDC provider support via Better Auth oauth-provider plugin
+
 ## 0.67.4
 
 ## 0.67.3
@@ -431,7 +488,6 @@
 ### Patch Changes
 
 - e623802: Add channel-based agent authorization for Slack with configurable `grantAccessToMembers` toggle
-
   - Extend `SlackAccessTokenPayloadSchema` with `authorized`, `authSource`, `channelId`, `authorizedProjectId` claims
   - Add `grantAccessToMembers` column to `work_app_slack_channel_agent_configs` table (default `true`)
   - Extend `BaseExecutionContext` with `metadata.slack` for channel auth context
@@ -504,11 +560,9 @@
   Skills are reusable instruction blocks that can be attached to sub-agents to govern behavior, reasoning, and tool usage.
 
   ### Features
-
   - **Visual Builder**: Create, edit, and delete skills from the new Skills page. Attach skills to sub-agents via the sidepane picker with drag-to-reorder support.
 
   - **TypeScript SDK**:
-
     - New `SkillDefinition` and `SkillReference` types
     - `loadSkills(directoryPath)` helper to load skills from `SKILL.md` files
     - `skills` config option on `SubAgent` and `Project`
@@ -518,7 +572,6 @@
   - **CLI**: `inkeep pull` now generates skill files in the `skills/` directory
 
   ### Loading Modes
-
   - **Always loaded**: Skill content is included in every prompt
   - **On-demand**: Skill appears as an outline in the system prompt and can be loaded via the built-in `load_skill` tool when needed
 
@@ -541,7 +594,6 @@
 - f981006: Unwrap generic Vercel AI SDK errors (e.g., "fetch failed") to surface root cause in logs and traces
 - e11fae9: Fix props field type in data components to be non-null and improve type safety with JsonSchemaForLlmSchemaType
 - 228d4e2: Fix nested error message display in form validation
-
   - Add `firstNestedMessage` helper to recursively extract error messages from nested Zod validation objects
   - Display error path location (e.g., `→ at ["foo", "bar"]`) for deeply nested validation errors
   - Refactor `createCustomHeadersSchema` to use Zod `.pipe()` for cleaner error path propagation
@@ -651,14 +703,12 @@
   This major version removes the legacy `signingSecret` field from triggers and replaces it with a flexible signature verification system that supports GitHub, Slack, Stripe, Zendesk, and other webhook providers.
 
   **Breaking Changes:**
-
   - Removed `signingSecret` column from triggers table (database migration required)
   - Removed `signingSecret` parameter from TriggerInsertSchema, TriggerUpdateSchema, and TriggerApiInsert
   - Removed `verifySigningSecret()` function from trigger-auth.ts
   - Triggers now require `signingSecretCredentialReferenceId` and `signatureVerification` configuration for signature verification
 
   **New Features:**
-
   - Added `SignatureVerificationConfig` type supporting:
     - Multiple HMAC algorithms: sha256, sha512, sha384, sha1, md5
     - Multiple encodings: hex, base64
@@ -1067,7 +1117,6 @@
 ### Patch Changes
 
 - 185db71: fix validation errors of form fields for:
-
   - `subAgent.id`
   - `subAgent.prompt`
   - `agent.name`
@@ -1077,15 +1126,12 @@
 - 8d8b6dd: Fix runtime configuration implementation to properly apply environment variable overrides
 
   This change fixes a critical bug where runtime configuration environment variables were parsed but never actually used by the runtime execution code. The fix includes:
-
   1. **Core Changes (agents-core)**:
-
      - Removed `getEnvNumber()` helper function
      - Bundled all 56 runtime constants into a `runtimeConsts` export object for cleaner imports
      - Constants now use plain default values instead of reading from `process.env` directly
 
   2. **Environment Parsing (manage-api & run-api)**:
-
      - Updated env.ts files to import `runtimeConsts` instead of individual constants
      - Added missing `AGENTS_VALIDATION_PAGINATION_DEFAULT_LIMIT` to manage-api parsing
      - Both APIs now properly parse environment variables and create `runtimeConfig` objects
@@ -1185,7 +1231,6 @@
 
 - dba5a31: Update quickstart port check
 - b0817aa: Fix CLI bugs
-
   - Quickstart inkeep.config.ts indents and types
   - inkeep init run API and manage API urls
 

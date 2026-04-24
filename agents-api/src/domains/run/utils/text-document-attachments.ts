@@ -1,5 +1,6 @@
 import {
   ALLOWED_TEXT_DOCUMENT_MIME_TYPES,
+  getExtensionFromMimeType,
   normalizeMimeType,
 } from '@inkeep/agents-core/constants/allowed-file-formats';
 import {
@@ -33,20 +34,8 @@ export function isTextDocumentMimeType(mimeType: string | undefined): mimeType i
 }
 
 export function getDefaultTextDocumentFilename(mimeType: string): string {
-  switch (normalizeMimeType(mimeType)) {
-    case 'text/markdown':
-      return 'unnamed.md';
-    case 'text/html':
-      return 'unnamed.html';
-    case 'text/csv':
-      return 'unnamed.csv';
-    case 'text/x-log':
-      return 'unnamed.log';
-    case 'application/json':
-      return 'unnamed.json';
-    default:
-      return 'unnamed.txt';
-  }
+  const extension = getExtensionFromMimeType(normalizeMimeType(mimeType));
+  return `unnamed.${extension === 'bin' ? 'txt' : extension}`;
 }
 
 export function decodeTextDocumentBytes(data: Uint8Array): string {
@@ -91,4 +80,48 @@ export function buildDecodedTextAttachmentBlock(params: {
     content,
     filename: params.filename,
   });
+}
+
+export const UNAVAILABLE_ATTACHMENT_PLACEHOLDER = '[Attachment unavailable]';
+
+/**
+ * Convenience wrapper around `buildTextAttachmentBlock` for the failure path —
+ * produces an `<attached_file>...[Attachment unavailable]...</attached_file>` block
+ * so the model still sees that an attachment existed even when its bytes are lost.
+ */
+export function buildUnavailableTextAttachmentBlock(params: {
+  mimeType: string;
+  filename?: string;
+}): string {
+  return buildTextAttachmentBlock({
+    mimeType: params.mimeType,
+    content: UNAVAILABLE_ATTACHMENT_PLACEHOLDER,
+    filename: params.filename,
+  });
+}
+
+/**
+ * Self-closing `<attached_file ... />` marker used when the attachment's content is not
+ * (or can no longer be) inlined — e.g. images/PDFs in conversation history, or a text
+ * attachment whose bytes failed to decode. The marker preserves provenance for the model
+ * so prior attachments don't silently disappear on resume. When `artifactId` and
+ * `toolCallId` are provided, the marker is self-describing enough for the model (or
+ * downstream tools) to fetch the attachment from the artifact ledger.
+ */
+export function buildAttachedFileMarker(params: {
+  mimeType?: string;
+  filename?: string;
+  artifactId?: string;
+  toolCallId?: string;
+}): string {
+  const mimeType = params.mimeType ? normalizeMimeType(params.mimeType) : '';
+  const filename = params.filename?.trim() || undefined;
+  const artifactId = params.artifactId?.trim() || undefined;
+  const toolCallId = params.toolCallId?.trim() || undefined;
+  const attrs: string[] = [];
+  if (filename) attrs.push(`filename=${JSON.stringify(filename)}`);
+  if (mimeType) attrs.push(`media_type=${JSON.stringify(mimeType)}`);
+  if (artifactId) attrs.push(`artifact_id=${JSON.stringify(artifactId)}`);
+  if (toolCallId) attrs.push(`tool_call_id=${JSON.stringify(toolCallId)}`);
+  return `<attached_file${attrs.length > 0 ? ` ${attrs.join(' ')}` : ''} />`;
 }

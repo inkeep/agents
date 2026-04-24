@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getAgentsApiUrl } from '@/lib/api/api-config';
 import { fetchWithRetry } from '@/lib/api/fetch-with-retry';
+import { requireApiRouteSessionOrBearer } from '@/lib/auth/api-route-auth';
 import { getLogger } from '@/lib/logger';
 
 const queryEnvelopeSchema = z.object({
@@ -53,16 +54,15 @@ function validateTimeRange(start: number, end: number): { valid: boolean; error?
   return { valid: true };
 }
 
-function extractRequestContext(request: NextRequest) {
+function extractRequestContext(request: NextRequest, authHeaders: Record<string, string>) {
   const url = new URL(request.url);
   const tenantId = url.searchParams.get('tenantId') || 'default';
   const mode = url.searchParams.get('mode');
 
-  const cookieHeader = request.headers.get('cookie');
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (cookieHeader) {
-    headers.Cookie = cookieHeader;
-  }
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...authHeaders,
+  };
 
   return { tenantId, mode, headers };
 }
@@ -84,7 +84,12 @@ function handleProxyError(error: unknown, logger: ReturnType<typeof getLogger>) 
 
 export async function POST(request: NextRequest) {
   const logger = getLogger('traces-proxy');
-  const { tenantId, mode, headers } = extractRequestContext(request);
+  const authResult = await requireApiRouteSessionOrBearer(request);
+  if (!authResult.ok) {
+    return authResult.response;
+  }
+
+  const { tenantId, mode, headers } = extractRequestContext(request, authResult.headers);
   const agentsApiUrl = getAgentsApiUrl();
 
   try {
@@ -202,19 +207,13 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   const logger = getLogger('traces-config-check');
+  const authResult = await requireApiRouteSessionOrBearer(request);
+  if (!authResult.ok) {
+    return authResult.response;
+  }
 
   try {
-    const url = new URL(request.url);
-    const tenantId = url.searchParams.get('tenantId') || 'default';
-
-    const cookieHeader = request.headers.get('cookie');
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    if (cookieHeader) {
-      headers.Cookie = cookieHeader;
-    }
-
+    const { tenantId, headers } = extractRequestContext(request, authResult.headers);
     const agentsApiUrl = getAgentsApiUrl();
     const endpoint = `${agentsApiUrl}/manage/tenants/${tenantId}/signoz/health`;
 

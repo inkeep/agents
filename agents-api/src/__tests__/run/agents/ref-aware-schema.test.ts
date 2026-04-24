@@ -1,12 +1,15 @@
+import { z } from '@hono/zod-openapi';
 import { describe, expect, it } from 'vitest';
 import {
+  buildRefAwareSchemas,
   makeBaseInputSchema,
   makeRefAwareJsonSchema,
+  REFS_KEY,
 } from '../../../domains/run/agents/tools/ref-aware-schema';
 import { SENTINEL_KEY } from '../../../domains/run/constants/artifact-syntax';
 
 describe('makeRefAwareJsonSchema', () => {
-  it('should transform string properties to accept tool refs', () => {
+  it('should make properties nullable instead of wrapping with anyOf', () => {
     const schema = {
       type: 'object',
       properties: {
@@ -19,61 +22,12 @@ describe('makeRefAwareJsonSchema', () => {
 
     expect(result.required).toEqual(['text']);
     const textProp = (result.properties as any).text;
-    expect(textProp.anyOf).toBeDefined();
-    expect(textProp.anyOf).toHaveLength(2);
-    expect(textProp.anyOf[0]).toEqual({ type: 'string', description: 'The text to measure' });
-
-    const refOption = textProp.anyOf[1];
-    expect(refOption.anyOf).toHaveLength(2);
-    expect(refOption.anyOf[0].required).toContain(SENTINEL_KEY.ARTIFACT);
-    expect(refOption.anyOf[0].required).toContain(SENTINEL_KEY.TOOL);
-    expect(refOption.anyOf[1].required).toContain(SENTINEL_KEY.TOOL);
+    expect(textProp.type).toEqual(['string', 'null']);
+    expect(textProp.description).toBe('The text to measure');
+    expect(textProp.anyOf).toBeUndefined();
   });
 
-  it('should transform nested object properties', () => {
-    const schema = {
-      type: 'object',
-      properties: {
-        config: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-            count: { type: 'number' },
-          },
-        },
-      },
-    };
-
-    const result = makeRefAwareJsonSchema(schema);
-
-    const configProp = (result.properties as any).config;
-    expect(configProp.anyOf).toBeDefined();
-
-    const configObj = configProp.anyOf[0];
-    expect((configObj.properties as any).name.anyOf).toBeDefined();
-    expect((configObj.properties as any).count.anyOf).toBeDefined();
-  });
-
-  it('should transform array item types', () => {
-    const schema = {
-      type: 'object',
-      properties: {
-        items: {
-          type: 'array',
-          items: { type: 'string' },
-        },
-      },
-    };
-
-    const result = makeRefAwareJsonSchema(schema);
-
-    const itemsProp = (result.properties as any).items;
-    expect(itemsProp.anyOf).toBeDefined();
-    const arraySchema = itemsProp.anyOf[0];
-    expect(arraySchema.items.anyOf).toBeDefined();
-  });
-
-  it('should include $tool, $select, and $artifact in ref schema', () => {
+  it('should add refs property at root level', () => {
     const schema = {
       type: 'object',
       properties: {
@@ -82,17 +36,104 @@ describe('makeRefAwareJsonSchema', () => {
     };
 
     const result = makeRefAwareJsonSchema(schema);
+    const refsSchema = (result.properties as any)[REFS_KEY];
+
+    expect(refsSchema).toBeDefined();
+    expect(refsSchema.type).toBe('object');
+    expect(refsSchema.additionalProperties).toBeDefined();
+
+    const entrySchema = refsSchema.additionalProperties;
+    expect(entrySchema.anyOf).toHaveLength(2);
+
+    const artifactRef = entrySchema.anyOf[0];
+    expect(artifactRef.required).toContain(SENTINEL_KEY.ARTIFACT);
+    expect(artifactRef.required).toContain(SENTINEL_KEY.TOOL);
+    expect(artifactRef.additionalProperties).toBe(false);
+
+    const toolRef = entrySchema.anyOf[1];
+    expect(toolRef.required).toContain(SENTINEL_KEY.TOOL);
+    expect(toolRef.additionalProperties).toBe(false);
+  });
+
+  it('should handle number and boolean types', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        count: { type: 'number' },
+        enabled: { type: 'boolean' },
+      },
+    };
+
+    const result = makeRefAwareJsonSchema(schema);
+
+    expect((result.properties as any).count.type).toEqual(['number', 'null']);
+    expect((result.properties as any).enabled.type).toEqual(['boolean', 'null']);
+  });
+
+  it('should handle object-typed properties', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        config: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+        },
+      },
+    };
+
+    const result = makeRefAwareJsonSchema(schema);
+    const configProp = (result.properties as any).config;
+    expect(configProp.type).toEqual(['object', 'null']);
+    expect(configProp.properties.name).toBeDefined();
+  });
+
+  it('should handle properties with existing anyOf', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        value: {
+          anyOf: [{ type: 'string' }, { type: 'number' }],
+        },
+      },
+    };
+
+    const result = makeRefAwareJsonSchema(schema);
+    const valueProp = (result.properties as any).value;
+    expect(valueProp.anyOf).toHaveLength(3);
+    expect(valueProp.anyOf[2]).toEqual({ type: 'null' });
+  });
+
+  it('should wrap allOf schemas in anyOf with null rather than mutating type', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        composed: {
+          allOf: [{ type: 'string' }, { minLength: 1 }],
+        },
+      },
+    };
+
+    const result = makeRefAwareJsonSchema(schema);
+    const composedProp = (result.properties as any).composed;
+    expect(composedProp.type).toBeUndefined();
+    expect(composedProp.anyOf).toHaveLength(2);
+    expect(composedProp.anyOf[0].allOf).toBeDefined();
+    expect(composedProp.anyOf[1]).toEqual({ type: 'null' });
+  });
+
+  it('should not double-add null to already-nullable types', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        text: { type: ['string', 'null'] },
+      },
+    };
+
+    const result = makeRefAwareJsonSchema(schema);
     const textProp = (result.properties as any).text;
-    const refSchema = textProp.anyOf[1];
-
-    const toolOnlyRef = refSchema.anyOf[1];
-    expect(toolOnlyRef.properties).toHaveProperty(SENTINEL_KEY.TOOL);
-    expect(toolOnlyRef.properties).toHaveProperty(SENTINEL_KEY.SELECT);
-
-    const artifactRef = refSchema.anyOf[0];
-    expect(artifactRef.properties).toHaveProperty(SENTINEL_KEY.ARTIFACT);
-    expect(artifactRef.properties).toHaveProperty(SENTINEL_KEY.TOOL);
-    expect(artifactRef.properties).toHaveProperty(SENTINEL_KEY.SELECT);
+    expect(textProp.type).toEqual(['string', 'null']);
   });
 
   it('should not transform the root schema itself', () => {
@@ -108,25 +149,18 @@ describe('makeRefAwareJsonSchema', () => {
     expect(result.anyOf).toBeUndefined();
   });
 
-  it('should handle anyOf/oneOf variants without adding refs', () => {
-    const schema = {
-      type: 'object',
-      properties: {
-        value: {
-          anyOf: [{ type: 'string' }, { type: 'number' }],
-        },
-      },
-    };
-
-    const result = makeRefAwareJsonSchema(schema);
-    const valueProp = (result.properties as any).value;
-    expect(valueProp.anyOf).toBeDefined();
-  });
-
   it('should handle empty schema gracefully', () => {
     const schema = { type: 'object' };
     const result = makeRefAwareJsonSchema(schema);
     expect(result.type).toBe('object');
+    expect((result.properties as any)[REFS_KEY]).toBeDefined();
+  });
+
+  it('should add tool chaining description to root', () => {
+    const schema = { type: 'object', description: 'Original description' };
+    const result = makeRefAwareJsonSchema(schema);
+    expect(result.description).toContain('Original description');
+    expect(result.description).toContain('TOOL CHAINING');
   });
 });
 
@@ -148,5 +182,85 @@ describe('makeBaseInputSchema', () => {
 
     const invalid = zodSchema.safeParse({ text: 123 });
     expect(invalid.success).toBe(false);
+  });
+});
+
+describe('buildRefAwareSchemas', () => {
+  it('should return a jsonSchema wrapper and a zod baseInputSchema', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Some text' },
+        count: { type: 'number' },
+      },
+      required: ['text'],
+    };
+
+    const { refAwareInputSchema, baseInputSchema } = buildRefAwareSchemas(schema);
+
+    expect(refAwareInputSchema).toBeDefined();
+    expect((refAwareInputSchema as any).jsonSchema).toBeDefined();
+
+    expect(baseInputSchema).toBeDefined();
+    expect(baseInputSchema?.safeParse).toBeDefined();
+    expect(baseInputSchema?.safeParse({ text: 'hello' }).success).toBe(true);
+    expect(baseInputSchema?.safeParse({ text: 123 }).success).toBe(false);
+  });
+
+  it('should produce schema with refs and nullable properties', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        query: { type: 'string' },
+      },
+    };
+
+    const { refAwareInputSchema } = buildRefAwareSchemas(schema);
+    const jsonSchemaDef = (refAwareInputSchema as any).jsonSchema;
+
+    expect(jsonSchemaDef.properties.query.type).toEqual(['string', 'null']);
+    expect(jsonSchemaDef.properties[REFS_KEY]).toBeDefined();
+  });
+
+  it('should return undefined baseInputSchema when z.fromJSONSchema fails', () => {
+    const schema = { type: 'not_a_real_type' } as any;
+
+    const { refAwareInputSchema, baseInputSchema } = buildRefAwareSchemas(schema);
+
+    expect(refAwareInputSchema).toBeDefined();
+    expect(baseInputSchema).toBeUndefined();
+  });
+
+  it('should accept a Zod schema and convert it', () => {
+    const zodSchema = z.object({
+      name: z.string(),
+      age: z.number().optional(),
+    });
+
+    const { refAwareInputSchema, baseInputSchema } = buildRefAwareSchemas(zodSchema);
+
+    expect(refAwareInputSchema).toBeDefined();
+    expect((refAwareInputSchema as any).jsonSchema).toBeDefined();
+    expect((refAwareInputSchema as any).jsonSchema.properties.name.type).toContain('null');
+    expect((refAwareInputSchema as any).jsonSchema.properties[REFS_KEY]).toBeDefined();
+
+    expect(baseInputSchema).toBeDefined();
+    expect(baseInputSchema?.safeParse({ name: 'test' }).success).toBe(true);
+  });
+
+  it('should produce dramatically smaller schemas than per-property anyOf', () => {
+    const schema = {
+      type: 'object',
+      properties: Object.fromEntries(
+        Array.from({ length: 15 }, (_, i) => [
+          `param${i}`,
+          { type: 'string', description: `Parameter ${i}` },
+        ])
+      ),
+    };
+
+    const { refAwareInputSchema } = buildRefAwareSchemas(schema);
+    const json = JSON.stringify((refAwareInputSchema as any).jsonSchema);
+    expect(json.length).toBeLessThan(10000);
   });
 });

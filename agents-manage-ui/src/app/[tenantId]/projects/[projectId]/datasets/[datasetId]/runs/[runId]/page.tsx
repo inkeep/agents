@@ -1,7 +1,16 @@
 'use client';
 
-import { ArrowLeft, ChevronRight, Clock, ExternalLink, Loader2, Sparkles } from 'lucide-react';
+import {
+  ArrowLeft,
+  ChevronRight,
+  Clock,
+  ExternalLink,
+  Loader2,
+  RefreshCw,
+  Sparkles,
+} from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
 import { DatasetItemViewDialog } from '@/components/dataset-items/dataset-item-view-dialog';
 import {
@@ -20,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useRerunDatasetRun } from '@/hooks/use-rerun-dataset-run';
 import type { DatasetRunInvocation, DatasetRunWithConversations } from '@/lib/api/dataset-runs';
 import { fetchDatasetRun, fetchDatasetRunItems } from '@/lib/api/dataset-runs';
 import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
@@ -29,12 +39,21 @@ export default function Page({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/datasets/[datasetId]/runs/[runId]'>) {
   const { tenantId, projectId, datasetId, runId } = use(params);
+  const router = useRouter();
   const [run, setRun] = useState<DatasetRunWithConversations | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [filters, setFilters] = useState<TestCaseFiltersType>({});
   const [invocations, setInvocations] = useState<DatasetRunInvocation[]>([]);
+  const { rerun, isRerunning, canRerun } = useRerunDatasetRun({
+    tenantId,
+    projectId,
+    datasetId,
+    onSuccess: ({ datasetRunId }) => {
+      router.push(`/${tenantId}/projects/${projectId}/datasets/${datasetId}/runs/${datasetRunId}`);
+    },
+  });
   const [evaluationProgress, setEvaluationProgress] = useState<{
     total: number;
     completed: number;
@@ -230,13 +249,38 @@ export default function Page({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between gap-4">
         <Link href={`/${tenantId}/projects/${projectId}/datasets/${datasetId}?tab=runs`}>
           <Button variant="ghost" size="sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to test suite
           </Button>
         </Link>
+        {(() => {
+          const target = { runId, datasetRunConfigId: run.datasetRunConfigId };
+          const rerunning = isRerunning(runId);
+          const eligible = canRerun(target);
+          return (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!eligible || rerunning}
+              title={
+                eligible
+                  ? 'Rerun using current dataset items'
+                  : 'This run was not created from a run config and cannot be rerun'
+              }
+              onClick={() => void rerun(target)}
+            >
+              {rerunning ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-4 w-4" />
+              )}
+              Rerun
+            </Button>
+          );
+        })()}
       </div>
 
       <Card>

@@ -85,7 +85,6 @@ async function resolveModelConfig(
     };
   }
 
-  // If project level config or base model not defined, throw error
   throw new Error(
     'Base model configuration is required. Please configure models at the project level.'
   );

@@ -10,9 +10,11 @@ import {
   ACTIVITY_TYPES,
   AGENT_IDS,
   AI_OPERATIONS,
+  buildFilterExpression,
   FIELD_CONTEXTS,
   FIELD_DATA_TYPES,
   GENERATION_TYPES,
+  OPERATORS,
   ORDER_DIRECTIONS,
   QUERY_DEFAULTS,
   QUERY_EXPRESSIONS,
@@ -22,6 +24,7 @@ import {
   SPAN_KEYS,
   SPAN_NAMES,
   UNKNOWN_VALUE,
+  USAGE_GENERATION_TYPES,
 } from '@/constants/signoz';
 import { getAgentsApiUrl } from '@/lib/api/api-config';
 import { fetchWithRetry } from '@/lib/api/fetch-with-retry';
@@ -29,7 +32,7 @@ import {
   DEFAULT_LOOKBACK_MS,
   getConversationTimeRange,
 } from '@/lib/api/signoz-conversation-time-range';
-
+import { requireApiRouteSessionOrBearer } from '@/lib/auth/api-route-auth';
 import { getLogger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -99,8 +102,7 @@ function formatGenerationType(
 async function signozQuery(
   payload: any,
   tenantId: string,
-  cookieHeader: string | null,
-  authHeader: string | null
+  authHeaders: Record<string, string>
 ): Promise<SigNozResp> {
   const logger = getLogger('traces-query');
 
@@ -110,14 +112,8 @@ async function signozQuery(
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      ...authHeaders,
     };
-
-    if (cookieHeader) {
-      headers.Cookie = cookieHeader;
-    }
-    if (authHeader) {
-      headers.Authorization = authHeader;
-    }
 
     logger.debug({ endpoint }, 'Calling agents-api for conversation traces');
 
@@ -529,10 +525,138 @@ function buildConversationPayloads(
   ];
 }
 
+// ---------- Usage events (cost / token usage for this conversation)
+
+// Subset of USAGE_GENERATION_TYPES that the conversation detail UI actually renders.
+const CONVERSATION_USAGE_GENERATION_TYPES = USAGE_GENERATION_TYPES.filter(
+  (t) => t !== GENERATION_TYPES.EVAL_SCORING && t !== GENERATION_TYPES.EVAL_SIMULATION
+);
+
+type ConversationUsageEvent = {
+  spanId: string;
+  parentSpanId: string;
+  traceId: string;
+  timestamp: string;
+  generationType: string;
+  model: string;
+  provider: string;
+  agentId: string;
+  subAgentId: string;
+  conversationId: string;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  estimatedCostUsd: number;
+  finishReason: string;
+  status: 'failed' | 'succeeded';
+};
+
+function buildUsageEventsPayload(
+  conversationId: string,
+  start: number,
+  end: number,
+  projectId?: string,
+  limit = 200
+) {
+  const filterItems: Array<{ key: string; op: string; value: unknown }> = [
+    {
+      key: SPAN_KEYS.AI_OPERATION_ID,
+      op: OPERATORS.IN,
+      value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+    },
+    {
+      key: SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE,
+      op: OPERATORS.IN,
+      value: CONVERSATION_USAGE_GENERATION_TYPES,
+    },
+    { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EQUALS, value: conversationId },
+    ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
+  ];
+
+  return {
+    start,
+    end,
+    requestType: REQUEST_TYPES.RAW,
+    ...(projectId && { projectId }),
+    compositeQuery: {
+      queries: [
+        {
+          type: QUERY_TYPES.BUILDER_QUERY,
+          spec: {
+            name: QUERY_EXPRESSIONS.USAGE_EVENTS,
+            signal: SIGNALS.TRACES,
+            filter: { expression: buildFilterExpression(filterItems) },
+            selectFields: [
+              sf(SPAN_KEYS.SPAN_ID, str, span),
+              sf(SPAN_KEYS.PARENT_SPAN_ID, str, span),
+              sf(SPAN_KEYS.TRACE_ID, str, span),
+              sf(SPAN_KEYS.HAS_ERROR, bool, span),
+              sf(SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, str, attr),
+              sf(SPAN_KEYS.AI_MODEL_ID, str, attr),
+              sf(SPAN_KEYS.AI_MODEL_PROVIDER, str, attr),
+              sf(SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER, str, attr),
+              sf(SPAN_KEYS.AGENT_ID, str, attr),
+              sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
+              sf(SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, str, attr),
+              sf(SPAN_KEYS.CONVERSATION_ID, str, attr),
+              sf(SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, float64, attr),
+              sf(SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, float64, attr),
+              sf(SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, float64, attr),
+              sf(SPAN_KEYS.AI_RESPONSE_FINISH_REASON, str, attr),
+            ],
+            order: [{ key: { name: SPAN_KEYS.TIMESTAMP }, direction: ORDER_DIRECTIONS.DESC }],
+            limit,
+            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+            disabled: QUERY_DEFAULTS.DISABLED,
+          },
+        },
+      ],
+    },
+  };
+}
+
+function parseUsageEvents(resp: SigNozResp): ConversationUsageEvent[] {
+  const rows = resp.results.find((r) => r.queryName === QUERY_EXPRESSIONS.USAGE_EVENTS)?.rows ?? [];
+  return rows.map((row: any) => {
+    const d = row?.data ?? row;
+    const ts = row.timestamp || d.timestamp || '';
+
+    const inputTokens =
+      Number(d[SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS] || d[SPAN_KEYS.AI_USAGE_PROMPT_TOKENS]) || 0;
+    const outputTokens =
+      Number(d[SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS] || d[SPAN_KEYS.AI_USAGE_COMPLETION_TOKENS]) ||
+      0;
+    const cost = Number(d[SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD]) || 0;
+
+    return {
+      spanId: d.spanID || '',
+      parentSpanId: d.parentSpanID || '',
+      traceId: d.traceID || '',
+      timestamp: ts,
+      generationType: d[SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE] || 'unknown',
+      model: d[SPAN_KEYS.AI_MODEL_ID] || 'unknown',
+      provider: d[SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER] || d[SPAN_KEYS.AI_MODEL_PROVIDER] || '',
+      agentId: d[SPAN_KEYS.AGENT_ID] || '',
+      subAgentId: d[SPAN_KEYS.SUB_AGENT_ID] || d[SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID] || '',
+      conversationId: d[SPAN_KEYS.CONVERSATION_ID] || '',
+      inputTokens,
+      outputTokens,
+      totalTokens: inputTokens + outputTokens,
+      estimatedCostUsd: cost,
+      finishReason: d[SPAN_KEYS.AI_RESPONSE_FINISH_REASON] || '',
+      status: d.hasError === true || d.hasError === 'true' ? 'failed' : 'succeeded',
+    };
+  });
+}
+
 export async function GET(
   req: NextRequest,
   context: RouteContext<'/api/traces/conversations/[conversationId]'>
 ) {
+  const authResult = await requireApiRouteSessionOrBearer(req);
+  if (!authResult.ok) {
+    return authResult.response;
+  }
   const { conversationId } = await context.params;
   if (!conversationId) {
     return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 });
@@ -546,9 +670,6 @@ export async function GET(
   // Optional time range params to narrow the ClickHouse scan window
   const startParam = url.searchParams.get('start');
   const endParam = url.searchParams.get('end');
-
-  const cookieHeader = req.headers.get('cookie');
-  const authHeader = req.headers.get('authorization');
 
   try {
     const logger = getLogger('conversation-detail');
@@ -571,25 +692,53 @@ export async function GET(
 
     const payloads = buildConversationPayloads(conversationId, start, end, projectId);
     const batchLabels = ['core', 'context', 'events'] as const;
+    const usageEventsPayload = buildUsageEventsPayload(conversationId, start, end, projectId);
 
-    const batchResults = await Promise.all(
-      payloads.map(async (p, i) => {
+    const [batchResults, usageEventsResp] = await Promise.all([
+      Promise.all(
+        payloads.map(async (p, i) => {
+          const batchStart = Date.now();
+          const result = await signozQuery(p, tenantId, authResult.headers);
+          logger.info(
+            {
+              batch: batchLabels[i],
+              queries: p.compositeQuery.queries.length,
+              ms: Date.now() - batchStart,
+            },
+            `signoz batch complete`
+          );
+          return result;
+        })
+      ),
+      (async () => {
         const batchStart = Date.now();
-        const result = await signozQuery(p, tenantId, cookieHeader, authHeader);
-        logger.info(
-          {
-            batch: batchLabels[i],
-            queries: p.compositeQuery.queries.length,
-            ms: Date.now() - batchStart,
-          },
-          `signoz batch complete`
-        );
-        return result;
-      })
-    );
+        try {
+          const result = await signozQuery(usageEventsPayload, tenantId, authResult.headers);
+          logger.info(
+            { batch: 'usage-events', ms: Date.now() - batchStart },
+            'signoz batch complete'
+          );
+          return result;
+        } catch (err) {
+          logger.warn(
+            {
+              conversationId,
+              tenantId,
+              projectId,
+              ms: Date.now() - batchStart,
+              error: err instanceof Error ? err.message : String(err),
+            },
+            'usage events query failed; returning empty list'
+          );
+          return { results: [] } as SigNozResp;
+        }
+      })(),
+    ]);
     const tSignoz = Date.now();
 
     const resp: SigNozResp = { results: batchResults.flatMap((r) => r.results) };
+
+    const usageEvents = parseUsageEvents(usageEventsResp);
 
     const toolCallSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_CALLS);
     const userMessageSpans = parseList(resp, QUERY_EXPRESSIONS.USER_MESSAGES);
@@ -1546,6 +1695,7 @@ export async function GET(
       spansWithErrorsCount: spansWithErrorsList.length,
       errorCount: finalErrorCount,
       warningCount: finalWarningCount,
+      usageEvents,
       // Trigger-specific info (null if not a trigger invocation)
       invocationType,
       invocationEntryPoint,

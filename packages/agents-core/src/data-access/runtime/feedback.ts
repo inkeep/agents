@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, lte } from 'drizzle-orm';
+import { and, count, desc, eq, gte, inArray, lte } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { conversations, feedback } from '../../db/runtime/runtime-schema';
 import type {
@@ -128,6 +128,33 @@ export const listFeedback =
           ? Number.parseInt(total[0].count, 10)
           : (total[0]?.count ?? 0),
     };
+  };
+
+export const getFeedbackByIds =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; feedbackIds: string[] }) => {
+    if (params.feedbackIds.length === 0) return [];
+
+    const conversationsJoin = [
+      eq(feedback.tenantId, conversations.tenantId),
+      eq(feedback.projectId, conversations.projectId),
+      eq(feedback.conversationId, conversations.id),
+    ] as const;
+
+    return db
+      .select({
+        id: feedback.id,
+        conversationId: feedback.conversationId,
+        type: feedback.type,
+        details: feedback.details,
+        createdAt: feedback.createdAt,
+        agentId: conversations.agentId,
+      })
+      .from(feedback)
+      .leftJoin(conversations, and(...conversationsJoin))
+      .where(
+        and(projectScopedWhere(feedback, params.scopes), inArray(feedback.id, params.feedbackIds))
+      );
   };
 
 export const createFeedback = (db: AgentsRunDatabaseClient) => async (params: FeedbackInsert) => {

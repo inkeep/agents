@@ -16,6 +16,27 @@ const VALID_PNG_BYTES = Buffer.from(
 );
 
 const VALID_PDF_BYTES = Buffer.from('%PDF-1.7\n1 0 obj\n<<>>\nendobj\n', 'utf8');
+const VALID_ZIP_BYTES = Buffer.from([0x50, 0x4b, 0x03, 0x04, ...Array(100).fill(0)]);
+const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const PPTX_MIME = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+const ODT_MIME = 'application/vnd.oasis.opendocument.text';
+const ODS_MIME = 'application/vnd.oasis.opendocument.spreadsheet';
+const ODP_MIME = 'application/vnd.oasis.opendocument.presentation';
+const PAGES_MIME = 'application/vnd.apple.pages';
+const NUMBERS_MIME = 'application/vnd.apple.numbers';
+const KEY_MIME = 'application/vnd.apple.keynote';
+const ZIP_DOCUMENT_MIME_TYPES = [
+  DOCX_MIME,
+  XLSX_MIME,
+  PPTX_MIME,
+  ODT_MIME,
+  ODS_MIME,
+  ODP_MIME,
+  PAGES_MIME,
+  NUMBERS_MIME,
+  KEY_MIME,
+];
 
 describe('file-content-security', () => {
   describe('normalizeInlineImageBytes', () => {
@@ -193,6 +214,30 @@ describe('file-content-security', () => {
       expect(Buffer.from(result.data).toString('utf8')).toContain('"count":1');
     });
 
+    it('accepts inline application/javascript bytes when they are valid UTF-8 text', async () => {
+      const jsBytes = Buffer.from('export const answer = 42;\n', 'utf8');
+
+      const result = await normalizeInlineFileBytes({
+        bytes: jsBytes.toString('base64'),
+        mimeType: 'application/javascript',
+      });
+
+      expect(result.mimeType).toBe('application/javascript');
+      expect(Buffer.from(result.data).toString('utf8')).toContain('answer = 42');
+    });
+
+    it('accepts inline application/yaml bytes when they are valid UTF-8 text', async () => {
+      const yamlBytes = Buffer.from('name: alpha\ncount: 1\n', 'utf8');
+
+      const result = await normalizeInlineFileBytes({
+        bytes: yamlBytes.toString('base64'),
+        mimeType: 'application/yaml',
+      });
+
+      expect(result.mimeType).toBe('application/yaml');
+      expect(Buffer.from(result.data).toString('utf8')).toContain('name: alpha');
+    });
+
     it('rejects binary bytes masquerading as text/plain', async () => {
       const binaryBytes = Buffer.from([0x00, 0x9f, 0x92, 0x96, 0xff, 0x00]);
 
@@ -216,6 +261,40 @@ describe('file-content-security', () => {
     });
   });
 
+  describe('normalizeInlineFileBytes - office documents', () => {
+    it.each(
+      ZIP_DOCUMENT_MIME_TYPES
+    )('accepts valid ZIP bytes when mimeType is %s', async (mime) => {
+      const result = await normalizeInlineFileBytes({
+        bytes: VALID_ZIP_BYTES.toString('base64'),
+        mimeType: mime,
+      });
+      expect(result.mimeType).toBe(mime);
+    });
+
+    it.each([
+      DOCX_MIME,
+      PPTX_MIME,
+      PAGES_MIME,
+    ])('rejects non-ZIP bytes claiming to be %s', async (mime) => {
+      await expect(
+        normalizeInlineFileBytes({
+          bytes: VALID_PDF_BYTES.toString('base64'),
+          mimeType: mime,
+        })
+      ).rejects.toBeInstanceOf(BlockedInlineUnsupportedFileBytesError);
+    });
+
+    it('rejects non-ZIP bytes claiming to be xlsx', async () => {
+      await expect(
+        normalizeInlineFileBytes({
+          bytes: VALID_PNG_BYTES.toString('base64'),
+          mimeType: XLSX_MIME,
+        })
+      ).rejects.toBeInstanceOf(BlockedInlineUnsupportedFileBytesError);
+    });
+  });
+
   describe('resolveDownloadedFileMimeType', () => {
     it('accepts PDF signature bytes when expected mime type is application/pdf', async () => {
       await expect(
@@ -226,6 +305,16 @@ describe('file-content-security', () => {
     it('rejects non-PDF bytes when expected mime type is application/pdf', async () => {
       await expect(
         resolveDownloadedFileMimeType(VALID_PNG_BYTES, 'application/pdf', 'application/pdf')
+      ).rejects.toThrow(/Blocked external file with unsupported bytes signature/);
+    });
+
+    it.each(ZIP_DOCUMENT_MIME_TYPES)('accepts valid ZIP bytes for %s mime type', async (mime) => {
+      await expect(resolveDownloadedFileMimeType(VALID_ZIP_BYTES, mime, mime)).resolves.toBe(mime);
+    });
+
+    it('rejects non-ZIP bytes for docx mime type', async () => {
+      await expect(
+        resolveDownloadedFileMimeType(VALID_PDF_BYTES, DOCX_MIME, DOCX_MIME)
       ).rejects.toThrow(/Blocked external file with unsupported bytes signature/);
     });
   });

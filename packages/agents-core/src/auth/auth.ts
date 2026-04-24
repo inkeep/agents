@@ -135,7 +135,7 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
       accountLinking: {
         enabled: true,
         trustedProviders: async () => {
-          const base = ['google', 'email-password'];
+          const base = ['google', 'microsoft', 'email-password'];
           try {
             const providerIds = await querySsoProviderIds(config.dbClient)();
             return [...base, ...providerIds];
@@ -162,14 +162,25 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
         },
       },
     },
-    socialProviders: config.socialProviders?.google && {
-      google: {
-        ...config.socialProviders.google,
-        // For local/preview env, redirect to production URL registered in Google Console
-        ...(env.OAUTH_PROXY_PRODUCTION_URL && {
-          redirectURI: `${env.OAUTH_PROXY_PRODUCTION_URL}/api/auth/callback/google`,
-        }),
-      },
+    socialProviders: (config.socialProviders?.google || config.socialProviders?.microsoft) && {
+      ...(config.socialProviders?.google && {
+        google: {
+          ...config.socialProviders.google,
+          // For local/preview env, redirect to production URL registered in Google Console
+          ...(env.OAUTH_PROXY_PRODUCTION_URL && {
+            redirectURI: `${env.OAUTH_PROXY_PRODUCTION_URL}/api/auth/callback/google`,
+          }),
+        },
+      }),
+      ...(config.socialProviders?.microsoft && {
+        microsoft: {
+          ...config.socialProviders.microsoft,
+          // For local/preview env, redirect to production URL registered in Entra app
+          ...(env.OAUTH_PROXY_PRODUCTION_URL && {
+            redirectURI: `${env.OAUTH_PROXY_PRODUCTION_URL}/api/auth/callback/microsoft`,
+          }),
+        },
+      }),
     },
     session: {
       storeSessionInDatabase: true,
@@ -393,6 +404,39 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
               await createUserProfileIfNotExists(config.dbClient)(user.id);
             } catch (error) {
               console.error('[auth] Failed to create user profile for user', user.id, error);
+            }
+
+            if (invitation.role !== OrgRoles.ADMIN && invitation.role !== OrgRoles.OWNER) {
+              const { getProjectAssignmentsForInvitation, deleteInvitationProjectAssignments } =
+                await import('../data-access/runtime/invitationProjectAssignments');
+              const { grantProjectAccess } = await import('./authz/sync');
+
+              const assignments = await getProjectAssignmentsForInvitation(config.dbClient)(
+                invitation.id
+              );
+
+              if (assignments.length > 0) {
+                const results = await Promise.allSettled(
+                  assignments.map((a) =>
+                    grantProjectAccess({
+                      tenantId: org.id,
+                      projectId: a.projectId,
+                      userId: user.id,
+                      role: a.projectRole,
+                    })
+                  )
+                );
+                results.forEach((result, i) => {
+                  if (result.status === 'rejected') {
+                    console.warn(
+                      `[auth] Failed to grant project access for project ${assignments[i]?.projectId}:`,
+                      result.reason
+                    );
+                  }
+                });
+              }
+
+              await deleteInvitationProjectAssignments(config.dbClient)(invitation.id);
             }
           },
           beforeUpdateMemberRole: async ({ member, organization: org, newRole }) => {

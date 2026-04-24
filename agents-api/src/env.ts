@@ -67,6 +67,28 @@ const envSchema = z
       })
       .describe('Admin password for management UI login (min 8 characters)'),
 
+    // OAuth 2.1 Support Copilot
+    COPILOT_OAUTH_CLIENT_ID: z
+      .string()
+      .optional()
+      .describe(
+        'OAuth 2.1 client ID for the Support Copilot app (created by pnpm setup-oauth-client)'
+      ),
+
+    // Credential Gateway (confidential client for server-to-server token exchange)
+    COPILOT_GATEWAY_CLIENT_ID: z
+      .string()
+      .optional()
+      .describe(
+        'Credential gateway client ID for token exchange (created by pnpm setup-gateway-client)'
+      ),
+    COPILOT_GATEWAY_CLIENT_SECRET: z
+      .string()
+      .optional()
+      .describe(
+        'Credential gateway client secret for token exchange (created by pnpm setup-gateway-client)'
+      ),
+
     // API Bypass Secrets (for local development and testing, skips auth)
     INKEEP_AGENTS_API_BYPASS_SECRET: z
       .string()
@@ -84,6 +106,22 @@ const envSchema = z
       .string()
       .optional()
       .describe('Eval API bypass secret for local development and testing (skips auth)'),
+
+    // Copilot / Improvement Agent JWT (shared app credential)
+    INKEEP_COPILOT_JWT_PRIVATE_KEY: z
+      .string()
+      .optional()
+      .describe(
+        'Base64-encoded RSA private key for signing copilot/improvement JWTs. Shared by manage-ui and agents-api.'
+      ),
+    INKEEP_COPILOT_JWT_KID: z
+      .string()
+      .optional()
+      .describe('Key ID for the copilot/improvement JWT signing key'),
+    PUBLIC_INKEEP_COPILOT_APP_ID: z
+      .string()
+      .optional()
+      .describe('App ID for the copilot/improvement agent app credential'),
 
     // Vercel Cron
     CRON_SECRET: z
