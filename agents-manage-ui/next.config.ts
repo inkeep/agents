@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from 'next';
 
@@ -15,7 +17,47 @@ if (process.env.NODE_ENV !== 'production') {
 
 const isSentryEnabled = Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN);
 
+// In the outer monorepo (agents-private) we want `@inkeep/agents-ui` edits to
+// appear in manage-ui dev without a build step. The package is installed
+// normally (published version) via the nested `public/agents/` lockfile, so
+// Vercel/public-mirror builds are unaffected. When the `private/agents-ui`
+// source tree is present on disk AND we're in dev, we layer a bundler-level
+// redirect on top pointing the package specifier at that source directory.
+//
+// Two gates:
+// - `existsSync`: after Copybara mirrors next.config.ts to `inkeep/agents`,
+//   the alias silently no-ops (private tree isn't there).
+// - `NODE_ENV !== 'production'`: Vercel previews on agents-private DO have
+//   `private/` checked out, but they run prod builds with React Compiler
+//   `panicThreshold: 'all_errors'`. agents-ui source carries pre-existing
+//   memoization warnings that would block the prod build, and prod builds
+//   don't need source linking anyway — they pull the published package.
+const agentsUiSourceDir = path.resolve(__dirname, '../../../private/agents-ui/packages/agents-ui');
+const useAgentsUiSource =
+  process.env.NODE_ENV !== 'production' &&
+  fs.existsSync(path.join(agentsUiSourceDir, 'package.json'));
+// Turbopack resolveAlias values must be relative (absolute OS paths get
+// mis-interpreted as server-relative URLs). Compute paths relative to this
+// config file's directory.
+const rel = (p: string) => {
+  const r = path.relative(__dirname, p);
+  return r.startsWith('.') ? r : `./${r}`;
+};
+const agentsUiSourceAlias: Record<string, string> = useAgentsUiSource
+  ? {
+      '@inkeep/agents-ui': rel(path.join(agentsUiSourceDir, 'src/index.ts')),
+      '@inkeep/agents-ui/types': rel(path.join(agentsUiSourceDir, 'src/types/index.ts')),
+      '@inkeep/agents-ui/inkeep.css': rel(path.join(agentsUiSourceDir, 'src/styled/inkeep.css')),
+    }
+  : {};
+
 const nextConfig: NextConfig = {
+  // Transpile @inkeep/agents-ui. In the outer monorepo the turbopack
+  // `resolveAlias` below redirects this package to `private/agents-ui` source
+  // (TypeScript, no build step). On Vercel / public-mirror builds the alias
+  // is a no-op and Next installs the published npm version, so this flag is
+  // harmless there.
+  transpilePackages: ['@inkeep/agents-ui'],
   experimental: {
     turbopackFileSystemCacheForBuild: true,
     serverComponentsHmrCache: true,
@@ -37,10 +79,21 @@ const nextConfig: NextConfig = {
   },
   output: 'standalone',
   reactCompiler: {
-    // Fail the build on any compiler diagnostic
-    panicThreshold: 'all_errors',
+    // Production: fail on any compiler diagnostic (strict).
+    // Dev: skip components that can't be compiled cleanly instead of failing —
+    // when the turbopack alias redirects @inkeep/agents-ui to its private
+    // source tree, pre-existing memoization issues in that package would
+    // otherwise block manage-ui's dev server. Prod builds install the
+    // compiled package from npm, so this relaxation never applies there.
+    // Note: React Compiler's config does not expose a per-path `sources`
+    // filter (Next.js 16's ReactCompilerOptions is {compilationMode,
+    // panicThreshold} only), so path-based exclusion isn't possible today.
+    panicThreshold: process.env.NODE_ENV === 'production' ? 'all_errors' : 'none',
   },
   turbopack: {
+    resolveAlias: {
+      ...agentsUiSourceAlias,
+    },
     rules: {
       './**/icons/*.svg': {
         loaders: [
@@ -53,6 +106,17 @@ const nextConfig: NextConfig = {
             },
           },
         ],
+        as: '*.js',
+      },
+      // agents-ui's Shadow component does `import styles from '../inkeep.css?raw'`
+      // (a Vite convention). When we alias @inkeep/agents-ui to source, this
+      // import goes through Turbopack — which does not natively understand the
+      // `?raw` query suffix. Without this loader, `styles` ends up empty and
+      // the Shadow DOM's <style> tag is blank, producing the unstyled chat.
+      // Published builds bake the CSS string into the compiled JS so this rule
+      // only matters in dev with the source alias active.
+      '**/inkeep.css': {
+        loaders: ['raw-loader'],
         as: '*.js',
       },
     },

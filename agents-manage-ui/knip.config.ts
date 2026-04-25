@@ -4,6 +4,7 @@ export default {
   tags: ['-lintignore'],
   ignoreDependencies: [
     '@svgr/webpack', // Set as turbopack loader in `next.config.ts`
+    'raw-loader', // Set as turbopack loader in `next.config.ts` for `inkeep.css?raw` imports
     'postcss', // Bundled in Next.js
     'pino-pretty', // Set the transport target in `agents-manage-ui/src/lib/logger.ts`
     'jsdom', // We use `@testing-library/jest-dom`
