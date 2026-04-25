@@ -32,6 +32,10 @@
     {
       "path": "/api/cron/cleanup-stream-chunks",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-stale-workflows",
+      "schedule": "*/30 * * * *"
     }
   ],
   "headers": [

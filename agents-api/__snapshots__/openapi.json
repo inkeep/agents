@@ -11940,6 +11940,24 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/cron/cleanup-stale-workflows": {
+      "get": {
+        "description": "Called by Vercel Cron to fail workflows suspended longer than 30 minutes. Auth via CRON_SECRET or INKEEP_AGENTS_RUN_API_BYPASS_SECRET.",
+        "responses": {
+          "200": {
+            "description": "Cleanup completed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [],
+        "summary": "Clean up stale suspended workflows",
+        "tags": [
+          "Workflows"
+        ]
+      }
+    },
     "/api/cron/cleanup-stream-chunks": {
       "get": {
         "description": "Called by Vercel Cron to delete stream chunks older than 5 minutes. Auth via CRON_SECRET or INKEEP_AGENTS_RUN_API_BYPASS_SECRET.",
