@@ -1,3 +1,4 @@
+import type { MiddlewareHandler } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import { registerAuthzMeta } from './authz-meta';
 
@@ -16,7 +17,7 @@ export const inheritedAuth = (meta: {
   resource?: string;
   permission?: string;
   description: string;
-}) => {
+}): MiddlewareHandler => {
   const mw = createMiddleware(async (_c, next) => {
     await next();
   });
@@ -30,7 +31,7 @@ export const inheritedAuth = (meta: {
  *
  * No auth check runs at the route level — this is purely for OpenAPI documentation.
  */
-export const inheritedManageTenantAuth = () =>
+export const inheritedManageTenantAuth = (): MiddlewareHandler =>
   inheritedAuth({
     resource: 'organization',
     permission: 'member',
@@ -44,7 +45,7 @@ export const inheritedManageTenantAuth = () =>
  *
  * No auth check runs at the route level — this is purely for OpenAPI documentation.
  */
-export const inheritedRunApiKeyAuth = () =>
+export const inheritedRunApiKeyAuth = (): MiddlewareHandler =>
   inheritedAuth({
     description:
       'Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts.',
@@ -56,7 +57,7 @@ export const inheritedRunApiKeyAuth = () =>
  *
  * No auth check runs at the route level — this is purely for OpenAPI documentation.
  */
-export const inheritedWorkAppsAuth = () =>
+export const inheritedWorkAppsAuth = (): MiddlewareHandler =>
   inheritedAuth({
     description:
       'Requires work-apps authentication (OIDC token or Slack signature). Auth is enforced by workAppsAuth middleware in createApp.ts.',
