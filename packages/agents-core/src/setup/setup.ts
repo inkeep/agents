@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import dotenv from 'dotenv';
+import { generateCompliantPassword } from '../auth/password-policy.js';
 import { loadEnvironmentFiles } from '../env.js';
 
 const colors = {
@@ -350,8 +351,8 @@ async function generateSecrets() {
     },
     {
       varName: 'INKEEP_AGENTS_MANAGE_UI_PASSWORD',
-      placeholders: ['adminADMIN!@12'],
-      generate: () => randomBytes(6).toString('base64url'),
+      placeholders: ['change-me-Pass!@1234'],
+      generate: () => generateCompliantPassword(),
     },
     {
       varName: 'INKEEP_ANON_JWT_SECRET',

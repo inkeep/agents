@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { MIN_PASSWORD_LENGTH, PasswordRequirements } from '@/components/ui/password-requirements';
 import { useAuthClient } from '@/contexts/auth-client';
 import { useAuthSession } from '@/hooks/use-auth';
 
@@ -129,10 +130,10 @@ function ResetPasswordForm() {
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
                 disabled={isSubmitting}
-                minLength={8}
+                minLength={MIN_PASSWORD_LENGTH}
                 autoFocus
               />
-              <p className="text-xs text-muted-foreground">Must be at least 8 characters</p>
+              <PasswordRequirements password={formData.password} />
             </div>
 
             <div className="space-y-2">
@@ -145,7 +146,7 @@ function ResetPasswordForm() {
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                 required
                 disabled={isSubmitting}
-                minLength={8}
+                minLength={MIN_PASSWORD_LENGTH}
               />
             </div>
 

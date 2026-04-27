@@ -6,6 +6,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import {
   bearer,
   deviceAuthorization,
+  haveIBeenPwned,
   jwt,
   lastLoginMethod,
   oAuthProxy,
@@ -25,6 +26,7 @@ import type { BetterAuthConfig } from './auth-types';
 import { type OrgRole, OrgRoles } from './authz/types';
 import { setEmailSendStatus } from './email-send-status-store';
 import { DEFAULT_MEMBERSHIP_LIMIT } from './entitlement-constants';
+import { passwordPolicyHook } from './password-policy';
 import { setPasswordResetLink } from './password-reset-link-store';
 import { ac, adminRole, memberRole, ownerRole } from './permissions';
 
@@ -99,8 +101,8 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
     }),
     emailAndPassword: {
       enabled: true,
-      minPasswordLength: 8,
-      maxPasswordLength: 128,
+      minPasswordLength: 15,
+      maxPasswordLength: 256,
       requireEmailVerification: false,
       autoSignIn: true,
       resetPasswordTokenExpiresIn: 60 * 30,
@@ -209,7 +211,10 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
       },
       ...config.advanced,
     },
-    trustedOrigins: (request) => getTrustedOrigins(config.dbClient, request),
+    trustedOrigins: (request?: Request) => getTrustedOrigins(config.dbClient, request),
+    hooks: {
+      before: passwordPolicyHook,
+    },
     plugins: [
       bearer(),
       dash(),
@@ -520,6 +525,9 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
         expiresIn: '60m', // 30 minutes
         interval: '5s', // 5 second polling interval
         userCodeLength: 8, // e.g., "ABCD-EFGH"
+      }),
+      haveIBeenPwned({
+        customPasswordCompromisedMessage: 'Please choose a more secure password.',
       }),
     ],
   }) as unknown as AuthInstance;

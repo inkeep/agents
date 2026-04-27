@@ -10,6 +10,7 @@ import { AlertCircle, Check, Copy, Mail, X } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -148,8 +149,8 @@ export function InviteMemberDialog({
       .map((e) => e.trim())
       .filter((e) => e.length > 0);
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const invalidEmails = emailList.filter((e) => !emailRegex.test(e));
+    const emailSchema = z.email();
+    const invalidEmails = emailList.filter((e) => !emailSchema.safeParse(e).success);
 
     if (invalidEmails.length > 0) {
       setError(`Invalid email format: ${invalidEmails.join(', ')}`);
