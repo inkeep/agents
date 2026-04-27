@@ -186,7 +186,11 @@ function LoginForm() {
       const result = await authClient.signIn.email({ email, password });
 
       if (result?.error) {
-        setError(result.error.message || 'Sign in failed');
+        const message =
+          result.error.code === 'PASSWORD_COMPROMISED'
+            ? 'Invalid email or password'
+            : result.error.message || 'Sign in failed';
+        setError(message);
         setIsLoading(false);
         return;
       }
@@ -434,7 +438,6 @@ function LoginForm() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     disabled={isLoading}
-                    minLength={8}
                     autoFocus
                   />
                 </div>

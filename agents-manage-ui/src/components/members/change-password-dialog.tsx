@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { MIN_PASSWORD_LENGTH, PasswordRequirements } from '@/components/ui/password-requirements';
 import { useAuthClient } from '@/contexts/auth-client';
 
 interface ChangePasswordDialogProps {
@@ -39,8 +40,8 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
       return;
     }
 
-    if (formData.newPassword.length < 8) {
-      setError('Password must be at least 8 characters');
+    if (formData.newPassword.length < MIN_PASSWORD_LENGTH) {
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
       return;
     }
 
@@ -110,7 +111,9 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
                 onChange={(e) => setFormData((prev) => ({ ...prev, newPassword: e.target.value }))}
                 disabled={isSubmitting}
                 required
+                minLength={MIN_PASSWORD_LENGTH}
               />
+              <PasswordRequirements password={formData.newPassword} />
             </div>
 
             <div className="grid gap-2">

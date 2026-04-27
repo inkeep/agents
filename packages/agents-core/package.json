@@ -110,6 +110,14 @@
       "types": "./dist/auth/authz/index.d.ts",
       "import": "./dist/auth/authz/index.js"
     },
+    "./auth/password-policy": {
+      "types": "./dist/auth/password-policy.d.ts",
+      "import": "./dist/auth/password-policy.js"
+    },
+    "./auth/password-policy-rules": {
+      "types": "./dist/auth/password-policy-rules.d.ts",
+      "import": "./dist/auth/password-policy-rules.js"
+    },
     "./auth/password-reset-link-store": {
       "types": "./dist/auth/password-reset-link-store.d.ts",
       "import": "./dist/auth/password-reset-link-store.js"

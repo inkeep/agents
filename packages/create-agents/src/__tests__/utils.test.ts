@@ -66,7 +66,7 @@ const mockEnvExample = [
   'SIGNOZ_URL=http://localhost:3080',
   'OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=',
   'INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com',
-  'INKEEP_AGENTS_MANAGE_UI_PASSWORD=adminADMIN!@12',
+  'INKEEP_AGENTS_MANAGE_UI_PASSWORD=change-me-Pass!@1234',
   'BETTER_AUTH_SECRET=your-secret-key-change-in-production',
   'SPICEDB_ENDPOINT=localhost:50051',
   'SPICEDB_PRESHARED_KEY=dev-secret-key',
@@ -594,7 +594,7 @@ describe('createAgents - Template and Project ID Logic', () => {
       const envWriteCall = vi.mocked(fs.writeFile).mock.calls.find((call) => call[0] === '.env');
       const envContent = envWriteCall?.[1] as string;
       expect(envContent).toContain('BETTER_AUTH_SECRET=your-secret-key-change-in-production');
-      expect(envContent).toContain('INKEEP_AGENTS_MANAGE_UI_PASSWORD=adminADMIN!@12');
+      expect(envContent).toContain('INKEEP_AGENTS_MANAGE_UI_PASSWORD=change-me-Pass!@1234');
       expect(envContent).toContain('# INKEEP_AGENTS_JWT_SIGNING_SECRET=');
     });
   });

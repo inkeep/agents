@@ -62,10 +62,9 @@ const envSchema = z
     INKEEP_AGENTS_MANAGE_UI_PASSWORD: z
       .string()
       .optional()
-      .refine((val) => !val || val.length >= 8, {
-        message: 'Password must be at least 8 characters',
-      })
-      .describe('Admin password for management UI login (min 8 characters)'),
+      .describe(
+        'Admin password for management UI login (policy enforced server-side via auth hook + init script)'
+      ),
 
     // OAuth 2.1 Support Copilot
     COPILOT_OAUTH_CLIENT_ID: z

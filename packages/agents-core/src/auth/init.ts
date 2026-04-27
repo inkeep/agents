@@ -11,7 +11,7 @@
  * - INKEEP_AGENTS_RUN_DATABASE_URL: PostgreSQL connection string
  * - TENANT_ID: Organization/tenant ID (defaults to 'default') - this becomes the org ID
  * - INKEEP_AGENTS_MANAGE_UI_USERNAME: Admin email address
- * - INKEEP_AGENTS_MANAGE_UI_PASSWORD: Admin password (min 8 chars)
+ * - INKEEP_AGENTS_MANAGE_UI_PASSWORD: Admin password (min 15 chars, see password policy)
  * - BETTER_AUTH_SECRET: Secret for Better Auth
  *
  * Optional environment variables:
@@ -30,6 +30,7 @@ import type { AppConfig, PublicKeyConfig } from '../types/utility';
 import { createAuth } from './auth';
 import { syncOrgMemberToSpiceDb } from './authz';
 import { OrgRoles } from './authz/types';
+import { validatePasswordPolicy } from './password-policy';
 import { writeSpiceDbSchema } from './spicedb-schema';
 
 const TENANT_ID = process.env.TENANT_ID || 'default';
@@ -69,6 +70,15 @@ async function init() {
     process.exit(1);
   }
 
+  const passwordViolations = validatePasswordPolicy(password, { userEmail: username });
+  if (passwordViolations.length > 0) {
+    console.error('❌ INKEEP_AGENTS_MANAGE_UI_PASSWORD does not meet the password policy:');
+    for (const v of passwordViolations) {
+      console.error(`   - ${v.message}`);
+    }
+    process.exit(1);
+  }
+
   // 2. Create the auth instance
   const apiUrl = process.env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
   const auth = createAuth({
@@ -98,16 +108,7 @@ async function init() {
   let user = await getUserByEmail(dbClient)(username);
 
   if (user) {
-    console.log(`   ℹ️  User already exists: ${username}`);
-    try {
-      const ctx = await auth.$context;
-      const hashedPassword = await ctx.password.hash(password);
-      await ctx.internalAdapter.updatePassword(user.id, hashedPassword);
-      console.log('   ✅ Password synced from .env');
-    } catch (error) {
-      console.error('   ❌ Failed to sync password from .env:', error);
-      process.exit(1);
-    }
+    console.log(`   ℹ️  User already exists: ${username} — skipping creation and password update`);
   } else {
     // Create user via Better Auth
     console.log('   Creating user with Better Auth...');

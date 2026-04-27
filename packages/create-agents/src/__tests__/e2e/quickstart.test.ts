@@ -148,7 +148,7 @@ describe('create-agents quickstart e2e', () => {
       timeout: 120000, // 2 min: SpiceDB schema write retries up to 30x at 1s each
       env: {
         INKEEP_AGENTS_MANAGE_UI_USERNAME: 'admin@example.com',
-        INKEEP_AGENTS_MANAGE_UI_PASSWORD: 'adminADMIN!@12',
+        INKEEP_AGENTS_MANAGE_UI_PASSWORD: 'Str0ngTest!@Pass4242',
         BETTER_AUTH_SECRET: 'test-secret-key-for-ci',
         SPICEDB_PRESHARED_KEY: 'dev-secret-key',
         // Explicit DB URLs in case process.env doesn't carry them
@@ -222,7 +222,7 @@ describe('create-agents quickstart e2e', () => {
           headers: { 'Content-Type': 'application/json', Origin: dashboardApiUrl },
           body: JSON.stringify({
             email: 'admin@example.com',
-            password: 'adminADMIN!@12',
+            password: 'Str0ngTest!@Pass4242',
             name: 'admin',
           }),
         });
@@ -276,7 +276,7 @@ describe('create-agents quickstart e2e', () => {
           headers: { 'Content-Type': 'application/json', Origin: dashboardApiUrl },
           body: JSON.stringify({
             email: 'admin@example.com',
-            password: 'adminADMIN!@12',
+            password: 'Str0ngTest!@Pass4242',
           }),
         });
         const loginBody = await loginTestRes.text().catch(() => '');

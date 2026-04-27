@@ -10,7 +10,7 @@ Generate a `.env` file from the example:
 cp .env.docker.example .env && \
 \
   # Core secrets
-  inkeep_agents_manage_ui_password=$(openssl rand -base64 8) && \
+  inkeep_agents_manage_ui_password="$(openssl rand -base64 18)Aa1!" && \
   inkeep_agents_run_api_bypass_secret=$(openssl rand -base64 32) && \
   inkeep_agents_jwt_signing_secret=$(openssl rand -base64 32) && \
   better_auth_secret=$(openssl rand -base64 32) && \
