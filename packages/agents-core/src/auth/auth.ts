@@ -96,9 +96,27 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
     baseURL: config.baseURL,
     secret: config.secret,
     disabledPaths: ['/token'],
-    database: drizzleAdapter(config.dbClient, {
-      provider: 'pg',
-    }),
+    // Wrap the drizzle adapter so explicit `id` values on organization creates
+    // are honored. The dash plugin's /dash/organization/create endpoint does
+    // not pass `forceAllowId: true` to adapter.create (vanilla /organization/create
+    // does), so without this wrapper an `id` set in beforeCreateOrganization
+    // gets stripped. Track upstream resolution in @better-auth/infra.
+    database: ((options) => {
+      const adapter = drizzleAdapter(config.dbClient, { provider: 'pg' })(options);
+      return {
+        ...adapter,
+        create: (params: Parameters<typeof adapter.create>[0]) => {
+          if (
+            params.model === 'organization' &&
+            (params.data as { id?: string }).id &&
+            !params.forceAllowId
+          ) {
+            return adapter.create({ ...params, forceAllowId: true });
+          }
+          return adapter.create(params);
+        },
+      };
+    }) as ReturnType<typeof drizzleAdapter>,
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 15,
@@ -357,6 +375,14 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
           },
         },
         organizationHooks: {
+          beforeCreateOrganization: async ({ organization: org }) => {
+            return {
+              data: {
+                ...org,
+                id: org.slug,
+              },
+            };
+          },
           beforeCreateInvitation: async ({ invitation, organization: org }) => {
             const { enforcePerRoleSeatLimit } = await import('./entitlements');
             await enforcePerRoleSeatLimit(config.dbClient, org.id, invitation.role);
