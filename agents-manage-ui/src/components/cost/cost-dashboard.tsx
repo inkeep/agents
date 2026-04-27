@@ -52,48 +52,92 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
   const [summaryByAgent, setSummaryByAgent] = useState<UsageSummaryRow[]>([]);
   const [summaryByType, setSummaryByType] = useState<UsageSummaryRow[]>([]);
   const [summaryByProvider, setSummaryByProvider] = useState<UsageSummaryRow[]>([]);
+  const [summariesLoading, setSummariesLoading] = useState(true);
+  const [summariesError, setSummariesError] = useState<string | null>(null);
+
   const [events, setEvents] = useState<SigNozUsageEvent[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [eventsError, setEventsError] = useState<string | null>(null);
+
   const [chartData, setChartData] = useState<Array<{ date: string; cost: number }>>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [chartLoading, setChartLoading] = useState(true);
+  const [chartError, setChartError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    async function fetchData() {
-      setIsLoading(true);
-      setLoadError(null);
-      try {
-        const client = getSigNozStatsClient(tenantId);
-        const start = new Date(startTime).getTime();
-        const end = new Date(endTime).getTime();
-
-        const [summaries, eventsList, costPerDay] = await Promise.all([
-          client.getUsageCostSummaries(
-            start,
-            end,
-            ['model', 'agent', 'generation_type', 'provider'] as const,
-            projectId
-          ),
-          client.getUsageEventsList(start, end, projectId, undefined, 200),
-          client.getUsageCostPerDay(start, end, projectId),
-        ]);
-
+    setSummariesLoading(true);
+    setSummariesError(null);
+    const start = new Date(startTime).getTime();
+    const end = new Date(endTime).getTime();
+    getSigNozStatsClient(tenantId)
+      .getUsageCostSummaries(
+        start,
+        end,
+        ['model', 'agent', 'generation_type', 'provider'] as const,
+        projectId
+      )
+      .then((summaries) => {
         if (cancelled) return;
-
         setSummaryByModel(summaries.model);
         setSummaryByAgent(summaries.agent);
         setSummaryByType(summaries.generation_type);
         setSummaryByProvider(summaries.provider);
-        setEvents(eventsList);
-        setChartData(costPerDay);
-      } catch (error) {
-        console.error('Failed to fetch usage data:', error);
+      })
+      .catch((error) => {
         if (cancelled) return;
-        setLoadError(error instanceof Error ? error.message : 'Failed to load cost data');
-      }
-      if (!cancelled) setIsLoading(false);
-    }
-    fetchData();
+        setSummariesError(error instanceof Error ? error.message : 'Failed to load cost summaries');
+      })
+      .finally(() => {
+        if (!cancelled) setSummariesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId, projectId, startTime, endTime]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setEventsLoading(true);
+    setEventsError(null);
+    const start = new Date(startTime).getTime();
+    const end = new Date(endTime).getTime();
+    getSigNozStatsClient(tenantId)
+      .getUsageEventsList(start, end, projectId, undefined, 200)
+      .then((rows) => {
+        if (cancelled) return;
+        setEvents(rows);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setEventsError(error instanceof Error ? error.message : 'Failed to load cost events');
+      })
+      .finally(() => {
+        if (!cancelled) setEventsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId, projectId, startTime, endTime]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setChartLoading(true);
+    setChartError(null);
+    const start = new Date(startTime).getTime();
+    const end = new Date(endTime).getTime();
+    getSigNozStatsClient(tenantId)
+      .getUsageCostPerDay(start, end, projectId)
+      .then((data) => {
+        if (cancelled) return;
+        setChartData(data);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setChartError(error instanceof Error ? error.message : 'Failed to load cost chart');
+      })
+      .finally(() => {
+        if (!cancelled) setChartLoading(false);
+      });
     return () => {
       cancelled = true;
     };
@@ -112,69 +156,84 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
 
   return (
     <>
-      {loadError && (
-        <div
-          role="alert"
-          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
-        >
-          {loadError}
-        </div>
-      )}
-      <UsageStatCards totals={totals} modelCount={summaryByModel.length} isLoading={isLoading} />
+      <UsageStatCards
+        totals={totals}
+        modelCount={summaryByModel.length}
+        isLoading={summariesLoading}
+        error={summariesError}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        <UsageBreakdownTable title="Cost by Model" data={summaryByModel} isLoading={isLoading} />
+        <UsageBreakdownTable
+          title="Cost by Model"
+          data={summaryByModel}
+          isLoading={summariesLoading}
+          error={summariesError}
+        />
         <UsageBreakdownTable
           title="Cost by Agent"
           data={summaryByAgent}
-          isLoading={isLoading}
+          isLoading={summariesLoading}
+          error={summariesError}
           groupLabel="Agent"
         />
         <UsageBreakdownTable
           title="Cost by Provider"
           data={summaryByProvider}
-          isLoading={isLoading}
+          isLoading={summariesLoading}
+          error={summariesError}
           groupLabel="Provider"
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         <div className="min-h-0">
-          {chartData.length > 0 && (
-            <AreaChartCard
-              title="Cost Over Time"
-              className="h-full"
-              chartContainerClassName="h-full min-h-[300px] w-full"
-              config={{ cost: { color: 'var(--chart-2)', label: 'Cost (USD)' } }}
-              data={chartData}
-              dataKeyOne="cost"
-              xAxisDataKey="date"
-              isLoading={isLoading}
-              tickFormatter={(value: string) => {
-                try {
-                  const date = new Date(value);
-                  if (Number.isNaN(date.getTime())) {
-                    const [y, m, d] = value.split('-').map(Number);
-                    return new Date(y, (m || 1) - 1, d || 1).toLocaleDateString(undefined, {
+          {chartError ? (
+            <Card className="h-full">
+              <CardHeader>
+                <CardTitle>Cost Over Time</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-red-600 dark:text-red-400">{chartError}</p>
+              </CardContent>
+            </Card>
+          ) : (
+            (chartLoading || chartData.length > 0) && (
+              <AreaChartCard
+                title="Cost Over Time"
+                className="h-full"
+                chartContainerClassName="h-full min-h-[300px] w-full"
+                config={{ cost: { color: 'var(--chart-2)', label: 'Cost (USD)' } }}
+                data={chartData}
+                dataKeyOne="cost"
+                xAxisDataKey="date"
+                isLoading={chartLoading}
+                tickFormatter={(value: string) => {
+                  try {
+                    const date = new Date(value);
+                    if (Number.isNaN(date.getTime())) {
+                      const [y, m, d] = value.split('-').map(Number);
+                      return new Date(y, (m || 1) - 1, d || 1).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      });
+                    }
+                    return date.toLocaleDateString(undefined, {
                       month: 'short',
                       day: 'numeric',
                       year: 'numeric',
                     });
+                  } catch {
+                    return value;
                   }
-                  return date.toLocaleDateString(undefined, {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  });
-                } catch {
-                  return value;
-                }
-              }}
-              yAxisTickFormatter={(value: number | string) => {
-                const num = typeof value === 'string' ? Number.parseFloat(value) : value;
-                return num < 0.01 ? `$${num.toFixed(4)}` : `$${num.toFixed(2)}`;
-              }}
-            />
+                }}
+                yAxisTickFormatter={(value: number | string) => {
+                  const num = typeof value === 'string' ? Number.parseFloat(value) : value;
+                  return num < 0.01 ? `$${num.toFixed(4)}` : `$${num.toFixed(2)}`;
+                }}
+              />
+            )
           )}
         </div>
         <div>
@@ -182,7 +241,8 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
             tenantId={tenantId}
             projectId={projectId}
             events={events}
-            isLoading={isLoading}
+            isLoading={eventsLoading}
+            error={eventsError}
           />
         </div>
       </div>
@@ -190,7 +250,8 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
       <UsageBreakdownTable
         title="Cost by Generation Type"
         data={summaryByType}
-        isLoading={isLoading}
+        isLoading={summariesLoading}
+        error={summariesError}
         formatGroupKey={(key) => key.replace(/_/g, ' ')}
         groupLabel="Generation Type"
       />
@@ -202,6 +263,7 @@ function UsageStatCards({
   totals,
   modelCount,
   isLoading,
+  error,
 }: {
   totals: {
     totalTokens: number;
@@ -212,7 +274,9 @@ function UsageStatCards({
   };
   modelCount: number;
   isLoading: boolean;
+  error?: string | null;
 }) {
+  const hasError = !!error;
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <StatCard
@@ -220,6 +284,7 @@ function UsageStatCards({
         Icon={Coins}
         stat={formatCost(totals.totalCost)}
         isLoading={isLoading}
+        hasError={hasError}
       />
       <StatCard
         title="Total Tokens"
@@ -227,9 +292,22 @@ function UsageStatCards({
         stat={formatTokens(totals.totalTokens)}
         statDescription={`${formatTokens(totals.totalInputTokens)} in / ${formatTokens(totals.totalOutputTokens)} out`}
         isLoading={isLoading}
+        hasError={hasError}
       />
-      <StatCard title="Generations" Icon={Zap} stat={totals.totalEvents} isLoading={isLoading} />
-      <StatCard title="Models Used" Icon={Layers} stat={modelCount} isLoading={isLoading} />
+      <StatCard
+        title="Generations"
+        Icon={Zap}
+        stat={totals.totalEvents}
+        isLoading={isLoading}
+        hasError={hasError}
+      />
+      <StatCard
+        title="Models Used"
+        Icon={Layers}
+        stat={modelCount}
+        isLoading={isLoading}
+        hasError={hasError}
+      />
     </div>
   );
 }
@@ -238,12 +316,14 @@ function UsageBreakdownTable({
   title,
   data,
   isLoading,
+  error,
   formatGroupKey,
   groupLabel = 'Model',
 }: {
   title: string;
   data: UsageSummaryRow[];
   isLoading: boolean;
+  error?: string | null;
   formatGroupKey?: (key: string) => string;
   groupLabel?: string;
 }) {
@@ -255,6 +335,8 @@ function UsageBreakdownTable({
       <CardContent>
         {isLoading ? (
           <Skeleton className="h-48 w-full" />
+        ) : error ? (
+          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         ) : data.length === 0 ? (
           <p className="text-sm text-muted-foreground">No cost data for this period</p>
         ) : (
@@ -319,11 +401,13 @@ function UsageEventsTable({
   projectId,
   events,
   isLoading,
+  error,
 }: {
   tenantId: string;
   projectId?: string;
   events: SigNozUsageEvent[];
   isLoading: boolean;
+  error?: string | null;
 }) {
   return (
     <Card>
@@ -333,6 +417,8 @@ function UsageEventsTable({
       <CardContent>
         {isLoading ? (
           <Skeleton className="h-64 w-full" />
+        ) : error ? (
+          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         ) : events.length === 0 ? (
           <p className="text-sm text-muted-foreground">No cost events for this period</p>
         ) : (

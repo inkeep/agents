@@ -315,23 +315,69 @@ const usageCostGroupByKey = (groupBy: UsageCostGroupBy): string => {
   }
 };
 
-const seriesToUsageSummaryRows = (series: Series[], groupByKey: string): UsageCostSummaryRow[] => {
-  const readNumber = (s: Series, key: UsageCostAggregationKey) =>
-    Number(s.values?.[USAGE_COST_AGGREGATION_INDEX[key]]?.value ?? 0) || 0;
-  const readInt = (s: Series, key: UsageCostAggregationKey) =>
-    parseInt(s.values?.[USAGE_COST_AGGREGATION_INDEX[key]]?.value ?? '0', 10) || 0;
+const extractUsageCostSummaryRows = (
+  resp: any,
+  queryName: string,
+  groupByKey: string
+): UsageCostSummaryRow[] => {
+  const results = resp?.data?.data?.results ?? resp?.data?.results;
+  if (!Array.isArray(results)) return [];
+  const result = results.find((r: any) => r?.queryName === queryName);
+  if (!result) return [];
 
-  return series
-    .map((s) => {
-      const totalInputTokens = readNumber(s, 'inputTokens');
-      const totalOutputTokens = readNumber(s, 'outputTokens');
+  const AGG_COUNT = USAGE_COST_AGGREGATION_ORDER.length;
+  const groups = new Map<string, number[]>();
+  const slots = (key: string): number[] => {
+    const existing = groups.get(key);
+    if (existing) return existing;
+    const fresh = new Array(AGG_COUNT).fill(0);
+    groups.set(key, fresh);
+    return fresh;
+  };
+
+  if (Array.isArray(result.aggregations)) {
+    result.aggregations.forEach((agg: any, aggIdx: number) => {
+      if (aggIdx >= AGG_COUNT) return;
+      for (const s of agg.series ?? []) {
+        const labels = Array.isArray(s.labels)
+          ? Object.fromEntries(
+              (s.labels as any[]).map((l: any) => [l.key?.name ?? '', String(l.value ?? '')])
+            )
+          : (s.labels ?? {});
+        const key = labels[groupByKey] || UNKNOWN_VALUE;
+        const raw = s.values?.[0]?.value;
+        slots(key)[aggIdx] = Number(raw ?? 0) || 0;
+      }
+    });
+  } else {
+    const columns: Array<{ name: string; columnType: string }> = result.columns ?? [];
+    const rows: unknown[][] = result.data ?? [];
+    const groupColIdx = columns.findIndex((c) => c.columnType === 'group' && c.name === groupByKey);
+    const aggColIdxs = columns
+      .map((c, i) => (c.columnType === 'aggregation' ? i : -1))
+      .filter((i) => i >= 0);
+    for (const row of rows) {
+      const key =
+        groupColIdx >= 0 ? String(row[groupColIdx] ?? '') || UNKNOWN_VALUE : UNKNOWN_VALUE;
+      const target = slots(key);
+      aggColIdxs.forEach((ci, aggIdx) => {
+        if (aggIdx >= AGG_COUNT) return;
+        target[aggIdx] = Number(row[ci] ?? 0) || 0;
+      });
+    }
+  }
+
+  return Array.from(groups.entries())
+    .map(([groupKey, vals]) => {
+      const totalInputTokens = vals[USAGE_COST_AGGREGATION_INDEX.inputTokens] ?? 0;
+      const totalOutputTokens = vals[USAGE_COST_AGGREGATION_INDEX.outputTokens] ?? 0;
       return {
-        groupKey: s.labels?.[groupByKey] || UNKNOWN_VALUE,
+        groupKey,
         totalInputTokens,
         totalOutputTokens,
         totalTokens: totalInputTokens + totalOutputTokens,
-        totalEstimatedCostUsd: readNumber(s, 'cost'),
-        eventCount: readInt(s, 'eventCount'),
+        totalEstimatedCostUsd: vals[USAGE_COST_AGGREGATION_INDEX.cost] ?? 0,
+        eventCount: Math.round(vals[USAGE_COST_AGGREGATION_INDEX.eventCount] ?? 0),
       };
     })
     .sort((a, b) => b.totalTokens - a.totalTokens);
@@ -3060,14 +3106,12 @@ class SigNozStatsAPI {
 
       const out = { ...empty };
       for (const g of groupings) {
-        const series = this.extractSeries(resp, usageCostQueryName(g));
-        const groupByKey = usageCostGroupByKey(g);
-        out[g] = seriesToUsageSummaryRows(series, groupByKey);
+        out[g] = extractUsageCostSummaryRows(resp, usageCostQueryName(g), usageCostGroupByKey(g));
       }
       return out;
     } catch (e) {
       console.error('getUsageCostSummaries error:', e);
-      return empty;
+      throw e;
     }
   }
 
@@ -3207,7 +3251,7 @@ class SigNozStatsAPI {
       });
     } catch (e) {
       console.error('getUsageEventsList error:', e);
-      return [];
+      throw e;
     }
   }
 
@@ -3252,7 +3296,7 @@ class SigNozStatsAPI {
       }));
     } catch (e) {
       console.error('getUsageCostPerDay error:', { startTime, endTime, projectId, error: e });
-      return datesRange(startTime, endTime).map((date) => ({ date, cost: 0 }));
+      throw e;
     }
   }
 
