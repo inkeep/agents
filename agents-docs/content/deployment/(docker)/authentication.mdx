@@ -37,7 +37,7 @@ SpiceDB manages organization and project-level permissions using a relationship-
 |----------|----------|-------------|
 | `BETTER_AUTH_SECRET` | Yes | Secret for session encryption (32+ chars) |
 | `INKEEP_AGENTS_MANAGE_UI_USERNAME` | Yes | Initial admin email address |
-| `INKEEP_AGENTS_MANAGE_UI_PASSWORD` | Yes | Initial admin password (8+ chars) |
+| `INKEEP_AGENTS_MANAGE_UI_PASSWORD` | Yes | Initial admin password (see [Password Policy](#password-policy)) |
 
 ### Authorization
 
@@ -80,7 +80,7 @@ Authentication is enabled by default. Configure the required environment variabl
 
     # Initial admin credentials
     INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com
-    INKEEP_AGENTS_MANAGE_UI_PASSWORD=<secure-password-8-chars-min>
+    INKEEP_AGENTS_MANAGE_UI_PASSWORD=<secure-password-see-policy-below>
 
     # Authorization (SpiceDB)
     SPICEDB_ENDPOINT=localhost:50051
@@ -100,6 +100,34 @@ Authentication is enabled by default. Configure the required environment variabl
     Open http://localhost:3000. When using `pnpm dev`, you'll be signed in automatically using the credentials configured above. For Docker deployments, sign in manually with your admin credentials.
   </Step>
 </Steps>
+
+
+## Password Policy
+
+All passwords must meet the following requirements:
+
+| Requirement | Description |
+|-------------|-------------|
+| **Minimum length** | 15 characters |
+| **Maximum length** | 256 characters |
+| **Character classes** | At least one lowercase letter, one uppercase letter, one digit, and one special character |
+| **Blocked content** | Cannot contain your email username, display name, or "inkeep" |
+
+These rules follow [NIST SP 800-63B](https://pages.nist.gov/800-63-3/sp800-63b.html) guidelines for memorized secrets.
+
+### Breach Detection
+
+The framework checks new passwords against the [Have I Been Pwned](https://haveibeenpwned.com/Passwords) database of known breached passwords. If a password appears in a data breach, you'll see "Please choose a more secure password" and must select a different one.
+
+<Note>
+Breach checking uses k-anonymity — only the first 5 characters of a password hash are sent to the API, so your full password is never transmitted.
+</Note>
+
+### Migration Notes
+
+- **Existing users** with passwords shorter than 15 characters can still sign in
+- The policy is enforced only on password change, reset, or new account creation
+- To rotate the admin password after initial setup, use the forgot-password flow — changing `INKEEP_AGENTS_MANAGE_UI_PASSWORD` in `.env` does not update existing accounts
 
 ## Adding OAuth Providers
 
@@ -203,7 +231,7 @@ Authentication is enabled by default. Configure the required environment variabl
 
 Verify these environment variables are set correctly:
 - `INKEEP_AGENTS_MANAGE_UI_USERNAME` — must be a valid email format
-- `INKEEP_AGENTS_MANAGE_UI_PASSWORD` — must be at least 15 characters and include at least one lowercase letter, one uppercase letter, one digit, and one special character
+- `INKEEP_AGENTS_MANAGE_UI_PASSWORD` — must meet the [password policy](#password-policy) requirements
 
 ### Google sign-in not appearing or not working
 
