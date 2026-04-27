@@ -68,8 +68,22 @@ Then run `pnpm db:auth:init` to create the admin user, and restart `pnpm dev`. C
 If you recently clicked "Log out", a `dev-logged-out` cookie prevents auto-login so you can test login flows. Clear your cookies or restart your browser to restore auto-login.
 
 <Note>
-If you used `pnpm setup-dev`, these variables are automatically generated with secure values and the admin user is created automatically.
+If you used `pnpm setup-dev`, these variables are automatically generated with secure, policy-compliant values and the admin user is created automatically. The generated password meets all [policy requirements](/deployment/authentication#password-policy).
 </Note>
+
+
+### Admin password handling
+
+The `INKEEP_AGENTS_MANAGE_UI_PASSWORD` environment variable is only used during initial admin account creation:
+
+- On first run, `pnpm db:auth:init` creates the admin user with the password from your `.env`
+- The password is validated against the [password policy](/deployment/authentication#password-policy) (15+ characters, mixed case, digit, special character)
+- **Subsequent runs do not update the password** — the existing admin account is preserved
+- To change the admin password after initial setup, use the forgot-password flow in the UI
+
+<Warning>
+Setting a new value for `INKEEP_AGENTS_MANAGE_UI_PASSWORD` in `.env` after the admin user exists has no effect. This prevents accidental credential changes on redeployment.
+</Warning>
 
 ### Environment variables not loading
 
