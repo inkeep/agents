@@ -200,7 +200,7 @@ const {
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   const mockModel = 'mocked-language-model';
-  const mockGenerationParams = { temperature: 0.7, maxTokens: 4096 };
+  const mockGenerationParams = { temperature: 0.7, maxOutputTokens: 4096 };
   const mockGenerationConfig = { model: mockModel, ...mockGenerationParams };
 
   return {
@@ -1120,7 +1120,7 @@ describe('Agent Model Settings', () => {
       expect.objectContaining({
         model: 'mocked-language-model',
         temperature: 0.7,
-        maxTokens: 4096,
+        maxOutputTokens: 4096,
       })
     );
   });

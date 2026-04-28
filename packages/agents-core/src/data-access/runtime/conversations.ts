@@ -222,21 +222,19 @@ function extractMessageText(content: MessageContent): string {
  */
 function applyContextWindowManagement(
   messageHistory: MessageSelect[],
-  maxTokens: number
+  maxOutputTokens: number
 ): MessageSelect[] {
-  // Simple token estimation: ~4 characters per token
   const estimateTokens = (text: string) => Math.ceil(text.length / 4);
 
   let totalTokens = 0;
   const managedHistory = [];
 
-  // Process messages from most recent backwards
   for (let i = messageHistory.length - 1; i >= 0; i--) {
     const message = messageHistory[i];
     const messageText = extractMessageText(message.content);
     const messageTokens = estimateTokens(messageText);
 
-    if (totalTokens + messageTokens <= maxTokens) {
+    if (totalTokens + messageTokens <= maxOutputTokens) {
       managedHistory.unshift(message);
       totalTokens += messageTokens;
     } else {

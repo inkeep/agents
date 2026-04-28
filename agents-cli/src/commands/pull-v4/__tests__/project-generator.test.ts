@@ -245,7 +245,7 @@ describe('Project Generator', () => {
       const complexModelsData = {
         name: 'Complex Models Project',
         models: {
-          base: { model: 'gpt-4o', providerOptions: { temperature: 0.7, maxTokens: 4096 } },
+          base: { model: 'gpt-4o', providerOptions: { temperature: 0.7, maxOutputTokens: 4096 } },
           structuredOutput: { model: 'gpt-4o', providerOptions: { temperature: 0.3 } },
           summarizer: { model: 'gpt-4o-mini' },
         },
@@ -257,7 +257,7 @@ describe('Project Generator', () => {
       expect(definition).toContain('base: {');
       expect(definition).toContain("model: 'gpt-4o',");
       expect(definition).toContain('temperature: 0.7,');
-      expect(definition).toContain('maxTokens: 4096');
+      expect(definition).toContain('maxOutputTokens: 4096');
       expect(definition).toContain('structuredOutput: {');
       expect(definition).toContain('temperature: 0.3');
       await expectSnapshots(definition);

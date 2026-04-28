@@ -212,7 +212,7 @@ describe('ModelFactory', () => {
         providerOptions: {
           baseURL: 'https://custom-google-endpoint.com',
           temperature: 0.5,
-          maxTokens: 1024,
+          maxOutputTokens: 1024,
         },
       };
 
@@ -303,21 +303,21 @@ describe('ModelFactory', () => {
     test('should return filtered parameters when provider options given', () => {
       const providerOptions = {
         temperature: 0.7,
-        maxTokens: 1000,
+        maxOutputTokens: 1000,
         apiKey: 'should-be-excluded',
         baseURL: 'should-be-excluded',
       };
       const params = ModelFactory.getGenerationParams(providerOptions);
       expect(params).toEqual({
         temperature: 0.7,
-        maxTokens: 1000,
+        maxOutputTokens: 1000,
       });
     });
 
     test('should extract generation parameters and exclude provider config', () => {
       const providerOptions = {
         temperature: 0.8,
-        maxTokens: 2048,
+        maxOutputTokens: 2048,
         topP: 0.95,
         apiKey: 'should-not-be-included', // Provider config, not generation param
         baseURL: 'should-not-be-included', // Provider config, not generation param
@@ -327,7 +327,7 @@ describe('ModelFactory', () => {
 
       expect(params).toEqual({
         temperature: 0.8,
-        maxTokens: 2048,
+        maxOutputTokens: 2048,
         topP: 0.95,
       });
     });
@@ -335,7 +335,7 @@ describe('ModelFactory', () => {
     test('should extract generation parameters including OpenAI specific ones', () => {
       const providerOptions = {
         temperature: 0.3,
-        maxTokens: 1500,
+        maxOutputTokens: 1500,
         topP: 0.9,
         frequencyPenalty: 0.1,
         presencePenalty: 0.2,
@@ -345,7 +345,7 @@ describe('ModelFactory', () => {
 
       expect(params).toEqual({
         temperature: 0.3,
-        maxTokens: 1500,
+        maxOutputTokens: 1500,
         topP: 0.9,
         frequencyPenalty: 0.1,
         presencePenalty: 0.2,
@@ -363,7 +363,7 @@ describe('ModelFactory', () => {
     test('should only include defined parameters', () => {
       const providerOptions = {
         temperature: 0.7,
-        maxTokens: undefined, // Should be excluded
+        maxOutputTokens: undefined, // Should be excluded
         topP: 0.9,
       };
 
@@ -459,7 +459,7 @@ describe('ModelFactory', () => {
         model: 'anthropic/claude-sonnet-4-20250514',
         providerOptions: {
           temperature: 0.7,
-          maxTokens: 1000,
+          maxOutputTokens: 1000,
         },
       } as ModelSettings;
 
@@ -490,7 +490,7 @@ describe('ModelFactory', () => {
         model: 'anthropic/claude-sonnet-4-20250514',
         providerOptions: {
           temperature: 0.8,
-          maxTokens: 2048,
+          maxOutputTokens: 2048,
           apiKey: 'should-not-be-included',
         },
       };
@@ -501,7 +501,7 @@ describe('ModelFactory', () => {
       expect(config.model).toBeDefined();
       expect(config.model).toHaveProperty('modelId');
       expect(config).toHaveProperty('temperature', 0.8);
-      expect(config).toHaveProperty('maxTokens', 2048);
+      expect(config).toHaveProperty('maxOutputTokens', 2048);
       expect(config).not.toHaveProperty('apiKey'); // Should be filtered out
     });
 
@@ -548,13 +548,12 @@ describe('ModelFactory', () => {
         model: 'anthropic/claude-sonnet-4-20250514',
         providerOptions: {
           temperature: 0.7,
-          maxTokens: 4096,
+          maxOutputTokens: 4096,
         },
       };
 
       const config = ModelFactory.prepareGenerationConfig(modelSettings);
 
-      // This simulates how it would be used in generateText
       const generateTextConfig = {
         ...config,
         messages: [{ role: 'user', content: 'test' }],
@@ -563,7 +562,7 @@ describe('ModelFactory', () => {
 
       expect(generateTextConfig).toHaveProperty('model');
       expect(generateTextConfig).toHaveProperty('temperature', 0.7);
-      expect(generateTextConfig).toHaveProperty('maxTokens', 4096);
+      expect(generateTextConfig).toHaveProperty('maxOutputTokens', 4096);
       expect(generateTextConfig).toHaveProperty('messages');
       expect(generateTextConfig).toHaveProperty('tools');
     });
@@ -573,7 +572,7 @@ describe('ModelFactory', () => {
         model: 'google/gemini-2.5-flash',
         providerOptions: {
           temperature: 0.5,
-          maxTokens: 1024,
+          maxOutputTokens: 1024,
           topP: 0.9,
           baseURL: 'should-not-be-included',
         },
@@ -584,7 +583,7 @@ describe('ModelFactory', () => {
       expect(config).toHaveProperty('model');
       expect(config.model).toHaveProperty('modelId');
       expect(config).toHaveProperty('temperature', 0.5);
-      expect(config).toHaveProperty('maxTokens', 1024);
+      expect(config).toHaveProperty('maxOutputTokens', 1024);
       expect(config).toHaveProperty('topP', 0.9);
       expect(config).not.toHaveProperty('baseURL'); // Should be filtered out
     });
@@ -752,7 +751,7 @@ describe('ModelFactory', () => {
           model: 'anthropic/claude-sonnet-4-20250514',
           providerOptions: {
             temperature: 0.7,
-            maxTokens: 1000,
+            maxOutputTokens: 1000,
           },
         };
 
@@ -983,7 +982,7 @@ describe('ModelFactory', () => {
       const configs = [
         {
           model: 'openrouter/llama-3.1-70b',
-          providerOptions: { temperature: 0.7, maxTokens: 4096 },
+          providerOptions: { temperature: 0.7, maxOutputTokens: 4096 },
         },
         {
           model: 'gateway/llama-3.1-70b',
