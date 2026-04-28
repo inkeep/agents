@@ -2829,6 +2829,19 @@ export const FeedbackResponse = z
   .object({ data: FeedbackApiSelectSchema })
   .openapi('FeedbackResponse');
 
+export const BulkFeedbackResponseSchema = z
+  .object({
+    data: z.array(FeedbackApiSelectSchema),
+    errors: z.array(
+      z.object({
+        index: z.number(),
+        conversationId: z.string(),
+        message: z.string(),
+      })
+    ),
+  })
+  .openapi('BulkFeedbackResponse');
+
 export const ProjectListResponse = z
   .object({
     data: z.array(ProjectApiSelectSchema),

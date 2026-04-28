@@ -1,11 +1,12 @@
 'use client';
 
-import { ChevronDown, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Download, ExternalLink, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ReadOnlyJsonView } from '@/components/editors/read-only-json-view';
 import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
 import { EvaluatorViewDialog } from '@/components/evaluators/evaluator-view-dialog';
+import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -20,6 +21,7 @@ import type { EvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import type { EvaluationResult } from '@/lib/api/evaluation-results';
 import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
 import type { Evaluator } from '@/lib/api/evaluators';
+import { exportEvaluationResultsCsv } from '@/lib/csv/export-csv';
 import { filterEvaluationResults } from '@/lib/evaluation/filter-evaluation-results';
 import { evaluatePassCriteria } from '@/lib/evaluation/pass-criteria-evaluator';
 import { formatDateTimeTable } from '@/lib/utils/format-date';
@@ -147,6 +149,15 @@ export function EvaluationJobResults({
   const keys = results.flatMap((r) => collect(r.output));
   const availableOutputKeys = [...new Set(keys)].filter((key) => key.startsWith('output.')).sort();
 
+  function handleExportCsv() {
+    exportEvaluationResultsCsv({
+      results: filteredResults,
+      getEvaluatorName,
+      getEvaluatorById,
+      filename: `evaluation-job-results-${jobConfig.id.slice(0, 8)}.csv`,
+    });
+  }
+
   return (
     <div className="space-y-6">
       <EvaluationResultsFilters
@@ -180,10 +191,16 @@ export function EvaluationJobResults({
       )}
 
       <div className="rounded-lg border">
-        <div className="p-4 border-b">
+        <div className="p-4 border-b flex items-center justify-between">
           <h3 className="text-sm font-semibold">
             Evaluation Results ({filteredResults.length} of {results.length})
           </h3>
+          {filteredResults.length > 0 && (
+            <Button variant="outline" size="sm" onClick={handleExportCsv}>
+              <Download className="mr-2 h-4 w-4" />
+              Export CSV
+            </Button>
+          )}
         </div>
         {results.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">

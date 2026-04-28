@@ -403,6 +403,8 @@ const PAGINATION_SPAN_NAMES = [
   'POST /run/v1/chat/completions',
   'trigger.message_received',
   'execution_handler.execute',
+  'slack.stream_agent_response',
+  'context.handle_context_resolution',
 ];
 
 const CRITICAL_ERROR_SPAN_NAMES = [
