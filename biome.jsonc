@@ -20,7 +20,21 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!packages/agents-mcp", "!**/__snapshots__/*.json"]
+    "includes": [
+      "**",
+      "!packages/agents-mcp",
+      "!**/__snapshots__/*.json",
+      // The .cursor/skills and .codex/skills entries under public/agents/
+      // are symlinks pointing UP to repo root (../../../.cursor/skills,
+      // ../../../.codex/skills). Without these excludes, biome traverses
+      // through the symlinks and reformats files at REPO ROOT (outside
+      // public/agents/'s scope), creating massive auto-format diffs on
+      // every PR that touches public/agents/**. Skills are internal-only
+      // and their formatting is owned by the cross-harness-skills-sync
+      // workflow, not by biome.
+      "!.cursor/skills",
+      "!.codex/skills"
+    ]
   },
   "linter": {
     "enabled": true,
