@@ -9,8 +9,8 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   return {
     ...actual,
     createDefaultConversationHistoryConfig: () => ({
-      maxTurns: 10,
-      maxTokens: 4000,
+      limit: 10,
+      maxOutputTokens: 4000,
     }),
   };
 });

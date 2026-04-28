@@ -304,7 +304,7 @@ export async function getFullConversationContext(
   tenantId: string,
   projectId: string,
   conversationId: string,
-  maxTokens?: number
+  maxOutputTokens?: number
 ): Promise<any[]> {
   const defaultConfig = createDefaultConversationHistoryConfig();
   return await getConversationHistory(runDbClient)({
@@ -314,7 +314,7 @@ export async function getFullConversationContext(
       ...defaultConfig,
       limit: 100,
       includeInternal: true,
-      maxOutputTokens: maxTokens,
+      maxOutputTokens,
     },
   });
 }

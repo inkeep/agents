@@ -5,7 +5,7 @@
 
 export const providerOptionsTemplate = `{
   "temperature": 0.7,
-  "maxTokens": 2048
+  "maxOutputTokens": 2048
 }`;
 
 export const structuredOutputModelProviderOptionsTemplate = `{
