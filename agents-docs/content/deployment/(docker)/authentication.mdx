@@ -37,7 +37,7 @@ SpiceDB manages organization and project-level permissions using a relationship-
 |----------|----------|-------------|
 | `BETTER_AUTH_SECRET` | Yes | Secret for session encryption (32+ chars) |
 | `INKEEP_AGENTS_MANAGE_UI_USERNAME` | Yes | Initial admin email address |
-| `INKEEP_AGENTS_MANAGE_UI_PASSWORD` | Yes | Initial admin password (8+ chars) |
+| `INKEEP_AGENTS_MANAGE_UI_PASSWORD` | Yes | Initial admin password (15+ chars, see [requirements](#password-requirements)) |
 
 ### Authorization
 
@@ -80,12 +80,16 @@ Authentication is enabled by default. Configure the required environment variabl
 
     # Initial admin credentials
     INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com
-    INKEEP_AGENTS_MANAGE_UI_PASSWORD=<secure-password-8-chars-min>
+    INKEEP_AGENTS_MANAGE_UI_PASSWORD=<secure-password-15-chars-min>
 
     # Authorization (SpiceDB)
     SPICEDB_ENDPOINT=localhost:50051
     SPICEDB_PRESHARED_KEY=dev-secret-key
     ```
+
+    <Note>
+      Passwords must be at least 15 characters and include at least one lowercase letter, one uppercase letter, one digit, and one special character. Passwords are also checked against the [HaveIBeenPwned](https://haveibeenpwned.com/Passwords) database to prevent use of known compromised passwords.
+    </Note>
   </Step>
   <Step>
     ### Restart services
