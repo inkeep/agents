@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.70.5
+
+### Patch Changes
+
+- 26cc75a: Enforce 15-character password policy with HaveIBeenPwned check; add password requirements UI on signup, reset, and change-password
+- 903b1ef: Use organization slug as id when creating organizations via better-auth
+
 ## 0.70.4
 
 ### Patch Changes
