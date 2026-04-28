@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-ui
 
+## 0.70.6
+
+### Patch Changes
+
+- af1a34a: Fix model configuration JSON template to use `maxOutputTokens` instead of `maxTokens` so the placeholder example and "Template" button insert keys the runtime actually honors
+  - @inkeep/agents-core@0.70.6
+
 ## 0.70.5
 
 ### Patch Changes
