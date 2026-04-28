@@ -28,6 +28,31 @@ export async function createFeedback(
   return response.data;
 }
 
+interface BulkFeedbackError {
+  index: number;
+  conversationId: string;
+  message: string;
+}
+
+export interface BulkFeedbackResponse {
+  data: Feedback[];
+  errors: BulkFeedbackError[];
+}
+
+export async function createFeedbackBulk(
+  tenantId: string,
+  projectId: string,
+  items: FeedbackCreate[]
+): Promise<BulkFeedbackResponse> {
+  return makeManagementApiRequest<BulkFeedbackResponse>(
+    `tenants/${tenantId}/projects/${projectId}/feedback/bulk`,
+    {
+      method: 'POST',
+      body: JSON.stringify(items),
+    }
+  );
+}
+
 export async function fetchFeedback(
   tenantId: string,
   projectId: string,

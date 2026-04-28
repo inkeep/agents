@@ -172,6 +172,22 @@ export const createFeedback = (db: AgentsRunDatabaseClient) => async (params: Fe
   return created;
 };
 
+export const createFeedbackBulk =
+  (db: AgentsRunDatabaseClient) =>
+  async (items: FeedbackInsert[]): Promise<(typeof feedback.$inferSelect)[]> => {
+    if (items.length === 0) return [];
+
+    const now = new Date().toISOString();
+
+    const values = items.map((item) => ({
+      ...item,
+      createdAt: now,
+      updatedAt: now,
+    }));
+
+    return db.insert(feedback).values(values).returning();
+  };
+
 export const updateFeedback =
   (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; feedbackId: string; data: FeedbackUpdate }) => {

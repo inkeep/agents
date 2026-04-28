@@ -4,6 +4,7 @@ import {
   ArrowUpRight,
   ChevronLeft,
   ChevronRight,
+  FileUp,
   Loader2,
   MessageSquare,
   Sparkles,
@@ -16,6 +17,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
 import { toast } from 'sonner';
 import { DeleteFeedbackConfirmation } from '@/components/feedback/delete-feedback-confirmation';
+import { FeedbackCsvUploadDialog } from '@/components/feedback/feedback-csv-upload-dialog';
 import EmptyState from '@/components/layout/empty-state';
 import { AgentFilter } from '@/components/traces/filters/agent-filter';
 import { DatePickerWithPresets } from '@/components/traces/filters/date-picker';
@@ -217,8 +219,20 @@ export function FeedbackTable({
     return (
       <EmptyState
         title="No feedback yet."
-        description="When users leave feedback, it will show up here."
+        description="When users leave feedback, it will show up here. You can also import feedback from a CSV file."
         icon={<MessageSquare className="h-10 w-10 text-muted-foreground" />}
+        action={
+          <FeedbackCsvUploadDialog
+            tenantId={tenantId}
+            projectId={projectId}
+            trigger={
+              <Button variant="outline" size="sm">
+                <FileUp className="h-3.5 w-3.5" />
+                Import CSV
+              </Button>
+            }
+          />
+        }
       />
     );
   }
@@ -286,6 +300,17 @@ export function FeedbackTable({
               }}
             />
           </div>
+
+          <FeedbackCsvUploadDialog
+            tenantId={tenantId}
+            projectId={projectId}
+            trigger={
+              <Button variant="ghost" size="sm" className="h-8">
+                <FileUp className="h-3.5 w-3.5" />
+                Import CSV
+              </Button>
+            }
+          />
 
           {hasActiveFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs">
