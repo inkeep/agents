@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.70.7
+
+### Patch Changes
+
+- a03d008: CSV functionality for feedback and exporting
+- 2e5c421: Sign out the autoSignIn orphan session created during `db:auth:init` and log session deletions via Better Auth's `databaseHooks.session.delete.after` hook
+
 ## 0.70.6
 
 ## 0.70.5

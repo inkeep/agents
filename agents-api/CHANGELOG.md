@@ -1,5 +1,17 @@
 # @inkeep/agents-api
 
+## 0.70.7
+
+### Patch Changes
+
+- a03d008: CSV functionality for feedback and exporting
+- Updated dependencies [a03d008]
+- Updated dependencies [2e5c421]
+  - @inkeep/agents-core@0.70.7
+  - @inkeep/agents-work-apps@0.70.7
+  - @inkeep/agents-email@0.70.7
+  - @inkeep/agents-mcp@0.70.7
+
 ## 0.70.6
 
 ### Patch Changes
