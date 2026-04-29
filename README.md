@@ -90,3 +90,47 @@ Inkeep is designed to be extensible and open: use the LLM provider of your choic
 If you'd like to contribute, follow our [contribution guide](https://docs.inkeep.com/community/contributing/overview).
 
 [Join our community](https://docs.inkeep.com/community/inkeep-community) to get support, stay up to date, and share feedback.
+
+## FAQ
+
+### What is Inkeep Agents?
+
+Inkeep Agents is an open-source platform for building AI agents with either a **No-Code Visual Builder** (drag-and-drop) or a **TypeScript SDK** (code-first). Both approaches stay fully in sync, so technical and non-technical team members can collaborate on the same agents.
+
+### How do I get started?
+
+The fastest way is the [1-minute quick start](https://docs.inkeep.com/get-started/quick-start). You can also explore the [full documentation](https://docs.inkeep.com) for concepts, architecture, and deployment guides.
+
+### What's the difference between Visual Builder and TypeScript SDK?
+
+- **Visual Builder**: A drag-and-drop canvas for creating agents without writing code. Ideal for product managers, support teams, and non-technical users.
+- **TypeScript SDK**: A code-first framework (`@inkeep/agents-sdk`) for engineering teams who want typesafety, intellisense, CI/CD integration, and version control.
+
+Both are fully interoperable — changes made in one are reflected in the other.
+
+### How do agents access external tools and data?
+
+Agents use **MCP (Model Context Protocol) Tools** with built-in credential management. You can connect to APIs, databases, CRMs, knowledge bases, and more. Credentials are stored securely and shared across agents as needed.
+
+### Which LLM providers are supported?
+
+Inkeep Agents uses the [Vercel AI SDK](https://ai-sdk.dev) under the hood, which supports 50+ LLM providers including OpenAI, Anthropic, Google, Cohere, and local models via Ollama. You can configure your preferred provider in the agent settings.
+
+### How do I deploy an agent?
+
+You can deploy agents via:
+- **Vercel**: One-click deployment with the Vercel AI SDK integration
+- **Docker**: Self-host using the provided Docker Compose configuration
+- **Custom infrastructure**: The platform is designed to be extensible and self-hostable
+
+### What is the multi-agent architecture?
+
+Inkeep supports **sub-agents** — agents that can delegate tasks to other specialized agents. This enables complex workflows where a primary agent coordinates with multiple sub-agents, each handling a specific domain (e.g., customer support, data analysis, content creation).
+
+### How do I contribute?
+
+Follow the [contribution guide](https://docs.inkeep.com/community/contributing/overview). The project uses standard GitHub workflows — fork, create a branch, and submit a PR. Join the [community](https://docs.inkeep.com/community/inkeep-community) for support and discussions.
+
+### What license is this under?
+
+The Inkeep Agent Framework is licensed under the **Elastic License 2.0 (ELv2)** with Inkeep's Supplemental Terms. This is a fair-code, source-available license that allows broad usage while protecting against certain competitive uses. See [SUPPLEMENTAL_TERMS.md](SUPPLEMENTAL_TERMS.md) for details.
