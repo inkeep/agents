@@ -74,6 +74,15 @@ const envSchema = z.object({
 
   // API URLs
   INKEEP_AGENTS_API_URL: z.string().optional().describe('Inkeep Agents API URL'),
+
+  // Slack execution-mode override
+  INKEEP_SLACK_DISABLE_DURABLE_EXECUTION: z
+    .stringbool()
+    .default(false)
+    .catch(false)
+    .describe(
+      'Disable the Slack work-app forcing executionMode="durable" on /run/api/chat requests. When set to "true", the work-app omits executionMode from the request body and the agent\'s own configured mode is used.'
+    ),
 });
 
 const logEnvIssues = (scope: string, error: z.ZodError) => {
