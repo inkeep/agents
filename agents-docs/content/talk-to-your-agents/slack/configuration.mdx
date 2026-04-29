@@ -117,6 +117,21 @@ If the health check shows issues, try reinstalling the Slack app from the dashbo
 | Set channel defaults | Organization admin, or channel member |
 | View configuration | Any authenticated user in the organization |
 
+## Environment variables
+
+### `INKEEP_SLACK_DISABLE_DURABLE_EXECUTION`
+
+By default, the Slack work-app forces [durable execution mode](/visual-builder/execution-modes) on all agent runs. Set this variable to `"true"` to disable the override so each agent uses its own configured execution mode instead.
+
+| Value | Behavior |
+|-------|----------|
+| Unset (default) | All Slack agent runs use durable execution mode. |
+| `"true"` | The Slack work-app omits `executionMode` from requests, respecting each agent's configured mode. |
+
+<Note>
+This is a workaround for environments where long sub-agent delegations may exceed idle stream timeouts, causing empty Slack messages. If you're not experiencing this issue, leave the default behavior.
+</Note>
+
 ## Next steps
 
 <Cards>
