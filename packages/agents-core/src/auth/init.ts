@@ -133,6 +133,13 @@ async function init() {
       process.exit(1);
     }
 
+    // signUpEmail's autoSignIn issued a session no client holds; sign it out via Better Auth.
+    if (result.token) {
+      await auth.api.signOut({
+        headers: new Headers({ authorization: `Bearer ${result.token}` }),
+      });
+    }
+
     console.log(`   ✅ User created: ${user.email}`);
   }
 
