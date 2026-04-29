@@ -29,6 +29,7 @@ import { DEFAULT_MEMBERSHIP_LIMIT } from './entitlement-constants';
 import { passwordPolicyHook } from './password-policy';
 import { setPasswordResetLink } from './password-reset-link-store';
 import { ac, adminRole, memberRole, ownerRole } from './permissions';
+import { logSessionDeletion } from './session-hooks';
 
 export { extractCookieDomain, hasCredentialAccount } from './auth-config-utils';
 export type {
@@ -178,6 +179,11 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
                 activeOrganizationId: organization?.id ?? null,
               },
             };
+          },
+        },
+        delete: {
+          after: async (session, context) => {
+            await logSessionDeletion(session, context);
           },
         },
       },

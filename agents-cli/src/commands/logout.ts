@@ -2,6 +2,7 @@ import * as p from '@clack/prompts';
 import chalk from 'chalk';
 import { clearCredentials, loadCredentials } from '../utils/credentials';
 import { ProfileManager } from '../utils/profiles';
+import { USER_AGENT } from '../utils/version-check';
 
 export interface LogoutOptions {
   profile?: string;
@@ -14,6 +15,7 @@ export async function logoutCommand(options: LogoutOptions = {}): Promise<void> 
   // Resolve profile to use
   let profileName: string;
   let credentialKey: string;
+  let manageApiUrl: string;
 
   try {
     if (options.profile) {
@@ -25,15 +27,18 @@ export async function logoutCommand(options: LogoutOptions = {}): Promise<void> 
       }
       profileName = options.profile;
       credentialKey = profile.credential;
+      manageApiUrl = profile.remote.api;
     } else {
       const activeProfile = profileManager.getActiveProfile();
       profileName = activeProfile.name;
       credentialKey = activeProfile.credential;
+      manageApiUrl = activeProfile.remote.api;
     }
   } catch {
     // No profile configured, use default
     profileName = 'default';
     credentialKey = 'inkeep-cloud';
+    manageApiUrl = 'https://agents-api.inkeep.com';
   }
 
   console.log(chalk.gray(`Using profile: ${profileName}`));
@@ -46,6 +51,23 @@ export async function logoutCommand(options: LogoutOptions = {}): Promise<void> 
   }
 
   s.start('Logging out...');
+
+  // Best-effort revoke; if it fails the server session still expires naturally.
+  if (credentials.accessToken) {
+    try {
+      await fetch(`${manageApiUrl}/api/auth/sign-out`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${credentials.accessToken}`,
+          'Content-Type': 'application/json',
+          'User-Agent': USER_AGENT,
+        },
+        body: '{}',
+      });
+    } catch {
+      // Continue with local cleanup.
+    }
+  }
 
   try {
     const cleared = await clearCredentials(credentialKey);

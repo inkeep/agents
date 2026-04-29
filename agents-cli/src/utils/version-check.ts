@@ -17,6 +17,12 @@ export interface VersionInfo {
 export const PACKAGE_VERSION = pkgJson.version;
 
 /**
+ * User-Agent header sent on auth requests so the resulting session is
+ * identifiable in /profile (otherwise Node's default fetch sends "node").
+ */
+export const USER_AGENT = `inkeep-cli/${PACKAGE_VERSION} node/${process.versions.node} ${process.platform}/${process.arch}`;
+
+/**
  * Fetch the latest version from npm registry
  */
 export async function getLatestVersion(
