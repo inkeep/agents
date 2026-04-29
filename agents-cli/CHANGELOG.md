@@ -1,5 +1,19 @@
 # @inkeep/agents-cli
 
+## 0.70.7
+
+### Patch Changes
+
+- 2e5c421: Identify CLI device-flow sessions with a recognizable User-Agent header on auth requests and revoke the server session on logout via /api/auth/sign-out
+- Updated dependencies [2e5c421]
+- Updated dependencies [2e5c421]
+- Updated dependencies [a03d008]
+- Updated dependencies [2e5c421]
+- Updated dependencies [bd0a8b1]
+  - @inkeep/agents-manage-ui@0.70.7
+  - @inkeep/agents-core@0.70.7
+  - @inkeep/agents-sdk@0.70.7
+
 ## 0.70.6
 
 ### Patch Changes

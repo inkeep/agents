@@ -1,5 +1,17 @@
 # @inkeep/agents-manage-ui
 
+## 0.70.7
+
+### Patch Changes
+
+- 2e5c421: Render inkeep-cli sessions as 'Inkeep CLI <version>' in the active sessions list
+- 2e5c421: Add active sessions view to profile page with per-session and bulk revoke
+- a03d008: CSV functionality for feedback and exporting
+- bd0a8b1: fixing origin selector for slack in traces
+- Updated dependencies [a03d008]
+- Updated dependencies [2e5c421]
+  - @inkeep/agents-core@0.70.7
+
 ## 0.70.6
 
 ### Patch Changes
