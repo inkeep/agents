@@ -13,16 +13,20 @@ concurrency:
 
 jobs:
   auto-format:
-    # On PRs: skip forks (can't push back) and changeset release PRs (machine-generated).
+    # On PRs: skip forks (can't push back), changeset release PRs (machine-generated),
+    # and Dependabot PRs. Dependabot-triggered workflows cannot read the internal
+    # app token secrets used for formatter pushes.
     # On push to main: always run.
     if: >-
       github.event_name == 'push' ||
       (github.event.pull_request.head.repo.full_name == github.repository &&
-       github.head_ref != 'changeset-release/main')
+       github.head_ref != 'changeset-release/main' &&
+       github.actor != 'dependabot[bot]')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: write
+      pull-requests: read
 
     steps:
       - name: Check if PR is still open
