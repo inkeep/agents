@@ -1251,6 +1251,17 @@
           },
           "pagination": {
             "$ref": "#/components/schemas/Pagination"
+          },
+          "role": {
+            "enum": [
+              "owner",
+              "admin",
+              "member"
+            ],
+            "type": "string"
+          },
+          "tenantHasAnyApps": {
+            "type": "boolean"
           }
         },
         "required": [

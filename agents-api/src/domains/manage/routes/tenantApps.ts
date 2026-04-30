@@ -4,6 +4,7 @@ import {
   commonGetErrorResponses,
   listAppsPaginated,
   listUsableProjectIds,
+  type OrgRole,
   OrgRoles,
   PaginationQueryParamsSchema,
   sanitizeAppConfig,
@@ -63,9 +64,28 @@ app.openapi(
     if (!isOrgAdmin) {
       projectIds = userId ? await listUsableProjectIds({ userId, tenantId }) : [];
       if (projectIds.length === 0) {
+        // Member with no project memberships. Empty list either way; check
+        // whether the tenant has any apps of this type so the client can
+        // distinguish "you don't have access to existing apps" from "no
+        // apps exist yet".
+        //
+        // Intentional information-disclosure tradeoff: a member with zero
+        // project access can learn whether the tenant has any apps of this
+        // type via `tenantHasAnyApps`. Within their own tenant, that single
+        // boolean is acceptable disclosure to drive correct empty-state UX
+        // (ask admin to add me vs ask admin to set up Copilot). If a future
+        // deploy needs strict project-boundary silos, this branch should
+        // be revisited.
+        const tenantWide = await listAppsPaginated(runDbClient)({
+          scopes: { tenantId },
+          pagination: { page: 1, limit: 1 },
+          type,
+        });
         return c.json({
           data: [],
           pagination: { page, limit, total: 0, pages: 0 },
+          role: tenantRole as OrgRole,
+          tenantHasAnyApps: tenantWide.pagination.total > 0,
         });
       }
     }
@@ -78,9 +98,30 @@ app.openapi(
 
     const sanitizedData = result.data.map((app) => sanitizeAppConfig(app));
 
+    // Skip the second query when we already know: a non-empty list means
+    // apps exist, and an admin's empty result is authoritative because
+    // their scope is the whole tenant.
+    let tenantHasAnyApps: boolean;
+    if (result.pagination.total > 0) {
+      // Use total, not sanitizedData.length: page 2+ with results on page 1
+      // would spuriously fall through to the unscoped query below otherwise.
+      tenantHasAnyApps = true;
+    } else if (isOrgAdmin) {
+      tenantHasAnyApps = false;
+    } else {
+      const tenantWide = await listAppsPaginated(runDbClient)({
+        scopes: { tenantId },
+        pagination: { page: 1, limit: 1 },
+        type,
+      });
+      tenantHasAnyApps = tenantWide.pagination.total > 0;
+    }
+
     return c.json({
       data: sanitizedData,
       pagination: result.pagination,
+      role: tenantRole as OrgRole,
+      tenantHasAnyApps,
     });
   }
 );
