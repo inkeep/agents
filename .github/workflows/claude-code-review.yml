@@ -696,7 +696,7 @@ jobs:
         if: steps.pr.outputs.draft != 'true'
         run: |
           # Fetch latest guidelines and inject into the skill's references/ folder
-          # so pr-review-frontend can read them locally (no WebFetch needed at review time)
+          # so pr-review-frontend-ui can read them locally (no WebFetch needed at review time)
           mkdir -p .agents/skills/web-design-guidelines/references
           curl -sf https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md \
             -o .agents/skills/web-design-guidelines/references/guidelines.md
