@@ -1,0 +1,31 @@
+---
+title: Add your own analytics
+description: Use our callback function to log events from the search and chat widgets to your own analytics tool.
+keywords: custom analytics, event tracking, analytics integration, user tracking, event logging, analytics implementation, callback functions, user properties, privacy settings, analytics configuration, event filtering, analytics tools, data tracking, analytics customization
+icon: LuChartLine
+---
+
+To understand how usage of the Inkeep search or chat affects your business, you may want to log events from the search and chat widgets to your own analytics tool. This could be Mixpanel, Posthog, Amplitude, Segment or other analytics or CDP tools.
+
+We expose the events through a callback function called `onEvent` that can be configured in the `baseSettings` configuration.
+
+Below is an example of how to use `onEvent` to log all events to your analytics tool.
+
+## Example
+```typescript
+import { type InkeepCallbackEvent } from "@inkeep/agents-ui-cloud";
+
+const baseSettings = {
+  onEvent: async (event: InkeepCallbackEvent) => {
+    // console.log('event', event);
+    // log the event to your own analytics tool for example PostHog
+    posthog.capture(event.eventName, {
+      ...event.properties,
+    });
+  }
+};
+```
+
+<Callout type="info">
+  Analytics SDKs automatically attach the active user identity at capture time, so Inkeep events land on the same user timeline as your existing events — no extra wiring needed for funnels, cohorts, or user paths.
+</Callout>
