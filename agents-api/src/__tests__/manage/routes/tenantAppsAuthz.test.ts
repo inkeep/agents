@@ -100,7 +100,14 @@ describe('GET /manage/tenants/:tenantId/apps — project access filtering', () =
     const res = await app.request('/manage/tenants/tenant-1/apps');
 
     expect(res.status).toBe(200);
-    expect(listAppsPaginatedMock).not.toHaveBeenCalled();
+    // The main scoped listing is short-circuited; only the unscoped
+    // tenantHasAnyApps probe runs (one call, with `limit: 1`).
+    expect(listAppsPaginatedMock).toHaveBeenCalledTimes(1);
+    expect(listAppsPaginatedMock).toHaveBeenCalledWith({
+      scopes: { tenantId: 'tenant-1' },
+      pagination: { page: 1, limit: 1 },
+      type: undefined,
+    });
 
     const body = await res.json();
     expect(body.data).toEqual([]);
@@ -149,5 +156,151 @@ describe('GET /manage/tenants/:tenantId/apps — project access filtering', () =
       pagination: { page: 1, limit: 10 },
       type: 'support_copilot',
     });
+  });
+});
+
+describe('GET /manage/tenants/:tenantId/apps — role and tenantHasAnyApps response fields', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    listAppsPaginatedMock.mockResolvedValue(emptyPage);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('returns role and tenantHasAnyApps=true when a member with no project access is in a tenant with apps elsewhere', async () => {
+    listUsableProjectIdsMock.mockResolvedValue([]);
+    // The handler's early-return path runs the unscoped tenantHasAnyApps probe.
+    listAppsPaginatedMock.mockResolvedValueOnce({
+      data: [{ id: 'app-elsewhere' }],
+      pagination: { page: 1, limit: 1, total: 1, pages: 1 },
+    });
+
+    const app = buildHarness({ userId: 'user-no-projects', tenantRole: 'member' });
+    const res = await app.request('/manage/tenants/tenant-1/apps?type=support_copilot');
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data).toEqual([]);
+    expect(body.role).toBe('member');
+    expect(body.tenantHasAnyApps).toBe(true);
+    // Only the unscoped probe runs — main listing is short-circuited.
+    expect(listAppsPaginatedMock).toHaveBeenCalledTimes(1);
+    expect(listAppsPaginatedMock).toHaveBeenCalledWith({
+      scopes: { tenantId: 'tenant-1' },
+      pagination: { page: 1, limit: 1 },
+      type: 'support_copilot',
+    });
+  });
+
+  it('returns tenantHasAnyApps=false when a member with no project access is in a tenant with zero apps', async () => {
+    listUsableProjectIdsMock.mockResolvedValue([]);
+    listAppsPaginatedMock.mockResolvedValueOnce(emptyPage);
+
+    const app = buildHarness({ userId: 'user-no-projects', tenantRole: 'member' });
+    const res = await app.request('/manage/tenants/tenant-1/apps');
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data).toEqual([]);
+    expect(body.role).toBe('member');
+    expect(body.tenantHasAnyApps).toBe(false);
+  });
+
+  it('fires a second unscoped query when a member has projects but the scoped result is empty', async () => {
+    listUsableProjectIdsMock.mockResolvedValue(['proj-a']);
+    // First call (scoped to user's projects) returns empty.
+    listAppsPaginatedMock.mockResolvedValueOnce(emptyPage);
+    // Second call (unscoped tenant probe) finds apps elsewhere.
+    listAppsPaginatedMock.mockResolvedValueOnce({
+      data: [{ id: 'app-elsewhere' }],
+      pagination: { page: 1, limit: 1, total: 1, pages: 1 },
+    });
+
+    const app = buildHarness({ userId: 'user-non-admin', tenantRole: 'member' });
+    const res = await app.request('/manage/tenants/tenant-1/apps');
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data).toEqual([]);
+    expect(body.role).toBe('member');
+    expect(body.tenantHasAnyApps).toBe(true);
+    expect(listAppsPaginatedMock).toHaveBeenCalledTimes(2);
+    expect(listAppsPaginatedMock).toHaveBeenNthCalledWith(1, {
+      scopes: { tenantId: 'tenant-1', projectIds: ['proj-a'] },
+      pagination: { page: 1, limit: 10 },
+      type: undefined,
+    });
+    expect(listAppsPaginatedMock).toHaveBeenNthCalledWith(2, {
+      scopes: { tenantId: 'tenant-1' },
+      pagination: { page: 1, limit: 1 },
+      type: undefined,
+    });
+  });
+
+  it('skips the second query and returns tenantHasAnyApps=true when the scoped result is non-empty', async () => {
+    listUsableProjectIdsMock.mockResolvedValue(['proj-a']);
+    listAppsPaginatedMock.mockResolvedValueOnce({
+      data: [
+        {
+          id: 'app-a',
+          tenantId: 'tenant-1',
+          projectId: 'proj-a',
+          name: 'A',
+          type: 'support_copilot',
+          enabled: true,
+          config: { type: 'support_copilot', supportCopilot: {} },
+          defaultAgentId: null,
+          defaultProjectId: 'proj-a',
+          lastUsedAt: null,
+          createdAt: '2025-01-01T00:00:00.000Z',
+          updatedAt: '2025-01-01T00:00:00.000Z',
+        },
+      ],
+      pagination: { page: 1, limit: 10, total: 1, pages: 1 },
+    });
+
+    const app = buildHarness({ userId: 'user-non-admin', tenantRole: 'member' });
+    const res = await app.request('/manage/tenants/tenant-1/apps');
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data).toHaveLength(1);
+    expect(body.role).toBe('member');
+    expect(body.tenantHasAnyApps).toBe(true);
+    // No second probe — non-empty result is authoritative.
+    expect(listAppsPaginatedMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns role=admin and tenantHasAnyApps=false without a second query when an admin sees an empty list', async () => {
+    listAppsPaginatedMock.mockResolvedValue(emptyPage);
+
+    const app = buildHarness({ userId: 'user-admin', tenantRole: 'admin' });
+    const res = await app.request('/manage/tenants/tenant-1/apps');
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data).toEqual([]);
+    expect(body.role).toBe('admin');
+    // Admins see the whole tenant, so empty is authoritative — no extra DB hit.
+    expect(body.tenantHasAnyApps).toBe(false);
+    expect(listAppsPaginatedMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns role=owner and tenantHasAnyApps=true for an owner with apps', async () => {
+    listAppsPaginatedMock.mockResolvedValueOnce({
+      data: [{ id: 'app-a' }],
+      pagination: { page: 1, limit: 10, total: 1, pages: 1 },
+    });
+
+    const app = buildHarness({ userId: 'user-owner', tenantRole: 'owner' });
+    const res = await app.request('/manage/tenants/tenant-1/apps');
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.role).toBe('owner');
+    expect(body.tenantHasAnyApps).toBe(true);
+    expect(listAppsPaginatedMock).toHaveBeenCalledTimes(1);
   });
 });

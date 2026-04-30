@@ -2883,6 +2883,21 @@ export const AppListResponse = z
   .object({
     data: z.array(AppApiResponseSelectSchema),
     pagination: PaginationSchema,
+    /**
+     * The caller's organization role. Set on tenant-wide list responses so
+     * the client can branch UX (admin "create one" vs member "ask admin")
+     * when `data` is empty. Omitted on project-scoped list responses where
+     * role isn't a meaningful signal.
+     */
+    role: z.enum(['owner', 'admin', 'member']).optional(),
+    /**
+     * Whether the tenant has ANY apps of the requested type, regardless of
+     * the caller's project memberships. Lets a member with an empty list
+     * distinguish "I don't have access to existing apps" from "no apps
+     * exist anywhere yet". Set on tenant-wide responses; omitted on
+     * project-scoped responses.
+     */
+    tenantHasAnyApps: z.boolean().optional(),
   })
   .openapi('AppListResponse');
 export const CredentialReferenceListResponse = z
