@@ -108,10 +108,7 @@ export interface ActivityItem {
   toolCallArgs?: string;
   toolCallResult?: string;
   toolStatusMessage?: string;
-  aiResponseText?: string;
-  aiResponseToolCalls?: string;
   costUsd?: number;
-  aiPromptMessages?: string;
   traceId?: string;
   // OTEL status fields
   otelStatusCode?: string;
