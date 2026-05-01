@@ -254,6 +254,7 @@ export interface SetupConfig {
   uiHealthUrl?: string;
 
   isCloud?: boolean;
+  skipDocker?: boolean;
   skipPush?: boolean;
 
   /** Runs after project push while the API server is still up */
@@ -772,6 +773,9 @@ export async function runSetup(config: SetupConfig) {
   // Step 3: Start databases
   if (config.isCloud) {
     logStep(3, 'Cloud setup: Skipping Docker database startup');
+  } else if (config.skipDocker) {
+    logStep(3, 'Skipping Docker database startup');
+    logInfo('Using externally managed databases from configured URLs.');
   } else {
     logStep(3, 'Starting databases with Docker');
 
