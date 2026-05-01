@@ -318,21 +318,41 @@ cmd_status() {
     return
   fi
 
-  printf "%-20s %-25s %-10s %-10s %-12s %-10s %-10s\n" "NAME" "PROJECT" "DOLTGRES" "POSTGRES" "SPICEDB-PG" "API" "UI"
-  printf "%-20s %-25s %-10s %-10s %-12s %-10s %-10s\n" "----" "-------" "--------" "--------" "----------" "---" "--"
+  python3 - "$STATE_DIR" <<'PYEOF'
+import json, sys, glob, os
 
-  for state_file in "$STATE_DIR"/*.json; do
-    [ -f "$state_file" ] || continue
-    python3 - "$state_file" <<'PYEOF'
-import json, sys
-d = json.load(open(sys.argv[1]))
-p = d['ports']
-api = p.get('agents_api', '-')
-ui = p.get('manage_ui', '-')
-spicedb_pg = p.get('spicedb_pg', '-')
-print(f"{d['name']:20s} {d['project']:25s} {p['doltgres']:<10} {p['postgres']:<10} {spicedb_pg:<12} {api:<10} {ui:<10}")
+headers = ["NAME", "PROJECT", "DOLTGRES", "POSTGRES", "SPICEDB-PG", "MAILPIT", "API", "UI"]
+rows = []
+for path in sorted(glob.glob(os.path.join(sys.argv[1], "*.json"))):
+    with open(path) as f:
+        d = json.load(f)
+    p = d['ports']
+    rows.append([
+        d['name'],
+        d['project'],
+        str(p.get('doltgres', '-')),
+        str(p.get('postgres', '-')),
+        str(p.get('spicedb_pg', '-')),
+        str(p.get('mailpit_web', '-')),
+        str(p.get('agents_api', '-')),
+        str(p.get('manage_ui', '-')),
+    ])
+
+widths = [max(len(h), *(len(r[i]) for r in rows)) for i, h in enumerate(headers)]
+
+def border(left, mid, right, fill='─'):
+    return left + mid.join(fill * (w + 2) for w in widths) + right
+
+def row(cells):
+    return '│ ' + ' │ '.join(c.ljust(w) for c, w in zip(cells, widths)) + ' │'
+
+print(border('┌', '┬', '┐'))
+print(row(headers))
+print(border('├', '┼', '┤'))
+for r in rows:
+    print(row(r))
+print(border('└', '┴', '┘'))
 PYEOF
-  done
 }
 
 cmd_env() {

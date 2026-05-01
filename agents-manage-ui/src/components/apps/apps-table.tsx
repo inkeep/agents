@@ -1,11 +1,13 @@
 'use client';
 
 import type { ColumnDef } from '@tanstack/react-table';
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy, Download } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useState } from 'react';
 import type { SelectOption } from '@/components/form/generic-select';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
@@ -14,6 +16,7 @@ import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import type { Agent } from '@/lib/types/agent-full';
 import { formatDateAgo } from '@/lib/utils/format-date';
 import { AppItemMenu } from './app-item-menu';
+import { SupportCopilotInstallDialog } from './install/support-copilot-install-dialog';
 
 interface AppsTableProps {
   apps: App[];
@@ -135,15 +138,19 @@ export function AppsTable({ apps, agentLookup, agentOptions, credentialOptions }
       id: 'actions',
       header: '',
       enableSorting: false,
-      meta: { className: 'w-12' },
-      cell: ({ row }) =>
-        canEdit && (
-          <AppItemMenu
-            app={row.original}
-            agentOptions={agentOptions}
-            credentialOptions={credentialOptions}
-          />
-        ),
+      meta: { className: 'w-24' },
+      cell: ({ row }) => (
+        <div className="flex items-center justify-end gap-1">
+          {row.original.type === 'support_copilot' && <InstallButton app={row.original} />}
+          {canEdit && (
+            <AppItemMenu
+              app={row.original}
+              agentOptions={agentOptions}
+              credentialOptions={credentialOptions}
+            />
+          )}
+        </div>
+      ),
     },
   ];
 
@@ -157,5 +164,18 @@ export function AppsTable({ apps, agentLookup, agentOptions, credentialOptions }
         getRowId={(row) => row.id}
       />
     </div>
+  );
+}
+
+function InstallButton({ app }: { app: App }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button variant="outline" size="xs" onClick={() => setOpen(true)}>
+        <Download className="size-3" aria-hidden="true" />
+        Install
+      </Button>
+      <SupportCopilotInstallDialog app={app} open={open} onClose={() => setOpen(false)} />
+    </>
   );
 }

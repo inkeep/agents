@@ -16,6 +16,7 @@ import {
 import { AppCredentialDisplay } from './app-credential-display';
 import { AppCreateForm } from './form/app-create-form';
 import { APP_TYPE_OPTIONS } from './form/validation';
+import { SupportCopilotInstallDialog } from './install/support-copilot-install-dialog';
 
 interface NewAppDialogProps {
   agentOptions: SelectOption[];
@@ -47,9 +48,11 @@ export function NewAppDialog({
     setSelectedType(null);
   };
 
-  const handleCredentialDisplayClosed = () => {
+  const handleCreatedDialogClosed = () => {
     setCreatedApp(null);
   };
+
+  const isSupportCopilotCreated = createdApp?.app.type === 'support_copilot';
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
@@ -106,11 +109,19 @@ export function NewAppDialog({
         </DialogContent>
       </Dialog>
 
-      <AppCredentialDisplay
-        appId={createdApp ? createdApp.app.id : ''}
-        open={!!createdApp}
-        onClose={handleCredentialDisplayClosed}
-      />
+      {createdApp && isSupportCopilotCreated ? (
+        <SupportCopilotInstallDialog
+          app={createdApp.app}
+          open={!!createdApp}
+          onClose={handleCreatedDialogClosed}
+        />
+      ) : (
+        <AppCredentialDisplay
+          appId={createdApp ? createdApp.app.id : ''}
+          open={!!createdApp && !isSupportCopilotCreated}
+          onClose={handleCreatedDialogClosed}
+        />
+      )}
     </>
   );
 }
