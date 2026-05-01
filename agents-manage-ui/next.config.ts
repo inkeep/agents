@@ -155,8 +155,10 @@ const config = isSentryEnabled
         sourcemaps: {
           deleteSourcemapsAfterUpload: true,
         },
-        reactComponentAnnotation: {
-          enabled: true,
+        _experimental: {
+          turbopackReactComponentAnnotation: {
+            enabled: true,
+          },
         },
       }
     )

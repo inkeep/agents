@@ -145,7 +145,7 @@
   },
   "optionalDependencies": {
     "@posthog/react": "^1.5.2",
-    "@sentry/nextjs": "^10.32.1",
+    "@sentry/nextjs": "^10.51.0",
     "posthog-js": "^1.308.0"
   }
 }
