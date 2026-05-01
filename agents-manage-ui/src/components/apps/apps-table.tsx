@@ -58,7 +58,7 @@ function AppIdCell({ appId }: { appId: string }) {
 export function AppsTable({ apps, agentLookup, agentOptions, credentialOptions }: AppsTableProps) {
   const { tenantId } = useParams<{ tenantId: string }>();
   const {
-    data: { canUse },
+    data: { canEdit },
   } = useProjectPermissionsQuery();
 
   const columns: ColumnDef<App>[] = [
@@ -137,7 +137,7 @@ export function AppsTable({ apps, agentLookup, agentOptions, credentialOptions }
       enableSorting: false,
       meta: { className: 'w-12' },
       cell: ({ row }) =>
-        canUse && (
+        canEdit && (
           <AppItemMenu
             app={row.original}
             agentOptions={agentOptions}

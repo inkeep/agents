@@ -33,7 +33,7 @@ async function AppsPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/
   const { tenantId, projectId } = await params;
 
   try {
-    const [apps, agents, credentials, entitlements, { canUse }] = await Promise.all([
+    const [apps, agents, credentials, entitlements, { canEdit }] = await Promise.all([
       fetchApps(tenantId, projectId),
       fetchAgents(tenantId, projectId),
       fetchCredentials(tenantId, projectId),
@@ -55,7 +55,7 @@ async function AppsPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/
           title={metadata.title}
           description={metadata.description}
           action={
-            canUse ? (
+            canEdit ? (
               <NewAppDialog
                 agentOptions={agentOptions}
                 credentialOptions={credentialOptions}
