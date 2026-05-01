@@ -4,6 +4,11 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+// Keep the public PR bridge copies code-shape aligned. They ship to
+// separate public repos through Copybara, so they cannot import shared code.
+// Sibling bridge copies:
+// - public/agents-optional-local-dev/.github/scripts/bridge-public-pr-to-monorepo.mjs
+// - copybara/public-open-knowledge-overlay/.github/scripts/bridge-public-pr-to-monorepo.mjs
 const BRIDGE_COMMENT_MARKER = '<!-- monorepo-pr-bridge -->';
 
 function run(command, args, options = {}) {
@@ -76,7 +81,20 @@ function getPublicPrBranchName(prefix, prNumber) {
   return `${prefix}-${prNumber}`;
 }
 
-function prefixPatchPaths(patch, prefix) {
+function parseJsonEnv(name, fallback) {
+  const value = process.env[name];
+  if (!value) {
+    return fallback;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    throw new Error(`Invalid JSON in ${name}: ${error.message}`);
+  }
+}
+
+function prefixPatchPaths(patch, prefix, pathRewrites = {}) {
   const normalizedPrefix = prefix.replace(/^\/+|\/+$/g, '');
   const prefixedPath = (value) => {
     if (value === '/dev/null') {
@@ -91,7 +109,15 @@ function prefixPatchPaths(patch, prefix) {
       throw new Error(`Rejecting patch with path traversal: ${unquoted}`);
     }
 
-    const nextValue = `${normalizedPrefix}/${unquoted}`.replace(/\/+/g, '/');
+    const rewrite = pathRewrites[unquoted];
+    if (rewrite) {
+      const rewriteSegments = rewrite.split('/');
+      if (rewriteSegments.some((s) => s === '..' || s === '.')) {
+        throw new Error(`Rejecting patch rewrite with path traversal: ${rewrite}`);
+      }
+    }
+
+    const nextValue = rewrite ?? `${normalizedPrefix}/${unquoted}`.replace(/\/+/g, '/');
     return value.startsWith('"') ? `"${nextValue}"` : nextValue;
   };
 
@@ -273,7 +299,7 @@ async function findOpenInternalPr({ token, repo, owner, branchName }) {
   return pulls[0] ?? null;
 }
 
-async function ensureDraftState({ token, repo, pullRequest, shouldBeDraft }) {
+async function ensureDraftState({ token, pullRequest, shouldBeDraft }) {
   if (Boolean(pullRequest.draft) === Boolean(shouldBeDraft)) {
     return;
   }
@@ -300,6 +326,7 @@ async function syncPublicPr() {
   const internalBranchPrefix = requireEnv('INTERNAL_BRANCH_PREFIX');
   const publicPrAction = process.env.PUBLIC_PR_ACTION ?? 'opened';
   const publicPrNumber = Number.parseInt(requireEnv('PUBLIC_PR_NUMBER'), 10);
+  const pathRewrites = parseJsonEnv('PUBLIC_PR_PATH_REWRITES', {});
   const internalOwner = internalRepo.split('/')[0];
   const branchName = getPublicPrBranchName(internalBranchPrefix, publicPrNumber);
 
@@ -354,7 +381,7 @@ async function syncPublicPr() {
 
     const tempDir = mkdtempSync(path.join(tmpdir(), 'public-pr-bridge-'));
     const patchFile = path.join(tempDir, 'public-pr.patch');
-    writeFileSync(patchFile, prefixPatchPaths(patch, mirrorPath), 'utf8');
+    writeFileSync(patchFile, prefixPatchPaths(patch, mirrorPath, pathRewrites), 'utf8');
 
     try {
       run('git', ['-C', internalRepoDir, 'fetch', 'origin', internalBaseRef, '--prune']);
@@ -456,7 +483,6 @@ async function syncPublicPr() {
     });
     await ensureDraftState({
       token: internalToken,
-      repo: internalRepo,
       pullRequest: internalPr,
       shouldBeDraft: publicPr.draft,
     });

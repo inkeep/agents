@@ -1,7 +1,10 @@
 'use client';
 
 import { ProjectRoles } from '@inkeep/agents-core/client-exports';
+import { ArrowUpRight } from 'lucide-react';
+import Link from 'next/link';
 import { type FC, use } from 'react';
+import { useIsOrgAdmin } from '@/hooks/use-is-org-admin';
 import { useProjectAccess } from './hooks/use-project-access';
 import { ResourceMembersPage } from './resource-members-page';
 
@@ -41,6 +44,7 @@ export const ProjectMembersWrapper: FC<PageProps<'/[tenantId]/projects/[projectI
   params,
 }) => {
   const { tenantId, projectId } = use(params);
+  const { isAdmin: isOrgAdmin } = useIsOrgAdmin();
   const {
     principals,
     availablePrincipals,
@@ -54,18 +58,32 @@ export const ProjectMembersWrapper: FC<PageProps<'/[tenantId]/projects/[projectI
   } = useProjectAccess({ tenantId, projectId });
 
   return (
-    <ResourceMembersPage
-      roles={roles}
-      availableMembers={availablePrincipals}
-      inheritedAccess={inheritedAccess}
-      principals={principals}
-      membersConfig={membersConfig}
-      onAdd={addPrincipal}
-      onRefresh={refetch}
-      onRoleChange={changeRole}
-      onRemove={removePrincipal}
-      isLoading={isLoading}
-      isAdding={isMutating}
-    />
+    <>
+      <ResourceMembersPage
+        roles={roles}
+        availableMembers={availablePrincipals}
+        inheritedAccess={inheritedAccess}
+        principals={principals}
+        membersConfig={membersConfig}
+        onAdd={addPrincipal}
+        onRefresh={refetch}
+        onRoleChange={changeRole}
+        onRemove={removePrincipal}
+        isLoading={isLoading}
+        isAdding={isMutating}
+      />
+      {isOrgAdmin && (
+        <div className="max-w-xl mx-auto mt-4 text-sm text-muted-foreground">
+          Need to invite someone new to the platform?{' '}
+          <Link
+            href={`/${tenantId}/members`}
+            className="inline-flex items-center gap-0.5 font-medium text-primary hover:underline"
+          >
+            Open organization members
+            <ArrowUpRight className="size-3" aria-hidden="true" />
+          </Link>
+        </div>
+      )}
+    </>
   );
 };
