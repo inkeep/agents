@@ -11,6 +11,18 @@ import { pathToFileURL } from 'node:url';
 // - copybara/public-open-knowledge-overlay/.github/scripts/bridge-public-pr-to-monorepo.mjs
 const BRIDGE_COMMENT_MARKER = '<!-- monorepo-pr-bridge -->';
 
+// Strip x-access-token credentials from any string that might end up in an
+// error message, log line, or thrown exception. GitHub Actions masks repo
+// secrets in its own job log, but this script's exceptions can also surface
+// in PR comments (`buildPublicComment` failed-state path), failure-alert
+// issues, or future error-reporting integrations — none of which inherit the
+// Actions log mask. Defense-in-depth: redact at the boundary so token leakage
+// is impossible regardless of where the message ends up.
+function sanitizeErrorMessage(value) {
+  if (typeof value !== 'string') return value;
+  return value.replace(/https:\/\/x-access-token:[^@\s]+@/g, 'https://x-access-token:***@');
+}
+
 function run(command, args, options = {}) {
   try {
     return execFileSync(command, args, {
@@ -19,10 +31,11 @@ function run(command, args, options = {}) {
       ...options,
     }).trim();
   } catch (error) {
-    const stderr = error.stderr?.toString().trim();
-    const stdout = error.stdout?.toString().trim();
+    const stderr = sanitizeErrorMessage(error.stderr?.toString().trim() ?? '');
+    const stdout = sanitizeErrorMessage(error.stdout?.toString().trim() ?? '');
     const details = [stderr, stdout].filter(Boolean).join('\n');
-    throw new Error(details || `${command} ${args.join(' ')} failed`);
+    const fallback = sanitizeErrorMessage(`${command} ${args.join(' ')} failed`);
+    throw new Error(details || fallback);
   }
 }
 
@@ -92,6 +105,118 @@ function parseJsonEnv(name, fallback) {
   } catch (error) {
     throw new Error(`Invalid JSON in ${name}: ${error.message}`);
   }
+}
+
+// True when a `githubRequest` failed because the PR diff exceeds GitHub's
+// hard cap on the diff endpoint (currently 20,000 lines). The API surfaces
+// this as a 406 with body `diff exceeded the maximum number of lines (20000)`,
+// or a JSON error with `diff_too_large` in the message. Detect by message
+// text since we don't preserve the HTTP status separately. The patterns are
+// kept narrow on purpose: a bare `too_large` would also match unrelated 422s
+// (e.g. PR body validation `{"code":"too_long"}` is adjacent — `too_large`
+// itself is rare for non-diff endpoints, but we don't rely on coincidence).
+function isDiffTooLargeError(error) {
+  if (!error || typeof error.message !== 'string') return false;
+  return /diff exceeded the maximum number of lines|diff is too large|diff_too_large/i.test(
+    error.message
+  );
+}
+
+// Compute the PR's diff locally from the public PR refs that syncPublicPr has
+// already fetched into agents-private's object store. 3-dot diff mirrors
+// GitHub's `.diff` semantics (compares against merge-base). Used as the
+// fallback when the API rejects the PR as too large; also implicitly helps
+// `git apply --3way` later because the same fetch made the patch's base blobs
+// reachable in agents-private's clone.
+//
+// maxBuffer is bumped to 50 MB because this fallback fires specifically for
+// oversized PRs (>20,000 lines on the API endpoint). Node's default 1 MB
+// would truncate the very diffs this path is meant to handle.
+function fetchPullRequestDiffViaLocalGit({ internalRepoDir, sourceBaseRef, sourceHeadRef }) {
+  return run('git', ['-C', internalRepoDir, 'diff', `${sourceBaseRef}...${sourceHeadRef}`], {
+    maxBuffer: 50 * 1024 * 1024,
+  });
+}
+
+async function fetchPullRequestDiff({
+  publicToken,
+  publicRepo,
+  publicPr,
+  internalRepoDir,
+  sourceBaseRef,
+  sourceHeadRef,
+  refsFetched,
+}) {
+  try {
+    return await githubRequest({
+      token: publicToken,
+      path: `/repos/${publicRepo}/pulls/${publicPr.number}`,
+      accept: 'application/vnd.github.diff',
+    });
+  } catch (error) {
+    if (!isDiffTooLargeError(error)) throw error;
+    if (!refsFetched) {
+      throw new Error(
+        `Bridge: cannot use local-git-diff fallback for PR #${publicPr.number} — ` +
+          `the public PR refs failed to fetch into agents-private earlier in this run. ` +
+          `See the preceding "Bridge: fetch at --depth=..." warning for the original ` +
+          `fetch failure; resolve that and re-run.`
+      );
+    }
+    console.log(
+      `Bridge: GitHub diff API rejected PR #${publicPr.number} as too large; ` +
+        'falling back to local git diff against fetched public PR refs.'
+    );
+    return fetchPullRequestDiffViaLocalGit({ internalRepoDir, sourceBaseRef, sourceHeadRef });
+  }
+}
+
+// Drop diff sections whose old or new path matches any excluded prefix.
+// Excluded paths are relative to the PUBLIC repo root (pre-prefix). Used to
+// stop pre-cutover branches from re-introducing internal-only paths
+// (`specs/`, `reports/`, `.codex/`, etc.) that the public mirror no longer
+// exports — those paths exist on agents-private's side but should not flow
+// back through the bridge.
+function filterDiffByPath(patch, excludedPrefixes) {
+  if (!excludedPrefixes || excludedPrefixes.length === 0) return patch;
+
+  const sections = patch.split(/(?=^diff --git )/m);
+  const kept = [];
+  const dropped = [];
+
+  for (const section of sections) {
+    if (!section.startsWith('diff --git ')) {
+      kept.push(section);
+      continue;
+    }
+    const match = section.match(/^diff --git a\/(.+?) b\/(.+?)\n/);
+    if (!match) {
+      kept.push(section);
+      continue;
+    }
+    const aPath = match[1].replace(/^"(.+)"$/, '$1');
+    const bPath = match[2].replace(/^"(.+)"$/, '$1');
+
+    const isExcluded = excludedPrefixes.some(
+      (prefix) => aPath.startsWith(prefix) || bPath.startsWith(prefix)
+    );
+
+    if (isExcluded) {
+      dropped.push(aPath === bPath ? aPath : `${aPath} -> ${bPath}`);
+    } else {
+      kept.push(section);
+    }
+  }
+
+  if (dropped.length > 0) {
+    const preview = dropped.slice(0, 20).join('\n  ');
+    const more = dropped.length > 20 ? `\n  ...and ${dropped.length - 20} more` : '';
+    console.log(
+      `Bridge: filtered ${dropped.length} diff section(s) matching excluded prefixes:\n  ${preview}${more}`
+    );
+  }
+
+  return kept.join('');
 }
 
 function prefixPatchPaths(patch, prefix, pathRewrites = {}) {
@@ -350,102 +475,192 @@ async function syncPublicPr() {
 
   let hasStagedChanges = false;
   if (!metadataOnlyAction) {
-    // Use .diff (unified squash diff) not .patch (multi-commit mailbox
-    // format). .patch returns one patch per PR commit, each with
-    // intermediate blob SHAs that only exist in inkeep/agents' object
-    // store; any conflicting hunk forces git apply --3way to look up
-    // those intermediates and fail with "repository lacks the necessary
-    // blob". .diff is a single base-vs-head diff — no intermediates,
-    // only the PR base blobs are referenced (and those are content-
-    // identical to agents-private's copies since Copybara mirrors blobs
-    // one-to-one, so --3way can resolve them locally).
-    const patch = await githubRequest({
-      token: publicToken,
-      path: `/repos/${publicRepo}/pulls/${publicPrNumber}`,
-      accept: 'application/vnd.github.diff',
-    });
+    // Bring agents-private's main into the local clone and check out the new
+    // branch first. We need this in place before the public-PR-refs fetch so
+    // any blob already on main is deduplicated; we also need it before
+    // `git apply --3way` (later) regardless.
+    run('git', ['-C', internalRepoDir, 'fetch', 'origin', internalBaseRef, '--prune']);
+    run('git', ['-C', internalRepoDir, 'checkout', '-B', branchName, `origin/${internalBaseRef}`]);
 
-    if (!patch.trim()) {
-      await upsertIssueComment({
-        token: publicToken,
-        repo: publicRepo,
-        issueNumber: publicPrNumber,
-        body: buildPublicComment({
-          publicPr,
-          status: 'no-op',
-          details: 'GitHub returned an empty patch, so there was nothing to port.',
-        }),
-      });
-      return;
-    }
-
-    const tempDir = mkdtempSync(path.join(tmpdir(), 'public-pr-bridge-'));
-    const patchFile = path.join(tempDir, 'public-pr.patch');
-    writeFileSync(patchFile, prefixPatchPaths(patch, mirrorPath, pathRewrites), 'utf8');
+    // Fetch the public PR's base + head into agents-private's object store.
+    // Two purposes:
+    //   1. `git apply --3way` resolves the patch's base blobs locally even
+    //      when public-mirror-sync is stalled and agents-private/main has
+    //      drifted from `inkeep/<repo>/main`. Without this, every conflicting
+    //      hunk fails with "repository lacks the necessary blob to perform
+    //      3-way merge" — the dominant bridge-failure pattern observed on
+    //      `inkeep/open-knowledge#411`, `#396`, `#374`.
+    //   2. Provides the baseline pair of refs for the local-git-diff fallback
+    //      when the GitHub diff endpoint rejects the PR as too large.
+    const sourceRemote = `bridge-public-${publicPrNumber}`;
+    const sourceBaseRef = `refs/remotes/${sourceRemote}/pr-base`;
+    const sourceHeadRef = `refs/remotes/${sourceRemote}/pr-head`;
+    const publicRepoUrl = `https://x-access-token:${publicToken}@github.com/${publicRepo}.git`;
 
     try {
-      run('git', ['-C', internalRepoDir, 'fetch', 'origin', internalBaseRef, '--prune']);
-      run('git', [
-        '-C',
-        internalRepoDir,
-        'checkout',
-        '-B',
-        branchName,
-        `origin/${internalBaseRef}`,
-      ]);
+      run('git', ['-C', internalRepoDir, 'remote', 'remove', sourceRemote]);
+    } catch {
+      // remote did not exist; harmless
+    }
+    run('git', ['-C', internalRepoDir, 'remote', 'add', sourceRemote, publicRepoUrl]);
 
-      try {
-        run('git', ['-C', internalRepoDir, 'apply', '--index', '--3way', patchFile]);
-      } catch (error) {
+    try {
+      // Initial fetch: --depth=10000 covers the long-running branches that
+      // trip the size-fallback (e.g. inkeep/open-knowledge#377 with 78
+      // commits). On the rare branch whose merge-base is deeper, the
+      // subsequent `git diff base...head` errors clearly with "no merge
+      // base" rather than producing a wrong diff — so we re-fetch with
+      // increasing depth before giving up.
+      let refsFetched = false;
+      for (const depth of [10000, 50000]) {
+        try {
+          run('git', [
+            '-C',
+            internalRepoDir,
+            'fetch',
+            '--no-tags',
+            `--depth=${depth}`,
+            sourceRemote,
+            `+refs/pull/${publicPrNumber}/head:${sourceHeadRef}`,
+            `+refs/heads/${publicPr.base.ref}:${sourceBaseRef}`,
+          ]);
+          refsFetched = true;
+          break;
+        } catch (error) {
+          console.log(
+            `Bridge: fetch at --depth=${depth} failed: ${error.message}. ` +
+              `Retrying with deeper history if available.`
+          );
+        }
+      }
+      if (!refsFetched) {
+        console.log(
+          'Bridge: warning: could not fetch public PR refs into agents-private at any depth. ' +
+            "Continuing — `git apply --3way` will still succeed if the public mirror's blobs already match agents-private/main, " +
+            'but the local-git-diff fallback for oversized PRs will not be available.'
+        );
+      }
+
+      // Use .diff (unified squash diff) not .patch (multi-commit mailbox
+      // format). .patch returns one patch per PR commit, each with
+      // intermediate blob SHAs that only exist in inkeep/agents' object
+      // store; any conflicting hunk forces git apply --3way to look up
+      // those intermediates and fail with "repository lacks the necessary
+      // blob". .diff is a single base-vs-head diff — no intermediates,
+      // only the PR base blobs are referenced.
+      //
+      // For PRs whose .diff exceeds GitHub's 20,000-line endpoint cap,
+      // fetchPullRequestDiff falls back to a local 3-dot `git diff`
+      // against the refs we just fetched.
+      const rawPatch = await fetchPullRequestDiff({
+        publicToken,
+        publicRepo,
+        publicPr,
+        internalRepoDir,
+        sourceBaseRef,
+        sourceHeadRef,
+        refsFetched,
+      });
+      const excludedPrefixes = parseJsonEnv('BRIDGE_EXCLUDED_PATHS', []);
+      const patch = filterDiffByPath(rawPatch, excludedPrefixes);
+
+      if (!patch.trim()) {
+        const details =
+          rawPatch.trim() && excludedPrefixes.length > 0
+            ? `Every diff section matched an excluded path prefix (\`${excludedPrefixes.join('`, `')}\`), so there was nothing left to port.`
+            : 'GitHub returned an empty patch, so there was nothing to port.';
         await upsertIssueComment({
           token: publicToken,
           repo: publicRepo,
           issueNumber: publicPrNumber,
           body: buildPublicComment({
             publicPr,
-            status: 'failed',
-            details: `Patch application failed. The diff could not be applied cleanly. Please rebase your PR on the latest main.`,
+            status: 'no-op',
+            details,
           }),
         });
-        throw error;
+        return;
       }
 
-      hasStagedChanges = (() => {
+      const tempDir = mkdtempSync(path.join(tmpdir(), 'public-pr-bridge-'));
+      const patchFile = path.join(tempDir, 'public-pr.patch');
+      writeFileSync(patchFile, prefixPatchPaths(patch, mirrorPath, pathRewrites), 'utf8');
+
+      try {
         try {
-          run('git', ['-C', internalRepoDir, 'diff', '--cached', '--quiet']);
-          return false;
-        } catch {
-          return true;
+          run('git', ['-C', internalRepoDir, 'apply', '--index', '--3way', patchFile]);
+        } catch (error) {
+          // error.message has already been routed through `run()` which
+          // sanitizes any embedded x-access-token URL, so it's safe to surface
+          // verbatim. Including the actual git output makes the failure
+          // actionable for external contributors who can't read internal
+          // workflow logs (matches agents-optional-local-dev's behavior).
+          await upsertIssueComment({
+            token: publicToken,
+            repo: publicRepo,
+            issueNumber: publicPrNumber,
+            body: buildPublicComment({
+              publicPr,
+              status: 'failed',
+              details:
+                'Patch application failed. The diff could not be applied cleanly. ' +
+                `Try rebasing your PR on the latest base branch.\n\n\`\`\`\n${error.message}\n\`\`\``,
+            }),
+          });
+          throw error;
         }
-      })();
 
-      if (hasStagedChanges) {
-        run('git', ['-C', internalRepoDir, 'config', 'user.name', 'Inkeep Public PR Bridge']);
-        run('git', ['-C', internalRepoDir, 'config', 'user.email', 'public-pr-bridge@inkeep.com']);
+        hasStagedChanges = (() => {
+          try {
+            run('git', ['-C', internalRepoDir, 'diff', '--cached', '--quiet']);
+            return false;
+          } catch {
+            return true;
+          }
+        })();
 
-        const authorEmail = `${publicPr.user.id}+${publicPr.user.login}@users.noreply.github.com`;
-        run('git', [
-          '-C',
-          internalRepoDir,
-          'commit',
-          '--author',
-          `${publicPr.user.login} <${authorEmail}>`,
-          '-m',
-          `chore(sync): mirror ${publicRepo}#${publicPr.number}`,
-        ]);
+        if (hasStagedChanges) {
+          run('git', ['-C', internalRepoDir, 'config', 'user.name', 'Inkeep Public PR Bridge']);
+          run('git', [
+            '-C',
+            internalRepoDir,
+            'config',
+            'user.email',
+            'public-pr-bridge@inkeep.com',
+          ]);
 
-        run('git', [
-          '-C',
-          internalRepoDir,
-          'push',
-          '--force-with-lease',
-          '--set-upstream',
-          'origin',
-          branchName,
-        ]);
+          const authorEmail = `${publicPr.user.id}+${publicPr.user.login}@users.noreply.github.com`;
+          run('git', [
+            '-C',
+            internalRepoDir,
+            'commit',
+            '--author',
+            `${publicPr.user.login} <${authorEmail}>`,
+            '-m',
+            `chore(sync): mirror ${publicRepo}#${publicPr.number}`,
+          ]);
+
+          run('git', [
+            '-C',
+            internalRepoDir,
+            'push',
+            '--force-with-lease',
+            '--set-upstream',
+            'origin',
+            branchName,
+          ]);
+        }
+      } finally {
+        rmSync(tempDir, { recursive: true, force: true });
       }
     } finally {
-      rmSync(tempDir, { recursive: true, force: true });
+      // Always tear down the bridge-public remote, even on early return or
+      // throw, so subsequent runs (or a retry of the same PR) start clean.
+      try {
+        run('git', ['-C', internalRepoDir, 'remote', 'remove', sourceRemote]);
+      } catch {
+        // best-effort
+      }
     }
 
     internalPr = await findOpenInternalPr({
