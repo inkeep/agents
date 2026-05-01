@@ -178,7 +178,10 @@ export function renderPanelContent({
   );
 
   switch (selected.type) {
-    case 'ai_generation':
+    case 'ai_generation': {
+      const spanResponseText = span?.data?.['ai.response.text'] as string | undefined;
+      const spanPromptMessages = span?.data?.['ai.prompt.messages'] as string | undefined;
+      const spanToolCalls = span?.data?.['ai.response.toolCalls'] as string | undefined;
       return (
         <>
           <Section>
@@ -192,28 +195,32 @@ export function renderPanelContent({
               />
             )}
             {a.subAgentName && <Info label="Sub agent" value={a.subAgentName} />}
-            {a.aiResponseText && (
+            {spanLoading && (
+              <div className="text-xs text-muted-foreground animate-pulse py-2">
+                Loading generation details…
+              </div>
+            )}
+            {spanResponseText && (
               <LabeledBlock label="Response text">
                 <Bubble className="whitespace-pre-wrap break-words max-h-96 overflow-y-auto">
-                  {a.aiResponseText}
+                  {spanResponseText}
                 </Bubble>
               </LabeledBlock>
             )}
-            {a.aiPromptMessages && (
+            {spanPromptMessages && (
               <JsonEditorWithCopy
-                value={formatJsonSafely(a.aiPromptMessages)}
+                value={formatJsonSafely(spanPromptMessages)}
                 title="Prompt messages"
                 uri="prompt-messages.json"
               />
             )}
-            {a.aiResponseToolCalls && (
+            {spanToolCalls && (
               <JsonEditorWithCopy
-                value={formatJsonSafely(a.aiResponseToolCalls)}
+                value={formatJsonSafely(spanToolCalls)}
                 title="Tool calls"
                 uri="tool-calls.json"
               />
             )}
-            {/* Show error message if there's an error */}
             {a.hasError && a.otelStatusDescription && (
               <LabeledBlock label="Error">
                 <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
@@ -232,6 +239,7 @@ export function renderPanelContent({
           {AdvancedBlock}
         </>
       );
+    }
 
     case 'agent_generation':
       return (

@@ -3,6 +3,7 @@ import {
   AI_OPERATIONS,
   AI_TOOL_TYPES,
   buildFilterExpression,
+  buildOrExpression,
   FIELD_CONTEXTS,
   FIELD_DATA_TYPES,
   OPERATORS,
@@ -687,9 +688,8 @@ class SigNozStatsAPI {
     origin?: string,
     signal?: AbortSignal
   ): Promise<PaginatedConversationStats> {
-    const hasSearchQuery = !!searchQuery?.trim();
     const hasSpanFilters = !!(filters?.spanName || filters?.attributes?.length);
-    const useServerSidePagination = !hasSearchQuery && !hasSpanFilters;
+    const useServerSidePagination = !hasSpanFilters;
 
     const makePaginationResult = (total: number) => ({
       page: pagination.page,
@@ -700,7 +700,9 @@ class SigNozStatsAPI {
       hasPreviousPage: pagination.page > 1,
     });
 
-    // Fast path: use server-side pipeline (1 browser round-trip instead of 2)
+    // Fast path: use server-side pipeline (1 browser round-trip instead of 2).
+    // Search queries are now filtered server-side via OR in filter.expression,
+    // so only span filters force the slow path.
     if (useServerSidePagination) {
       const includeAggsInPagination = !origin;
       const paginationPayload = this.buildFilteredConversationIdsPayload(
@@ -709,7 +711,7 @@ class SigNozStatsAPI {
         filters,
         projectId,
         agentId,
-        false,
+        searchQuery,
         pagination,
         hasErrors,
         origin,
@@ -799,7 +801,7 @@ class SigNozStatsAPI {
       };
     }
 
-    // Slow path: search or span filters — server-side filtered + paginated
+    // Slow path: span filters active — requires client-side intersection
     const paginatedPromise = this.getPaginatedConversationIds(
       startTime,
       endTime,
@@ -859,10 +861,10 @@ class SigNozStatsAPI {
   }
 
   /**
-   * Slow path: fetches all conversation IDs via buildFilteredConversationIdsPayload,
-   * applies span-filter intersection client-side (FILTERED_CONVERSATIONS sub-query),
-   * and optionally applies 3-field text search client-side (conversationId, agentId,
-   * firstUserMessage). SigNoz filters are AND-only so OR-style search stays client-side.
+   * Slow path: used when span filters are active. The span-filter intersection
+   * with pageConversations is done server-side via a BUILDER_TRACE_OPERATOR (&&).
+   * The result comes back under PAGE_CONVERSATIONS already intersected; this
+   * method only needs to sort and paginate in JS.
    */
   private async getPaginatedConversationIds(
     startTime: number,
@@ -881,7 +883,6 @@ class SigNozStatsAPI {
     aggregateStats: AggregateStats;
     firstSeen: Map<string, number>;
   }> {
-    const hasSearchQuery = !!searchQuery?.trim();
     const includeAggs = !origin;
 
     const payload = this.buildFilteredConversationIdsPayload(
@@ -890,7 +891,7 @@ class SigNozStatsAPI {
       filters,
       projectId,
       agentId,
-      hasSearchQuery,
+      searchQuery,
       undefined,
       hasErrors,
       origin,
@@ -908,49 +909,7 @@ class SigNozStatsAPI {
       activityMap.set(id, timestampMsFromSeries(s));
     }
 
-    let conversationIds = Array.from(activityMap.keys());
-
-    const hasSpanFilters = !!(filters?.spanName || filters?.attributes?.length);
-    if (hasSpanFilters) {
-      const filteredSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.FILTERED_CONVERSATIONS);
-      const filteredIds = new Set(
-        filteredSeries.map((s) => s.labels?.[SPAN_KEYS.CONVERSATION_ID]).filter(Boolean) as string[]
-      );
-      conversationIds = conversationIds.filter((id) => filteredIds.has(id));
-    }
-
-    if (hasSearchQuery) {
-      const metadataSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.CONVERSATION_METADATA);
-      const metadataMap = new Map<string, { agentId: string }>();
-      for (const s of metadataSeries) {
-        const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
-        const agentIdValue = s.labels?.[SPAN_KEYS.AGENT_ID];
-        if (!id) continue;
-        metadataMap.set(id, { agentId: agentIdValue ?? '' });
-      }
-
-      const userMessagesSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.USER_MESSAGES);
-      const firstMessagesMap = new Map<string, string>();
-      for (const s of userMessagesSeries) {
-        const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
-        const content = s.labels?.[SPAN_KEYS.MESSAGE_CONTENT];
-        if (!id || !content) continue;
-        if (!firstMessagesMap.has(id)) {
-          firstMessagesMap.set(id, content);
-        }
-      }
-
-      const q = searchQuery?.toLowerCase().trim() ?? '';
-      conversationIds = conversationIds.filter((id) => {
-        const meta = metadataMap.get(id);
-        const firstMsg = firstMessagesMap.get(id);
-        return (
-          id.toLowerCase().includes(q) ||
-          meta?.agentId.toLowerCase().includes(q) ||
-          firstMsg?.toLowerCase().includes(q)
-        );
-      });
-    }
+    const conversationIds = Array.from(activityMap.keys());
 
     conversationIds.sort((a, b) => {
       const aTime = activityMap.get(a) ?? 0;
@@ -1665,12 +1624,14 @@ class SigNozStatsAPI {
     filters: SpanFilterOptions | undefined,
     projectId: string | undefined,
     agentId: string | undefined,
-    includeSearchData: boolean,
+    searchQuery: string | undefined,
     pagination?: { page: number; limit: number },
     hasErrors?: boolean,
     origin?: string,
     includeAggregates?: boolean
   ) {
+    const sanitizedSearch = searchQuery?.trim() || undefined;
+
     const buildBaseFilterItems = (
       opts: { withOrigin?: boolean } = {}
     ): Array<{ key: string; op: string; value: unknown }> => {
@@ -1697,60 +1658,32 @@ class SigNozStatsAPI {
       return items;
     };
 
-    const paginationWindowLimit =
-      pagination && !includeSearchData
-        ? pagination.page * pagination.limit
-        : QUERY_DEFAULTS.LIMIT_UNLIMITED;
+    const buildBaseFilterExpr = (opts: { withOrigin?: boolean } = {}): string => {
+      const baseExpr = buildFilterExpression(buildBaseFilterItems(opts));
+      if (!sanitizedSearch) return baseExpr;
 
-    const queries: any[] = [
-      {
-        type: QUERY_TYPES.BUILDER_QUERY,
-        spec: {
-          name: QUERY_EXPRESSIONS.PAGE_CONVERSATIONS,
-          signal: SIGNALS.TRACES,
-          aggregations: [{ expression: `max(${SPAN_KEYS.TIMESTAMP})` }],
-          filter: {
-            expression: buildFilterExpression(buildBaseFilterItems({ withOrigin: true })),
-          },
-          groupBy: [
-            {
-              name: SPAN_KEYS.CONVERSATION_ID,
-              fieldDataType: FIELD_DATA_TYPES.STRING,
-              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
-            },
-          ],
-          order: [
-            { key: { name: `max(${SPAN_KEYS.TIMESTAMP})` }, direction: ORDER_DIRECTIONS.DESC },
-          ],
-          stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-          limit: paginationWindowLimit,
-          disabled: QUERY_DEFAULTS.DISABLED,
-        },
-      },
-      {
-        type: QUERY_TYPES.BUILDER_QUERY,
-        spec: {
-          name: QUERY_EXPRESSIONS.TOTAL_CONVERSATIONS,
-          signal: SIGNALS.TRACES,
-          aggregations: [{ expression: `count_distinct(${SPAN_KEYS.CONVERSATION_ID})` }],
-          filter: {
-            expression: buildFilterExpression(buildBaseFilterItems({ withOrigin: true })),
-          },
-          groupBy: [],
-          order: [],
-          stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-          limit: 1,
-          disabled: QUERY_DEFAULTS.DISABLED,
-        },
-      },
-    ];
+      const searchPattern = `%${sanitizedSearch}%`;
+      const orClause = buildOrExpression([
+        { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.LIKE, value: searchPattern },
+        { key: SPAN_KEYS.AGENT_ID, op: OPERATORS.LIKE, value: searchPattern },
+        { key: SPAN_KEYS.MESSAGE_CONTENT, op: OPERATORS.LIKE, value: searchPattern },
+      ]);
+      return `${baseExpr} AND ${orClause}`;
+    };
 
-    if (filters?.spanName || filters?.attributes?.length) {
+    const hasSpanFilters = !!(filters?.spanName || filters?.attributes?.length);
+    const paginationWindowLimit = pagination
+      ? pagination.page * pagination.limit
+      : QUERY_DEFAULTS.LIMIT_UNLIMITED;
+
+    const queries: any[] = [];
+
+    if (hasSpanFilters) {
       const filteredConvItems: Array<{ key: string; op: string; value: unknown }> = [
         { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' },
       ];
 
-      if (filters.spanName) {
+      if (filters?.spanName) {
         filteredConvItems.push({
           key: SPAN_KEYS.NAME,
           op: OPERATORS.EQUALS,
@@ -1758,7 +1691,7 @@ class SigNozStatsAPI {
         });
       }
 
-      for (const attr of filters.attributes ?? []) {
+      for (const attr of filters?.attributes ?? []) {
         let op = attr.operator ?? OPERATORS.EQUALS;
         if (op === 'contains') op = OPERATORS.LIKE;
         if (op === 'ncontains') op = OPERATORS.NOT_LIKE;
@@ -1798,101 +1731,113 @@ class SigNozStatsAPI {
         });
       }
 
-      queries.push({
-        type: QUERY_TYPES.BUILDER_QUERY,
-        spec: {
-          name: QUERY_EXPRESSIONS.FILTERED_CONVERSATIONS,
-          signal: SIGNALS.TRACES,
-          aggregations: [{ expression: 'count()' }],
-          filter: { expression: buildFilterExpression(filteredConvItems) },
-          groupBy: [
-            {
-              name: SPAN_KEYS.CONVERSATION_ID,
-              fieldDataType: FIELD_DATA_TYPES.STRING,
-              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
-            },
-          ],
-          order: [],
-          stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-          limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-          disabled: QUERY_DEFAULTS.DISABLED,
+      queries.push(
+        {
+          type: QUERY_TYPES.BUILDER_QUERY,
+          spec: {
+            name: 'pageConversationsBase',
+            signal: SIGNALS.TRACES,
+            aggregations: [{ expression: `max(${SPAN_KEYS.TIMESTAMP})` }],
+            filter: { expression: buildBaseFilterExpr({ withOrigin: true }) },
+            groupBy: [
+              {
+                name: SPAN_KEYS.CONVERSATION_ID,
+                fieldDataType: FIELD_DATA_TYPES.STRING,
+                fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+              },
+            ],
+            order: [],
+            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+            disabled: QUERY_DEFAULTS.DISABLED,
+          },
         },
-      });
-    }
-
-    if (includeSearchData) {
-      const metadataItems: Array<{ key: string; op: string; value: unknown }> = [
-        ...buildBaseFilterItems({ withOrigin: true }),
-        { key: SPAN_KEYS.TENANT_ID, op: OPERATORS.EXISTS, value: '' },
-        { key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EXISTS, value: '' },
-      ];
-
-      queries.push({
-        type: QUERY_TYPES.BUILDER_QUERY,
-        spec: {
-          name: QUERY_EXPRESSIONS.CONVERSATION_METADATA,
-          signal: SIGNALS.TRACES,
-          aggregations: [{ expression: 'count()' }],
-          filter: { expression: buildFilterExpression(metadataItems) },
-          groupBy: [
-            {
-              name: SPAN_KEYS.CONVERSATION_ID,
-              fieldDataType: FIELD_DATA_TYPES.STRING,
-              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
-            },
-            {
-              name: SPAN_KEYS.TENANT_ID,
-              fieldDataType: FIELD_DATA_TYPES.STRING,
-              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
-            },
-            {
-              name: SPAN_KEYS.AGENT_ID,
-              fieldDataType: FIELD_DATA_TYPES.STRING,
-              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
-            },
-            {
-              name: SPAN_KEYS.AGENT_NAME,
-              fieldDataType: FIELD_DATA_TYPES.STRING,
-              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
-            },
-          ],
-          order: [],
-          stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-          limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-          disabled: QUERY_DEFAULTS.DISABLED,
+        {
+          type: QUERY_TYPES.BUILDER_QUERY,
+          spec: {
+            name: 'spanFilterBase',
+            signal: SIGNALS.TRACES,
+            aggregations: [{ expression: 'count()' }],
+            filter: { expression: buildFilterExpression(filteredConvItems) },
+            groupBy: [
+              {
+                name: SPAN_KEYS.CONVERSATION_ID,
+                fieldDataType: FIELD_DATA_TYPES.STRING,
+                fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+              },
+            ],
+            order: [],
+            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+            disabled: QUERY_DEFAULTS.DISABLED,
+          },
         },
-      });
-
-      const userMsgItems: Array<{ key: string; op: string; value: unknown }> = [
-        ...buildBaseFilterItems({ withOrigin: true }),
-        { key: SPAN_KEYS.MESSAGE_CONTENT, op: OPERATORS.EXISTS, value: '' },
-      ];
-
-      queries.push({
-        type: QUERY_TYPES.BUILDER_QUERY,
-        spec: {
-          name: QUERY_EXPRESSIONS.USER_MESSAGES,
-          signal: SIGNALS.TRACES,
-          aggregations: [{ expression: `min(${SPAN_KEYS.TIMESTAMP})` }],
-          filter: { expression: buildFilterExpression(userMsgItems) },
-          groupBy: [
-            {
-              name: SPAN_KEYS.CONVERSATION_ID,
-              fieldDataType: FIELD_DATA_TYPES.STRING,
-              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+        {
+          type: QUERY_TYPES.BUILDER_TRACE_OPERATOR,
+          spec: {
+            name: QUERY_EXPRESSIONS.PAGE_CONVERSATIONS,
+            expression: 'pageConversationsBase && spanFilterBase',
+            aggregations: [{ expression: `max(${SPAN_KEYS.TIMESTAMP})` }],
+            filter: { expression: '' },
+            groupBy: [
+              {
+                name: SPAN_KEYS.CONVERSATION_ID,
+                fieldDataType: FIELD_DATA_TYPES.STRING,
+                fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+              },
+            ],
+            order: [
+              { key: { name: `max(${SPAN_KEYS.TIMESTAMP})` }, direction: ORDER_DIRECTIONS.DESC },
+            ],
+            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+            limit: paginationWindowLimit,
+            disabled: QUERY_DEFAULTS.DISABLED,
+          },
+        }
+      );
+    } else {
+      queries.push(
+        {
+          type: QUERY_TYPES.BUILDER_QUERY,
+          spec: {
+            name: QUERY_EXPRESSIONS.PAGE_CONVERSATIONS,
+            signal: SIGNALS.TRACES,
+            aggregations: [{ expression: `max(${SPAN_KEYS.TIMESTAMP})` }],
+            filter: {
+              expression: buildBaseFilterExpr({ withOrigin: true }),
             },
-            {
-              name: SPAN_KEYS.MESSAGE_CONTENT,
-              fieldDataType: FIELD_DATA_TYPES.STRING,
-              fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
-            },
-          ],
-          order: [],
-          stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-          limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-          disabled: QUERY_DEFAULTS.DISABLED,
+            groupBy: [
+              {
+                name: SPAN_KEYS.CONVERSATION_ID,
+                fieldDataType: FIELD_DATA_TYPES.STRING,
+                fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+              },
+            ],
+            order: [
+              { key: { name: `max(${SPAN_KEYS.TIMESTAMP})` }, direction: ORDER_DIRECTIONS.DESC },
+            ],
+            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+            limit: paginationWindowLimit,
+            disabled: QUERY_DEFAULTS.DISABLED,
+          },
         },
-      });
+        {
+          type: QUERY_TYPES.BUILDER_QUERY,
+          spec: {
+            name: QUERY_EXPRESSIONS.TOTAL_CONVERSATIONS,
+            signal: SIGNALS.TRACES,
+            aggregations: [{ expression: `count_distinct(${SPAN_KEYS.CONVERSATION_ID})` }],
+            filter: {
+              expression: buildBaseFilterExpr({ withOrigin: true }),
+            },
+            groupBy: [],
+            order: [],
+            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+            limit: 1,
+            disabled: QUERY_DEFAULTS.DISABLED,
+          },
+        }
+      );
     }
 
     if (includeAggregates) {

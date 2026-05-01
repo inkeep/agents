@@ -57,22 +57,31 @@ function quoteValue(value: unknown): string {
   return String(value);
 }
 
+function buildClause({ key, op, value }: { key: string; op: string; value: unknown }): string {
+  const v5op = OP_MAP[op] ?? op;
+  if (v5op === 'EXISTS' || v5op === 'NOT EXISTS') return `${key} ${v5op}`;
+  if (v5op === 'IN' || v5op === 'NOT IN') {
+    const vals = Array.isArray(value) ? value : [value];
+    return `${key} ${v5op} (${vals.map(quoteValue).join(', ')})`;
+  }
+  if (v5op === 'CONTAINS' || v5op === 'NOT CONTAINS') {
+    return `${key} ${v5op} ${quoteValue(value)}`;
+  }
+  return `${key} ${v5op} ${quoteValue(value)}`;
+}
+
 export function buildFilterExpression(
   items: Array<{ key: string; op: string; value: unknown }>
 ): string {
-  const clauses = items.map(({ key, op, value }) => {
-    const v5op = OP_MAP[op] ?? op;
-    if (v5op === 'EXISTS' || v5op === 'NOT EXISTS') return `${key} ${v5op}`;
-    if (v5op === 'IN' || v5op === 'NOT IN') {
-      const vals = Array.isArray(value) ? value : [value];
-      return `${key} ${v5op} (${vals.map(quoteValue).join(', ')})`;
-    }
-    if (v5op === 'CONTAINS' || v5op === 'NOT CONTAINS') {
-      return `${key} ${v5op} ${quoteValue(value)}`;
-    }
-    return `${key} ${v5op} ${quoteValue(value)}`;
-  });
-  return clauses.join(' AND ');
+  return items.map(buildClause).join(' AND ');
+}
+
+export function buildOrExpression(
+  items: Array<{ key: string; op: string; value: unknown }>
+): string {
+  const clauses = items.map(buildClause);
+  if (clauses.length <= 1) return clauses[0] ?? '';
+  return `(${clauses.join(' OR ')})`;
 }
 
 /** Query Operators */
@@ -102,7 +111,6 @@ export const QUERY_EXPRESSIONS = {
   MODEL_CALLS: 'modelCalls',
   LAST_ACTIVITY: 'lastActivity',
   CONVERSATION_METADATA: 'conversationMetadata',
-  FILTERED_CONVERSATIONS: 'filteredConversations',
   PAGE_CONVERSATIONS: 'pageConversations',
   TOTAL_CONVERSATIONS: 'totalConversations',
   TOOLS: 'tools',

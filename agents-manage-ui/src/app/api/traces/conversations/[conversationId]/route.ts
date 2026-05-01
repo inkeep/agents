@@ -59,6 +59,13 @@ function getNumber(span: SigNozListItem, key: string, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+const AI_RESPONSE_TEXT_TRUNCATE_CHARS = 500;
+
+function truncateText(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+  return `${text.slice(0, maxChars)}…`;
+}
+
 const GENERATION_TYPE_LABELS: Record<string, string> = {
   sub_agent_generation: 'Agent Generation',
   status_update: 'Status Update',
@@ -342,8 +349,6 @@ function buildConversationPayloads(
         sf(SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, int64, attr),
         sf(SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, float64, attr),
         sf(SPAN_KEYS.AI_RESPONSE_TEXT, str, attr),
-        sf(SPAN_KEYS.AI_RESPONSE_TOOL_CALLS, str, attr),
-        sf(SPAN_KEYS.AI_PROMPT_MESSAGES, str, attr),
         sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
         sf(SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE, str, attr),
         sf(SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, str, attr),
@@ -889,7 +894,6 @@ export async function GET(
       serviceTier?: string;
       aiResponseContent?: string;
       aiResponseTimestamp?: string;
-      aiResponseText?: string;
       // user
       messageContent?: string;
       messageParts?: string;
@@ -931,9 +935,6 @@ export async function GET(
         components: Record<string, number>;
         total: number;
       };
-      // ai generation specifics
-      aiResponseToolCalls?: string;
-      aiPromptMessages?: string;
       // artifact processing specifics
       artifactId?: string;
       artifactType?: string;
@@ -1177,10 +1178,6 @@ export async function GET(
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
 
-      // Extract ai.response.toolCalls and ai.prompt.messages for ai.generateText.doGenerate spans
-      const aiResponseToolCalls = getString(span, SPAN_KEYS.AI_RESPONSE_TOOL_CALLS, '');
-      const aiPromptMessages = getString(span, SPAN_KEYS.AI_PROMPT_MESSAGES, '');
-
       const aiGeneration = getString(span, SPAN_KEYS.SPAN_ID, '');
       const genResponseText = getString(span, SPAN_KEYS.AI_RESPONSE_TEXT, '');
       const formatted = genType
@@ -1200,9 +1197,6 @@ export async function GET(
         inputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0),
         outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
         costUsd: getNumber(span, SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, 0) || undefined,
-        aiResponseText: getString(span, SPAN_KEYS.AI_RESPONSE_TEXT, '') || undefined,
-        aiResponseToolCalls: aiResponseToolCalls || undefined,
-        aiPromptMessages: aiPromptMessages || undefined,
         aiTelemetryFunctionId: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
         aiTelemetryPhase: getString(span, SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE, '') || undefined,
       });
@@ -1259,7 +1253,10 @@ export async function GET(
         result: hasError
           ? 'AI streaming failed'
           : (streamFormatted.result ?? `${durMs.toFixed(2)}ms`),
-        aiStreamTextContent: getString(span, SPAN_KEYS.AI_RESPONSE_TEXT, ''),
+        aiStreamTextContent: truncateText(
+          getString(span, SPAN_KEYS.AI_RESPONSE_TEXT, ''),
+          AI_RESPONSE_TEXT_TRUNCATE_CHARS
+        ),
         aiStreamTextModel: getString(span, SPAN_KEYS.AI_MODEL_ID, 'Unknown Model'),
         aiStreamTextOperationId: getString(span, SPAN_KEYS.AI_OPERATION_ID, '') || undefined,
         inputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0),
