@@ -6,6 +6,7 @@
  * Usage:
  *   pnpm setup-dev                       - Run full setup with local Docker databases
  *   pnpm setup-dev --skip-push           - Run setup without pushing a project
+ *   pnpm setup-dev --skip-docker         - Run setup against already-running databases
  *   pnpm setup-dev --isolated <name>     - Run setup with an isolated parallel environment
  *
  * The --isolated flag creates a separate Docker environment with dynamic port
@@ -250,6 +251,7 @@ async function ensureCopilotApp(apiUrl) {
 }
 
 const skipPush = process.argv.includes('--skip-push');
+const skipDocker = process.argv.includes('--skip-docker');
 const isolatedIdx = process.argv.indexOf('--isolated');
 const isolatedName = isolatedIdx !== -1 ? process.argv[isolatedIdx + 1] : null;
 
@@ -351,6 +353,7 @@ if (isolatedName) {
     devApiCommand: 'pnpm turbo dev --filter @inkeep/agents-api',
     apiHealthUrl: `${apiUrl}/health`,
     isCloud: false,
+    skipDocker: true,
     skipPush,
   });
 
@@ -384,6 +387,7 @@ if (isolatedName) {
     devApiCommand: 'pnpm turbo dev --filter @inkeep/agents-api',
     apiHealthUrl: 'http://localhost:3002/health',
     isCloud: false,
+    skipDocker,
     skipPush,
   });
 }
