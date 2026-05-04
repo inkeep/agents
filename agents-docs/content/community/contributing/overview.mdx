@@ -157,6 +157,50 @@ git commit --no-verify -m "emergency: hotfix for production"
 > - Emergency fixes where speed is critical
 > - Commits that only touch non-code files (though hooks are smart enough to handle this)
 
+### Claude Code Worktree Discipline
+
+When running multiple Claude Code sessions concurrently, avoid branch-switching operations (`git checkout`, `git switch`, `git stash`, `git reset --hard`) in the main checkout. These operations can corrupt the shared HEAD/index/working-tree state when concurrent sessions attempt conflicting git operations.
+
+#### PreToolUse Hook Protection
+
+The repository includes a guard hook (`.claude/hooks/guard-branch-switch.sh`) registered as a `PreToolUse` hook in `.claude/settings.json`. It automatically blocks dangerous branch operations when run from the main checkout:
+
+- **Blocks**: `git checkout <branch>`, `git switch <branch>`, `git stash`, `git reset --hard`
+- **Allows**: `git checkout -b <new-branch>`, `git checkout -- <file>`, `git switch -c <new>`, `git stash pop/apply/list`
+- **Auto-allows** all operations inside linked worktrees
+
+The hook only constrains Claude Code agents — it does not affect commands you type directly in your terminal.
+
+#### Recommended Workflow
+
+Use git worktrees for parallel feature development:
+
+```bash
+# Create a worktree and launch Claude Code in it
+./scripts/cc-task.sh my-feature
+
+# Or specify a custom branch name
+./scripts/cc-task.sh my-feature feat/custom-branch
+
+# Clean up when done
+./scripts/cc-cleanup-worktree.sh my-feature
+```
+
+You can also create worktrees manually:
+
+```bash
+git worktree add ../agents-my-feature -b feat/my-feature origin/main
+cd ../agents-my-feature
+```
+
+#### Override
+
+For legitimate cases (rebase coordination, recovery scripts), set the environment variable:
+
+```bash
+ALLOW_BRANCH_SWITCH=1 git checkout main
+```
+
 ### Local checks (CI parity)
 
 - `pnpm check` mirrors the full CI merge gate: lint, typecheck, tests, format verification, env-description validation, dead code detection (knip), and changeset package name validation.
