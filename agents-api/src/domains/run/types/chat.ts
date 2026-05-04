@@ -1,5 +1,6 @@
 import { z } from '@hono/zod-openapi';
 import {
+  canonicalizeMimeType,
   DATA_URI_IMAGE_BASE64_REGEX,
   DATA_URI_OFFICE_BASE64_REGEX,
   DATA_URI_PDF_BASE64_REGEX,
@@ -9,6 +10,45 @@ import {
   ZIP_DOCUMENT_EXTENSIONS_LABEL,
 } from '@inkeep/agents-core/constants/allowed-file-formats';
 import { isTextDocumentMimeType } from '../utils/text-document-attachments';
+
+const rewriteDataUriMimeType = (dataUri: string, mimeType: string): string =>
+  dataUri.replace(/^(data:)[^;,]*/i, `$1${mimeType}`);
+
+const extractDataUriMimeType = (dataUri: string): string =>
+  /^data:([^;,]+)/i.exec(dataUri)?.[1] ?? '';
+
+const preprocessFileObject = (val: unknown): unknown => {
+  if (!val || typeof val !== 'object') return val;
+  const obj = val as Record<string, unknown>;
+  if (typeof obj.file_data !== 'string' || !obj.file_data.startsWith('data:')) return val;
+  const filename = typeof obj.filename === 'string' ? obj.filename : undefined;
+  const incoming = extractDataUriMimeType(obj.file_data);
+  const canonical = canonicalizeMimeType(incoming, filename);
+  if (canonical === normalizeMimeType(incoming)) return val;
+  return { ...obj, file_data: rewriteDataUriMimeType(obj.file_data, canonical) };
+};
+
+const preprocessVercelFilePart = (val: unknown): unknown => {
+  if (!val || typeof val !== 'object') return val;
+  const obj = val as Record<string, unknown>;
+  const filename = typeof obj.filename === 'string' ? obj.filename : undefined;
+  const incomingMime = typeof obj.mediaType === 'string' ? obj.mediaType : '';
+  const dataUriMime =
+    typeof obj.url === 'string' && obj.url.startsWith('data:')
+      ? extractDataUriMimeType(obj.url)
+      : '';
+  const normalizedIncomingMime = normalizeMimeType(incomingMime);
+  const canonical = canonicalizeMimeType(incomingMime || dataUriMime, filename);
+  const url =
+    typeof obj.url === 'string' &&
+    obj.url.startsWith('data:') &&
+    canonical.length > 0 &&
+    canonical !== normalizeMimeType(dataUriMime)
+      ? rewriteDataUriMimeType(obj.url, canonical)
+      : obj.url;
+  if (canonical === normalizedIncomingMime && url === obj.url) return val;
+  return { ...obj, mediaType: canonical, url };
+};
 
 const hasValidBase64Payload = (val: string): boolean => {
   const base64Part = val.split(',')[1];
@@ -125,10 +165,13 @@ export type ImageContentItem = z.infer<typeof ImageContentItemSchema>;
 
 export const FileContentItemSchema = z.object({
   type: z.literal('file'),
-  file: z.object({
-    file_data: InlineDocumentDataSchema,
-    filename: z.string().optional(),
-  }),
+  file: z.preprocess(
+    preprocessFileObject,
+    z.object({
+      file_data: InlineDocumentDataSchema,
+      filename: z.string().optional(),
+    })
+  ),
 });
 
 export type FileContentItem = z.infer<typeof FileContentItemSchema>;
@@ -145,34 +188,37 @@ export const VercelImagePartSchema = z.object({
   text: ImageUrlSchema,
 });
 
-export const VercelFilePartSchema = z
-  .object({
-    type: z.literal('file'),
-    url: z.string(),
-    mediaType: z.string(),
-    filename: z.string().optional(),
-  })
-  .superRefine((part, ctx) => {
-    const mimeType = normalizeMimeType(part.mediaType);
+export const VercelFilePartSchema = z.preprocess(
+  preprocessVercelFilePart,
+  z
+    .object({
+      type: z.literal('file'),
+      url: z.string(),
+      mediaType: z.string(),
+      filename: z.string().optional(),
+    })
+    .superRefine((part, ctx) => {
+      const mimeType = normalizeMimeType(part.mediaType);
 
-    const normalizedUrl = normalizeDataUriMimeType(part.url) as string;
+      const normalizedUrl = normalizeDataUriMimeType(part.url) as string;
 
-    if (isTextDocumentMimeType(mimeType) && !DATA_URI_TEXT_BASE64_REGEX.test(normalizedUrl)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Text document file parts must use inline base64 data URIs',
-        path: ['url'],
-      });
-    }
+      if (isTextDocumentMimeType(mimeType) && !DATA_URI_TEXT_BASE64_REGEX.test(normalizedUrl)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Text document file parts must use inline base64 data URIs',
+          path: ['url'],
+        });
+      }
 
-    if (isOfficeDocumentMimeType(mimeType) && !DATA_URI_OFFICE_BASE64_REGEX.test(normalizedUrl)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `ZIP-based document file parts (${ZIP_DOCUMENT_EXTENSIONS_LABEL}) must use inline base64 data URIs`,
-        path: ['url'],
-      });
-    }
-  });
+      if (isOfficeDocumentMimeType(mimeType) && !DATA_URI_OFFICE_BASE64_REGEX.test(normalizedUrl)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `ZIP-based document file parts (${ZIP_DOCUMENT_EXTENSIONS_LABEL}) must use inline base64 data URIs`,
+          path: ['url'],
+        });
+      }
+    })
+);
 
 export const VercelAudioVideoPartSchema = z.object({
   type: z.union([
