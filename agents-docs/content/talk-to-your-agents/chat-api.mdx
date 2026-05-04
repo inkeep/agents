@@ -162,6 +162,15 @@ The chat endpoint supports files in message content parts with different rules b
 - **Remote PDF URLs**: must be reachable over `http` or `https` from the Run API. Unreachable hosts, non-PDF responses, or oversized bodies result in **HTTP 400** with an error message (query strings and fragments on the URL are not preserved in stored metadata).
 - **Remote text document URLs**: are not supported. Use inline base64 `data:` payloads for supported text/code document MIME types instead.
 
+### MIME type handling
+
+The API automatically canonicalizes MIME types on file attachments at ingress, so you don't need to know the exact canonical type for every format:
+
+- **Filename-based inference**: when a `filename` is provided, the file extension is used to determine the canonical MIME type (e.g. a file named `config.yml` is resolved to `application/yaml` regardless of the supplied `mediaType`)
+- **Alias mapping**: legacy and alternative MIME types are mapped to their canonical equivalents (e.g. `text/x-yaml` → `application/yaml`, `application/x-php` → `text/x-php`, `text/javascript` → `application/javascript`)
+- **Data URI rewriting**: when the MIME type in a `data:` URI differs from the canonical type, the data URI is rewritten automatically to match
+- **Case normalization**: MIME types are lowercased and stripped of parameters before validation
+
 ### Optional Headers
 
 - **`x-emit-operations`** — Set to `true` to include detailed data operations in the response stream. Useful for debugging and monitoring agent behavior. See [Data Operations](/typescript-sdk/data-operations) for details.
