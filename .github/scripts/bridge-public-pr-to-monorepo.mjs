@@ -489,7 +489,7 @@ async function syncPublicPr() {
     //      drifted from `inkeep/<repo>/main`. Without this, every conflicting
     //      hunk fails with "repository lacks the necessary blob to perform
     //      3-way merge" — the dominant bridge-failure pattern observed on
-    //      `inkeep/open-knowledge#411`, `#396`, `#374`.
+    //      `inkeep/open-knowledge-legacy#411`, `#396`, `#374`.
     //   2. Provides the baseline pair of refs for the local-git-diff fallback
     //      when the GitHub diff endpoint rejects the PR as too large.
     const sourceRemote = `bridge-public-${publicPrNumber}`;
@@ -506,7 +506,7 @@ async function syncPublicPr() {
 
     try {
       // Initial fetch: --depth=10000 covers the long-running branches that
-      // trip the size-fallback (e.g. inkeep/open-knowledge#377 with 78
+      // trip the size-fallback (e.g. inkeep/open-knowledge-legacy#377 with 78
       // commits). On the rare branch whose merge-base is deeper, the
       // subsequent `git diff base...head` errors clearly with "no merge
       // base" rather than producing a wrong diff — so we re-fetch with
