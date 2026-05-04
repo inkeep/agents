@@ -9,9 +9,28 @@ import {
   buildTextAttachmentBlock,
   decodeTextDocumentBytes,
   getDefaultTextDocumentFilename,
+  isTextDocumentMimeType,
 } from '../text-document-attachments';
 
 describe('text-document-attachments', () => {
+  describe('isTextDocumentMimeType', () => {
+    it('returns true for canonical MIME types', () => {
+      expect(isTextDocumentMimeType('text/x-python')).toBe(true);
+      expect(isTextDocumentMimeType('application/javascript')).toBe(true);
+    });
+
+    it('returns true for alias MIME types (stored data backward compat)', () => {
+      expect(isTextDocumentMimeType('text/javascript')).toBe(true);
+      expect(isTextDocumentMimeType('text/x-golang')).toBe(true);
+      expect(isTextDocumentMimeType('application/x-yaml')).toBe(true);
+    });
+
+    it('returns false for non-text and undefined', () => {
+      expect(isTextDocumentMimeType('image/png')).toBe(false);
+      expect(isTextDocumentMimeType(undefined)).toBe(false);
+    });
+  });
+
   describe('decodeTextDocumentBytes', () => {
     it('normalizes CRLF line endings to LF', () => {
       const result = decodeTextDocumentBytes(

@@ -12,6 +12,7 @@ import {
 import {
   ALLOWED_IMAGE_MIME_TYPES,
   ALLOWED_TEXT_DOCUMENT_MIME_TYPES,
+  canonicalizeMimeType,
   normalizeMimeType,
 } from '@inkeep/agents-core/constants/allowed-file-formats';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
@@ -52,6 +53,7 @@ function getSafeMediaResponseHeaders({
   contentLength: number;
 }): Record<string, string> {
   const normalizedContentType = normalizeMimeType(contentType);
+  const canonicalContentType = canonicalizeMimeType(normalizedContentType);
 
   if (SAFE_IMAGE_PASSTHROUGH_MIME_TYPES.has(normalizedContentType)) {
     return {
@@ -72,7 +74,7 @@ function getSafeMediaResponseHeaders({
     };
   }
 
-  if (TEXT_DOCUMENT_DOWNLOAD_MIME_TYPES.has(normalizedContentType)) {
+  if (TEXT_DOCUMENT_DOWNLOAD_MIME_TYPES.has(canonicalContentType)) {
     return {
       'Content-Type': 'text/plain; charset=utf-8',
       'Content-Disposition': 'attachment',

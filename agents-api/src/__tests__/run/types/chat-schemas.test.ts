@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { InlineDocumentDataSchema, VercelFilePartSchema } from '../../../domains/run/types/chat';
+import {
+  FileContentItemSchema,
+  InlineDocumentDataSchema,
+  VercelFilePartSchema,
+} from '../../../domains/run/types/chat';
 
 const VALID_ZIP_BASE64 = Buffer.from([0x50, 0x4b, 0x03, 0x04, ...Array(100).fill(0)]).toString(
   'base64'
 );
+const VALID_TEXT_BASE64 = Buffer.from('package main').toString('base64');
 
 const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -122,5 +127,81 @@ describe('VercelFilePartSchema - office document URL normalization', () => {
     expect(result.error.issues[0]?.message).toContain('.xlsx');
     expect(result.error.issues[0]?.message).toContain('.pptx');
     expect(result.error.issues[0]?.message).toContain('.pages');
+  });
+});
+
+describe('FileContentItemSchema - MIME canonicalization', () => {
+  it('rewrites alias data URIs using the filename extension', () => {
+    const input = {
+      type: 'file',
+      file: {
+        file_data: `data:text/x-golang;base64,${VALID_TEXT_BASE64}`,
+        filename: 'main.go',
+      },
+    };
+    const result = FileContentItemSchema.safeParse(input);
+
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      throw new Error('Expected file content item validation to succeed');
+    }
+
+    expect(result.data.file.file_data).toBe(`data:text/x-go;base64,${VALID_TEXT_BASE64}`);
+  });
+
+  it('rewrites alias data URIs without a filename', () => {
+    const input = {
+      type: 'file',
+      file: {
+        file_data: `data:text/javascript;base64,${VALID_TEXT_BASE64}`,
+      },
+    };
+    const result = FileContentItemSchema.safeParse(input);
+
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      throw new Error('Expected file content item validation to succeed');
+    }
+
+    expect(result.data.file.file_data).toBe(
+      `data:application/javascript;base64,${VALID_TEXT_BASE64}`
+    );
+  });
+});
+
+describe('VercelFilePartSchema - MIME canonicalization', () => {
+  it('rewrites alias media types using the filename extension', () => {
+    const input = {
+      type: 'file',
+      url: `data:application/x-iwork-keynote-sffkey;base64,${VALID_ZIP_BASE64}`,
+      mediaType: 'application/x-iwork-keynote-sffkey',
+      filename: 'slides.key',
+    };
+    const result = VercelFilePartSchema.safeParse(input);
+
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      throw new Error('Expected Vercel file part validation to succeed');
+    }
+
+    expect(result.data.mediaType).toBe('application/vnd.apple.keynote');
+    expect(result.data.url).toBe(`data:application/vnd.apple.keynote;base64,${VALID_ZIP_BASE64}`);
+  });
+
+  it('rewrites alias data URIs when mediaType is already canonical', () => {
+    const input = {
+      type: 'file',
+      url: `data:text/x-golang;base64,${VALID_TEXT_BASE64}`,
+      mediaType: 'text/x-go',
+    };
+    const result = VercelFilePartSchema.safeParse(input);
+
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      throw new Error('Expected Vercel file part validation to succeed');
+    }
+
+    expect(result.data.mediaType).toBe('text/x-go');
+    expect(result.data.url).toBe(`data:text/x-go;base64,${VALID_TEXT_BASE64}`);
   });
 });

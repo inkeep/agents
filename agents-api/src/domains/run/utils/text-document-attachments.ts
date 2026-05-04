@@ -1,5 +1,6 @@
 import {
   ALLOWED_TEXT_DOCUMENT_MIME_TYPES,
+  canonicalizeMimeType,
   getExtensionFromMimeType,
   normalizeMimeType,
 } from '@inkeep/agents-core/constants/allowed-file-formats';
@@ -30,7 +31,9 @@ function hasDisallowedControlCharacters(value: string): boolean {
 }
 
 export function isTextDocumentMimeType(mimeType: string | undefined): mimeType is string {
-  return ALLOWED_TEXT_DOCUMENT_MIME_TYPES.has(normalizeMimeType(mimeType ?? ''));
+  if (!mimeType) return false;
+  const canonical = canonicalizeMimeType(mimeType);
+  return ALLOWED_TEXT_DOCUMENT_MIME_TYPES.has(canonical);
 }
 
 export function getDefaultTextDocumentFilename(mimeType: string): string {

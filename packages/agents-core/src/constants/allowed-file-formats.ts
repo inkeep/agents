@@ -17,32 +17,20 @@ const TEXT_DOCUMENT_MIME_TYPE_TO_EXTENSION: Record<string, string> = {
   'text/vbscript': 'vbs',
   'text/css': 'css',
   'message/rfc822': 'eml',
-  'application/x-sql': 'sql',
-  'application/x-scala': 'scala',
-  'application/x-rust': 'rs',
   'application/x-powershell': 'ps1',
   'text/x-diff': 'diff',
   'text/x-patch': 'patch',
-  'application/x-patch': 'patch',
   'text/x-java': 'java',
-  'text/x-script.python': 'py',
   'text/x-python': 'py',
   'text/x-c': 'c',
   'text/x-c++': 'cpp',
-  'text/x-golang': 'go',
   'text/x-php': 'php',
-  'application/x-php': 'php',
-  'application/x-httpd-php': 'php',
-  'application/x-httpd-php-source': 'php',
   'text/x-ruby': 'rb',
   'text/x-sh': 'sh',
   'text/x-bash': 'bash',
-  'application/x-bash': 'bash',
   'text/x-zsh': 'zsh',
   'text/x-tex': 'tex',
   'text/x-csharp': 'cs',
-  'text/x-typescript': 'ts',
-  'text/javascript': 'js',
   'text/x-go': 'go',
   'text/x-rust': 'rs',
   'text/x-scala': 'scala',
@@ -50,7 +38,6 @@ const TEXT_DOCUMENT_MIME_TYPE_TO_EXTENSION: Record<string, string> = {
   'text/x-swift': 'swift',
   'text/x-lua': 'lua',
   'text/x-r': 'r',
-  'text/x-R': 'r',
   'text/x-julia': 'jl',
   'text/x-perl': 'pl',
   'text/x-objectivec': 'm',
@@ -62,7 +49,6 @@ const TEXT_DOCUMENT_MIME_TYPE_TO_EXTENSION: Record<string, string> = {
   'text/x-groovy': 'groovy',
   'text/x-dart': 'dart',
   'text/x-awk': 'awk',
-  'application/x-awk': 'awk',
   'text/jsx': 'jsx',
   'text/tsx': 'tsx',
   'text/x-handlebars': 'hbs',
@@ -81,30 +67,19 @@ const TEXT_DOCUMENT_MIME_TYPE_TO_EXTENSION: Record<string, string> = {
   'text/x-ini': 'ini',
   'text/x-properties': 'properties',
   'text/x-protobuf': 'proto',
-  'application/x-protobuf': 'proto',
   'text/x-sql': 'sql',
   'text/x-sass': 'sass',
   'text/x-scss': 'scss',
   'text/x-less': 'less',
   'text/x-hcl': 'hcl',
   'text/x-terraform': 'tf',
-  'application/x-terraform': 'tf',
-  'text/x-toml': 'toml',
-  'application/x-toml': 'toml',
   'application/graphql': 'graphql',
-  'application/x-graphql': 'graphql',
-  'text/x-graphql': 'graphql',
   'application/x-ndjson': 'ndjson',
   'application/json5': 'json5',
-  'application/x-json5': 'json5',
-  'text/x-yaml': 'yaml',
   'application/toml': 'toml',
-  'application/x-yaml': 'yaml',
   'application/yaml': 'yaml',
   'text/x-astro': 'astro',
   'text/srt': 'srt',
-  'application/x-subrip': 'srt',
-  'text/x-subrip': 'srt',
   'text/vtt': 'vtt',
   'text/x-vcard': 'vcf',
   'text/calendar': 'ics',
@@ -273,6 +248,33 @@ const FILE_EXTENSION_TO_MIME_TYPE: Record<string, string> = {
   key: 'application/vnd.apple.keynote',
 };
 
+export const MIME_ALIAS_TO_CANONICAL_MIME_TYPE: Record<string, string> = {
+  'application/x-sql': 'text/x-sql',
+  'application/x-scala': 'text/x-scala',
+  'application/x-rust': 'text/x-rust',
+  'application/x-patch': 'text/x-patch',
+  'text/x-script.python': 'text/x-python',
+  'text/x-golang': 'text/x-go',
+  'application/x-php': 'text/x-php',
+  'application/x-httpd-php': 'text/x-php',
+  'application/x-httpd-php-source': 'text/x-php',
+  'application/x-bash': 'text/x-bash',
+  'text/x-typescript': 'application/typescript',
+  'text/javascript': 'application/javascript',
+  'application/x-awk': 'text/x-awk',
+  'application/x-protobuf': 'text/x-protobuf',
+  'application/x-terraform': 'text/x-terraform',
+  'text/x-toml': 'application/toml',
+  'application/x-toml': 'application/toml',
+  'application/x-graphql': 'application/graphql',
+  'text/x-graphql': 'application/graphql',
+  'application/x-json5': 'application/json5',
+  'text/x-yaml': 'application/yaml',
+  'application/x-yaml': 'application/yaml',
+  'application/x-subrip': 'text/srt',
+  'text/x-subrip': 'text/srt',
+};
+
 const dataUriSubtypes = Array.from(ALLOWED_IMAGE_MIME_TYPES).flatMap((mime) => {
   const subtype = mime.replace('image/', '');
   return subtype === 'jpeg' ? ['jpeg', 'jpg'] : [subtype];
@@ -299,6 +301,19 @@ export const DATA_URI_OFFICE_BASE64_REGEX = new RegExp(
 
 export function normalizeMimeType(mimeType: string): string {
   return mimeType.split(';')[0]?.trim().toLowerCase() || '';
+}
+
+export function canonicalizeMimeType(mimeType: string, filename?: string): string {
+  if (filename) {
+    const dotIndex = filename.lastIndexOf('.');
+    if (dotIndex !== -1) {
+      const ext = filename.slice(dotIndex + 1).toLowerCase();
+      const canonical = FILE_EXTENSION_TO_MIME_TYPE[ext];
+      if (canonical) return canonical;
+    }
+  }
+  const normalizedMimeType = normalizeMimeType(mimeType);
+  return MIME_ALIAS_TO_CANONICAL_MIME_TYPE[normalizedMimeType] ?? normalizedMimeType;
 }
 
 export function getExtensionFromMimeType(mimeType?: string): string {
