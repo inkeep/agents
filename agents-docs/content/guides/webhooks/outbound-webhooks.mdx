@@ -1,0 +1,188 @@
+---
+title: Outbound Webhooks
+description: Receive real-time notifications when conversations and feedback are created or updated in your Inkeep project.
+icon: LuWebhook
+---
+
+## Overview
+
+Outbound webhooks let you push conversation and feedback events from Inkeep to any HTTP endpoint you control. When something happens in your project — a new conversation starts, a conversation is updated, or a user submits feedback — Inkeep sends an HTTP `POST` request to your configured destination with the full event payload.
+
+Common use cases include:
+
+- **CRM sync** – Write conversation records to Salesforce, HubSpot, or an internal CRM whenever a support conversation is created or resolved.
+- **Analytics pipelines** – Stream conversation data into a data warehouse or BI tool for reporting.
+- **Alerting** – Post a Slack message or page on-call when feedback with a low rating is submitted.
+- **Audit trails** – Append every conversation update to an immutable log for compliance.
+
+## Event types
+
+Inkeep fires three event types to your webhook destination:
+
+| Event | When it fires |
+|---|---|
+| `conversation.created` | A new conversation is started in the project |
+| `conversation.updated` | An existing conversation receives new messages or its metadata changes |
+| `feedback.created` | A user submits a feedback rating or comment on a conversation |
+
+Every event payload includes the full `ConversationDetail` shape — the same object returned by `GET /conversations/{id}` — so your receiver can use a single TypeScript type for both webhook payloads and API responses.
+
+## Configure a webhook destination
+
+Webhook destinations are managed per-project through the Manage API. Each destination has a URL and an optional list of event types to subscribe to.
+
+<Steps>
+  <Step>
+    ### Create a destination
+
+    Send a `POST` request to the webhook destinations endpoint. At minimum, provide the target URL and the events you want to receive.
+
+    ```bash
+    curl -X POST \
+      "https://api.inkeep.com/manage/tenants/{tenantId}/projects/{projectId}/webhook-destinations" \
+      -H "Authorization: Bearer $INKEEP_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "url": "https://your-service.example.com/hooks/inkeep",
+        "events": ["conversation.created", "conversation.updated", "feedback.created"]
+      }'
+    ```
+
+    The response includes the destination `id`, which you can use to update or delete it later.
+
+    <Tip>
+      See the [Webhooks API reference](/api-reference/webhooks) for the full list of request and response fields.
+    </Tip>
+  </Step>
+  <Step>
+    ### Test the destination
+
+    Before going live, verify that Inkeep can reach your endpoint:
+
+    ```bash
+    curl -X POST \
+      "https://api.inkeep.com/manage/tenants/{tenantId}/projects/{projectId}/webhook-destinations/{id}/test" \
+      -H "Authorization: Bearer $INKEEP_API_KEY"
+    ```
+
+    Inkeep sends a test payload to your URL and returns the HTTP status your server responded with. Confirm your endpoint logs the request and returns a `2xx` status.
+  </Step>
+</Steps>
+
+## Payload structure
+
+Every event Inkeep delivers is an HTTP `POST` with a JSON body. The top-level shape is:
+
+```json
+{
+  "event": "conversation.created",
+  "data": { ... }
+}
+```
+
+The `data` field contains the full `ConversationDetail` object — identical to what `GET /conversations/{id}` returns. This means you can share one TypeScript type between your webhook handler and any code that calls the conversations API directly:
+
+```typescript
+import type { ConversationDetail } from "@inkeep/agents-api";
+
+interface WebhookPayload {
+  event: "conversation.created" | "conversation.updated" | "feedback.created";
+  data: ConversationDetail;
+}
+
+export async function POST(req: Request) {
+  const payload: WebhookPayload = await req.json();
+
+  switch (payload.event) {
+    case "conversation.created":
+      await handleNewConversation(payload.data);
+      break;
+    case "conversation.updated":
+      await handleConversationUpdate(payload.data);
+      break;
+    case "feedback.created":
+      await handleFeedback(payload.data);
+      break;
+  }
+
+  return new Response(null, { status: 200 });
+}
+```
+
+<Note>
+  Your endpoint must respond with a `2xx` HTTP status within the request timeout. Inkeep treats any other status — or a connection failure — as a delivery failure.
+</Note>
+
+## Example: Track feedback in Slack
+
+The following example shows a minimal Next.js route handler that posts a Slack message whenever a `feedback.created` event arrives.
+
+```typescript
+// app/api/webhooks/inkeep/route.ts
+import type { ConversationDetail } from "@inkeep/agents-api";
+
+interface WebhookPayload {
+  event: "conversation.created" | "conversation.updated" | "feedback.created";
+  data: ConversationDetail;
+}
+
+export async function POST(req: Request) {
+  const payload: WebhookPayload = await req.json();
+
+  if (payload.event === "feedback.created") {
+    const conversation = payload.data;
+
+    await fetch(process.env.SLACK_WEBHOOK_URL!, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: `New feedback received on conversation \`${conversation.id}\``,
+      }),
+    });
+  }
+
+  return new Response(null, { status: 200 });
+}
+```
+
+Then register this URL as a webhook destination scoped to `feedback.created`:
+
+```bash
+curl -X POST \
+  "https://api.inkeep.com/manage/tenants/{tenantId}/projects/{projectId}/webhook-destinations" \
+  -H "Authorization: Bearer $INKEEP_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://your-app.example.com/api/webhooks/inkeep",
+    "events": ["feedback.created"]
+  }'
+```
+
+## Security considerations
+
+Anyone who can send a valid `POST` request to your endpoint could spoof an event. To prevent this, restrict access using one of these approaches:
+
+- **Shared secret header** – Include a custom header (e.g. `X-Inkeep-Secret`) when you register the destination. Verify the header value on every incoming request before processing the payload.
+- **IP allowlisting** – Restrict your endpoint to only accept requests from Inkeep's egress IP ranges.
+- **HTTPS only** – Always use `https://` URLs. Do not expose webhook endpoints over plain HTTP in production.
+
+<Warning>
+  Always validate that an incoming request is legitimate before acting on its payload. Without verification, your endpoint is vulnerable to spoofed events.
+</Warning>
+
+## Manage destinations
+
+Use the [Webhooks API](/api-reference/webhooks) to list, update, or delete destinations at any time:
+
+| Operation | Method | Path |
+|---|---|---|
+| List destinations | `GET` | `/manage/tenants/{tenantId}/projects/{projectId}/webhook-destinations` |
+| Create destination | `POST` | `/manage/tenants/{tenantId}/projects/{projectId}/webhook-destinations` |
+| Get destination | `GET` | `/manage/tenants/{tenantId}/projects/{projectId}/webhook-destinations/{id}` |
+| Update destination | `PATCH` | `/manage/tenants/{tenantId}/projects/{projectId}/webhook-destinations/{id}` |
+| Delete destination | `DELETE` | `/manage/tenants/{tenantId}/projects/{projectId}/webhook-destinations/{id}` |
+| Test destination | `POST` | `/manage/tenants/{tenantId}/projects/{projectId}/webhook-destinations/{id}/test` |
+
+<Note>
+  Outbound webhooks are distinct from [inbound webhook triggers](/typescript-sdk/triggers/webhooks), which allow external services to invoke your agents by sending an HTTP request to Inkeep. Outbound webhooks push events *from* Inkeep *to* your service.
+</Note>
