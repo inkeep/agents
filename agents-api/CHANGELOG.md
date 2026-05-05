@@ -1,5 +1,24 @@
 # @inkeep/agents-api
 
+## 0.71.0
+
+### Minor Changes
+
+- 2e2d3aa: Add outbound webhooks: configure per-project HTTP destinations and receive `conversation.created`, `conversation.updated`, and `feedback.created` events with full conversation context. Webhook payloads mirror the canonical `ConversationDetail` shape now also returned by `GET /conversations/{id}`, so receivers can reuse one TypeScript type for both.
+
+### Patch Changes
+
+- 648957c: Fix manage conversation attachment download: canonicalize legacy MIME aliases so text blobs still download as text/plain
+- e348e84: Return tenant role on apps list response
+- Updated dependencies [e348e84]
+- Updated dependencies [648957c]
+- Updated dependencies [2e2d3aa]
+- Updated dependencies [c3cbdbf]
+  - @inkeep/agents-core@0.71.0
+  - @inkeep/agents-work-apps@0.71.0
+  - @inkeep/agents-email@0.71.0
+  - @inkeep/agents-mcp@0.71.0
+
 ## 0.70.8
 
 ### Patch Changes

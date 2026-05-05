@@ -1,5 +1,17 @@
 # @inkeep/agents-core
 
+## 0.71.0
+
+### Minor Changes
+
+- 2e2d3aa: Add outbound webhooks: configure per-project HTTP destinations and receive `conversation.created`, `conversation.updated`, and `feedback.created` events with full conversation context. Webhook payloads mirror the canonical `ConversationDetail` shape now also returned by `GET /conversations/{id}`, so receivers can reuse one TypeScript type for both.
+
+### Patch Changes
+
+- e348e84: Return tenant role on apps list response
+- 648957c: Canonicalize attachment MIME types at ingress; alias types (e.g. text/x-golang, text/javascript) rewrite to canonical forms before validation
+- c3cbdbf: optimizations for querying traces
+
 ## 0.70.8
 
 ## 0.70.7

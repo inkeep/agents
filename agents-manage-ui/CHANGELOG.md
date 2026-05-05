@@ -1,5 +1,22 @@
 # @inkeep/agents-manage-ui
 
+## 0.71.0
+
+### Minor Changes
+
+- 2e2d3aa: Add outbound webhooks: configure per-project HTTP destinations and receive `conversation.created`, `conversation.updated`, and `feedback.created` events with full conversation context. Webhook payloads mirror the canonical `ConversationDetail` shape now also returned by `GET /conversations/{id}`, so receivers can reuse one TypeScript type for both.
+
+### Patch Changes
+
+- 0532008: Hide New App, Edit, and Delete buttons on the apps page for non-admins
+- c3cbdbf: optimizations for querying traces
+- e9092d0: Add Support Copilot install dialog with Chrome Web Store instructions, apps-list install button, post-create install flow, and member-count admin note
+- Updated dependencies [e348e84]
+- Updated dependencies [648957c]
+- Updated dependencies [2e2d3aa]
+- Updated dependencies [c3cbdbf]
+  - @inkeep/agents-core@0.71.0
+
 ## 0.70.8
 
 ### Patch Changes
