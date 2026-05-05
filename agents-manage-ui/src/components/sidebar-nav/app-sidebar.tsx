@@ -220,6 +220,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           icon: MessageSquare,
         },
         {
+          title: STATIC_LABELS['webhook-destinations'],
+          url: `/${tenantId}/projects/${projectId}/webhook-destinations`,
+          icon: Globe,
+        },
+        {
           title: 'Test Suites',
           url: `/${tenantId}/projects/${projectId}/datasets`,
           icon: Database,

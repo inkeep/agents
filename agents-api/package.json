@@ -50,9 +50,9 @@
   },
   "dependencies": {
     "@ai-sdk/google": "3.0.4",
-    "@better-auth/oauth-provider": "catalog:",
     "@aws-sdk/client-s3": "^3.985.0",
     "@aws-sdk/s3-request-presigner": "3.995.0",
+    "@better-auth/oauth-provider": "catalog:",
     "@hono/mcp": "^0.1.5",
     "@hono/swagger-ui": "^0.5.1",
     "@hono/zod-openapi": "^1.1.5",
@@ -74,6 +74,7 @@
     "@smithy/node-http-handler": "^4.4.0",
     "@vercel/blob": "^2.3.0",
     "@vercel/functions": "^1.4.0",
+    "@vercel/queue": "^0.1.6",
     "@vercel/sandbox": "^0.0.24",
     "@workflow/builders": "^4.0.1-beta.58",
     "@workflow/world-local": "^4.1.0-beta.40",

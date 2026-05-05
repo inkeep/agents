@@ -25,6 +25,7 @@ import { A2AClient } from '../a2a/client.js';
 import { executeTransfer } from '../a2a/transfer.js';
 import { extractTransferData, isTransferTask } from '../a2a/types.js';
 import { AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS } from '../constants/execution-limits';
+import { emitConversationWebhook } from '../services/WebhookDeliveryService';
 import { agentSessionManager } from '../session/AgentSession.js';
 import type { StreamHelper } from '../stream/stream-helpers.js';
 import { BufferingStreamHelper } from '../stream/stream-helpers.js';
@@ -581,6 +582,18 @@ export class ExecutionHandler {
                     taskId: task.id,
                   },
                 });
+
+                if (resolvedRef) {
+                  emitConversationWebhook({
+                    runDbClient,
+                    tenantId,
+                    projectId,
+                    agentId,
+                    conversationId,
+                    resolvedRef,
+                    eventType: 'conversation.updated',
+                  });
+                }
 
                 // Mark task as completed
                 const updateTaskStart = Date.now();

@@ -37,6 +37,7 @@ import subAgentToolRelationsRoutes from './subAgentToolRelations';
 import thirdPartyMCPServersRoutes from './thirdPartyMCPServers';
 import toolsRoutes from './tools';
 import triggersRoutes from './triggers';
+import webhookDestinationsRoutes from './webhookDestinations';
 
 const app = new OpenAPIHono();
 
@@ -103,6 +104,7 @@ app.route('/projects/:projectId/agent', agentFullRoutes);
 app.route('/projects/:projectId/mcp-catalog', mcpCatalogRoutes);
 app.route('/projects/:projectId/third-party-mcp-servers', thirdPartyMCPServersRoutes);
 app.route('/projects/:projectId/agents/:agentId/triggers', triggersRoutes);
+app.route('/projects/:projectId/webhook-destinations', webhookDestinationsRoutes);
 app.route('/projects/:projectId/agents/:agentId/scheduled-triggers', scheduledTriggersRoutes);
 app.route('/projects/:projectId/improvements', improvementsRoutes);
 

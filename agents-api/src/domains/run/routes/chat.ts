@@ -33,6 +33,7 @@ import {
   buildPersistedMessageContent,
   inlineExternalPdfUrlParts,
 } from '../services/blob-storage/file-upload-helpers';
+import { emitConversationWebhook } from '../services/WebhookDeliveryService';
 import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
 import { createSSEStreamHelper } from '../stream/stream-helpers';
 import type { Message } from '../types/chat';
@@ -263,6 +264,12 @@ app.openapi(chatCompletionsRoute, async (c) => {
         });
       }
 
+      const existingActiveAgent = await getActiveAgentForConversation(runDbClient)({
+        scopes: { tenantId, projectId },
+        conversationId,
+      });
+      const isNewConversation = !existingActiveAgent;
+
       const conversationMeta = buildConversationMetadata(executionContext, body.userProperties);
       await createOrGetConversation(runDbClient)({
         tenantId,
@@ -275,10 +282,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
         ...(conversationMeta ? { metadata: conversationMeta } : {}),
       });
 
-      const activeAgent = await getActiveAgentForConversation(runDbClient)({
-        scopes: { tenantId, projectId },
-        conversationId,
-      });
+      const activeAgent = existingActiveAgent;
       if (!activeAgent) {
         await setActiveAgentForConversation(runDbClient)({
           scopes: { tenantId, projectId },
@@ -399,6 +403,18 @@ app.openapi(chatCompletionsRoute, async (c) => {
         messageSpan.addEvent('user.message.stored', {
           'message.id': userMessageId,
           'database.operation': 'insert',
+        });
+      }
+
+      if (executionContext.resolvedRef) {
+        emitConversationWebhook({
+          runDbClient,
+          tenantId,
+          projectId,
+          agentId,
+          conversationId,
+          resolvedRef: executionContext.resolvedRef,
+          eventType: isNewConversation ? 'conversation.created' : 'conversation.updated',
         });
       }
 

@@ -1,5 +1,6 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  ConversationDetailSchema,
   commonGetErrorResponses,
   createApiError,
   formatMessagesForLLMContext,
@@ -19,6 +20,7 @@ import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
+import { formatConversationDetail } from '../../../utils/conversationFormatter';
 import { getBlobStorageProvider } from '../../run/services/blob-storage';
 import { resolveMessagesListBlobUris } from '../../run/services/blob-storage/resolve-blob-uris';
 import { buildMediaStorageKeyPrefix } from '../../run/services/blob-storage/storage-keys';
@@ -187,7 +189,7 @@ const ConversationQueryParamsSchema = z.object({
 const ConversationWithFormattedMessagesResponse = z
   .object({
     data: z.object({
-      messages: z.array(z.any()),
+      conversation: ConversationDetailSchema,
       formatted: z.object({
         llmContext: z.string(),
       }),
@@ -222,17 +224,18 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
     const { limit = 20, includeInternal = true } = c.req.valid('query');
+    const scopes = { tenantId, projectId };
 
-    const messages = await getConversationHistory(runDbClient)({
-      scopes: { tenantId, projectId },
-      conversationId: id,
-      options: {
-        limit,
-        includeInternal,
-      },
-    });
+    const [conversation, messages] = await Promise.all([
+      getConversation(runDbClient)({ scopes, conversationId: id }),
+      getConversationHistory(runDbClient)({
+        scopes,
+        conversationId: id,
+        options: { limit, includeInternal },
+      }),
+    ]);
 
-    if (!messages || messages.length === 0) {
+    if (!conversation || !messages || messages.length === 0) {
       throw createApiError({
         code: 'not_found',
         message: 'Conversation not found',
@@ -240,12 +243,11 @@ app.openapi(
     }
 
     const llmContext = formatMessagesForLLMContext(messages);
-
     const resolvedMessages = await resolveMessagesListBlobUris(messages);
 
     return c.json({
       data: {
-        messages: resolvedMessages,
+        conversation: formatConversationDetail(conversation, resolvedMessages),
         formatted: {
           llmContext,
         },
