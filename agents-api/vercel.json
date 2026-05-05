@@ -24,6 +24,11 @@
           "type": "queue/v1beta",
           "topic": "__wkf_step_*",
           "consumer": "default"
+        },
+        {
+          "type": "queue/v1beta",
+          "topic": "webhook-delivery",
+          "consumer": "default"
         }
       ]
     }

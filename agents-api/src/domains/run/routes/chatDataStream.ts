@@ -39,6 +39,7 @@ import {
   buildPersistedMessageContent,
   inlineExternalPdfUrlParts,
 } from '../services/blob-storage/file-upload-helpers';
+import { emitConversationWebhook } from '../services/WebhookDeliveryService';
 import { pendingToolApprovalManager } from '../session/PendingToolApprovalManager';
 import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
 import { streamBufferRegistry } from '../stream/stream-buffer-registry';
@@ -434,6 +435,18 @@ app.openapi(chatDataStreamRoute, async (c) => {
         messageSpan.addEvent('user.message.stored', {
           'message.id': userMessageId,
           'database.operation': 'insert',
+        });
+      }
+
+      if (executionContext.resolvedRef) {
+        emitConversationWebhook({
+          runDbClient,
+          tenantId,
+          projectId,
+          agentId,
+          conversationId,
+          resolvedRef: executionContext.resolvedRef,
+          eventType: activeAgent ? 'conversation.updated' : 'conversation.created',
         });
       }
 

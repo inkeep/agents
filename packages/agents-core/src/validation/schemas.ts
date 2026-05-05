@@ -36,6 +36,7 @@ import {
   subAgentToolRelations,
   tools,
   triggers,
+  webhookDestinations,
 } from '../db/manage/manage-schema';
 // Runtime DB imports (Postgres - not versioned)
 import {
@@ -918,6 +919,133 @@ export const TriggerInvocationApiUpdateSchema = createAgentScopedApiUpdateSchema
   TriggerInvocationUpdateSchema
 ).openapi('TriggerInvocationUpdate');
 
+// Webhook Destination Schemas
+
+export const WebhookDestinationEventTypeEnum = z
+  .enum(['conversation.created', 'conversation.updated', 'feedback.created'])
+  .describe('Event type that triggers webhook delivery');
+
+export const WebhookEventEnvelopeSchema = z
+  .object({
+    type: z.string().describe('Event type (e.g. conversation.created, conversation.updated, test)'),
+    timestamp: z.string().datetime().describe('ISO 8601 timestamp of the event'),
+    tenantId: z.string().describe('Tenant ID'),
+    projectId: z.string().describe('Project ID'),
+    agentId: z.string().describe('Agent ID'),
+    data: z.record(z.string(), z.unknown()).describe('Event-specific payload data'),
+  })
+  .openapi('WebhookEventEnvelope');
+
+export const WebhookMessageSchema = z
+  .object({
+    id: z.string().describe('Message ID'),
+    role: z.enum(['user', 'assistant']).describe('Message author role'),
+    content: z.string().nullable().describe('Message content as a flattened string'),
+    createdAt: z.string().datetime().describe('ISO 8601 timestamp when the message was created'),
+  })
+  .openapi('WebhookMessage');
+
+export const ConversationDetailSchema = z
+  .object({
+    id: z.string().describe('Conversation ID'),
+    agentId: z.string().nullable().describe('Agent ID associated with the conversation'),
+    title: z.string().nullable().describe('Conversation title (nullable, set after first turn)'),
+    userProperties: z
+      .record(z.string(), z.unknown())
+      .nullable()
+      .describe('User attribution properties supplied at chat init'),
+    properties: z
+      .record(z.string(), z.unknown())
+      .nullable()
+      .describe(
+        'Conversation-level custom properties (reserved; populated by future chat-init field)'
+      ),
+    createdAt: z
+      .string()
+      .datetime()
+      .describe('ISO 8601 timestamp when the conversation was created'),
+    updatedAt: z
+      .string()
+      .datetime()
+      .describe('ISO 8601 timestamp when the conversation was last updated'),
+    messages: z
+      .array(WebhookMessageSchema)
+      .describe('User-facing messages in the conversation, capped at 200 most recent'),
+  })
+  .openapi('ConversationDetail');
+
+export const WebhookConversationDataSchema = z
+  .object({
+    conversation: ConversationDetailSchema,
+  })
+  .openapi('WebhookConversationData');
+
+export const WebhookDestinationSelectSchema = registerFieldSchemas(
+  createSelectSchema(webhookDestinations).extend({
+    eventTypes: z.array(WebhookDestinationEventTypeEnum),
+  })
+);
+
+export const WebhookDestinationInsertSchema = createInsertSchema(webhookDestinations, {
+  id: () => ResourceIdSchema,
+  name: () => z.string().trim().nonempty().describe('Webhook destination name'),
+  description: () => z.string().optional().describe('Webhook destination description'),
+  enabled: () => z.boolean().default(true).describe('Whether the webhook destination is enabled'),
+  url: () => z.string().url().describe('Destination URL to POST events to'),
+  eventTypes: () =>
+    z.array(WebhookDestinationEventTypeEnum).min(1).describe('Event types to subscribe to'),
+});
+
+export const WebhookDestinationUpdateSchema = WebhookDestinationInsertSchema.extend({
+  enabled: z.boolean().optional().describe('Whether the webhook destination is enabled'),
+}).partial();
+
+export const WebhookDestinationApiSelectSchema = createApiSchema(WebhookDestinationSelectSchema)
+  .extend({
+    agentIds: z
+      .array(z.string())
+      .optional()
+      .describe(
+        'Agent IDs this webhook is scoped to. Empty array means all agents. Omitted on list responses.'
+      ),
+  })
+  .openapi('WebhookDestination');
+export const WebhookDestinationApiInsertSchema = createApiInsertSchema(
+  WebhookDestinationInsertSchema
+)
+  .extend({
+    id: ResourceIdSchema.optional(),
+    agentIds: z
+      .array(z.string())
+      .optional()
+      .describe('Agent IDs to scope this webhook to. Omit or empty for all agents.'),
+  })
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+  })
+  .openapi('WebhookDestinationCreate');
+export const WebhookDestinationApiUpdateSchema = createApiUpdateSchema(
+  WebhookDestinationUpdateSchema
+)
+  .extend({
+    agentIds: z
+      .array(z.string())
+      .optional()
+      .describe('Agent IDs to scope this webhook to. Empty array for all agents.'),
+  })
+  .openapi('WebhookDestinationUpdate');
+
+export const WebhookDestinationResponse = z
+  .object({ data: WebhookDestinationApiSelectSchema })
+  .openapi('WebhookDestinationResponse');
+export const WebhookDestinationListResponse = z
+  .object({
+    data: z.array(WebhookDestinationApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('WebhookDestinationListResponse');
+
 // Scheduled Trigger Schemas
 
 export const CronExpressionSchema = z
@@ -1303,6 +1431,13 @@ export const FeedbackApiInsertSchema = createApiInsertSchema(FeedbackInsertSchem
 export const FeedbackApiUpdateSchema = createApiUpdateSchema(FeedbackUpdateSchema)
   .omit({ conversationId: true, messageId: true, id: true })
   .openapi('FeedbackUpdate');
+
+export const WebhookFeedbackDataSchema = z
+  .object({
+    feedback: FeedbackApiSelectSchema,
+    conversation: ConversationDetailSchema,
+  })
+  .openapi('WebhookFeedbackData');
 
 export const ContextCacheSelectSchema = createSelectSchema(contextCache).extend({
   ref: ResolvedRefSchema.nullable().optional(),

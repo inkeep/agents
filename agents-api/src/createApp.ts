@@ -15,6 +15,7 @@ import { workflowRoutes } from './domains/evals/workflow/routes';
 import { manageRoutes } from './domains/manage';
 import mcpRoutes from './domains/mcp/routes/mcp';
 import { runRoutes } from './domains/run';
+import { WEBHOOK_DELIVERY_TOPIC } from './domains/run/services/webhookQueueDispatcher';
 import { workAppsRoutes } from './domains/work-apps';
 import { env } from './env';
 import { flushBatchProcessor } from './instrumentation';
@@ -44,6 +45,7 @@ import { setupOpenAPIRoutes } from './openapi';
 import { cleanupStreamChunksHandler } from './routes/cleanupStreamChunks';
 import { healthChecksHandler } from './routes/healthChecks';
 import { restartWorkflowHandler } from './routes/restartScheduler';
+import { POST as handleWebhookDeliveryQueue } from './routes/webhookDeliveryConsumer';
 import type { AppConfig, AppVariables } from './types';
 
 const logger = getLogger('agents-api');
@@ -330,15 +332,18 @@ function createAgentsHono(config: AppConfig) {
   app.route('/.well-known', workflowRoutes);
 
   // Handle /index POST - Vercel Queue delivers CloudEvents here
-  // Forward to the workflow flow handler - the dispatchFlowOrStep in routes.ts
-  // handles the actual flow/step routing based on x-vqs-queue-name header
+  // Routes webhook-delivery topic to the queue consumer, everything else to the
+  // workflow flow handler
   app.post('/index', async (c) => {
-    const originalUrl = new URL(c.req.url);
+    const queueName = c.req.header('x-vqs-queue-name');
+
+    if (queueName === WEBHOOK_DELIVERY_TOPIC) {
+      return handleWebhookDeliveryQueue(c.req.raw);
+    }
+
     const bodyBuffer = await c.req.arrayBuffer();
-
-    // Always forward to /flow - the dispatcher in routes.ts handles flow/step routing
+    const originalUrl = new URL(c.req.url);
     const targetUrl = new URL('/.well-known/workflow/v1/flow', originalUrl.origin);
-
     const forwardedRequest = new Request(targetUrl.toString(), {
       method: 'POST',
       headers: new Headers(c.req.raw.headers),

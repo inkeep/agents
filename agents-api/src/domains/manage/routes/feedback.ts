@@ -26,6 +26,7 @@ import {
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
+import { emitFeedbackWebhook } from '../../../domains/run/services/WebhookDeliveryService';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 
@@ -191,6 +192,13 @@ app.openapi(
       id: body.id || generateId(),
       tenantId,
       projectId,
+    });
+
+    emitFeedbackWebhook({
+      runDbClient,
+      tenantId,
+      projectId,
+      feedback: created,
     });
 
     return c.json({ data: created }, 201);

@@ -198,6 +198,9 @@ importers:
       '@vercel/functions':
         specifier: ^1.4.0
         version: 1.6.0(@aws-sdk/credential-provider-web-identity@3.972.13)
+      '@vercel/queue':
+        specifier: ^0.1.6
+        version: 0.1.6
       '@vercel/sandbox':
         specifier: ^0.0.24
         version: 0.0.24
@@ -9162,6 +9165,10 @@ packages:
 
   '@vercel/queue@0.1.4':
     resolution: {integrity: sha512-wo+jCycmCX078vQSbkX+RcLvySONDCK0f9aQp5UMKQD1+B+xKt3YVbIYbZukvoHQpbm5nnk6If+ADSeK/PmCgQ==}
+    engines: {node: '>=20.0.0'}
+
+  '@vercel/queue@0.1.6':
+    resolution: {integrity: sha512-FUQ0ySYNm31ZO709lg6a2NPamzH5LpfU9QZwZVduxnOH0N/aNp+8rjKmYLDWQpdA/S+ihNexJV+NhbV3GFaumQ==}
     engines: {node: '>=20.0.0'}
 
   '@vercel/sandbox@0.0.24':
@@ -27199,6 +27206,13 @@ snapshots:
       mixpart: 0.0.5
 
   '@vercel/queue@0.1.4':
+    dependencies:
+      '@vercel/oidc': 3.2.0
+      minimatch: 10.2.4
+      mixpart: 0.0.5
+      picocolors: 1.1.1
+
+  '@vercel/queue@0.1.6':
     dependencies:
       '@vercel/oidc': 3.2.0
       minimatch: 10.2.4

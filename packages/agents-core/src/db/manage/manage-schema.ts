@@ -168,6 +168,84 @@ export const triggers = pgTable(
   ]
 );
 
+export const webhookDestinations = pgTable(
+  'webhook_destinations',
+  {
+    ...projectScoped,
+    ...uiProperties,
+    enabled: boolean('enabled').notNull().default(true),
+    url: text('url').notNull(),
+    eventTypes: jsonb('event_types').$type<string[]>().notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'webhook_destinations_project_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+export const webhookDestinationAgents = pgTable(
+  'webhook_destination_agents',
+  {
+    ...projectScoped,
+    webhookDestinationId: varchar('webhook_destination_id', { length: 256 }).notNull(),
+    agentId: varchar('agent_id', { length: 256 }).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.webhookDestinationId],
+      foreignColumns: [
+        webhookDestinations.tenantId,
+        webhookDestinations.projectId,
+        webhookDestinations.id,
+      ],
+      name: 'webhook_destination_agents_destination_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'webhook_destination_agents_agent_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+export const webhookDestinationsRelations = relations(webhookDestinations, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [webhookDestinations.tenantId, webhookDestinations.projectId],
+    references: [projects.tenantId, projects.id],
+  }),
+  webhookDestinationAgents: many(webhookDestinationAgents),
+}));
+
+export const webhookDestinationAgentsRelations = relations(webhookDestinationAgents, ({ one }) => ({
+  webhookDestination: one(webhookDestinations, {
+    fields: [
+      webhookDestinationAgents.tenantId,
+      webhookDestinationAgents.projectId,
+      webhookDestinationAgents.webhookDestinationId,
+    ],
+    references: [
+      webhookDestinations.tenantId,
+      webhookDestinations.projectId,
+      webhookDestinations.id,
+    ],
+  }),
+  agent: one(agents, {
+    fields: [
+      webhookDestinationAgents.tenantId,
+      webhookDestinationAgents.projectId,
+      webhookDestinationAgents.agentId,
+    ],
+    references: [agents.tenantId, agents.projectId, agents.id],
+  }),
+}));
+
 export const triggerUsers = pgTable(
   'trigger_users',
   {

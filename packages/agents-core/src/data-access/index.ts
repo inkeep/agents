@@ -26,6 +26,7 @@ export * from './manage/subAgents';
 export * from './manage/subAgentTeamAgentRelations';
 export * from './manage/tools';
 export * from './manage/triggers';
+export * from './manage/webhookDestinations';
 
 // Runtime data access (Postgres - not versioned)
 export * from './runtime/apiKeys';

@@ -13,6 +13,7 @@ import {
 import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
+import { emitFeedbackWebhook } from '../services/WebhookDeliveryService';
 
 const logger = getLogger('run-feedback');
 
@@ -94,6 +95,14 @@ app.openapi(
       { tenantId, projectId, endUserId, feedbackId: created.id },
       'End-user submitted feedback'
     );
+
+    emitFeedbackWebhook({
+      runDbClient,
+      tenantId,
+      projectId,
+      agentId: conversation.agentId ?? undefined,
+      feedback: created,
+    });
 
     return c.json({ data: created }, 201);
   }

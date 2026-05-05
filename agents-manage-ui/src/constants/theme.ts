@@ -41,6 +41,7 @@ export const STATIC_LABELS = Object.freeze({
   datasets: 'Test Suites',
   runs: 'Runs',
   triggers: 'Triggers',
+  'webhook-destinations': 'Outbound Webhooks',
   webhooks: 'Webhooks',
   scheduled: 'Scheduled',
   'scheduled-triggers': 'Scheduled Triggers',
