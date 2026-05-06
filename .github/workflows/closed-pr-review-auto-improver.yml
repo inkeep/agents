@@ -66,19 +66,19 @@ jobs:
         run: |
           set -eo pipefail
           PR_NUMBER=${{ inputs.pr_number || github.event.pull_request.number }}
-          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
 
           # Fetch PR metadata via API (works for both auto and manual triggers)
           PR_DATA=$(gh pr view $PR_NUMBER --json title,author,baseRefName,mergedBy,body)
-          echo "title=$(echo "$PR_DATA" | jq -r '.title')" >> $GITHUB_OUTPUT
-          echo "author=$(echo "$PR_DATA" | jq -r '.author.login')" >> $GITHUB_OUTPUT
-          echo "base=$(echo "$PR_DATA" | jq -r '.baseRefName')" >> $GITHUB_OUTPUT
-          echo "merged_by=$(echo "$PR_DATA" | jq -r '.mergedBy.login')" >> $GITHUB_OUTPUT
+          echo "title=$(echo "$PR_DATA" | jq -r '.title')" >> "$GITHUB_OUTPUT"
+          echo "author=$(echo "$PR_DATA" | jq -r '.author.login')" >> "$GITHUB_OUTPUT"
+          echo "base=$(echo "$PR_DATA" | jq -r '.baseRefName')" >> "$GITHUB_OUTPUT"
+          echo "merged_by=$(echo "$PR_DATA" | jq -r '.mergedBy.login')" >> "$GITHUB_OUTPUT"
 
           # Store body with HEREDOC (unique delimiter to avoid collision)
-          echo "body<<__BODY_DELIM_7f3a9b2c__" >> $GITHUB_OUTPUT
-          echo "$PR_DATA" | jq -r '.body' >> $GITHUB_OUTPUT
-          echo "__BODY_DELIM_7f3a9b2c__" >> $GITHUB_OUTPUT
+          echo "body<<__BODY_DELIM_7f3a9b2c__" >> "$GITHUB_OUTPUT"
+          echo "$PR_DATA" | jq -r '.body' >> "$GITHUB_OUTPUT"
+          echo "__BODY_DELIM_7f3a9b2c__" >> "$GITHUB_OUTPUT"
 
       - name: Extract Comments
         id: extract
@@ -179,21 +179,21 @@ jobs:
           COMMENT_COUNT=$(echo "$HUMAN_COMMENTS" | jq 'length')
 
           if [ "$COMMENT_COUNT" -gt 0 ]; then
-            echo "has_human_comments=true" >> $GITHUB_OUTPUT
-            echo "comment_count=$COMMENT_COUNT" >> $GITHUB_OUTPUT
+            echo "has_human_comments=true" >> "$GITHUB_OUTPUT"
+            echo "comment_count=$COMMENT_COUNT" >> "$GITHUB_OUTPUT"
 
             # Store in outputs using HEREDOC (unique delimiters to avoid collision)
-            echo "human_comments<<__HUMAN_COMMENTS_DELIM_8e4b1d3f__" >> $GITHUB_OUTPUT
-            echo "$HUMAN_COMMENTS" >> $GITHUB_OUTPUT
-            echo "__HUMAN_COMMENTS_DELIM_8e4b1d3f__" >> $GITHUB_OUTPUT
+            echo "human_comments<<__HUMAN_COMMENTS_DELIM_8e4b1d3f__" >> "$GITHUB_OUTPUT"
+            echo "$HUMAN_COMMENTS" >> "$GITHUB_OUTPUT"
+            echo "__HUMAN_COMMENTS_DELIM_8e4b1d3f__" >> "$GITHUB_OUTPUT"
 
-            echo "bot_comments<<__BOT_COMMENTS_DELIM_9f5c2e4a__" >> $GITHUB_OUTPUT
-            echo "$BOT_COMMENTS" >> $GITHUB_OUTPUT
-            echo "__BOT_COMMENTS_DELIM_9f5c2e4a__" >> $GITHUB_OUTPUT
+            echo "bot_comments<<__BOT_COMMENTS_DELIM_9f5c2e4a__" >> "$GITHUB_OUTPUT"
+            echo "$BOT_COMMENTS" >> "$GITHUB_OUTPUT"
+            echo "__BOT_COMMENTS_DELIM_9f5c2e4a__" >> "$GITHUB_OUTPUT"
 
             echo "Extracted $COMMENT_COUNT substantive human comments"
           else
-            echo "has_human_comments=false" >> $GITHUB_OUTPUT
+            echo "has_human_comments=false" >> "$GITHUB_OUTPUT"
             echo "No substantive human comments found - skipping analysis"
           fi
 
@@ -210,15 +210,15 @@ jobs:
           DIFF_SIZE=${#DIFF}
           MAX_SIZE=200000
 
-          echo "diff_content<<__DIFF_DELIM_a6d3f8c1__" >> $GITHUB_OUTPUT
-          if [ $DIFF_SIZE -gt $MAX_SIZE ]; then
-            echo "${DIFF:0:$MAX_SIZE}" >> $GITHUB_OUTPUT
-            echo "" >> $GITHUB_OUTPUT
-            echo "[TRUNCATED - diff exceeded ${MAX_SIZE} bytes]" >> $GITHUB_OUTPUT
+          echo "diff_content<<__DIFF_DELIM_a6d3f8c1__" >> "$GITHUB_OUTPUT"
+          if [ "$DIFF_SIZE" -gt "$MAX_SIZE" ]; then
+            echo "${DIFF:0:$MAX_SIZE}" >> "$GITHUB_OUTPUT"
+            echo "" >> "$GITHUB_OUTPUT"
+            echo "[TRUNCATED - diff exceeded ${MAX_SIZE} bytes]" >> "$GITHUB_OUTPUT"
           else
-            echo "$DIFF" >> $GITHUB_OUTPUT
+            echo "$DIFF" >> "$GITHUB_OUTPUT"
           fi
-          echo "__DIFF_DELIM_a6d3f8c1__" >> $GITHUB_OUTPUT
+          echo "__DIFF_DELIM_a6d3f8c1__" >> "$GITHUB_OUTPUT"
 
       - name: Run Meta-Analyzer Agent
         if: steps.extract.outputs.has_human_comments == 'true'
