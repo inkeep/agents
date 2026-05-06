@@ -63,25 +63,25 @@ jobs:
           LABELS=$(echo "$PR_JSON" | jq -r '[.labels[].name] | join(", ")')
           DRAFT=$(echo "$PR_JSON" | jq -r '.draft')
 
-          echo "number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
           {
             echo "title<<EOF"
             echo "$TITLE"
             echo "EOF"
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
           {
             echo "body<<EOF"
             echo "$BODY"
             echo "EOF"
-          } >> $GITHUB_OUTPUT
-          echo "author_login=$AUTHOR_LOGIN" >> $GITHUB_OUTPUT
-          echo "base_ref=$BASE_REF" >> $GITHUB_OUTPUT
-          echo "head_sha=$HEAD_SHA" >> $GITHUB_OUTPUT
-          echo "additions=$ADDITIONS" >> $GITHUB_OUTPUT
-          echo "deletions=$DELETIONS" >> $GITHUB_OUTPUT
-          echo "changed_files_count=$CHANGED_FILES_COUNT" >> $GITHUB_OUTPUT
-          echo "labels=$LABELS" >> $GITHUB_OUTPUT
-          echo "draft=$DRAFT" >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
+          echo "author_login=$AUTHOR_LOGIN" >> "$GITHUB_OUTPUT"
+          echo "base_ref=$BASE_REF" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          echo "additions=$ADDITIONS" >> "$GITHUB_OUTPUT"
+          echo "deletions=$DELETIONS" >> "$GITHUB_OUTPUT"
+          echo "changed_files_count=$CHANGED_FILES_COUNT" >> "$GITHUB_OUTPUT"
+          echo "labels=$LABELS" >> "$GITHUB_OUTPUT"
+          echo "draft=$DRAFT" >> "$GITHUB_OUTPUT"
 
           # Determine trigger command (issue_comment only; pull_request defaults to auto)
           # IMPORTANT: read comment body from event payload via jq — do NOT inline
@@ -91,12 +91,12 @@ jobs:
             # Check --full-review BEFORE --review (substring overlap).
             # We use -- prefix (not /) because claude-code-action reserves /xxx for skill invocations.
             if printf '%s' "$COMMENT_BODY" | grep -Eq '(^|[[:space:]])--full-review([[:space:]]|$)'; then
-              echo "trigger_command=full-review" >> $GITHUB_OUTPUT
+              echo "trigger_command=full-review" >> "$GITHUB_OUTPUT"
             else
-              echo "trigger_command=review" >> $GITHUB_OUTPUT
+              echo "trigger_command=review" >> "$GITHUB_OUTPUT"
             fi
           else
-            echo "trigger_command=auto" >> $GITHUB_OUTPUT
+            echo "trigger_command=auto" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout
@@ -134,9 +134,9 @@ jobs:
 
           # Get changed files list (excluding noisy files)
           FILES=$(git diff --name-only "$BASE"...HEAD -- . "${EXCLUDE_PATTERNS[@]}")
-          echo "changed_files<<EOF" >> $GITHUB_OUTPUT
-          echo "$FILES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "changed_files<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$FILES" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
 
           # Compute filtered size metrics from numstat (respects EXCLUDE_PATTERNS,
           # unlike the raw GitHub API additions/deletions which include lockfiles etc.)
@@ -148,9 +148,9 @@ jobs:
           else
             FILTERED_FILE_COUNT=0
           fi
-          echo "filtered_additions=$FILTERED_ADDITIONS" >> $GITHUB_OUTPUT
-          echo "filtered_deletions=$FILTERED_DELETIONS" >> $GITHUB_OUTPUT
-          echo "filtered_file_count=$FILTERED_FILE_COUNT" >> $GITHUB_OUTPUT
+          echo "filtered_additions=$FILTERED_ADDITIONS" >> "$GITHUB_OUTPUT"
+          echo "filtered_deletions=$FILTERED_DELETIONS" >> "$GITHUB_OUTPUT"
+          echo "filtered_file_count=$FILTERED_FILE_COUNT" >> "$GITHUB_OUTPUT"
 
           # Per-file diff stats (compact size overview)
           DIFF_STATS=$(git diff --stat "$BASE"...HEAD -- . "${EXCLUDE_PATTERNS[@]}")
@@ -158,7 +158,7 @@ jobs:
             echo "diff_stats<<EOF"
             echo "$DIFF_STATS"
             echo "EOF"
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
 
           # Commit log (chronological — oldest first)
           COMMIT_LOG=$(git log --oneline --reverse "$BASE"...HEAD)
@@ -167,8 +167,8 @@ jobs:
             echo "commit_log<<EOF"
             echo "$COMMIT_LOG"
             echo "EOF"
-          } >> $GITHUB_OUTPUT
-          echo "commit_count=$COMMIT_COUNT" >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
+          echo "commit_count=$COMMIT_COUNT" >> "$GITHUB_OUTPUT"
 
           # ── Adaptive diff strategy ──────────────────────────────────────────
           # Diffs within INLINE_THRESHOLD are embedded directly in the pr-context
@@ -185,22 +185,22 @@ jobs:
           INLINE_THRESHOLD=100000  # ~100KB ≈ 25K tokens — safe for all reviewer budgets
           DIFF_DELIM="DIFF_DELIM_${RANDOM}_${RANDOM}_$(date +%s%N)"
 
-          if [ $DIFF_SIZE -le $INLINE_THRESHOLD ]; then
+          if [ "$DIFF_SIZE" -le "$INLINE_THRESHOLD" ]; then
             # ── Inline mode: embed full diff in pr-context skill ──
-            echo "diff_mode=inline" >> $GITHUB_OUTPUT
+            echo "diff_mode=inline" >> "$GITHUB_OUTPUT"
             {
               echo "diff_content<<$DIFF_DELIM"
               echo '```diff'
               printf '%s\n' "$DIFF"
               echo '```'
               echo "$DIFF_DELIM"
-            } >> $GITHUB_OUTPUT
-            echo "truncated=false" >> $GITHUB_OUTPUT
+            } >> "$GITHUB_OUTPUT"
+            echo "truncated=false" >> "$GITHUB_OUTPUT"
           else
             # ── Summary mode: diff too large to inline ──
-            echo "diff_mode=summary" >> $GITHUB_OUTPUT
-            echo "diff_size_bytes=$DIFF_SIZE" >> $GITHUB_OUTPUT
-            echo "truncated=true" >> $GITHUB_OUTPUT
+            echo "diff_mode=summary" >> "$GITHUB_OUTPUT"
+            echo "diff_size_bytes=$DIFF_SIZE" >> "$GITHUB_OUTPUT"
+            echo "truncated=true" >> "$GITHUB_OUTPUT"
 
             # Write full diff to a known file for on-demand reading
             mkdir -p .claude/pr-diff
@@ -221,7 +221,7 @@ jobs:
               echo ">"
               echo "> **Prioritize** using the Changed Files diff stats above. Focus on files most relevant to your review domain."
               echo "$DIFF_DELIM"
-            } >> $GITHUB_OUTPUT
+            } >> "$GITHUB_OUTPUT"
           fi
 
       - name: Get Review Context
@@ -290,7 +290,7 @@ jobs:
 
           # ── Review decision ──
           REVIEW_DECISION=$(echo "$RESULT" | jq -r '.data.repository.pullRequest.reviewDecision // "NONE"')
-          echo "review_decision=$REVIEW_DECISION" >> $GITHUB_OUTPUT
+          echo "review_decision=$REVIEW_DECISION" >> "$GITHUB_OUTPUT"
 
           # ── Linked issues ──
           LINKED_ISSUES=$(echo "$RESULT" | jq -r '
@@ -311,7 +311,7 @@ jobs:
             echo "linked_issues<<ENDCTX"
             echo "$LINKED_ISSUES"
             echo "ENDCTX"
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
 
           # ── Automated review comments (claude[bot]) — full threads, latest-first ──
           CLAUDE_COMMENTS=$(echo "$THREADS" | jq -r '
@@ -345,7 +345,7 @@ jobs:
             echo "claude_prior_comments<<ENDCTX"
             echo "$CLAUDE_COMMENTS"
             echo "ENDCTX"
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
 
           # ── Human review comments — full threads, all statuses, latest-first ──
           HUMAN_THREADS=$(echo "$THREADS" | jq -r '
@@ -375,7 +375,7 @@ jobs:
             echo "human_threads<<ENDCTX"
             echo "$HUMAN_THREADS"
             echo "ENDCTX"
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
 
           # ── Previous review submissions — latest-first ──
           PREV_REVIEWS=$(echo "$REVIEWS" | jq -r '
@@ -399,7 +399,7 @@ jobs:
             echo "previous_reviews<<ENDCTX"
             echo "$PREV_REVIEWS"
             echo "ENDCTX"
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
 
           # ── Changes since last Claude review ──
           # Uses commit { oid } from the GraphQL reviews query to find the exact SHA
@@ -419,11 +419,11 @@ jobs:
           if [ -n "$LAST_REVIEW_SHA" ] && [ "$LAST_REVIEW_SHA" != "null" ] && git cat-file -e "$LAST_REVIEW_SHA" 2>/dev/null; then
             SINCE_REVIEW_COUNT=$(git rev-list --count "$LAST_REVIEW_SHA".."$PR_HEAD")
             if [ "$SINCE_REVIEW_COUNT" = "0" ]; then
-              echo "is_re_review=false" >> $GITHUB_OUTPUT
-              echo "since_review_files=" >> $GITHUB_OUTPUT
+              echo "is_re_review=false" >> "$GITHUB_OUTPUT"
+              echo "since_review_files=" >> "$GITHUB_OUTPUT"
               SINCE_REVIEW_SECTION="_Re-review — no new commits since last automated review (commit \`${LAST_REVIEW_SHA:0:12}\`)._"
             else
-              echo "is_re_review=true" >> $GITHUB_OUTPUT
+              echo "is_re_review=true" >> "$GITHUB_OUTPUT"
               DIFF_EXCLUDE=(
                 ':!pnpm-lock.yaml'
                 ':!package-lock.json'
@@ -440,7 +440,7 @@ jobs:
                 echo "since_review_files<<ENDFILES"
                 echo "$SINCE_REVIEW_FILES"
                 echo "ENDFILES"
-              } >> $GITHUB_OUTPUT
+              } >> "$GITHUB_OUTPUT"
 
               # Include the actual delta diff if it's small enough to be useful
               # without blowing context budgets (loaded by all reviewers via pr-context)
@@ -448,7 +448,7 @@ jobs:
               SINCE_REVIEW_DIFF_SIZE=${#SINCE_REVIEW_DIFF}
               SINCE_REVIEW_INLINE_THRESHOLD=30000  # ~30KB ≈ 7.5K tokens
 
-              if [ $SINCE_REVIEW_DIFF_SIZE -le $SINCE_REVIEW_INLINE_THRESHOLD ]; then
+              if [ "$SINCE_REVIEW_DIFF_SIZE" -le "$SINCE_REVIEW_INLINE_THRESHOLD" ]; then
                 SINCE_REVIEW_DIFF_SECTION="### Diff since last review
           \`\`\`diff
           $SINCE_REVIEW_DIFF
@@ -484,8 +484,8 @@ jobs:
           $SINCE_REVIEW_DIFF_SECTION"
             fi
           else
-            echo "is_re_review=false" >> $GITHUB_OUTPUT
-            echo "since_review_files=" >> $GITHUB_OUTPUT
+            echo "is_re_review=false" >> "$GITHUB_OUTPUT"
+            echo "since_review_files=" >> "$GITHUB_OUTPUT"
             SINCE_REVIEW_SECTION="_First automated review — no prior review to compare against._"
           fi
 
@@ -493,7 +493,7 @@ jobs:
             echo "since_review_section<<ENDREVIEW"
             echo "$SINCE_REVIEW_SECTION"
             echo "ENDREVIEW"
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
 
           # ── Compute review_scope ──────────────────────────────────────────
           # review_scope is the single source of truth for delta vs full scoping.
@@ -501,11 +501,11 @@ jobs:
           #   delta = scope to changes since last automated review
           TRIGGER='${{ steps.pr.outputs.trigger_command }}'
           if [ "$TRIGGER" = "full-review" ]; then
-            echo "review_scope=full" >> $GITHUB_OUTPUT
+            echo "review_scope=full" >> "$GITHUB_OUTPUT"
           elif [ "$SINCE_REVIEW_COUNT" -gt 0 ]; then
-            echo "review_scope=delta" >> $GITHUB_OUTPUT
+            echo "review_scope=delta" >> "$GITHUB_OUTPUT"
           else
-            echo "review_scope=full" >> $GITHUB_OUTPUT
+            echo "review_scope=full" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Get PR Comments
@@ -554,7 +554,7 @@ jobs:
             echo "pr_comments<<ENDCTX"
             echo "$PR_DISCUSSION"
             echo "ENDCTX"
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
 
       - name: Clean up stale Claude comments
         if: steps.pr.outputs.draft != 'true'

@@ -39,9 +39,9 @@ jobs:
             --repo ${{ github.repository }} --json state --jq '.state')
           if [ "$PR_STATE" != "OPEN" ]; then
             echo "PR is $PR_STATE — skipping auto-format (branch likely deleted)"
-            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "skip=true" >> "$GITHUB_OUTPUT"
           else
-            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout code
@@ -87,7 +87,7 @@ jobs:
       - name: Get pnpm store directory
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
         shell: bash
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_ENV"
 
       - name: Prepare directories
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
@@ -118,9 +118,9 @@ jobs:
         id: changes
         run: |
           if [ -n "$(git status --porcelain)" ]; then
-            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
           else
-            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Commit and push formatting fixes
