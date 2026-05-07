@@ -23,11 +23,37 @@ jobs:
   pullfrog:
     runs-on: ubuntu-latest
     steps:
+      # Skip when the targeted PR has the `ai-reviewed-locally` label.
+      # The Pullfrog GitHub App dispatches this workflow with `inputs.name`
+      # of the form "<Action> #<PR_NUMBER> [<id>]" (e.g., "Review #615 [5hgs7]"),
+      # which is the only place the PR number is recoverable from a
+      # workflow_dispatch payload. To override per-run, remove the label.
+      - name: Check ai-reviewed-locally label
+        id: skip-check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_NUM=$(printf '%s' "${{ inputs.name }}" | grep -oE '#[0-9]+' | head -1 | tr -d '#')
+          if [ -z "$PR_NUM" ]; then
+            echo "No PR number in run name '${{ inputs.name }}' — running normally."
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          LABELS=$(gh api "repos/${{ github.repository }}/issues/$PR_NUM" --jq '[.labels[].name] | join(",")' 2>/dev/null || echo "")
+          if printf ',%s,' "$LABELS" | grep -q ',ai-reviewed-locally,'; then
+            echo "PR #$PR_NUM has ai-reviewed-locally label — skipping pullfrog."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "PR #$PR_NUM not labeled with ai-reviewed-locally — running normally."
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Checkout code
+        if: steps.skip-check.outputs.skip != 'true'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 1
       - name: Run agent
+        if: steps.skip-check.outputs.skip != 'true'
         uses: pullfrog/pullfrog@e6d34ee01b3eec59a6c45fcd71f27c786f109ff8 # v0.0.182
         with:
           prompt: ${{ inputs.prompt }}
