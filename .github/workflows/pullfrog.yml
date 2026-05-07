@@ -54,7 +54,7 @@ jobs:
           fetch-depth: 1
       - name: Run agent
         if: steps.skip-check.outputs.skip != 'true'
-        uses: pullfrog/pullfrog@e6d34ee01b3eec59a6c45fcd71f27c786f109ff8 # v0.0.182
+        uses: pullfrog/pullfrog@560e27bda528739fcfb931a28b48dee81193bcce # v0.0.204
         with:
           prompt: ${{ inputs.prompt }}
         env:
