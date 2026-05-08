@@ -175,7 +175,9 @@ describe('WebhookDeliveryService', () => {
       ref: null,
       title: null,
       lastContextResolution: null,
-      metadata: { userContext: { email: 'u@x.com' } },
+      metadata: null,
+      userProperties: { email: 'u@x.com' },
+      properties: null,
       createdAt: '2026-05-05T10:00:00.000Z',
       updatedAt: '2026-05-05T10:00:01.000Z',
     };

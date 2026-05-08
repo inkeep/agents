@@ -20,6 +20,8 @@ const conversationFixture = (overrides: Partial<ConversationSelect> = {}): Conve
     title: null,
     lastContextResolution: null,
     metadata: null,
+    userProperties: null,
+    properties: null,
     createdAt: '2026-05-05T10:00:00.000Z',
     updatedAt: '2026-05-05T10:00:01.000Z',
     ...overrides,
@@ -46,6 +48,8 @@ const messageFixture = (overrides: Partial<MessageSelect> = {}): MessageSelect =
     a2aTaskId: null,
     a2aSessionId: null,
     metadata: null,
+    userProperties: null,
+    properties: null,
     createdAt: '2026-05-05T10:00:00.500Z',
     updatedAt: '2026-05-05T10:00:00.500Z',
     ...overrides,
@@ -131,7 +135,8 @@ describe('formatConversationDetail', () => {
   it('builds the canonical shape from a conversation row + messages', () => {
     const conversation = conversationFixture({
       title: 'Test conv',
-      metadata: { userContext: { email: 'u@x.com', plan: 'pro' } } as any,
+      userProperties: { email: 'u@x.com', plan: 'pro' },
+      properties: { url: '/docs' },
     });
     const messages = [messageFixture({ id: 'm1', role: 'user', content: { text: 'hi' } })];
     const result = formatConversationDetail(conversation, messages);
@@ -141,42 +146,54 @@ describe('formatConversationDetail', () => {
       agentId: 'agent-1',
       title: 'Test conv',
       userProperties: { email: 'u@x.com', plan: 'pro' },
-      properties: null,
+      properties: { url: '/docs' },
       createdAt: '2026-05-05T10:00:00.000Z',
       updatedAt: '2026-05-05T10:00:01.000Z',
       messages: [{ id: 'm1', role: 'user', content: 'hi', createdAt: '2026-05-05T10:00:00.500Z' }],
     });
   });
 
-  it('extracts userProperties from metadata.userContext', () => {
+  it('reads userProperties from the top-level column (D36 source change)', () => {
     const conversation = conversationFixture({
-      metadata: { userContext: { email: 'u@x.com' } } as any,
+      userProperties: { email: 'u@x.com' },
     });
     expect(formatConversationDetail(conversation, []).userProperties).toEqual({
       email: 'u@x.com',
     });
   });
 
-  it('returns null userProperties when metadata is null', () => {
-    const conversation = conversationFixture({ metadata: null });
+  it('reads properties from the top-level column', () => {
+    const conversation = conversationFixture({
+      properties: { url: '/docs', referrer: 'google' },
+    });
+    expect(formatConversationDetail(conversation, []).properties).toEqual({
+      url: '/docs',
+      referrer: 'google',
+    });
+  });
+
+  it('returns null userProperties when the top-level column is null', () => {
+    const conversation = conversationFixture({ userProperties: null });
     expect(formatConversationDetail(conversation, []).userProperties).toBeNull();
   });
 
-  it('returns null userProperties when metadata exists but userContext is missing', () => {
+  it('returns null properties when the top-level column is null', () => {
+    const conversation = conversationFixture({ properties: null });
+    expect(formatConversationDetail(conversation, []).properties).toBeNull();
+  });
+
+  it('does NOT fall back to metadata.userContext when top-level userProperties is null (D36 refinement)', () => {
     const conversation = conversationFixture({
-      metadata: { preferences: { lang: 'en' } } as any,
+      userProperties: null,
+      metadata: { userContext: { email: 'should-be-ignored' } } as any,
     });
     expect(formatConversationDetail(conversation, []).userProperties).toBeNull();
   });
 
-  it('always sets properties to null (no source today)', () => {
-    expect(formatConversationDetail(conversationFixture(), []).properties).toBeNull();
-  });
-
   it('does not leak internal metadata fields (apiKeyId, verifiedClaims, initiatedBy) on the wire', () => {
     const conversation = conversationFixture({
+      userProperties: { email: 'u@x.com' },
       metadata: {
-        userContext: { email: 'u@x.com' },
         apiKeyId: 'leaky',
         verifiedClaims: { sub: 'user-123' },
         initiatedBy: { type: 'user', id: 'user-123' },

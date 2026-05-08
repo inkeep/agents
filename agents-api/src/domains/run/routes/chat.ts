@@ -41,6 +41,11 @@ import { FileContentItemSchema, ImageContentItemSchema } from '../types/chat';
 import { getUserIdFromContext } from '../types/executionContext';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromOpenAIContent } from '../utils/message-parts';
+import {
+  isAutoMintIdentity,
+  parseInkeepJsonHeader,
+  stripIdentificationType,
+} from '../utils/user-properties';
 import { agentExecutionWorkflow } from '../workflow/functions/agentExecution';
 
 type AppVariables = {
@@ -120,6 +125,10 @@ const chatCompletionsRoute = createProtectedRoute({
               .record(z.string(), z.unknown())
               .optional()
               .describe('User properties to associate with the conversation'),
+            properties: z
+              .record(z.string(), z.unknown())
+              .optional()
+              .describe('Per-turn properties (page url, referrer, etc.) for the conversation'),
           }),
         },
       },
@@ -270,7 +279,22 @@ app.openapi(chatCompletionsRoute, async (c) => {
       });
       const isNewConversation = !existingActiveAgent;
 
-      const conversationMeta = buildConversationMetadata(executionContext, body.userProperties);
+      const conversationMeta = buildConversationMetadata(executionContext);
+      const resolvedUserPropertiesRaw =
+        body.userProperties ??
+        parseInkeepJsonHeader(c.req.header('x-inkeep-user-properties'), {
+          headerName: 'x-inkeep-user-properties',
+          logger,
+        });
+      const resolvedUserProperties = isAutoMintIdentity(resolvedUserPropertiesRaw)
+        ? undefined
+        : stripIdentificationType(resolvedUserPropertiesRaw);
+      const resolvedProperties =
+        body.properties ??
+        parseInkeepJsonHeader(c.req.header('x-inkeep-properties'), {
+          headerName: 'x-inkeep-properties',
+          logger,
+        });
       await createOrGetConversation(runDbClient)({
         tenantId,
         projectId,
@@ -280,6 +304,8 @@ app.openapi(chatCompletionsRoute, async (c) => {
         ref: executionContext.resolvedRef,
         userId: executionContext.metadata?.endUserId,
         ...(conversationMeta ? { metadata: conversationMeta } : {}),
+        ...(resolvedUserProperties !== undefined ? { userProperties: resolvedUserProperties } : {}),
+        ...(resolvedProperties !== undefined ? { properties: resolvedProperties } : {}),
       });
 
       const activeAgent = existingActiveAgent;
@@ -396,6 +422,9 @@ app.openapi(chatCompletionsRoute, async (c) => {
           visibility: 'user-facing',
           messageType: 'chat',
           ...(attachmentTaskId ? { taskId: attachmentTaskId } : {}),
+          ...(resolvedUserProperties !== undefined
+            ? { userProperties: resolvedUserProperties }
+            : {}),
         },
       });
 

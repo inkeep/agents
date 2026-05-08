@@ -5,6 +5,7 @@ import authRoutes from './routes/auth';
 import chatRoutes from './routes/chat';
 import chatDataRoutes from './routes/chatDataStream';
 import conversationRoutes from './routes/conversations';
+import eventsRoutes from './routes/events';
 import executionsRoutes from './routes/executions';
 import feedbackRoutes from './routes/feedback';
 import mcpRoutes from './routes/mcp';
@@ -15,6 +16,7 @@ export function createRunRoutes() {
 
   app.route('/v1/chat', chatRoutes);
   app.route('/v1/conversations', conversationRoutes);
+  app.route('/v1/events', eventsRoutes);
   app.route('/v1/feedback', feedbackRoutes);
   app.route('/api', chatDataRoutes);
   app.route('/api', executionsRoutes);

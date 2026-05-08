@@ -121,6 +121,10 @@ import type {
   EvaluatorInsertSchema,
   EvaluatorSelectSchema,
   EvaluatorUpdateSchema,
+  EventApiInsertSchema,
+  EventApiSelectSchema,
+  EventInsertSchema,
+  EventSelectSchema,
   ExternalAgentApiInsertSchema,
   ExternalAgentApiSelectSchema,
   ExternalAgentApiUpdateSchema,
@@ -306,6 +310,11 @@ import type {
 export type FeedbackSelect = z.infer<typeof FeedbackSelectSchema>;
 export type FeedbackInsert = z.infer<typeof FeedbackInsertSchema>;
 export type FeedbackUpdate = z.infer<typeof FeedbackUpdateSchema>;
+
+export type EventSelect = z.infer<typeof EventSelectSchema>;
+export type EventInsert = z.infer<typeof EventInsertSchema>;
+export type EventApiSelect = z.infer<typeof EventApiSelectSchema>;
+export type EventApiInsert = z.infer<typeof EventApiInsertSchema>;
 
 export type DatasetRunSelect = z.infer<typeof DatasetRunSelectSchema>;
 export type DatasetRunInsert = z.infer<typeof DatasetRunInsertSchema>;

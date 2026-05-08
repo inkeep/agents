@@ -48,6 +48,7 @@ import {
   datasetRunConversationRelations,
   evaluationResult,
   evaluationRun,
+  events,
   feedback,
   ledgerArtifacts,
   messages,
@@ -922,8 +923,10 @@ export const TriggerInvocationApiUpdateSchema = createAgentScopedApiUpdateSchema
 // Webhook Destination Schemas
 
 export const WebhookDestinationEventTypeEnum = z
-  .enum(['conversation.created', 'conversation.updated', 'feedback.created'])
-  .describe('Event type that triggers webhook delivery');
+  .enum(['conversation.created', 'conversation.updated', 'feedback.created', 'event.created'])
+  .describe(
+    'Event type that triggers webhook delivery. `event.created` fires whenever an event is logged via POST /run/v1/events.'
+  );
 
 export const WebhookEventEnvelopeSchema = z
   .object({
@@ -958,7 +961,7 @@ export const ConversationDetailSchema = z
       .record(z.string(), z.unknown())
       .nullable()
       .describe(
-        'Conversation-level custom properties (reserved; populated by future chat-init field)'
+        'Conversation-level custom properties (page URL, referrer, etc.) supplied per chat turn'
       ),
     createdAt: z
       .string()
@@ -1383,13 +1386,20 @@ export const ToolInsertSchema = createInsertSchema(tools)
     updatedAt: true,
   });
 
+const TopLevelUserPropertiesSchema = z.record(z.string(), z.unknown());
+const TopLevelPropertiesSchema = z.record(z.string(), z.unknown());
+
 export const ConversationSelectSchema = createSelectSchema(conversations).extend({
   ref: ResolvedRefSchema.nullable().optional(),
+  userProperties: TopLevelUserPropertiesSchema.nullable().optional(),
+  properties: TopLevelPropertiesSchema.nullable().optional(),
 });
 export const ConversationInsertSchema = createInsertSchema(conversations).extend({
   id: ResourceIdSchema,
   contextConfigId: ResourceIdSchema.optional(),
   ref: ResolvedRefSchema,
+  userProperties: TopLevelUserPropertiesSchema.nullable().optional(),
+  properties: TopLevelPropertiesSchema.nullable().optional(),
 });
 export const ConversationUpdateSchema = ConversationInsertSchema.partial();
 
@@ -1400,11 +1410,16 @@ export const ConversationApiInsertSchema =
 export const ConversationApiUpdateSchema =
   createApiUpdateSchema(ConversationUpdateSchema).openapi('ConversationUpdate');
 
-export const MessageSelectSchema = createSelectSchema(messages);
+export const MessageSelectSchema = createSelectSchema(messages).extend({
+  userProperties: TopLevelUserPropertiesSchema.nullable().optional(),
+  properties: TopLevelPropertiesSchema.nullable().optional(),
+});
 export const MessageInsertSchema = createInsertSchema(messages).extend({
   id: ResourceIdSchema,
   conversationId: ResourceIdSchema,
   taskId: ResourceIdSchema.optional(),
+  userProperties: TopLevelUserPropertiesSchema.nullable().optional(),
+  properties: TopLevelPropertiesSchema.nullable().optional(),
 });
 export const MessageUpdateSchema = MessageInsertSchema.partial();
 
@@ -1438,6 +1453,78 @@ export const WebhookFeedbackDataSchema = z
     conversation: ConversationDetailSchema,
   })
   .openapi('WebhookFeedbackData');
+
+// Per-field size + key-count caps for caller-supplied JSON columns on the
+// events table. Prevents a single oversized payload from amplifying through
+// webhook delivery to every subscriber, and from bloating analytics storage.
+// Vercel's ~4.5 MB request-body limit is the platform-level backstop;
+// these are tighter per-column bounds matched to the analytics-metadata
+// use case, not arbitrary application data.
+const MAX_EVENT_FIELD_BYTES = 64 * 1024; // 64 KiB after JSON serialization
+const MAX_EVENT_FIELD_KEYS = 100;
+
+const boundedJsonRecord = z
+  .record(z.string(), z.unknown())
+  .refine((val) => Object.keys(val).length <= MAX_EVENT_FIELD_KEYS, {
+    message: `exceeds ${MAX_EVENT_FIELD_KEYS} keys`,
+  })
+  .refine(
+    (val) => {
+      try {
+        return JSON.stringify(val).length <= MAX_EVENT_FIELD_BYTES;
+      } catch {
+        return false;
+      }
+    },
+    { message: `exceeds ${MAX_EVENT_FIELD_BYTES} bytes when serialized` }
+  );
+
+const EventPropertiesSchema = boundedJsonRecord;
+
+const EventUserPropertiesSchema = boundedJsonRecord;
+
+const EventCallerMetadataSchema = boundedJsonRecord;
+
+const EventServerMetadataSchema = z
+  .object({ authMethod: z.string().optional() })
+  .catchall(z.unknown());
+
+export const EventSelectSchema = createSelectSchema(events);
+export const EventInsertSchema = createInsertSchema(events).extend({
+  id: ResourceIdSchema,
+  type: z.string().min(1),
+  agentId: z.string().nullable().optional(),
+  conversationId: z.string().nullable().optional(),
+  messageId: z.string().nullable().optional(),
+  properties: EventPropertiesSchema.nullable().optional(),
+  userProperties: EventUserPropertiesSchema.nullable().optional(),
+  metadata: EventCallerMetadataSchema.nullable().optional(),
+  serverMetadata: EventServerMetadataSchema.nullable().optional(),
+});
+
+export const EventApiSelectSchema = createApiSchema(EventSelectSchema).openapi('Event');
+
+// `serverMetadata`, `createdAt`, `updatedAt` are server-controlled — strip
+// them from the API insert surface. `id` is optional on the API (server can
+// generate via `generateId()`) but required on the underlying insert. The
+// JSON-bag fields are re-declared as `.optional()` (without `.nullable()`)
+// so callers can omit them but cannot send `null`; the column-level
+// `nullable` lives on EventInsertSchema where it belongs.
+export const EventApiInsertSchema = createApiInsertSchema(EventInsertSchema)
+  .omit({ serverMetadata: true, createdAt: true, updatedAt: true })
+  .extend({
+    id: ResourceIdSchema.optional(),
+    properties: EventPropertiesSchema.optional(),
+    userProperties: EventUserPropertiesSchema.optional(),
+    metadata: EventCallerMetadataSchema.optional(),
+  })
+  .openapi('EventCreate');
+
+export const WebhookEventCreatedDataSchema = z
+  .object({
+    event: EventApiSelectSchema,
+  })
+  .openapi('WebhookEventCreatedData');
 
 export const ContextCacheSelectSchema = createSelectSchema(contextCache).extend({
   ref: ResolvedRefSchema.nullable().optional(),
@@ -2963,6 +3050,8 @@ export const TriggerInvocationResponse = z
 export const FeedbackResponse = z
   .object({ data: FeedbackApiSelectSchema })
   .openapi('FeedbackResponse');
+
+export const EventResponse = z.object({ data: EventApiSelectSchema }).openapi('EventResponse');
 
 export const BulkFeedbackResponseSchema = z
   .object({

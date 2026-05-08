@@ -165,16 +165,33 @@ export const createOrGetConversation =
       });
 
       if (existing) {
-        if (existing.activeSubAgentId !== input.activeSubAgentId) {
-          await db
-            .update(conversations)
-            .set({
-              activeSubAgentId: input.activeSubAgentId,
-              updatedAt: new Date().toISOString(),
-            })
-            .where(eq(conversations.id, input.id));
+        const updateSet: Partial<ConversationInsert> & { updatedAt: string } = {
+          updatedAt: new Date().toISOString(),
+        };
+        let needsUpdate = false;
 
-          return { ...existing, activeSubAgentId: input.activeSubAgentId };
+        if (existing.activeSubAgentId !== input.activeSubAgentId) {
+          updateSet.activeSubAgentId = input.activeSubAgentId;
+          needsUpdate = true;
+        }
+        if (input.userProperties !== undefined) {
+          updateSet.userProperties = input.userProperties;
+          needsUpdate = true;
+        }
+        if (input.properties !== undefined) {
+          updateSet.properties = input.properties;
+          needsUpdate = true;
+        }
+
+        if (needsUpdate) {
+          await db.update(conversations).set(updateSet).where(eq(conversations.id, input.id));
+
+          return {
+            ...existing,
+            ...(updateSet.activeSubAgentId ? { activeSubAgentId: updateSet.activeSubAgentId } : {}),
+            ...(input.userProperties !== undefined ? { userProperties: input.userProperties } : {}),
+            ...(input.properties !== undefined ? { properties: input.properties } : {}),
+          };
         }
         return existing;
       }
@@ -190,6 +207,8 @@ export const createOrGetConversation =
       title: input.title,
       lastContextResolution: input.lastContextResolution,
       metadata: input.metadata,
+      userProperties: input.userProperties,
+      properties: input.properties,
       ref: input.ref,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -263,6 +282,8 @@ function applyContextWindowManagement(
           a2aTaskId: null,
           a2aSessionId: null,
           metadata: null,
+          userProperties: null,
+          properties: null,
           createdAt: referenceMessage.createdAt,
           updatedAt: referenceMessage.updatedAt,
         };
@@ -354,7 +375,10 @@ export const setActiveAgentForConversation =
     ref: ResolvedRef;
     userId?: string;
     metadata?: ConversationMetadata;
+    userProperties?: Record<string, unknown> | null;
+    properties?: Record<string, unknown> | null;
   }): Promise<void> => {
+    const now = new Date().toISOString();
     await db
       .insert(conversations)
       .values({
@@ -366,14 +390,18 @@ export const setActiveAgentForConversation =
         ref: params.ref,
         userId: params.userId,
         metadata: params.metadata,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        userProperties: params.userProperties,
+        properties: params.properties,
+        createdAt: now,
+        updatedAt: now,
       })
       .onConflictDoUpdate({
         target: [conversations.tenantId, conversations.projectId, conversations.id],
         set: {
           activeSubAgentId: params.subAgentId,
-          updatedAt: new Date().toISOString(),
+          updatedAt: now,
+          ...(params.userProperties !== undefined ? { userProperties: params.userProperties } : {}),
+          ...(params.properties !== undefined ? { properties: params.properties } : {}),
         },
       });
   };
