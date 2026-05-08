@@ -92,59 +92,6 @@ gemini mcp add InkeepAgents -- npx -y @inkeep/agents-mcp start --cookie-auth  --
 
 </details>
 <details>
-<summary>Windsurf</summary>
-
-Refer to [Official Windsurf documentation](https://docs.windsurf.com/windsurf/cascade/mcp#adding-a-new-mcp-plugin) for latest information
-
-1. Open Windsurf Settings
-2. Select Cascade on left side menu
-3. Click on `Manage MCPs`. (To Manage MCPs you should be signed in with a Windsurf Account)
-4. Click on `View raw config` to open up the mcp configuration file.
-5. If the configuration file is empty paste the full json
-
-```bash
-{
-  "command": "npx",
-  "args": [
-    "@inkeep/agents-mcp",
-    "start",
-    "--cookie-auth",
-    "",
-    "--bearer-auth",
-    ""
-  ]
-}
-```
-</details>
-<details>
-<summary>VS Code</summary>
-
-[![Install in VS Code](https://img.shields.io/badge/VS_Code-VS_Code?style=flat-square&label=Install%20InkeepAgents%20MCP&color=0098FF)](vscode://ms-vscode.vscode-mcp/install?name=InkeepAgents&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyJAaW5rZWVwL2FnZW50cy1tY3AiLCJzdGFydCIsIi0tY29va2llLWF1dGgiLCIiLCItLWJlYXJlci1hdXRoIiwiIl19)
-
-Or manually:
-
-Refer to [Official VS Code documentation](https://code.visualstudio.com/api/extension-guides/ai/mcp) for latest information
-
-1. Open [Command Palette](https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette)
-1. Search and open `MCP: Open User Configuration`. This should open mcp.json file
-2. If the configuration file is empty paste the full json
-
-```bash
-{
-  "command": "npx",
-  "args": [
-    "@inkeep/agents-mcp",
-    "start",
-    "--cookie-auth",
-    "",
-    "--bearer-auth",
-    ""
-  ]
-}
-```
-
-</details>
-<details>
 <summary> Stdio installation via npm </summary>
 To start the MCP server, run:
 
