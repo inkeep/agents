@@ -37,7 +37,9 @@ This guide shows how to call your agent directly over HTTP and stream responses 
       "content": "Hello!"
     }
   ],
-  "conversationId": "optional-conversation-id"
+  "conversationId": "optional-conversation-id",
+  "userProperties": { "userId": "user-123", "plan": "pro" },
+  "properties": { "source": "chat-widget", "pageUrl": "https://example.com/docs" }
 }
 ```
 
@@ -48,6 +50,8 @@ This guide shows how to call your agent directly over HTTP and stream responses 
 - **`parts`** — Optional multi-part content array (text + images)
 - **`content` + `parts` together** — Both are accepted. `content` is prepended as a text part unless an identical text part already exists.
 - **`conversationId`** — Optional; server generates one if omitted
+- **`userProperties`** — Optional free-form JSON object for end-user attribution. Stored on the conversation and message records. See the [Events API](/talk-to-your-agents/events#user-attribution) for recommended field conventions.
+- **`properties`** — Optional free-form JSON object for per-turn context (e.g. page URL, referrer). Stored on the conversation record.
 
 ## File inputs (images, PDFs, and text documents)
 
