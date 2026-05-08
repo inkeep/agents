@@ -48,6 +48,11 @@ import { VercelMessageSchema } from '../types/chat';
 import { getUserIdFromContext } from '../types/executionContext';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromVercelContent } from '../utils/message-parts';
+import {
+  isAutoMintIdentity,
+  parseInkeepJsonHeader,
+  stripIdentificationType,
+} from '../utils/user-properties';
 import { agentExecutionWorkflow, toolApprovalHook } from '../workflow/functions/agentExecution';
 
 type AppVariables = {
@@ -93,6 +98,10 @@ const chatDataStreamRoute = createProtectedRoute({
               .record(z.string(), z.unknown())
               .optional()
               .describe('User properties to associate with the conversation'),
+            properties: z
+              .record(z.string(), z.unknown())
+              .optional()
+              .describe('Per-turn properties (page url, referrer, etc.) for the conversation'),
           }),
         },
       },
@@ -329,8 +338,23 @@ app.openapi(chatDataStreamRoute, async (c) => {
         scopes: { tenantId, projectId },
         conversationId,
       });
+      const resolvedUserPropertiesRaw =
+        body.userProperties ??
+        parseInkeepJsonHeader(c.req.header('x-inkeep-user-properties'), {
+          headerName: 'x-inkeep-user-properties',
+          logger,
+        });
+      const resolvedUserProperties = isAutoMintIdentity(resolvedUserPropertiesRaw)
+        ? undefined
+        : stripIdentificationType(resolvedUserPropertiesRaw);
+      const resolvedProperties =
+        body.properties ??
+        parseInkeepJsonHeader(c.req.header('x-inkeep-properties'), {
+          headerName: 'x-inkeep-properties',
+          logger,
+        });
       if (!activeAgent) {
-        const conversationMeta = buildConversationMetadata(executionContext, body.userProperties);
+        const conversationMeta = buildConversationMetadata(executionContext);
         await setActiveAgentForConversation(runDbClient)({
           scopes: { tenantId, projectId },
           conversationId,
@@ -339,6 +363,10 @@ app.openapi(chatDataStreamRoute, async (c) => {
           agentId: agentId,
           userId: executionContext.metadata?.endUserId,
           ...(conversationMeta ? { metadata: conversationMeta } : {}),
+          ...(resolvedUserProperties !== undefined
+            ? { userProperties: resolvedUserProperties }
+            : {}),
+          ...(resolvedProperties !== undefined ? { properties: resolvedProperties } : {}),
         });
       }
       const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
@@ -429,6 +457,9 @@ app.openapi(chatDataStreamRoute, async (c) => {
           visibility: 'user-facing',
           messageType: 'chat',
           ...(attachmentTaskId ? { taskId: attachmentTaskId } : {}),
+          ...(resolvedUserProperties !== undefined
+            ? { userProperties: resolvedUserProperties }
+            : {}),
         },
       });
       if (messageSpan) {

@@ -2302,7 +2302,7 @@
             "additionalProperties": {
               "nullable": true
             },
-            "description": "Conversation-level custom properties (reserved; populated by future chat-init field)",
+            "description": "Conversation-level custom properties (page URL, referrer, etc.) supplied per chat turn",
             "nullable": true,
             "type": "object"
           },
@@ -4939,6 +4939,233 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "Event": {
+        "properties": {
+          "agentId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "conversationId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "messageId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "properties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "serverMetadata": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "type": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "userProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "agentId",
+          "conversationId",
+          "messageId",
+          "properties",
+          "userProperties",
+          "metadata",
+          "serverMetadata",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "EventCreate": {
+        "properties": {
+          "agentId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "conversationId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "$ref": "#/components/schemas/ResourceId"
+          },
+          "messageId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
+          },
+          "properties": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
+          },
+          "type": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "userProperties": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "EventResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Event"
+          }
+        },
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "ExistsResponse": {
@@ -12045,11 +12272,12 @@
           },
           "eventTypes": {
             "items": {
-              "description": "Event type that triggers webhook delivery",
+              "description": "Event type that triggers webhook delivery. `event.created` fires whenever an event is logged via POST /run/v1/events.",
               "enum": [
                 "conversation.created",
                 "conversation.updated",
-                "feedback.created"
+                "feedback.created",
+                "event.created"
               ],
               "type": "string"
             },
@@ -12104,11 +12332,12 @@
           "eventTypes": {
             "description": "Event types to subscribe to",
             "items": {
-              "description": "Event type that triggers webhook delivery",
+              "description": "Event type that triggers webhook delivery. `event.created` fires whenever an event is logged via POST /run/v1/events.",
               "enum": [
                 "conversation.created",
                 "conversation.updated",
-                "feedback.created"
+                "feedback.created",
+                "event.created"
               ],
               "type": "string"
             },
@@ -12206,11 +12435,12 @@
           "eventTypes": {
             "description": "Event types to subscribe to",
             "items": {
-              "description": "Event type that triggers webhook delivery",
+              "description": "Event type that triggers webhook delivery. `event.created` fires whenever an event is logged via POST /run/v1/events.",
               "enum": [
                 "conversation.created",
                 "conversation.updated",
-                "feedback.created"
+                "feedback.created",
+                "event.created"
               ],
               "type": "string"
             },
@@ -49229,6 +49459,13 @@
                   "model": {
                     "type": "string"
                   },
+                  "properties": {
+                    "additionalProperties": {
+                      "nullable": true
+                    },
+                    "description": "Per-turn properties (page url, referrer, etc.) for the conversation",
+                    "type": "object"
+                  },
                   "runConfig": {
                     "additionalProperties": {
                       "nullable": true
@@ -50350,6 +50587,13 @@
                     "description": "Presence penalty (-2 to 2)",
                     "type": "number"
                   },
+                  "properties": {
+                    "additionalProperties": {
+                      "nullable": true
+                    },
+                    "description": "Per-turn properties (page url, referrer, etc.) for the conversation",
+                    "type": "object"
+                  },
                   "runConfig": {
                     "additionalProperties": {
                       "nullable": true
@@ -50981,6 +51225,105 @@
         "summary": "Resume Conversation Stream",
         "tags": [
           "Conversations"
+        ],
+        "x-authz": {
+          "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
+        }
+      }
+    },
+    "/run/v1/events": {
+      "post": {
+        "description": "Log an application-level event for the authenticated project.",
+        "operationId": "log-event",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventResponse"
+                }
+              }
+            },
+            "description": "Event already exists (idempotent conflict on client-supplied id)"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventResponse"
+                }
+              }
+            },
+            "description": "Event logged successfully (new row inserted)"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Log Event",
+        "tags": [
+          "Events"
         ],
         "x-authz": {
           "description": "Requires a valid API key (Bearer token). Auth is enforced by runApiKeyAuth middleware in createApp.ts."
@@ -52959,6 +53302,10 @@
     {
       "description": "Operations for managing evaluations",
       "name": "Evaluations"
+    },
+    {
+      "description": "Application-level event ingest and webhook delivery",
+      "name": "Events"
     },
     {
       "description": "Durable agent execution endpoints",

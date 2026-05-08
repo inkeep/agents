@@ -22,6 +22,7 @@ export const TagToDescription = {
   'Data Components': 'Operations for managing data components',
   Entitlements: 'Operations for managing organization entitlements',
   Evaluations: 'Operations for managing evaluations',
+  Events: 'Application-level event ingest and webhook delivery',
   Executions: 'Durable agent execution endpoints',
   'External Agents': 'Operations for managing external agents',
   Feedback: 'Operations for managing feedback',

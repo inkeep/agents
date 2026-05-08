@@ -123,6 +123,8 @@ export const conversations = pgTable(
     title: text('title'),
     lastContextResolution: timestamp('last_context_resolution', { mode: 'string' }),
     metadata: jsonb('metadata').$type<ConversationMetadata>(),
+    userProperties: jsonb('user_properties').$type<Record<string, unknown> | null>(),
+    properties: jsonb('properties').$type<Record<string, unknown> | null>(),
     ...timestamps,
   },
   (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
@@ -537,6 +539,8 @@ export const messages = pgTable(
     a2aTaskId: varchar('a2a_task_id', { length: 256 }),
     a2aSessionId: varchar('a2a_session_id', { length: 256 }),
     metadata: jsonb('metadata').$type<MessageMetadata>(),
+    userProperties: jsonb('user_properties').$type<Record<string, unknown> | null>(),
+    properties: jsonb('properties').$type<Record<string, unknown> | null>(),
     ...timestamps,
   },
   (table) => [
@@ -577,6 +581,45 @@ export const feedback = pgTable(
       columns: [table.tenantId, table.projectId, table.messageId],
       foreignColumns: [messages.tenantId, messages.projectId, messages.id],
       name: 'feedback_message_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+export const events = pgTable(
+  'events',
+  {
+    ...projectScoped,
+    type: varchar('type', { length: 256 }).notNull(),
+    agentId: varchar('agent_id', { length: 256 }),
+    conversationId: varchar('conversation_id', { length: 256 }),
+    messageId: varchar('message_id', { length: 256 }),
+    properties: jsonb('properties').$type<Record<string, unknown> | null>(),
+    userProperties: jsonb('user_properties').$type<Record<string, unknown> | null>(),
+    metadata: jsonb('metadata').$type<Record<string, unknown> | null>(),
+    serverMetadata: jsonb('server_metadata').$type<{
+      authMethod?: string;
+      [k: string]: unknown;
+    } | null>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    index('events_created_at_idx').on(table.tenantId, table.projectId, table.createdAt.desc()),
+    index('events_conversation_id_idx').on(
+      table.tenantId,
+      table.projectId,
+      table.conversationId,
+      table.createdAt.desc()
+    ),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.conversationId],
+      foreignColumns: [conversations.tenantId, conversations.projectId, conversations.id],
+      name: 'events_conversation_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.messageId],
+      foreignColumns: [messages.tenantId, messages.projectId, messages.id],
+      name: 'events_message_fk',
     }).onDelete('cascade'),
   ]
 );

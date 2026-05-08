@@ -1,10 +1,12 @@
-import type {
-  ConversationDetailSchema,
-  ConversationMetadata,
-  ConversationSelect,
-  FeedbackSelect,
-  MessageSelect,
-  WebhookMessageSchema,
+import {
+  type ConversationDetailSchema,
+  type ConversationSelect,
+  type EventSelect,
+  type FeedbackSelect,
+  getConversationProperties,
+  getConversationUserProperties,
+  type MessageSelect,
+  type WebhookMessageSchema,
 } from '@inkeep/agents-core';
 import type { z } from 'zod';
 
@@ -38,14 +40,12 @@ export function formatConversationDetail(
   conversation: ConversationSelect,
   messages: MessageSelect[]
 ): ConversationDetail {
-  const metadata = conversation.metadata as ConversationMetadata | null;
-  const userProperties = metadata?.userContext ?? null;
   return {
     id: conversation.id,
     agentId: conversation.agentId ?? null,
     title: conversation.title ?? null,
-    userProperties,
-    properties: null,
+    userProperties: getConversationUserProperties(conversation),
+    properties: getConversationProperties(conversation),
     createdAt: toIsoString(conversation.createdAt),
     updatedAt: toIsoString(conversation.updatedAt),
     messages: messages.slice(-CONVERSATION_DETAIL_MESSAGE_LIMIT).map(formatMessage),
@@ -54,6 +54,15 @@ export function formatConversationDetail(
 
 export function formatFeedback(feedback: FeedbackSelect) {
   const { tenantId: _t, projectId: _p, createdAt, updatedAt, ...rest } = feedback;
+  return {
+    ...rest,
+    createdAt: toIsoString(createdAt),
+    updatedAt: toIsoString(updatedAt),
+  };
+}
+
+export function formatEvent(event: EventSelect) {
+  const { tenantId: _t, projectId: _p, createdAt, updatedAt, ...rest } = event;
   return {
     ...rest,
     createdAt: toIsoString(createdAt),

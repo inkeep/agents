@@ -1,6 +1,7 @@
 import type { z } from '@hono/zod-openapi';
 import {
   type AgentsRunDatabaseClient,
+  type EventSelect,
   type FeedbackSelect,
   getConversation,
   getConversationHistory,
@@ -19,6 +20,7 @@ import { getLogger } from '../../../logger';
 import {
   CONVERSATION_DETAIL_MESSAGE_LIMIT,
   formatConversationDetail,
+  formatEvent,
   formatFeedback,
 } from '../../../utils/conversationFormatter';
 import {
@@ -239,6 +241,43 @@ export async function emitFeedbackWebhook(params: EmitFeedbackWebhookParams): Pr
         'Failed to emit feedback.created webhook event'
       );
     });
+
+  const waitUntil = await getWaitUntil();
+  if (waitUntil) {
+    waitUntil(promise);
+  }
+}
+
+export interface EmitEventWebhookParams {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  resolvedRef: ResolvedRef;
+  event: EventSelect;
+}
+
+export async function emitEventWebhook(params: EmitEventWebhookParams): Promise<void> {
+  const { tenantId, projectId, agentId, resolvedRef, event } = params;
+
+  const promise = emitWebhookEvent({
+    tenantId,
+    projectId,
+    agentId,
+    resolvedRef,
+    eventType: 'event.created',
+    data: { event: formatEvent(event) },
+  }).catch((err) => {
+    logger.warn(
+      {
+        tenantId,
+        projectId,
+        eventId: event.id,
+        type: event.type,
+        error: err instanceof Error ? err.message : String(err),
+      },
+      'Failed to emit event.created webhook event'
+    );
+  });
 
   const waitUntil = await getWaitUntil();
   if (waitUntil) {
