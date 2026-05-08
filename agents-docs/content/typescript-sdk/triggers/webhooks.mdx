@@ -390,6 +390,25 @@ curl "https://api.inkeep.com/v1/tenants/{tenantId}/projects/{projectId}/agents/{
 curl "https://api.inkeep.com/v1/.../invocations?status=failed&from=2024-01-01T00:00:00Z"
 ```
 
+## Outbound Webhook Events
+
+In addition to receiving webhooks via triggers, the Inkeep platform can dispatch outbound webhooks to your endpoints when certain events occur. You can subscribe webhook destinations to event families via the webhook destination form in the dashboard.
+
+### Available Event Families
+
+| Event Family | Description |
+| --- | --- |
+| `conversation.created` | Fired when a new conversation is created |
+| `conversation.updated` | Fired when an existing conversation is updated |
+| `feedback.created` | Fired when feedback is submitted on a conversation |
+| `event.created` | Fired when an application-level event is logged via the [Events API](/talk-to-your-agents/events) |
+
+The `event.created` family enables you to receive webhooks for custom application events (e.g. user clicks, draft applies, source views) logged through the Events API endpoint.
+
+<Tip>
+To subscribe to `event.created` webhooks, check the **Event Created** option on the webhook destination form in the dashboard.
+</Tip>
+
 ## Complete Example
 
 Here's a complete example with a GitHub webhook trigger that handles issue events:
