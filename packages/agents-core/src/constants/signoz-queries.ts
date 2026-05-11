@@ -134,6 +134,8 @@ export const QUERY_EXPRESSIONS = {
   USAGE_EVENTS: 'usageEvents',
   AGG_TOOL_CALLS_BY_TYPE: 'aggToolCallsByType',
   AGG_AI_CALLS: 'aggAICalls',
+  PAGE_CONVERSATIONS_BASE: 'pageConversationsBase',
+  SPAN_FILTER_BASE: 'spanFilterBase',
 } as const;
 
 /** Query Order Directions */
