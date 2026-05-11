@@ -288,6 +288,13 @@
       "when": 1778088346301,
       "tag": "0040_living_forgotten_one",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1778505331445,
+      "tag": "0041_salty_wilson_fisk",
+      "breakpoints": true
     }
   ]
 }

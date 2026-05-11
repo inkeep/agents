@@ -13,8 +13,12 @@ import type {
   ProjectScopeConfig,
 } from '../../types/index';
 import { getConversationId } from '../../utils/conversations';
+import { getLogger } from '../../utils/logger';
 import type { ResolvedRef } from '../../validation/dolt-schemas';
 import { projectScopedWhere } from '../manage/scope-helpers';
+import { deleteEventsByConversationIds } from './events';
+
+const logger = getLogger('data-access/runtime/conversations');
 
 export const listConversations =
   (db: AgentsRunDatabaseClient) =>
@@ -102,6 +106,11 @@ export const deleteConversation =
   (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; conversationId: string }): Promise<boolean> => {
     try {
+      await deleteEventsByConversationIds(db)({
+        scopes: params.scopes,
+        conversationIds: [params.conversationId],
+      });
+
       await db
         .delete(messages)
         .where(
@@ -122,7 +131,15 @@ export const deleteConversation =
 
       return true;
     } catch (error) {
-      console.error('Error deleting conversation:', error);
+      logger.error(
+        {
+          tenantId: params.scopes.tenantId,
+          projectId: params.scopes.projectId,
+          conversationId: params.conversationId,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        'Failed to delete conversation (events/messages/conversation cleanup chain)'
+      );
       return false;
     }
   };

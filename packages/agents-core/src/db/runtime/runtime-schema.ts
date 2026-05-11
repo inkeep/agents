@@ -585,6 +585,12 @@ export const feedback = pgTable(
   ]
 );
 
+// Intentionally no FK on conversation_id or message_id (cf. sibling tables
+// feedback / messages / contextCache which DO use FK cascade). Events are an
+// analytics-stream surface with forward-anchored writes — clients mint
+// conversationId client-side and fire events BEFORE the chat handler creates
+// the row. An FK would reject those legitimate events. Cleanup-on-delete is
+// enforced at the application layer in cascade-delete.ts.
 export const events = pgTable(
   'events',
   {
@@ -611,16 +617,6 @@ export const events = pgTable(
       table.conversationId,
       table.createdAt.desc()
     ),
-    foreignKey({
-      columns: [table.tenantId, table.projectId, table.conversationId],
-      foreignColumns: [conversations.tenantId, conversations.projectId, conversations.id],
-      name: 'events_conversation_fk',
-    }).onDelete('cascade'),
-    foreignKey({
-      columns: [table.tenantId, table.projectId, table.messageId],
-      foreignColumns: [messages.tenantId, messages.projectId, messages.id],
-      name: 'events_message_fk',
-    }).onDelete('cascade'),
   ]
 );
 

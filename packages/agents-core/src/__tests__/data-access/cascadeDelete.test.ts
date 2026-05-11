@@ -9,6 +9,7 @@ import {
   cascadeDeleteByTool,
   cascadeDeleteGitHubAccessByProject,
 } from '../../data-access/runtime/cascade-delete';
+import { deleteConversation } from '../../data-access/runtime/conversations';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import {
   apiKeys,
@@ -16,6 +17,7 @@ import {
   conversations,
   datasetRun,
   evaluationRun,
+  events,
   messages,
   organization,
   scheduledTriggerInvocations,
@@ -57,6 +59,7 @@ describe('Cascade Delete Utilities', () => {
   });
 
   beforeEach(async () => {
+    await db.delete(events);
     await db.delete(contextCache);
     await db.delete(messages);
     await db.delete(conversations);
@@ -246,6 +249,7 @@ describe('Cascade Delete Utilities', () => {
       expect(result.datasetRunsDeleted).toBe(1);
       expect(result.evaluationRunsDeleted).toBe(1);
       expect(result.scheduledTriggersDeleted).toBe(1);
+      expect(result.eventsDeleted).toBe(0);
 
       // Verify branch2 entities still exist
       const remainingConvs = await db
@@ -394,6 +398,7 @@ describe('Cascade Delete Utilities', () => {
       expect(result.scheduledTriggerInvocationsDeleted).toBe(1);
       expect(result.datasetRunsDeleted).toBe(1);
       expect(result.evaluationRunsDeleted).toBe(1);
+      expect(result.eventsDeleted).toBe(0);
 
       // Verify project1 branch2 entities are also deleted
       const project1Branch2Convs = await db
@@ -589,6 +594,7 @@ describe('Cascade Delete Utilities', () => {
       expect(result.datasetRunsDeleted).toBe(0);
       expect(result.evaluationRunsDeleted).toBe(0);
       expect(result.apiKeysDeleted).toBe(1);
+      expect(result.eventsDeleted).toBe(0);
 
       // Verify all entities are deleted
       const remainingConvs = await db
@@ -777,6 +783,7 @@ describe('Cascade Delete Utilities', () => {
       expect(result.conversationsDeleted).toBe(1);
       expect(result.contextCacheDeleted).toBe(1);
       expect(result.tasksDeleted).toBe(1);
+      expect(result.eventsDeleted).toBe(0);
     });
 
     it('should not delete entities on other branches', async () => {
@@ -1194,6 +1201,284 @@ describe('Cascade Delete Utilities', () => {
       expect(result.projectAccessModeDeleted).toBe(false);
       expect(result.mcpToolRepositoryAccessDeleted).toBe(0);
       expect(result.mcpToolAccessModesDeleted).toBe(0);
+    });
+  });
+
+  describe('event cleanup on conversation deletion paths', () => {
+    it('deleteConversation removes events tied to the conversation', async () => {
+      const convId = generateId();
+      await db.insert(conversations).values({
+        tenantId,
+        projectId,
+        id: convId,
+        activeSubAgentId: subAgentId,
+        ref: branch1Ref,
+      });
+      await db.insert(events).values([
+        {
+          tenantId,
+          projectId,
+          id: generateId(),
+          type: 'user_message_submitted',
+          conversationId: convId,
+        },
+        {
+          tenantId,
+          projectId,
+          id: generateId(),
+          type: 'system_health_check',
+          conversationId: convId,
+        },
+        {
+          tenantId,
+          projectId,
+          id: generateId(),
+          type: 'user_clicked_apply_draft',
+          conversationId: convId,
+        },
+      ]);
+
+      const ok = await deleteConversation(db)({
+        scopes: { tenantId, projectId },
+        conversationId: convId,
+      });
+      expect(ok).toBe(true);
+
+      const remaining = await db
+        .select()
+        .from(events)
+        .where(and(eq(events.tenantId, tenantId), eq(events.conversationId, convId)));
+      expect(remaining).toHaveLength(0);
+    });
+
+    it('deleteConversation leaves free-form events (conversationId=null) untouched', async () => {
+      const convId = generateId();
+      const freeFormId = generateId();
+      await db.insert(conversations).values({
+        tenantId,
+        projectId,
+        id: convId,
+        activeSubAgentId: subAgentId,
+        ref: branch1Ref,
+      });
+      await db.insert(events).values([
+        {
+          tenantId,
+          projectId,
+          id: generateId(),
+          type: 'user_message_submitted',
+          conversationId: convId,
+        },
+        { tenantId, projectId, id: freeFormId, type: 'system_health_check', conversationId: null },
+      ]);
+
+      await deleteConversation(db)({
+        scopes: { tenantId, projectId },
+        conversationId: convId,
+      });
+
+      const remaining = await db.select().from(events).where(eq(events.tenantId, tenantId));
+      expect(remaining.map((e) => e.id)).toEqual([freeFormId]);
+    });
+
+    it('cascadeDeleteByBranch removes events only for conversations on the deleted branch', async () => {
+      const branch1ConvA = generateId();
+      const branch1ConvB = generateId();
+      const branch2Conv = generateId();
+      await db.insert(conversations).values([
+        { tenantId, projectId, id: branch1ConvA, activeSubAgentId: subAgentId, ref: branch1Ref },
+        { tenantId, projectId, id: branch1ConvB, activeSubAgentId: subAgentId, ref: branch1Ref },
+        { tenantId, projectId, id: branch2Conv, activeSubAgentId: subAgentId, ref: branch2Ref },
+      ]);
+      const branch2EventId = generateId();
+      const freeFormEventId = generateId();
+      await db.insert(events).values([
+        {
+          tenantId,
+          projectId,
+          id: generateId(),
+          type: 'user_message_submitted',
+          conversationId: branch1ConvA,
+        },
+        {
+          tenantId,
+          projectId,
+          id: generateId(),
+          type: 'system_health_check',
+          conversationId: branch1ConvB,
+        },
+        {
+          tenantId,
+          projectId,
+          id: branch2EventId,
+          type: 'user_message_submitted',
+          conversationId: branch2Conv,
+        },
+        {
+          tenantId,
+          projectId,
+          id: freeFormEventId,
+          type: 'system_health_check',
+          conversationId: null,
+        },
+      ]);
+
+      const result = await cascadeDeleteByBranch(db)({
+        scopes: { tenantId, projectId },
+        fullBranchName: branch1Ref.name,
+        ref: 'branch1',
+      });
+
+      expect(result.eventsDeleted).toBe(2);
+      const remaining = await db.select().from(events).where(eq(events.projectId, projectId));
+      const remainingIds = remaining.map((e) => e.id).sort();
+      expect(remainingIds).toEqual([branch2EventId, freeFormEventId].sort());
+    });
+
+    it('cascadeDeleteByProject removes all events for the project including free-form (conversationId=null) rows', async () => {
+      const projectA = 'project-events-a';
+      const projectB = 'project-events-b';
+      const convA = generateId();
+      const convB = generateId();
+      await db.insert(conversations).values([
+        { tenantId, projectId: projectA, id: convA, activeSubAgentId: subAgentId, ref: branch1Ref },
+        { tenantId, projectId: projectB, id: convB, activeSubAgentId: subAgentId, ref: branch1Ref },
+      ]);
+      const projectBEventId = generateId();
+      await db.insert(events).values([
+        {
+          tenantId,
+          projectId: projectA,
+          id: generateId(),
+          type: 'user_message_submitted',
+          conversationId: convA,
+        },
+        {
+          tenantId,
+          projectId: projectA,
+          id: generateId(),
+          type: 'system_health_check',
+          conversationId: convA,
+        },
+        {
+          tenantId,
+          projectId: projectA,
+          id: generateId(),
+          type: 'system_health_check',
+          conversationId: null,
+        },
+        {
+          tenantId,
+          projectId: projectB,
+          id: projectBEventId,
+          type: 'user_message_submitted',
+          conversationId: convB,
+        },
+      ]);
+
+      const result = await cascadeDeleteByProject(db)({
+        scopes: { tenantId, projectId: projectA },
+      });
+
+      expect(result.eventsDeleted).toBe(3);
+      const remainingA = await db.select().from(events).where(eq(events.projectId, projectA));
+      expect(remainingA).toHaveLength(0);
+      const remainingB = await db.select().from(events).where(eq(events.projectId, projectB));
+      expect(remainingB).toHaveLength(1);
+      expect(remainingB[0].id).toBe(projectBEventId);
+    });
+
+    it('cascadeDeleteByAgent removes events tied to the agents subAgent conversations', async () => {
+      const agentSub = 'agent-sub';
+      const otherSub = 'other-sub';
+      const agentConv = generateId();
+      const otherConv = generateId();
+      await db.insert(conversations).values([
+        { tenantId, projectId, id: agentConv, activeSubAgentId: agentSub, ref: branch1Ref },
+        { tenantId, projectId, id: otherConv, activeSubAgentId: otherSub, ref: branch1Ref },
+      ]);
+      const otherEventId = generateId();
+      const freeFormEventId = generateId();
+      await db.insert(events).values([
+        {
+          tenantId,
+          projectId,
+          id: generateId(),
+          type: 'user_message_submitted',
+          conversationId: agentConv,
+        },
+        {
+          tenantId,
+          projectId,
+          id: otherEventId,
+          type: 'user_message_submitted',
+          conversationId: otherConv,
+        },
+        {
+          tenantId,
+          projectId,
+          id: freeFormEventId,
+          type: 'system_health_check',
+          conversationId: null,
+        },
+      ]);
+
+      const result = await cascadeDeleteByAgent(db)({
+        scopes: { tenantId, projectId, agentId },
+        fullBranchName: branch1Ref.name,
+        subAgentIds: [agentSub],
+      });
+
+      expect(result.eventsDeleted).toBe(1);
+      const remaining = await db.select().from(events).where(eq(events.projectId, projectId));
+      const remainingIds = remaining.map((e) => e.id).sort();
+      expect(remainingIds).toEqual([otherEventId, freeFormEventId].sort());
+    });
+
+    it('cascadeDeleteBySubAgent removes events tied to the subAgents conversations', async () => {
+      const otherSub = 'other-sub-agent';
+      const targetConv = generateId();
+      const otherConv = generateId();
+      await db.insert(conversations).values([
+        { tenantId, projectId, id: targetConv, activeSubAgentId: subAgentId, ref: branch1Ref },
+        { tenantId, projectId, id: otherConv, activeSubAgentId: otherSub, ref: branch1Ref },
+      ]);
+      const otherEventId = generateId();
+      const freeFormEventId = generateId();
+      await db.insert(events).values([
+        {
+          tenantId,
+          projectId,
+          id: generateId(),
+          type: 'user_message_submitted',
+          conversationId: targetConv,
+        },
+        {
+          tenantId,
+          projectId,
+          id: otherEventId,
+          type: 'user_message_submitted',
+          conversationId: otherConv,
+        },
+        {
+          tenantId,
+          projectId,
+          id: freeFormEventId,
+          type: 'system_health_check',
+          conversationId: null,
+        },
+      ]);
+
+      const result = await cascadeDeleteBySubAgent(db)({
+        scopes: { tenantId, projectId },
+        subAgentId,
+        fullBranchName: branch1Ref.name,
+      });
+
+      expect(result.eventsDeleted).toBe(1);
+      const remaining = await db.select().from(events).where(eq(events.projectId, projectId));
+      const remainingIds = remaining.map((e) => e.id).sort();
+      expect(remainingIds).toEqual([otherEventId, freeFormEventId].sort());
     });
   });
 });

@@ -4,7 +4,6 @@ import {
   type ConversationSelect,
   type CredentialStoreRegistry,
   commonCreateErrorResponses,
-  createApiError,
   createEvent,
   EventApiInsertSchema,
   EventResponse,
@@ -13,7 +12,6 @@ import {
   getConversationUserProperties,
   getMessageById,
   getMessageUserProperties,
-  isForeignKeyViolation,
   type MessageSelect,
   type ProjectScopeConfig,
   type ResolvedRef,
@@ -179,45 +177,20 @@ app.openapi(
       scopes: { tenantId, projectId },
     });
 
-    let result: Awaited<ReturnType<ReturnType<typeof createEvent>>>;
-    try {
-      result = await createEvent(runDbClient)({
-        ...body,
-        id: body.id || generateId(),
-        tenantId,
-        projectId,
-        conversationId: resolvedConversationId,
-        agentId: body.agentId ?? executionContext.agentId ?? null,
-        userProperties: resolvedUserProperties,
-        properties: resolvedProperties,
-        metadata: body.metadata ?? null,
-        serverMetadata: {
-          authMethod: executionContext.metadata?.authMethod,
-        },
-      });
-    } catch (err) {
-      // An invalid `conversationId` or `messageId` (nonexistent or cross-tenant)
-      // produces an FK constraint violation here. Translate to 422 instead of
-      // letting the global handler return a generic 500.
-      if (isForeignKeyViolation(err)) {
-        logger.warn(
-          {
-            tenantId,
-            projectId,
-            conversationId: resolvedConversationId,
-            messageId: body.messageId,
-            error: err instanceof Error ? err.message : String(err),
-          },
-          'Event references nonexistent conversationId or messageId'
-        );
-        throw createApiError({
-          code: 'bad_request',
-          message:
-            'The referenced conversationId or messageId does not exist or is not accessible.',
-        });
-      }
-      throw err;
-    }
+    const result = await createEvent(runDbClient)({
+      ...body,
+      id: body.id || generateId(),
+      tenantId,
+      projectId,
+      conversationId: resolvedConversationId,
+      agentId: body.agentId ?? executionContext.agentId ?? null,
+      userProperties: resolvedUserProperties,
+      properties: resolvedProperties,
+      metadata: body.metadata ?? null,
+      serverMetadata: {
+        authMethod: executionContext.metadata?.authMethod,
+      },
+    });
 
     logger.debug(
       {

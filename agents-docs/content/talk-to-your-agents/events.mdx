@@ -85,6 +85,18 @@ PII content placed in `userProperties` is the caller's responsibility — the fr
 
 The schema accepts events with no anchor (`conversationId`, `messageId`, and `agentId` are all independently optional). Receivers downstream of the events table define their own policy for non-anchored events.
 
+## Forward-anchored events
+
+`conversationId` and `messageId` are not foreign keys — events may reference an anchor ID for a row that does not yet exist in the `conversations` or `messages` table. This is the expected pattern for clients that mint a `conversationId` client-side and fire `user_message_submitted` before the chat handler creates the corresponding conversation row.
+
+Webhook consumers that fetch the conversation on receipt may briefly observe a 404. Treat the event payload as the source of truth and retry the conversation fetch if needed.
+
+Conversation deletion still removes any matching events — the framework cleans events up at the application layer when a conversation is deleted. Events anchored only by `messageId` (with `conversationId` left null) are reclaimed at project deletion rather than at conversation deletion. Events whose `conversationId` is never created (e.g. typos, never-completed flows) also persist until project deletion.
+
+<Note>
+  This API does not validate that `conversationId` or `messageId` reference existing rows. Events with unresolvable anchors are accepted with 201. To catch typos in anchor IDs, validate IDs client-side.
+</Note>
+
 ## Event vocabulary
 
 The framework does not ship an event-name registry. The `type` field is a free-form string and consumers define their own vocabulary. Two precedents to follow if you're authoring a consumer:
