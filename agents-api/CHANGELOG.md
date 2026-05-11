@@ -1,5 +1,16 @@
 # @inkeep/agents-api
 
+## 0.72.1
+
+### Patch Changes
+
+- 52e099d: Drop FK constraints on events.conversation_id and events.message_id so events fired before their anchor rows exist (e.g. first user_message_submitted of a conversation) are not silently dropped. Conversation deletion still removes associated events via explicit app-level cleanup.
+- Updated dependencies [52e099d]
+  - @inkeep/agents-core@0.72.1
+  - @inkeep/agents-work-apps@0.72.1
+  - @inkeep/agents-email@0.72.1
+  - @inkeep/agents-mcp@0.72.1
+
 ## 0.72.0
 
 ### Patch Changes
