@@ -892,7 +892,7 @@ class SigNozStatsAPI {
       projectId,
       agentId,
       searchQuery,
-      undefined,
+      pagination,
       hasErrors,
       origin,
       includeAggs
@@ -909,17 +909,12 @@ class SigNozStatsAPI {
       activityMap.set(id, timestampMsFromSeries(s));
     }
 
-    const conversationIds = Array.from(activityMap.keys());
+    const allConversationIds = Array.from(activityMap.keys());
 
-    conversationIds.sort((a, b) => {
-      const aTime = activityMap.get(a) ?? 0;
-      const bTime = activityMap.get(b) ?? 0;
-      return bTime - aTime;
-    });
-
-    const total = conversationIds.length;
-    const start = (pagination.page - 1) * pagination.limit;
-    const paginatedIds = conversationIds.slice(start, start + pagination.limit);
+    const totalSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.TOTAL_CONVERSATIONS);
+    const total = countFromSeries(totalSeries[0] || zeroSeries);
+    const pageStart = (pagination.page - 1) * pagination.limit;
+    const paginatedIds = allConversationIds.slice(pageStart, pageStart + pagination.limit);
 
     const aggregateStats: AggregateStats = includeAggs
       ? {
@@ -1735,7 +1730,7 @@ class SigNozStatsAPI {
         {
           type: QUERY_TYPES.BUILDER_QUERY,
           spec: {
-            name: 'pageConversationsBase',
+            name: QUERY_EXPRESSIONS.PAGE_CONVERSATIONS_BASE,
             signal: SIGNALS.TRACES,
             aggregations: [{ expression: `max(${SPAN_KEYS.TIMESTAMP})` }],
             filter: { expression: buildBaseFilterExpr({ withOrigin: true }) },
@@ -1755,7 +1750,7 @@ class SigNozStatsAPI {
         {
           type: QUERY_TYPES.BUILDER_QUERY,
           spec: {
-            name: 'spanFilterBase',
+            name: QUERY_EXPRESSIONS.SPAN_FILTER_BASE,
             signal: SIGNALS.TRACES,
             aggregations: [{ expression: 'count()' }],
             filter: { expression: buildFilterExpression(filteredConvItems) },
@@ -1776,7 +1771,7 @@ class SigNozStatsAPI {
           type: QUERY_TYPES.BUILDER_TRACE_OPERATOR,
           spec: {
             name: QUERY_EXPRESSIONS.PAGE_CONVERSATIONS,
-            expression: 'pageConversationsBase && spanFilterBase',
+            expression: `${QUERY_EXPRESSIONS.PAGE_CONVERSATIONS_BASE} && ${QUERY_EXPRESSIONS.SPAN_FILTER_BASE}`,
             aggregations: [{ expression: `max(${SPAN_KEYS.TIMESTAMP})` }],
             filter: { expression: '' },
             groupBy: [
@@ -1791,6 +1786,20 @@ class SigNozStatsAPI {
             ],
             stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
             limit: paginationWindowLimit,
+            disabled: QUERY_DEFAULTS.DISABLED,
+          },
+        },
+        {
+          type: QUERY_TYPES.BUILDER_TRACE_OPERATOR,
+          spec: {
+            name: QUERY_EXPRESSIONS.TOTAL_CONVERSATIONS,
+            expression: `${QUERY_EXPRESSIONS.PAGE_CONVERSATIONS_BASE} && ${QUERY_EXPRESSIONS.SPAN_FILTER_BASE}`,
+            aggregations: [{ expression: `count_distinct(${SPAN_KEYS.CONVERSATION_ID})` }],
+            filter: { expression: '' },
+            groupBy: [],
+            order: [],
+            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+            limit: 1,
             disabled: QUERY_DEFAULTS.DISABLED,
           },
         }
