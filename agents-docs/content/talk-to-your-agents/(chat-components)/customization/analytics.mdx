@@ -29,3 +29,40 @@ const baseSettings = {
 <Callout type="info">
   Analytics SDKs automatically attach the active user identity at capture time, so Inkeep events land on the same user timeline as your existing events — no extra wiring needed for funnels, cohorts, or user paths.
 </Callout>
+
+## Built-in Events API Logging
+
+In addition to the `onEvent` callback, the chat widget automatically logs chat-tree events to the [Events API](/talk-to-your-agents/events) (`POST /run/v1/events`). The following events are sent:
+
+- `user_message_submitted`
+- `assistant_message_received`
+- `assistant_answer_displayed`
+- `assistant_message_copied`
+- `assistant_source_item_clicked`
+- `assistant_code_block_copied`
+- `assistant_message_inline_link_opened`
+- `chat_error`
+- `user_escalation_indicated`
+- `assistant_positive_feedback_submitted`
+- `assistant_negative_feedback_submitted`
+- `get_help_option_clicked`
+
+Each event includes the `conversationId`, `messageId`, `userProperties` (from `baseSettings.userProperties`), a `properties` bag (containing `baseSettings.tags` and `baseSettings.analyticsProperties`), and a `metadata` bag with widget-specific context like `widgetLibraryVersion`, `componentType`, and event-specific payload.
+
+Search-side events (`search_query_*`, `search_result_clicked`) and widget trigger events (`modal_opened`, `chat_bubble_opened`, etc.) only fire the `onEvent` callback — they are **not** sent to the Events API.
+
+### Privacy opt-out
+
+When `baseSettings.privacyPreferences.optOutAllAnalytics` is `true`, the widget skips the Events API call but `onEvent` still fires. This lets you respect user privacy preferences while keeping your own client-side analytics operational.
+
+### Custom events endpoint
+
+Use `aiChatSettings.analyticsApiBaseUrl` to route event requests to a separate base URL. When omitted, events are sent to `aiChatSettings.baseUrl`.
+
+```typescript
+const aiChatSettings = {
+  baseUrl: "https://your-api.example.com",
+  appId: "YOUR_APP_ID",
+  analyticsApiBaseUrl: "https://your-analytics-api.example.com", // optional
+};
+```
