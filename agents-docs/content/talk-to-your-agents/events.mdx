@@ -101,10 +101,61 @@ Conversation deletion still removes any matching events — the framework cleans
 
 The framework does not ship an event-name registry. The `type` field is a free-form string and consumers define their own vocabulary. Two precedents to follow if you're authoring a consumer:
 
-- **Inkeep widget chat events** are typed by `@inkeep/agents-ui`'s `InkeepEvent` discriminated union (chat, search, and widget event categories). When the widget self-instruments lifecycle events in a future release, those names are the canonical widget vocabulary.
+- **Inkeep widget chat events** are typed by `@inkeep/agents-ui`'s `InkeepEvent` discriminated union (chat, search, and widget event categories). The widget automatically logs chat-tree events to the Events API — see [Widget chat events](#widget-chat-events) below.
 - **Consumer-specific event names** (action events, generation events, custom product events) live in the consumer's own package as a `const` + derived union pattern. They flow through the API as plain strings.
 
 Webhook destinations subscribe to event families (`conversation events`, `feedback events`, `event.created`), not to specific `type` values. Receivers filter on `type` after delivery — this keeps the framework decoupled from any particular event vocabulary.
+
+## Widget chat events
+
+The `@inkeep/agents-ui` chat widget automatically POSTs chat-tree events to `POST /run/v1/events`. No extra wiring is required — events are logged as soon as the widget authenticates against the run API.
+
+### Logged event types
+
+The following chat events are sent to the Events API:
+
+- `user_message_submitted`
+- `assistant_message_received`
+- `assistant_answer_displayed`
+- `assistant_message_copied`
+- `assistant_source_item_clicked`
+- `assistant_code_block_copied`
+- `assistant_message_inline_link_opened`
+- `chat_error`
+- `user_escalation_indicated`
+- `assistant_positive_feedback_submitted`
+- `assistant_negative_feedback_submitted`
+- `get_help_option_clicked`
+
+Search events (`search_query_submitted`, `search_query_response_received`, `search_result_clicked`) and widget trigger events (`modal_opened`, `modal_closed`, `chat_bubble_opened`, `chat_bubble_closed`) fire the `baseSettings.onEvent` callback only — they are **not** sent to the Events API.
+
+### Body structure
+
+Each event POST contains:
+
+| Field | Source |
+| --- | --- |
+| `type` | The event name (e.g. `assistant_message_received`). |
+| `conversationId` | Extracted from the event properties when present. |
+| `messageId` | Extracted from the event properties when present. |
+| `userProperties` | Forwarded from `baseSettings.userProperties`. |
+| `properties` | Consumer-defined keys: `baseSettings.tags` and `baseSettings.analyticsProperties`. |
+| `metadata` | Widget-runtime context (`widgetLibraryVersion`, `componentType`) plus event-specific payload (e.g. `link`, `code`, `language`, `error`, `escalationType`). |
+
+### Privacy opt-out
+
+When `baseSettings.privacyPreferences.optOutAllAnalytics` is `true`, the widget skips the API call. The `baseSettings.onEvent` callback still fires so consumer-side analytics can apply their own consent logic.
+
+### Custom analytics API base URL
+
+By default the widget sends events to the same origin as `aiChatSettings.baseUrl`. Set `aiChatSettings.analyticsApiBaseUrl` to route events to a different base URL:
+
+```typescript
+const aiChatSettings = {
+  baseUrl: "https://api.agents.inkeep.com",
+  analyticsApiBaseUrl: "https://analytics.example.com",
+};
+```
 
 ## Outbound webhook delivery
 
