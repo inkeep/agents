@@ -29,3 +29,23 @@ const baseSettings = {
 <Callout type="info">
   Analytics SDKs automatically attach the active user identity at capture time, so Inkeep events land on the same user timeline as your existing events — no extra wiring needed for funnels, cohorts, or user paths.
 </Callout>
+
+## Built-in Events API logging
+
+Chat-tree events — such as `user_message_submitted`, `assistant_message_received`, `assistant_answer_displayed`, `assistant_message_copied`, `assistant_source_item_clicked`, `assistant_code_block_copied`, `assistant_message_inline_link_opened`, `chat_error`, `user_escalation_indicated`, `assistant_positive_feedback_submitted`, `assistant_negative_feedback_submitted`, and `get_help_option_clicked` — are automatically POSTed to the [Events API](/talk-to-your-agents/events) in addition to firing `onEvent`. Search events (`search_query_*`, `search_result_clicked`) and widget trigger events (`modal_opened`, `chat_bubble_opened`, etc.) only fire `onEvent` — no API call is made.
+
+When `baseSettings.privacyPreferences.optOutAllAnalytics` is `true`, the API call is skipped but `onEvent` still fires. This is useful when you want to route events exclusively through your own analytics pipeline:
+
+```typescript
+const baseSettings = {
+  privacyPreferences: {
+    optOutAllAnalytics: true,
+  },
+  onEvent: async (event) => {
+    // Only your analytics tool receives events — no server-side API call.
+    posthog.capture(event.eventName, event.properties);
+  },
+};
+```
+
+By default, events are sent to the same base URL used for chat (`aiChatSettings.baseUrl`). To route events to a different endpoint, set `aiChatSettings.analyticsApiBaseUrl`.
