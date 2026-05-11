@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { events } from '../../db/runtime/runtime-schema';
 import type { EventInsert, PaginationConfig, ProjectScopeConfig } from '../../types/index';
@@ -78,4 +78,24 @@ export const listEventsByConversationId =
       .orderBy(desc(events.createdAt))
       .limit(limit)
       .offset(offset);
+  };
+
+export const deleteEventsByConversationIds =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; conversationIds: string[] }): Promise<number> => {
+    if (params.conversationIds.length === 0) {
+      return 0;
+    }
+
+    const deleted = await db
+      .delete(events)
+      .where(
+        and(
+          projectScopedWhere(events, params.scopes),
+          inArray(events.conversationId, params.conversationIds)
+        )
+      )
+      .returning();
+
+    return deleted.length;
   };

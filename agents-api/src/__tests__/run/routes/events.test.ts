@@ -678,30 +678,38 @@ describe('POST /events route handler', () => {
     expect(persisted?.userProperties).toEqual({ id: 'real-customer', plan: 'pro' });
   });
 
-  it('returns 400 when conversationId references a nonexistent conversation (FK violation)', async () => {
-    const tenantId = await createTestTenantWithOrg('events-fk-conv-violation');
+  it('accepts forward-anchored event with conversationId for a not-yet-created conversation', async () => {
+    const tenantId = await createTestTenantWithOrg('events-forward-anchor-conv');
     const projectId = 'default';
     await createTestProject(manageDbClient, tenantId, projectId);
+
+    const forwardConversationId = 'conv-not-yet-created';
 
     const app = buildAppWithContext({ tenantId, projectId });
     const res = await app.request('/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        type: 'system_health_check',
-        conversationId: 'conv-does-not-exist',
+        type: 'user_message_submitted',
+        conversationId: forwardConversationId,
       }),
     });
 
-    expect(res.status).toBe(400);
-    const body = (await res.json()) as { code?: string };
-    expect(body.code).toBe('bad_request');
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { data: { id: string } };
+    const persisted = await getEventById(runDbClient)({
+      scopes: { tenantId, projectId },
+      eventId: body.data.id,
+    });
+    expect(persisted?.conversationId).toBe(forwardConversationId);
   });
 
-  it('returns 400 when messageId references a nonexistent message (FK violation)', async () => {
-    const tenantId = await createTestTenantWithOrg('events-fk-msg-violation');
+  it('accepts forward-anchored event with messageId for a not-yet-created message', async () => {
+    const tenantId = await createTestTenantWithOrg('events-forward-anchor-msg');
     const projectId = 'default';
     await createTestProject(manageDbClient, tenantId, projectId);
+
+    const forwardMessageId = 'msg-not-yet-created';
 
     const app = buildAppWithContext({ tenantId, projectId });
     const res = await app.request('/', {
@@ -709,13 +717,18 @@ describe('POST /events route handler', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         type: 'user_clicked_apply_draft',
-        messageId: 'msg-does-not-exist',
+        messageId: forwardMessageId,
       }),
     });
 
-    expect(res.status).toBe(400);
-    const body = (await res.json()) as { code?: string };
-    expect(body.code).toBe('bad_request');
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as { data: { id: string } };
+    const persisted = await getEventById(runDbClient)({
+      scopes: { tenantId, projectId },
+      eventId: body.data.id,
+    });
+    expect(persisted?.messageId).toBe(forwardMessageId);
+    expect(persisted?.conversationId).toBeNull();
   });
 
   it('returns null userProperties when no anchors and no caller value (does not auto-fill from endUserId)', async () => {

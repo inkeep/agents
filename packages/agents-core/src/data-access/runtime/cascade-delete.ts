@@ -6,6 +6,7 @@ import {
   conversations,
   datasetRun,
   evaluationRun,
+  events,
   scheduledTriggerInvocations,
   scheduledTriggers,
   tasks,
@@ -18,6 +19,7 @@ import {
 import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/index';
 import { projectScopedWhere } from '../manage/scope-helpers';
 import { clearAppDefaultsByAgent, clearAppDefaultsByProject, deleteAppsByProject } from './apps';
+import { deleteEventsByConversationIds } from './events';
 import { deleteSlackMcpToolAccessConfig } from './slack-work-app-mcp';
 import {
   clearDevConfigWorkspaceDefaultsByAgent,
@@ -29,7 +31,14 @@ import {
 } from './workAppSlack';
 
 /**
- * Result of a cascade delete operation
+ * Result of a cascade delete operation.
+ *
+ * Conversation-child cleanup strategies in this module (taxonomy):
+ *  - DB-level FK cascade only: feedback
+ *  - DB-level FK cascade plus app-level explicit delete: messages, contextCache
+ *  - App-level only (no FK): events — forward-anchored events may reference
+ *    conversation/message IDs that don't yet exist, so an FK is incompatible
+ *    with the table's analytics-stream semantics (see specs/2026-05-11-events-drop-fk/SPEC.md).
  */
 export type CascadeDeleteResult = {
   conversationsDeleted: number;
@@ -45,11 +54,13 @@ export type CascadeDeleteResult = {
   appsDeleted: number;
   appDefaultsCleared: number;
   scheduledTriggersDeleted: number;
+  eventsDeleted: number;
 };
 
 /**
  * Delete all runtime entities for a specific branch.
- * PostgreSQL cascades handle: messages, taskRelations, ledgerArtifacts
+ * PostgreSQL cascades handle: messages, taskRelations, ledgerArtifacts.
+ * Events are deleted explicitly before conversations (no FK cascade).
  *
  * @param db - Runtime database client
  * @returns Function that performs the cascade delete
@@ -74,6 +85,22 @@ export const cascadeDeleteByBranch =
         )
       )
       .returning();
+
+    const branchConversationIdRows = await db
+      .select({ id: conversations.id })
+      .from(conversations)
+      .where(
+        and(
+          projectScopedWhere(conversations, scopes),
+          sql`${conversations.ref}->>'name' = ${fullBranchName}`
+        )
+      );
+    const branchConversationIds = branchConversationIdRows.map((c) => c.id);
+
+    const eventsDeleted = await deleteEventsByConversationIds(db)({
+      scopes,
+      conversationIds: branchConversationIds,
+    });
 
     // Delete conversations for this branch (cascades to messages)
     const conversationsResult = await db
@@ -166,13 +193,15 @@ export const cascadeDeleteByBranch =
       appsDeleted: 0,
       appDefaultsCleared: 0,
       scheduledTriggersDeleted: scheduledTriggersResult.length,
+      eventsDeleted,
     };
   };
 
 /**
  * Delete all runtime entities for a project across all branches.
  * Used when deleting a project entirely.
- * PostgreSQL cascades handle: messages, taskRelations, ledgerArtifacts
+ * PostgreSQL cascades handle: messages, taskRelations, ledgerArtifacts.
+ * Events are deleted explicitly before conversations (no FK cascade).
  *
  * @param db - Runtime database client
  * @returns Function that performs the cascade delete
@@ -186,6 +215,15 @@ export const cascadeDeleteByProject =
     const contextCacheResult = await db
       .delete(contextCache)
       .where(projectScopedWhere(contextCache, scopes))
+      .returning();
+
+    // Project-level deletion intentionally uses projectScopedWhere rather than
+    // deleteEventsByConversationIds so it also reclaims free-form events
+    // (conversationId IS NULL) — these are out of reach for inArray-based
+    // cleanup. See SPEC D7 for the design rationale.
+    const eventsResult = await db
+      .delete(events)
+      .where(projectScopedWhere(events, scopes))
       .returning();
 
     // Delete conversations for this project (cascades to messages)
@@ -292,6 +330,7 @@ export const cascadeDeleteByProject =
       appsDeleted,
       appDefaultsCleared,
       scheduledTriggersDeleted: scheduledTriggersResult.length,
+      eventsDeleted: eventsResult.length,
     };
   };
 
@@ -316,6 +355,7 @@ export const cascadeDeleteByAgent =
     let conversationsDeleted = 0;
     let tasksDeleted = 0;
     let apiKeysDeleted = 0;
+    let eventsDeleted = 0;
 
     if (subAgentIds.length > 0) {
       // Find conversations where activeSubAgentId is one of this agent's subAgents
@@ -344,6 +384,8 @@ export const cascadeDeleteByAgent =
           )
           .returning();
         contextCacheDeleted = contextCacheResult.length;
+
+        eventsDeleted = await deleteEventsByConversationIds(db)({ scopes, conversationIds });
 
         // Delete the conversations (cascades to messages)
         const conversationsResult = await db
@@ -447,6 +489,7 @@ export const cascadeDeleteByAgent =
       appsDeleted: 0,
       appDefaultsCleared,
       scheduledTriggersDeleted: scheduledTriggersResult.length,
+      eventsDeleted,
     };
   };
 
@@ -481,6 +524,7 @@ export const cascadeDeleteBySubAgent =
 
     let contextCacheDeleted = 0;
     let conversationsDeleted = 0;
+    let eventsDeleted = 0;
 
     if (conversationIds.length > 0) {
       // Delete contextCache for these conversations
@@ -494,6 +538,8 @@ export const cascadeDeleteBySubAgent =
         )
         .returning();
       contextCacheDeleted = contextCacheResult.length;
+
+      eventsDeleted = await deleteEventsByConversationIds(db)({ scopes, conversationIds });
 
       // Delete the conversations (cascades to messages)
       const conversationsResult = await db
@@ -531,6 +577,7 @@ export const cascadeDeleteBySubAgent =
       appsDeleted: 0,
       appDefaultsCleared: 0,
       scheduledTriggersDeleted: 0,
+      eventsDeleted,
     };
   };
 
