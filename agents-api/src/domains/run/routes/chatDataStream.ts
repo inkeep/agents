@@ -7,6 +7,7 @@ import {
   commonGetErrorResponses,
   createApiError,
   createMessage,
+  createOrGetConversation,
   type FullExecutionContext,
   generateId,
   getActiveAgentForConversation,
@@ -353,8 +354,20 @@ app.openapi(chatDataStreamRoute, async (c) => {
           headerName: 'x-inkeep-properties',
           logger,
         });
+      const conversationMeta = buildConversationMetadata(executionContext);
+      await createOrGetConversation(runDbClient)({
+        tenantId,
+        projectId,
+        id: conversationId,
+        agentId: agentId,
+        activeSubAgentId: activeAgent?.activeSubAgentId ?? defaultSubAgentId,
+        ref: executionContext.resolvedRef,
+        userId: executionContext.metadata?.endUserId,
+        ...(conversationMeta ? { metadata: conversationMeta } : {}),
+        ...(resolvedUserProperties !== undefined ? { userProperties: resolvedUserProperties } : {}),
+        ...(resolvedProperties !== undefined ? { properties: resolvedProperties } : {}),
+      });
       if (!activeAgent) {
-        const conversationMeta = buildConversationMetadata(executionContext);
         await setActiveAgentForConversation(runDbClient)({
           scopes: { tenantId, projectId },
           conversationId,
@@ -363,10 +376,6 @@ app.openapi(chatDataStreamRoute, async (c) => {
           agentId: agentId,
           userId: executionContext.metadata?.endUserId,
           ...(conversationMeta ? { metadata: conversationMeta } : {}),
-          ...(resolvedUserProperties !== undefined
-            ? { userProperties: resolvedUserProperties }
-            : {}),
-          ...(resolvedProperties !== undefined ? { properties: resolvedProperties } : {}),
         });
       }
       const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;

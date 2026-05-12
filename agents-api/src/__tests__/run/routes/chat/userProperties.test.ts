@@ -104,7 +104,7 @@ import { makeRequest } from '../../../utils/testRequest';
 
 describe('userProperties in chat requests', () => {
   it('writes body.userProperties to top-level conversations.userProperties via /chat (Vercel stream)', async () => {
-    mockSetActiveAgent.mockClear();
+    mockCreateOrGetConversation.mockClear();
     mockCreateMessage.mockClear();
 
     const body = {
@@ -118,7 +118,7 @@ describe('userProperties in chat requests', () => {
     });
 
     expect(res.status).toBe(200);
-    expect(mockSetActiveAgent).toHaveBeenCalledWith(
+    expect(mockCreateOrGetConversation).toHaveBeenCalledWith(
       expect.objectContaining({
         userProperties: { email: 'test@example.com', plan: 'pro' },
       })
@@ -143,7 +143,7 @@ describe('userProperties in chat requests', () => {
   });
 
   it('writes body.userProperties + body.properties to top-level columns via /chat (Vercel stream)', async () => {
-    mockSetActiveAgent.mockClear();
+    mockCreateOrGetConversation.mockClear();
 
     const body = {
       messages: [{ role: 'user', content: 'Hello' }],
@@ -157,7 +157,7 @@ describe('userProperties in chat requests', () => {
     });
 
     expect(res.status).toBe(200);
-    expect(mockSetActiveAgent).toHaveBeenCalledWith(
+    expect(mockCreateOrGetConversation).toHaveBeenCalledWith(
       expect.objectContaining({
         userProperties: { email: 'stream@example.com', plan: 'pro' },
         properties: { url: '/stream-page', referrer: 'duck' },
@@ -237,7 +237,7 @@ describe('userProperties in chat requests', () => {
   });
 
   it('does not set userProperties or metadata when both are omitted', async () => {
-    mockSetActiveAgent.mockClear();
+    mockCreateOrGetConversation.mockClear();
     mockCreateMessage.mockClear();
 
     const body = {
@@ -250,7 +250,7 @@ describe('userProperties in chat requests', () => {
     });
 
     expect(res.status).toBe(200);
-    expect(mockSetActiveAgent).toHaveBeenCalledWith(
+    expect(mockCreateOrGetConversation).toHaveBeenCalledWith(
       expect.not.objectContaining({ userProperties: expect.anything() })
     );
     expect(mockCreateMessage).toHaveBeenCalledWith(
@@ -264,7 +264,7 @@ describe('userProperties in chat requests', () => {
     ['ANONYMOUS', { id: '1hb1l6c4cg9435m125i6p', identificationType: 'ANONYMOUS' }],
     ['COOKIED', { id: '1hb1l6c4cg9435m125i6p', identificationType: 'COOKIED' }],
   ])('drops widget auto-mint identityType=%s userProperties', async (_label, userProperties) => {
-    mockSetActiveAgent.mockClear();
+    mockCreateOrGetConversation.mockClear();
     mockCreateMessage.mockClear();
 
     const body = {
@@ -278,7 +278,7 @@ describe('userProperties in chat requests', () => {
     });
 
     expect(res.status).toBe(200);
-    expect(mockSetActiveAgent).toHaveBeenCalledWith(
+    expect(mockCreateOrGetConversation).toHaveBeenCalledWith(
       expect.not.objectContaining({ userProperties: expect.anything() })
     );
     expect(mockCreateMessage).toHaveBeenCalledWith(
@@ -289,7 +289,7 @@ describe('userProperties in chat requests', () => {
   });
 
   it('drops ANONYMOUS userProperties supplied via x-inkeep-user-properties header', async () => {
-    mockSetActiveAgent.mockClear();
+    mockCreateOrGetConversation.mockClear();
     mockCreateMessage.mockClear();
 
     const body = { messages: [{ role: 'user', content: 'Hello' }] };
@@ -306,13 +306,13 @@ describe('userProperties in chat requests', () => {
     });
 
     expect(res.status).toBe(200);
-    expect(mockSetActiveAgent).toHaveBeenCalledWith(
+    expect(mockCreateOrGetConversation).toHaveBeenCalledWith(
       expect.not.objectContaining({ userProperties: expect.anything() })
     );
   });
 
   it('preserves ID_PROVIDED userProperties (header) and strips identificationType marker', async () => {
-    mockSetActiveAgent.mockClear();
+    mockCreateOrGetConversation.mockClear();
     mockCreateMessage.mockClear();
 
     const body = { messages: [{ role: 'user', content: 'Hello' }] };
@@ -331,12 +331,12 @@ describe('userProperties in chat requests', () => {
     });
 
     expect(res.status).toBe(200);
-    expect(mockSetActiveAgent).toHaveBeenCalledWith(
+    expect(mockCreateOrGetConversation).toHaveBeenCalledWith(
       expect.objectContaining({
         userProperties: { id: 'customer-42', email: 'customer@example.com' },
       })
     );
-    expect(mockSetActiveAgent).toHaveBeenCalledWith(
+    expect(mockCreateOrGetConversation).toHaveBeenCalledWith(
       expect.objectContaining({
         userProperties: expect.not.objectContaining({ identificationType: expect.anything() }),
       })

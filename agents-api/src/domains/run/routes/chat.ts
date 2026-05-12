@@ -300,7 +300,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
         projectId,
         id: conversationId,
         agentId: agentId,
-        activeSubAgentId: defaultSubAgentId,
+        activeSubAgentId: existingActiveAgent?.activeSubAgentId ?? defaultSubAgentId,
         ref: executionContext.resolvedRef,
         userId: executionContext.metadata?.endUserId,
         ...(conversationMeta ? { metadata: conversationMeta } : {}),
