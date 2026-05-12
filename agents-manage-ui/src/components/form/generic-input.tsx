@@ -4,6 +4,7 @@ import type { JSX, ReactNode } from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { FormControl } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { FormFieldWrapper } from './form-field-wrapper';
 
 interface GenericInputProps<FV extends FieldValues, TV = FieldValues> {
@@ -56,18 +57,30 @@ export function GenericInput<
     >
       {(field) => (
         <FormControl>
-          <Input
-            type={type}
-            placeholder={placeholder}
-            min={min}
-            max={max}
-            disabled={disabled}
-            {...field}
-            value={field.value ?? ''}
-            onChange={(e) => {
-              field.onChange(transform(e.target.value));
-            }}
-          />
+          {type === 'password' ? (
+            <PasswordInput
+              placeholder={placeholder}
+              disabled={disabled}
+              {...field}
+              value={field.value ?? ''}
+              onChange={(e) => {
+                field.onChange(transform(e.target.value));
+              }}
+            />
+          ) : (
+            <Input
+              type={type}
+              placeholder={placeholder}
+              min={min}
+              max={max}
+              disabled={disabled}
+              {...field}
+              value={field.value ?? ''}
+              onChange={(e) => {
+                field.onChange(transform(e.target.value));
+              }}
+            />
+          )}
         </FormControl>
       )}
     </FormFieldWrapper>

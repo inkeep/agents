@@ -227,6 +227,7 @@ export function CredentialForm({ onCreateCredential }: CredentialFormProps) {
               control={form.control}
               name="apiKeyToSet"
               label="API key"
+              type="password"
               placeholder="e.g., sk-1234567890abcdef1234567890abcdef"
               isRequired
             />

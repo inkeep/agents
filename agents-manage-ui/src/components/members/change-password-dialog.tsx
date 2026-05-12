@@ -11,8 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PasswordInput } from '@/components/ui/password-input';
 import { MIN_PASSWORD_LENGTH, PasswordRequirements } from '@/components/ui/password-requirements';
 import { useAuthClient } from '@/contexts/auth-client';
 
@@ -89,9 +89,8 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="currentPassword">Current password</Label>
-              <Input
+              <PasswordInput
                 id="currentPassword"
-                type="password"
                 value={formData.currentPassword}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, currentPassword: e.target.value }))
@@ -104,9 +103,8 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
 
             <div className="grid gap-2">
               <Label htmlFor="newPassword">New password</Label>
-              <Input
+              <PasswordInput
                 id="newPassword"
-                type="password"
                 value={formData.newPassword}
                 onChange={(e) => setFormData((prev) => ({ ...prev, newPassword: e.target.value }))}
                 disabled={isSubmitting}
@@ -118,9 +116,8 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
 
             <div className="grid gap-2">
               <Label htmlFor="confirmPassword">Confirm new password</Label>
-              <Input
+              <PasswordInput
                 id="confirmPassword"
-                type="password"
                 value={formData.confirmPassword}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, confirmPassword: e.target.value }))
