@@ -1,4 +1,5 @@
-import { GripVertical, MoreVertical, Trash2 } from 'lucide-react';
+import { GripVertical, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { useParams } from 'next/navigation';
 import type { Checkbox as CheckboxPrimitive } from 'radix-ui';
 import { type FC, useState } from 'react';
 import type { AgentSkill } from '@/components/agent/form/validation';
@@ -52,6 +53,7 @@ export function updateSkillAlwaysLoaded(
 export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onChange }) => {
   const [draggingId, setDraggingId] = useState('');
   const [dragOverId, setDragOverId] = useState('');
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const { data: availableSkills } = useSkillsQuery();
   const skillById = createLookup(availableSkills);
 
@@ -162,6 +164,16 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild>
+                      <a
+                        href={`/${tenantId}/projects/${projectId}/skills/${skill.id}/edit`}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                      >
+                        <Pencil />
+                        Edit
+                      </a>
+                    </DropdownMenuItem>
                     <DropdownMenuItem
                       variant="destructive"
                       data-id={skill.id}
