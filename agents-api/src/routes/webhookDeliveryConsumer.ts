@@ -36,6 +36,7 @@ export async function POST(request: Request): Promise<Response> {
     const response = await fetchWithSsrfProtection(destinationUrl, {
       method: 'POST',
       headers: {
+        ...payload.headers,
         'Content-Type': 'application/json',
         'User-Agent': 'Inkeep-Webhooks/1.0',
       },

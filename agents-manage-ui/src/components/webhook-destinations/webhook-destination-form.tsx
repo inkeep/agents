@@ -5,6 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import {
+  keyValuePairsToRecord,
+  recordToKeyValuePairs,
+} from '@/components/credentials/views/credential-form-validation';
+import { GenericKeyValueInput } from '@/components/form/generic-key-value-input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -39,9 +44,29 @@ const formSchema = z.object({
   url: z.string().url('Must be a valid URL'),
   eventTypes: z.array(z.string()).min(1, 'Select at least one event type'),
   agentIds: z.array(z.string()),
+  headers: z.array(z.object({ key: z.string(), value: z.string() })),
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+function formatHeaderValidationError(rawError: string | undefined): string {
+  if (!rawError) return 'Unknown error';
+  try {
+    const parsed = JSON.parse(rawError);
+    const issues = Array.isArray(parsed) ? parsed : null;
+    if (!issues) return rawError;
+    const lines = issues.map((issue) => {
+      const leaf = issue?.issues?.[0]?.message ?? issue?.message ?? 'Invalid';
+      const path = Array.isArray(issue?.path) ? issue.path : [];
+      const hint =
+        path[0] === 'headers' && typeof path[1] === 'string' ? `Custom Header "${path[1]}"` : null;
+      return hint ? `${hint}: ${leaf}` : leaf;
+    });
+    return lines.join('; ');
+  } catch {
+    return rawError;
+  }
+}
 
 interface Agent {
   id: string;
@@ -74,10 +99,12 @@ export function WebhookDestinationForm({
       url: webhookDestination?.url || '',
       eventTypes: webhookDestination?.eventTypes || [],
       agentIds: (webhookDestination as any)?.agentIds || [],
+      headers: recordToKeyValuePairs(webhookDestination?.headers ?? undefined),
     },
   });
 
   async function onSubmit(values: FormValues) {
+    const headersRecord = keyValuePairsToRecord(values.headers);
     const payload = {
       name: values.name,
       description: values.description || undefined,
@@ -85,6 +112,7 @@ export function WebhookDestinationForm({
       url: values.url,
       eventTypes: values.eventTypes,
       agentIds: values.agentIds,
+      headers: Object.keys(headersRecord).length > 0 ? headersRecord : undefined,
     };
 
     if (mode === 'create') {
@@ -94,7 +122,7 @@ export function WebhookDestinationForm({
         router.push(`/${tenantId}/projects/${projectId}/webhook-destinations`);
         router.refresh();
       } else {
-        toast.error(result.error);
+        toast.error(formatHeaderValidationError(result.error));
       }
     } else if (webhookDestination) {
       const result = await updateWebhookDestinationAction(
@@ -108,7 +136,7 @@ export function WebhookDestinationForm({
         router.push(`/${tenantId}/projects/${projectId}/webhook-destinations`);
         router.refresh();
       } else {
-        toast.error(result.error);
+        toast.error(formatHeaderValidationError(result.error));
       }
     }
   }
@@ -159,6 +187,16 @@ export function WebhookDestinationForm({
               <FormMessage />
             </FormItem>
           )}
+        />
+
+        <GenericKeyValueInput
+          control={form.control}
+          name="headers"
+          label="Custom Headers"
+          description="Add custom HTTP headers to include in webhook delivery requests. Header names are case-insensitive and may be received in lowercase by the destination."
+          keyPlaceholder="Header name"
+          valuePlaceholder="Header value"
+          addButtonLabel="Add Header"
         />
 
         <FormField

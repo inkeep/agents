@@ -147,6 +147,32 @@ describe('webhookDeliveryWorkflow', () => {
     expect(mockDeliverStep).toHaveBeenCalledWith({
       destinationUrl: 'https://hook.example.com',
       payload: basePayload.payload,
+      headers: undefined,
     });
+  });
+
+  it('forwards headers from payload to deliverWebhookStep', async () => {
+    mockDeliverStep.mockResolvedValueOnce({ success: true, statusCode: 200 });
+
+    const payloadWithHeaders: WebhookDeliveryPayload = {
+      ...basePayload,
+      headers: { 'X-Api-Key': 'secret', Authorization: 'Bearer tok' },
+    };
+
+    await runWorkflow(payloadWithHeaders);
+
+    expect(mockDeliverStep).toHaveBeenCalledWith({
+      destinationUrl: 'https://hook.example.com',
+      payload: basePayload.payload,
+      headers: { 'X-Api-Key': 'secret', Authorization: 'Bearer tok' },
+    });
+  });
+
+  it('forwards null headers to deliverWebhookStep', async () => {
+    mockDeliverStep.mockResolvedValueOnce({ success: true, statusCode: 200 });
+
+    await runWorkflow({ ...basePayload, headers: null });
+
+    expect(mockDeliverStep).toHaveBeenCalledWith(expect.objectContaining({ headers: null }));
   });
 });

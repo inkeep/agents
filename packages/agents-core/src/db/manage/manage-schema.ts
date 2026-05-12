@@ -176,6 +176,7 @@ export const webhookDestinations = pgTable(
     enabled: boolean('enabled').notNull().default(true),
     url: text('url').notNull(),
     eventTypes: jsonb('event_types').$type<string[]>().notNull(),
+    headers: jsonb('headers').$type<Record<string, string> | null>(),
     ...timestamps,
   },
   (table) => [

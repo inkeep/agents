@@ -1857,8 +1857,12 @@
           },
           "headers": {
             "additionalProperties": {
+              "maxLength": 1000,
+              "minLength": 1,
+              "pattern": "^[^\\r\\n\\0]+$",
               "type": "string"
             },
+            "description": "Custom HTTP headers as key-value pairs. Keys must be valid RFC 7230 token characters (alphanumeric plus !#$%&'*+-.^_`|~), max 128 chars. Values: 1-1000 chars. Reserved names: Connection, Keep-Alive, TE, Trailer, Transfer-Encoding, Upgrade, Proxy-Authorization, Proxy-Connection, Content-Length.",
             "nullable": true,
             "type": "object"
           },
@@ -1900,8 +1904,12 @@
           },
           "headers": {
             "additionalProperties": {
+              "maxLength": 1000,
+              "minLength": 1,
+              "pattern": "^[^\\r\\n\\0]+$",
               "type": "string"
             },
+            "description": "Custom HTTP headers as key-value pairs. Keys must be valid RFC 7230 token characters (alphanumeric plus !#$%&'*+-.^_`|~), max 128 chars. Values: 1-1000 chars. Reserved names: Connection, Keep-Alive, TE, Trailer, Transfer-Encoding, Upgrade, Proxy-Authorization, Proxy-Connection, Content-Length.",
             "nullable": true,
             "type": "object"
           },
@@ -1936,8 +1944,12 @@
           },
           "headers": {
             "additionalProperties": {
+              "maxLength": 1000,
+              "minLength": 1,
+              "pattern": "^[^\\r\\n\\0]+$",
               "type": "string"
             },
+            "description": "Custom HTTP headers as key-value pairs. Keys must be valid RFC 7230 token characters (alphanumeric plus !#$%&'*+-.^_`|~), max 128 chars. Values: 1-1000 chars. Reserved names: Connection, Keep-Alive, TE, Trailer, Transfer-Encoding, Upgrade, Proxy-Authorization, Proxy-Connection, Content-Length.",
             "nullable": true,
             "type": "object"
           },
@@ -2400,9 +2412,12 @@
           },
           "metadata": {
             "additionalProperties": {
+              "maxLength": 1000,
+              "minLength": 1,
+              "pattern": "^[^\\r\\n\\0]+$",
               "type": "string"
             },
-            "description": "The metadata for the credential",
+            "description": "Credential metadata. Keys are injected as HTTP headers on outbound MCP server requests, so they must be valid HTTP header names.",
             "nullable": true,
             "type": "object"
           },
@@ -7149,7 +7164,15 @@
             "type": "string"
           },
           "headers": {
-            "$ref": "#/components/schemas/StringRecord"
+            "additionalProperties": {
+              "maxLength": 1000,
+              "minLength": 1,
+              "pattern": "^[^\\r\\n\\0]+$",
+              "type": "string"
+            },
+            "description": "Custom HTTP headers as key-value pairs. Keys must be valid RFC 7230 token characters (alphanumeric plus !#$%&'*+-.^_`|~), max 128 chars. Values: 1-1000 chars. Reserved names: Connection, Keep-Alive, TE, Trailer, Transfer-Encoding, Upgrade, Proxy-Authorization, Proxy-Connection, Content-Length.",
+            "nullable": true,
+            "type": "object"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
@@ -9514,8 +9537,12 @@
           },
           "headers": {
             "additionalProperties": {
+              "maxLength": 1000,
+              "minLength": 1,
+              "pattern": "^[^\\r\\n\\0]+$",
               "type": "string"
             },
+            "description": "Custom HTTP headers as key-value pairs. Keys must be valid RFC 7230 token characters (alphanumeric plus !#$%&'*+-.^_`|~), max 128 chars. Values: 1-1000 chars. Reserved names: Connection, Keep-Alive, TE, Trailer, Transfer-Encoding, Upgrade, Proxy-Authorization, Proxy-Connection, Content-Length.",
             "nullable": true,
             "type": "object"
           },
@@ -9567,8 +9594,12 @@
           },
           "headers": {
             "additionalProperties": {
+              "maxLength": 1000,
+              "minLength": 1,
+              "pattern": "^[^\\r\\n\\0]+$",
               "type": "string"
             },
+            "description": "Custom HTTP headers as key-value pairs. Keys must be valid RFC 7230 token characters (alphanumeric plus !#$%&'*+-.^_`|~), max 128 chars. Values: 1-1000 chars. Reserved names: Connection, Keep-Alive, TE, Trailer, Transfer-Encoding, Upgrade, Proxy-Authorization, Proxy-Connection, Content-Length.",
             "nullable": true,
             "type": "object"
           },
@@ -10078,8 +10109,12 @@
           },
           "headers": {
             "additionalProperties": {
+              "maxLength": 1000,
+              "minLength": 1,
+              "pattern": "^[^\\r\\n\\0]+$",
               "type": "string"
             },
+            "description": "Custom HTTP headers as key-value pairs. Keys must be valid RFC 7230 token characters (alphanumeric plus !#$%&'*+-.^_`|~), max 128 chars. Values: 1-1000 chars. Reserved names: Connection, Keep-Alive, TE, Trailer, Transfer-Encoding, Upgrade, Proxy-Authorization, Proxy-Connection, Content-Length.",
             "nullable": true,
             "type": "object"
           },
@@ -10131,8 +10166,12 @@
           },
           "headers": {
             "additionalProperties": {
+              "maxLength": 1000,
+              "minLength": 1,
+              "pattern": "^[^\\r\\n\\0]+$",
               "type": "string"
             },
+            "description": "Custom HTTP headers as key-value pairs. Keys must be valid RFC 7230 token characters (alphanumeric plus !#$%&'*+-.^_`|~), max 128 chars. Values: 1-1000 chars. Reserved names: Connection, Keep-Alive, TE, Trailer, Transfer-Encoding, Upgrade, Proxy-Authorization, Proxy-Connection, Content-Length.",
             "nullable": true,
             "type": "object"
           },
@@ -10284,8 +10323,12 @@
           },
           "headers": {
             "additionalProperties": {
+              "maxLength": 1000,
+              "minLength": 1,
+              "pattern": "^[^\\r\\n\\0]+$",
               "type": "string"
             },
+            "description": "Custom HTTP headers as key-value pairs. Keys must be valid RFC 7230 token characters (alphanumeric plus !#$%&'*+-.^_`|~), max 128 chars. Values: 1-1000 chars. Reserved names: Connection, Keep-Alive, TE, Trailer, Transfer-Encoding, Upgrade, Proxy-Authorization, Proxy-Connection, Content-Length.",
             "nullable": true,
             "type": "object"
           },
@@ -10364,8 +10407,12 @@
           },
           "headers": {
             "additionalProperties": {
+              "maxLength": 1000,
+              "minLength": 1,
+              "pattern": "^[^\\r\\n\\0]+$",
               "type": "string"
             },
+            "description": "Custom HTTP headers as key-value pairs. Keys must be valid RFC 7230 token characters (alphanumeric plus !#$%&'*+-.^_`|~), max 128 chars. Values: 1-1000 chars. Reserved names: Connection, Keep-Alive, TE, Trailer, Transfer-Encoding, Upgrade, Proxy-Authorization, Proxy-Connection, Content-Length.",
             "nullable": true,
             "type": "object"
           },
@@ -11007,7 +11054,15 @@
             "$ref": "#/components/schemas/DescriptionSchema"
           },
           "headers": {
-            "$ref": "#/components/schemas/StringRecord"
+            "additionalProperties": {
+              "maxLength": 1000,
+              "minLength": 1,
+              "pattern": "^[^\\r\\n\\0]+$",
+              "type": "string"
+            },
+            "description": "Custom HTTP headers as key-value pairs. Keys must be valid RFC 7230 token characters (alphanumeric plus !#$%&'*+-.^_`|~), max 128 chars. Values: 1-1000 chars. Reserved names: Connection, Keep-Alive, TE, Trailer, Transfer-Encoding, Upgrade, Proxy-Authorization, Proxy-Connection, Content-Length.",
+            "nullable": true,
+            "type": "object"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
@@ -11187,7 +11242,15 @@
             "$ref": "#/components/schemas/DescriptionSchema"
           },
           "headers": {
-            "$ref": "#/components/schemas/StringRecord"
+            "additionalProperties": {
+              "maxLength": 1000,
+              "minLength": 1,
+              "pattern": "^[^\\r\\n\\0]+$",
+              "type": "string"
+            },
+            "description": "Custom HTTP headers as key-value pairs. Keys must be valid RFC 7230 token characters (alphanumeric plus !#$%&'*+-.^_`|~), max 128 chars. Values: 1-1000 chars. Reserved names: Connection, Keep-Alive, TE, Trailer, Transfer-Encoding, Upgrade, Proxy-Authorization, Proxy-Connection, Content-Length.",
+            "nullable": true,
+            "type": "object"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
@@ -12283,6 +12346,14 @@
             },
             "type": "array"
           },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Custom HTTP headers included in webhook delivery requests",
+            "nullable": true,
+            "type": "object"
+          },
           "id": {
             "maxLength": 256,
             "type": "string"
@@ -12305,6 +12376,7 @@
           "enabled",
           "url",
           "eventTypes",
+          "headers",
           "createdAt",
           "updatedAt"
         ],
@@ -12343,6 +12415,17 @@
             },
             "minItems": 1,
             "type": "array"
+          },
+          "headers": {
+            "additionalProperties": {
+              "maxLength": 1000,
+              "minLength": 1,
+              "pattern": "^[^\\r\\n\\0]+$",
+              "type": "string"
+            },
+            "description": "Custom HTTP headers as key-value pairs. Keys must be valid RFC 7230 token characters (alphanumeric plus !#$%&'*+-.^_`|~), max 128 chars. Values: 1-1000 chars. Reserved names: Connection, Keep-Alive, TE, Trailer, Transfer-Encoding, Upgrade, Proxy-Authorization, Proxy-Connection, Content-Length.",
+            "nullable": true,
+            "type": "object"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"
@@ -12446,6 +12529,17 @@
             },
             "minItems": 1,
             "type": "array"
+          },
+          "headers": {
+            "additionalProperties": {
+              "maxLength": 1000,
+              "minLength": 1,
+              "pattern": "^[^\\r\\n\\0]+$",
+              "type": "string"
+            },
+            "description": "Custom HTTP headers as key-value pairs. Keys must be valid RFC 7230 token characters (alphanumeric plus !#$%&'*+-.^_`|~), max 128 chars. Values: 1-1000 chars. Reserved names: Connection, Keep-Alive, TE, Trailer, Transfer-Encoding, Upgrade, Proxy-Authorization, Proxy-Connection, Content-Length.",
+            "nullable": true,
+            "type": "object"
           },
           "id": {
             "$ref": "#/components/schemas/ResourceId"

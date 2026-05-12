@@ -983,9 +983,56 @@ export const WebhookConversationDataSchema = z
   })
   .openapi('WebhookConversationData');
 
+export const HttpHeaderNameSchema = z
+  .string()
+  .min(1)
+  .max(128)
+  .regex(/^[a-zA-Z0-9!#$%&'*+\-.^_`|~]+$/, 'Header name contains invalid characters');
+
+export const HttpHeaderValueSchema = z
+  .string()
+  .min(1)
+  .max(1000)
+  .regex(/^[^\r\n\0]+$/, 'Header value must not contain line breaks or null bytes');
+
+const RESERVED_HEADER_NAMES = new Set([
+  // RFC 7230 Section 6.1 hop-by-hop headers
+  'connection',
+  'keep-alive',
+  'te',
+  'trailer',
+  'transfer-encoding',
+  'upgrade',
+  'proxy-authorization',
+  'proxy-connection',
+  // Would break HTTP framing if user-controlled
+  'content-length',
+]);
+
+export const HttpHeadersRecordSchema = z
+  .record(HttpHeaderNameSchema, HttpHeaderValueSchema)
+  .superRefine((headers, ctx) => {
+    const reserved = Object.keys(headers).filter((name) =>
+      RESERVED_HEADER_NAMES.has(name.toLowerCase())
+    );
+    if (reserved.length > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Reserved header name: ${reserved.join(', ')}`,
+      });
+    }
+  })
+  .describe(
+    "Custom HTTP headers as key-value pairs. Keys must be valid RFC 7230 token characters (alphanumeric plus !#$%&'*+-.^_`|~), max 128 chars. Values: 1-1000 chars. Reserved names: Connection, Keep-Alive, TE, Trailer, Transfer-Encoding, Upgrade, Proxy-Authorization, Proxy-Connection, Content-Length."
+  );
+
 export const WebhookDestinationSelectSchema = registerFieldSchemas(
   createSelectSchema(webhookDestinations).extend({
     eventTypes: z.array(WebhookDestinationEventTypeEnum),
+    headers: z
+      .record(z.string(), z.string())
+      .nullable()
+      .describe('Custom HTTP headers included in webhook delivery requests'),
   })
 );
 
@@ -997,6 +1044,7 @@ export const WebhookDestinationInsertSchema = createInsertSchema(webhookDestinat
   url: () => z.string().url().describe('Destination URL to POST events to'),
   eventTypes: () =>
     z.array(WebhookDestinationEventTypeEnum).min(1).describe('Event types to subscribe to'),
+  headers: () => HttpHeadersRecordSchema.optional(),
 });
 
 export const WebhookDestinationUpdateSchema = WebhookDestinationInsertSchema.extend({
@@ -1341,7 +1389,7 @@ export const ToolInsertSchema = createInsertSchema(tools)
     name: NameSchema,
     description: DescriptionSchema,
     imageUrl: imageUrlSchema,
-    headers: StringRecordSchema.nullish(),
+    headers: HttpHeadersRecordSchema.nullish(),
     config: z.object({
       type: z.literal('mcp'),
       mcp: z.object({
@@ -2288,10 +2336,9 @@ export const CreateCredentialInStoreRequestSchema = z
   .object({
     key: z.string().describe('The credential key'),
     value: z.string().describe('The credential value'),
-    metadata: z
-      .record(z.string(), z.string())
-      .nullish()
-      .describe('The metadata for the credential'),
+    metadata: HttpHeadersRecordSchema.nullish().describe(
+      'Credential metadata. Keys are injected as HTTP headers on outbound MCP server requests, so they must be valid HTTP header names.'
+    ),
   })
   .openapi('CreateCredentialInStoreRequest');
 
@@ -2524,7 +2571,7 @@ export const FetchConfigSchema = z
   .object({
     url: z.string().min(1, 'URL is required'),
     method: z.enum(['GET', 'POST', 'PUT', 'DELETE', 'PATCH']).optional().default('GET'),
-    headers: z.record(z.string(), z.string()).optional(),
+    headers: HttpHeadersRecordSchema.optional(),
     body: z.record(z.string(), z.unknown()).optional(),
     transform: z.string().optional(), // JSONPath or JS transform function
     requiredToFetch: z
@@ -2613,7 +2660,7 @@ export const SubAgentToolRelationInsertSchema = createInsertSchema(subAgentToolR
   subAgentId: ResourceIdSchema,
   toolId: ResourceIdSchema,
   selectedTools: z.array(z.string()).nullish(),
-  headers: z.record(z.string(), z.string()).nullish(),
+  headers: HttpHeadersRecordSchema.nullish(),
   toolPolicies: z.record(z.string(), z.object({ needsApproval: z.boolean().optional() })).nullish(),
 });
 
@@ -2639,7 +2686,7 @@ export const SubAgentExternalAgentRelationInsertSchema = createInsertSchema(
   id: ResourceIdSchema,
   subAgentId: ResourceIdSchema,
   externalAgentId: ResourceIdSchema,
-  headers: z.record(z.string(), z.string()).nullish(),
+  headers: HttpHeadersRecordSchema.nullish(),
 });
 
 export const SubAgentExternalAgentRelationUpdateSchema =
@@ -2665,7 +2712,7 @@ export const SubAgentTeamAgentRelationInsertSchema = createInsertSchema(
   id: ResourceIdSchema,
   subAgentId: ResourceIdSchema,
   targetAgentId: ResourceIdSchema,
-  headers: z.record(z.string(), z.string()).nullish(),
+  headers: HttpHeadersRecordSchema.nullish(),
 });
 
 export const SubAgentTeamAgentRelationUpdateSchema =
@@ -2731,7 +2778,7 @@ export const CanUseItemSchema = z
     agentToolRelationId: z.string().optional(),
     toolId: z.string(),
     toolSelection: z.array(z.string()).nullish(),
-    headers: z.record(z.string(), z.string()).nullish(),
+    headers: HttpHeadersRecordSchema.nullish(),
     toolPolicies: z
       .record(z.string(), z.object({ needsApproval: z.boolean().optional() }))
       .nullish(),
@@ -2750,7 +2797,7 @@ export const canDelegateToExternalAgentInsertSchema = z
   .object({
     externalAgentId: z.string(),
     subAgentExternalAgentRelationId: z.string().optional(),
-    headers: z.record(z.string(), z.string()).nullish(),
+    headers: HttpHeadersRecordSchema.nullish(),
   })
   .openapi('CanDelegateToExternalAgentInsert');
 
@@ -2758,7 +2805,7 @@ export const canDelegateToTeamAgentInsertSchema = z
   .object({
     agentId: z.string(),
     subAgentTeamAgentRelationId: z.string().optional(),
-    headers: z.record(z.string(), z.string()).nullish(),
+    headers: HttpHeadersRecordSchema.nullish(),
   })
   .openapi('CanDelegateToTeamAgentInsert');
 

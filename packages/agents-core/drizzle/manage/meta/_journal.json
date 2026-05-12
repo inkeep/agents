@@ -141,6 +141,13 @@
       "when": 1777510684277,
       "tag": "0019_hesitant_runaways",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1778524405577,
+      "tag": "0020_typical_mandrill",
+      "breakpoints": true
     }
   ]
 }

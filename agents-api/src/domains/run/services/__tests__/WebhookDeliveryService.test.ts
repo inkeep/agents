@@ -89,8 +89,8 @@ describe('WebhookDeliveryService', () => {
 
     it('starts a workflow for each matching destination', async () => {
       const destinations = [
-        { id: 'dest-1', url: 'https://hook1.example.com' },
-        { id: 'dest-2', url: 'https://hook2.example.com' },
+        { id: 'dest-1', url: 'https://hook1.example.com', headers: null },
+        { id: 'dest-2', url: 'https://hook2.example.com', headers: null },
       ];
 
       mockWithRef.mockImplementation(async (_pool: any, _ref: any, fn: any) => {
@@ -116,6 +116,50 @@ describe('WebhookDeliveryService', () => {
             agentId: 'agent-1',
             data: { conversationId: 'conv-1', userId: null },
           }),
+        }),
+      ]);
+    });
+
+    it('includes dest.headers in dispatched payload', async () => {
+      const destinations = [
+        {
+          id: 'dest-with-headers',
+          url: 'https://hook.example.com',
+          headers: { 'X-Api-Key': 'secret', Authorization: 'Bearer tok' },
+        },
+      ];
+
+      mockWithRef.mockImplementation(async (_pool: any, _ref: any, fn: any) => {
+        return fn('mock-db');
+      });
+      mockListForEvent.mockReturnValue(() => Promise.resolve(destinations));
+
+      await emitWebhookEvent(baseParams);
+
+      expect(mockStart).toHaveBeenCalledWith(expect.anything(), [
+        expect.objectContaining({
+          headers: { 'X-Api-Key': 'secret', Authorization: 'Bearer tok' },
+          webhookDestinationId: 'dest-with-headers',
+        }),
+      ]);
+    });
+
+    it('passes null headers when destination has no custom headers', async () => {
+      const destinations = [
+        { id: 'dest-no-headers', url: 'https://hook.example.com', headers: null },
+      ];
+
+      mockWithRef.mockImplementation(async (_pool: any, _ref: any, fn: any) => {
+        return fn('mock-db');
+      });
+      mockListForEvent.mockReturnValue(() => Promise.resolve(destinations));
+
+      await emitWebhookEvent(baseParams);
+
+      expect(mockStart).toHaveBeenCalledWith(expect.anything(), [
+        expect.objectContaining({
+          headers: null,
+          webhookDestinationId: 'dest-no-headers',
         }),
       ]);
     });
