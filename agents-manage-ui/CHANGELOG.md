@@ -1,5 +1,18 @@
 # @inkeep/agents-manage-ui
 
+## 0.73.0
+
+### Minor Changes
+
+- ed76d93: Add custom HTTP headers for outbound webhooks; tighten header validation (RFC 7230 name charset, length limits) across all user-configurable header fields
+
+### Patch Changes
+
+- 78b6b83: Add password reveal toggle to password and credential API key inputs
+- 902d800: Add edit links to configured skills
+- Updated dependencies [ed76d93]
+  - @inkeep/agents-core@0.73.0
+
 ## 0.72.2
 
 ### Patch Changes
