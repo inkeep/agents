@@ -1,0 +1,236 @@
+---
+title: Outbound Webhooks
+description: Receive real-time HTTP notifications when conversations, feedback, or custom events occur in your project
+sidebarTitle: Outbound Webhooks
+icon: LuWebhook
+keywords: webhooks, outbound webhooks, webhook destinations, event notifications, conversation events, feedback events
+---
+
+Outbound webhooks send HTTP POST requests to your server when events happen in your project — new conversations, conversation updates, feedback submissions, and custom events. Use them to sync data with external systems, trigger downstream workflows, or build real-time integrations.
+
+<Note>
+Outbound webhooks push data _from_ Inkeep _to_ your server. For the reverse — external services triggering your agents — see [Webhook Triggers](/visual-builder/triggers/webhooks).
+</Note>
+
+## Create a webhook
+
+<Steps>
+  <Step>
+
+    Navigate to your project and select **Outbound Webhooks** in the left sidebar.
+
+    Click **New Webhook**.
+  </Step>
+  <Step>
+    ### Configure the destination
+
+    Fill in the required fields:
+
+    <Image src="/images/outbound-webhooks.png" alt="Webhook destination form with name, URL, custom headers, event type checkboxes, and agent scope" />
+
+    | Field | Required | Description |
+    | --- | --- | --- |
+    | **Name** | Yes | Human-readable identifier (e.g., "Slack Notifications" or "CRM Sync") |
+    | **Destination URL** | Yes | The HTTPS endpoint that receives webhook POST requests |
+    | **Event Types** | Yes | Which events trigger delivery (select at least one) |
+    | **Description** | No | Explains what this webhook does |
+    | **Custom Headers** | No | Additional HTTP headers sent with every delivery |
+    | **Agents** | No | Scope to specific agents. Leave empty to receive events from all agents in the project |
+    | **Enabled** | — | Toggle on to activate immediately |
+  </Step>
+  <Step>
+    ### Test the destination
+
+    After creating the destination, use the **Test** action to send a sample payload to your URL. The test request uses a `test` event type with synthetic data and a 10-second timeout, so you can verify your endpoint is reachable before real events fire.
+  </Step>
+</Steps>
+
+## Event types
+
+Each webhook destination subscribes to one or more event types. Your endpoint receives every event that matches the selected types and agent scope.
+
+| Event type | Fires when |
+| --- | --- |
+| `conversation.created` | A new conversation starts |
+| `conversation.updated` | A user sends a message or the assistant replies |
+| `feedback.created` | A user submits feedback on a conversation |
+| `event.created` | A custom event is logged via `POST /run/v1/events` |
+
+### Agent scoping
+
+When you select specific agents on a webhook destination, only events originating from those agents trigger delivery. Leave the agents field empty to receive events from every agent in the project.
+
+## Payload format
+
+Every delivery is an HTTP POST with `Content-Type: application/json`. The body follows a consistent envelope:
+
+```json
+{
+  "type": "conversation.updated",
+  "timestamp": "2026-05-12T14:30:00.000Z",
+  "tenantId": "your-tenant-id",
+  "projectId": "your-project-id",
+  "agentId": "your-agent-id",
+  "data": {
+    // event-specific payload (see below)
+  }
+}
+```
+### Conversation events
+
+`conversation.created` and `conversation.updated` both deliver a `conversation` object inside `data`:
+
+```json
+{
+  "type": "conversation.created",
+  "timestamp": "2026-05-12T14:30:00.000Z",
+  "tenantId": "your-tenant-id",
+  "projectId": "your-project-id",
+  "agentId": "your-agent-id",
+  "data": {
+    "conversation": {
+      "id": "conv_abc123",
+      "agentId": "your-agent-id",
+      "title": "How do I reset my password?",
+      "userProperties": { "userId": "u_456" },
+      "properties": { "pageUrl": "https://example.com/help" },
+      "createdAt": "2026-05-12T14:29:50.000Z",
+      "updatedAt": "2026-05-12T14:30:00.000Z",
+      "messages": [
+        {
+          "id": "msg_001",
+          "role": "user",
+          "content": "How do I reset my password?",
+          "createdAt": "2026-05-12T14:29:50.000Z"
+        },
+        {
+          "id": "msg_002",
+          "role": "assistant",
+          "content": "You can reset your password from the Settings page...",
+          "createdAt": "2026-05-12T14:30:00.000Z"
+        }
+      ]
+    }
+  }
+}
+```
+### Feedback events
+
+`feedback.created` delivers both the feedback and the associated conversation:
+
+```json
+{
+  "type": "feedback.created",
+  "timestamp": "2026-05-12T14:31:00.000Z",
+  "tenantId": "your-tenant-id",
+  "projectId": "your-project-id",
+  "agentId": "your-agent-id",
+  "data": {
+    "feedback": {
+      "id": "fb_789",
+      "conversationId": "conv_abc123",
+      "messageId": "msg_002",
+      "type": "positive",
+      "details": null,
+      "createdAt": "2026-05-12T14:31:00.000Z",
+      "updatedAt": "2026-05-12T14:31:00.000Z"
+    },
+    "conversation": {
+      "id": "conv_abc123",
+      "agentId": "your-agent-id",
+      "title": "How do I reset my password?",
+      "userProperties": null,
+      "properties": null,
+      "createdAt": "2026-05-12T14:29:50.000Z",
+      "updatedAt": "2026-05-12T14:30:00.000Z",
+      "messages": [
+        {
+          "id": "msg_001",
+          "role": "user",
+          "content": "How do I reset my password?",
+          "createdAt": "2026-05-12T14:29:50.000Z"
+        },
+        {
+          "id": "msg_002",
+          "role": "assistant",
+          "content": "You can reset your password from the Settings page...",
+          "createdAt": "2026-05-12T14:30:00.000Z"
+        }
+      ]
+    }
+  }
+}
+```
+
+### Custom events
+
+`event.created` delivers the persisted event object:
+
+```json
+{
+  "type": "event.created",
+  "timestamp": "2026-05-12T14:32:00.000Z",
+  "tenantId": "your-tenant-id",
+  "projectId": "your-project-id",
+  "agentId": "your-agent-id",
+  "data": {
+    "event": {
+      "id": "evt_xyz",
+      "type": "user_message_submitted",
+      "agentId": "your-agent-id",
+      "conversationId": "conv_abc123",
+      "messageId": "msg_001",
+      "properties": { "source": "chat-widget" },
+      "userProperties": { "userId": "u_456" },
+      "metadata": { "appVersion": "1.4.2" },
+      "serverMetadata": { "authMethod": "apiKey" },
+      "createdAt": "2026-05-12T14:32:00.000Z",
+      "updatedAt": "2026-05-12T14:32:00.000Z"
+    }
+  }
+}
+```
+
+## Delivery and retries
+
+Inkeep delivers each event to each matching destination independently with automatic retries.
+
+| Behavior | Detail |
+| --- | --- |
+| **Method** | `POST` |
+| **Timeout** | 30 seconds per attempt |
+| **Max attempts** | 3 |
+| **Retry backoff** | Exponential: 2s, 4s |
+
+## Custom headers
+
+Webhook deliveries include any **custom headers** you configure on the destination.
+<Warning>
+The following reserved headers cannot be used as custom headers: `Connection`, `Keep-Alive`, `TE`, `Trailer`, `Transfer-Encoding`, `Upgrade`, `Proxy-Authorization`, `Proxy-Connection`, `Content-Length`.
+</Warning>
+
+## Manage webhook destinations
+
+The webhook destinations page shows all configured destinations with their name, URL, enabled status, and subscribed event types.
+
+| Action | Description |
+| --- | --- |
+| **Edit** | Update the name, URL, events, headers, agent scope, or enabled status |
+| **Test** | Send a sample payload to verify the destination is reachable |
+| **Delete** | Permanently remove the destination |
+
+Toggle the **Enabled** switch to pause or resume delivery without deleting the destination.
+
+## Next steps
+
+<Cards>
+  <Card title="Events API" icon="LuActivity" href="/talk-to-your-agents/events">
+    Log custom events that trigger `event.created` webhooks.
+  </Card>
+  <Card title="Webhook Triggers" icon="LuWebhook" href="/visual-builder/triggers/webhooks">
+    Receive inbound webhooks from external services to trigger agent conversations.
+  </Card>
+  <Card title="API Reference" icon="LuBraces" href="/api-reference/webhooks">
+    Manage webhook destinations via the REST API.
+  </Card>
+</Cards>

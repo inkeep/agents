@@ -6,6 +6,7 @@
     "headers",
     "structured-outputs",
     "triggers",
+    "outbound-webhooks",
     "context-fetchers",
     "access-control",
     "skills",
