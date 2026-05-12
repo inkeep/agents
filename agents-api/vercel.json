@@ -5,7 +5,7 @@
       "main": false
     }
   },
-  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" = \"changeset-release/main\" ]; then exit 0; fi; npx -y turbo-ignore @inkeep/agents-api --fallback=HEAD^10",
+  "ignoreCommand": "bash ../../../scripts/vercel-skip-unless-changed.sh ..",
   "framework": "hono",
   "installCommand": "pnpm install",
   "buildCommand": "turbo build --filter=@inkeep/agents-api && pnpm --dir ../ prepack",
