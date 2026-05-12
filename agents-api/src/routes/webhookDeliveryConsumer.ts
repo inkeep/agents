@@ -1,3 +1,4 @@
+import { handleCallback } from '@vercel/queue';
 import { FileSecurityError } from '../domains/run/services/blob-storage/file-security-errors';
 import {
   type WebhookDeliveryPayload,
@@ -8,28 +9,9 @@ import { fetchWithSsrfProtection, WebhookUrlSecurityError } from '../utils/webho
 
 const logger = getLogger('webhook-delivery-consumer');
 
-export async function POST(request: Request): Promise<Response> {
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch (err) {
-    logger.error(
-      { error: err instanceof Error ? err.message : String(err) },
-      'Webhook delivery queue message has invalid JSON; dropping'
-    );
-    return new Response('OK', { status: 200 });
-  }
+class RetryableDeliveryError extends Error {}
 
-  const parsed = WebhookDeliveryPayloadSchema.safeParse((body as { data?: unknown } | null)?.data);
-  if (!parsed.success) {
-    logger.error(
-      { error: parsed.error.message },
-      'Webhook delivery queue message failed schema validation; dropping (poison-pill protection)'
-    );
-    return new Response('OK', { status: 200 });
-  }
-  const payload: WebhookDeliveryPayload = parsed.data;
-
+export async function deliverWebhook(payload: WebhookDeliveryPayload): Promise<void> {
   const { destinationUrl, webhookDestinationId } = payload;
 
   try {
@@ -49,7 +31,7 @@ export async function POST(request: Request): Promise<Response> {
         { webhookDestinationId, statusCode: response.status },
         'Webhook delivered successfully'
       );
-      return new Response('OK', { status: 200 });
+      return;
     }
 
     const responseText = await response.text().catch(() => '');
@@ -68,22 +50,42 @@ export async function POST(request: Request): Promise<Response> {
       response.status !== 408 &&
       response.status !== 429
     ) {
-      return new Response('OK', { status: 200 });
+      return;
     }
 
-    return new Response('Retry', { status: 500 });
+    throw new RetryableDeliveryError(
+      `Webhook delivery to ${webhookDestinationId} failed with status ${response.status}`
+    );
   } catch (err) {
+    if (err instanceof RetryableDeliveryError) {
+      throw err;
+    }
     if (err instanceof WebhookUrlSecurityError || err instanceof FileSecurityError) {
       logger.warn(
         { webhookDestinationId, error: (err as Error).message },
         'Webhook delivery blocked by SSRF protection'
       );
-      return new Response('OK', { status: 200 });
+      return;
     }
     logger.error(
       { webhookDestinationId, error: err instanceof Error ? err.message : String(err) },
       'Webhook delivery failed'
     );
-    return new Response('Retry', { status: 500 });
+    throw err;
   }
 }
+
+export async function handleWebhookMessage(message: unknown, metadata: { messageId: string }) {
+  const parsed = WebhookDeliveryPayloadSchema.safeParse(message);
+  if (!parsed.success) {
+    logger.error(
+      { error: parsed.error.message, messageId: metadata.messageId },
+      'Webhook delivery queue message failed schema validation'
+    );
+    return;
+  }
+
+  await deliverWebhook(parsed.data);
+}
+
+export const POST = handleCallback(handleWebhookMessage);

@@ -1,4 +1,3 @@
-import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../utils/webhook-url-security', async () => {
@@ -11,10 +10,16 @@ vi.mock('../../utils/webhook-url-security', async () => {
   };
 });
 
-vi.mock('../../logger', () => createMockLoggerModule().module);
+const refs = vi.hoisted(() => ({ clearAll: null as unknown as () => void }));
+vi.mock('../../logger', async () => {
+  const { createMockLoggerModule } = await import('@inkeep/agents-core/test-utils');
+  const result = createMockLoggerModule();
+  refs.clearAll = result.clearAll;
+  return result.module;
+});
 
 import { fetchWithSsrfProtection, WebhookUrlSecurityError } from '../../utils/webhook-url-security';
-import { POST } from '../webhookDeliveryConsumer';
+import { deliverWebhook, handleWebhookMessage } from '../webhookDeliveryConsumer';
 
 const mockFetch = fetchWithSsrfProtection as ReturnType<typeof vi.fn>;
 
@@ -27,53 +32,51 @@ const validPayload = {
   payload: { type: 'conversation.created', data: { conversation: {} } },
 };
 
-function makeRequest(body: unknown): Request {
-  return new Request('http://localhost/webhook-delivery', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: typeof body === 'string' ? body : JSON.stringify(body),
-  });
-}
+const fakeMeta = { messageId: 'msg-test-1' };
 
-describe('webhookDeliveryConsumer.POST', () => {
+describe('handleWebhookMessage (poison-pill protection)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    refs.clearAll();
   });
 
-  describe('payload validation (poison-pill protection)', () => {
-    it('returns 200 + drops message on malformed JSON', async () => {
-      const req = makeRequest('not-valid-json{');
-      const response = await POST(req);
-      expect(response.status).toBe(200);
-      expect(mockFetch).not.toHaveBeenCalled();
-    });
+  it('drops message and does not deliver when message is not an object', async () => {
+    await handleWebhookMessage('not-an-object', fakeMeta);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
 
-    it('returns 200 + drops message when body lacks data field', async () => {
-      const response = await POST(makeRequest({ wrongShape: true }));
-      expect(response.status).toBe(200);
-      expect(mockFetch).not.toHaveBeenCalled();
-    });
+  it('drops message when message is null', async () => {
+    await handleWebhookMessage(null, fakeMeta);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
 
-    it('returns 200 + drops message on schema-validation failure (missing destinationUrl)', async () => {
-      const { destinationUrl: _drop, ...incomplete } = validPayload;
-      const response = await POST(makeRequest({ data: incomplete }));
-      expect(response.status).toBe(200);
-      expect(mockFetch).not.toHaveBeenCalled();
-    });
+  it('drops message when destinationUrl is missing', async () => {
+    const { destinationUrl: _drop, ...incomplete } = validPayload;
+    await handleWebhookMessage(incomplete, fakeMeta);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
 
-    it('returns 200 + drops message when destinationUrl is empty string', async () => {
-      const response = await POST(makeRequest({ data: { ...validPayload, destinationUrl: '' } }));
-      expect(response.status).toBe(200);
-      expect(mockFetch).not.toHaveBeenCalled();
-    });
+  it('drops message when destinationUrl is empty string', async () => {
+    await handleWebhookMessage({ ...validPayload, destinationUrl: '' }, fakeMeta);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
 
-    it('returns 200 + drops message when payload field is wrong type', async () => {
-      const response = await POST(
-        makeRequest({ data: { ...validPayload, payload: 'not an object' } })
-      );
-      expect(response.status).toBe(200);
-      expect(mockFetch).not.toHaveBeenCalled();
-    });
+  it('drops message when payload field is wrong type', async () => {
+    await handleWebhookMessage({ ...validPayload, payload: 'not an object' }, fakeMeta);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('delivers when message is a valid payload', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 200 });
+    await handleWebhookMessage(validPayload, fakeMeta);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('deliverWebhook', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    refs.clearAll();
   });
 
   describe('custom headers', () => {
@@ -84,7 +87,7 @@ describe('webhookDeliveryConsumer.POST', () => {
         headers: { 'X-Api-Key': 'key-123', 'X-Trace': 'trace-1' },
       };
 
-      await POST(makeRequest({ data: payloadWithHeaders }));
+      await deliverWebhook(payloadWithHeaders);
 
       const callArgs = mockFetch.mock.calls[0][1];
       expect(callArgs.headers).toMatchObject({
@@ -102,7 +105,7 @@ describe('webhookDeliveryConsumer.POST', () => {
         headers: { 'Content-Type': 'text/xml', 'User-Agent': 'HackerBot' },
       };
 
-      await POST(makeRequest({ data: payloadWithOverrides }));
+      await deliverWebhook(payloadWithOverrides);
 
       const callArgs = mockFetch.mock.calls[0][1];
       expect(callArgs.headers['Content-Type']).toBe('application/json');
@@ -111,7 +114,7 @@ describe('webhookDeliveryConsumer.POST', () => {
 
     it('works when headers field is absent from payload', async () => {
       mockFetch.mockResolvedValueOnce({ ok: true, status: 200 });
-      await POST(makeRequest({ data: validPayload }));
+      await deliverWebhook(validPayload);
 
       const callArgs = mockFetch.mock.calls[0][1];
       expect(callArgs.headers['Content-Type']).toBe('application/json');
@@ -119,74 +122,93 @@ describe('webhookDeliveryConsumer.POST', () => {
     });
   });
 
-  describe('delivery + status-code mapping', () => {
-    it('returns 200 on successful 2xx delivery', async () => {
+  describe('successful delivery', () => {
+    it('resolves on 2xx response', async () => {
       mockFetch.mockResolvedValueOnce({ ok: true, status: 200 });
-      const response = await POST(makeRequest({ data: validPayload }));
-      expect(response.status).toBe(200);
+      await expect(deliverWebhook(validPayload)).resolves.toBeUndefined();
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
-    it('returns 200 (consume, no retry) on non-retryable 4xx', async () => {
+    it('sends correct headers and body', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true, status: 200 });
+      await deliverWebhook(validPayload);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://hook.example.com/endpoint',
+        expect.objectContaining({
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'Inkeep-Webhooks/1.0',
+          },
+          body: JSON.stringify(validPayload.payload),
+        })
+      );
+    });
+  });
+
+  describe('non-retryable responses (resolves, no throw)', () => {
+    it('resolves on 404 (non-retryable 4xx)', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 404,
         text: () => Promise.resolve('Not Found'),
       });
-      const response = await POST(makeRequest({ data: validPayload }));
-      expect(response.status).toBe(200);
+      await expect(deliverWebhook(validPayload)).resolves.toBeUndefined();
     });
 
-    it('returns 200 on 403 (non-retryable auth failure)', async () => {
+    it('resolves on 403 (non-retryable auth failure)', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 403,
         text: () => Promise.resolve(''),
       });
-      const response = await POST(makeRequest({ data: validPayload }));
-      expect(response.status).toBe(200);
+      await expect(deliverWebhook(validPayload)).resolves.toBeUndefined();
     });
 
-    it('returns 500 (retry) on 408 timeout', async () => {
+    it('resolves when SSRF protection blocks', async () => {
+      mockFetch.mockRejectedValueOnce(new WebhookUrlSecurityError('URL resolves to private IP'));
+      await expect(deliverWebhook(validPayload)).resolves.toBeUndefined();
+    });
+  });
+
+  describe('retryable responses (throws)', () => {
+    it('throws on 408 timeout', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 408,
         text: () => Promise.resolve(''),
       });
-      const response = await POST(makeRequest({ data: validPayload }));
-      expect(response.status).toBe(500);
+      await expect(deliverWebhook(validPayload)).rejects.toThrow(
+        'Webhook delivery to dest-1 failed with status 408'
+      );
     });
 
-    it('returns 500 (retry) on 429 rate limited', async () => {
+    it('throws on 429 rate limited', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 429,
         text: () => Promise.resolve(''),
       });
-      const response = await POST(makeRequest({ data: validPayload }));
-      expect(response.status).toBe(500);
+      await expect(deliverWebhook(validPayload)).rejects.toThrow(
+        'Webhook delivery to dest-1 failed with status 429'
+      );
     });
 
-    it('returns 500 (retry) on 5xx server error', async () => {
+    it('throws on 5xx server error', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 502,
         text: () => Promise.resolve(''),
       });
-      const response = await POST(makeRequest({ data: validPayload }));
-      expect(response.status).toBe(500);
+      await expect(deliverWebhook(validPayload)).rejects.toThrow(
+        'Webhook delivery to dest-1 failed with status 502'
+      );
     });
 
-    it('returns 500 (retry) on network error / generic throw', async () => {
+    it('throws on network error', async () => {
       mockFetch.mockRejectedValueOnce(new Error('connection refused'));
-      const response = await POST(makeRequest({ data: validPayload }));
-      expect(response.status).toBe(500);
-    });
-
-    it('returns 200 (consume, no retry) when SSRF protection blocks', async () => {
-      mockFetch.mockRejectedValueOnce(new WebhookUrlSecurityError('URL resolves to private IP'));
-      const response = await POST(makeRequest({ data: validPayload }));
-      expect(response.status).toBe(200);
+      await expect(deliverWebhook(validPayload)).rejects.toThrow('connection refused');
     });
   });
 });
