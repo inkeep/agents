@@ -225,7 +225,7 @@ jobs:
         id: analyze
         # Tracking: https://github.com/anthropics/claude-code-action/issues/892
         # Remove pin when issue is resolved and @v1 is stable again
-        uses: anthropics/claude-code-action@01e756b34ef7a1447e9508f674143b07d20c2631
+        uses: anthropics/claude-code-action@f4fb5c6cdccc1ee7af63692f5d08d56efaa64cc8
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: |
@@ -280,7 +280,7 @@ jobs:
 
       - name: Upload Debug Artifacts
         if: always() && steps.analyze.outputs.execution_file
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: auto-improver-debug-pr-${{ steps.pr-meta.outputs.pr_number || inputs.pr_number || github.event.pull_request.number }}-${{ github.run_id }}
           path: ${{ steps.analyze.outputs.execution_file }}

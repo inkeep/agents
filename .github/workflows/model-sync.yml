@@ -32,7 +32,7 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 22.x
 
@@ -51,7 +51,7 @@ jobs:
 
       - name: Update model list via Claude Code
         if: steps.detect.outputs.has_changes == 'true'
-        uses: anthropics/claude-code-action@01e756b34ef7a1447e9508f674143b07d20c2631 # v1
+        uses: anthropics/claude-code-action@f4fb5c6cdccc1ee7af63692f5d08d56efaa64cc8 # v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ steps.app-token.outputs.token }}
