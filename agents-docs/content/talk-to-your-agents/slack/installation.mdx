@@ -28,15 +28,34 @@ The Slack integration is only available for [Inkeep Enterprise](https://inkeep.c
 
     Click **Install** on the Slack card. This redirects you to Slack's OAuth consent screen where you authorize the Inkeep bot to join your workspace.
 
-    The bot requests the following permissions:
-    - Read messages in channels where it's mentioned
-    - Join public channels
-    - Post messages and replies
-    - Read and write direct messages
-    - Read and write group direct messages
-    - Read files shared in conversations
-    - Access channel and user information
-    - Register slash commands
+    The app requests 19 Slack scopes for reading messages, posting replies, and managing conversations.
+
+    <Accordions>
+      <Accordion title="View the full Slack permissions list">
+
+        | Scope | Token type | Reason |
+        | --- | --- | --- |
+        | `app_mentions:read` | Bot | Receive `app_mention` events when users mention Inkeep in channels. This is the primary way users invoke the agent in public and private channels. |
+        | `channels:history` | Bot | Retrieve public-channel thread context after a user mentions Inkeep, so the bot can provide contextually relevant answers. |
+        | `channels:read` | Bot | List and inspect public channel metadata, members, and available conversations for configuration and bot membership checks. |
+        | `chat:write` | Bot | Post thread responses, ephemeral status messages, and streaming-response updates as Inkeep. |
+        | `chat:write.public` | Bot | Post messages to public channels where Inkeep has not been explicitly added, including test messages and diagnostics. |
+        | `commands` | Bot | Register and handle the `/inkeep` slash command for asking questions, linking accounts, checking status, and getting help. |
+        | `files:read` | Bot | Read files shared with Inkeep so agents can parse PDFs, images, and other attachments sent by users. |
+        | `files:write` | Bot | Upload large responses or structured data as Slack file attachments when content exceeds Slack message limits. |
+        | `groups:history` | Bot | Retrieve private-channel thread context when users mention Inkeep in private channels. |
+        | `groups:read` | Bot | List private channels for configuration and validate bot membership in private channels. |
+        | `im:history` | Bot | Retrieve direct-message thread context when users continue a conversation with Inkeep in DMs. |
+        | `im:read` | Bot | Look up direct-message channel metadata. |
+        | `im:write` | Bot | Start direct messages with users, such as account-linking prompts and approval requests. |
+        | `mpim:history` | Bot | Retrieve group-DM thread context and prior messages for relevant multi-user responses. |
+        | `mpim:read` | Bot | Look up group-DM metadata, including participants and channel name. |
+        | `mpim:write` | Bot | Start group direct messages, such as shared escalation conversations with multiple users. |
+        | `team:read` | Bot | Retrieve workspace metadata, such as name, domain, and icon URL, for display in the Inkeep dashboard and workspace identification. |
+        | `users:read` | User and bot | Look up Slack user profiles, resolve user identities for account linking, and list workspace members for MCP user lookup. |
+        | `users:read.email` | User and bot | Match Slack users to Inkeep accounts by email during account linking and enrich user context for agent interactions. |
+      </Accordion>
+    </Accordions>
   </Step>
   <Step>
     ### Verify the installation
