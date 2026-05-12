@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-ui
 
+## 0.72.2
+
+### Patch Changes
+
+- 65d7e73: Update agents-ui package to 0.16.2
+  - @inkeep/agents-core@0.72.2
+
 ## 0.72.1
 
 ### Patch Changes
