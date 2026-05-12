@@ -428,11 +428,11 @@ importers:
         specifier: workspace:*
         version: link:../packages/agents-core
       '@inkeep/agents-ui':
-        specifier: ^0.15.30
-        version: 0.15.30(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: ^0.16.2
+        version: 0.16.2(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@inkeep/agents-ui-cloud':
-        specifier: ^0.15.30
-        version: 0.15.30(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: ^0.16.2
+        version: 0.16.2(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@inkeep/cxkit-react':
         specifier: ^0.5.117
         version: 0.5.117(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(zod@4.3.6)
@@ -603,8 +603,8 @@ importers:
         specifier: workspace:^
         version: link:../packages/agents-core
       '@inkeep/agents-ui':
-        specifier: ^0.15.30
-        version: 0.15.30(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: ^0.16.2
+        version: 0.16.2(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@nangohq/frontend':
         specifier: ^0.69.41
         version: 0.69.41
@@ -860,8 +860,8 @@ importers:
   agents-ui-demo:
     dependencies:
       '@inkeep/agents-ui':
-        specifier: ^0.15.30
-        version: 0.15.30(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: ^0.16.2
+        version: 0.16.2(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react:
         specifier: ^19.1.1
         version: 19.2.4
@@ -3456,14 +3456,14 @@ packages:
   '@inkeep/agents-manage-ui@0.41.1':
     resolution: {integrity: sha512-30g1KSk2zt+qOY+pWmjEohoSJLObCLG6sWheEOUuM0vED9xzLNd+gF/Np7dmrWSTtacDnAR23ARgMHlzeIWPhw==}
 
-  '@inkeep/agents-ui-cloud@0.15.30':
-    resolution: {integrity: sha512-zxzK0EeStm+hfQHxTvpS1joEA1j77wUpnosgSXeyLp70kxyF/BlLLxBWdCFIbDp/g8JHB9bmGdTnPB1xWjRU4g==}
+  '@inkeep/agents-ui-cloud@0.16.2':
+    resolution: {integrity: sha512-5EdfPdYn0EjrZfEIgz4lHMPJPCFXDMZre3xbG6AMMILPNaf4QZTmjLpf0d0vq5ZkFaL/8vW0MxYuPQGv2k1dfQ==}
 
   '@inkeep/agents-ui@0.15.27':
     resolution: {integrity: sha512-LyGcLmIsxe8gEGYpgMkyBcNzipeUFpxNEww89iAbr3AkiI5ebAwsGw641guFEE/kv3zTDOdhw8yDuccXX9M9GA==}
 
-  '@inkeep/agents-ui@0.15.30':
-    resolution: {integrity: sha512-UTTryKKgQtGL5Rbr4qbjT3zDWggGcHII/t8yRZbNbrRZfvguOOW1E+OE4pIoABVjH4/ZuamYHqfb4aFjbzJSyQ==}
+  '@inkeep/agents-ui@0.16.2':
+    resolution: {integrity: sha512-r1Nw5ZWp4mPXbDUppz7Qjn5CDn7Q2e/xhXIByZg24I9hGO+6U+eyPeeJa84yIYjdrxRHiQdkAvmCAzZaZyW0uQ==}
 
   '@inkeep/cxkit-color-mode@0.5.117':
     resolution: {integrity: sha512-IyLd3aUyOk78B4Jn85Qbk8Rwcs17y51LAGskgCd2+l+0qpIkGUo17WJ2RDIv4vt7BZIYKZ7TzAP1ikNTuZ99kw==}
@@ -19333,9 +19333,9 @@ snapshots:
       - webpack
       - ws
 
-  '@inkeep/agents-ui-cloud@0.15.30(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+  '@inkeep/agents-ui-cloud@0.16.2(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
-      '@inkeep/agents-ui': 0.15.30(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@inkeep/agents-ui': 0.16.2(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@radix-ui/react-use-controllable-state': 1.2.2(@types/react@19.2.7)(react@19.2.4)
       lucide-react: 0.503.0(react@19.2.4)
     transitivePeerDependencies:
@@ -19415,7 +19415,7 @@ snapshots:
       - react-dom
       - supports-color
 
-  '@inkeep/agents-ui@0.15.30(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+  '@inkeep/agents-ui@0.16.2(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
       '@ai-sdk/openai': 3.0.14(zod@4.3.6)
       '@ai-sdk/react': 3.0.46(react@19.2.4)(zod@4.3.6)
