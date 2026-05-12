@@ -204,7 +204,14 @@ Inkeep delivers each event to each matching destination independently with autom
 
 ## Custom headers
 
-Webhook deliveries include any **custom headers** you configure on the destination.
+Webhook deliveries include any **custom headers** you configure on the destination. Header names and values are validated on save:
+
+| Constraint | Limit |
+| --- | --- |
+| **Name charset** | RFC 7230 token characters: alphanumeric plus ``!#$%&'*+-.^_`|~`` |
+| **Name length** | 1–128 characters |
+| **Value length** | 1–1,000 characters |
+
 <Warning>
 The following reserved headers cannot be used as custom headers: `Connection`, `Keep-Alive`, `TE`, `Trailer`, `Transfer-Encoding`, `Upgrade`, `Proxy-Authorization`, `Proxy-Connection`, `Content-Length`.
 </Warning>
