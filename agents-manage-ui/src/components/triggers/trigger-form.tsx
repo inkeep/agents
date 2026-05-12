@@ -51,6 +51,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Select,
@@ -1201,9 +1202,8 @@ export function TriggerForm({
                           <FormItem className="flex-1">
                             {index === 0 && <FormLabel>Header Value</FormLabel>}
                             <FormControl>
-                              <Input
+                              <PasswordInput
                                 {...inputField}
-                                type="password"
                                 placeholder={
                                   hasExistingValue
                                     ? 'Enter new value to update'
