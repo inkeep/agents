@@ -30,7 +30,7 @@ import {
 import { dispatchViaQueue } from './webhookQueueDispatcher';
 
 const logger = getLogger('WebhookDeliveryService');
-const useQueue = false;
+const useQueue = !!process.env.VERCEL;
 
 export type WebhookEventType = z.infer<typeof WebhookDestinationEventTypeEnum>;
 export type WebhookEventEnvelope = z.infer<typeof WebhookEventEnvelopeSchema>;

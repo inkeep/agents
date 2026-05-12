@@ -335,9 +335,9 @@ function createAgentsHono(config: AppConfig) {
   // Routes webhook-delivery topic to the queue consumer, everything else to the
   // workflow flow handler
   app.post('/index', async (c) => {
-    const queueName = c.req.header('x-vqs-queue-name');
+    const ceSource = c.req.header('ce-source') ?? '';
 
-    if (queueName === WEBHOOK_DELIVERY_TOPIC) {
+    if (ceSource.includes(`/topic/${WEBHOOK_DELIVERY_TOPIC}/`)) {
       return handleWebhookDeliveryQueue(c.req.raw);
     }
 
