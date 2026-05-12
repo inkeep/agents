@@ -1,5 +1,21 @@
 # @inkeep/agents-api
 
+## 0.73.0
+
+### Minor Changes
+
+- ed76d93: Add custom HTTP headers for outbound webhooks; tighten header validation (RFC 7230 name charset, length limits) across all user-configurable header fields
+
+### Patch Changes
+
+- c9c2a0c: Fix webhook delivery in Vercel
+- a32e240: Fix mid-conversation userProperties/properties not persisting and active sub-agent being reset across turns in chat routes
+- Updated dependencies [ed76d93]
+  - @inkeep/agents-core@0.73.0
+  - @inkeep/agents-work-apps@0.73.0
+  - @inkeep/agents-email@0.73.0
+  - @inkeep/agents-mcp@0.73.0
+
 ## 0.72.2
 
 ### Patch Changes
