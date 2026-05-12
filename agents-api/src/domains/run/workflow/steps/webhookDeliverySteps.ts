@@ -22,22 +22,22 @@ export interface WebhookDeliveryAttemptResult {
 export async function deliverWebhookStep(params: {
   destinationUrl: string;
   payload: Record<string, unknown>;
+  headers?: Record<string, string> | null;
 }): Promise<WebhookDeliveryAttemptResult> {
   'use step';
 
-  const { destinationUrl, payload } = params;
+  const { destinationUrl, payload, headers } = params;
 
   const body = JSON.stringify(payload);
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'User-Agent': 'Inkeep-Webhooks/1.0',
-  };
 
   try {
     const response = await fetchWithSsrfProtection(destinationUrl, {
       method: 'POST',
-      headers,
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+        'User-Agent': 'Inkeep-Webhooks/1.0',
+      },
       body,
       signal: AbortSignal.timeout(30_000),
     });

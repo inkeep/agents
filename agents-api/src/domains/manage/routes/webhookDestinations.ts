@@ -430,6 +430,7 @@ app.openapi(
       const response = await fetchWithSsrfProtection(dest.url, {
         method: 'POST',
         headers: {
+          ...dest.headers,
           'Content-Type': 'application/json',
           'User-Agent': 'Inkeep-Webhooks/1.0',
         },

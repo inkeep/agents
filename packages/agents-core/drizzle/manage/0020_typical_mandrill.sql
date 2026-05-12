@@ -1,0 +1,1 @@
+ALTER TABLE "webhook_destinations" ADD COLUMN "headers" jsonb DEFAULT 'null'::jsonb;

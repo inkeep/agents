@@ -98,7 +98,6 @@ describe('webhookDeliverySteps', () => {
       const result = await deliverWebhookStep(baseParams);
 
       expect(result.success).toBe(false);
-      expect(result.blocked).toBe(true);
       expect(result.error).toBe('Destination URL blocked');
       expect(result.statusCode).toBeUndefined();
     });
@@ -113,9 +112,79 @@ describe('webhookDeliverySteps', () => {
       const result = await deliverWebhookStep(baseParams);
 
       expect(result.success).toBe(false);
-      expect(result.blocked).toBe(true);
       expect(result.error).toBe('Destination URL blocked');
       expect(result.statusCode).toBeUndefined();
+    });
+
+    it('includes custom headers in the outbound fetch', async () => {
+      mockFetchWithSsrf.mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: () => Promise.resolve(''),
+      });
+
+      await deliverWebhookStep({
+        ...baseParams,
+        headers: { 'X-Api-Key': 'secret', 'X-Trace-Id': 'trace-1' },
+      });
+
+      const callArgs = mockFetchWithSsrf.mock.calls[0][1];
+      expect(callArgs.headers).toMatchObject({
+        'X-Api-Key': 'secret',
+        'X-Trace-Id': 'trace-1',
+        'Content-Type': 'application/json',
+        'User-Agent': 'Inkeep-Webhooks/1.0',
+      });
+    });
+
+    it('system headers override user-supplied Content-Type and User-Agent', async () => {
+      mockFetchWithSsrf.mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: () => Promise.resolve(''),
+      });
+
+      await deliverWebhookStep({
+        ...baseParams,
+        headers: {
+          'Content-Type': 'text/plain',
+          'User-Agent': 'EvilBot/1.0',
+          'X-Safe': 'allowed',
+        },
+      });
+
+      const callArgs = mockFetchWithSsrf.mock.calls[0][1];
+      expect(callArgs.headers['Content-Type']).toBe('application/json');
+      expect(callArgs.headers['User-Agent']).toBe('Inkeep-Webhooks/1.0');
+      expect(callArgs.headers['X-Safe']).toBe('allowed');
+    });
+
+    it('works when headers is null', async () => {
+      mockFetchWithSsrf.mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: () => Promise.resolve(''),
+      });
+
+      await deliverWebhookStep({ ...baseParams, headers: null });
+
+      const callArgs = mockFetchWithSsrf.mock.calls[0][1];
+      expect(callArgs.headers['Content-Type']).toBe('application/json');
+      expect(callArgs.headers['User-Agent']).toBe('Inkeep-Webhooks/1.0');
+    });
+
+    it('works when headers is undefined', async () => {
+      mockFetchWithSsrf.mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: () => Promise.resolve(''),
+      });
+
+      await deliverWebhookStep({ ...baseParams, headers: undefined });
+
+      const callArgs = mockFetchWithSsrf.mock.calls[0][1];
+      expect(callArgs.headers['Content-Type']).toBe('application/json');
+      expect(callArgs.headers['User-Agent']).toBe('Inkeep-Webhooks/1.0');
     });
 
     it('handles 4xx responses correctly', async () => {

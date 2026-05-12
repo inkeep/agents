@@ -39,6 +39,7 @@ describe('Webhook Destination CRUD Routes - Integration Tests', () => {
     url = 'https://example.com/webhook',
     eventTypes = ['conversation.created', 'conversation.updated'],
     enabled = true,
+    headers,
   }: {
     tenantId: string;
     projectId: string;
@@ -46,13 +47,17 @@ describe('Webhook Destination CRUD Routes - Integration Tests', () => {
     url?: string;
     eventTypes?: string[];
     enabled?: boolean;
+    headers?: Record<string, string>;
   }) => {
-    const createData = {
+    const createData: Record<string, unknown> = {
       name,
       url,
       eventTypes,
       enabled,
     };
+    if (headers !== undefined) {
+      createData.headers = headers;
+    }
 
     const createRes = await makeRequest(basePath(tenantId, projectId), {
       method: 'POST',
@@ -546,6 +551,105 @@ describe('Webhook Destination CRUD Routes - Integration Tests', () => {
       const getRes = await makeRequest(`${basePath(tenantId, projectId)}/${webhookDestination.id}`);
       const getBody = await getRes.json();
       expect(getBody.data.agentIds).toEqual(['agent-x']);
+    });
+  });
+
+  describe('Custom headers', () => {
+    it('should create a webhook destination with custom headers', async () => {
+      const tenantId = await createTestTenantWithOrg('wh-headers-create');
+      const { projectId } = await createTestProjectForWebhooks(tenantId);
+
+      const headers = { 'X-Api-Key': 'secret-123', 'X-Custom': 'value' };
+      const { webhookDestination } = await createTestWebhookDestination({
+        tenantId,
+        projectId,
+        headers,
+      });
+
+      expect(webhookDestination.headers).toEqual(headers);
+    });
+
+    it('should round-trip headers through create and get', async () => {
+      const tenantId = await createTestTenantWithOrg('wh-headers-roundtrip');
+      const { projectId } = await createTestProjectForWebhooks(tenantId);
+
+      const headers = { Authorization: 'Bearer tok-123', 'X-Trace-Id': 'abc' };
+      const { webhookDestination } = await createTestWebhookDestination({
+        tenantId,
+        projectId,
+        headers,
+      });
+
+      const getRes = await makeRequest(`${basePath(tenantId, projectId)}/${webhookDestination.id}`);
+      expect(getRes.status).toBe(200);
+      const { data: fetched } = await getRes.json();
+      expect(fetched.headers).toEqual(headers);
+    });
+
+    it('should update headers via PATCH', async () => {
+      const tenantId = await createTestTenantWithOrg('wh-headers-update');
+      const { projectId } = await createTestProjectForWebhooks(tenantId);
+
+      const { webhookDestination } = await createTestWebhookDestination({
+        tenantId,
+        projectId,
+        headers: { 'X-Old': 'old-value' },
+      });
+
+      const patchRes = await makeRequest(
+        `${basePath(tenantId, projectId)}/${webhookDestination.id}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ headers: { 'X-New': 'new-value' } }),
+        }
+      );
+
+      expect(patchRes.status).toBe(200);
+      const { data: updated } = await patchRes.json();
+      expect(updated.headers).toEqual({ 'X-New': 'new-value' });
+    });
+
+    it('should create a webhook destination without headers (null by default)', async () => {
+      const tenantId = await createTestTenantWithOrg('wh-headers-null');
+      const { projectId } = await createTestProjectForWebhooks(tenantId);
+
+      const { webhookDestination } = await createTestWebhookDestination({
+        tenantId,
+        projectId,
+      });
+
+      expect(webhookDestination.headers).toBeNull();
+    });
+
+    it('should include custom headers in test delivery', async () => {
+      const tenantId = await createTestTenantWithOrg('wh-headers-test-delivery');
+      const { projectId } = await createTestProjectForWebhooks(tenantId);
+
+      const headers = { 'X-Webhook-Secret': 'my-secret' };
+      const { webhookDestination } = await createTestWebhookDestination({
+        tenantId,
+        projectId,
+        headers,
+      });
+
+      mockSsrfFetch.mockResolvedValueOnce({ ok: true, status: 200 });
+
+      const res = await makeRequest(
+        `${basePath(tenantId, projectId)}/${webhookDestination.id}/test`,
+        { method: 'POST' }
+      );
+
+      expect(res.status).toBe(200);
+      expect(mockSsrfFetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'X-Webhook-Secret': 'my-secret',
+            'Content-Type': 'application/json',
+            'User-Agent': 'Inkeep-Webhooks/1.0',
+          }),
+        })
+      );
     });
   });
 

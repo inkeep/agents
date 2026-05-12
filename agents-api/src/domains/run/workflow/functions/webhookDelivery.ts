@@ -2,6 +2,8 @@ import { getWorkflowMetadata, sleep } from 'workflow';
 import { z } from 'zod';
 import { deliverWebhookStep, logStep } from '../steps/webhookDeliverySteps';
 
+// Strict header validation is enforced at the API input layer; this schema provides structural validation only.
+// Workflow bundler cannot tree-shake HttpHeadersRecordSchema
 export const WebhookDeliveryPayloadSchema = z.object({
   destinationUrl: z.string().min(1),
   tenantId: z.string().min(1),
@@ -9,6 +11,7 @@ export const WebhookDeliveryPayloadSchema = z.object({
   agentId: z.string(),
   webhookDestinationId: z.string().min(1),
   payload: z.record(z.string(), z.unknown()),
+  headers: z.record(z.string(), z.string()).nullish(),
 });
 
 export type WebhookDeliveryPayload = z.infer<typeof WebhookDeliveryPayloadSchema>;
@@ -19,7 +22,7 @@ const BASE_RETRY_DELAY_MS = 2_000;
 async function _webhookDeliveryWorkflow(deliveryPayload: WebhookDeliveryPayload) {
   'use workflow';
 
-  const { destinationUrl, tenantId, projectId, agentId, webhookDestinationId, payload } =
+  const { destinationUrl, tenantId, projectId, agentId, webhookDestinationId, payload, headers } =
     deliveryPayload;
 
   const metadata = getWorkflowMetadata();
@@ -40,6 +43,7 @@ async function _webhookDeliveryWorkflow(deliveryPayload: WebhookDeliveryPayload)
     const result = await deliverWebhookStep({
       destinationUrl,
       payload,
+      headers,
     });
 
     if (result.success) {

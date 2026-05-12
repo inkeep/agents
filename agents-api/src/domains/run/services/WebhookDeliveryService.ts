@@ -154,6 +154,7 @@ export async function emitWebhookEvent(params: EmitWebhookEventParams): Promise<
     agentId,
     webhookDestinationId: dest.id,
     payload: envelope as unknown as Record<string, unknown>,
+    headers: dest.headers,
   }));
 
   const results = await Promise.allSettled(

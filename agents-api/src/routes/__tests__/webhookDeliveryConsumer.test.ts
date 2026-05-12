@@ -76,6 +76,49 @@ describe('webhookDeliveryConsumer.POST', () => {
     });
   });
 
+  describe('custom headers', () => {
+    it('spreads custom headers into the outbound fetch', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true, status: 200 });
+      const payloadWithHeaders = {
+        ...validPayload,
+        headers: { 'X-Api-Key': 'key-123', 'X-Trace': 'trace-1' },
+      };
+
+      await POST(makeRequest({ data: payloadWithHeaders }));
+
+      const callArgs = mockFetch.mock.calls[0][1];
+      expect(callArgs.headers).toMatchObject({
+        'X-Api-Key': 'key-123',
+        'X-Trace': 'trace-1',
+        'Content-Type': 'application/json',
+        'User-Agent': 'Inkeep-Webhooks/1.0',
+      });
+    });
+
+    it('system headers override user-supplied Content-Type and User-Agent', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true, status: 200 });
+      const payloadWithOverrides = {
+        ...validPayload,
+        headers: { 'Content-Type': 'text/xml', 'User-Agent': 'HackerBot' },
+      };
+
+      await POST(makeRequest({ data: payloadWithOverrides }));
+
+      const callArgs = mockFetch.mock.calls[0][1];
+      expect(callArgs.headers['Content-Type']).toBe('application/json');
+      expect(callArgs.headers['User-Agent']).toBe('Inkeep-Webhooks/1.0');
+    });
+
+    it('works when headers field is absent from payload', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true, status: 200 });
+      await POST(makeRequest({ data: validPayload }));
+
+      const callArgs = mockFetch.mock.calls[0][1];
+      expect(callArgs.headers['Content-Type']).toBe('application/json');
+      expect(callArgs.headers['User-Agent']).toBe('Inkeep-Webhooks/1.0');
+    });
+  });
+
   describe('delivery + status-code mapping', () => {
     it('returns 200 on successful 2xx delivery', async () => {
       mockFetch.mockResolvedValueOnce({ ok: true, status: 200 });
