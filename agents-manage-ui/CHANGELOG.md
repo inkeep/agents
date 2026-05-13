@@ -1,5 +1,13 @@
 # @inkeep/agents-manage-ui
 
+## 0.73.1
+
+### Patch Changes
+
+- f069c82: Wire reCAPTCHA v3 captcha header on login, forgot-password, and accept-invitation pages; CSP allowlist for Google reCAPTCHA domains
+- Updated dependencies [f069c82]
+  - @inkeep/agents-core@0.73.1
+
 ## 0.73.0
 
 ### Minor Changes
