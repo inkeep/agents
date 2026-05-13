@@ -6,5 +6,24 @@
 # Runs lint-staged which:
 # - Formats and lints staged files with Biome
 # - Runs affected tests in agents-api
+#
+# Two layers of hardening, mirroring agents-private's root .husky/pre-commit:
+#
+# 1. Pre-existence guard: catches the "fresh clone without `pnpm install`"
+#    case with an actionable install message before any pnpm-resolution
+#    failure can produce a less-helpful error.
+#
+# 2. `pnpm exec` instead of `pnpm <name>`: pins binary resolution to this
+#    repo's node_modules. Bare `pnpm lint-staged` was seen walking up the
+#    filesystem and trying to load a user-home node_modules path that
+#    doesn't exist, failing every commit with MODULE_NOT_FOUND on pnpm 10
+#    where project-root resolution misfires under the husky env. `pnpm exec`
+#    always uses node_modules/.bin from the repo root.
 
-pnpm lint-staged
+if [ ! -x ./node_modules/.bin/lint-staged ]; then
+  echo "pre-commit: lint-staged is not installed in this worktree." >&2
+  echo "  Run 'pnpm install' in the worktree root before committing." >&2
+  exit 1
+fi
+
+pnpm exec lint-staged
