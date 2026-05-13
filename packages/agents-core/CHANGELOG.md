@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.73.1
+
+### Patch Changes
+
+- f069c82: Add Better Auth captcha plugin for login endpoints (Google reCAPTCHA v3, cloud-only via INKEEP_RECAPTCHA_SECRET_KEY)
+
 ## 0.73.0
 
 ### Minor Changes
