@@ -7,6 +7,7 @@ import { INKEEP_BRAND_COLOR } from '@/constants/theme';
 import { useCopilotContext } from '@/contexts/copilot';
 import { usePostHog } from '@/contexts/posthog';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { useAuthSession } from '@/hooks/use-auth';
 import { useTempApiKey } from '@/hooks/use-temp-api-key';
 import { useDataComponentsQuery } from '@/lib/query/data-components';
 import { css } from '@/lib/utils';
@@ -81,6 +82,8 @@ export function ChatWidget({
   const { data: dataComponents } = useDataComponentsQuery();
   const [isImproveDialogOpen, setIsImproveDialogOpen] = useState(false);
   const [messageId, setMessageId] = useState<string | undefined>(undefined);
+  const { user } = useAuthSession();
+
   const {
     apiKey: tempApiKey,
     appId: playgroundAppId,
@@ -193,6 +196,19 @@ export function ChatWidget({
                 resetPlaygroundConversationId();
               }
             },
+            userProperties: user
+              ? {
+                  id: user.id,
+                  email: user.email,
+                  name: user.name,
+                }
+              : undefined,
+            analyticsProperties: {
+              tenantId,
+              projectId,
+              agentId,
+            },
+            tags: ['playground_chat_widget'],
             primaryBrandColor: INKEEP_BRAND_COLOR,
             colorMode: {
               sync: {
