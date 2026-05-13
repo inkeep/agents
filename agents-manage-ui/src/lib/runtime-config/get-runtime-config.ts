@@ -34,6 +34,10 @@ export function getRuntimeConfig() {
       process.env.PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT ||
       process.env.NEXT_PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT ||
       'false',
+    PUBLIC_INKEEP_RECAPTCHA_SITE_KEY:
+      process.env.PUBLIC_INKEEP_RECAPTCHA_SITE_KEY ||
+      process.env.NEXT_PUBLIC_INKEEP_RECAPTCHA_SITE_KEY ||
+      '',
     PUBLIC_POSTHOG_KEY: process.env.PUBLIC_POSTHOG_KEY || process.env.NEXT_PUBLIC_POSTHOG_KEY,
     PUBLIC_POSTHOG_HOST: process.env.PUBLIC_POSTHOG_HOST || process.env.NEXT_PUBLIC_POSTHOG_HOST,
     PUBLIC_POSTHOG_SITE_TAG:

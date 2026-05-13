@@ -101,6 +101,7 @@
     "react-day-picker": "^9.9.0",
     "react-dom": "^19.2.4",
     "react-error-boundary": "^6.0.0",
+    "react-google-recaptcha-v3": "^1.11.0",
     "react-hook-form": "^7.61.1",
     "react-resizable-panels": "^3.0.6",
     "react-runner": "^1.0.5",

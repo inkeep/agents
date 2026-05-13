@@ -28,28 +28,36 @@ function toWebSocketOrigin(origin: string | null | undefined): string | null {
   }
 }
 
-function buildCsp() {
+export function buildCsp(config: ReturnType<typeof getRuntimeConfig>, sentryDsn?: string): string {
   // PostHog Cloud may use multiple changing subdomains; keep CSP aligned with:
   // https://posthog.com/docs/advanced/content-security-policy
-  const posthogHost = runtimeConfig.PUBLIC_POSTHOG_HOST ? 'https://*.posthog.com' : null;
+  const posthogHost = config.PUBLIC_POSTHOG_HOST ? 'https://*.posthog.com' : null;
+  const recaptchaScriptOrigin = config.PUBLIC_INKEEP_RECAPTCHA_SITE_KEY
+    ? 'https://www.google.com/recaptcha/'
+    : null;
+  const recaptchaStaticOrigin = config.PUBLIC_INKEEP_RECAPTCHA_SITE_KEY
+    ? 'https://www.gstatic.com/recaptcha/'
+    : null;
 
   const connectSrcDomains = [
     "'self'",
-    runtimeConfig.PUBLIC_INKEEP_AGENTS_API_URL,
+    config.PUBLIC_INKEEP_AGENTS_API_URL,
     posthogHost,
-    process.env.NEXT_PUBLIC_SENTRY_DSN ? 'https://*.sentry.io' : null,
-    runtimeConfig.PUBLIC_SIGNOZ_URL,
-    runtimeConfig.PUBLIC_NANGO_SERVER_URL,
-    toWebSocketOrigin(runtimeConfig.PUBLIC_NANGO_SERVER_URL),
-    runtimeConfig.PUBLIC_NANGO_CONNECT_BASE_URL,
+    sentryDsn ? 'https://*.sentry.io' : null,
+    config.PUBLIC_SIGNOZ_URL,
+    config.PUBLIC_NANGO_SERVER_URL,
+    toWebSocketOrigin(config.PUBLIC_NANGO_SERVER_URL),
+    config.PUBLIC_NANGO_CONNECT_BASE_URL,
+    recaptchaScriptOrigin,
   ]
     .filter(Boolean)
     .join(' ');
 
   const frameSrcDomains = [
     "'self'",
-    runtimeConfig.PUBLIC_NANGO_CONNECT_BASE_URL,
+    config.PUBLIC_NANGO_CONNECT_BASE_URL,
     'https://accounts.google.com',
+    recaptchaScriptOrigin,
   ]
     .filter(Boolean)
     .join(' ');
@@ -60,6 +68,8 @@ function buildCsp() {
     "'wasm-unsafe-eval'",
     "'unsafe-eval'",
     posthogHost,
+    recaptchaScriptOrigin,
+    recaptchaStaticOrigin,
   ]
     .filter(Boolean)
     .join(' ');
@@ -81,7 +91,10 @@ function buildCsp() {
 }
 
 function applySecurityHeaders(response: NextResponse): NextResponse {
-  response.headers.set('Content-Security-Policy', buildCsp());
+  response.headers.set(
+    'Content-Security-Policy',
+    buildCsp(runtimeConfig, process.env.NEXT_PUBLIC_SENTRY_DSN)
+  );
   response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains');
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');

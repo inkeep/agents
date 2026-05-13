@@ -85,7 +85,14 @@ const originHandler = (origin: string | undefined) => (isOriginAllowed(origin) ?
  */
 export const authCorsConfig: CorsOptions = {
   origin: originHandler,
-  allowHeaders: ['content-type', 'Content-Type', 'authorization', 'Authorization', 'User-Agent'],
+  allowHeaders: [
+    'content-type',
+    'Content-Type',
+    'authorization',
+    'Authorization',
+    'User-Agent',
+    'x-captcha-response',
+  ],
   allowMethods: ['POST', 'GET', 'OPTIONS'],
   exposeHeaders: ['Content-Length'],
   maxAge: 600,

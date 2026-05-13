@@ -134,6 +134,11 @@ export interface EmailServiceConfig {
   isConfigured: boolean;
 }
 
+export interface RecaptchaConfig {
+  secretKey: string;
+  minScore?: number;
+}
+
 export interface BetterAuthConfig {
   baseURL: string;
   secret: string;
@@ -146,6 +151,7 @@ export interface BetterAuthConfig {
   };
   advanced?: BetterAuthAdvancedOptions;
   emailService?: EmailServiceConfig;
+  recaptcha?: RecaptchaConfig;
 }
 
 export interface UserAuthConfig {

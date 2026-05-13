@@ -137,8 +137,8 @@ export const oauthRefreshToken = pgTable('oauth_refresh_token', {
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
   referenceId: text('reference_id'),
-  expiresAt: timestamp('expires_at'),
-  createdAt: timestamp('created_at'),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').notNull(),
   revoked: timestamp('revoked'),
   authTime: timestamp('auth_time'),
   scopes: text('scopes').array().notNull(),
@@ -146,7 +146,7 @@ export const oauthRefreshToken = pgTable('oauth_refresh_token', {
 
 export const oauthAccessToken = pgTable('oauth_access_token', {
   id: text('id').primaryKey(),
-  token: text('token').unique(),
+  token: text('token').notNull().unique(),
   clientId: text('client_id')
     .notNull()
     .references(() => oauthClient.clientId, { onDelete: 'cascade' }),
@@ -158,8 +158,8 @@ export const oauthAccessToken = pgTable('oauth_access_token', {
   refreshId: text('refresh_id').references(() => oauthRefreshToken.id, {
     onDelete: 'cascade',
   }),
-  expiresAt: timestamp('expires_at'),
-  createdAt: timestamp('created_at'),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').notNull(),
   scopes: text('scopes').array().notNull(),
 });
 
@@ -171,8 +171,8 @@ export const oauthConsent = pgTable('oauth_consent', {
   userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
   referenceId: text('reference_id'),
   scopes: text('scopes').array().notNull(),
-  createdAt: timestamp('created_at'),
-  updatedAt: timestamp('updated_at'),
+  createdAt: timestamp('created_at').notNull(),
+  updatedAt: timestamp('updated_at').notNull(),
 });
 
 export const ssoProvider = pgTable('sso_provider', {
@@ -180,7 +180,9 @@ export const ssoProvider = pgTable('sso_provider', {
   issuer: text('issuer').notNull(),
   oidcConfig: text('oidc_config'),
   samlConfig: text('saml_config'),
-  userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
   providerId: text('provider_id').notNull().unique(),
   organizationId: text('organization_id'),
   domain: text('domain').notNull(),

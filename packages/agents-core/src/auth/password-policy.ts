@@ -1,5 +1,5 @@
 import { randomInt } from 'node:crypto';
-import { APIError, createAuthMiddleware } from 'better-auth/api';
+import { APIError } from 'better-auth/api';
 import {
   MIN_PASSWORD_LENGTH,
   PASSWORD_REQUIREMENTS,
@@ -72,7 +72,7 @@ function readString(body: Record<string, unknown>, key: string): string | undefi
   return typeof value === 'string' ? value : undefined;
 }
 
-export const passwordPolicyHook = createAuthMiddleware(async (ctx) => {
+export async function checkPasswordPolicy(ctx: { path: string; body: unknown }): Promise<void> {
   if (!PASSWORD_POLICY_PATHS.has(ctx.path)) return;
   if (!isPlainObject(ctx.body)) return;
 
@@ -83,7 +83,10 @@ export const passwordPolicyHook = createAuthMiddleware(async (ctx) => {
     userEmail: readString(ctx.body, 'email'),
     userName: readString(ctx.body, 'name'),
   });
-});
+}
+
+/** @deprecated Renamed to `checkPasswordPolicy`. Will be removed in a future major version. */
+export const passwordPolicyHook = checkPasswordPolicy;
 
 const LOWERCASE = 'abcdefghijklmnopqrstuvwxyz';
 const UPPERCASE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
