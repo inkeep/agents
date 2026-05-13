@@ -71,6 +71,10 @@ These headers enable your agents to provide time-aware responses. See [Headers](
 
 You can pass custom headers to the chat components via the `headers` prop in `aiChatSettings`. Common use cases include passing the current page URL, user context, or session metadata. Custom headers are validated against a schema you define in the agent settings, then made available in your agent prompt via template syntax.
 
+<Note>
+  Custom headers are forwarded to all chat component API requests, including the `/chat`, `/feedback`, and `/events` endpoints.
+</Note>
+
 In the following example, you'll pass the current page URL to the agent.
 
 <Steps>
