@@ -14,7 +14,7 @@ catalog:
   "@better-auth/infra": 0.2.5
   "@better-auth/oauth-provider": 1.6.9
   "@opentelemetry/api": ^1.9.0
-  "@opentelemetry/auto-instrumentations-node": ^0.70.0
+  "@opentelemetry/auto-instrumentations-node": ^0.75.0
   "@opentelemetry/baggage-span-processor": ^0.5.0
   "@opentelemetry/context-async-hooks": ^2.5.1
   "@opentelemetry/core": ^2.5.1

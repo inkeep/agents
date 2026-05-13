@@ -227,7 +227,7 @@
   },
   "optionalDependencies": {
     "@napi-rs/keyring": "^1.2.0",
-    "@opentelemetry/auto-instrumentations-node": "^0.62.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.75.0",
     "@opentelemetry/baggage-span-processor": "^0.4.0",
     "@opentelemetry/exporter-jaeger": "^2.0.1",
     "@opentelemetry/exporter-trace-otlp-proto": "^0.203.0",
