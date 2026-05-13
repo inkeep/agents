@@ -56,9 +56,19 @@ async function insertSSOProvider(
   organizationId: string | null,
   opts: { oidcConfig?: string | null; samlConfig?: string | null } = {}
 ) {
+  const ownerUserId = `sso-owner-${providerId}`;
+  await testRunDbClient.insert(authSchema.user).values({
+    id: ownerUserId,
+    name: `SSO Owner ${providerId}`,
+    email: `${providerId}@sso-owner.test`,
+    emailVerified: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
   await testRunDbClient.insert(authSchema.ssoProvider).values({
     id: `sso_${providerId}`,
     issuer: `https://${domain}/issuer`,
+    userId: ownerUserId,
     providerId,
     domain,
     organizationId,

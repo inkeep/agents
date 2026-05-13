@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
 import { InkeepIcon } from '@/components/icons/inkeep';
+import { useCaptchaExecutor } from '@/components/providers/captcha-provider-gate';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,10 +13,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuthClient } from '@/contexts/auth-client';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { CAPTCHA_ERROR_MESSAGE, getCaptchaErrorMessage } from '@/lib/captcha-errors';
 
 function ForgotPasswordForm() {
   const authClient = useAuthClient();
   const { PUBLIC_IS_SMTP_CONFIGURED } = useRuntimeConfig();
+  const executeRecaptcha = useCaptchaExecutor();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState(searchParams.get('email') ?? '');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -89,17 +92,39 @@ function ForgotPasswordForm() {
     setError(null);
     setIsSubmitting(true);
 
+    let captchaToken: string | undefined;
+    try {
+      captchaToken = await executeRecaptcha?.('forgot_password');
+    } catch (err) {
+      console.error('[captcha] executeRecaptcha failed on forgot_password:', err);
+      setError(CAPTCHA_ERROR_MESSAGE);
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const result = await authClient.requestPasswordReset({
         email,
         redirectTo: `${window.location.origin}/reset-password`,
+        ...(captchaToken && {
+          fetchOptions: { headers: { 'x-captcha-response': captchaToken } },
+        }),
       });
 
       if (result?.error) {
+        const captchaMessage = getCaptchaErrorMessage(result.error.code);
+        if (captchaMessage) {
+          setError(captchaMessage);
+          setIsSubmitting(false);
+          return;
+        }
+        console.warn('[forgot-password] Non-captcha error on reset:', result.error.code);
+        setIsSubmitting(false);
         setSubmitted(true);
         return;
       }
 
+      setIsSubmitting(false);
       setSubmitted(true);
     } catch (err) {
       console.error('[forgot-password] Request failed:', err);

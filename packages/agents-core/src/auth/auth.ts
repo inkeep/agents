@@ -3,8 +3,10 @@ import { oauthProvider } from '@better-auth/oauth-provider';
 import { type SSOOptions, sso } from '@better-auth/sso';
 import { betterAuth, type Session, type User } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { createAuthMiddleware } from 'better-auth/api';
 import {
   bearer,
+  captcha,
   deviceAuthorization,
   haveIBeenPwned,
   jwt,
@@ -26,10 +28,17 @@ import type { BetterAuthConfig } from './auth-types';
 import { type OrgRole, OrgRoles } from './authz/types';
 import { setEmailSendStatus } from './email-send-status-store';
 import { DEFAULT_MEMBERSHIP_LIMIT } from './entitlement-constants';
-import { passwordPolicyHook } from './password-policy';
+import { checkPasswordPolicy } from './password-policy';
 import { setPasswordResetLink } from './password-reset-link-store';
 import { ac, adminRole, memberRole, ownerRole } from './permissions';
 import { logSessionDeletion } from './session-hooks';
+
+// Must stay in sync with better-auth's captcha plugin defaultEndpoints
+// (better-auth/plugins/captcha/constants — not exported publicly). The captcha
+// plugin runs as onRequest middleware before hooks.before, so by the time this
+// list is consulted captcha verification has already passed; mismatches with
+// the plugin's list would silently mute pass-telemetry on newly-protected paths.
+const CAPTCHA_GUARDED_PATHS = ['/sign-up/email', '/sign-in/email', '/request-password-reset'];
 
 export { extractCookieDomain, hasCredentialAccount } from './auth-config-utils';
 export type {
@@ -237,7 +246,16 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
     },
     trustedOrigins: (request?: Request) => getTrustedOrigins(config.dbClient, request),
     hooks: {
-      before: passwordPolicyHook,
+      before: createAuthMiddleware(async (ctx) => {
+        await checkPasswordPolicy(ctx);
+        if (
+          config.recaptcha &&
+          CAPTCHA_GUARDED_PATHS.includes(ctx.path) &&
+          ctx.headers?.get('x-captcha-response')
+        ) {
+          console.log('[captcha] pass', { path: ctx.path });
+        }
+      }),
     },
     plugins: [
       bearer(),
@@ -561,6 +579,15 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
       haveIBeenPwned({
         customPasswordCompromisedMessage: 'Please choose a more secure password.',
       }),
+      ...(config.recaptcha
+        ? [
+            captcha({
+              provider: 'google-recaptcha',
+              secretKey: config.recaptcha.secretKey,
+              minScore: config.recaptcha.minScore ?? 0.5,
+            }),
+          ]
+        : []),
     ],
   }) as unknown as AuthInstance;
 

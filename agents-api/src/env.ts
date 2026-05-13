@@ -172,6 +172,24 @@ const envSchema = z
         'PoW challenge expiry in seconds. Min 60s, max 3600s (1 hour). Default 3600s (1 hour).'
       ),
 
+    // Captcha (Google reCAPTCHA v3) — cloud-only login surface
+    INKEEP_RECAPTCHA_SECRET_KEY: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        'Server-side secret for Google reCAPTCHA v3 verification. Cloud-only; presence enables captcha plugin on Better Auth login endpoints (/sign-up/email, /sign-in/email, /request-password-reset).'
+      ),
+    INKEEP_RECAPTCHA_MIN_SCORE: z.coerce
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .default(0.5)
+      .describe(
+        'Minimum reCAPTCHA v3 score (0.0–1.0) required to pass verification. Default 0.5; tune based on observed false-positive rate.'
+      ),
+
     // JWT Keys (for Playground)
     INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY: z
       .string()

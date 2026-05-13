@@ -9,6 +9,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { GoogleColorIcon } from '@/components/icons/google';
 import { InkeepIcon } from '@/components/icons/inkeep';
 import { MicrosoftColorIcon } from '@/components/icons/microsoft';
+import { useCaptchaExecutor } from '@/components/providers/captcha-provider-gate';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +20,7 @@ import { useAuthClient } from '@/contexts/auth-client';
 import { usePostHog } from '@/contexts/posthog';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useAuthSession } from '@/hooks/use-auth';
+import { CAPTCHA_ERROR_MESSAGE, getCaptchaErrorMessage } from '@/lib/captcha-errors';
 import { getSafeReturnUrl, isValidReturnUrl } from '@/lib/utils/auth-redirect';
 
 type LoginState =
@@ -36,6 +38,7 @@ function LoginForm() {
   const { PUBLIC_IS_SMTP_CONFIGURED, PUBLIC_INKEEP_AGENTS_API_URL } = useRuntimeConfig();
   const posthog = usePostHog();
   const { isAuthenticated, isLoading: isSessionLoading } = useAuthSession();
+  const executeRecaptcha = useCaptchaExecutor();
 
   const [state, setState] = useState<LoginState>({ step: 'email' });
   const [email, setEmail] = useState('');
@@ -183,14 +186,32 @@ function LoginForm() {
     setIsLoading(true);
     setError(null);
 
+    let captchaToken: string | undefined;
     try {
-      const result = await authClient.signIn.email({ email, password });
+      captchaToken = await executeRecaptcha?.('login');
+    } catch (err) {
+      console.error('[captcha] executeRecaptcha failed on login:', err);
+      setError(CAPTCHA_ERROR_MESSAGE);
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const result = await authClient.signIn.email({
+        email,
+        password,
+        ...(captchaToken && {
+          fetchOptions: { headers: { 'x-captcha-response': captchaToken } },
+        }),
+      });
 
       if (result?.error) {
+        const captchaMessage = getCaptchaErrorMessage(result.error.code);
         const message =
-          result.error.code === 'PASSWORD_COMPROMISED'
+          captchaMessage ??
+          (result.error.code === 'PASSWORD_COMPROMISED'
             ? 'Invalid email or password'
-            : result.error.message || 'Sign in failed';
+            : result.error.message || 'Sign in failed');
         setError(message);
         setIsLoading(false);
         return;

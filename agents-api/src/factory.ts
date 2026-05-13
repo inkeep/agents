@@ -35,6 +35,12 @@ export function createAgentsAuth(
     ...(env.AUTH_COOKIE_DOMAIN && { cookieDomain: env.AUTH_COOKIE_DOMAIN }),
     ...(userAuthConfig?.socialProviders && { socialProviders: userAuthConfig.socialProviders }),
     ...(emailService && { emailService }),
+    ...(env.INKEEP_RECAPTCHA_SECRET_KEY && {
+      recaptcha: {
+        secretKey: env.INKEEP_RECAPTCHA_SECRET_KEY,
+        minScore: env.INKEEP_RECAPTCHA_MIN_SCORE,
+      },
+    }),
   });
 }
 
