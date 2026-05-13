@@ -8,7 +8,7 @@ import { pathToFileURL } from 'node:url';
 // separate public repos through Copybara, so they cannot import shared code.
 // Sibling bridge copies:
 // - public/agents-optional-local-dev/.github/scripts/bridge-public-pr-to-monorepo.mjs
-// - copybara/public-open-knowledge-overlay/.github/scripts/bridge-public-pr-to-monorepo.mjs
+// - public/open-knowledge/.github/scripts/bridge-public-pr-to-monorepo.mjs
 const BRIDGE_COMMENT_MARKER = '<!-- monorepo-pr-bridge -->';
 
 // Strip x-access-token credentials from any string that might end up in an
@@ -346,13 +346,17 @@ ${buildBridgeMetadata(publicPr, mirrorPath)}`;
 function buildPublicComment({ publicPr, internalPr, status, details }) {
   if (status === 'synced') {
     return `${BRIDGE_COMMENT_MARKER}
-A matching internal PR is ready in [inkeep/agents-private#${internalPr.number}](${internalPr.html_url}) for canonical review and merge.
+Thanks for the contribution! Your PR has been mirrored into Inkeep's internal monorepo, where review and merge happen. Your commit attribution is preserved as @${publicPr.user.login}.
 
-- Original author attribution is preserved as @${publicPr.user.login}
-- The internal PR is the authoritative merge surface
-- The public repo will pick up the merged change through the normal mirror sync
+**What happens next:**
 
-This comment will be updated as the bridge state changes.`;
+- An Inkeep maintainer will review the internal mirror PR.
+- Reviewer comments are not automatically mirrored back to this thread. If you don't hear from us within a few business days, please comment here to nudge — that's the right thing to do.
+- Once merged internally, the change will sync back to this repository and this PR will close automatically (don't be alarmed when it closes — that's how it lands).
+
+**For Inkeep maintainers** (link goes to a private repo and is not accessible to external contributors): ${internalPr.html_url}
+
+See the repository's CONTRIBUTING.md for more context on how public PRs flow. This comment will be updated as the bridge state changes.`;
   }
 
   if (status === 'no-op') {
