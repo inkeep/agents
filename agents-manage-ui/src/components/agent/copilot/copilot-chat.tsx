@@ -15,6 +15,7 @@ import { usePostHog } from '@/contexts/posthog';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { apiToGraph, applySelectionFromQueryState } from '@/features/agent/domain';
 import { useAgentActions } from '@/features/agent/state/use-agent-store';
+import { useAuthSession } from '@/hooks/use-auth';
 import { useCopilotToken } from '@/hooks/use-copilot-token';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { useSidePane } from '@/hooks/use-side-pane';
@@ -55,6 +56,7 @@ export function CopilotChat() {
   const [conversationId, setConversationId] = useState(generateId);
   const copilotRunCreatedRef = useRef(false);
   const posthog = usePostHog();
+  const { user } = useAuthSession();
   const { tenantId, projectId, agentId } = useParams<{
     tenantId: string;
     projectId: string;
@@ -286,6 +288,19 @@ export function CopilotChat() {
                 });
               }
             },
+            userProperties: user
+              ? {
+                  id: user.id,
+                  email: user.email,
+                  name: user.name,
+                }
+              : undefined,
+            analyticsProperties: {
+              tenantId,
+              projectId,
+              agentId,
+            },
+            tags: ['copilot_chat'],
             primaryBrandColor: INKEEP_BRAND_COLOR,
             shouldBypassCaptcha: true,
             colorMode: {
@@ -340,7 +355,7 @@ export function CopilotChat() {
                 );
               },
             },
-            conversationId,
+            conversationIdOverride: conversationId,
             chatFunctionsRef,
             aiAssistantAvatar: {
               light: '/assets/inkeep-icons/icon-blue.svg',
