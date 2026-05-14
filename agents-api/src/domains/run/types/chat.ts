@@ -256,7 +256,21 @@ export const VercelMessagePartSchema = z.union([
   VercelStepStartPartSchema,
 ]);
 
+// Constrain client-supplied message ids to the server's own id alphabet so
+// values that flow to messages.id (PK), OTel attributes, structured logs,
+// tool-call-id templates, and webhook payloads can't carry control chars,
+// NULs, or newlines. Accepts UUIDs (36 char), nanoids (21 char), and our
+// prefixed forms (conv_<16>) without rejecting any legitimate id format.
+// Shared so the constraint is defined once and stays in lockstep across
+// VercelMessageSchema.id and the body-level messageId on both chat routes.
+export const MessageIdSchema = z
+  .string()
+  .regex(/^[A-Za-z0-9_-]+$/)
+  .min(1)
+  .max(64);
+
 export const VercelMessageSchema = z.object({
+  id: MessageIdSchema.optional(),
   role: z.enum(['system', 'user', 'assistant', 'function', 'tool']),
   content: z.any(),
   parts: z.array(VercelMessagePartSchema).optional(),

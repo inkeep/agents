@@ -8,12 +8,14 @@ import {
   createApiError,
   createMessage,
   createOrGetConversation,
+  errorSchemaFactory,
   type FullExecutionContext,
   generateId,
   getActiveAgentForConversation,
   getConversation,
   getConversationId,
   getWorkflowExecutionByConversation,
+  isUniqueConstraintError,
   loggerFactory,
   type Part,
   PartSchema,
@@ -45,7 +47,7 @@ import { pendingToolApprovalManager } from '../session/PendingToolApprovalManage
 import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
 import { streamBufferRegistry } from '../stream/stream-buffer-registry';
 import { createBufferingStreamHelper, createVercelStreamHelper } from '../stream/stream-helpers';
-import { VercelMessageSchema } from '../types/chat';
+import { MessageIdSchema, VercelMessageSchema } from '../types/chat';
 import { getUserIdFromContext } from '../types/executionContext';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromVercelContent } from '../utils/message-parts';
@@ -82,6 +84,9 @@ const chatDataStreamRoute = createProtectedRoute({
             messages: z.array(VercelMessageSchema),
             id: z.string().optional(),
             conversationId: z.string().optional(),
+            messageId: MessageIdSchema.optional().describe(
+              'Client-supplied user message id. Optional; server generates one if omitted. Persisted as messages.id so events keyed to this id can join back to the message row. Constrained to the server id alphabet ([A-Za-z0-9_-]).'
+            ),
             stream: z.boolean().optional().describe('Whether to stream the response').default(true),
             max_tokens: z.number().optional().describe('Maximum tokens to generate'),
             headers: z
@@ -117,6 +122,7 @@ const chatDataStreamRoute = createProtectedRoute({
       }),
     },
     ...commonGetErrorResponses,
+    409: errorSchemaFactory('conflict', 'Message with the supplied id already exists'),
   },
 });
 // Apply context validation middleware
@@ -438,7 +444,12 @@ app.openapi(chatDataStreamRoute, async (c) => {
           messageSpan.setAttribute('user.id', executionContext.metadata.initiatedBy.id);
         }
       }
-      const userMessageId = generateId();
+      // Honor a client-supplied user-message id so events fired client-side
+      // (before this row lands) join back to messages.id. Read off the same
+      // message we extract content from (lastUserMessage) so the id matches
+      // the content for multi-turn callers that send full history.
+      // body.messageId remains a fallback for direct API consumers.
+      const userMessageId = lastUserMessage?.id ?? body.messageId ?? generateId();
       const hasAttachedFiles = messageParts.some((part) => part.kind === 'file');
       const attachmentTaskId = hasAttachedFiles ? `message_${userMessageId}` : undefined;
 
@@ -456,21 +467,40 @@ app.openapi(chatDataStreamRoute, async (c) => {
         source: 'user-message',
       });
 
-      await createMessage(runDbClient)({
-        scopes: { tenantId, projectId },
-        data: {
-          id: userMessageId,
-          conversationId,
-          role: 'user',
-          content: messageContent,
-          visibility: 'user-facing',
-          messageType: 'chat',
-          ...(attachmentTaskId ? { taskId: attachmentTaskId } : {}),
-          ...(resolvedUserProperties !== undefined
-            ? { userProperties: resolvedUserProperties }
-            : {}),
-        },
-      });
+      try {
+        await createMessage(runDbClient)({
+          scopes: { tenantId, projectId },
+          data: {
+            id: userMessageId,
+            conversationId,
+            role: 'user',
+            content: messageContent,
+            visibility: 'user-facing',
+            messageType: 'chat',
+            ...(attachmentTaskId ? { taskId: attachmentTaskId } : {}),
+            ...(resolvedUserProperties !== undefined
+              ? { userProperties: resolvedUserProperties }
+              : {}),
+          },
+        });
+      } catch (err) {
+        // unique_violation on (tenantId, projectId, id) — a client retried or
+        // replayed a request with an id that's already persisted in this
+        // (tenant, project). Surface a 409 instead of an unhandled 500 so
+        // callers can recover. Drizzle wraps the underlying pg/Doltgres error;
+        // isUniqueConstraintError() handles both shapes via err.cause.
+        if (isUniqueConstraintError(err)) {
+          logger.info(
+            { userMessageId, tenantId, projectId, conversationId },
+            'createMessage conflict — returning 409'
+          );
+          throw createApiError({
+            code: 'conflict',
+            message: `Message with id '${userMessageId}' already exists in this project`,
+          });
+        }
+        throw err;
+      }
       if (messageSpan) {
         messageSpan.addEvent('user.message.stored', {
           'message.id': userMessageId,
