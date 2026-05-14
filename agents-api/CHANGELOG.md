@@ -1,5 +1,15 @@
 # @inkeep/agents-api
 
+## 0.73.3
+
+### Patch Changes
+
+- 1cc72e2: Honor client-supplied user message ids on chat routes (`/run/api/chat` and `/run/api/chat/completions`) so analytics events fired client-side correlate to the persisted `messages.id` row
+  - @inkeep/agents-core@0.73.3
+  - @inkeep/agents-email@0.73.3
+  - @inkeep/agents-mcp@0.73.3
+  - @inkeep/agents-work-apps@0.73.3
+
 ## 0.73.2
 
 ### Patch Changes
