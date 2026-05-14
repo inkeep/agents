@@ -71,13 +71,7 @@ describe('useCaptchaExecutor', () => {
     expect(result.current).toBeUndefined();
   });
 
-  it('does not invoke the library default throwing function on non-cloud deployments', async () => {
-    // The react-google-recaptcha-v3 default context provides `executeRecaptcha`
-    // as a function that throws ("GoogleReCaptcha Context has not yet been
-    // implemented..."). Optional-chain (`?.()`) does NOT short-circuit on a
-    // truthy throwing function. This regression test pins that the safe
-    // wrapper returns undefined in that case, so call sites using
-    // `await result?.('action')` never reach the throw.
+  it('returns undefined (not a throwing function) on non-cloud deployments so optional-chain calls are safe', async () => {
     const wrapper = wrapperFor({
       PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT: 'false',
       PUBLIC_INKEEP_RECAPTCHA_SITE_KEY: 'a-site-key',
