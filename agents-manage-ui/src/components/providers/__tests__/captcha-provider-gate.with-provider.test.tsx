@@ -10,13 +10,6 @@ vi.mock('next/navigation', () => ({
   usePathname: () => pathnameRef.value,
 }));
 
-const mockedExecuteRecaptcha = vi.fn().mockResolvedValue('mock-token');
-
-vi.mock('react-google-recaptcha-v3', () => ({
-  GoogleReCaptchaProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
-  useGoogleReCaptcha: () => ({ executeRecaptcha: mockedExecuteRecaptcha }),
-}));
-
 import { useCaptchaExecutor } from '../captcha-provider-gate';
 
 type RuntimeConfig = Parameters<typeof RuntimeConfigProvider>[0]['value'];
@@ -44,18 +37,33 @@ function wrapperFor(value: Partial<RuntimeConfig>) {
   );
 }
 
+const mockGrecaptchaExecute = vi.fn().mockResolvedValue('mock-token');
+const mockGrecaptchaReady = vi.fn((cb: () => void) => cb());
+
+beforeEach(() => {
+  mockGrecaptchaExecute.mockClear();
+  mockGrecaptchaReady.mockClear();
+  (window as unknown as { grecaptcha: unknown }).grecaptcha = {
+    ready: mockGrecaptchaReady,
+    execute: mockGrecaptchaExecute,
+  };
+});
+
+afterEach(() => {
+  cleanup();
+  delete (window as unknown as { grecaptcha?: unknown }).grecaptcha;
+});
+
 describe('useCaptchaExecutor with mounted provider', () => {
   beforeEach(() => {
     pathnameRef.value = '/login';
-    mockedExecuteRecaptcha.mockClear();
   });
-  afterEach(cleanup);
 
   it.each([
     ['/login'],
     ['/forgot-password'],
     ['/accept-invitation/abc-123'],
-  ])('returns the executeRecaptcha function on cloud + valid key + auth path %s', (path) => {
+  ])('returns a function on cloud + valid key + auth path %s', (path) => {
     pathnameRef.value = path;
     const wrapper = wrapperFor({
       PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT: 'true',
@@ -63,10 +71,9 @@ describe('useCaptchaExecutor with mounted provider', () => {
     });
     const { result } = renderHook(() => useCaptchaExecutor(), { wrapper });
     expect(typeof result.current).toBe('function');
-    expect(result.current).toBe(mockedExecuteRecaptcha);
   });
 
-  it('the returned function resolves to a token when invoked', async () => {
+  it('calls window.grecaptcha.execute with the site key and action and resolves to a token', async () => {
     const wrapper = wrapperFor({
       PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT: 'true',
       PUBLIC_INKEEP_RECAPTCHA_SITE_KEY: 'a-site-key',
@@ -74,6 +81,27 @@ describe('useCaptchaExecutor with mounted provider', () => {
     const { result } = renderHook(() => useCaptchaExecutor(), { wrapper });
     const token = await result.current?.('login');
     expect(token).toBe('mock-token');
-    expect(mockedExecuteRecaptcha).toHaveBeenCalledWith('login');
+    expect(mockGrecaptchaReady).toHaveBeenCalledTimes(1);
+    expect(mockGrecaptchaExecute).toHaveBeenCalledWith('a-site-key', { action: 'login' });
+  });
+
+  it('rejects when window.grecaptcha is not loaded yet', async () => {
+    delete (window as unknown as { grecaptcha?: unknown }).grecaptcha;
+    const wrapper = wrapperFor({
+      PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT: 'true',
+      PUBLIC_INKEEP_RECAPTCHA_SITE_KEY: 'a-site-key',
+    });
+    const { result } = renderHook(() => useCaptchaExecutor(), { wrapper });
+    await expect(result.current?.('login')).rejects.toThrow('reCAPTCHA library not loaded');
+  });
+
+  it('rejects when grecaptcha.execute rejects (service error)', async () => {
+    mockGrecaptchaExecute.mockRejectedValueOnce(new Error('reCAPTCHA service unavailable'));
+    const wrapper = wrapperFor({
+      PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT: 'true',
+      PUBLIC_INKEEP_RECAPTCHA_SITE_KEY: 'a-site-key',
+    });
+    const { result } = renderHook(() => useCaptchaExecutor(), { wrapper });
+    await expect(result.current?.('login')).rejects.toThrow('reCAPTCHA service unavailable');
   });
 });
