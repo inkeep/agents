@@ -78,6 +78,7 @@ overrides:
   fast-xml-builder: '>=1.1.7'
   mermaid: '>=11.15.0'
   uuid: '>=13.0.1'
+  samlify>uuid: ^11.1.1
   file-type: 21.3.2
   nodemailer: 8.0.5
   '@protobufjs/utf8': '>=1.1.1'
@@ -15642,6 +15643,10 @@ packages:
   utils-merge@1.0.1:
     resolution: {integrity: sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA==}
     engines: {node: '>= 0.4.0'}
+
+  uuid@11.1.1:
+    resolution: {integrity: sha512-vIYxrBCC/N/K+Js3qSN88go7kIfNPssr/hHCesKCQNAjmgvYS2oqr69kIufEG+O4+PfezOH4EbIeHCfFov8ZgQ==}
+    hasBin: true
 
   uuid@14.0.0:
     resolution: {integrity: sha512-Qo+uWgilfSmAhXCMav1uYFynlQO7fMFiMVZsQqZRMIXp0O7rR7qjkj+cPvBHLgBqi960QCoo/PH2/6ZtVqKvrg==}
@@ -34243,7 +34248,7 @@ snapshots:
       node-forge: 1.4.0
       node-rsa: 1.1.1
       pako: 1.0.11
-      uuid: 14.0.0
+      uuid: 11.1.1
       xml: 1.0.1
       xml-crypto: 6.1.2
       xml-escape: 1.1.0
@@ -35586,6 +35591,8 @@ snapshots:
       inherits: 2.0.3
 
   utils-merge@1.0.1: {}
+
+  uuid@11.1.1: {}
 
   uuid@14.0.0: {}
 
