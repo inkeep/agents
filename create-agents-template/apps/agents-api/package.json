@@ -19,7 +19,7 @@
     "@hono/vite-dev-server": "^0.23.0",
     "@types/node": "^20.12.0",
     "typescript": "^6.0.2",
-    "vite": "^7.1.7"
+    "vite": "^7.3.2"
   },
   "engines": {
     "node": ">=22.18.0"
