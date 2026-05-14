@@ -33,6 +33,7 @@ This guide shows how to call your agent directly over HTTP and stream responses 
 {
   "messages": [
     {
+      "id": "msg-client-123",
       "role": "user",
       "content": "Hello!"
     }
@@ -44,6 +45,7 @@ This guide shows how to call your agent directly over HTTP and stream responses 
 **Field Notes:**
 
 - **`messages`** — Must include at least one `user` message
+- **`id`** (per message) — Optional client-supplied message ID. When provided, this value is persisted as `messages.id` and can be used to correlate client-side analytics events with the server-persisted message row via the [Events API](/talk-to-your-agents/events-api) `messageId` field.
 - **`content`** — Optional string message text (legacy-compatible)
 - **`parts`** — Optional multi-part content array (text + images)
 - **`content` + `parts` together** — Both are accepted. `content` is prepended as a text part unless an identical text part already exists.
