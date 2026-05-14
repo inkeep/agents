@@ -1,5 +1,13 @@
 # @inkeep/agents-manage-ui
 
+## 0.73.2
+
+### Patch Changes
+
+- 1613bbf: Fix reCAPTCHA token generation in production by calling grecaptcha.execute directly. react-google-recaptcha-v3's first-mount initialization fails silently in production builds (no React Strict Mode double-mount safety net), leaving useGoogleReCaptcha's executeRecaptcha stuck at undefined. Removed the library entirely; the reCAPTCHA script is now injected via next/script and the executor calls window.grecaptcha.execute directly via grecaptcha.ready.
+- bf4f397: Add userProperties and analyticsProperties to playground and copilot widgets
+  - @inkeep/agents-core@0.73.2
+
 ## 0.73.1
 
 ### Patch Changes
