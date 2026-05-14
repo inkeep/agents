@@ -7,10 +7,12 @@ import {
   createApiError,
   createMessage,
   createOrGetConversation,
+  errorSchemaFactory,
   type FullExecutionContext,
   generateId,
   getActiveAgentForConversation,
   getConversationId,
+  isUniqueConstraintError,
   PartSchema,
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
@@ -37,7 +39,7 @@ import { emitConversationWebhook } from '../services/WebhookDeliveryService';
 import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
 import { createSSEStreamHelper } from '../stream/stream-helpers';
 import type { Message } from '../types/chat';
-import { FileContentItemSchema, ImageContentItemSchema } from '../types/chat';
+import { FileContentItemSchema, ImageContentItemSchema, MessageIdSchema } from '../types/chat';
 import { getUserIdFromContext } from '../types/executionContext';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromOpenAIContent } from '../utils/message-parts';
@@ -107,6 +109,9 @@ const chatCompletionsRoute = createProtectedRoute({
             logit_bias: z.record(z.string(), z.number()).optional().describe('Token logit bias'),
             user: z.string().optional().describe('User identifier'),
             conversationId: z.string().optional().describe('Conversation ID for multi-turn chat'),
+            messageId: MessageIdSchema.optional().describe(
+              'Client-supplied user message id. Optional; server generates one if omitted. Persisted as messages.id so events keyed to this id can join back to the message row. Constrained to the server id alphabet ([A-Za-z0-9_-]).'
+            ),
             tools: z.array(z.string()).optional().describe('Available tools'),
             runConfig: z.record(z.string(), z.unknown()).optional().describe('Run configuration'),
             executionMode: z
@@ -177,6 +182,7 @@ const chatCompletionsRoute = createProtectedRoute({
         },
       },
     },
+    409: errorSchemaFactory('conflict', 'Message with the supplied id already exists'),
     500: {
       description: 'Internal server error',
       content: {
@@ -394,7 +400,20 @@ app.openapi(chatCompletionsRoute, async (c) => {
           messageSpan.setAttribute('user.id', executionContext.metadata.initiatedBy.id);
         }
       }
-      const userMessageId = generateId();
+      // Honor a client-supplied user-message id so events fired client-side
+      // (before this row lands) join back to messages.id. OpenAI-compatible
+      // messages don't carry per-message ids, so callers use the top-level
+      // body.messageId field. Validate manually here because this handler
+      // reads from the raw `requestBody` context value rather than from
+      // c.req.valid('json'), so the schema's regex/length constraints
+      // aren't auto-enforced.
+      if (body.messageId !== undefined && !MessageIdSchema.safeParse(body.messageId).success) {
+        throw createApiError({
+          code: 'bad_request',
+          message: 'messageId must match /^[A-Za-z0-9_-]{1,64}$/',
+        });
+      }
+      const userMessageId = body.messageId ?? generateId();
       const hasAttachedFiles = messageParts.some((part) => part.kind === 'file');
       const attachmentTaskId = hasAttachedFiles ? `message_${userMessageId}` : undefined;
 
@@ -412,21 +431,40 @@ app.openapi(chatCompletionsRoute, async (c) => {
         source: 'user-message',
       });
 
-      await createMessage(runDbClient)({
-        scopes: { tenantId, projectId },
-        data: {
-          id: userMessageId,
-          conversationId,
-          role: 'user',
-          content: messageContent,
-          visibility: 'user-facing',
-          messageType: 'chat',
-          ...(attachmentTaskId ? { taskId: attachmentTaskId } : {}),
-          ...(resolvedUserProperties !== undefined
-            ? { userProperties: resolvedUserProperties }
-            : {}),
-        },
-      });
+      try {
+        await createMessage(runDbClient)({
+          scopes: { tenantId, projectId },
+          data: {
+            id: userMessageId,
+            conversationId,
+            role: 'user',
+            content: messageContent,
+            visibility: 'user-facing',
+            messageType: 'chat',
+            ...(attachmentTaskId ? { taskId: attachmentTaskId } : {}),
+            ...(resolvedUserProperties !== undefined
+              ? { userProperties: resolvedUserProperties }
+              : {}),
+          },
+        });
+      } catch (err) {
+        // unique_violation on (tenantId, projectId, id) — a client retried or
+        // replayed a request with an id that's already persisted in this
+        // (tenant, project). Surface a 409 instead of an unhandled 500 so
+        // callers can recover. Drizzle wraps the underlying pg/Doltgres error;
+        // isUniqueConstraintError() handles both shapes via err.cause.
+        if (isUniqueConstraintError(err)) {
+          getLogger('chat').info(
+            { userMessageId, tenantId, projectId, conversationId },
+            'createMessage conflict — returning 409'
+          );
+          throw createApiError({
+            code: 'conflict',
+            message: `Message with id '${userMessageId}' already exists in this project`,
+          });
+        }
+        throw err;
+      }
 
       if (messageSpan) {
         messageSpan.addEvent('user.message.stored', {
