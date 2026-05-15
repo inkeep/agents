@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import type { PgliteDatabase } from 'drizzle-orm/pglite';
 import { Pool } from 'pg';
 import { env, loadEnvironmentFiles } from '../../env';
+import { tryAttachDatabasePool } from '../../utils/database-pool';
 import { getDatabaseErrorLogContext } from '../../utils/error';
 import { getLogger } from '../../utils/logger';
 import * as schema from './runtime-schema';
@@ -50,6 +51,7 @@ export function createAgentsRunDatabaseClient(
     connectionTimeoutMillis: 10_000,
     idleTimeoutMillis: 30_000,
   });
+  void tryAttachDatabasePool(pool);
 
   pool.on('error', (err) => {
     runtimePoolLogger.error(

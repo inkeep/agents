@@ -234,8 +234,8 @@ importers:
         specifier: ^2.3.0
         version: 2.3.0
       '@vercel/functions':
-        specifier: ^1.4.0
-        version: 1.6.0(@aws-sdk/credential-provider-web-identity@3.972.13)
+        specifier: ^3.5.1
+        version: 3.5.1(@aws-sdk/credential-provider-web-identity@3.972.13)
       '@vercel/queue':
         specifier: ^0.1.6
         version: 0.1.6
@@ -989,8 +989,8 @@ importers:
         specifier: ^1.9.0
         version: 1.9.0
       '@vercel/functions':
-        specifier: ^1.6.0
-        version: 1.6.0(@aws-sdk/credential-provider-web-identity@3.972.13)
+        specifier: ^3.5.1
+        version: 3.5.1(@aws-sdk/credential-provider-web-identity@3.972.13)
       ai:
         specifier: 6.0.14
         version: 6.0.14(zod@4.3.6)
@@ -8763,17 +8763,8 @@ packages:
   '@vercel/cli-auth@0.0.1':
     resolution: {integrity: sha512-CnqiuMlZ4pjs2LCPYiR6aLKPPd3Xb8SBI1Y7eotXKgpx6qgrGNY+E7EIyUt5ErGHJGIrCZyGG5WEo4bHtVmz2Q==}
 
-  '@vercel/functions@1.6.0':
-    resolution: {integrity: sha512-R6FKQrYT5MZs5IE1SqeCJWxMuBdHawFcCZboKKw8p7s+6/mcd55Gx6tWmyKnQTyrSEA04NH73Tc9CbqpEle8RA==}
-    engines: {node: '>= 16'}
-    peerDependencies:
-      '@aws-sdk/credential-provider-web-identity': '*'
-    peerDependenciesMeta:
-      '@aws-sdk/credential-provider-web-identity':
-        optional: true
-
-  '@vercel/functions@3.4.3':
-    resolution: {integrity: sha512-kA14KIUVgAY6VXbhZ5jjY+s0883cV3cZqIU3WhrSRxuJ9KvxatMjtmzl0K23HK59oOUjYl7HaE/eYMmhmqpZzw==}
+  '@vercel/functions@3.5.1':
+    resolution: {integrity: sha512-ndh5v+uhWqGA8033oD0i0KHvqUHcLlLCOaLOw5L+xx5zVsWUSQcZPKEYk2nm51aisnKhcnTylxnOmhx+w4UCRA==}
     engines: {node: '>= 20'}
     peerDependencies:
       '@aws-sdk/credential-provider-web-identity': '*'
@@ -8791,6 +8782,10 @@ packages:
 
   '@vercel/oidc@3.2.0':
     resolution: {integrity: sha512-UycprH3T6n3jH0k44NHMa7pnFHGu/N05MjojYr+Mc6I7obkoLIJujSWwin1pCvdy/eOxrI/l3uDLQsmcrOb4ug==}
+    engines: {node: '>= 20'}
+
+  '@vercel/oidc@3.4.1':
+    resolution: {integrity: sha512-H6B+/ig/GoahccL3WZjiHayHw1H5KhvTJNceqYulwfK9kkz5iul2hTmYzcJ7tTCQzyd0dutuL9xYFZCyLUqsog==}
     engines: {node: '>= 20'}
 
   '@vercel/otel@2.1.0':
@@ -26861,13 +26856,9 @@ snapshots:
       xdg-app-paths: 5.1.0
       zod: 4.1.11
 
-  '@vercel/functions@1.6.0(@aws-sdk/credential-provider-web-identity@3.972.13)':
-    optionalDependencies:
-      '@aws-sdk/credential-provider-web-identity': 3.972.13
-
-  '@vercel/functions@3.4.3(@aws-sdk/credential-provider-web-identity@3.972.13)':
+  '@vercel/functions@3.5.1(@aws-sdk/credential-provider-web-identity@3.972.13)':
     dependencies:
-      '@vercel/oidc': 3.2.0
+      '@vercel/oidc': 3.4.1
     optionalDependencies:
       '@aws-sdk/credential-provider-web-identity': 3.972.13
 
@@ -26879,6 +26870,8 @@ snapshots:
   '@vercel/oidc@3.1.0': {}
 
   '@vercel/oidc@3.2.0': {}
+
+  '@vercel/oidc@3.4.1': {}
 
   '@vercel/otel@2.1.0(@opentelemetry/api-logs@0.217.0)(@opentelemetry/api@1.9.1)(@opentelemetry/instrumentation@0.217.0(@opentelemetry/api@1.9.1))(@opentelemetry/resources@2.7.1(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-logs@0.217.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-metrics@2.7.1(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))':
     dependencies:
@@ -27323,7 +27316,7 @@ snapshots:
       '@jridgewell/trace-mapping': 0.3.31
       '@standard-schema/spec': 1.0.0
       '@types/ms': 2.1.0
-      '@vercel/functions': 3.4.3(@aws-sdk/credential-provider-web-identity@3.972.13)
+      '@vercel/functions': 3.5.1(@aws-sdk/credential-provider-web-identity@3.972.13)
       '@workflow/errors': 4.1.0-beta.18
       '@workflow/serde': 4.1.0-beta.2
       '@workflow/utils': 4.1.0-beta.13
