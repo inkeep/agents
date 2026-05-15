@@ -73,7 +73,7 @@
     "@opentelemetry/semantic-conventions": "catalog:",
     "@smithy/node-http-handler": "^4.4.0",
     "@vercel/blob": "^2.3.0",
-    "@vercel/functions": "^1.4.0",
+    "@vercel/functions": "^3.5.1",
     "@vercel/queue": "^0.1.6",
     "@vercel/sandbox": "^0.0.24",
     "@workflow/builders": "^4.0.1-beta.58",
