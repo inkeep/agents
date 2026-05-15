@@ -275,6 +275,7 @@ export function CopilotChat() {
               }
               if (event.eventName === 'assistant_message_received') {
                 setIsStreaming(false);
+                refreshAgentGraph();
               }
               if (event.eventName === 'chat_clear_button_clicked') {
                 setDynamicHeaders({});
