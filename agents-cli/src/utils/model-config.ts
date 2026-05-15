@@ -91,6 +91,8 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
   ];
 
   const openaiModels = [
+    { label: 'GPT-5.5 Pro', value: OPENAI_MODELS.GPT_5_5_PRO },
+    { label: 'GPT-5.5', value: OPENAI_MODELS.GPT_5_5 },
     { label: 'GPT-5.4 Pro', value: OPENAI_MODELS.GPT_5_4_PRO },
     { label: 'GPT-5.4', value: OPENAI_MODELS.GPT_5_4 },
     { label: 'GPT-5.4 Mini', value: OPENAI_MODELS.GPT_5_4_MINI },
