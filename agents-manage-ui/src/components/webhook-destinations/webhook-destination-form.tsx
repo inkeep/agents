@@ -79,6 +79,7 @@ interface WebhookDestinationFormProps {
   projectId: string;
   webhookDestination?: WebhookDestination;
   agents?: Agent[];
+  defaultUrl?: string;
 }
 
 export function WebhookDestinationForm({
@@ -87,6 +88,7 @@ export function WebhookDestinationForm({
   projectId,
   webhookDestination,
   agents = [],
+  defaultUrl,
 }: WebhookDestinationFormProps) {
   const router = useRouter();
 
@@ -96,7 +98,7 @@ export function WebhookDestinationForm({
       name: webhookDestination?.name || '',
       description: webhookDestination?.description || '',
       enabled: webhookDestination?.enabled ?? true,
-      url: webhookDestination?.url || '',
+      url: webhookDestination?.url || defaultUrl || '',
       eventTypes: webhookDestination?.eventTypes || [],
       agentIds: (webhookDestination as any)?.agentIds || [],
       headers: recordToKeyValuePairs(webhookDestination?.headers ?? undefined),

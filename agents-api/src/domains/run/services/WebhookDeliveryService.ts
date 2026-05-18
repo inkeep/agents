@@ -16,6 +16,7 @@ import {
 } from '@inkeep/agents-core';
 import { start } from 'workflow/api';
 import { manageDbClient, manageDbPool } from '../../../data/db';
+import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import {
   CONVERSATION_DETAIL_MESSAGE_LIMIT,
@@ -27,10 +28,12 @@ import {
   type WebhookDeliveryPayload,
   webhookDeliveryWorkflow,
 } from '../workflow/functions/webhookDelivery';
+import { buildSlackPayload, type SlackContext } from './slackBlockKit';
 import { dispatchViaQueue } from './webhookQueueDispatcher';
 
 const logger = getLogger('WebhookDeliveryService');
 const useQueue = !!process.env.VERCEL;
+const SLACK_WEBHOOK_URL_PREFIX = 'https://hooks.slack.com/';
 
 export type WebhookEventType = z.infer<typeof WebhookDestinationEventTypeEnum>;
 export type WebhookEventEnvelope = z.infer<typeof WebhookEventEnvelopeSchema>;
@@ -147,15 +150,43 @@ export async function emitWebhookEvent(params: EmitWebhookEventParams): Promise<
     data,
   };
 
-  const payloads: WebhookDeliveryPayload[] = destinations.map((dest) => ({
-    destinationUrl: dest.url,
-    tenantId,
-    projectId,
-    agentId,
-    webhookDestinationId: dest.id,
-    payload: envelope as unknown as Record<string, unknown>,
-    headers: dest.headers,
-  }));
+  const manageUiBaseUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
+  const slackCtx: SlackContext = { tenantId, projectId, agentId, manageUiBaseUrl };
+
+  const payloads: WebhookDeliveryPayload[] = destinations.map((dest) => {
+    const isSlackWebhook = dest.url.startsWith(SLACK_WEBHOOK_URL_PREFIX);
+    let payload: Record<string, unknown>;
+    if (isSlackWebhook) {
+      try {
+        payload = buildSlackPayload(
+          eventType,
+          envelope as unknown as Record<string, unknown>,
+          slackCtx
+        );
+      } catch (err) {
+        logger.error(
+          {
+            webhookDestinationId: dest.id,
+            eventType,
+            error: err instanceof Error ? err.message : String(err),
+          },
+          'Failed to build Slack payload, falling back to raw envelope'
+        );
+        payload = envelope as unknown as Record<string, unknown>;
+      }
+    } else {
+      payload = envelope as unknown as Record<string, unknown>;
+    }
+    return {
+      destinationUrl: dest.url,
+      tenantId,
+      projectId,
+      agentId,
+      webhookDestinationId: dest.id,
+      payload,
+      headers: dest.headers,
+    };
+  });
 
   const results = await Promise.allSettled(
     payloads.map((deliveryPayload) =>

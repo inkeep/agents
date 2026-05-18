@@ -410,7 +410,11 @@ function generateDevManifest(manifest: SlackManifest, devId: string): Record<str
   }
 
   if (dev.oauth_config?.redirect_urls) {
-    dev.oauth_config.redirect_urls = ['https://api.nango.dev/oauth/callback', OAUTH_REDIRECT_URI];
+    dev.oauth_config.redirect_urls = [
+      'https://api.nango.dev/oauth/callback',
+      OAUTH_REDIRECT_URI,
+      'http://localhost:3002/work-apps/slack/oauth_redirect',
+    ];
   }
 
   return dev as Record<string, unknown>;

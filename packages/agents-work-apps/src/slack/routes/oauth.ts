@@ -40,6 +40,7 @@ const manageUiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
 interface OAuthState {
   nonce: string;
   tenantId?: string;
+  projectId?: string;
   timestamp: number;
 }
 
@@ -58,10 +59,11 @@ export function getStateSigningSecret(): string {
   return secret;
 }
 
-export function createOAuthState(tenantId?: string): string {
+export function createOAuthState(tenantId?: string, projectId?: string): string {
   const state: OAuthState = {
     nonce: crypto.randomBytes(16).toString('hex'),
     tenantId: tenantId || '',
+    projectId: projectId || '',
     timestamp: Date.now(),
   };
   const data = Buffer.from(JSON.stringify(state)).toString('base64url');
@@ -116,7 +118,7 @@ export function parseOAuthState(stateStr: string): OAuthState | null {
   }
 }
 
-export function sanitizeTenantId(raw: string): string {
+export function sanitizeId(raw: string): string {
   return /^[a-zA-Z0-9_-]+$/.test(raw) ? raw : '';
 }
 
@@ -129,13 +131,16 @@ app.openapi(
     method: 'get',
     path: '/install',
     summary: 'Install Slack App',
-    description: 'Redirects to Slack OAuth page for workspace installation',
+    description:
+      'Redirects to Slack OAuth page for workspace installation. Pass include_webhook=true to additionally request the incoming-webhook scope (shows channel picker for webhook URL).',
     operationId: 'slack-install',
     tags: ['Work Apps', 'Slack', 'OAuth'],
     permission: noAuth(),
     request: {
       query: z.object({
         tenant_id: z.string().optional(),
+        project_id: z.string().optional(),
+        include_webhook: z.string().optional(),
       }),
     },
     responses: {
@@ -145,19 +150,28 @@ app.openapi(
     },
   }),
   (c) => {
-    const { tenant_id: tenantId } = c.req.valid('query');
+    const {
+      tenant_id: tenantId,
+      project_id: projectId,
+      include_webhook: includeWebhook,
+    } = c.req.valid('query');
     const clientId = env.SLACK_CLIENT_ID;
     const redirectUri = `${env.SLACK_APP_URL}/work-apps/slack/oauth_redirect`;
 
-    const state = createOAuthState(tenantId);
+    const state = createOAuthState(tenantId, projectId);
+
+    const scope = includeWebhook === 'true' ? `${BOT_SCOPES_CSV},incoming-webhook` : BOT_SCOPES_CSV;
 
     const slackAuthUrl = new URL('https://slack.com/oauth/v2/authorize');
     slackAuthUrl.searchParams.set('client_id', clientId || '');
-    slackAuthUrl.searchParams.set('scope', BOT_SCOPES_CSV);
+    slackAuthUrl.searchParams.set('scope', scope);
     slackAuthUrl.searchParams.set('redirect_uri', redirectUri);
     slackAuthUrl.searchParams.set('state', state);
 
-    logger.info({ redirectUri, tenantId: tenantId || '' }, 'Redirecting to Slack OAuth');
+    logger.info(
+      { redirectUri, tenantId: tenantId || '', includeWebhook: includeWebhook === 'true' },
+      'Redirecting to Slack OAuth'
+    );
 
     return c.redirect(slackAuthUrl.toString());
   }
@@ -190,7 +204,7 @@ app.openapi(
 
     const parsedState = stateParam ? parseOAuthState(stateParam) : null;
     const rawTenantId = parsedState?.tenantId || '';
-    const tenantId = sanitizeTenantId(rawTenantId);
+    const tenantId = sanitizeId(rawTenantId);
     if (rawTenantId && !tenantId) {
       logger.warn(
         { rawTenantId: rawTenantId.slice(0, 50) },
@@ -410,6 +424,53 @@ app.openapi(
         { teamId: workspaceData.teamId, teamName: workspaceData.teamName },
         'Slack workspace installation successful'
       );
+
+      if (tokenData.incoming_webhook?.url) {
+        const webhookUrl = tokenData.incoming_webhook.url as string;
+
+        if (!webhookUrl.startsWith('https://hooks.slack.com/')) {
+          logger.warn(
+            { prefix: webhookUrl.slice(0, 60) },
+            'Unexpected incoming_webhook URL prefix, skipping form redirect'
+          );
+        } else {
+          const rawProjectId = parsedState.projectId || '';
+          const stateProjectId = sanitizeId(rawProjectId);
+          if (rawProjectId && !stateProjectId) {
+            logger.warn(
+              { rawProjectId: rawProjectId.slice(0, 50) },
+              'Rejected invalid projectId from OAuth state'
+            );
+          }
+
+          if (!tenantId || !stateProjectId) {
+            logger.warn(
+              { tenantId, projectId: stateProjectId },
+              'Incoming webhook received but missing tenantId or projectId for redirect'
+            );
+            return c.redirect(`${dashboardUrl}?error=missing_project_context`);
+          }
+
+          try {
+            const newWebhookFormUrl = new URL(
+              `${manageUiUrl}/${tenantId}/projects/${stateProjectId}/webhook-destinations/new`
+            );
+            newWebhookFormUrl.searchParams.set('url', webhookUrl);
+
+            logger.info(
+              {
+                teamId: workspaceData.teamId,
+                channel: tokenData.incoming_webhook.channel,
+              },
+              'Incoming webhook URL received, redirecting to webhook form'
+            );
+
+            return c.redirect(newWebhookFormUrl.toString());
+          } catch (err) {
+            logger.error({ err }, 'Failed to build webhook form URL after successful install');
+          }
+        }
+      }
 
       const safeWorkspaceData = {
         ok: workspaceData.ok,

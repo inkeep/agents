@@ -10,7 +10,6 @@ vi.mock('@inkeep/agents-core', async () => {
     getConversation: vi.fn(),
     getConversationHistory: vi.fn(),
     getProjectMainResolvedRef: vi.fn(),
-    // Mirror Vercel's waitUntil: capture the fire-and-forget promise so tests can await it.
     getWaitUntil: vi.fn(() =>
       Promise.resolve((p: Promise<unknown>) => {
         pendingDeferred.push(p);
@@ -47,6 +46,7 @@ import {
   withRef,
 } from '@inkeep/agents-core';
 import { start } from 'workflow/api';
+import { buildSlackPayload } from '../slackBlockKit';
 import {
   emitConversationWebhook,
   emitFeedbackWebhook,
@@ -454,6 +454,198 @@ describe('WebhookDeliveryService', () => {
       await flushDeferred();
 
       expect(mockStart).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('buildSlackPayload', () => {
+    const ctx = {
+      tenantId: 'tenant-1',
+      projectId: 'project-1',
+      agentId: 'agent-1',
+      manageUiBaseUrl: 'https://app.inkeep.com',
+    };
+
+    describe('conversation.created', () => {
+      it('builds a header, fields, and conversation link', () => {
+        const envelope = {
+          type: 'conversation.created',
+          timestamp: '2026-05-13T00:00:00.000Z',
+          tenantId: 'tenant-1',
+          projectId: 'project-1',
+          agentId: 'agent-1',
+          data: {
+            conversation: {
+              id: 'conv-1',
+              title: 'My Chat',
+              agentId: 'agent-1',
+            },
+          },
+        };
+
+        const result = buildSlackPayload('conversation.created', envelope, ctx);
+
+        expect(result.text).toBe('New Conversation: My Chat');
+        expect(result.blocks).toHaveLength(4);
+        const header = (result.blocks as any[])[0];
+        expect(header.text.text).toBe('New Conversation');
+        const linksBlock = (result.blocks as any[])[2];
+        expect(linksBlock.text.text).toContain(
+          'https://app.inkeep.com/tenant-1/projects/project-1/traces/conversations/conv-1'
+        );
+        expect(result.type).toBe('conversation.created');
+        expect(result.tenantId).toBe('tenant-1');
+      });
+
+      it('falls back to conversation ID when title is null', () => {
+        const envelope = { data: { conversation: { id: 'conv-1', title: null } } };
+        const result = buildSlackPayload('conversation.created', envelope, ctx);
+        expect(result.text).toBe('New Conversation: conv-1');
+      });
+    });
+
+    describe('conversation.updated', () => {
+      it('uses "Conversation Updated" header', () => {
+        const envelope = { data: { conversation: { id: 'conv-1', title: 'Updated Chat' } } };
+        const result = buildSlackPayload('conversation.updated', envelope, ctx);
+        expect(result.text).toBe('Conversation Updated: Updated Chat');
+        expect((result.blocks as any[])[0].text.text).toBe('Conversation Updated');
+      });
+    });
+
+    describe('feedback.created', () => {
+      it('builds feedback block with type and conversation link', () => {
+        const envelope = {
+          data: {
+            feedback: { type: 'positive', details: 'Great answer!', conversationId: 'conv-1' },
+            conversation: { id: 'conv-1', title: 'Support Chat' },
+          },
+        };
+
+        const result = buildSlackPayload('feedback.created', envelope, ctx);
+
+        expect(result.text).toContain('positive');
+        expect(result.text).toContain('Support Chat');
+        expect(result.blocks).toHaveLength(4);
+        const linksBlock = (result.blocks as any[])[2];
+        expect(linksBlock.text.text).toContain('View Conversation');
+        expect(linksBlock.text.text).toContain('View Feedback');
+        expect(linksBlock.text.text).toContain('conversationId=conv-1');
+      });
+
+      it('truncates long details', () => {
+        const longDetails = 'x'.repeat(300);
+        const envelope = {
+          data: {
+            feedback: { type: 'negative', details: longDetails },
+            conversation: { id: 'conv-1' },
+          },
+        };
+
+        const result = buildSlackPayload('feedback.created', envelope, ctx);
+        const fields = (result.blocks as any[])[1].fields;
+        const detailsField = fields.find((f: any) => f.text.includes('Details'));
+        expect(detailsField.text).toContain('...');
+        expect(detailsField.text.length).toBeLessThan(300);
+      });
+
+      it('escapes Slack mrkdwn metacharacters in user-controlled details', () => {
+        const envelope = {
+          data: {
+            feedback: {
+              type: 'negative',
+              details: '<https://attacker.example.com|click here>',
+              conversationId: 'conv-1',
+            },
+            conversation: { id: 'conv-1', title: '<https://evil.example.com|trusted>' },
+          },
+        };
+
+        const result = buildSlackPayload('feedback.created', envelope, ctx);
+        const fields = (result.blocks as any[])[1].fields;
+        const detailsField = fields.find((f: any) => f.text.includes('Details'));
+        expect(detailsField.text).not.toContain('<https://attacker.example.com|click here>');
+        expect(detailsField.text).toContain('&lt;https://attacker.example.com|click here&gt;');
+        const convField = fields.find((f: any) => f.text.startsWith('*Conversation:*'));
+        expect(convField.text).not.toContain('<https://evil.example.com|trusted>');
+        expect(convField.text).toContain('&lt;https://evil.example.com|trusted&gt;');
+      });
+    });
+
+    describe('event.created', () => {
+      it('builds event block with type and ID', () => {
+        const envelope = {
+          data: {
+            event: { id: 'evt-1', type: 'page_view', conversationId: 'conv-1' },
+          },
+        };
+
+        const result = buildSlackPayload('event.created', envelope, ctx);
+
+        expect(result.text).toContain('page_view');
+        expect(result.text).toContain('evt-1');
+        expect(result.blocks).toHaveLength(4);
+        const linksBlock = (result.blocks as any[])[2];
+        expect(linksBlock.text.text).toContain('View Conversation');
+      });
+
+      it('omits conversation link when conversationId is absent', () => {
+        const envelope = { data: { event: { id: 'evt-1', type: 'page_view' } } };
+        const result = buildSlackPayload('event.created', envelope, ctx);
+        expect(result.blocks).toHaveLength(3);
+      });
+    });
+
+    describe('unknown event type', () => {
+      it('falls back to plain text', () => {
+        const envelope = { data: { foo: 'bar' } };
+        const result = buildSlackPayload('unknown.type' as any, envelope, ctx);
+        expect(result.text).toBe('[unknown.type] event fired');
+        expect(result.blocks).toEqual([]);
+        expect(result.data).toEqual({ foo: 'bar' });
+      });
+    });
+  });
+
+  describe('emitWebhookEvent Slack routing', () => {
+    beforeEach(() => {
+      mockWithRef.mockImplementation(async (_pool: any, _ref: any, fn: any) => fn('mock-db'));
+    });
+
+    it('sends Block Kit payload to Slack URLs', async () => {
+      mockListForEvent.mockReturnValue(() =>
+        Promise.resolve([
+          { id: 'dest-1', url: 'https://hooks.slack.com/services/T/B/x', headers: null },
+        ])
+      );
+
+      await emitWebhookEvent({
+        ...baseParams,
+        data: { conversation: { id: 'conv-1', title: 'Test' } },
+      });
+
+      const payload = mockStart.mock.calls[0][1][0].payload;
+      expect(payload.text).toBeDefined();
+      expect(payload.blocks).toBeDefined();
+      expect(payload.data.conversation).toBeDefined();
+      expect(payload.type).toBe('conversation.created');
+      expect(payload.tenantId).toBe('tenant-1');
+    });
+
+    it('sends envelope to non-Slack URLs', async () => {
+      mockListForEvent.mockReturnValue(() =>
+        Promise.resolve([{ id: 'dest-1', url: 'https://hook.example.com', headers: null }])
+      );
+
+      await emitWebhookEvent({
+        ...baseParams,
+        data: { conversation: { id: 'conv-1', title: 'Test' } },
+      });
+
+      const payload = mockStart.mock.calls[0][1][0].payload;
+      expect(payload.type).toBe('conversation.created');
+      expect(payload.data).toBeDefined();
+      expect(payload).not.toHaveProperty('text');
+      expect(payload).not.toHaveProperty('blocks');
     });
   });
 });

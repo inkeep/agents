@@ -11,10 +11,18 @@ export const metadata = {
   description: 'Create a new outbound webhook for this project.',
 } satisfies Metadata;
 
+const ALLOWED_PREFILL_PREFIX = 'https://hooks.slack.com/';
+
 export default async function NewWebhookDestinationPage({
   params,
-}: PageProps<'/[tenantId]/projects/[projectId]/webhook-destinations/new'>) {
+  searchParams,
+}: {
+  params: Promise<{ tenantId: string; projectId: string }>;
+  searchParams: Promise<{ url?: string }>;
+}) {
   const { tenantId, projectId } = await params;
+  const { url: rawPrefillUrl } = await searchParams;
+  const prefillUrl = rawPrefillUrl?.startsWith(ALLOWED_PREFILL_PREFIX) ? rawPrefillUrl : undefined;
 
   const agentsResponse = await fetchAgents(tenantId, projectId);
   const agents = agentsResponse.data.map((a) => ({ id: a.id, name: a.name }));
@@ -35,6 +43,7 @@ export default async function NewWebhookDestinationPage({
         tenantId={tenantId}
         projectId={projectId}
         agents={agents}
+        defaultUrl={prefillUrl}
       />
     </div>
   );
