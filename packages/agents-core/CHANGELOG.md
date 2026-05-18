@@ -1,5 +1,14 @@
 # @inkeep/agents-core
 
+## 0.73.4
+
+### Patch Changes
+
+- 867384b: Add GPT-5.5 and GPT-5.5 Pro to OpenAI model options
+- 4f7c661: Attach Postgres connection pools to Vercel Fluid Compute so idle clients can be managed before serverless functions suspend.
+
+  This registers the manage and runtime database pools with `attachDatabasePool`, including the raw manage pool used for branch/ref-scoped Dolt work. The change follows Vercel's recommended pooling pattern for Fluid Compute to improve connection reuse and reduce the risk of leaked idle clients across suspended function instances.
+
 ## 0.73.3
 
 ## 0.73.2
