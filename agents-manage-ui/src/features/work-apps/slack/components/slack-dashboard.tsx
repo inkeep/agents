@@ -39,6 +39,10 @@ export function SlackDashboard() {
         );
       } else if (error === 'workspace_check_failed') {
         toast.error('Could not verify workspace status. Please try again.');
+      } else if (error === 'missing_project_context') {
+        toast.error(
+          'The Slack connection completed, but we couldn\u2019t link it to your project. Please try again from the webhook destinations page.'
+        );
       } else {
         console.error('Slack OAuth Error:', error);
         toast.error(`Slack installation failed: ${error}`);

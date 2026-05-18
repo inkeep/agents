@@ -191,6 +191,46 @@ Every delivery is an HTTP POST with `Content-Type: application/json`. The body f
 }
 ```
 
+## Slack integration
+
+Webhook destinations pointing to Slack automatically receive rich formatted messages instead of raw JSON. This applies whether the URL was added via the OAuth flow or typed manually.
+
+### Connect a Slack channel
+
+<Steps>
+  <Step>
+    On the **Outbound Webhooks** page, click **Connect Slack Channel**. This starts a Slack OAuth flow that lets you pick a channel and grants an incoming-webhook URL.
+  </Step>
+  <Step>
+    After authorizing, you're redirected back to the webhook creation form with the Slack URL pre-filled. Select your event types and click **Create**.
+  </Step>
+</Steps>
+
+### Slack payload format
+
+
+```json
+{
+  "type": "conversation.created",
+  "timestamp": "2026-05-12T14:30:00.000Z",
+  "tenantId": "your-tenant-id",
+  "projectId": "your-project-id",
+  "agentId": "your-agent-id",
+  "data": {
+    "conversation": { "id": "conv_abc123", "title": "..." }
+  },
+  "text": "New Conversation: conv id: conv_abc123",
+  "blocks": [
+    { "type": "header", "text": { "type": "plain_text", "text": "New Conversation" } },
+    { "type": "section", "fields": ["..."] },
+    { "type": "section", "text": { "type": "mrkdwn", "text": "<link|View Conversation>" } },
+    { "type": "context", "elements": [{ "type": "mrkdwn", "text": "Inkeep" }] }
+  ]
+}
+```
+
+The `text` field serves as the notification preview (mobile push, channel sidebar). The `blocks` array renders the rich card in the channel. Non-Slack URLs always receive the standard JSON envelope without `text` or `blocks`.
+
 ## Delivery and retries
 
 Inkeep delivers each event to each matching destination independently with automatic retries.

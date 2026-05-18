@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ConnectSlackButton } from '@/components/webhook-destinations/connect-slack-button';
 import { WebhookAgentFilter } from '@/components/webhook-destinations/webhook-agent-filter';
 import { WebhookDestinationsTable } from '@/components/webhook-destinations/webhook-destinations-table';
 import { fetchAgents } from '@/lib/api/agent-full-client';
@@ -37,11 +38,14 @@ async function WebhookDestinationsContent({
           tenantId={tenantId}
           projectId={projectId}
         />
-        <Button asChild>
-          <Link href={`/${tenantId}/projects/${projectId}/webhook-destinations/new`}>
-            New Webhook
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <ConnectSlackButton tenantId={tenantId} projectId={projectId} />
+          <Button asChild>
+            <Link href={`/${tenantId}/projects/${projectId}/webhook-destinations/new`}>
+              New Webhook
+            </Link>
+          </Button>
+        </div>
       </div>
       <WebhookDestinationsTable
         destinations={destinations}
