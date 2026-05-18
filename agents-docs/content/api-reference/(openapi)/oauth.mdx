@@ -29,7 +29,10 @@ _openapi:
           authentication) since this is an external redirect from an OAuth
           provider.
         heading: mcp-oauth-authorization-callback
-      - content: Redirects to Slack OAuth page for workspace installation
+      - content: >-
+          Redirects to Slack OAuth page for workspace installation. Pass
+          include_webhook=true to additionally request the incoming-webhook
+          scope (shows channel picker for webhook URL).
         heading: install-slack-app
       - content: Handles the OAuth callback from Slack after workspace installation
         heading: slack-oauth-callback

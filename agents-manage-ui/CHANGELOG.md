@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-ui
 
+## 0.73.5
+
+### Patch Changes
+
+- cbc947d: Add Slack webhook integration with per-event Block Kit formatting
+  - @inkeep/agents-core@0.73.5
+
 ## 0.73.4
 
 ### Patch Changes
