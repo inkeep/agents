@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-ui
 
+## 0.73.4
+
+### Patch Changes
+
+- 867384b: Add GPT-5.5 and GPT-5.5 Pro to OpenAI model options
+- 0089acf: Automatically refresh graph after copilot runs
+- Updated dependencies [867384b]
+- Updated dependencies [4f7c661]
+  - @inkeep/agents-core@0.73.4
+
 ## 0.73.3
 
 ### Patch Changes
