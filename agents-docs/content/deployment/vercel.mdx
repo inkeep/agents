@@ -218,6 +218,12 @@ cd /src
 inkeep pull --config inkeep-cloud.config.ts
 ```
 
+
+## Fluid Compute Database Pooling
+
+When deploying to [Vercel Fluid Compute](https://vercel.com/docs/functions/fluid-compute), Postgres connection pools are automatically registered with Vercel's `attachDatabasePool` API. This allows Vercel to manage idle database clients before serverless functions suspend, improving connection reuse and reducing the risk of leaked idle clients across suspended function instances.
+
+This applies to both the manage (Doltgres) and runtime (Postgres) database pools. No additional configuration is required — the framework detects the Vercel environment automatically and attaches the pools.
 ## Function Tools with Vercel Sandbox
 
 When deploying to serverless environments like Vercel, you can configure [function tools](/typescript-sdk/tools/function-tools) to execute in [Vercel Sandbox](https://vercel.com/docs/vercel-sandbox) MicroVMs instead of your Agent's runtime service. This is **required** for serverless platforms since child process spawning is restricted.
