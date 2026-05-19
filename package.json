@@ -32,6 +32,7 @@
     "format:check": "biome check --linter-enabled=false",
     "typecheck": "turbo typecheck --filter='!agents-cookbook-templates'",
     "typecheck:watch": "turbo typecheck:watch",
+    "check:fast": "pnpm typecheck",
     "precheck": "pnpm install --frozen-lockfile",
     "check": "turbo check --filter='!agents-cookbook-templates' && pnpm format:check && pnpm check:env-descriptions && pnpm check:route-handler-patterns && pnpm check:dal-boundary && pnpm check:changeset-packages && pnpm check:packagemanager-sync && pnpm knip",
     "check:husky": "turbo check:husky --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'",
