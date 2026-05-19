@@ -35,7 +35,7 @@ export function NewAppDialog({
   const isCloudDeployment = PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true';
   const supportCopilotEnabled = isCloudDeployment && hasSupportCopilotEntitlement;
   const appTypeOptions = APP_TYPE_OPTIONS.filter(
-    (opt) => opt.value !== 'support_copilot' || supportCopilotEnabled
+    (opt) => opt.value !== 'api' && (opt.value !== 'support_copilot' || supportCopilotEnabled)
   );
 
   const [isOpen, setIsOpen] = useState(false);

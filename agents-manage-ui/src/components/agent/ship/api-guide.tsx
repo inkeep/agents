@@ -20,7 +20,7 @@ export function ApiGuide() {
 \`\`\`bash
 curl -N \\
   -X POST "${apiUrl}" \\
-  -H "Authorization: Bearer INKEEP_APP_SECRET" \\
+  -H "Authorization: Bearer INKEEP_API_KEY" \\
   -H "Content-Type: application/json" \\
   -H "x-emit-operations: true" \\
   -d '{
