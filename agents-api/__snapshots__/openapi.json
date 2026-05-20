@@ -12401,7 +12401,8 @@
                 "conversation.created",
                 "conversation.updated",
                 "feedback.created",
-                "event.created"
+                "event.created",
+                "evaluation.failed"
               ],
               "type": "string"
             },
@@ -12470,7 +12471,8 @@
                 "conversation.created",
                 "conversation.updated",
                 "feedback.created",
-                "event.created"
+                "event.created",
+                "evaluation.failed"
               ],
               "type": "string"
             },
@@ -12584,7 +12586,8 @@
                 "conversation.created",
                 "conversation.updated",
                 "feedback.created",
-                "event.created"
+                "event.created",
+                "evaluation.failed"
               ],
               "type": "string"
             },

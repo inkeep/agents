@@ -1,5 +1,6 @@
 'use client';
 
+import type { EvaluationStatus } from '@inkeep/agents-core/evaluation';
 import {
   AlertTriangle,
   ArrowRight,
@@ -35,7 +36,6 @@ import type {
   EvalSummaryResponse,
   EvalSummaryResult,
 } from '@/lib/api/improvements';
-import type { EvaluationStatus } from '@/lib/evaluation/pass-criteria-evaluator';
 
 interface ImprovementEvalResultsProps {
   tenantId: string;

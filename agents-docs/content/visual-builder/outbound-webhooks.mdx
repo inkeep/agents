@@ -55,6 +55,7 @@ Each webhook destination subscribes to one or more event types. Your endpoint re
 | `conversation.updated` | A user sends a message or the assistant replies |
 | `feedback.created` | A user submits feedback on a conversation |
 | `event.created` | A custom event is logged via `POST /run/v1/events` |
+| `evaluation.failed` | An evaluation result does not meet its pass criteria |
 
 ### Agent scoping
 
@@ -158,6 +159,32 @@ Every delivery is an HTTP POST with `Content-Type: application/json`. The body f
         }
       ]
     }
+  }
+}
+```
+
+### Evaluation events
+
+`evaluation.failed` fires when an evaluation result does not meet its pass criteria. The payload includes the evaluator name, the conversation ID, and the specific conditions that failed:
+
+```json
+{
+  "type": "evaluation.failed",
+  "timestamp": "2026-05-12T14:33:00.000Z",
+  "tenantId": "your-tenant-id",
+  "projectId": "your-project-id",
+  "agentId": "your-agent-id",
+  "data": {
+    "evaluator": { "id": "evaluator_abc", "name": "Response Quality" },
+    "conversation": { "id": "conv_abc123" },
+    "failedConditions": [
+      {
+        "field": "score",
+        "operator": ">=",
+        "value": 0.7,
+        "actual": 0.3
+      }
+    ]
   }
 }
 ```

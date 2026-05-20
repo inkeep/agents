@@ -23,7 +23,7 @@ import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results'
 import type { Evaluator } from '@/lib/api/evaluators';
 import { exportEvaluationResultsCsv } from '@/lib/csv/export-csv';
 import { filterEvaluationResults } from '@/lib/evaluation/filter-evaluation-results';
-import { evaluatePassCriteria } from '@/lib/evaluation/pass-criteria-evaluator';
+import { getEvaluationStatus } from '@/lib/evaluation/pass-criteria-evaluator';
 import { formatDateTimeTable } from '@/lib/utils/format-date';
 
 type AnyRecord = Record<string, unknown>;
@@ -269,22 +269,9 @@ export function EvaluationJobResults({
                       </button>
                     </TableCell>
                     <TableCell>
-                      {(() => {
-                        const evaluator = getEvaluatorById(result.evaluatorId);
-                        const resultData =
-                          result.output && typeof result.output === 'object'
-                            ? (result.output as Record<string, unknown>)
-                            : {};
-                        const outputData =
-                          resultData.output && typeof resultData.output === 'object'
-                            ? (resultData.output as Record<string, unknown>)
-                            : resultData;
-                        const evaluation = evaluatePassCriteria(
-                          evaluator?.passCriteria,
-                          outputData
-                        );
-                        return <EvaluationStatusBadge status={evaluation.status} />;
-                      })()}
+                      <EvaluationStatusBadge
+                        status={getEvaluationStatus(result, getEvaluatorById(result.evaluatorId))}
+                      />
                     </TableCell>
                     <TableCell>
                       {result.output ? (

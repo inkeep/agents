@@ -1,4 +1,4 @@
-import type { WebhookEventType } from './WebhookDeliveryService';
+import type { WebhookEventType, WebhookSlackMeta } from './WebhookDeliveryService';
 
 export interface SlackContext {
   tenantId: string;
@@ -135,10 +135,89 @@ function buildEventSlack(
   return { text, blocks };
 }
 
+function buildEvaluationFailedSlack(
+  data: Record<string, unknown>,
+  ctx: SlackContext,
+  meta?: WebhookSlackMeta
+): { text: string; blocks: unknown[] } {
+  const evaluatorObj = data.evaluator as Record<string, unknown> | undefined;
+  const conversationObj = data.conversation as Record<string, unknown> | undefined;
+  const evaluatorName = (evaluatorObj?.name as string) || 'Unknown';
+  const conversationId = (conversationObj?.id as string) || '';
+  const failedConditions =
+    (data.failedConditions as Array<{
+      field: string;
+      operator: string;
+      value: number;
+      actual: number;
+    }>) ?? [];
+  const evaluationRunConfigId = meta?.evaluationRunConfigId ?? null;
+  const evaluationJobConfigId = meta?.evaluationJobConfigId ?? null;
+
+  const scoreText =
+    failedConditions.length > 0
+      ? failedConditions
+          .map(
+            (c) =>
+              `expected ${escapeSlackMrkdwn(c.field)} ${escapeSlackMrkdwn(c.operator)} ${c.value}, got ${c.actual}`
+          )
+          .join('; ')
+      : 'failed pass criteria';
+
+  const text = `Evaluation failed: ${escapeSlackMrkdwn(evaluatorName)} ${scoreText} on conversation ${escapeSlackMrkdwn(conversationId)}`;
+
+  const conditionSections = failedConditions.flatMap((c) => [
+    { type: 'divider' },
+    {
+      type: 'section',
+      fields: [
+        { type: 'mrkdwn', text: `*Field:*\n${escapeSlackMrkdwn(c.field)}` },
+        { type: 'mrkdwn', text: `*Operator:*\n\`${c.operator}\`` },
+        { type: 'mrkdwn', text: `*Expected:*\n${c.value}` },
+        { type: 'mrkdwn', text: `*Actual:*\n${c.actual}` },
+      ],
+    },
+  ]);
+
+  const baseProjectUrl = buildProjectUrl(ctx);
+
+  const links: string[] = [];
+  if (conversationId) {
+    links.push(`<${baseProjectUrl}/traces/conversations/${conversationId}|View Conversation>`);
+  }
+
+  if (evaluationRunConfigId) {
+    links.push(
+      `<${baseProjectUrl}/evaluations/run-configs/${evaluationRunConfigId}|View Evaluation>`
+    );
+  } else if (evaluationJobConfigId) {
+    links.push(`<${baseProjectUrl}/evaluations/jobs/${evaluationJobConfigId}|View Evaluation>`);
+  }
+
+  const blocks: unknown[] = [
+    {
+      type: 'header',
+      text: { type: 'plain_text', text: 'Evaluation Failed' },
+    },
+    {
+      type: 'section',
+      fields: [{ type: 'mrkdwn', text: `*Evaluator:*\n${escapeSlackMrkdwn(evaluatorName)}` }],
+    },
+    ...conditionSections,
+  ];
+  if (links.length > 0) {
+    blocks.push({ type: 'section', text: { type: 'mrkdwn', text: links.join('  |  ') } });
+  }
+  blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: 'Inkeep' }] });
+
+  return { text, blocks };
+}
+
 export function buildSlackPayload(
   eventType: WebhookEventType,
   envelope: Record<string, unknown>,
-  ctx: SlackContext
+  ctx: SlackContext,
+  meta?: WebhookSlackMeta
 ): Record<string, unknown> {
   const data = (envelope.data as Record<string, unknown>) ?? {};
   let slackFields: { text: string; blocks: unknown[] };
@@ -154,8 +233,13 @@ export function buildSlackPayload(
     case 'event.created':
       slackFields = buildEventSlack(data, ctx);
       break;
-    default:
-      slackFields = { text: `[${eventType}] event fired`, blocks: [] };
+    case 'evaluation.failed':
+      slackFields = buildEvaluationFailedSlack(data, ctx, meta);
+      break;
+    default: {
+      const _unreached: never = eventType;
+      slackFields = { text: `[${_unreached as string}] event fired`, blocks: [] };
+    }
   }
 
   return { ...envelope, ...slackFields };
