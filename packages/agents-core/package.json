@@ -50,6 +50,10 @@
       "types": "./dist/client-exports.d.ts",
       "import": "./dist/client-exports.js"
     },
+    "./evaluation": {
+      "types": "./dist/evaluation/index.d.ts",
+      "import": "./dist/evaluation/index.js"
+    },
     "./constants/models": {
       "types": "./dist/constants/models.d.ts",
       "import": "./dist/constants/models.js"

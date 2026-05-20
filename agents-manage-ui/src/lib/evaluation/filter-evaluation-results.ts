@@ -2,7 +2,7 @@ import type { EvaluationResult } from '@/lib/api/evaluation-results';
 import type { Evaluator } from '@/lib/api/evaluators';
 import {
   type EvaluationStatus,
-  evaluatePassCriteria,
+  getEvaluationStatus,
 } from '@/lib/evaluation/pass-criteria-evaluator';
 
 export type OutputFilterOperator =
@@ -139,7 +139,7 @@ function matchesOutputFilter(value: unknown, filter: OutputFilter): boolean {
 export function filterEvaluationResults(
   results: EvaluationResult[],
   filters: EvaluationResultFilters,
-  evaluators: Evaluator[]
+  evaluators?: Evaluator[]
 ): EvaluationResult[] {
   return results.filter((result) => {
     if (filters.evaluatorId && filters.evaluatorId !== result.evaluatorId) {
@@ -151,18 +151,10 @@ export function filterEvaluationResults(
     }
 
     if (filters.status && filters.status !== 'all') {
-      const evaluator = evaluators.find((e) => e.id === result.evaluatorId);
-      const resultData =
-        result.output && typeof result.output === 'object'
-          ? (result.output as Record<string, unknown>)
-          : {};
-      const outputData =
-        resultData.output && typeof resultData.output === 'object'
-          ? (resultData.output as Record<string, unknown>)
-          : resultData;
-      const evaluation = evaluatePassCriteria(evaluator?.passCriteria, outputData);
+      const evaluator = evaluators?.find((e) => e.id === result.evaluatorId);
+      const status = getEvaluationStatus(result, evaluator);
 
-      if (evaluation.status !== filters.status) {
+      if (status !== filters.status) {
         return false;
       }
     }

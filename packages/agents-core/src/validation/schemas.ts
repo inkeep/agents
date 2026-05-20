@@ -923,7 +923,13 @@ export const TriggerInvocationApiUpdateSchema = createAgentScopedApiUpdateSchema
 // Webhook Destination Schemas
 
 export const WebhookDestinationEventTypeEnum = z
-  .enum(['conversation.created', 'conversation.updated', 'feedback.created', 'event.created'])
+  .enum([
+    'conversation.created',
+    'conversation.updated',
+    'feedback.created',
+    'event.created',
+    'evaluation.failed',
+  ])
   .describe(
     'Event type that triggers webhook delivery. `event.created` fires whenever an event is logged via POST /run/v1/events.'
   );

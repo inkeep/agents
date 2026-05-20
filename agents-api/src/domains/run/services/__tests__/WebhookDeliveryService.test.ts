@@ -9,7 +9,9 @@ vi.mock('@inkeep/agents-core', async () => {
     ...actual,
     getConversation: vi.fn(),
     getConversationHistory: vi.fn(),
+    getEvaluationRunById: vi.fn(),
     getProjectMainResolvedRef: vi.fn(),
+    evaluatePassCriteria: actual.evaluatePassCriteria,
     getWaitUntil: vi.fn(() =>
       Promise.resolve((p: Promise<unknown>) => {
         pendingDeferred.push(p);
@@ -41,6 +43,7 @@ vi.mock('../../../../logger', () => createMockLoggerModule().module);
 import {
   getConversation,
   getConversationHistory,
+  getEvaluationRunById,
   getProjectMainResolvedRef,
   listWebhookDestinationsForEvent,
   withRef,
@@ -49,6 +52,7 @@ import { start } from 'workflow/api';
 import { buildSlackPayload } from '../slackBlockKit';
 import {
   emitConversationWebhook,
+  emitEvaluationFailedWebhook,
   emitFeedbackWebhook,
   emitWebhookEvent,
 } from '../WebhookDeliveryService';
@@ -59,6 +63,7 @@ const mockStart = start as ReturnType<typeof vi.fn>;
 const mockGetConversation = getConversation as ReturnType<typeof vi.fn>;
 const mockGetConversationHistory = getConversationHistory as ReturnType<typeof vi.fn>;
 const mockGetResolvedRef = getProjectMainResolvedRef as ReturnType<typeof vi.fn>;
+const mockGetEvaluationRunById = getEvaluationRunById as ReturnType<typeof vi.fn>;
 
 const baseParams = {
   tenantId: 'tenant-1',
@@ -457,6 +462,252 @@ describe('WebhookDeliveryService', () => {
     });
   });
 
+  describe('emitEvaluationFailedWebhook', () => {
+    const conversation = {
+      id: 'conv-1',
+      tenantId: 'tenant-1',
+      projectId: 'project-1',
+      userId: 'user-1',
+      agentId: 'agent-1',
+      activeSubAgentId: null,
+      ref: null,
+      title: null,
+      lastContextResolution: null,
+      metadata: null,
+      userProperties: null,
+      properties: null,
+      createdAt: '2026-05-05T10:00:00.000Z',
+      updatedAt: '2026-05-05T10:00:01.000Z',
+    };
+
+    const evalResult = {
+      id: 'eval-result-1',
+      evaluatorId: 'evaluator-1',
+      conversationId: 'conv-1',
+      evaluationRunId: 'run-1',
+    };
+
+    const failedScoreConditions = [{ field: 'score', operator: '>=', value: 0.7, actual: 0.3 }];
+
+    beforeEach(() => {
+      pendingDeferred.length = 0;
+      mockGetConversation.mockReturnValue(() => Promise.resolve(conversation));
+      mockGetConversationHistory.mockReturnValue(() => Promise.resolve([]));
+      mockGetResolvedRef.mockReturnValue(() =>
+        Promise.resolve({ type: 'branch', name: 'tenant-1_project-1_main', hash: 'abc' })
+      );
+      mockWithRef.mockImplementation(async (_pool: any, _ref: any, fn: any) => fn('mock-db'));
+      mockListForEvent.mockReturnValue(() =>
+        Promise.resolve([{ id: 'dest-1', url: 'https://hooks.slack.com/services/T/B/x' }])
+      );
+      mockGetEvaluationRunById.mockReturnValue(() => Promise.resolve(null));
+    });
+
+    it('emits evaluation.failed with Block Kit payload when criteria fails', async () => {
+      await emitEvaluationFailedWebhook({
+        runDbClient: 'mock-run-db' as any,
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        verdict: 'failed',
+        failedConditions: failedScoreConditions,
+        evaluationResult: evalResult,
+        evaluator: { id: 'evaluator-1', name: 'Quality Check' },
+      });
+      await flushDeferred();
+
+      expect(mockStart).toHaveBeenCalledTimes(1);
+      const deliveryPayload = mockStart.mock.calls[0][1][0];
+      const slackPayload = deliveryPayload.payload;
+      expect(slackPayload.text).toContain('Evaluation failed');
+      expect(slackPayload.text).toContain('Quality Check');
+      expect(slackPayload.blocks).toBeDefined();
+      expect(slackPayload.blocks).toHaveLength(6);
+      expect(slackPayload.data.failedConditions).toEqual([
+        { field: 'score', operator: '>=', value: 0.7, actual: 0.3 },
+      ]);
+    });
+
+    it('does not leak slackMeta fields into Slack payload', async () => {
+      mockGetEvaluationRunById.mockReturnValue(() =>
+        Promise.resolve({
+          id: 'run-1',
+          tenantId: 'tenant-1',
+          projectId: 'project-1',
+          evaluationRunConfigId: 'run-config-abc',
+          evaluationJobConfigId: null,
+        })
+      );
+
+      await emitEvaluationFailedWebhook({
+        runDbClient: 'mock-run-db' as any,
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        verdict: 'failed',
+        failedConditions: failedScoreConditions,
+        evaluationResult: evalResult,
+        evaluator: { id: 'evaluator-1', name: 'Quality Check' },
+      });
+      await flushDeferred();
+
+      const slackPayload = mockStart.mock.calls[0][1][0].payload;
+      expect(slackPayload).not.toHaveProperty('evaluationRunConfigId');
+      expect(slackPayload).not.toHaveProperty('evaluationJobConfigId');
+      expect(slackPayload).not.toHaveProperty('_evaluationRunConfigId');
+      expect(slackPayload).not.toHaveProperty('_evaluationJobConfigId');
+    });
+
+    it('links to run-configs page for continuous evaluations', async () => {
+      mockGetEvaluationRunById.mockReturnValue(() =>
+        Promise.resolve({
+          id: 'run-1',
+          tenantId: 'tenant-1',
+          projectId: 'project-1',
+          evaluationRunConfigId: 'run-config-abc',
+          evaluationJobConfigId: null,
+        })
+      );
+
+      await emitEvaluationFailedWebhook({
+        runDbClient: 'mock-run-db' as any,
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        verdict: 'failed',
+        failedConditions: failedScoreConditions,
+        evaluationResult: evalResult,
+        evaluator: { id: 'evaluator-1', name: 'Quality Check' },
+      });
+      await flushDeferred();
+
+      const slackPayload = mockStart.mock.calls[0][1][0].payload;
+      const linksBlock = slackPayload.blocks[4];
+      expect(linksBlock.type).toBe('section');
+      expect(linksBlock.text.text).toContain(
+        'http://localhost:3000/tenant-1/projects/project-1/evaluations/run-configs/run-config-abc'
+      );
+      expect(linksBlock.text.text).toContain('View Evaluation');
+    });
+
+    it('links to jobs page for non-continuous evaluations', async () => {
+      mockGetEvaluationRunById.mockReturnValue(() =>
+        Promise.resolve({
+          id: 'run-1',
+          tenantId: 'tenant-1',
+          projectId: 'project-1',
+          evaluationRunConfigId: null,
+          evaluationJobConfigId: 'job-config-xyz',
+        })
+      );
+
+      await emitEvaluationFailedWebhook({
+        runDbClient: 'mock-run-db' as any,
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        verdict: 'failed',
+        failedConditions: failedScoreConditions,
+        evaluationResult: evalResult,
+        evaluator: { id: 'evaluator-1', name: 'Quality Check' },
+      });
+      await flushDeferred();
+
+      const slackPayload = mockStart.mock.calls[0][1][0].payload;
+      const linksBlock = slackPayload.blocks[4];
+      expect(linksBlock.type).toBe('section');
+      expect(linksBlock.text.text).toContain(
+        'http://localhost:3000/tenant-1/projects/project-1/evaluations/jobs/job-config-xyz'
+      );
+      expect(linksBlock.text.text).toContain('View Evaluation');
+    });
+
+    it('sends structured data without text/blocks to non-Slack destinations', async () => {
+      mockListForEvent.mockReturnValue(() =>
+        Promise.resolve([{ id: 'dest-1', url: 'https://hook.example.com', headers: null }])
+      );
+
+      await emitEvaluationFailedWebhook({
+        runDbClient: 'mock-run-db' as any,
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        verdict: 'failed',
+        failedConditions: failedScoreConditions,
+        evaluationResult: evalResult,
+        evaluator: { id: 'evaluator-1', name: 'Quality Check' },
+      });
+      await flushDeferred();
+
+      const payload = mockStart.mock.calls[0][1][0].payload;
+      expect(payload.type).toBe('evaluation.failed');
+      expect(payload.data.evaluator.name).toBe('Quality Check');
+      expect(payload.data.conversation.id).toBe('conv-1');
+      expect(payload.data.failedConditions).toBeDefined();
+      expect(payload.data).not.toHaveProperty('text');
+      expect(payload.data).not.toHaveProperty('blocks');
+    });
+
+    it('does not emit when criteria passes', async () => {
+      await emitEvaluationFailedWebhook({
+        runDbClient: 'mock-run-db' as any,
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        verdict: 'passed',
+        failedConditions: [],
+        evaluationResult: evalResult,
+        evaluator: { id: 'evaluator-1', name: 'Quality Check' },
+      });
+      await flushDeferred();
+
+      expect(mockStart).not.toHaveBeenCalled();
+    });
+
+    it('does not emit when evaluator has no pass criteria', async () => {
+      await emitEvaluationFailedWebhook({
+        runDbClient: 'mock-run-db' as any,
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        verdict: 'no_criteria',
+        failedConditions: [],
+        evaluationResult: evalResult,
+        evaluator: { id: 'evaluator-1', name: 'Quality Check' },
+      });
+      await flushDeferred();
+
+      expect(mockStart).not.toHaveBeenCalled();
+    });
+
+    it('skips dispatch when conversation is not found', async () => {
+      mockGetConversation.mockReturnValue(() => Promise.resolve(undefined));
+
+      await emitEvaluationFailedWebhook({
+        runDbClient: 'mock-run-db' as any,
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        verdict: 'failed',
+        failedConditions: failedScoreConditions,
+        evaluationResult: evalResult,
+        evaluator: { id: 'evaluator-1', name: 'Quality Check' },
+      });
+      await flushDeferred();
+
+      expect(mockStart).not.toHaveBeenCalled();
+    });
+
+    it('swallows errors and does not throw', async () => {
+      mockGetConversation.mockReturnValue(() => Promise.reject(new Error('DB down')));
+
+      await expect(
+        emitEvaluationFailedWebhook({
+          runDbClient: 'mock-run-db' as any,
+          tenantId: 'tenant-1',
+          projectId: 'project-1',
+          verdict: 'failed',
+          failedConditions: failedScoreConditions,
+          evaluationResult: evalResult,
+          evaluator: { id: 'evaluator-1', name: 'Quality Check' },
+        })
+      ).resolves.toBeUndefined();
+      await expect(flushDeferred()).resolves.toBeUndefined();
+    });
+  });
+
   describe('buildSlackPayload', () => {
     const ctx = {
       tenantId: 'tenant-1',
@@ -592,6 +843,42 @@ describe('WebhookDeliveryService', () => {
         const envelope = { data: { event: { id: 'evt-1', type: 'page_view' } } };
         const result = buildSlackPayload('event.created', envelope, ctx);
         expect(result.blocks).toHaveLength(3);
+      });
+    });
+
+    describe('evaluation.failed', () => {
+      it('builds evaluation failed block with conditions and links', () => {
+        const envelope = {
+          data: {
+            evaluator: { name: 'Quality Check' },
+            conversation: { id: 'conv-1' },
+            failedConditions: [{ field: 'score', operator: '>=', value: 0.7, actual: 0.3 }],
+          },
+        };
+        const meta = { evaluationRunConfigId: 'rc-1', evaluationJobConfigId: null };
+
+        const result = buildSlackPayload('evaluation.failed', envelope, ctx, meta);
+
+        expect(result.text).toContain('Quality Check');
+        expect(result.text).toContain('got 0.3');
+        expect(result.blocks).toHaveLength(6);
+        const linksBlock = (result.blocks as any[])[4];
+        expect(linksBlock.text.text).toContain('evaluations/run-configs/rc-1');
+      });
+
+      it('does not leak meta fields into output', () => {
+        const envelope = {
+          data: {
+            evaluator: { name: 'Check' },
+            conversation: { id: 'conv-1' },
+            failedConditions: [],
+          },
+        };
+        const meta = { evaluationRunConfigId: 'rc-1', evaluationJobConfigId: null };
+
+        const result = buildSlackPayload('evaluation.failed', envelope, ctx, meta);
+        expect(result).not.toHaveProperty('evaluationRunConfigId');
+        expect(result).not.toHaveProperty('evaluationJobConfigId');
       });
     });
 

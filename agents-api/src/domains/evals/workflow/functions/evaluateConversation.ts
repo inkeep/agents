@@ -1,5 +1,6 @@
 import {
   createEvaluationResult,
+  evaluatePassCriteria,
   generateId,
   getAgentIdsForEvaluators,
   getConversation,
@@ -13,6 +14,7 @@ import { manageDbClient } from '../../../../data/db';
 import manageDbPool from '../../../../data/db/manageDbPool';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
+import { emitEvaluationFailedWebhook } from '../../../run/services/WebhookDeliveryService';
 import { EvaluationService } from '../../services/EvaluationService';
 
 const logger = getLogger('workflow-evaluate-conversation');
@@ -97,15 +99,66 @@ async function executeEvaluatorStep(
       projectId,
     });
 
+    const outputData = (output as { output?: Record<string, unknown> })?.output ?? {};
+    const passCriteriaResult = evaluatePassCriteria(evaluator.passCriteria ?? null, outputData);
+    const verdict = passCriteriaResult.status;
+
+    if (passCriteriaResult.configurationErrors?.length) {
+      logger.error(
+        {
+          evaluatorId: evaluator.id,
+          configurationErrors: passCriteriaResult.configurationErrors,
+          availableOutputFields: Object.keys(outputData),
+        },
+        'Evaluator pass criteria misconfigured'
+      );
+    }
+
     const updated = await updateEvaluationResult(runDbClient)({
       scopes: { tenantId, projectId, evaluationResultId: evalResult.id },
       data: { output: output as any },
     });
 
     logger.info(
-      { conversationId, evaluatorId: evaluator.id, resultId: evalResult.id },
+      { conversationId, evaluatorId: evaluator.id, resultId: evalResult.id, verdict },
       'Evaluation completed successfully'
     );
+
+    try {
+      const failedConditions = (passCriteriaResult.failedConditions ?? []).map((c) => {
+        const val = outputData[c.field];
+        return {
+          field: c.field,
+          operator: c.operator,
+          value: c.value,
+          actual: typeof val === 'number' ? val : 0,
+        };
+      });
+
+      await emitEvaluationFailedWebhook({
+        runDbClient,
+        tenantId,
+        projectId,
+        verdict,
+        failedConditions,
+        evaluationResult: {
+          id: evalResult.id,
+          evaluatorId: evaluator.id,
+          conversationId,
+          evaluationRunId,
+        },
+        evaluator: { id: evaluator.id, name: evaluator.name },
+      });
+    } catch (emitErr) {
+      logger.warn(
+        {
+          error: emitErr instanceof Error ? emitErr.message : String(emitErr),
+          evaluatorId: evaluator.id,
+          resultId: evalResult.id,
+        },
+        'Failed to emit evaluation.failed webhook'
+      );
+    }
 
     return updated;
   } catch (error) {

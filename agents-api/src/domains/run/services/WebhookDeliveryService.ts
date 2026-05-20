@@ -5,6 +5,7 @@ import {
   type FeedbackSelect,
   getConversation,
   getConversationHistory,
+  getEvaluationRunById,
   getProjectMainResolvedRef,
   getWaitUntil,
   listWebhookDestinationsForEvent,
@@ -14,6 +15,7 @@ import {
   type WebhookEventEnvelopeSchema,
   withRef,
 } from '@inkeep/agents-core';
+import type { EvaluationStatus } from '@inkeep/agents-core/evaluation';
 import { start } from 'workflow/api';
 import { manageDbClient, manageDbPool } from '../../../data/db';
 import { env } from '../../../env';
@@ -38,6 +40,11 @@ const SLACK_WEBHOOK_URL_PREFIX = 'https://hooks.slack.com/';
 export type WebhookEventType = z.infer<typeof WebhookDestinationEventTypeEnum>;
 export type WebhookEventEnvelope = z.infer<typeof WebhookEventEnvelopeSchema>;
 
+export interface WebhookSlackMeta {
+  evaluationRunConfigId?: string | null;
+  evaluationJobConfigId?: string | null;
+}
+
 export interface EmitWebhookEventParams {
   tenantId: string;
   projectId: string;
@@ -45,6 +52,7 @@ export interface EmitWebhookEventParams {
   resolvedRef: ResolvedRef;
   eventType: WebhookEventType;
   data: Record<string, unknown>;
+  slackMeta?: WebhookSlackMeta;
 }
 
 export interface EmitConversationWebhookParams {
@@ -111,7 +119,7 @@ export async function emitConversationWebhook(
 }
 
 export async function emitWebhookEvent(params: EmitWebhookEventParams): Promise<void> {
-  const { tenantId, projectId, agentId, resolvedRef, eventType, data } = params;
+  const { tenantId, projectId, agentId, resolvedRef, eventType, data, slackMeta } = params;
 
   let destinations: WebhookDestinationSelect[] = [];
 
@@ -161,7 +169,8 @@ export async function emitWebhookEvent(params: EmitWebhookEventParams): Promise<
         payload = buildSlackPayload(
           eventType,
           envelope as unknown as Record<string, unknown>,
-          slackCtx
+          slackCtx,
+          slackMeta
         );
       } catch (err) {
         logger.error(
@@ -310,6 +319,103 @@ export async function emitEventWebhook(params: EmitEventWebhookParams): Promise<
       'Failed to emit event.created webhook event'
     );
   });
+
+  const waitUntil = await getWaitUntil();
+  if (waitUntil) {
+    waitUntil(promise);
+  }
+}
+
+export interface EmitEvaluationFailedWebhookParams {
+  runDbClient: AgentsRunDatabaseClient;
+  tenantId: string;
+  projectId: string;
+  verdict: EvaluationStatus;
+  failedConditions: Array<{
+    field: string;
+    operator: string;
+    value: number;
+    actual: number;
+  }>;
+  evaluationResult: {
+    id: string;
+    evaluatorId: string;
+    conversationId: string;
+    evaluationRunId: string | null;
+  };
+  evaluator: { id: string; name: string };
+}
+
+export async function emitEvaluationFailedWebhook(
+  params: EmitEvaluationFailedWebhookParams
+): Promise<void> {
+  const {
+    runDbClient: db,
+    tenantId,
+    projectId,
+    verdict,
+    failedConditions,
+    evaluationResult,
+    evaluator,
+  } = params;
+  const scopes = { tenantId, projectId };
+
+  if (verdict !== 'failed') {
+    return;
+  }
+
+  const evaluationRunPromise = evaluationResult.evaluationRunId
+    ? getEvaluationRunById(db)({
+        scopes: { tenantId, projectId, evaluationRunId: evaluationResult.evaluationRunId },
+      })
+    : Promise.resolve(null);
+
+  const promise = Promise.all([
+    getProjectMainResolvedRef(manageDbClient)(tenantId, projectId),
+    getConversation(db)({ scopes, conversationId: evaluationResult.conversationId }),
+    evaluationRunPromise,
+  ])
+    .then(([resolvedRef, conversation, evaluationRun]) => {
+      if (!conversation) {
+        logger.warn(
+          {
+            conversationId: evaluationResult.conversationId,
+            evaluationResultId: evaluationResult.id,
+          },
+          'Skipping evaluation.failed webhook emit: conversation not found'
+        );
+        return;
+      }
+
+      return emitWebhookEvent({
+        tenantId,
+        projectId,
+        agentId: conversation.agentId ?? '',
+        resolvedRef,
+        eventType: 'evaluation.failed',
+        data: {
+          evaluator: { id: evaluator.id, name: evaluator.name },
+          conversation: { id: evaluationResult.conversationId },
+          failedConditions,
+        },
+        slackMeta: {
+          evaluationRunConfigId: evaluationRun?.evaluationRunConfigId ?? null,
+          evaluationJobConfigId: evaluationRun?.evaluationJobConfigId ?? null,
+        },
+      });
+    })
+    .catch((err) => {
+      logger.warn(
+        {
+          error: err instanceof Error ? err.message : String(err),
+          evaluationResultId: evaluationResult.id,
+          evaluatorId: evaluationResult.evaluatorId,
+          conversationId: evaluationResult.conversationId,
+          evaluationRunId: evaluationResult.evaluationRunId,
+        },
+        'Failed to emit evaluation.failed webhook event'
+      );
+    });
 
   const waitUntil = await getWaitUntil();
   if (waitUntil) {

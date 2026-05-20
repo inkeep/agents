@@ -1,25 +1,13 @@
 import Papa from 'papaparse';
 import { toast } from 'sonner';
 import type { EvaluationResult } from '@/lib/api/evaluation-results';
-import type { EvaluationStatus } from '@/lib/evaluation/pass-criteria-evaluator';
-import { evaluatePassCriteria } from '@/lib/evaluation/pass-criteria-evaluator';
+import { getEvaluationStatus, type PassCriteria } from '@/lib/evaluation/pass-criteria-evaluator';
 import { formatDateTimeTable } from '@/lib/utils/format-date';
 
 interface EvalExportContext {
   results: EvaluationResult[];
   getEvaluatorName: (evaluatorId: string) => string;
-  getEvaluatorById: (evaluatorId: string) =>
-    | {
-        passCriteria?: {
-          operator: 'and' | 'or';
-          conditions: {
-            field: string;
-            operator: '>' | '<' | '>=' | '<=' | '=' | '!=';
-            value: number;
-          }[];
-        } | null;
-      }
-    | undefined;
+  getEvaluatorById?: (evaluatorId: string) => { passCriteria?: PassCriteria | null } | undefined;
   filename: string;
 }
 
@@ -36,16 +24,7 @@ export function exportEvaluationResultsCsv({
       return new Date(bTime).getTime() - new Date(aTime).getTime();
     })
     .map((result) => {
-      const evaluator = getEvaluatorById(result.evaluatorId);
-      const resultData =
-        result.output && typeof result.output === 'object'
-          ? (result.output as Record<string, unknown>)
-          : {};
-      const outputData =
-        resultData.output && typeof resultData.output === 'object'
-          ? (resultData.output as Record<string, unknown>)
-          : resultData;
-      const evaluation = evaluatePassCriteria(evaluator?.passCriteria, outputData);
+      const status = getEvaluationStatus(result, getEvaluatorById?.(result.evaluatorId));
 
       return {
         input: result.input || result.conversationId,
@@ -54,7 +33,7 @@ export function exportEvaluationResultsCsv({
           : '',
         agent: result.agentId || '',
         evaluator: getEvaluatorName(result.evaluatorId),
-        pass_fail: evaluation.status as EvaluationStatus,
+        pass_fail: status,
         conversation_id: result.conversationId,
         output: result.output ? JSON.stringify(result.output) : '',
       };

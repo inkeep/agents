@@ -14,6 +14,7 @@ import {
   doltPreviewMergeConflicts,
   doltPreviewMergeConflictsSummary,
   EvalSummaryResponseSchema,
+  evaluatePassCriteria,
   generateId,
   getDatasetById,
   getEvaluatorsByIds,
@@ -52,33 +53,6 @@ import type { ManageAppVariables } from '../../../types/app';
 import { continueImprovement, triggerImprovement } from '../../run/services/ImprovementService';
 
 const logger = getLogger('improvements');
-
-type PassCondition = {
-  field: string;
-  operator: string;
-  value: number;
-};
-
-function evaluateCondition(cond: PassCondition, outputData: Record<string, unknown>): boolean {
-  const val = outputData[cond.field];
-  if (typeof val !== 'number') return false;
-  switch (cond.operator) {
-    case '>':
-      return val > cond.value;
-    case '<':
-      return val < cond.value;
-    case '>=':
-      return val >= cond.value;
-    case '<=':
-      return val <= cond.value;
-    case '=':
-      return val === cond.value;
-    case '!=':
-      return val !== cond.value;
-    default:
-      return false;
-  }
-}
 
 type ImprovementListEntry = {
   branchName: string;
@@ -1088,23 +1062,11 @@ app.openapi(
         const evaluator = evaluatorMap.get(result.evaluatorId);
         const evaluatorName = evaluator?.name ?? result.evaluatorId;
 
-        let passed: 'passed' | 'failed' | 'no_criteria' | 'pending' = 'pending';
+        let passed: EvalSummaryResult['passed'] = 'pending';
         if (result.output) {
-          const outputData = (result.output as { output?: Record<string, unknown> })?.output;
-          const criteria = (evaluator?.passCriteria ?? null) as {
-            operator?: 'and' | 'or';
-            conditions?: PassCondition[];
-          } | null;
-
-          if (outputData && criteria?.conditions?.length) {
-            const allPass =
-              criteria.operator === 'and'
-                ? criteria.conditions.every((cond) => evaluateCondition(cond, outputData))
-                : criteria.conditions.some((cond) => evaluateCondition(cond, outputData));
-            passed = allPass ? 'passed' : 'failed';
-          } else if (outputData) {
-            passed = 'no_criteria';
-          }
+          const outputData =
+            ((result.output as Record<string, unknown>)?.output as Record<string, unknown>) ?? {};
+          passed = evaluatePassCriteria(evaluator?.passCriteria ?? null, outputData).status;
         }
 
         return {

@@ -35,6 +35,7 @@ const EVENT_TYPES = [
   { value: 'conversation.updated', label: 'Conversation Updated' },
   { value: 'feedback.created', label: 'Feedback Created' },
   { value: 'event.created', label: 'Event Created' },
+  { value: 'evaluation.failed', label: 'Evaluation Failed' },
 ] as const;
 
 const formSchema = z.object({
