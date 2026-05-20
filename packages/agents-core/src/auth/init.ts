@@ -16,12 +16,17 @@
  *
  * Optional environment variables:
  * - INKEEP_AGENTS_API_URL: API URL for Better Auth (defaults to http://localhost:3002)
+ * - INKEEP_AUTH_INIT_FORCE_PASSWORD_RESET: When 'true' and the admin user
+ *   already exists, re-sync the user's credential-account password from
+ *   INKEEP_AGENTS_MANAGE_UI_PASSWORD. Intended for ephemeral CI envs where
+ *   the secret may have rotated. Default-off so prod re-runs are safe.
  */
 
 import { loadEnvironmentFiles } from '../env';
 
 loadEnvironmentFiles();
 
+import { hashPassword } from 'better-auth/crypto';
 import { createApp, getAppById } from '../data-access/runtime/apps';
 import { addUserToOrganization, upsertOrganization } from '../data-access/runtime/organizations';
 import { getUserByEmail } from '../data-access/runtime/users';
@@ -108,7 +113,31 @@ async function init() {
   let user = await getUserByEmail(dbClient)(username);
 
   if (user) {
-    console.log(`   ℹ️  User already exists: ${username} — skipping creation and password update`);
+    if (process.env.INKEEP_AUTH_INIT_FORCE_PASSWORD_RESET === 'true') {
+      // Re-sync the credential-account password from the env value. Used by
+      // ephemeral CI envs (e.g. per-PR Railway preview) where the env is
+      // reused across runs but the secret may have rotated since the user
+      // was first created. Default-off so production / self-hosted re-runs
+      // of `pnpm db:auth:init` don't silently rotate the admin's password.
+      //
+      // Uses Better Auth's lower-level `hashPassword` directly rather than
+      // `auth.$context.password.hash`, because the HIBP plugin wraps the
+      // context-level hash to make a network call inside an endpoint
+      // context — calling it from a script without an active endpoint
+      // throws "No auth context found". The pre-flight policy gate above
+      // (length/strength via validatePasswordPolicy) already runs.
+      try {
+        const ctx = await auth.$context;
+        const hashedPassword = await hashPassword(password);
+        await ctx.internalAdapter.updatePassword(user.id, hashedPassword);
+        console.log(`   ✅ User exists; password re-synced from env`);
+      } catch (error) {
+        console.error(`   ❌ Failed to re-sync password for user ${user.id}:`, error);
+        throw error;
+      }
+    } else {
+      console.log(`   ℹ️  User already exists: ${username} — skipping creation and password update`);
+    }
   } else {
     // Create user via Better Auth
     console.log('   Creating user with Better Auth...');
@@ -164,6 +193,7 @@ async function init() {
     console.log('   ✅ Synced to SpiceDB');
   } catch (error) {
     console.error('❌ SpiceDB sync failed:', error);
+    throw error;
   }
 
   // 7. Create global playground app (if configured)
