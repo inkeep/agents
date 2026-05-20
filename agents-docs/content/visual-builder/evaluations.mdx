@@ -45,6 +45,13 @@ Evaluators define how agent responses are scored. Each evaluator has a **prompt*
 
 From the Evaluators list, open an evaluator to view or edit it, or use the delete action.
 
+
+### Webhook notifications
+
+When an evaluator has pass criteria defined and an evaluation fails those criteria, you can receive real-time notifications via the `evaluation.failed` webhook event. Configure a webhook destination subscribed to this event type to trigger alerts, sync with external systems, or initiate remediation workflows.
+
+See [Outbound Webhooks](/visual-builder/outbound-webhooks#evaluation-events) for setup and payload details.
+
 ## Batch evaluations
 
 Batch evaluations run selected evaluators over a set of conversations once. In the Visual Builder you scope that set with a **date range**. The API and TypeScript SDK can also scope a job to specific **test suite runs** using test suite run IDs (`datasetRunIds` in the API)—for example to evaluate only conversations produced by a given [test suite](/visual-builder/test-suites) run. Starting a test suite run **with evaluators** creates a matching batch evaluation automatically.
