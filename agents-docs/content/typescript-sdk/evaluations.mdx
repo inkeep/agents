@@ -90,6 +90,10 @@ Return a JSON object with:
 | `model` | object | Yes | `{ model: string, providerOptions?: object }` |
 | `passCriteria` | object | No | `{ operator: "and"\|"or", conditions: [{ field, operator, value }] }`. Operators: `>`, `<`, `>=`, `<=`, `=`, `!=` |
 
+<Tip>
+  When pass criteria are configured and an evaluation fails, webhook destinations subscribed to `evaluation.failed` receive notifications with the failing conditions and actual vs expected values. See [Outbound Webhooks](/visual-builder/outbound-webhooks#evaluation-events) to configure destinations.
+</Tip>
+
 ### Step 2 — Create a test suite and add items
 
 A test suite is a named collection of items. Each item has **input** (the messages sent to the agent) and optional **expectedOutput** (reference answer).
