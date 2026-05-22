@@ -183,7 +183,10 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
           isLoading={summariesLoading}
           error={summariesError}
           groupLabel="Agent"
-          formatGroupKey={(agentId) => agentNamesById.get(agentId) || agentId}
+          formatGroupKey={(agentId) => {
+            const name = agentNamesById.get(agentId);
+            return name ? `${name} (${agentId})` : agentId;
+          }}
         />
         <UsageBreakdownTable
           title="Cost by Provider"
@@ -360,8 +363,10 @@ function UsageBreakdownTable({
             <TableBody>
               {data.map((row) => (
                 <TableRow key={row.groupKey}>
-                  <TableCell className="font-mono text-sm">
-                    {formatGroupKey ? formatGroupKey(row.groupKey) : row.groupKey}
+                  <TableCell className="font-mono text-sm max-w-[300px]">
+                    <span className="block truncate" title={row.groupKey}>
+                      {formatGroupKey ? formatGroupKey(row.groupKey) : row.groupKey}
+                    </span>
                   </TableCell>
                   <TableCell className="text-right font-medium">
                     {formatCost(row.totalEstimatedCostUsd)}
@@ -485,11 +490,15 @@ function UsageEventsTable({
                   <TableCell className="text-right text-muted-foreground">
                     {formatTokens(event.outputTokens)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {event.agentName || event.agentId || '—'}
+                  <TableCell className="font-mono text-xs" title={event.agentId || undefined}>
+                    {event.agentName && event.agentId
+                      ? `${event.agentName} (${event.agentId})`
+                      : event.agentName || event.agentId || '—'}
                   </TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {event.subAgentName || event.subAgentId || '—'}
+                  <TableCell className="font-mono text-xs" title={event.subAgentId || undefined}>
+                    {event.subAgentName && event.subAgentId
+                      ? `${event.subAgentName} (${event.subAgentId})`
+                      : event.subAgentName || event.subAgentId || '—'}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="font-mono text-xs">
