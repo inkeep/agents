@@ -120,6 +120,7 @@ export function buildTelemetryConfig(ctx: AgentRunContext, phase?: string): obje
       tenantId: ctx.config.tenantId,
       projectId: ctx.config.projectId,
       agentId: ctx.config.agentId,
+      agentName: ctx.config.agentName,
       subAgentId: ctx.config.id,
       subAgentName: ctx.config.name,
       generationType: GENERATION_TYPES.SUB_AGENT_GENERATION,

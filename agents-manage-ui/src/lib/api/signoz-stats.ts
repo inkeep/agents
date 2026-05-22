@@ -3013,7 +3013,9 @@ class SigNozStatsAPI {
       model: string;
       provider: string;
       agentId: string;
+      agentName: string;
       subAgentId: string;
+      subAgentName: string;
       conversationId: string;
       inputTokens: number;
       outputTokens: number;
@@ -3076,8 +3078,11 @@ class SigNozStatsAPI {
                   sf(SPAN_KEYS.AI_MODEL_PROVIDER, str, attrCtx),
                   sf(SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER, str, attrCtx),
                   sf(SPAN_KEYS.AGENT_ID, str, attrCtx),
+                  sf(SPAN_KEYS.AGENT_NAME, str, attrCtx),
+                  sf(SPAN_KEYS.AI_TELEMETRY_AGENT_NAME, str, attrCtx),
                   sf(SPAN_KEYS.SUB_AGENT_ID, str, attrCtx),
                   sf(SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, str, attrCtx),
+                  sf(SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME, str, attrCtx),
                   sf(SPAN_KEYS.CONVERSATION_ID, str, attrCtx),
                   sf(SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, float64, attrCtx),
                   sf(SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, float64, attrCtx),
@@ -3121,7 +3126,9 @@ class SigNozStatsAPI {
           model: d[SPAN_KEYS.AI_MODEL_ID] || 'unknown',
           provider: d[SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER] || d[SPAN_KEYS.AI_MODEL_PROVIDER] || '',
           agentId: d[SPAN_KEYS.AGENT_ID] || '',
-          subAgentId: d[SPAN_KEYS.SUB_AGENT_ID] || d[SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID] || '',
+          agentName: d[SPAN_KEYS.AI_TELEMETRY_AGENT_NAME] || d[SPAN_KEYS.AGENT_NAME] || '',
+          subAgentId: d[SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID] || d[SPAN_KEYS.SUB_AGENT_ID] || '',
+          subAgentName: d[SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME] || '',
           conversationId: d[SPAN_KEYS.CONVERSATION_ID] || '',
           inputTokens,
           outputTokens,

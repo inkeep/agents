@@ -171,6 +171,7 @@ export class EvaluationService {
       projectId,
       conversationId: conversation.id,
       agentId,
+      agentName: agentDefinition?.name ?? null,
     });
 
     return {
@@ -240,8 +241,10 @@ Return your evaluation as a JSON object matching the schema above.`;
     projectId: string;
     conversationId: string;
     agentId: string | null;
+    agentName: string | null;
   }): Promise<{ result: Record<string, unknown>; metadata: Record<string, unknown> }> {
-    const { prompt, modelConfig, schema, tenantId, projectId, conversationId, agentId } = params;
+    const { prompt, modelConfig, schema, tenantId, projectId, conversationId, agentId, agentName } =
+      params;
 
     const languageModel = ModelFactory.prepareGenerationConfig(modelConfig);
     const providerOptions = modelConfig?.providerOptions || {};
@@ -280,6 +283,7 @@ Return your evaluation as a JSON object matching the schema above.`;
           'project.id': projectId,
           'conversation.id': conversationId,
           ...(agentId ? { 'agent.id': agentId } : {}),
+          ...(agentName ? { 'agent.name': agentName } : {}),
         },
         () =>
           generateText({
@@ -294,6 +298,7 @@ Return your evaluation as a JSON object matching the schema above.`;
                 projectId,
                 conversationId,
                 agentId: agentId ?? '',
+                agentName: agentName ?? '',
                 generationType: GENERATION_TYPES.EVAL_SCORING,
               },
             },
