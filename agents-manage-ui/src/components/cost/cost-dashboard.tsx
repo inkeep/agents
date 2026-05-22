@@ -154,6 +154,13 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
     { totalTokens: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCost: 0, totalEvents: 0 }
   );
 
+  const agentNamesById = new Map<string, string>();
+  for (const e of events) {
+    if (e.agentName && !agentNamesById.has(e.agentId)) {
+      agentNamesById.set(e.agentId, e.agentName);
+    }
+  }
+
   return (
     <>
       <UsageStatCards
@@ -176,6 +183,7 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
           isLoading={summariesLoading}
           error={summariesError}
           groupLabel="Agent"
+          formatGroupKey={(agentId) => agentNamesById.get(agentId) || agentId}
         />
         <UsageBreakdownTable
           title="Cost by Provider"
@@ -386,7 +394,9 @@ interface SigNozUsageEvent {
   model: string;
   provider: string;
   agentId: string;
+  agentName: string;
   subAgentId: string;
+  subAgentName: string;
   conversationId: string;
   inputTokens: number;
   outputTokens: number;
@@ -475,8 +485,12 @@ function UsageEventsTable({
                   <TableCell className="text-right text-muted-foreground">
                     {formatTokens(event.outputTokens)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs">{event.agentId || '—'}</TableCell>
-                  <TableCell className="font-mono text-xs">{event.subAgentId || '—'}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {event.agentName || event.agentId || '—'}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {event.subAgentName || event.subAgentId || '—'}
+                  </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="font-mono text-xs">
                       {event.generationType.replace(/_/g, ' ')}

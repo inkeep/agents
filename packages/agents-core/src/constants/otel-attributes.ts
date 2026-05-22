@@ -65,6 +65,7 @@ export const SPAN_KEYS = {
   AI_TELEMETRY_TENANT_ID: 'ai.telemetry.metadata.tenantId',
   AI_TELEMETRY_PROJECT_ID: 'ai.telemetry.metadata.projectId',
   AI_TELEMETRY_AGENT_ID: 'ai.telemetry.metadata.agentId',
+  AI_TELEMETRY_AGENT_NAME: 'ai.telemetry.metadata.agentName',
   AI_TELEMETRY_CONVERSATION_ID: 'ai.telemetry.metadata.conversationId',
   AI_TELEMETRY_SESSION_ID: 'ai.telemetry.metadata.sessionId',
   AI_MODEL_ID: 'ai.model.id',
