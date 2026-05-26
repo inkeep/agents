@@ -298,7 +298,6 @@ Return your evaluation as a JSON object matching the schema above.`;
                 projectId,
                 conversationId,
                 agentId: agentId ?? '',
-                agentName: agentName ?? '',
                 generationType: GENERATION_TYPES.EVAL_SCORING,
               },
             },
