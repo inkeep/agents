@@ -1,5 +1,28 @@
 # @inkeep/agents-manage-ui
 
+## 0.74.0
+
+### Minor Changes
+
+- fbb4048: Add a Guardrails section to the sub-agent editor: a modal for declaring what a sub agent can emit (data components, artifacts) and the contract its responses must satisfy (structured-only emission, requireComponent / requireArtifact / requireTransfer, onViolation).
+
+### Patch Changes
+
+- 12a8478: Distinguish between same agent name in cost page
+- 02ef183: Properly characterize when to use App Credentials and API keys
+- 9b519e3: Change BaseSkillSchema to use z.object() instead of z.strictObject()
+- bb0aba5: Evaluation failure event added
+- ab6276d: Cost events have agent name linked
+- 7c5a341: Point Zendesk Marketplace link to specific Inkeep app listing
+- 6168e1b: Add collapsible toggle to the four summary cards in the conversations details page
+- 1af568e: Cost events displayed with agent name
+- Updated dependencies [bb0aba5]
+- Updated dependencies [ab6276d]
+- Updated dependencies [be4d081]
+- Updated dependencies [fbb4048]
+- Updated dependencies [1af568e]
+  - @inkeep/agents-core@0.74.0
+
 ## 0.73.5
 
 ### Patch Changes

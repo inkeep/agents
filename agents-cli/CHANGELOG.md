@@ -1,5 +1,24 @@
 # @inkeep/agents-cli
 
+## 0.74.0
+
+### Patch Changes
+
+- Updated dependencies [12a8478]
+- Updated dependencies [02ef183]
+- Updated dependencies [fbb4048]
+- Updated dependencies [9b519e3]
+- Updated dependencies [bb0aba5]
+- Updated dependencies [ab6276d]
+- Updated dependencies [be4d081]
+- Updated dependencies [7c5a341]
+- Updated dependencies [fbb4048]
+- Updated dependencies [6168e1b]
+- Updated dependencies [1af568e]
+  - @inkeep/agents-manage-ui@0.74.0
+  - @inkeep/agents-core@0.74.0
+  - @inkeep/agents-sdk@0.74.0
+
 ## 0.73.5
 
 ### Patch Changes
