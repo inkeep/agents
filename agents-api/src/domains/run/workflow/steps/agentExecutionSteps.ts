@@ -4,6 +4,7 @@ import { context as otelContext, propagation } from '@opentelemetry/api';
 import { getWritable } from 'workflow';
 import { env } from '../../../../env';
 import { getLogger, runWithLogContext } from '../../../../logger';
+import { ContractViolationError } from '../../errors';
 import { setSpanWithError, tracer } from '../../utils/tracer';
 
 const logger = getLogger('agentExecutionSteps');
@@ -211,6 +212,7 @@ async function buildAgentForStep(params: {
   const prompt = 'prompt' in agentSchema ? agentSchema.prompt || undefined : '';
   const models = 'models' in agentSchema ? agentSchema.models : undefined;
   const stopWhen = 'stopWhen' in agentSchema ? agentSchema.stopWhen : undefined;
+  const outputContract = 'outputContract' in agentSchema ? agentSchema.outputContract : undefined;
 
   const agent = new Agent(
     {
@@ -227,6 +229,7 @@ async function buildAgentForStep(params: {
       prompt,
       models: models || undefined,
       stopWhen: stopWhen || undefined,
+      outputContract: outputContract || undefined,
       skills,
       subAgentRelations: enhancedInternalRelations.map((relation) => ({
         id: relation.id,
@@ -825,7 +828,17 @@ export async function callLlmStep(params: CallLlmStepParams): Promise<CallLlmRes
 
                 try {
                   await sseHelper.writeOperation(
-                    errorOp(`Execution error: ${rootCause.message}`, currentSubAgentId || 'system')
+                    rootCause instanceof ContractViolationError
+                      ? errorOp(
+                          rootCause.message,
+                          currentSubAgentId || 'system',
+                          'error',
+                          'CONTRACT_VIOLATION'
+                        )
+                      : errorOp(
+                          `Execution error: ${rootCause.message}`,
+                          currentSubAgentId || 'system'
+                        )
                   );
                   await sseHelper.complete();
                 } catch (streamErr) {

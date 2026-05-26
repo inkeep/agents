@@ -9,6 +9,8 @@ import { normalizeDataComponentSchema } from '@inkeep/agents-core';
 import type { JSONSchema } from 'zod/v4/core';
 import { SchemaProcessor } from '../utils/SchemaProcessor';
 
+export const ARTIFACT_CREATE_PREFIX = 'ArtifactCreate_';
+
 /**
  * Standard artifact reference component schema for tool responses
  */
@@ -107,7 +109,7 @@ export class ArtifactCreateSchema {
 
       return z.object({
         id: z.string(),
-        name: z.literal(`ArtifactCreate_${component.name}`),
+        name: z.literal(`${ARTIFACT_CREATE_PREFIX}${component.name}`),
         props: z.fromJSONSchema(normalizedPropsSchema),
       });
     });
@@ -163,7 +165,7 @@ export class ArtifactCreateSchema {
         id: `artifact-create-${component.name.toLowerCase().replace(/\s+/g, '-')}`,
         tenantId: tenantId,
         projectId: projectId,
-        name: `ArtifactCreate_${component.name}`,
+        name: `${ARTIFACT_CREATE_PREFIX}${component.name}`,
         description: `Create ${component.name} artifacts from tool results by extracting structured data using selectors.`,
         props: normalizedPropsSchema as JsonSchemaForLlmSchemaType,
       };

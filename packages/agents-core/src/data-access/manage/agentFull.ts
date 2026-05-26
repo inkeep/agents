@@ -12,6 +12,7 @@ import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/utility';
 import { deriveRelationId, generateId } from '../../utils/conversations';
 import { getLogger } from '../../utils/logger';
 import { validateAgentStructure, validateAndTypeAgentData } from '../../validation/agentFull';
+import type { OutputContract } from '../../validation/schemas';
 import {
   deleteAgent,
   getAgentById,
@@ -23,12 +24,14 @@ import {
 import {
   associateArtifactComponentWithAgent,
   deleteAgentArtifactComponentRelationByAgent,
+  listArtifactComponents,
   upsertAgentArtifactComponentRelation,
 } from './artifactComponents';
 import { upsertContextConfig } from './contextConfigs';
 import {
   associateDataComponentWithAgent,
   deleteAgentDataComponentRelationByAgent,
+  listDataComponents,
   upsertAgentDataComponentRelation,
 } from './dataComponents';
 import { upsertFunction } from './functions';
@@ -192,10 +195,73 @@ async function applyExecutionLimitsInheritance(
   }
 }
 
+async function loadComponentNameMaps(
+  db: AgentsManageDatabaseClient,
+  scopes: ProjectScopeConfig,
+  subAgentsMap: FullAgentDefinition['subAgents']
+): Promise<{ componentNameById: Map<string, string>; artifactNameById: Map<string, string> }> {
+  // reconcileOutputContract early-returns null when a sub-agent has no contract,
+  // so the maps are only read when at least one sub-agent has one.
+  const anyContracted = Object.values(subAgentsMap).some((s) => s?.outputContract != null);
+  if (!anyContracted) {
+    return { componentNameById: new Map(), artifactNameById: new Map() };
+  }
+  const [dataComps, artifactComps] = await Promise.all([
+    listDataComponents(db)({ scopes }),
+    listArtifactComponents(db)({ scopes }),
+  ]);
+  return {
+    componentNameById: new Map(dataComps.map((c) => [c.id, c.name] as const)),
+    artifactNameById: new Map(artifactComps.map((c) => [c.id, c.name] as const)),
+  };
+}
+
 /**
- * Server-side implementation of createFullAgent that performs actual database operations.
- * This function creates a complete agent with all agents, tools, and relationships.
+ * Drop require* entries that name a component/artifact the sub-agent no longer
+ * declares — a requirement must never outlive the component it points at, or it
+ * becomes an unsatisfiable contract. Returns null when no contract is set.
  */
+export function reconcileOutputContract(
+  subAgent: {
+    dataComponents?: string[];
+    artifactComponents?: string[];
+    outputContract?: OutputContract | null;
+  },
+  componentNameById: Map<string, string>,
+  artifactNameById: Map<string, string>
+): OutputContract | null {
+  const contract = subAgent.outputContract;
+  if (!contract) {
+    return null;
+  }
+  const declaredComponents = new Set(
+    (subAgent.dataComponents ?? [])
+      .map((id) => componentNameById.get(id))
+      .filter((name): name is string => Boolean(name))
+  );
+  const declaredArtifacts = new Set(
+    (subAgent.artifactComponents ?? [])
+      .map((id) => artifactNameById.get(id))
+      .filter((name): name is string => Boolean(name))
+  );
+  const reconciled: OutputContract = { ...contract };
+  const requireComponent = contract.requireComponent?.filter((name) =>
+    declaredComponents.has(name)
+  );
+  if (requireComponent && requireComponent.length > 0) {
+    reconciled.requireComponent = requireComponent;
+  } else {
+    delete reconciled.requireComponent;
+  }
+  const requireArtifact = contract.requireArtifact?.filter((name) => declaredArtifacts.has(name));
+  if (requireArtifact && requireArtifact.length > 0) {
+    reconciled.requireArtifact = requireArtifact;
+  } else {
+    delete reconciled.requireArtifact;
+  }
+  return reconciled;
+}
+
 export const createFullAgentServerSide =
   (db: AgentsManageDatabaseClient) =>
   async (
@@ -209,6 +275,12 @@ export const createFullAgentServerSide =
     validateAgentStructure(typed);
 
     await applyExecutionLimitsInheritance(db, { tenantId, projectId }, typed);
+
+    const { componentNameById, artifactNameById } = await loadComponentNameMaps(
+      db,
+      { tenantId, projectId },
+      typed.subAgents
+    );
 
     try {
       logger.info(
@@ -471,6 +543,14 @@ export const createFullAgentServerSide =
                 conversationHistoryConfig: subAgent.conversationHistoryConfig,
                 models: subAgent.models,
                 stopWhen: subAgent.stopWhen,
+                // Reconcile drops require* entries for components/artifacts the
+                // sub-agent no longer declares, and returns null for an absent
+                // contract so a cleared contract writes NULL.
+                outputContract: reconcileOutputContract(
+                  subAgent,
+                  componentNameById,
+                  artifactNameById
+                ),
               },
             });
             logger.info({ subAgentId }, 'Sub-agent processed successfully');
@@ -843,6 +923,12 @@ export const updateFullAgentServerSide =
     if (!typedAgentDefinition.id) {
       throw new Error('Agent ID is required');
     }
+
+    const { componentNameById, artifactNameById } = await loadComponentNameMaps(
+      db,
+      { tenantId, projectId },
+      typedAgentDefinition.subAgents
+    );
 
     logger.info(
       {
@@ -1258,6 +1344,14 @@ export const updateFullAgentServerSide =
                 conversationHistoryConfig: subAgent.conversationHistoryConfig,
                 models: finalModelSettings,
                 stopWhen: subAgent.stopWhen,
+                // Reconcile drops require* entries for components/artifacts the
+                // sub-agent no longer declares, and returns null for an absent
+                // contract so a cleared contract writes NULL.
+                outputContract: reconcileOutputContract(
+                  subAgent,
+                  componentNameById,
+                  artifactNameById
+                ),
               },
             });
             logger.info({ subAgentId }, 'Sub-agent processed successfully');

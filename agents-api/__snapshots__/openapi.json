@@ -7596,6 +7596,45 @@
           }
         ]
       },
+      "OutputContract": {
+        "additionalProperties": {
+          "nullable": true
+        },
+        "nullable": true,
+        "properties": {
+          "allowText": {
+            "type": "boolean"
+          },
+          "onViolation": {
+            "enum": [
+              "retry",
+              "reject",
+              "warn"
+            ],
+            "type": "string"
+          },
+          "requireArtifact": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "requireComponent": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "requireTransfer": {
+            "type": "boolean"
+          },
+          "retryBudget": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "Pagination": {
         "properties": {
           "limit": {
@@ -9313,6 +9352,37 @@
             "maxLength": 256,
             "type": "string"
           },
+          "outputContract": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
           "prompt": {
             "nullable": true,
             "type": "string"
@@ -9360,6 +9430,7 @@
           "conversationHistoryConfig",
           "models",
           "stopWhen",
+          "outputContract",
           "createdAt",
           "updatedAt"
         ],
@@ -9446,6 +9517,9 @@
           },
           "name": {
             "$ref": "#/components/schemas/NameSchema"
+          },
+          "outputContract": {
+            "$ref": "#/components/schemas/OutputContract"
           },
           "prompt": {
             "nullable": true,
@@ -10558,6 +10632,9 @@
           },
           "name": {
             "$ref": "#/components/schemas/NameSchema"
+          },
+          "outputContract": {
+            "$ref": "#/components/schemas/OutputContract"
           },
           "prompt": {
             "nullable": true,

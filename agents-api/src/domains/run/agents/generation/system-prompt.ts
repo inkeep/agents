@@ -406,6 +406,8 @@ export async function buildSystemPrompt(
     hasDelegateRelations: (ctx.config.delegateRelations?.length ?? 0) > 0,
     includeDataComponents,
     clientCurrentTime,
+    outputContract: ctx.config.outputContract,
+    resolvedAllowText: ctx.resolvedAllowText,
   };
   return ctx.systemPromptBuilder.buildSystemPrompt(config);
 }

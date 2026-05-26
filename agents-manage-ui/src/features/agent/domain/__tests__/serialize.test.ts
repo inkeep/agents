@@ -1539,4 +1539,57 @@ describe('editorToPayload', () => {
       expect(result.defaultSubAgentId).toBe('persisted-agent-id');
     });
   });
+
+  describe('output contract', () => {
+    const nodes: Node[] = [
+      {
+        id: 'agent1',
+        type: NodeType.SubAgent,
+        position: { x: 0, y: 0 },
+        data: {},
+      },
+    ];
+
+    it('includes outputContract in the sub-agent payload when configured', () => {
+      const result = editorToPayload(nodes, [], undefined, undefined, undefined, undefined, {
+        agent1: createSubAgentFormValue('agent1', {
+          outputContract: {
+            allowText: false,
+            requireComponent: ['SearchResults'],
+            onViolation: 'reject',
+          },
+        }),
+      });
+
+      expect(result.subAgents.agent1.outputContract).toEqual({
+        allowText: false,
+        requireComponent: ['SearchResults'],
+        onViolation: 'reject',
+      });
+    });
+
+    it('omits outputContract when no contract fields are set', () => {
+      const result = editorToPayload(nodes, [], undefined, undefined, undefined, undefined, {
+        agent1: createSubAgentFormValue('agent1'),
+      });
+
+      expect(result.subAgents.agent1.outputContract).toBeUndefined();
+    });
+
+    it('drops unset and default fields, keeping only configured ones', () => {
+      const result = editorToPayload(nodes, [], undefined, undefined, undefined, undefined, {
+        agent1: createSubAgentFormValue('agent1', {
+          outputContract: {
+            allowText: true,
+            requireComponent: undefined,
+            requireArtifact: ['ResearchReport'],
+          },
+        }),
+      });
+
+      expect(result.subAgents.agent1.outputContract).toEqual({
+        requireArtifact: ['ResearchReport'],
+      });
+    });
+  });
 });

@@ -629,6 +629,9 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       clientCurrentTime: undefined,
       hasTransferRelations: false,
       hasDelegateRelations: false,
+      appPrompt: undefined,
+      outputContract: undefined,
+      resolvedAllowText: true,
     });
   });
 
@@ -660,6 +663,9 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       clientCurrentTime: undefined,
       hasTransferRelations: false,
       hasDelegateRelations: false,
+      appPrompt: undefined,
+      outputContract: undefined,
+      resolvedAllowText: true,
     });
   });
 
@@ -691,6 +697,9 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       clientCurrentTime: undefined,
       hasTransferRelations: false,
       hasDelegateRelations: false,
+      appPrompt: undefined,
+      outputContract: undefined,
+      resolvedAllowText: true,
     });
   });
 
@@ -750,6 +759,9 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       clientCurrentTime: undefined,
       hasTransferRelations: false,
       hasDelegateRelations: false,
+      appPrompt: undefined,
+      outputContract: undefined,
+      resolvedAllowText: true,
     });
   });
 

@@ -154,6 +154,34 @@ function requireFormValue<T>(value: T | null | undefined, message: string): T {
 }
 
 /**
+ * Builds the output contract payload from form values, dropping unset fields.
+ * Returns undefined when no contract is configured.
+ */
+function buildOutputContract(
+  form:
+    | {
+        allowText?: boolean;
+        requireComponent?: string[];
+        requireArtifact?: string[];
+        requireTransfer?: boolean;
+        onViolation?: 'retry' | 'reject' | 'warn';
+        retryBudget?: number;
+      }
+    | null
+    | undefined
+): ExtendedAgent['outputContract'] | undefined {
+  if (!form) return undefined;
+  const contract: NonNullable<ExtendedAgent['outputContract']> = {};
+  if (form.allowText === false) contract.allowText = false;
+  if (form.requireComponent?.length) contract.requireComponent = form.requireComponent;
+  if (form.requireArtifact?.length) contract.requireArtifact = form.requireArtifact;
+  if (form.requireTransfer) contract.requireTransfer = true;
+  if (form.onViolation) contract.onViolation = form.onViolation;
+  if (form.retryBudget != null) contract.retryBudget = form.retryBudget;
+  return Object.keys(contract).length > 0 ? contract : undefined;
+}
+
+/**
  * Transforms React Flow nodes and edges back into the API data structure
  */
 export function editorToPayload(
@@ -188,6 +216,7 @@ export function editorToPayload(
       // Process models - only include if it has non-empty, non-whitespace values
       const processedModels = processModels(modelsData);
       const stopWhen = subAgentForm.stopWhen;
+      const outputContract = buildOutputContract(subAgentForm.outputContract);
       const nodeSkills: AgentSkill[] = subAgentForm.skills ?? [];
 
       const canUse: Array<{
@@ -316,6 +345,7 @@ export function editorToPayload(
           })),
         }),
         ...(stopWhen && { stopWhen }),
+        ...(outputContract && { outputContract }),
       };
 
       subAgents[subAgentId] = agent;

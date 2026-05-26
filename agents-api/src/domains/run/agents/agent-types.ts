@@ -9,9 +9,11 @@ import type {
   McpTool,
   MessageContent,
   Models,
+  OutputContract,
   ResolvedRef,
   SubAgentStopWhen,
 } from '@inkeep/agents-core';
+import { DELEGATE_TOOL_PREFIX, TRANSFER_TOOL_PREFIX } from '@inkeep/agents-core';
 import type { FinishReason, StepResult, ToolSet } from 'ai';
 import type { MidGenerationCompressor } from '../compression/MidGenerationCompressor';
 import type { ContextResolver } from '../context';
@@ -97,6 +99,48 @@ export interface ResolvedGenerationResponse {
 }
 
 /**
+ * Detect the AI SDK's NoObjectGeneratedError by `error.name` rather than
+ * `instanceof`, because multiple resolved SDK versions in the dependency tree
+ * can break instanceof checks. Names sourced from ai@6 — the prefixed
+ * `AI_NoObjectGeneratedError` is current; the bare form is kept as a safety
+ * net for downgrades or upstream renames. Re-verify on AI SDK upgrades.
+ */
+function isNoObjectGeneratedError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return error.name === 'AI_NoObjectGeneratedError' || error.name === 'NoObjectGeneratedError';
+}
+
+/**
+ * Build a debuggable, action-oriented description of why field resolution failed.
+ * Routes by the cause's error name so message phrasing matches the actual failure
+ * (no structured output emitted vs. emitted-but-unparseable vs. unrelated SDK fault).
+ */
+function getResolutionHint(field: string, cause: unknown, toolCallNames: string[]): string {
+  if (field !== 'output') {
+    return `Resolving the "${field}" property of the AI SDK response failed. This is usually a streaming, network, or SDK-internal fault rather than a model problem.`;
+  }
+  const causeName = cause instanceof Error ? cause.name : '';
+  if (causeName === 'AI_NoObjectGeneratedError' || causeName === 'NoObjectGeneratedError') {
+    const nonRoutingTools = toolCallNames.filter(
+      (n) => !n.startsWith(TRANSFER_TOOL_PREFIX) && !n.startsWith(DELEGATE_TOOL_PREFIX)
+    );
+    if (nonRoutingTools.length > 0) {
+      return `The model called tool(s) [${nonRoutingTools.join(', ')}] but did not emit the structured object Output.object() expected. If this agent should answer with a tool call instead of data components, remove dataComponents from the agent or have the model transfer/delegate. To require data components, set outputContract.requireComponent.`;
+    }
+    return `The model produced no structured output, no transfer, and no delegate call. The agent declares dataComponents but the model emitted text only — it ignored the structured-output instruction. To enforce structured output, set outputContract.requireComponent (forces a named component) or outputContract.allowText=false (forbids plain text).`;
+  }
+  if (
+    causeName.includes('ParseError') ||
+    causeName.includes('TypeValidationError') ||
+    causeName.includes('ValidationError') ||
+    causeName === 'ZodError'
+  ) {
+    return `The model produced output but it did not match the expected Output.object() schema. This is usually a model failure — try simplifying the schema, splitting data components into smaller ones, or using a more capable model.`;
+  }
+  return `Resolving the "output" property of the AI SDK response failed with ${causeName || 'a non-Error rejection'}. See the cause for details.`;
+}
+
+/**
  * Resolves a generation response from either `generateText` or `streamText` into
  * a plain object with all needed values as own properties.
  *
@@ -107,6 +151,13 @@ export interface ResolvedGenerationResponse {
  * silently drops them. This function uses `Promise.resolve()` to safely resolve
  * both styles, then spreads them as explicit own properties so downstream code
  * (and further spreads) never loses them.
+ *
+ * **Tolerance:** when the model legitimately transferred or delegated (a
+ * `transfer_to_*` / `delegate_to_*` tool call in `steps`), `Output.object()`
+ * rejects with `NoObjectGeneratedError` because no structured object was emitted.
+ * That rejection is expected and we resolve `output` to undefined so the
+ * contract layer can run. Every other failure throws a `GenerationResponseError`
+ * carrying a debug hint plus `cause`, `field`, `finishReason`, and `toolCalls`.
  */
 export async function resolveGenerationResponse(
   response: Record<string, unknown>
@@ -117,34 +168,90 @@ export async function resolveGenerationResponse(
     return response as unknown as ResolvedGenerationResponse;
   }
 
-  try {
-    const [steps, text, finishReason, output, usage, totalUsage, responseObj] = await Promise.all([
-      Promise.resolve(
-        stepsValue as PromiseLike<Array<StepResult<ToolSet>>> | Array<StepResult<ToolSet>>
-      ),
-      Promise.resolve(response.text as PromiseLike<string> | string),
-      Promise.resolve(response.finishReason as PromiseLike<FinishReason> | FinishReason),
-      Promise.resolve(response.output),
-      Promise.resolve(response.usage),
-      Promise.resolve(response.totalUsage),
-      Promise.resolve(response.response),
-    ]);
+  const fields = [
+    'steps',
+    'text',
+    'finishReason',
+    'output',
+    'usage',
+    'totalUsage',
+    'response',
+  ] as const;
+  const settled = await Promise.allSettled([
+    Promise.resolve(
+      stepsValue as PromiseLike<Array<StepResult<ToolSet>>> | Array<StepResult<ToolSet>>
+    ),
+    Promise.resolve(response.text as PromiseLike<string> | string),
+    Promise.resolve(response.finishReason as PromiseLike<FinishReason> | FinishReason),
+    Promise.resolve(response.output),
+    Promise.resolve(response.usage),
+    Promise.resolve(response.totalUsage),
+    Promise.resolve(response.response),
+  ]);
 
-    return {
-      ...response,
-      steps,
-      text,
-      finishReason,
-      output,
-      usage,
-      totalUsage,
-      response: responseObj,
-    } as ResolvedGenerationResponse;
-  } catch (error) {
-    throw new Error(
-      `Failed to resolve generation response: ${error instanceof Error ? error.message : String(error)}`
-    );
+  const stepsResult = settled[0];
+  const toolCallNames =
+    stepsResult.status === 'fulfilled' && Array.isArray(stepsResult.value)
+      ? (stepsResult.value as Array<{ toolCalls?: Array<{ toolName?: string }> }>).flatMap((s) =>
+          (s.toolCalls ?? [])
+            .map((tc) => tc.toolName)
+            .filter((name): name is string => Boolean(name))
+        )
+      : [];
+
+  // When the model legitimately took a transfer/delegate route instead of
+  // emitting a structured object, the AI SDK's `Output.object()` rejects with
+  // NoObjectGeneratedError. That rejection is not a real failure — the model
+  // satisfied the request via a tool call. Tolerate this specific case;
+  // every other error (parse failures, validation, network) still throws.
+  const outputResult = settled[3];
+  if (
+    outputResult.status === 'rejected' &&
+    isNoObjectGeneratedError(outputResult.reason) &&
+    toolCallNames.some(
+      (n) => n.startsWith(TRANSFER_TOOL_PREFIX) || n.startsWith(DELEGATE_TOOL_PREFIX)
+    )
+  ) {
+    settled[3] = { status: 'fulfilled', value: undefined };
   }
+
+  const failedIndex = settled.findIndex((r) => r.status === 'rejected');
+  if (failedIndex !== -1) {
+    const cause = (settled[failedIndex] as PromiseRejectedResult).reason;
+    const failedField = fields[failedIndex];
+    const finishReasonResult = settled[2];
+    const finishReason =
+      finishReasonResult.status === 'fulfilled'
+        ? String(finishReasonResult.value ?? 'unknown')
+        : 'unresolved';
+
+    const hint = getResolutionHint(failedField, cause, toolCallNames);
+    const causeName = cause instanceof Error ? cause.name : typeof cause;
+    const causeMessage = cause instanceof Error ? cause.message : String(cause);
+    const toolCallsRendered = toolCallNames.length > 0 ? `[${toolCallNames.join(',')}]` : '[]';
+
+    const wrapped = new Error(
+      `${hint} field=${failedField} finishReason=${finishReason} toolCalls=${toolCallsRendered} cause=${causeName}: ${causeMessage}`,
+      { cause: cause instanceof Error ? cause : undefined }
+    );
+    wrapped.name = 'GenerationResponseError';
+    throw wrapped;
+  }
+
+  const [steps, text, finishReason, output, usage, totalUsage, responseObj] = settled.map(
+    (r) => (r as PromiseFulfilledResult<unknown>).value
+  ) as [Array<StepResult<ToolSet>>, string, FinishReason, unknown, unknown, unknown, unknown];
+
+  return {
+    ...response,
+    steps,
+    text,
+    finishReason,
+    output,
+    usage,
+    totalUsage,
+    response: responseObj,
+  } as ResolvedGenerationResponse;
 }
 
 export function validateModel(modelString: string | undefined, modelType: string): string {
@@ -188,6 +295,7 @@ export type AgentConfig = {
   conversationHistoryConfig?: AgentConversationHistoryConfig;
   models?: Models;
   stopWhen?: SubAgentStopWhen;
+  outputContract?: OutputContract;
   sandboxConfig?: SandboxConfig;
   /** User ID for user-scoped credential lookup (from temp JWT) */
   userId?: string;
@@ -278,6 +386,7 @@ export interface AgentRunContext {
   conversationId?: string;
   delegationId?: string;
   isDelegatedAgent: boolean;
+  resolvedAllowText: boolean;
   artifactComponents: ArtifactComponentApiInsert[];
   currentCompressor: MidGenerationCompressor | null;
   functionToolRelationshipIdByName: Map<string, string>;

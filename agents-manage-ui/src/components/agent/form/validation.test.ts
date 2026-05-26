@@ -1,4 +1,4 @@
-import { apiToFormValues, FullAgentFormSchema } from './validation';
+import { apiToFormValues, FullAgentFormSchema, OutputContractFormSchema } from './validation';
 
 describe('FullAgentFormSchema', () => {
   function createSchema(value: string) {
@@ -279,5 +279,36 @@ describe('apiToFormValues', () => {
     expect(JSON.parse(result.teamAgents['team-agent-1']?.headers ?? '{}')).toEqual({
       Authorization: 'Bearer team-token',
     });
+  });
+});
+
+describe('OutputContractFormSchema', () => {
+  it('accepts a structured-only contract', () => {
+    const result = OutputContractFormSchema.safeParse({
+      allowText: false,
+      requireComponent: ['SearchResults'],
+      onViolation: 'reject',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts an empty contract object (no requirements set)', () => {
+    expect(OutputContractFormSchema.safeParse({}).success).toBe(true);
+  });
+
+  it('normalizes null fields to undefined', () => {
+    const result = OutputContractFormSchema.safeParse({
+      allowText: null,
+      requireComponent: null,
+      requireArtifact: null,
+      requireTransfer: null,
+      onViolation: null,
+      retryBudget: null,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects an unknown onViolation policy', () => {
+    expect(OutputContractFormSchema.safeParse({ onViolation: 'explode' }).success).toBe(false);
   });
 });

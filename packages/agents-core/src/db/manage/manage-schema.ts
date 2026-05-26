@@ -33,6 +33,7 @@ import type { JsonSchemaForLlmSchemaType } from '../../validation/json-schemas';
 import type {
   AgentStopWhen,
   ModelSettings,
+  OutputContract,
   SignatureVerificationConfig,
   StopWhen,
   SubAgentStopWhen,
@@ -296,6 +297,7 @@ export const subAgents = pgTable(
       }),
     models: jsonb('models').$type<Models>(),
     stopWhen: jsonb('stop_when').$type<SubAgentStopWhen>(),
+    outputContract: jsonb('output_contract').$type<OutputContract>(),
     ...timestamps,
   },
   (table) => [
