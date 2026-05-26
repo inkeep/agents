@@ -49,6 +49,25 @@ Use **parallel delegation** when:
 
 Define the transfer and delegation relationships between the coordinator and the specialized sub agents. See [Sub Agent Relationships](/typescript-sdk/agent-relationships) section for more details.
 
+## Constraining intermediate outputs
+
+In multi-stage pipelines (for example `query → select → respond`), intermediate sub-agents should return structured data rather than narrate to the user. Use [output contracts](/typescript-sdk/structured-outputs/output-contract) to enforce this:
+
+```typescript
+const queryAgent = subAgent({
+  id: 'query',
+  name: 'Query Agent',
+  prompt: 'Search and return results.',
+  dataComponents: () => [searchResults],
+  outputContract: {
+    allowText: false,
+    requireComponent: ['SearchResults'],
+  },
+});
+```
+
+The `allowText: false` setting removes the prose option from the model's response schema, so the sub-agent cannot narrate regardless of prompt drift.
+
 ## Designing the coordinator prompt
 
 The coordinator sub agent is the agent which will delegate tasks to the specialized sub agents. Its prompt should describe the overall workflow: what phases to run, when to delegate, and how to aggregate results. See section on [workflow checklist](/guides/agent-engineering/prompt-structure#4-workflow-checklist) for more details.
