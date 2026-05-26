@@ -716,6 +716,57 @@ describe('Webhook Destination CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body).toEqual({ success: true, statusCode: 200 });
+
+      const [, fetchInit] = mockSsrfFetch.mock.calls[0] as [string, RequestInit];
+      const parsedBody = JSON.parse(fetchInit.body as string);
+      expect(parsedBody.type).toBe('test');
+      expect(parsedBody.data?.conversation?.title).toBe('Test webhook delivery');
+    });
+
+    it('should send Block Kit payload to Slack incoming webhook URLs', async () => {
+      const tenantId = await createTestTenantWithOrg('wh-test-slack');
+      const { projectId } = await createTestProjectForWebhooks(tenantId);
+      const slackUrl =
+        'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX';
+
+      const createRes = await makeRequest(basePath(tenantId, projectId), {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Slack Test Hook',
+          url: slackUrl,
+          eventTypes: ['conversation.created'],
+        }),
+      });
+      expect(createRes.status).toBe(201);
+      const { data: created } = await createRes.json();
+
+      mockSsrfFetch.mockResolvedValueOnce({ ok: true, status: 200 });
+
+      const res = await makeRequest(`${basePath(tenantId, projectId)}/${created.id}/test`, {
+        method: 'POST',
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockSsrfFetch).toHaveBeenCalledWith(
+        slackUrl,
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'Content-Type': 'application/json',
+            'User-Agent': 'Inkeep-Webhooks/1.0',
+          }),
+        })
+      );
+
+      const [, fetchInit] = mockSsrfFetch.mock.calls[0] as [string, RequestInit];
+      const parsedBody = JSON.parse(fetchInit.body as string);
+      expect(parsedBody.text).toContain('Test Webhook');
+      expect(parsedBody.blocks).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: 'header' }),
+          expect.objectContaining({ type: 'section' }),
+        ])
+      );
+      expect(parsedBody.type).toBe('test');
     });
 
     it('should return success:false on non-2xx delivery', async () => {
@@ -723,7 +774,11 @@ describe('Webhook Destination CRUD Routes - Integration Tests', () => {
       const { projectId } = await createTestProjectForWebhooks(tenantId);
       const { webhookDestination } = await createTestWebhookDestination({ tenantId, projectId });
 
-      mockSsrfFetch.mockResolvedValueOnce({ ok: false, status: 500 });
+      mockSsrfFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        text: async () => 'invalid_payload',
+      });
 
       const res = await makeRequest(
         `${basePath(tenantId, projectId)}/${webhookDestination.id}/test`,
@@ -732,7 +787,11 @@ describe('Webhook Destination CRUD Routes - Integration Tests', () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body).toEqual({ success: false, statusCode: 500 });
+      expect(body).toEqual({
+        success: false,
+        statusCode: 500,
+        error: 'invalid_payload',
+      });
     });
 
     it('should return success:false with generic error on network failure', async () => {

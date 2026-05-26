@@ -1,5 +1,12 @@
 import type { WebhookEventType, WebhookSlackMeta } from './WebhookDeliveryService';
 
+/** Slack Incoming Webhook URLs (chat.postMessage-compatible). */
+export const SLACK_INCOMING_WEBHOOK_URL_PREFIX = 'https://hooks.slack.com/';
+
+export function isSlackIncomingWebhookUrl(url: string): boolean {
+  return url.startsWith(SLACK_INCOMING_WEBHOOK_URL_PREFIX);
+}
+
 export interface SlackContext {
   tenantId: string;
   projectId: string;
@@ -211,6 +218,41 @@ function buildEvaluationFailedSlack(
   blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: 'Inkeep' }] });
 
   return { text, blocks };
+}
+
+/** Payload for Manage UI "Test" deliveries to Slack incoming webhooks. */
+export function buildTestSlackPayload(
+  envelope: Record<string, unknown>,
+  ctx: SlackContext
+): Record<string, unknown> {
+  const data = (envelope.data as Record<string, unknown>) ?? {};
+  const conversation = data.conversation as Record<string, unknown> | undefined;
+  const title = (conversation?.title as string) || 'Test webhook delivery';
+  const text = `Test Webhook: ${escapeSlackMrkdwn(title)}`;
+
+  const blocks: unknown[] = [
+    { type: 'header', text: { type: 'plain_text', text: 'Test Webhook Delivery' } },
+    {
+      type: 'section',
+      fields: [
+        { type: 'mrkdwn', text: `*Conversation:*\n${escapeSlackMrkdwn(title)}` },
+        { type: 'mrkdwn', text: `*Agent:*\n${escapeSlackMrkdwn(ctx.agentId)}` },
+      ],
+    },
+    {
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: 'This message confirms your Slack incoming webhook is configured correctly.',
+      },
+    },
+    {
+      type: 'context',
+      elements: [{ type: 'mrkdwn', text: 'Inkeep' }],
+    },
+  ];
+
+  return { ...envelope, text, blocks };
 }
 
 export function buildSlackPayload(

@@ -30,13 +30,11 @@ import {
   type WebhookDeliveryPayload,
   webhookDeliveryWorkflow,
 } from '../workflow/functions/webhookDelivery';
-import { buildSlackPayload, type SlackContext } from './slackBlockKit';
+import { buildSlackPayload, isSlackIncomingWebhookUrl, type SlackContext } from './slackBlockKit';
 import { dispatchViaQueue } from './webhookQueueDispatcher';
 
 const logger = getLogger('WebhookDeliveryService');
 const useQueue = !!process.env.VERCEL;
-const SLACK_WEBHOOK_URL_PREFIX = 'https://hooks.slack.com/';
-
 export type WebhookEventType = z.infer<typeof WebhookDestinationEventTypeEnum>;
 export type WebhookEventEnvelope = z.infer<typeof WebhookEventEnvelopeSchema>;
 
@@ -162,7 +160,7 @@ export async function emitWebhookEvent(params: EmitWebhookEventParams): Promise<
   const slackCtx: SlackContext = { tenantId, projectId, agentId, manageUiBaseUrl };
 
   const payloads: WebhookDeliveryPayload[] = destinations.map((dest) => {
-    const isSlackWebhook = dest.url.startsWith(SLACK_WEBHOOK_URL_PREFIX);
+    const isSlackWebhook = isSlackIncomingWebhookUrl(dest.url);
     let payload: Record<string, unknown>;
     if (isSlackWebhook) {
       try {
