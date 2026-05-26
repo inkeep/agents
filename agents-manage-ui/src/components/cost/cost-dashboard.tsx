@@ -2,7 +2,7 @@
 
 import { Coins, ExternalLink, Hash, Layers, Zap } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { AreaChartCard } from '@/components/traces/charts/area-chart-card';
 import { StatCard } from '@/components/traces/charts/stat-card';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { fetchAgents } from '@/lib/api/agent-full-client';
+import { fetchProjects } from '@/lib/api/projects';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
 import { formatDateAgo } from '@/lib/utils/format-date';
 
@@ -29,6 +31,34 @@ function formatTokens(tokens: number): string {
   if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(1)}M`;
   if (tokens >= 1_000) return `${(tokens / 1_000).toFixed(1)}K`;
   return tokens.toLocaleString();
+}
+
+interface AgentInfo {
+  name: string;
+  projectId: string;
+}
+
+function AgentLabel({
+  agentId,
+  tenantId,
+  agentsById,
+}: {
+  agentId: string;
+  tenantId: string;
+  agentsById: Map<string, AgentInfo>;
+}): ReactNode {
+  if (!agentId) return '—';
+  const info = agentsById.get(agentId);
+  const label = info ? `${info.name} (${agentId})` : agentId;
+  if (!info?.projectId) return label;
+  return (
+    <Link
+      href={`/${tenantId}/projects/${info.projectId}/agents/${agentId}`}
+      className="text-primary hover:underline"
+    >
+      {label}
+    </Link>
+  );
 }
 
 interface CostDashboardProps {
@@ -62,6 +92,53 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
   const [chartData, setChartData] = useState<Array<{ date: string; cost: number }>>([]);
   const [chartLoading, setChartLoading] = useState(true);
   const [chartError, setChartError] = useState<string | null>(null);
+
+  const [agentsById, setAgentsById] = useState<Map<string, AgentInfo>>(new Map());
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAgentNames() {
+      const map = new Map<string, AgentInfo>();
+      try {
+        if (projectId) {
+          const { data } = await fetchAgents(tenantId, projectId);
+          for (const agent of data) {
+            map.set(agent.id, { name: agent.name, projectId });
+          }
+        } else {
+          const { data: allProjects } = await fetchProjects(tenantId);
+          const results = await Promise.all(
+            allProjects.map((p) =>
+              fetchAgents(tenantId, p.projectId)
+                .then(({ data }) => ({ projectId: p.projectId, data }))
+                .catch((e) => {
+                  console.warn(
+                    '[CostDashboard] Failed to fetch agents for project',
+                    p.projectId,
+                    e
+                  );
+                  return { projectId: p.projectId, data: [] as { id: string; name: string }[] };
+                })
+            )
+          );
+          for (const { projectId: pId, data } of results) {
+            for (const agent of data) {
+              map.set(agent.id, { name: agent.name, projectId: pId });
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[CostDashboard] Failed to load agent names:', e);
+      }
+      if (!cancelled) setAgentsById(map);
+    }
+
+    loadAgentNames();
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId, projectId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -154,13 +231,6 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
     { totalTokens: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCost: 0, totalEvents: 0 }
   );
 
-  const agentNamesById = new Map<string, string>();
-  for (const e of events) {
-    if (e.agentName && !agentNamesById.has(e.agentId)) {
-      agentNamesById.set(e.agentId, e.agentName);
-    }
-  }
-
   return (
     <>
       <UsageStatCards
@@ -183,10 +253,9 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
           isLoading={summariesLoading}
           error={summariesError}
           groupLabel="Agent"
-          formatGroupKey={(agentId) => {
-            const name = agentNamesById.get(agentId);
-            return name ? `${name} (${agentId})` : agentId;
-          }}
+          formatGroupKey={(agentId) => (
+            <AgentLabel agentId={agentId} tenantId={tenantId} agentsById={agentsById} />
+          )}
         />
         <UsageBreakdownTable
           title="Cost by Provider"
@@ -254,6 +323,7 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
             events={events}
             isLoading={eventsLoading}
             error={eventsError}
+            agentsById={agentsById}
           />
         </div>
       </div>
@@ -335,7 +405,7 @@ function UsageBreakdownTable({
   data: UsageSummaryRow[];
   isLoading: boolean;
   error?: string | null;
-  formatGroupKey?: (key: string) => string;
+  formatGroupKey?: (key: string) => ReactNode;
   groupLabel?: string;
 }) {
   return (
@@ -399,7 +469,6 @@ interface SigNozUsageEvent {
   model: string;
   provider: string;
   agentId: string;
-  agentName: string;
   subAgentId: string;
   subAgentName: string;
   conversationId: string;
@@ -417,12 +486,14 @@ function UsageEventsTable({
   events,
   isLoading,
   error,
+  agentsById,
 }: {
   tenantId: string;
   projectId?: string;
   events: SigNozUsageEvent[];
   isLoading: boolean;
   error?: string | null;
+  agentsById: Map<string, AgentInfo>;
 }) {
   return (
     <Card>
@@ -491,9 +562,11 @@ function UsageEventsTable({
                     {formatTokens(event.outputTokens)}
                   </TableCell>
                   <TableCell className="font-mono text-xs" title={event.agentId || undefined}>
-                    {event.agentName && event.agentId
-                      ? `${event.agentName} (${event.agentId})`
-                      : event.agentName || event.agentId || '—'}
+                    <AgentLabel
+                      agentId={event.agentId}
+                      tenantId={tenantId}
+                      agentsById={agentsById}
+                    />
                   </TableCell>
                   <TableCell className="font-mono text-xs" title={event.subAgentId || undefined}>
                     {event.subAgentName && event.subAgentId
