@@ -1,5 +1,21 @@
 # @inkeep/agents-core
 
+## 0.74.0
+
+### Minor Changes
+
+- fbb4048: Add sub-agent output contract. A new outputContract field on SubAgentConfig enforces structured-only emission via allowText, list-valued requireComponent/requireArtifact (every named component/artifact must appear), and a boolean requireTransfer (the response must hand off to another sub-agent), with a configurable onViolation policy. The active contract is also surfaced in the sub-agent's system prompt so the model is steered to comply. Opt-in; agents without a contract are unchanged.
+
+### Patch Changes
+
+- bb0aba5: Evaluation failure event added
+- ab6276d: Cost events have agent name linked
+- be4d081: `pnpm db:auth:init` now respects `INKEEP_AUTH_INIT_FORCE_PASSWORD_RESET=true` to re-sync an existing admin user's credential-account password from `INKEEP_AGENTS_MANAGE_UI_PASSWORD`. Default-off, so production / self-hosted re-runs of the script remain non-destructive — when the flag is unset the existing-user branch still skips the password update, preserving prior behavior.
+
+  The flag is intended for ephemeral CI environments (per-PR Railway preview) where the admin password secret may have rotated since the user was first created, leaving the stored hash mismatched against the current secret and causing sign-in 401s.
+
+- 1af568e: Cost events displayed with agent name
+
 ## 0.73.5
 
 ## 0.73.4
