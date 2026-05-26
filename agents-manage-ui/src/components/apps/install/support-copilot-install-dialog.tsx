@@ -22,7 +22,7 @@ import { AdminNote } from './admin-note';
 const CHROME_STORE_URL =
   'https://chromewebstore.google.com/detail/inkeep-ai-agents/lgjppelahndeddnljphpddakaccjdeig';
 const CHROME_EXTENSION_ID = 'lgjppelahndeddnljphpddakaccjdeig';
-const ZENDESK_MARKETPLACE_URL = 'https://www.zendesk.com/marketplace/';
+const ZENDESK_MARKETPLACE_URL = 'https://www.zendesk.com/marketplace/apps/support/1241226/';
 
 interface SupportCopilotInstallDialogProps {
   app: App;
