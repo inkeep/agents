@@ -49,7 +49,11 @@ import {
   withRef,
 } from '@inkeep/agents-core';
 import { start } from 'workflow/api';
-import { buildSlackPayload } from '../slackBlockKit';
+import {
+  buildSlackPayload,
+  buildTestSlackPayload,
+  isSlackIncomingWebhookUrl,
+} from '../slackBlockKit';
 import {
   emitConversationWebhook,
   emitEvaluationFailedWebhook,
@@ -705,6 +709,49 @@ describe('WebhookDeliveryService', () => {
         })
       ).resolves.toBeUndefined();
       await expect(flushDeferred()).resolves.toBeUndefined();
+    });
+  });
+
+  describe('isSlackIncomingWebhookUrl', () => {
+    it('matches hooks.slack.com incoming webhook URLs', () => {
+      expect(isSlackIncomingWebhookUrl('https://hooks.slack.com/services/T00/B00/xxx')).toBe(true);
+      expect(isSlackIncomingWebhookUrl('https://example.com/webhook')).toBe(false);
+    });
+  });
+
+  describe('buildTestSlackPayload', () => {
+    const ctx = {
+      tenantId: 'tenant-1',
+      projectId: 'project-1',
+      agentId: 'test-agent-id',
+      manageUiBaseUrl: 'https://app.inkeep.com',
+    };
+
+    it('builds Block Kit payload with test header and fields', () => {
+      const envelope = {
+        type: 'test',
+        timestamp: '2026-05-13T00:00:00.000Z',
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        agentId: 'test-agent-id',
+        data: {
+          conversation: {
+            id: 'test-conversation-id',
+            title: 'Test webhook delivery',
+          },
+        },
+      };
+
+      const result = buildTestSlackPayload(envelope, ctx);
+
+      expect(result.text).toBe('Test Webhook: Test webhook delivery');
+      expect(result.blocks).toHaveLength(4);
+      expect((result.blocks as { type: string; text: { text: string } }[])[0].text.text).toBe(
+        'Test Webhook Delivery'
+      );
+      const blocks = result.blocks as { type: string; text?: { text: string } }[];
+      expect(blocks.some((b) => b.text?.text?.includes('View Conversation'))).toBe(false);
+      expect(result.type).toBe('test');
     });
   });
 

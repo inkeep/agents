@@ -20,6 +20,7 @@ import {
   WebhookDestinationResponse,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
+import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../types/app';
@@ -30,6 +31,11 @@ import {
   WebhookUrlSecurityError,
 } from '../../../utils/webhook-url-security';
 import { FileSecurityError } from '../../run/services/blob-storage/file-security-errors';
+import {
+  buildTestSlackPayload,
+  isSlackIncomingWebhookUrl,
+  type SlackContext,
+} from '../../run/services/slackBlockKit';
 
 const logger = getLogger('webhookDestinations');
 
@@ -399,7 +405,7 @@ app.openapi(
     }
 
     const now = new Date().toISOString();
-    const testPayload = {
+    const testEnvelope = {
       type: 'test',
       timestamp: now,
       tenantId,
@@ -426,6 +432,17 @@ app.openapi(
       },
     };
 
+    const slackCtx: SlackContext = {
+      tenantId,
+      projectId,
+      agentId: 'test-agent-id',
+      manageUiBaseUrl: env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000',
+    };
+
+    const requestBody = isSlackIncomingWebhookUrl(dest.url)
+      ? buildTestSlackPayload(testEnvelope, slackCtx)
+      : testEnvelope;
+
     try {
       const response = await fetchWithSsrfProtection(dest.url, {
         method: 'POST',
@@ -434,13 +451,24 @@ app.openapi(
           'Content-Type': 'application/json',
           'User-Agent': 'Inkeep-Webhooks/1.0',
         },
-        body: JSON.stringify(testPayload),
+        body: JSON.stringify(requestBody),
         signal: AbortSignal.timeout(10_000),
       });
+
+      let deliveryError: string | undefined;
+      if (!response.ok) {
+        const responseText = await response.text().catch(() => '');
+        if (responseText) {
+          const truncated =
+            responseText.length > 500 ? `${responseText.slice(0, 497)}...` : responseText;
+          deliveryError = truncated;
+        }
+      }
 
       return c.json({
         success: response.ok,
         statusCode: response.status,
+        ...(deliveryError !== undefined ? { error: deliveryError } : {}),
       });
     } catch (err) {
       if (err instanceof WebhookUrlSecurityError || err instanceof FileSecurityError) {
