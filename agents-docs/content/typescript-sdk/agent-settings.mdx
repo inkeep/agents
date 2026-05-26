@@ -105,6 +105,7 @@ Beyond model configuration, Sub Agents define tools, structured outputs, and age
 | `artifactComponents` | array    | No       | Components for handling tool or Sub Agent outputs. See [Artifact Components](/typescript-sdk/structured-outputs/artifact-components) |
 | `canTransferTo`      | function | No       | Function returning array of Sub Agents this Sub Agent can transfer to. See [Transfer Relationships](/typescript-sdk/agent-relationships#transfer-relationships) |
 | `canDelegateTo`      | function | No       | Function returning array of Sub Agents this Sub Agent can delegate to. See [Delegation Relationships](/typescript-sdk/agent-relationships#delegation-relationships) |
+| `outputContract`     | object   | No       | Enforces structured output requirements on the sub-agent's response. See [Output Contracts](#output-contracts) |
 
 </SkillRule>
 
@@ -207,3 +208,45 @@ const mySubAgent = subAgent({
 ```
 
 As a next step, see [Sub Agent Relationships](/typescript-sdk/agent-relationships) to learn how to design transfer and delegation relationships between Sub Agents.
+
+### Output contracts
+
+Output contracts enforce structured output requirements on a sub-agent. Use them to ensure sub-agents emit specific data components, artifacts, or transfer control when required.
+
+```typescript
+const mySubAgent = subAgent({
+  id: "structured-response-agent",
+  name: "Structured Response Agent",
+  prompt: "Always respond with structured data.",
+  outputContract: {
+    allowText: false,                    // Disable plain text responses
+    requireComponent: ["customer-info"], // Must emit this data component
+    requireArtifact: ["analysis-report"], // Must emit this artifact
+    requireTransfer: false,              // Transfer not required
+    onViolation: "retry",                // Retry on contract violation
+  },
+  dataComponents: [
+    {
+      id: "customer-info",
+      name: "CustomerInfo",
+      description: "Customer information",
+      props: z.object({
+        name: z.string(),
+        email: z.string(),
+      }),
+    },
+  ],
+});
+```
+
+**Contract options:**
+
+| Option | Type | Description |
+| ------ | ---- | ----------- |
+| `allowText` | boolean | When `false`, the sub-agent cannot emit plain text responses. Default: `true` |
+| `requireComponent` | string[] | Data component IDs that must appear in the response |
+| `requireArtifact` | string[] | Artifact component IDs that must appear in the response |
+| `requireTransfer` | boolean | When `true`, the sub-agent must transfer to another sub-agent |
+| `onViolation` | string | Policy when the contract is violated: `"retry"`, `"error"`, or `"warn"`. Default: `"warn"` |
+
+The output contract is surfaced in the sub-agent's system prompt, guiding the model to comply with the requirements.
