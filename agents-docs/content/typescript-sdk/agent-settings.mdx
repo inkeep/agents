@@ -103,6 +103,7 @@ Beyond model configuration, Sub Agents define tools, structured outputs, and age
 | `canUse`             | function | No       | Returns the list of MCP/tools the Sub Agent can use. See [MCP Servers](/guides/mcp-servers/overview) for how to find or build MCP servers |
 | `dataComponents`     | array    | No       | Structured output components for rich, interactive responses. See [Data Components](/typescript-sdk/structured-outputs/data-components) |
 | `artifactComponents` | array    | No       | Components for handling tool or Sub Agent outputs. See [Artifact Components](/typescript-sdk/structured-outputs/artifact-components) |
+| `outputContract`     | object   | No       | Constrains a sub-agent to emit structured output only. See [Output Contract](/typescript-sdk/structured-outputs/output-contract) |
 | `canTransferTo`      | function | No       | Function returning array of Sub Agents this Sub Agent can transfer to. See [Transfer Relationships](/typescript-sdk/agent-relationships#transfer-relationships) |
 | `canDelegateTo`      | function | No       | Function returning array of Sub Agents this Sub Agent can delegate to. See [Delegation Relationships](/typescript-sdk/agent-relationships#delegation-relationships) |
 
