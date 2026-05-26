@@ -4,6 +4,7 @@ import type {
   AssembleResult,
   BreakdownComponentDef,
   DataComponentApiInsert,
+  OutputContract,
 } from '@inkeep/agents-core';
 
 // Re-export for convenience
@@ -51,6 +52,8 @@ export interface SystemPromptV1 {
   includeDataComponents?: boolean; // Include data components in system prompt
   clientCurrentTime?: string; // Client's current time in their timezone
   includeSinglePhaseDataComponents?: boolean; // Include data components in single-phase mode
+  outputContract?: OutputContract; // Sub-agent output contract — rendered into <output_contract> (FR12)
+  resolvedAllowText?: boolean; // Resolved allowText (outputContract.allowText ?? true)
 }
 
 export interface ToolData {

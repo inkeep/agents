@@ -18,6 +18,7 @@ import manageDbPool from '../../../data/db/manageDbPool';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import type { A2ATask, A2ATaskResult } from '../a2a/types';
+import { ContractViolationError } from '../errors';
 import { agentSessionManager } from '../session/AgentSession';
 import { getUserIdFromContext, type SandboxConfig } from '../types/executionContext';
 import { resolveModelConfig } from '../utils/model-resolver';
@@ -219,6 +220,8 @@ export const createTaskHandler = (
       const prompt = 'prompt' in config.agentSchema ? config.agentSchema.prompt || undefined : '';
       const models = 'models' in config.agentSchema ? config.agentSchema.models : undefined;
       const stopWhen = 'stopWhen' in config.agentSchema ? config.agentSchema.stopWhen : undefined;
+      const outputContract =
+        'outputContract' in config.agentSchema ? config.agentSchema.outputContract : undefined;
 
       // Convert db tools to MCP tools and filter by selectedTools
       const toolsForAgentResult: McpTool[] =
@@ -268,6 +271,7 @@ export const createTaskHandler = (
           prompt,
           models: models || undefined,
           stopWhen: stopWhen || undefined,
+          outputContract: outputContract || undefined,
           skills,
           subAgentRelations: enhancedInternalRelations.map((relation) => ({
             id: relation.id,
@@ -611,7 +615,7 @@ export const createTaskHandler = (
       };
     } catch (error) {
       const pendingApproval = agent?.getPendingDurableApproval();
-      if (pendingApproval) {
+      if (pendingApproval && !(error instanceof ContractViolationError)) {
         logger.info(
           {
             toolCallId: pendingApproval.toolCallId,
@@ -634,7 +638,12 @@ export const createTaskHandler = (
         status: {
           state: TaskState.Failed,
           message: errorMessage,
-          type: isConnectionRefused ? 'connection_refused' : 'unknown',
+          type:
+            error instanceof ContractViolationError
+              ? 'contract_violation'
+              : isConnectionRefused
+                ? 'connection_refused'
+                : 'unknown',
         },
         artifacts: [],
       };
@@ -699,6 +708,7 @@ export const createTaskHandlerConfig = async (params: {
       models: effectiveModels,
       conversationHistoryConfig: effectiveConversationHistoryConfig || null,
       stopWhen: subAgent.stopWhen || null,
+      outputContract: subAgent.outputContract || null,
       createdAt: subAgent.createdAt,
       updatedAt: subAgent.updatedAt,
     },

@@ -327,10 +327,8 @@ export class ArtifactParser {
     return args;
   }
 
-  /**
-   * Parse attributes from the artifact:create tag
-   */
-  private parseCreateAttributes(attrString: string): ArtifactCreateAnnotation | null {
+  /** Parse an artifact-tag attribute string into a plain key→value record. */
+  private static parseAttrs(attrString: string): Record<string, any> {
     const attrs: Record<string, any> = {};
     let match: RegExpExecArray | null = null;
 
@@ -348,6 +346,15 @@ export class ArtifactParser {
       attrs[key] = value;
     }
 
+    return attrs;
+  }
+
+  /**
+   * Parse attributes from the artifact:create tag
+   */
+  private static parseCreateAttributes(attrString: string): ArtifactCreateAnnotation | null {
+    const attrs = ArtifactParser.parseAttrs(attrString);
+
     if (!attrs.id || !attrs.tool || !attrs.type || !attrs.base) {
       logger.warn({ attrs, attrString }, 'Missing required attributes in artifact annotation');
       return null;
@@ -363,9 +370,11 @@ export class ArtifactParser {
   }
 
   /**
-   * Parse artifact creation annotations from text
+   * Parse artifact:create annotations from text. Static so output-contract
+   * enforcement can detect marker-created artifacts without re-implementing the
+   * parse — see getContractViolation.
    */
-  private parseCreateAnnotations(text: string): ArtifactCreateAnnotation[] {
+  static parseCreateAnnotations(text: string): ArtifactCreateAnnotation[] {
     const annotations: ArtifactCreateAnnotation[] = [];
 
     const createRegex =
@@ -375,7 +384,7 @@ export class ArtifactParser {
 
     for (const match of matches) {
       const [fullMatch, attributes] = match;
-      const annotation = this.parseCreateAttributes(attributes);
+      const annotation = ArtifactParser.parseCreateAttributes(attributes);
       if (annotation) {
         annotation.raw = fullMatch;
         annotations.push(annotation);
@@ -383,6 +392,23 @@ export class ArtifactParser {
     }
 
     return annotations;
+  }
+
+  /**
+   * Extract the artifact ids from `<artifact:ref>` markers in text. Static so
+   * output-contract enforcement can detect referenced artifacts (D-K) without
+   * re-implementing the marker parse.
+   */
+  static parseRefIds(text: string): string[] {
+    const ids: string[] = [];
+    const refRegex = /<artifact:ref\s+((?:"[^"]*"|'[^']*'|[^>])+?)(?:\s*\/)?>/g;
+    for (const match of text.matchAll(refRegex)) {
+      const attrs = ArtifactParser.parseAttrs(match[1] ?? '');
+      if (typeof attrs.id === 'string') {
+        ids.push(attrs.id);
+      }
+    }
+    return ids;
   }
 
   /**
@@ -414,7 +440,7 @@ export class ArtifactParser {
     subAgentId?: string
   ): Promise<StreamPart[]> {
     let processedText = text;
-    const createAnnotations = this.parseCreateAnnotations(text);
+    const createAnnotations = ArtifactParser.parseCreateAnnotations(text);
 
     const createdArtifactData = new Map<string, ArtifactSummaryData>();
     const failedAnnotations: string[] = [];

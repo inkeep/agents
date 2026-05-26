@@ -7,6 +7,7 @@ import {
 } from '../../constants/execution-limits';
 import type { AgentConfig, AgentRunContext } from '../agent-types';
 import { validateModel } from '../agent-types';
+import { deriveContractEnforcement } from '../output-contract';
 
 const logger = getLogger('Agent');
 
@@ -86,11 +87,22 @@ export function configureModelSettings(ctx: AgentRunContext): {
   primaryModelSettings: ModelSettings;
   modelSettings: any;
   hasStructuredOutput: boolean;
+  hasContractEnforcement: boolean;
   timeoutMs: number;
 } {
   const hasStructuredOutput = Boolean(
-    ctx.config.dataComponents && ctx.config.dataComponents.length > 0
+    (ctx.config.dataComponents && ctx.config.dataComponents.length > 0) ||
+      // FR13/D-L: under allowText:false an artifact-only sub-agent emits artifacts
+      // through the structured schema (ArtifactCreate_/ArtifactReference variants),
+      // not the in-text <artifact:create> marker.
+      (ctx.resolvedAllowText === false && ctx.artifactComponents.length > 0)
   );
+
+  const hasContractEnforcement = deriveContractEnforcement({
+    outputContract: ctx.config.outputContract,
+    resolvedAllowText: ctx.resolvedAllowText,
+    hasStructuredOutput,
+  });
 
   const primaryModelSettings = hasStructuredOutput
     ? getStructuredOutputModel(ctx.config)
@@ -121,6 +133,7 @@ export function configureModelSettings(ctx: AgentRunContext): {
     primaryModelSettings,
     modelSettings: { ...modelSettings, maxDuration: timeoutMs / 1000 },
     hasStructuredOutput,
+    hasContractEnforcement,
     timeoutMs,
   };
 }

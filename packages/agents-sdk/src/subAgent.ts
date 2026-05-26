@@ -358,9 +358,56 @@ export class SubAgent implements SubAgentInterface {
     }
   }
 
+  private validateOutputContract(): void {
+    const contract = this.config.outputContract;
+    if (!contract) return;
+
+    // FR14: requireTransfer is a different terminal output shape than a
+    // component/artifact (D-G) — a turn ends one way, so the combination is
+    // unsatisfiable.
+    if (
+      contract.requireTransfer === true &&
+      ((contract.requireComponent?.length ?? 0) > 0 || (contract.requireArtifact?.length ?? 0) > 0)
+    ) {
+      throw new Error(
+        `outputContract on sub-agent '${this.getId()}' combines requireTransfer with requireComponent/requireArtifact — a turn has a single terminal output shape, so requireTransfer is mutually exclusive with them`
+      );
+    }
+
+    if (contract.requireComponent?.length) {
+      const declared = this.getDataComponents().map((component) => component.name);
+      for (const name of contract.requireComponent) {
+        if (!declared.includes(name)) {
+          throw new Error(
+            `outputContract.requireComponent='${name}' references an undeclared dataComponent on sub-agent '${this.getId()}'`
+          );
+        }
+      }
+    }
+
+    if (contract.requireArtifact?.length) {
+      const declared = this.getArtifactComponents().map((component) => component.name);
+      for (const name of contract.requireArtifact) {
+        if (!declared.includes(name)) {
+          throw new Error(
+            `outputContract.requireArtifact='${name}' references an undeclared artifactComponent on sub-agent '${this.getId()}'`
+          );
+        }
+      }
+    }
+
+    if (contract.requireTransfer && this.getTransfers().length === 0) {
+      throw new Error(
+        `outputContract.requireTransfer is true but sub-agent '${this.getId()}' declares no canTransferTo() targets`
+      );
+    }
+  }
+
   // Public method to ensure agent exists in backend (with upsert behavior)
   async init(): Promise<void> {
     if (this.initialized) return;
+
+    this.validateOutputContract();
 
     try {
       // Always attempt to upsert the agent
@@ -409,6 +456,7 @@ export class SubAgent implements SubAgentInterface {
       conversationHistoryConfig: this.config.conversationHistoryConfig,
       models: this.config.models,
       stopWhen: this.config.stopWhen,
+      outputContract: this.config.outputContract,
     };
 
     // First try to update (in case agent exists)

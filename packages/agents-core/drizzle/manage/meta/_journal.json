@@ -148,6 +148,13 @@
       "when": 1778524405577,
       "tag": "0020_typical_mandrill",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1779381052900,
+      "tag": "0021_furry_warlock",
+      "breakpoints": true
     }
   ]
 }

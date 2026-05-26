@@ -244,6 +244,34 @@ export const ProjectModelSchema = z
   })
   .openapi('ProjectModel');
 
+export const OutputContractSchema = z
+  .looseObject({
+    allowText: z.boolean().optional(),
+    requireComponent: z.array(z.string()).optional(),
+    requireArtifact: z.array(z.string()).optional(),
+    requireTransfer: z.boolean().optional(),
+    onViolation: z.enum(['retry', 'reject', 'warn']).optional(),
+    retryBudget: z.number().int().nonnegative().optional(),
+  })
+  // FR14: requireTransfer is mutually exclusive with requireComponent /
+  // requireArtifact — a turn has one terminal output shape (D-G): it either
+  // hands off via a transfer or emits a component/artifact, never both.
+  .refine(
+    (contract) =>
+      !(
+        contract.requireTransfer === true &&
+        ((contract.requireComponent?.length ?? 0) > 0 ||
+          (contract.requireArtifact?.length ?? 0) > 0)
+      ),
+    {
+      message:
+        'requireTransfer cannot be combined with requireComponent or requireArtifact — a turn has a single terminal output shape: a transfer hands off, a component or artifact is emitted.',
+    }
+  )
+  .openapi('OutputContract');
+
+export type OutputContract = z.infer<typeof OutputContractSchema>;
+
 export const FunctionToolConfigSchema = z.object({
   name: z.string(),
   description: z.string(),
@@ -263,6 +291,9 @@ export const SubAgentInsertSchema = createInsertSchema(subAgents).extend({
   name: NameSchema,
   description: DescriptionSchema,
   models: ModelSchema.optional(),
+  // nullable so the contract can be explicitly cleared (the column is nullable);
+  // a full-agent update writes null to drop a removed contract.
+  outputContract: OutputContractSchema.nullable().optional(),
 });
 
 export const SubAgentUpdateSchema = SubAgentInsertSchema.partial();

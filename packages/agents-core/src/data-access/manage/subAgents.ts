@@ -121,6 +121,7 @@ export const upsertSubAgent =
           conversationHistoryConfig: params.data.conversationHistoryConfig,
           models: params.data.models,
           stopWhen: params.data.stopWhen,
+          outputContract: params.data.outputContract,
         },
       });
       if (!updated) {

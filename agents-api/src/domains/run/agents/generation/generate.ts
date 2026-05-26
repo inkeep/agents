@@ -26,6 +26,7 @@ import {
 import { setSpanWithError, tracer } from '../../utils/tracer';
 import type { AgentRunContext, ResolvedGenerationResponse } from '../agent-types';
 import { hasToolCallWithPrefix, resolveGenerationResponse } from '../agent-types';
+import { enforceOutputContract, resolveContractToolChoice } from '../output-contract';
 import { handleStreamGeneration } from '../streaming/stream-handler';
 import { V1_BREAKDOWN_SCHEMA } from '../versions/v1/PromptConfig';
 import { handlePrepareStepCompression, handleStopWhenConditions } from './ai-sdk-callbacks';
@@ -336,8 +337,19 @@ export async function runGenerate(
         breakdownAttributes['context.breakdown.total_tokens'] = contextBreakdown.total;
         span.setAttributes(breakdownAttributes);
 
-        const { primaryModelSettings, modelSettings, hasStructuredOutput, timeoutMs } =
-          configureModelSettings(ctx);
+        const {
+          primaryModelSettings,
+          modelSettings,
+          hasStructuredOutput,
+          hasContractEnforcement,
+          timeoutMs,
+        } = configureModelSettings(ctx);
+
+        const contractToolChoice = resolveContractToolChoice({
+          resolvedAllowText: ctx.resolvedAllowText,
+          hasStructuredOutput,
+          hasArtifactComponents: Boolean(ctx.config.artifactComponents?.length),
+        });
 
         const resolvedModelId = primaryModelSettings.model ?? '';
         const { compatible: compatibleFileParts, stripped } = stripIncompatibleOfficeParts(
@@ -392,7 +404,7 @@ export async function runGenerate(
 
         const streamConfig = {
           ...modelSettings,
-          toolChoice: 'auto' as const,
+          toolChoice: contractToolChoice,
         };
 
         const shouldStream = ctx.isDelegatedAgent ? undefined : ctx.streamHelper;
@@ -417,7 +429,7 @@ export async function runGenerate(
           compressor,
           originalMessageCount,
           timeoutMs,
-          'auto',
+          contractToolChoice,
           dataComponentsSchema ? 'structured_generation' : undefined
         );
 
@@ -568,6 +580,16 @@ export async function runGenerate(
             conversationId: conversationIdForSpan,
             finishReason: response.finishReason,
           },
+        });
+
+        enforceOutputContract({
+          ctx,
+          response,
+          hasStructuredOutput,
+          hasContractEnforcement,
+          textResponse,
+          span,
+          logger,
         });
 
         const actualInputTokens = response.totalUsage?.inputTokens ?? response.usage?.inputTokens;

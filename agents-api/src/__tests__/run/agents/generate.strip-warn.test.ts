@@ -244,6 +244,7 @@ describe('runGenerate — strip + warn', () => {
       primaryModelSettings: { model: 'openai/gpt-4o' },
       modelSettings: { model: 'mocked-model', maxDuration: 60 },
       hasStructuredOutput: false,
+      hasContractEnforcement: false,
       timeoutMs: 60000,
     });
 

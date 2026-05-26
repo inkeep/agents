@@ -94,6 +94,7 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
         .replace('{{TOOLS_SECTION}}', '')
         .replace('{{TRANSFER_INSTRUCTIONS}}', '')
         .replace('{{DELEGATION_INSTRUCTIONS}}', '')
+        .replace('{{OUTPUT_CONTRACT_SECTION}}', '')
     );
 
     let systemPrompt = systemPromptTemplateContent;
@@ -201,6 +202,13 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
     breakdown.components.dataComponentsSection = estimateTokens(dataComponentsSection);
     systemPrompt = systemPrompt.replace('{{DATA_COMPONENTS_SECTION}}', dataComponentsSection);
 
+    const outputContractSection = this.generateOutputContractSection(
+      config.outputContract,
+      config.resolvedAllowText ?? true
+    );
+    breakdown.components.systemPromptTemplate += estimateTokens(outputContractSection);
+    systemPrompt = systemPrompt.replace('{{OUTPUT_CONTRACT_SECTION}}', outputContractSection);
+
     const transferSection = this.generateTransferInstructions(config.hasTransferRelations);
     breakdown.components.transferInstructions = estimateTokens(transferSection);
     systemPrompt = systemPrompt.replace('{{TRANSFER_INSTRUCTIONS}}', transferSection);
@@ -251,6 +259,45 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
     Use this to provide context-aware responses (e.g., greetings appropriate for their time of day, understanding business hours in their timezone, etc.)
     IMPORTANT: You simply know what time it is for the user - don't mention "the current time" or reference this section in your responses.
   </current_time>`;
+  }
+
+  /**
+   * Render the resolved output contract as mandatory response rules (FR12, D-J).
+   * A prevention layer that complements the runtime detection in output-contract.ts.
+   * Returns '' when no contract is set, so the common path pays no prompt-size cost.
+   */
+  private generateOutputContractSection(
+    contract: SystemPromptV1['outputContract'],
+    resolvedAllowText: boolean
+  ): string {
+    if (!contract) {
+      return '';
+    }
+
+    const rules: string[] = [];
+    if (resolvedAllowText === false) {
+      rules.push(
+        '- You MUST NOT respond with free-text narration. Every response must consist only of the data components, artifacts, transfers, or tool calls described above.'
+      );
+    }
+    for (const name of contract.requireComponent ?? []) {
+      rules.push(`- Every response MUST include the data component named "${name}".`);
+    }
+    for (const name of contract.requireArtifact ?? []) {
+      rules.push(`- Every response MUST create the artifact named "${name}".`);
+    }
+    if (contract.requireTransfer === true) {
+      rules.push('- Every response MUST end by transferring to another sub agent.');
+    }
+
+    if (rules.length === 0) {
+      return '';
+    }
+
+    return `
+  <output_contract description="Mandatory rules your response must satisfy. Violating these fails the turn.">
+${rules.join('\n')}
+  </output_contract>`;
   }
 
   #generateSkillsSection(skills: SkillData[] = []): string {

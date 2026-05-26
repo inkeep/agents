@@ -584,6 +584,7 @@ const getFullAgentDefinitionInternal =
           prompt: agent.prompt,
           models: agent.models,
           stopWhen: agent.stopWhen,
+          outputContract: agent.outputContract,
           canTransferTo,
           canDelegateTo,
           skills: skillsBySubAgent[agent.id] || [],
