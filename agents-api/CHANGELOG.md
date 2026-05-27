@@ -1,5 +1,18 @@
 # @inkeep/agents-api
 
+## 0.74.2
+
+### Patch Changes
+
+- 3adbaa4: Add conversation error webhook event types
+- ba25590: UI improvements to the traces costs page and add include=agents query param to list-projects endpoint for faster cost dashboard loading
+- Updated dependencies [3adbaa4]
+- Updated dependencies [ba25590]
+  - @inkeep/agents-core@0.74.2
+  - @inkeep/agents-work-apps@0.74.2
+  - @inkeep/agents-email@0.74.2
+  - @inkeep/agents-mcp@0.74.2
+
 ## 0.74.1
 
 ### Patch Changes
