@@ -1,0 +1,142 @@
+---
+title: Build a customer-facing assistant with Inkeep Unified Search
+sidebarTitle: Setup
+description: Step-by-step tutorial to build an AI assistant that answers your customers' questions, grounded in your knowledge base via Inkeep Unified Search.
+icon: LuMessageSquare
+---
+
+<img src="/images/guides/customer-assistant/agent-canvas.png" alt="Customer Assistant sub agent connected to Inkeep Unified Search MCP on the Visual Builder canvas" width="280" className="mx-auto block" style={{ display: 'block', margin: '0 auto' }} />
+
+## Overview
+
+In this tutorial, you'll build a customer-facing AI assistant in the Inkeep Visual Builder. When a customer asks a question about your product, the agent will:
+
+1. Search your knowledge base via Inkeep Unified Search
+2. Answer in plain language, grounded in what your docs actually say
+
+## Prerequisites
+
+- Access to Inkeep Enterprise — [schedule a demo](https://inkeep.com/schedule-demo) if you don't have it yet
+- An Inkeep account with [Inkeep Unified Search](/connect-your-data/inkeep) configured for your product (knowledge base, docs, sources connected)
+
+## Create the agent
+
+<Steps>
+  <Step>
+    In the Visual Builder, go to the **Agents** tab in the left sidebar and click **Create agent**.
+  </Step>
+  <Step>
+    Click the **Default Sub Agent** on the canvas to configure it. Fill in:
+
+    - **Name**: `Customer assistant`
+    - **Prompt**: Paste the prompt below
+    - **Base model**: Leave the inherited default (e.g., Claude Sonnet 4.5) unless you have a specific reason to change it.
+  </Step>
+</Steps>
+
+**Prompt:**
+
+```text
+You are a customer assistant for [Your Product]. Answer customer questions using the official documentation.
+
+How to answer:
+1. Always search the knowledge base first to look up relevant docs before answering.
+2. If the docs don't cover it, say so plainly. Don't invent facts.
+
+Tone: Direct, neutral, no fluff. Speak in the first person on behalf of the company.
+```
+
+<Tip>
+Replace `[Your Product]` with the name of the product the assistant represents.
+</Tip>
+
+## Connect Inkeep Unified Search via MCP
+
+Your agent now needs the ability to actually search your knowledge base. Inkeep Unified Search is exposed as an MCP server you can connect to — once wired up, the agent can call `search-knowledge-base` to ground its answers in your real content.
+
+You'll do this in three parts:
+1. Get an API key from your Inkeep Portal
+2. Save the API key as a Credential in the Visual Builder
+3. Register the Unified Search MCP server in the Visual Builder, then attach it to your agent
+
+### Get an API key from your Inkeep Portal
+
+<Steps>
+  <Step>
+    Log in to your [Inkeep Portal](https://portal.inkeep.com) and select your project.
+  </Step>
+  <Step>
+    Click **Assistants** in the left sidebar, then **Create assistant → API (Server-side)**.
+
+    <Note>The Portal also has an **MCP** option in the same dropdown — skip it. That option spins up a new MCP server; we're connecting to Inkeep's existing Unified Search MCP, which just needs an API key for auth. API (Server-side) is what generates that key.</Note>
+  </Step>
+  <Step>
+    Name the assistant something memorable (e.g., `customer-assistant`) — make a note of the name, you'll need it to construct the MCP URL in a later step. Then **copy the API key** shown after creation.
+  </Step>
+</Steps>
+
+### Save the API key as a Credential
+
+<Steps>
+  <Step>
+    Back in the Visual Builder, click **Credentials** in the left sidebar, then **New Credential**.
+  </Step>
+  <Step>
+    Choose the **Bearer** authentication option and fill in:
+
+    - **Name**: A memorable name (e.g., `inkeep-unified-search`)
+    - **API key**: Paste the API key you copied from the Portal
+    - **Headers (optional)**: Leave blank
+
+    <Image src="/images/guides/customer-assistant/visual-builder-credential.png" alt="Bearer credential form in the Visual Builder" />
+  </Step>
+  <Step>
+    Click **Create Credential**.
+  </Step>
+</Steps>
+
+### Register the MCP server and attach it to your agent
+
+<Steps>
+  <Step>
+    Click **MCP Servers** in the left sidebar, then **New MCP Server → Custom Server**.
+  </Step>
+  <Step>
+    Fill in:
+
+    - **Name**: `Inkeep Unified Search`
+    - **URL**: `https://mcp.cloud.inkeep.com/<your-assistant-name>/mcp` — replace `<your-assistant-name>` with the name you gave the assistant in the Portal (e.g., `customer-assistant` → `https://mcp.cloud.inkeep.com/customer-assistant/mcp`)
+    - **Credential**: Select the credential you just created
+
+    Click **Create**.
+  </Step>
+  <Step>
+    Go back to your agent canvas: **Agents → Customer assistant**.
+  </Step>
+  <Step>
+    Drag and drop an **MCP** block from the top left toolbar onto the canvas. Select **Inkeep Unified Search** and connect it to your sub agent.
+  </Step>
+  <Step>
+    Click **Save Changes** in the top right corner.
+  </Step>
+</Steps>
+
+## Test your agent
+
+<Steps>
+  <Step>
+    Click **Try it** in the top right corner to open the chat interface.
+  </Step>
+  <Step>
+    Ask a product question your docs should be able to answer — for example, *"How do I get started?"* or *"What are the main features?"*
+  </Step>
+</Steps>
+
+When working correctly, the agent will search your knowledge base and answer grounded in what it finds. If the docs don't cover the question, it will say so rather than guess.
+
+## Next steps
+
+You now have a working customer assistant grounded in your knowledge base.
+
+- **[Add citations](/guides/agents/customer-assistant/citations)** — let customers verify each answer at the source with inline footnotes and source cards.
+- **[Add human escalation](/guides/agents/customer-assistant/escalation)** — when the agent can't help, hand off to a human via a support ticket with full conversation context.

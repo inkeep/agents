@@ -1,0 +1,131 @@
+---
+title: Build a Zendesk ticket-routing agent
+sidebarTitle: Routing
+description: Auto-tag every incoming Zendesk ticket with the team that owns the problem area.
+icon: LuTags
+---
+
+<img src="/images/guides/ticket-workflows/routing-end-state.png" alt="Zendesk ticket showing the routing agent's classification on the ticket" width="700" className="mx-auto block" style={{ display: 'block', margin: '0 auto' }} />
+
+## Overview
+
+In this tutorial, you'll build a ticket-routing agent in the Inkeep Visual Builder. When a new ticket lands in Zendesk, the agent will:
+
+1. Read the ticket and identify the actual problem
+2. Pick the team that owns that problem area
+3. Write the team tag to a Zendesk custom field
+
+The result is an inbox that sorts itself.
+
+## Prerequisites
+
+- Access to Inkeep Enterprise — [schedule a demo](https://inkeep.com/schedule-demo) if you don't have it yet
+- A Zendesk org where you can create a custom field for ticket routing (e.g., a dropdown field named "Ticket type" with one value per team)
+- A **Zendesk MCP server** registered in your project, with a tool that writes a value to a ticket's custom field. If you don't have one yet, see [Build Custom MCP Servers](/guides/mcp-servers/custom-mcp-servers) for how to wrap the Zendesk API as an MCP server.
+
+## Create the Classifier agent
+
+<Steps>
+  <Step>
+    In the Visual Builder, go to the **Agents** tab in the left sidebar and click **Create agent**.
+  </Step>
+  <Step>
+    Click the **Default Sub Agent** on the canvas to configure it. Fill in:
+
+    - **Name**: `Classifier`
+    - **Description**: `Reads a Zendesk ticket, picks the owning team, and writes the team tag to a custom field.`
+    - **Prompt**: Paste the prompt below
+  </Step>
+</Steps>
+
+**About the taxonomy in the prompt:** the `# Team taxonomy` section below is your product map in plain English. When your team reorgs or adds a new product surface, you edit *this* section — no code changes, no retraining. The taxonomy shown is an example for an Inkeep-style team structure; replace it with your own team names and the categories they own.
+
+**Prompt:**
+
+```text
+# Your job
+
+For every incoming Zendesk ticket, identify the team that owns the problem area and write that team's tag to the ticket's custom field. One ticket → one custom-field write.
+
+Classify by what the customer needs help with, not by what they wrote about — customers often describe their setup before their actual problem.
+
+# Team taxonomy
+
+- **Product** — questions about how the product works
+- **Account** — login, billing, account access
+- **Other** — anything off-topic or that doesn't fit
+
+# Write the tag
+
+Call **update_ticket_custom_field** exactly once with:
+
+- `ticket_id` — from the trigger message
+- `custom_field_id` — `[YOUR_CUSTOM_FIELD_ID]`
+- `value` — `product` for Product, `account` for Account, `other` for Other
+```
+
+<Tip>
+Things to substitute before you save:
+
+- Replace `[YOUR_CUSTOM_FIELD_ID]` with the numeric ID of your Zendesk custom field (find it in **Zendesk Admin → Objects and rules → Fields**).
+- Replace the example team taxonomy + values with your own teams.
+- If your Zendesk MCP names its custom-field-write tool something other than `update_ticket_custom_field`, swap that name in the prompt to match.
+</Tip>
+
+## Connect the Zendesk MCP tool
+
+<Steps>
+  <Step>
+    On the agent canvas, drag and drop an **MCP** block from the top left toolbar.
+  </Step>
+  <Step>
+    Select your **Zendesk MCP** and connect it to the **Classifier** sub agent.
+  </Step>
+  <Step>
+    Click on the MCP block and restrict **Active Tools** to only the tool that updates a ticket's custom field — in our example MCP that's `update_ticket_custom_field`, but your MCP may name it differently. This agent only writes one thing, so leaving other tools enabled invites mistakes.
+  </Step>
+  <Step>
+    Click **Save Changes** in the top right corner.
+  </Step>
+</Steps>
+
+## Create the webhook trigger
+
+The trigger is the door Zendesk knocks on to wake the agent up.
+
+<Steps>
+  <Step>
+    Go to **Triggers** in the left sidebar and click **New Webhook Trigger**.
+  </Step>
+  <Step>
+    Select the **Classifier** agent you just built as the agent this trigger will invoke, then click **Continue**.
+  </Step>
+  <Step>
+    Fill in:
+
+    - **Name**: e.g. `Zendesk new-ticket trigger`
+    - **Authentication**: `None` — the URL itself is the secret
+  </Step>
+  <Step>
+    Click **Create Trigger**. Copy the webhook URL that appears — you'll need it in the next section.
+  </Step>
+</Steps>
+
+## Wire Zendesk to fire the trigger
+
+Now set up Zendesk so every new ticket POSTs to the trigger URL you just copied.
+
+See [Trigger Inkeep agents from Zendesk tickets](/visual-builder/triggers/ticketing/zendesk) — paste your trigger URL into the Zendesk webhook's **Endpoint URL**. Come back here when you're done.
+
+## Test the agent
+
+<Steps>
+  <Step>
+    From an outside email address, send a test ticket to your Zendesk support address with a question that clearly belongs to one of your teams (e.g., *"How do I update my billing details?"* for the Account team).
+  </Step>
+  <Step>
+    Switch to the Zendesk tab, find the new ticket, and refresh.
+  </Step>
+</Steps>
+
+Within about 10 seconds, the ticket's custom field flips from blank to the matching team value, written by the agent.

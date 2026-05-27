@@ -1,0 +1,152 @@
+---
+title: Add citations to your customer assistant
+sidebarTitle: Citations
+description: Auto-render inline source pills and a Sources list on every customer-assistant answer.
+icon: LuQuote
+---
+
+<img src="/images/guides/customer-assistant/citations-end-state.png" alt="A customer-assistant answer with inline source citations and a Sources list below the response" width="420" className="mx-auto block" style={{ display: 'block', margin: '0 auto' }} />
+
+## Overview
+
+In this guide, you'll add citations to the customer assistant you built in [Setup](/guides/agents/customer-assistant/setup). Once wired up, every fact the assistant references gets saved as a structured **citation artifact** that the Inkeep widget auto-renders as inline source pills and a Sources list below the answer.
+
+## Prerequisites
+
+- You completed the [Customer Assistant setup](/guides/agents/customer-assistant/setup) tutorial — a working sub agent connected to Inkeep Unified Search.
+
+## Why citations are wired this way
+
+### Why an artifact, not a URL in the text
+
+The easy thing for an AI to do is paste `[Title](URL)` into its response. That breaks down fast:
+
+- The agent can hallucinate URLs that look right but don't exist.
+- The widget has no structured handle to render rich source cards from — it would just be a link.
+- Other sub agents in your project can't reason about "what sources did the previous agent use" because that information is buried in prose.
+
+An **artifact** is a structured record the agent saves. It has a fixed schema (`title`, `url`, `content`, etc.), gets persisted in storage, and can be referenced by ID across the conversation. The widget knows how to find these and render them.
+
+### Why the artifact must be named `citation`
+
+The Inkeep widget has a built-in contract: any artifact named exactly `citation` with `url` as a preview field gets **auto-rendered** — no frontend code required. The widget produces inline source pills with the response text and a Sources list beneath the answer.
+
+If you name it something else (`source`, `reference`, `link`), the artifact still saves correctly, but the widget won't auto-render it. You'd need to write a custom React component to display it. For a customer assistant, you want the auto-render — name it `citation`.
+
+## Create the citation artifact
+
+<Steps>
+  <Step>
+    In the Visual Builder, click **Artifact Components** in the left sidebar, then **New Artifact Component**.
+  </Step>
+  <Step>
+    Fill in:
+
+    - **ID**: `citation`
+    - **Name**: `citation` _(must match exactly — this is what the widget auto-renders)_
+    - **Description**: `Structured factual information extracted from search results`
+  </Step>
+  <Step>
+    Paste the JSON schema below into the **Props schema** field, then click **Save**.
+  </Step>
+</Steps>
+
+**Props schema:**
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "url": {
+      "type": "string",
+      "description": "URL of the source document",
+      "inPreview": true
+    },
+    "title": {
+      "type": "string",
+      "description": "Title of the source document",
+      "inPreview": true
+    },
+    "content": {
+      "type": "array",
+      "description": "Array of structured content blocks from documentation",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string", "description": "The text content with markdown formatting" },
+          "type": { "type": "string", "description": "Type of content (text, image, etc.)" }
+        }
+      }
+    },
+    "context": {
+      "type": "string",
+      "description": "Context of the source document",
+      "inPreview": true
+    },
+    "record_type": {
+      "type": "string",
+      "description": "Type of record (documentation)",
+      "inPreview": true
+    }
+  },
+  "required": ["url", "title", "content"]
+}
+```
+
+## Attach the citation artifact to your sub agent
+
+<Steps>
+  <Step>
+    Go to your agent canvas: **Agents → Customer assistant**.
+  </Step>
+  <Step>
+    Click the sub agent on the canvas to open its config in the right sidebar.
+  </Step>
+  <Step>
+    Scroll to the **Artifact Components** section and add the `citation` artifact you just created.
+  </Step>
+  <Step>
+    Click **Save Changes** in the top right corner.
+  </Step>
+</Steps>
+
+## Update the prompt to cite consistently
+
+Attaching the artifact tells the agent the artifact *exists*, but the agent still needs to be told *when and how* to use it. LLMs won't reliably save artifacts unless the prompt explicitly says so — leave it implicit and you'll get inconsistent or missing citations.
+
+Replace your sub agent's prompt with the version below.
+
+**Prompt:**
+
+```text
+You are a customer assistant for [Your Product]. Answer customer questions using the official documentation.
+
+How to answer:
+1. Always search the knowledge base first to look up relevant docs before answering.
+2. Save every fact you reference as a `citation` artifact (`url`, `title`, `content`, `context`, `record_type`) BEFORE using it in your answer.
+3. Cite via saved artifact references — never paste raw URLs or `[Title](URL)` lines in the response text.
+4. If the docs don't cover it, say so plainly. Don't invent facts.
+
+Tone: Direct, neutral, no fluff. Speak in the first person on behalf of the company.
+```
+
+<Tip>
+The phrase "BEFORE using it" matters. Without it, the agent will often write the answer first and skip saving the citation. The widget can only render what was saved as an artifact — so the order matters.
+</Tip>
+
+Click **Save Changes** in the top right corner.
+
+## Test your agent
+
+<Steps>
+  <Step>
+    Click **Try it** in the top right corner to open the chat interface.
+  </Step>
+  <Step>
+    Ask a product question your docs should be able to answer — for example, *"How do I get started?"* or *"What are the main features?"*
+  </Step>
+</Steps>
+
+## Next steps
+
+- **[Add human escalation](/guides/agents/customer-assistant/escalation)** — when the agent can't help, hand off to a human via a support ticket with full conversation context.

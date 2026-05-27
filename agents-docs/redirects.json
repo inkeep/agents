@@ -4,6 +4,21 @@
     "destination": "/overview"
   },
   {
+    "source": "/guides/agents/customer-assistant",
+    "destination": "/guides/agents/customer-assistant/setup",
+    "permanent": true
+  },
+  {
+    "source": "/guides/agents/customer-assistant/overview",
+    "destination": "/guides/agents/customer-assistant/setup",
+    "permanent": true
+  },
+  {
+    "source": "/guides/agents/ticket-workflows",
+    "destination": "/guides/agents/ticket-workflows/routing",
+    "permanent": true
+  },
+  {
     "source": "/visual-builder/graphs",
     "destination": "/visual-builder/sub-agents",
     "permanent": true

@@ -1,4 +1,10 @@
 {
   "icon": "LuUser",
-  "pages": ["meeting-prep-assistant", "in-product-copilot", "..."]
+  "pages": [
+    "customer-assistant",
+    "ticket-workflows",
+    "meeting-prep-assistant",
+    "in-product-copilot",
+    "..."
+  ]
 }

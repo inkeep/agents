@@ -1,0 +1,5 @@
+{
+  "title": "Ticket Workflows",
+  "icon": "LuTicket",
+  "pages": ["routing", "internal-note-draft", "auto-reply"]
+}
