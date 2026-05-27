@@ -17,6 +17,7 @@ import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import { SENTINEL_KEY } from '../../constants/artifact-syntax';
 import { stripBinaryDataForObservability } from '../../services/blob-storage/artifact-binary-sanitizer';
+import { emitWebhookEventFireAndForget } from '../../services/WebhookDeliveryService';
 import { agentSessionManager, type ToolCallData } from '../../session/AgentSession';
 import { generateToolId } from '../../utils/agent-operations';
 import { stripInternalFields } from '../../utils/select-filter';
@@ -436,6 +437,30 @@ export function wrapToolWithStreaming(
             toolCallId: toolCallId,
             errorText: errorMessage,
           });
+        }
+
+        if (!hideToolFromTraceEvents) {
+          const { resolvedRef } = ctx.executionContext;
+          if (resolvedRef && ctx.conversationId) {
+            emitWebhookEventFireAndForget(
+              {
+                tenantId: ctx.executionContext.tenantId,
+                projectId: ctx.executionContext.projectId,
+                agentId: ctx.config.agentId,
+                resolvedRef,
+                eventType: 'conversation.tool.error',
+                data: {
+                  conversation: { id: ctx.conversationId },
+                  tool: { id: relationshipId, name: toolName },
+                  mcpServer: options?.mcpServerName
+                    ? { id: options.mcpServerId, name: options.mcpServerName }
+                    : undefined,
+                  reason: errorMessage,
+                },
+              },
+              'tool-error'
+            );
+          }
         }
 
         throw rootCause;

@@ -12506,7 +12506,11 @@
                 "conversation.updated",
                 "feedback.created",
                 "event.created",
-                "evaluation.failed"
+                "evaluation.failed",
+                "conversation.execution.error",
+                "conversation.generation.error",
+                "conversation.tool.error",
+                "conversation.context.error"
               ],
               "type": "string"
             },
@@ -12576,7 +12580,11 @@
                 "conversation.updated",
                 "feedback.created",
                 "event.created",
-                "evaluation.failed"
+                "evaluation.failed",
+                "conversation.execution.error",
+                "conversation.generation.error",
+                "conversation.tool.error",
+                "conversation.context.error"
               ],
               "type": "string"
             },
@@ -12691,7 +12699,11 @@
                 "conversation.updated",
                 "feedback.created",
                 "event.created",
-                "evaluation.failed"
+                "evaluation.failed",
+                "conversation.execution.error",
+                "conversation.generation.error",
+                "conversation.tool.error",
+                "conversation.context.error"
               ],
               "type": "string"
             },

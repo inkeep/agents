@@ -9,6 +9,7 @@ import {
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import runDbClient from '../../../data/db/runDbClient';
+import { emitWebhookEventFireAndForget } from '../services/WebhookDeliveryService';
 import { ContextResolver, type ResolvedContext } from './ContextResolver';
 
 const logger = getLogger('context');
@@ -127,6 +128,27 @@ async function handleContextResolution({
             code: SpanStatusCode.ERROR,
             message: `Context resolution completed with errors`,
           });
+
+          const { resolvedRef } = executionContext;
+          if (resolvedRef && conversationId) {
+            for (const err of contextResult.errors) {
+              emitWebhookEventFireAndForget(
+                {
+                  tenantId,
+                  projectId,
+                  agentId,
+                  resolvedRef,
+                  eventType: 'conversation.context.error',
+                  data: {
+                    conversation: { id: conversationId },
+                    contextDefinition: err.definitionId ? { id: err.definitionId } : undefined,
+                    reason: err.error,
+                  },
+                },
+                'context-resolution-error'
+              );
+            }
+          }
         } else {
           parentSpan.setStatus({ code: SpanStatusCode.OK });
         }

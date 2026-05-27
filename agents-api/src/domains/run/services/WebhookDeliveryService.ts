@@ -230,6 +230,28 @@ export async function emitWebhookEvent(params: EmitWebhookEventParams): Promise<
   }
 }
 
+export function emitWebhookEventFireAndForget(
+  params: EmitWebhookEventParams,
+  context: string
+): void {
+  void getWaitUntil()
+    .then((waitUntil) => {
+      const promise = emitWebhookEvent(params).catch((err) => {
+        logger.warn(
+          { error: err instanceof Error ? err.message : String(err), eventType: params.eventType },
+          `Failed to emit ${params.eventType} webhook event (${context})`
+        );
+      });
+      if (waitUntil) waitUntil(promise);
+    })
+    .catch((err) => {
+      logger.warn(
+        { error: err instanceof Error ? err.message : String(err), eventType: params.eventType },
+        `Unexpected error in webhook fire-and-forget setup (${context})`
+      );
+    });
+}
+
 export interface EmitFeedbackWebhookParams {
   runDbClient: AgentsRunDatabaseClient;
   tenantId: string;

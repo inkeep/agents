@@ -255,6 +255,58 @@ export function buildTestSlackPayload(
   return { ...envelope, text, blocks };
 }
 
+function buildConversationErrorSlack(
+  data: Record<string, unknown>,
+  eventType: WebhookEventType,
+  ctx: SlackContext
+): { text: string; blocks: unknown[] } {
+  const conversation = data.conversation as { id?: string } | undefined;
+  const conversationId = conversation?.id;
+  const tool = data.tool as { id?: string; name?: string } | undefined;
+  const toolName = tool?.name;
+  const contextDef = data.contextDefinition as { id?: string } | undefined;
+  const reason = (data.reason as string) || 'Unknown error';
+
+  const label = eventType.replace('conversation.', '').replace('.error', '');
+  const text = `Conversation ${label} error: ${reason}`;
+
+  const baseProjectUrl = buildProjectUrl(ctx);
+  const convUrl = conversationId
+    ? `${baseProjectUrl}/traces/conversations/${conversationId}`
+    : undefined;
+
+  const fields: Array<{ type: string; text: string }> = [
+    { type: 'mrkdwn', text: `*Error Type:*\n${escapeSlackMrkdwn(eventType)}` },
+    { type: 'mrkdwn', text: `*Reason:*\n${escapeSlackMrkdwn(reason)}` },
+  ];
+
+  if (toolName) {
+    fields.push({ type: 'mrkdwn', text: `*Tool:*\n${escapeSlackMrkdwn(toolName)}` });
+  }
+  if (contextDef?.id) {
+    fields.push({
+      type: 'mrkdwn',
+      text: `*Context Definition:*\n${escapeSlackMrkdwn(contextDef.id)}`,
+    });
+  }
+
+  const blocks: unknown[] = [
+    { type: 'header', text: { type: 'plain_text', text: 'Conversation Error' } },
+    { type: 'section', fields },
+  ];
+
+  if (convUrl) {
+    blocks.push({
+      type: 'section',
+      text: { type: 'mrkdwn', text: `<${convUrl}|View Conversation>` },
+    });
+  }
+
+  blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: 'Inkeep' }] });
+
+  return { text, blocks };
+}
+
 export function buildSlackPayload(
   eventType: WebhookEventType,
   envelope: Record<string, unknown>,
@@ -277,6 +329,12 @@ export function buildSlackPayload(
       break;
     case 'evaluation.failed':
       slackFields = buildEvaluationFailedSlack(data, ctx, meta);
+      break;
+    case 'conversation.execution.error':
+    case 'conversation.generation.error':
+    case 'conversation.tool.error':
+    case 'conversation.context.error':
+      slackFields = buildConversationErrorSlack(data, eventType, ctx);
       break;
     default: {
       const _unreached: never = eventType;

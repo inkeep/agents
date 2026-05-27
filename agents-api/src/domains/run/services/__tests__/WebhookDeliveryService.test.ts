@@ -59,6 +59,7 @@ import {
   emitEvaluationFailedWebhook,
   emitFeedbackWebhook,
   emitWebhookEvent,
+  emitWebhookEventFireAndForget,
 } from '../WebhookDeliveryService';
 
 const mockWithRef = withRef as ReturnType<typeof vi.fn>;
@@ -929,6 +930,89 @@ describe('WebhookDeliveryService', () => {
       });
     });
 
+    describe('conversation.execution.error', () => {
+      it('builds error card with reason, link, and Inkeep footer', () => {
+        const envelope = {
+          data: {
+            conversation: { id: 'conv-1' },
+            reason: 'Maximum error limit (3) reached',
+          },
+        };
+        const result = buildSlackPayload('conversation.execution.error', envelope, ctx);
+        expect(result.text).toContain('execution error');
+        expect(result.blocks).toHaveLength(4);
+        const fields = (result.blocks as any[])[1].fields;
+        expect(fields[0].text).toContain('conversation.execution.error');
+        expect(fields[1].text).toContain('Maximum error limit');
+        const linkBlock = (result.blocks as any[])[2];
+        expect(linkBlock.text.text).toContain('traces/conversations/conv-1');
+        const footer = (result.blocks as any[])[3];
+        expect(footer.type).toBe('context');
+      });
+    });
+
+    describe('conversation.generation.error', () => {
+      it('builds error card with reason and Inkeep footer', () => {
+        const envelope = {
+          data: {
+            conversation: { id: 'conv-1' },
+            reason: 'Generation terminated by timeout/abort signal',
+          },
+        };
+        const result = buildSlackPayload('conversation.generation.error', envelope, ctx);
+        expect(result.text).toContain('generation error');
+        expect(result.blocks).toHaveLength(4);
+        const footer = (result.blocks as any[]).at(-1);
+        expect(footer.type).toBe('context');
+      });
+    });
+
+    describe('conversation.tool.error', () => {
+      it('includes tool name in fields', () => {
+        const envelope = {
+          data: {
+            conversation: { id: 'conv-1' },
+            tool: { id: 'tool-1', name: 'search_docs' },
+            mcpServer: { id: 'mcp-1', name: 'docs-server' },
+            reason: 'Connection timeout',
+          },
+        };
+        const result = buildSlackPayload('conversation.tool.error', envelope, ctx);
+        expect(result.text).toContain('tool error');
+        const fields = (result.blocks as any[])[1].fields;
+        expect(fields.some((f: any) => f.text.includes('search_docs'))).toBe(true);
+      });
+
+      it('omits tool field when not present', () => {
+        const envelope = {
+          data: {
+            conversation: { id: 'conv-1' },
+            reason: 'Failed',
+          },
+        };
+        const result = buildSlackPayload('conversation.tool.error', envelope, ctx);
+        const fields = (result.blocks as any[])[1].fields;
+        expect(fields.every((f: any) => !f.text.includes('undefined'))).toBe(true);
+      });
+    });
+
+    describe('conversation.context.error', () => {
+      it('renders context definition ID in fields', () => {
+        const envelope = {
+          data: {
+            conversation: { id: 'conv-1' },
+            contextDefinition: { id: 'def-1' },
+            reason: 'HTTP 500 from upstream',
+          },
+        };
+        const result = buildSlackPayload('conversation.context.error', envelope, ctx);
+        expect(result.text).toContain('context error');
+        expect(result.text).toContain('HTTP 500');
+        const fields = (result.blocks as any[])[1].fields;
+        expect(fields.some((f: any) => f.text.includes('def-1'))).toBe(true);
+      });
+    });
+
     describe('unknown event type', () => {
       it('falls back to plain text', () => {
         const envelope = { data: { foo: 'bar' } };
@@ -980,6 +1064,58 @@ describe('WebhookDeliveryService', () => {
       expect(payload.data).toBeDefined();
       expect(payload).not.toHaveProperty('text');
       expect(payload).not.toHaveProperty('blocks');
+    });
+  });
+
+  describe('emitWebhookEventFireAndForget', () => {
+    beforeEach(() => {
+      mockWithRef.mockImplementation(async (_pool: any, _ref: any, fn: any) => fn('mock-db'));
+      mockListForEvent.mockReturnValue(() =>
+        Promise.resolve([{ id: 'dest-1', url: 'https://hook.example.com', headers: null }])
+      );
+    });
+
+    it('dispatches webhook and registers with waitUntil', async () => {
+      emitWebhookEventFireAndForget(
+        {
+          tenantId: 'tenant-1',
+          projectId: 'project-1',
+          agentId: 'agent-1',
+          resolvedRef: { ref: 'main', commitHash: 'abc' } as any,
+          eventType: 'conversation.execution.error',
+          data: { conversation: { id: 'conv-1' }, reason: 'test error' },
+        },
+        'test-context'
+      );
+
+      await vi.waitFor(() => expect(pendingDeferred.length).toBeGreaterThan(0));
+      await flushDeferred();
+
+      expect(mockStart).toHaveBeenCalled();
+      const payload = mockStart.mock.calls[0][1][0].payload;
+      expect(payload.type).toBe('conversation.execution.error');
+      expect(payload.data.reason).toBe('test error');
+    });
+
+    it('catches emission errors without throwing', async () => {
+      mockWithRef.mockRejectedValue(new Error('DB down'));
+
+      emitWebhookEventFireAndForget(
+        {
+          tenantId: 'tenant-1',
+          projectId: 'project-1',
+          agentId: 'agent-1',
+          resolvedRef: { ref: 'main', commitHash: 'abc' } as any,
+          eventType: 'conversation.tool.error',
+          data: { conversation: { id: 'conv-1' }, reason: 'tool failed' },
+        },
+        'test-context'
+      );
+
+      await vi.waitFor(() => expect(pendingDeferred.length).toBeGreaterThan(0));
+      await flushDeferred();
+
+      expect(mockStart).not.toHaveBeenCalled();
     });
   });
 });

@@ -27,6 +27,7 @@ vi.mock('@inkeep/agents-core', () => ({
   setSpanWithError: vi.fn(),
   unwrapError: (e: unknown) => (e instanceof Error ? e : new Error(String(e))),
   getInProcessFetch: () => vi.fn().mockResolvedValue(new Response('ok')),
+  getWaitUntil: vi.fn(() => Promise.resolve(vi.fn())),
   getLogger: () => ({
     debug: vi.fn(),
     error: vi.fn(),

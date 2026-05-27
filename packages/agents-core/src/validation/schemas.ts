@@ -960,6 +960,10 @@ export const WebhookDestinationEventTypeEnum = z
     'feedback.created',
     'event.created',
     'evaluation.failed',
+    'conversation.execution.error',
+    'conversation.generation.error',
+    'conversation.tool.error',
+    'conversation.context.error',
   ])
   .describe(
     'Event type that triggers webhook delivery. `event.created` fires whenever an event is logged via POST /run/v1/events.'

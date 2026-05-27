@@ -29,6 +29,7 @@ import {
   updateWebhookDestinationAction,
 } from '@/lib/actions/webhook-destinations';
 import type { WebhookDestination } from '@/lib/api/webhook-destinations';
+import { ConversationErrorsEventGroup } from './conversation-errors-event-group';
 
 const EVENT_TYPES = [
   { value: 'conversation.created', label: 'Conversation Created' },
@@ -241,6 +242,16 @@ export function WebhookDestinationForm({
                     )}
                   />
                 ))}
+                <FormField
+                  control={form.control}
+                  name="eventTypes"
+                  render={({ field }) => (
+                    <ConversationErrorsEventGroup
+                      selectedEventTypes={field.value || []}
+                      onChange={field.onChange}
+                    />
+                  )}
+                />
               </div>
               <FormMessage />
             </FormItem>

@@ -15,6 +15,7 @@ import { generateText, Output, streamText } from 'ai';
 import { getLogger } from '../../../../logger';
 import type { StreamPart } from '../../artifacts/ArtifactParser';
 import type { MidGenerationCompressor } from '../../compression/MidGenerationCompressor';
+import { emitWebhookEventFireAndForget } from '../../services/WebhookDeliveryService';
 import { agentSessionManager } from '../../session/AgentSession';
 import { getStreamHelper } from '../../stream/stream-registry';
 import { withJsonPostProcessing } from '../../utils/json-postprocessor';
@@ -241,6 +242,23 @@ export function resolveTextResponseAndWarn({
   return response.text || '';
 }
 
+function emitGenerationError(ctx: AgentRunContext, reason: string): void {
+  const { resolvedRef } = ctx.executionContext;
+  if (resolvedRef && ctx.conversationId) {
+    emitWebhookEventFireAndForget(
+      {
+        tenantId: ctx.executionContext.tenantId,
+        projectId: ctx.executionContext.projectId,
+        agentId: ctx.config.agentId,
+        resolvedRef,
+        eventType: 'conversation.generation.error',
+        data: { conversation: { id: ctx.conversationId }, reason },
+      },
+      'generation-error'
+    );
+  }
+}
+
 export function handleGenerationError(ctx: AgentRunContext, error: unknown, span: Span): never {
   if (ctx.currentCompressor) {
     ctx.currentCompressor.fullCleanup();
@@ -258,6 +276,9 @@ export function handleGenerationError(ctx: AgentRunContext, error: unknown, span
   );
   setSpanWithError(span, errorToThrow);
   span.end();
+
+  emitGenerationError(ctx, errorToThrow.message);
+
   throw errorToThrow;
 }
 
@@ -363,7 +384,7 @@ export async function runGenerate(
           effectiveUserMessage = `${userMessage}\n\n${note}`;
           logger.warn(
             {
-              agentId: ctx.config.id,
+              agentId: ctx.config.agentId,
               modelId: primaryModelSettings.model,
               strippedParts: stripped,
             },
@@ -576,7 +597,7 @@ export async function runGenerate(
           hasTransferToolCall,
           logger,
           warnContext: {
-            agentId: ctx.config.id,
+            agentId: ctx.config.agentId,
             conversationId: conversationIdForSpan,
             finishReason: response.finishReason,
           },
@@ -614,6 +635,8 @@ export async function runGenerate(
             [SPAN_KEYS.GENERATION_TIMEOUT_MS]: timeoutMs,
           });
           setSpanWithError(span, timeoutError);
+
+          emitGenerationError(ctx, 'Generation terminated by timeout/abort signal');
         } else {
           span.setStatus({ code: SpanStatusCode.OK });
         }
