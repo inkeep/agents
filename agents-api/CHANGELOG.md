@@ -1,5 +1,15 @@
 # @inkeep/agents-api
 
+## 0.74.1
+
+### Patch Changes
+
+- d5e2002: Fix ArtifactCreate* structured-output validation failures on Haiku by dropping two redundant prop fields. `props.type` is now derived from the component name (which already encodes it as the `ArtifactCreate*<type>`suffix), and`props.id`is renamed to`props.artifact_id`to eliminate visual collision with the outer`id` field. Both fields were server-internal — never streamed to clients, never persisted under those names — so this is a non-breaking change.
+  - @inkeep/agents-core@0.74.1
+  - @inkeep/agents-email@0.74.1
+  - @inkeep/agents-mcp@0.74.1
+  - @inkeep/agents-work-apps@0.74.1
+
 ## 0.74.0
 
 ### Minor Changes

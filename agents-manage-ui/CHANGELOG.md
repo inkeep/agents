@@ -1,5 +1,11 @@
 # @inkeep/agents-manage-ui
 
+## 0.74.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.74.1
+
 ## 0.74.0
 
 ### Minor Changes
