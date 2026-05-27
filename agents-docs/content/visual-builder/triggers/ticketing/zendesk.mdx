@@ -1,0 +1,149 @@
+---
+title: Trigger Inkeep agents from Zendesk tickets
+sidebarTitle: Zendesk
+description: Wire Zendesk to POST tickets to an Inkeep webhook trigger so an agent can act on them.
+icon: LuTicket
+---
+
+When something happens to a Zendesk ticket — a new one is created, an existing one is solved, a tag changes — you want Inkeep to know about it within seconds so an agent can act.
+
+Zendesk offers **two ways to fire a webhook**, and each maps cleanly to a different use case:
+
+| Approach | When to use | What you set up |
+|---|---|---|
+| **Zendesk events** | You want the simplest setup and just need to fire on a standard event like *Ticket created* or *Ticket updated*. No filtering. | Just the webhook — subscribe it to one or more events. |
+| **Trigger or automation** | You need to filter which tickets fire (by tag, queue, form, channel, etc.) or you want to control the exact JSON body Zendesk sends. | A webhook **and** a business rule trigger that fires it. |
+
+Below are both paths. Pick the one that matches your need.
+
+## Prerequisites
+
+- An Inkeep agent + webhook trigger already created. If you haven't done this yet, follow the [Webhook Triggers guide](/visual-builder/triggers/webhooks) — you'll need the **webhook URL** from the trigger before continuing.
+- **Zendesk admin access** — you'll be making changes in the Zendesk Admin Center.
+
+## Option 1: Subscribe to a Zendesk event
+
+This is the leanest setup. Zendesk fires the webhook directly when the event happens — no business rule needed.
+
+<Note>
+Following the [Ticket Workflows](/guides/agents/ticket-workflows/routing) tutorials? Use **Option 2** below instead. Event subscriptions send Zendesk's fixed native payload — the ticket id arrives as `detail.id`, there's no `ticket_id` field, and you can't customize the body. The tutorials expect the custom JSON body with an explicit `ticket_id`, which only Option 2 lets you define.
+</Note>
+
+<Steps>
+  <Step>
+    In Zendesk, open **Admin Center** (gear icon → Admin Center) and go to **Apps and integrations → Webhooks**.
+  </Step>
+  <Step>
+    Click **Create webhook**.
+  </Step>
+  <Step>
+    For the connection type, choose **Zendesk events**. Add **Ticket created** (or whichever event you want to listen for — `Ticket updated`, `Ticket solved`, etc.) and click **Next**.
+  </Step>
+  <Step>
+    Fill in the webhook details:
+
+    - **Name**: e.g. `Inkeep ticket-created webhook`
+    - **Endpoint URL**: paste the webhook URL from your Inkeep trigger
+    - **Request method**: `POST`
+    - **Request format**: `JSON`
+    - **Authentication**: `None`
+  </Step>
+  <Step>
+    Click **Create webhook**.
+  </Step>
+</Steps>
+
+## Option 2: Use a business rule trigger
+
+Use this path when you need to filter, send a custom JSON body, or fire on conditions that aren't standard Zendesk events.
+
+### Create the webhook
+
+<Steps>
+  <Step>
+    In Zendesk, open **Admin Center** and go to **Apps and integrations → Webhooks**.
+  </Step>
+  <Step>
+    Click **Create webhook**.
+  </Step>
+  <Step>
+    For the connection type, choose **Trigger or automation** (not *Zendesk events*). Click **Next**.
+  </Step>
+  <Step>
+    Fill in the webhook details:
+
+    - **Name**: e.g. `Inkeep new-ticket webhook`
+    - **Endpoint URL**: paste the webhook URL from your Inkeep trigger
+    - **Request method**: `POST`
+    - **Request format**: `JSON`
+    - **Authentication**: `None`
+  </Step>
+  <Step>
+    Click **Create webhook**.
+  </Step>
+</Steps>
+
+### Create the trigger that fires it
+
+<Steps>
+  <Step>
+    In Admin Center, go to **Objects and rules → Business rules → Triggers**, then click **Add trigger**.
+  </Step>
+  <Step>
+    Give it a name (e.g. `New ticket → Inkeep`) and pick a category for organization.
+  </Step>
+  <Step>
+    Under **Conditions → Meet ALL of the following**, add:
+
+    - **Ticket → Ticket is** = **Created**
+  </Step>
+  <Step>
+    Under **Actions**, add:
+
+    - **Notifications → Notify active webhook**
+    - In the dropdown, select the webhook you created above
+    - In the **JSON body** field, paste the body below
+  </Step>
+  <Step>
+    Click **Create**.
+  </Step>
+</Steps>
+
+**JSON body:**
+
+```json
+{
+  "ticket_id": "{{ticket.id}}",
+  "subject": "{{ticket.title}}",
+  "description": "{{ticket.description}}",
+  "requester_name": "{{ticket.requester.name}}",
+  "requester_email": "{{ticket.requester.email}}",
+  "status": "{{ticket.status}}"
+}
+```
+
+### Filter which tickets fire the webhook
+
+Edit the trigger's **Conditions** to scope which tickets fire. The most common adjustments:
+
+- **Fire on a different event** — change `Ticket is Created` to `Ticket is Updated`, `Solved`, etc.
+- **Scope to a subset** — add conditions for tags, ticket form, channel, group, and more.
+
+For the full list of conditions Zendesk supports, see [Zendesk's trigger conditions reference](https://support.zendesk.com/hc/en-us/articles/4408822236058).
+
+## Next steps
+
+<Cards>
+  <Card title="Routing agent" icon="LuTags" href="/guides/agents/ticket-workflows/routing">
+    Auto-tag every incoming ticket with the team that owns the problem.
+  </Card>
+  <Card title="Internal-note draft agent" icon="LuMessageSquareDot" href="/guides/agents/ticket-workflows/internal-note-draft">
+    Draft a KB-grounded reply as a private comment for reps to review.
+  </Card>
+  <Card title="Auto-reply agent" icon="LuShieldCheck" href="/guides/agents/ticket-workflows/auto-reply">
+    Reply publicly when the KB is confident — stay quiet when it isn't.
+  </Card>
+  <Card title="Webhook Triggers reference" icon="LuWebhook" href="/visual-builder/triggers/webhooks">
+    Full reference for the Inkeep-side trigger configuration.
+  </Card>
+</Cards>

@@ -1,0 +1,5 @@
+{
+  "title": "Customer Assistant",
+  "icon": "LuMessageSquare",
+  "pages": ["setup", "citations", "escalation"]
+}

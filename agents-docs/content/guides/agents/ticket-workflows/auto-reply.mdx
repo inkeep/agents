@@ -1,0 +1,199 @@
+---
+title: Build a confidence-gated auto-reply agent for Zendesk
+sidebarTitle: Auto-reply
+description: Reply publicly to the customer when the knowledge base is sure of the answer — and stay quiet when it isn't.
+icon: LuShieldCheck
+---
+
+<img src="/images/guides/ticket-workflows/auto-reply-end-state.png" alt="Zendesk ticket showing a public auto-reply to the customer and an internal audit note" width="700" className="mx-auto block" style={{ display: 'block', margin: '0 auto' }} />
+
+## Overview
+
+In this tutorial, you'll build an Autoreply agent in the Inkeep Visual Builder. When a new ticket lands in Zendesk, the agent will:
+
+1. Read the customer's question
+2. Ask a confidence-aware KB tool — it returns an `answer`, a `confidence` level, and `citations`
+3. **Always** post an internal audit note with the answer + confidence
+4. **Only when confidence is `very_confident`**, also post a public reply to the customer
+
+The contract is: high confidence → customer gets replied to; anything less → a human takes over. You get deflection on the easy stuff and human review on the hard stuff, automatically.
+
+## Prerequisites
+
+- Access to Inkeep Enterprise — [schedule a demo](https://inkeep.com/schedule-demo) if you don't have it yet
+- A Zendesk org where the agent can post both internal and public comments
+- A **Zendesk MCP server** registered in your project, with tools that post internal comments **and** public comments. If you don't have one yet, see [Build Custom MCP Servers](/guides/mcp-servers/custom-mcp-servers).
+
+## Expose the Inkeep QA confidence tool
+
+Inkeep's QA API answers a question against your knowledge base, and it can call **custom tools you define** as part of answering. You'll use that capability to grade each answer with a `confidence` level and return it alongside the `answer` and its `citations`. That confidence level is what makes safe auto-reply possible — it's how the agent knows whether the KB is sure enough about the answer to send it to a customer.
+
+The five confidence levels:
+
+| Level | Meaning |
+|---|---|
+| `very_confident` | The KB has a direct answer. Safe to send publicly. |
+| `somewhat_confident` | Partial match. Don't auto-reply — human handles. |
+| `not_confident` | KB has tangential info at best. Don't auto-reply. |
+| `no_sources` | KB has nothing relevant. Don't auto-reply. |
+| `other` | Anything else (off-topic, too vague, etc.). Don't auto-reply. |
+
+To make this available to your agent, expose it as a tool called `ask_with_confidence(question) → { answer, confidence, citations }`. The cleanest way is a thin Custom MCP that wraps the Inkeep QA API — see [Build Custom MCP Servers](/guides/mcp-servers/custom-mcp-servers) for the Next.js template and the `inkeep add --mcp` CLI flow. Deploy it and grab the public URL.
+
+<Note>
+`confidence` isn't a built-in field — you define it. Inkeep's QA API supports [custom tool calls](https://docs.inkeep.com/cloud/ai-api/question-answer-mode/custom-tool-calls): you register a tool the answering model invokes to grade how well the KB covers the question, and your MCP surfaces that grade as `confidence`. The five levels above are the example taxonomy this tutorial uses — adjust them to fit your bar for sending a public reply.
+</Note>
+
+Once it's deployed, register it as a **Custom Server** MCP in the Visual Builder:
+
+<Steps>
+  <Step>
+    Click **MCP Servers** in the left sidebar, then **New MCP Server → Custom Server**.
+  </Step>
+  <Step>
+    Fill in:
+
+    - **Name**: `Inkeep QA (with confidence)`
+    - **URL**: the public URL of your deployed Confidence MCP
+    - **Credential**: select your Inkeep API key credential (same one your Unified Search MCP uses — see [Customer Assistant setup](/guides/agents/customer-assistant/setup) if you haven't created it yet)
+  </Step>
+  <Step>
+    Click **Create**.
+  </Step>
+</Steps>
+
+## Create the Autoreply agent
+
+<Steps>
+  <Step>
+    In the Visual Builder, go to the **Agents** tab in the left sidebar and click **Create agent**.
+  </Step>
+  <Step>
+    Click the **Default Sub Agent** on the canvas to configure it. Fill in:
+
+    - **Name**: `Autoreply Decider`
+    - **Description**: `Always posts an internal audit note. Posts a public reply only when KB confidence is very_confident.`
+    - **Prompt**: Paste the prompt below
+  </Step>
+</Steps>
+
+**Prompt:**
+
+```text
+# Your job
+
+For every incoming Zendesk ticket, decide whether it's safe to answer the customer publicly based on KB confidence:
+
+- ALWAYS post an internal audit note (rep-only) with the answer + confidence
+- ONLY post a public reply when confidence is `very_confident`
+
+# Workflow
+
+1. Read the customer's question from the trigger message
+2. Call **ask_with_confidence** once with the question. It returns `{ answer, confidence, citations }`
+3. Post the internal audit note (format below)
+4. If `confidence === "very_confident"`, also post a public reply (format below)
+
+# Internal audit note (always)
+
+When `very_confident`:
+
+🤖 INKEEP AUTO-REPLY — Confidence: very_confident ✅
+A public reply has been posted to the customer.
+
+Answer:
+<answer verbatim from the tool>
+
+Sources:
+- <citation 1>
+- <citation 2>
+
+Otherwise (any other confidence value):
+
+🤖 INKEEP AUTO-REPLY — Confidence: <value> ⛔
+Auto-reply blocked. A human should handle this.
+
+Closest answer the KB had:
+<answer verbatim>
+
+# Public reply (only when very_confident)
+
+<answer verbatim>
+
+Sources:
+- <citation 1>
+- <citation 2>
+
+# Rules
+
+- Call ask_with_confidence exactly once per ticket
+- Use the answer verbatim in both comments — don't paraphrase
+- Only post a public reply when confidence is exactly `very_confident` — never any other value
+- If ask_with_confidence errors, do nothing — don't post any comments
+```
+
+<Tip>
+Tool names to verify before you save:
+
+- `ask_with_confidence` is the example name for the Confidence MCP's tool. If you renamed it during deployment, swap it in the prompt to match.
+- `add_internal_ticket_comment` and `add_public_ticket_comment` are the example names for the Zendesk comment tools. Swap if your MCP names them differently.
+</Tip>
+
+## Connect the MCPs
+
+<Steps>
+  <Step>
+    On the agent canvas, drag and drop an **MCP** block from the top left toolbar. Select **Inkeep QA (with confidence)** and connect it to the **Autoreply Decider** sub agent.
+  </Step>
+  <Step>
+    Click the MCP block and restrict **Active Tools** to only `ask_with_confidence` (it's likely the only tool exposed anyway).
+  </Step>
+  <Step>
+    Drag a second **MCP** block onto the canvas. Select your **Zendesk MCP** and connect it to the **Autoreply Decider** sub agent.
+  </Step>
+  <Step>
+    Click the Zendesk MCP block and restrict **Active Tools** to only the two tools this agent uses: the internal-comment tool and the public-comment tool. Leave everything else off.
+  </Step>
+  <Step>
+    Click **Save Changes** in the top right corner.
+  </Step>
+</Steps>
+
+## Create the webhook trigger
+
+The trigger is the door Zendesk knocks on to wake the agent up.
+
+<Steps>
+  <Step>
+    Go to **Triggers** in the left sidebar and click **New Webhook Trigger**.
+  </Step>
+  <Step>
+    Select the **Autoreply Decider** agent you just built as the agent this trigger will invoke, then click **Continue**.
+  </Step>
+  <Step>
+    Fill in:
+
+    - **Name**: e.g. `Zendesk new-ticket trigger (autoreply)`
+    - **Authentication**: `None` — the URL itself is the secret
+  </Step>
+  <Step>
+    Click **Create Trigger**. Copy the webhook URL that appears — you'll need it in the next section.
+  </Step>
+</Steps>
+
+## Wire Zendesk to fire the trigger
+
+Now set up Zendesk so every new ticket POSTs to the trigger URL you just copied.
+
+See [Trigger Inkeep agents from Zendesk tickets](/visual-builder/triggers/ticketing/zendesk) — paste your trigger URL into the Zendesk webhook's **Endpoint URL**. Come back here when you're done.
+
+## Test the agent
+
+<Steps>
+  <Step>
+    Send a test ticket your KB should be confident about — pick a common FAQ your docs cover (e.g., *"How do I get started with [your product]?"*). Within ~15 seconds, both a public reply and an internal audit note should appear on the ticket.
+  </Step>
+  <Step>
+    Send a second test ticket your KB shouldn't be confident about (e.g., *"What's the best wifi router for my apartment?"*). Within ~15 seconds, only an internal audit note should appear — marked `Auto-reply blocked.` The customer sees nothing. **That's the gate doing its job.**
+  </Step>
+</Steps>
