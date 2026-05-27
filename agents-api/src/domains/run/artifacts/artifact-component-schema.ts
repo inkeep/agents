@@ -80,7 +80,7 @@ export class ArtifactCreateSchema {
       const propsSchema = {
         type: 'object',
         properties: {
-          id: {
+          artifact_id: {
             type: 'string',
             description: `Unique artifact identifier for ${component.name} (e.g., "${component.name.toLowerCase()}-1")`,
           },
@@ -89,11 +89,6 @@ export class ArtifactCreateSchema {
             description:
               'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
           },
-          type: {
-            type: 'string',
-            enum: [component.name],
-            description: `Artifact type - must be "${component.name}"`,
-          },
           base_selector: {
             type: 'string',
             description:
@@ -101,7 +96,7 @@ export class ArtifactCreateSchema {
           },
           details_selector: enhancedSchema,
         },
-        required: ['id', 'tool_call_id', 'type', 'base_selector'],
+        required: ['artifact_id', 'tool_call_id', 'base_selector'],
       } satisfies JSONSchema.BaseSchema;
 
       // Normalize schema for cross-provider compatibility
@@ -134,7 +129,7 @@ export class ArtifactCreateSchema {
       const propsSchema: JSONSchema.BaseSchema = {
         type: 'object',
         properties: {
-          id: {
+          artifact_id: {
             type: 'string',
             description: `Unique artifact identifier for ${component.name} (e.g., "${component.name.toLowerCase()}-1")`,
           },
@@ -143,11 +138,6 @@ export class ArtifactCreateSchema {
             description:
               'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
           },
-          type: {
-            type: 'string',
-            enum: [component.name],
-            description: `Artifact type - must be "${component.name}"`,
-          },
           base_selector: {
             type: 'string',
             description:
@@ -155,7 +145,7 @@ export class ArtifactCreateSchema {
           },
           details_selector: enhancedSchema,
         },
-        required: ['id', 'tool_call_id', 'type', 'base_selector'],
+        required: ['artifact_id', 'tool_call_id', 'base_selector'],
       };
 
       // Normalize schema for cross-provider compatibility

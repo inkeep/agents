@@ -303,5 +303,79 @@ describe('ArtifactParser', () => {
 
       expect(parts[0].data.props).toEqual(component.props);
     });
+
+    describe('ArtifactCreate_ branch', () => {
+      it('routes ArtifactCreate_ component through createArtifact with artifact_id and derived type', async () => {
+        mockArtifactService.createArtifact.mockResolvedValue(mockArtifactData);
+        const component = {
+          id: 'ac-1',
+          name: 'ArtifactCreate_Citation',
+          props: {
+            artifact_id: 'cit-1',
+            tool_call_id: 'toolu_abc',
+            base_selector: 'result.docs[0]',
+            details_selector: { title: 'title' },
+          },
+        };
+
+        const parts = await parser.parseObject({ dataComponents: [component] });
+
+        expect(parts).toHaveLength(1);
+        expect(parts[0].kind).toBe('data');
+        expect(mockArtifactService.createArtifact).toHaveBeenCalledWith(
+          expect.objectContaining({
+            artifactId: 'cit-1',
+            toolCallId: 'toolu_abc',
+            type: 'Citation',
+            baseSelector: 'result.docs[0]',
+          }),
+          undefined,
+          undefined
+        );
+      });
+
+      it('does not route to createArtifact when props uses the old "id" field instead of "artifact_id"', async () => {
+        const component = {
+          id: 'ac-2',
+          name: 'ArtifactCreate_Citation',
+          props: {
+            id: 'cit-2',
+            tool_call_id: 'toolu_abc',
+            base_selector: 'result.docs[0]',
+          },
+        };
+
+        const parts = await parser.parseObject({ dataComponents: [component] });
+
+        expect(mockArtifactService.createArtifact).not.toHaveBeenCalled();
+        // Falls through to the generic data-component branch — must still emit a
+        // part so a future regression that silently drops the component is caught.
+        expect(parts).toHaveLength(1);
+        expect(parts[0].kind).toBe('data');
+        expect(parts[0].data.name).toBe('ArtifactCreate_Citation');
+        expect(parts[0].data.props.id).toBe('cit-2');
+      });
+
+      it('derives type from the component name suffix, not from props', async () => {
+        mockArtifactService.createArtifact.mockResolvedValue(mockArtifactData);
+        const component = {
+          id: 'ac-3',
+          name: 'ArtifactCreate_ResearchReport',
+          props: {
+            artifact_id: 'rr-1',
+            tool_call_id: 'toolu_xyz',
+            base_selector: 'result',
+          },
+        };
+
+        await parser.parseObject({ dataComponents: [component] });
+
+        expect(mockArtifactService.createArtifact).toHaveBeenCalledWith(
+          expect.objectContaining({ type: 'ResearchReport' }),
+          undefined,
+          undefined
+        );
+      });
+    });
   });
 });
