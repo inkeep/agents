@@ -14,6 +14,7 @@ import {
   type ArtifactServiceContext,
   type ArtifactSummaryData,
 } from './ArtifactService';
+import { ARTIFACT_CREATE_PREFIX } from './artifact-component-schema';
 
 const logger = getLogger('ArtifactParser');
 
@@ -608,7 +609,11 @@ export class ArtifactParser {
    * Check if object is an artifact create component
    */
   private isArtifactCreateComponent(obj: any): boolean {
-    return obj?.name?.startsWith('ArtifactCreate_') && obj?.props?.id && obj?.props?.tool_call_id;
+    return (
+      obj?.name?.startsWith(ARTIFACT_CREATE_PREFIX) &&
+      obj?.props?.artifact_id &&
+      obj?.props?.tool_call_id
+    );
   }
 
   /**
@@ -624,9 +629,9 @@ export class ArtifactParser {
     }
 
     const annotation: ArtifactCreateAnnotation = {
-      artifactId: props.id,
+      artifactId: props.artifact_id,
       toolCallId: props.tool_call_id,
-      type: props.type,
+      type: component.name.slice(ARTIFACT_CREATE_PREFIX.length),
       baseSelector: props.base_selector,
       detailsSelector: props.details_selector || {},
     };
