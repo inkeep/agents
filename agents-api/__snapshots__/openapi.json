@@ -7925,7 +7925,34 @@
         "properties": {
           "data": {
             "items": {
-              "$ref": "#/components/schemas/Project"
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Project"
+                },
+                {
+                  "properties": {
+                    "agents": {
+                      "items": {
+                        "properties": {
+                          "agentId": {
+                            "type": "string"
+                          },
+                          "agentName": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "agentId",
+                          "agentName"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -16290,6 +16317,19 @@
             "required": false,
             "schema": {
               "$ref": "#/components/schemas/PaginationLimitQueryParam"
+            }
+          },
+          {
+            "description": "Include related resources. Use \"agents\" to nest agent summaries per project.",
+            "in": "query",
+            "name": "include",
+            "required": false,
+            "schema": {
+              "description": "Include related resources. Use \"agents\" to nest agent summaries per project.",
+              "enum": [
+                "agents"
+              ],
+              "type": "string"
             }
           }
         ],

@@ -1,4 +1,4 @@
-import { OpenAPIHono } from '@hono/zod-openapi';
+import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   cascadeDeleteByProject,
   commonGetErrorResponses,
@@ -13,12 +13,14 @@ import {
   getProject,
   getProjectMainBranchName,
   listAccessibleProjectIds,
+  listAgentsAcrossProjectMainBranches,
   listProjectsWithMetadataPaginated,
   type OrgRole,
   PaginationQueryParamsSchema,
+  PaginationSchema,
   ProjectApiInsertSchema,
+  ProjectApiSelectSchema,
   ProjectApiUpdateSchema,
-  ProjectListResponse,
   ProjectResponse,
   QUOTA_RESOURCE_TYPES,
   type ResolvedRef,
@@ -42,6 +44,22 @@ const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
 // POST /projects - Create project (org-level action, requires org permission)
 // GET/PATCH /projects/:id - Project-level actions (require SpiceDB permission)
+const AgentSummarySchema = z.object({
+  agentId: z.string(),
+  agentName: z.string(),
+});
+
+const ProjectWithAgentsListResponse = z
+  .object({
+    data: z.array(
+      ProjectApiSelectSchema.extend({
+        agents: z.array(AgentSummarySchema).optional(),
+      })
+    ),
+    pagination: PaginationSchema,
+  })
+  .openapi('ProjectListResponse');
+
 app.openapi(
   createProtectedRoute({
     method: 'get',
@@ -54,14 +72,19 @@ app.openapi(
     permission: inheritedManageTenantAuth(),
     request: {
       params: TenantParamsSchema,
-      query: PaginationQueryParamsSchema,
+      query: PaginationQueryParamsSchema.extend({
+        include: z
+          .enum(['agents'])
+          .optional()
+          .describe('Include related resources. Use "agents" to nest agent summaries per project.'),
+      }),
     },
     responses: {
       200: {
         description: 'List of projects retrieved successfully',
         content: {
           'application/json': {
-            schema: ProjectListResponse,
+            schema: ProjectWithAgentsListResponse,
           },
         },
       },
@@ -74,8 +97,10 @@ app.openapi(
     const { tenantId } = c.req.valid('param');
     const userId = c.get('userId');
     const tenantRole = c.get('tenantRole') || 'member';
-    const page = Number(c.req.query('page')) || 1;
-    const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
+    const { page: rawPage, limit: rawLimit, include } = c.req.valid('query');
+    const page = Number(rawPage) || 1;
+    const limit = Math.min(Number(rawLimit) || 10, 100);
+    const includeAgents = include === 'agents';
 
     // Get accessible project IDs based on authorization
     let accessibleIds: string[] | undefined;
@@ -98,6 +123,21 @@ app.openapi(
     )({ tenantId, pagination: { page, limit }, projectIds: accessibleIds });
 
     // Transform the result to match the existing ProjectListResponse schema
+    const projectIds = result.data.map((p) => p.id);
+
+    const agentsByProject = new Map<string, Array<{ agentId: string; agentName: string }>>();
+    if (includeAgents && projectIds.length > 0) {
+      const agents = await listAgentsAcrossProjectMainBranches(manageDbClient, {
+        tenantId,
+        projectIds,
+      });
+      for (const agent of agents) {
+        const list = agentsByProject.get(agent.projectId) ?? [];
+        list.push({ agentId: agent.agentId, agentName: agent.agentName });
+        agentsByProject.set(agent.projectId, list);
+      }
+    }
+
     const transformedData = result.data.map((project) => ({
       id: project.id,
       tenantId: project.tenantId,
@@ -107,6 +147,7 @@ app.openapi(
       stopWhen: project.stopWhen,
       createdAt: project.createdAt,
       updatedAt: project.configUpdatedAt ?? project.createdAt,
+      ...(includeAgents && { agents: agentsByProject.get(project.id) ?? [] }),
     }));
 
     return c.json({

@@ -108,3 +108,17 @@ async function $fetchProjectPermissions(
 }
 
 export const fetchProjectPermissions = cache($fetchProjectPermissions);
+
+interface ProjectWithAgents {
+  id: string;
+  name: string;
+  agents: Array<{ agentId: string; agentName: string }>;
+}
+
+async function $fetchProjectsWithAgents(tenantId: string): Promise<{ data: ProjectWithAgents[] }> {
+  return makeManagementApiRequest<{ data: ProjectWithAgents[] }>(
+    `tenants/${tenantId}/projects?limit=100&include=agents`
+  );
+}
+
+export const fetchProjectsWithAgents = cache($fetchProjectsWithAgents);
