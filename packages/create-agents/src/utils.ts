@@ -164,7 +164,7 @@ export const defaultOpenaiModelConfigurations = {
     model: OPENAI_MODELS.GPT_4_1_MINI,
   },
   summarizer: {
-    model: OPENAI_MODELS.GPT_4_1_NANO,
+    model: OPENAI_MODELS.GPT_5_4_NANO,
   },
 };
 
