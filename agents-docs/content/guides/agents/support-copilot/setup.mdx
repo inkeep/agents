@@ -1,0 +1,151 @@
+---
+title: Build and deploy a Support Copilot for Zendesk
+sidebarTitle: Setup
+description: Deploy a knowledge-grounded AI copilot into your Zendesk ticket sidebar so support agents get answers, drafts, and next steps without leaving the ticket.
+icon: LuLifeBuoy
+---
+
+<img src="/images/guides/support-copilot/ticket-sidebar.png" alt="The Inkeep Agents copilot open in a Zendesk ticket sidebar, analyzing the ticket" width="700" className="mx-auto block" style={{ display: 'block', margin: '0 auto' }} />
+
+## Overview
+
+Support Copilot puts an Inkeep agent right inside the Zendesk ticket sidebar, working alongside your support team. When an agent opens a ticket, the copilot will:
+
+1. Read the ticket — the conversation, metadata, and customer details — automatically
+2. Search your knowledge base for relevant answers
+3. Help the agent make progress — explain the issue, draft a reply, or suggest the next question to ask
+
+Everything happens inside the ticket the agent is already working in. No tab-switching, no copy-paste.
+
+## Prerequisites
+
+- Access to Inkeep Enterprise — [schedule a demo](https://inkeep.com/schedule-demo) if you don't have it yet
+- An Inkeep account with [Inkeep Unified Search](/connect-your-data/inkeep) configured for your product (knowledge base, docs, sources connected)
+- A Zendesk account, with a Zendesk admin available to approve the app install
+
+## Build the Smart Assist agent
+
+Start by building the agent that powers the copilot: a single sub agent that searches your knowledge base and helps the support agent reason about the ticket.
+
+<Steps>
+  <Step>
+    In the Visual Builder, go to the **Agents** tab in the left sidebar and click **Create agent**. Give it a name like `Support copilot`.
+  </Step>
+  <Step>
+    Click the **Default Sub Agent** on the canvas to configure it. Fill in:
+
+    - **Name**: `Smart Assist`
+    - **Prompt**: Paste the prompt below
+    - **Base model**: Leave the inherited default (e.g., Claude Sonnet 4.5).
+  </Step>
+</Steps>
+
+**Prompt:**
+
+```text
+You are an AI copilot for [Your Company] that helps the support team make progress on customer tickets.
+
+You're assisting a support agent — they are your user. Every message you receive is from the support agent, never from the customer. The ticket's conversation, metadata, and customer details are provided to you automatically. Focus on where the conversation currently stands.
+
+How to help:
+1. When the agent asks you to analyze a ticket — "Smart Assist", "what should I do here", "help me with this" — search the knowledge base first, then walk them through the issue and a recommended next step.
+2. When you draft a customer reply, match the tone of the thread and keep it concise.
+3. When the customer hasn't given enough detail, suggest the questions the agent should ask.
+
+Talk to the agent like a well-crafted Slack message: conversational and concise.
+
+Rules:
+- Ground every answer in knowledge base results. Only include a link if it appears in a search result — never invent or guess a URL. An answer with no sources beats one with a fabricated source.
+- If your sources don't cover the question, say so plainly and express uncertainty rather than guessing.
+- Never expose customer PII in anything customer-facing.
+- Don't tell the customer to "reach out to support" — they already have.
+```
+
+<Tip>
+Replace `[Your Company]` with your company name. This prompt is a starting point — tune the tone and the "how to help" steps to match how your team works.
+</Tip>
+
+## Connect your knowledge base
+
+Smart Assist needs to search your content to ground its answers. Inkeep Unified Search is exposed as an MCP server that gives the agent a `search-knowledge-base` tool.
+
+<Steps>
+  <Step>
+    Click **MCP Servers** in the left sidebar, then **New MCP Server → Custom Server**. Register your Inkeep Unified Search server and give it a name (e.g., `Facts MCP`).
+  </Step>
+  <Step>
+    Go back to your agent canvas, drag an **MCP** block onto it, select your search server, and connect it to the **Smart Assist** sub agent.
+  </Step>
+  <Step>
+    Click **Save Changes** in the top right corner.
+  </Step>
+</Steps>
+
+Your canvas should now show **Smart Assist** connected to the knowledge base MCP:
+
+<img src="/images/guides/support-copilot/agent-canvas.png" alt="The Smart Assist sub agent connected to the knowledge base MCP on the Visual Builder canvas" width="280" className="mx-auto block" style={{ display: 'block', margin: '0 auto' }} />
+
+<Tip>
+Need the full walkthrough for generating an Inkeep API key and saving it as a credential? See [Connect your data](/connect-your-data/inkeep).
+</Tip>
+
+## Create a Support Copilot app
+
+A **Support Copilot** app is how you deploy your agent into an external support platform like Zendesk. It connects your agent to the platform and defines the quick actions your team sees in the sidebar.
+
+<Steps>
+  <Step>
+    Go to the **Apps** tab in the left sidebar and click **New App → Support Copilot**.
+
+    <img src="/images/guides/support-copilot/new-app-menu.png" alt="The New App menu with the Support Copilot option for deploying agents to support platforms" width="360" className="mx-auto block" style={{ display: 'block', margin: '0 auto' }} />
+  </Step>
+  <Step>
+    Fill in the app:
+
+    - **Name**: A name your team will recognize (e.g., `Support Copilot`)
+    - **Default Agent**: Select the `Support copilot` agent you just built
+    - **Platform**: `Zendesk`
+    - **Quick actions**: Action buttons shown at the top of the sidebar, organized into named groups. Each button sends a message to the agent on click. Create a group — e.g., **ANALYZE** — with **Smart Assist**, **Summarize thread**, and **Draft reply**.
+  </Step>
+  <Step>
+    Click **Create App**.
+
+    <img src="/images/guides/support-copilot/new-app-form.png" alt="The New Support Copilot form showing name, default agent, Zendesk platform, and quick actions" width="560" className="mx-auto block" style={{ display: 'block', margin: '0 auto' }} />
+  </Step>
+</Steps>
+
+<Tip>
+Quick actions are fully customizable — rename them, add your own, or group them. The message a button sends is exactly what your agent receives, so phrase it the way you'd ask ("Draft a reply to this customer").
+</Tip>
+
+## Install in Zendesk
+
+With the app created, install it in Zendesk so it appears in the ticket sidebar. You do this once per Zendesk account.
+
+<Steps>
+  <Step>
+    From the app, open the install instructions and click **Open Zendesk Marketplace**. Add the **Inkeep Agents** app to your Zendesk account. A Zendesk admin must approve the install.
+  </Step>
+  <Step>
+    Open any ticket in Zendesk and log in with your Inkeep account. The app detects your workspace automatically.
+  </Step>
+  <Step>
+    The **Inkeep Agents** app now appears in the ticket sidebar, with your quick actions at the top.
+  </Step>
+</Steps>
+
+The in-app install dialog walks you through the same three steps:
+
+<img src="/images/guides/support-copilot/install-modal.png" alt="The Install Support Copilot dialog with the three install steps and an admin note" width="520" className="mx-auto block" style={{ display: 'block', margin: '0 auto' }} />
+
+<Note>
+Only people added to the project (Project Member role or above) can use the Support Copilot app. Org admins have access automatically — add project members to give the rest of your team access.
+</Note>
+
+## Use it in a ticket
+
+Open a ticket in Zendesk and find **Inkeep Agents** in the sidebar. The copilot greets you with the ticket it's looking at, and your quick actions are ready at the top.
+
+Click **Smart Assist** and the copilot reads the ticket, searches your knowledge base, and walks you through the issue and a recommended next step — or type your own message to ask it anything about the ticket.
+
+From here you can extend the copilot with more tools as your team needs them — for example, searching private internal sources or pulling up a customer's logs. Each one builds on the same agent you just deployed.
