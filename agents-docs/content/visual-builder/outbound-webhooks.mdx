@@ -56,6 +56,10 @@ Each webhook destination subscribes to one or more event types. Your endpoint re
 | `feedback.created` | A user submits feedback on a conversation |
 | `event.created` | A custom event is logged via `POST /run/v1/events` |
 | `evaluation.failed` | An evaluation result does not meet its pass criteria |
+| `conversation.execution.error` | Conversation reaches terminal failure |
+| `conversation.generation.error` | An LLM call fails to produce a response |
+| `conversation.tool.error` | A tool call returns an error |
+| `conversation.context.error` | Context resolution encounters fetch failures |
 
 ### Agent scoping
 
@@ -287,6 +291,88 @@ The webhook destinations page shows all configured destinations with their name,
 | **Delete** | Permanently remove the destination |
 
 Toggle the **Enabled** switch to pause or resume delivery without deleting the destination.
+
+## Conversation error events
+
+Subscribe to error events to get notified when agent conversations encounter failures. Four error event types are available:
+
+| Event type | Fires when |
+| --- | --- |
+| `conversation.execution.error` | Conversation reaches terminal failure (max consecutive errors, max transfers exhausted, or uncaught exception) |
+| `conversation.generation.error` | An LLM call fails to produce a response |
+| `conversation.tool.error` | A tool call returns an error |
+| `conversation.context.error` | Context resolution encounters fetch failures |
+
+### Subscribing
+
+In the webhook destination form, use the **Conversation error** checkbox to subscribe to all four error types at once. Click **Advanced** to select specific error types individually.
+
+Each error event type is independently subscribable via the `eventTypes` array — subscribe only to the types you care about.
+
+### Example payloads
+
+**conversation.execution.error**
+```json
+{
+  "type": "conversation.execution.error",
+  "timestamp": "2026-05-26T19:30:00.000Z",
+  "tenantId": "tenant_123",
+  "projectId": "proj_456",
+  "agentId": "agent_789",
+  "data": {
+    "conversation": { "id": "conv_abc" },
+    "reason": "Maximum error limit (3) reached"
+  }
+}
+```
+
+**conversation.generation.error**
+```json
+{
+  "type": "conversation.generation.error",
+  "timestamp": "2026-05-26T19:30:00.000Z",
+  "tenantId": "tenant_123",
+  "projectId": "proj_456",
+  "agentId": "agent_789",
+  "data": {
+    "conversation": { "id": "conv_abc" },
+    "reason": "Generation terminated by timeout/abort signal"
+  }
+}
+```
+
+**conversation.tool.error**
+```json
+{
+  "type": "conversation.tool.error",
+  "timestamp": "2026-05-26T19:30:00.000Z",
+  "tenantId": "tenant_123",
+  "projectId": "proj_456",
+  "agentId": "agent_789",
+  "data": {
+    "conversation": { "id": "conv_abc" },
+    "tool": { "id": "tool_123", "name": "search_docs" },
+    "mcpServer": { "id": "mcp_456", "name": "docs-server" },
+    "reason": "Connection timeout after 30s"
+  }
+}
+```
+
+**conversation.context.error**
+```json
+{
+  "type": "conversation.context.error",
+  "timestamp": "2026-05-26T19:30:00.000Z",
+  "tenantId": "tenant_123",
+  "projectId": "proj_456",
+  "agentId": "agent_789",
+  "data": {
+    "conversation": { "id": "conv_abc" },
+    "contextDefinition": { "id": "ctx_def_123" },
+    "reason": "HTTP 500 from upstream"
+  }
+}
+```
 
 ## Next steps
 

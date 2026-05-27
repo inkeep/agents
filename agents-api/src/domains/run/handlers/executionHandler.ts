@@ -25,7 +25,10 @@ import { A2AClient } from '../a2a/client.js';
 import { executeTransfer } from '../a2a/transfer.js';
 import { extractTransferData, isTransferTask } from '../a2a/types.js';
 import { AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS } from '../constants/execution-limits';
-import { emitConversationWebhook } from '../services/WebhookDeliveryService';
+import {
+  emitConversationWebhook,
+  emitWebhookEventFireAndForget,
+} from '../services/WebhookDeliveryService';
 import { agentSessionManager } from '../session/AgentSession.js';
 import type { StreamHelper } from '../stream/stream-helpers.js';
 import { BufferingStreamHelper } from '../stream/stream-helpers.js';
@@ -100,6 +103,22 @@ export class ExecutionHandler {
     } = params;
 
     const { tenantId, projectId, project, agentId, baseUrl, resolvedRef } = executionContext;
+
+    const emitExecutionError = (reason: string) => {
+      if (resolvedRef) {
+        emitWebhookEventFireAndForget(
+          {
+            tenantId,
+            projectId,
+            agentId,
+            resolvedRef,
+            eventType: 'conversation.execution.error',
+            data: { conversation: { id: conversationId }, reason },
+          },
+          'execution-handler'
+        );
+      }
+    };
 
     return runWithLogContext({ requestId, conversationId }, async () => {
       registerStreamHelper(requestId, sseHelper);
@@ -405,6 +424,9 @@ export class ExecutionHandler {
 
                   await agentSessionManager.endSession(requestId);
                   unregisterStreamHelper(requestId);
+
+                  emitExecutionError(errorMessage);
+
                   return { success: false, error: errorMessage, iterations };
                 } finally {
                   span.end();
@@ -714,6 +736,9 @@ export class ExecutionHandler {
 
                 await agentSessionManager.endSession(requestId);
                 unregisterStreamHelper(requestId);
+
+                emitExecutionError(errorMessage);
+
                 // Trigger evaluation for regular conversations (not dataset runs)
                 if (!params.datasetRunId) {
                   triggerConversationEvaluation({
@@ -778,6 +803,9 @@ export class ExecutionHandler {
             // Clean up AgentSession and streamHelper on error
             await agentSessionManager.endSession(requestId);
             unregisterStreamHelper(requestId);
+
+            emitExecutionError(maxTransfersErrorMessage);
+
             return { success: false, error: maxTransfersErrorMessage, iterations };
           } finally {
             span.end();
@@ -827,6 +855,9 @@ export class ExecutionHandler {
             // Clean up AgentSession and streamHelper on exception
             await agentSessionManager.endSession(requestId);
             unregisterStreamHelper(requestId);
+
+            emitExecutionError(errorMessage);
+
             return { success: false, error: errorMessage, iterations };
           } finally {
             span.end();
