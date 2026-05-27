@@ -126,24 +126,34 @@ export async function listAgentsAcrossProjectMainBranches(
   params: { tenantId: string; projectIds: string[] }
 ): Promise<AvailableAgentInfo[]> {
   const { tenantId, projectIds } = params;
-  const allAgents: AvailableAgentInfo[] = [];
 
-  for (const projectId of projectIds) {
-    try {
+  const results = await Promise.allSettled(
+    projectIds.map(async (projectId) => {
       const branchName = getProjectMainBranchName(tenantId, projectId);
 
       const result = await db.execute(
         sql`
           SELECT id as "agentId", name as "agentName", project_id as "projectId"
-          FROM agent AS OF ${branchName}
+          FROM ${sql.raw(`agent AS OF '${branchName}'`)}
           WHERE tenant_id = ${tenantId} AND project_id = ${projectId}
           ORDER BY name
         `
       );
 
-      allAgents.push(...(result.rows as AvailableAgentInfo[]));
-    } catch (error) {
-      agentsLogger.warn({ error, projectId }, 'Failed to fetch agents for project, skipping');
+      return result.rows as AvailableAgentInfo[];
+    })
+  );
+
+  const allAgents: AvailableAgentInfo[] = [];
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
+    if (result.status === 'fulfilled') {
+      allAgents.push(...result.value);
+    } else {
+      agentsLogger.warn(
+        { error: result.reason, projectId: projectIds[i] },
+        'Failed to fetch agents for project, skipping'
+      );
     }
   }
 

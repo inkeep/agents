@@ -3016,6 +3016,7 @@ class SigNozStatsAPI {
       subAgentId: string;
       subAgentName: string;
       conversationId: string;
+      projectId: string;
       inputTokens: number;
       outputTokens: number;
       totalTokens: number;
@@ -3081,6 +3082,7 @@ class SigNozStatsAPI {
                   sf(SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, str, attrCtx),
                   sf(SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME, str, attrCtx),
                   sf(SPAN_KEYS.CONVERSATION_ID, str, attrCtx),
+                  sf(SPAN_KEYS.PROJECT_ID, str, attrCtx),
                   sf(SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, float64, attrCtx),
                   sf(SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, float64, attrCtx),
                   sf(SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, float64, attrCtx),
@@ -3126,6 +3128,7 @@ class SigNozStatsAPI {
           subAgentId: d[SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID] || d[SPAN_KEYS.SUB_AGENT_ID] || '',
           subAgentName: d[SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME] || '',
           conversationId: d[SPAN_KEYS.CONVERSATION_ID] || '',
+          projectId: d[SPAN_KEYS.PROJECT_ID] || '',
           inputTokens,
           outputTokens,
           totalTokens: inputTokens + outputTokens,

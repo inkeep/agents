@@ -17,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { fetchAgents } from '@/lib/api/agent-full-client';
-import { fetchProjects } from '@/lib/api/projects';
+import { fetchProjectsWithAgents } from '@/lib/api/projects';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
 import { formatDateAgo } from '@/lib/utils/format-date';
 
@@ -53,7 +53,9 @@ function AgentLabel({
   if (!info?.projectId) return label;
   return (
     <Link
-      href={`/${tenantId}/projects/${info.projectId}/agents/${agentId}`}
+      href={`/${tenantId}/projects/${info.projectId}/cost`}
+      target="_blank"
+      rel="noopener noreferrer"
       className="text-primary hover:underline"
     >
       {label}
@@ -107,24 +109,10 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
             map.set(agent.id, { name: agent.name, projectId });
           }
         } else {
-          const { data: allProjects } = await fetchProjects(tenantId);
-          const results = await Promise.all(
-            allProjects.map((p) =>
-              fetchAgents(tenantId, p.projectId)
-                .then(({ data }) => ({ projectId: p.projectId, data }))
-                .catch((e) => {
-                  console.warn(
-                    '[CostDashboard] Failed to fetch agents for project',
-                    p.projectId,
-                    e
-                  );
-                  return { projectId: p.projectId, data: [] as { id: string; name: string }[] };
-                })
-            )
-          );
-          for (const { projectId: pId, data } of results) {
-            for (const agent of data) {
-              map.set(agent.id, { name: agent.name, projectId: pId });
+          const { data: projects } = await fetchProjectsWithAgents(tenantId);
+          for (const project of projects) {
+            for (const agent of project.agents) {
+              map.set(agent.agentId, { name: agent.agentName, projectId: project.id });
             }
           }
         }
@@ -472,6 +460,7 @@ interface SigNozUsageEvent {
   subAgentId: string;
   subAgentName: string;
   conversationId: string;
+  projectId: string;
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
@@ -531,9 +520,11 @@ function UsageEventsTable({
                     {formatDateAgo(event.timestamp)}
                   </TableCell>
                   <TableCell>
-                    {projectId && event.conversationId ? (
+                    {(projectId || event.projectId) && event.conversationId ? (
                       <Link
-                        href={`/${tenantId}/projects/${projectId}/traces/conversations/${event.conversationId}`}
+                        href={`/${tenantId}/projects/${projectId || event.projectId}/traces/conversations/${event.conversationId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                       >
                         <ExternalLink className="h-3 w-3" />
