@@ -1,5 +1,15 @@
 # @inkeep/agents-cli
 
+## 0.74.4
+
+### Patch Changes
+
+- 1521dcc: Add Claude Opus 4.8 to model constants, the manage UI model picker, and the CLI model picker.
+- Updated dependencies [1521dcc]
+  - @inkeep/agents-core@0.74.4
+  - @inkeep/agents-manage-ui@0.74.4
+  - @inkeep/agents-sdk@0.74.4
+
 ## 0.74.3
 
 ### Patch Changes
