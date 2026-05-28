@@ -23,8 +23,18 @@ Authentication handles user sign-in and organization membership. Authorization a
 |--------|-------------|
 | **Email & Password** | Default sign-in with email and password credentials |
 | **Google** | OAuth sign-in (requires configuration) |
+| **Microsoft** | OAuth sign-in (requires configuration) |
+| **SSO (OIDC)** | Enterprise SSO with your identity provider (Inkeep Cloud only) |
 
-To add Google sign-in, see [Adding OAuth Providers](/deployment/authentication#google-oauth).
+To add Google or Microsoft sign-in for self-hosted deployments, see [Adding OAuth Providers](/deployment/authentication#adding-oauth-providers).
+
+Organization admins can enable or disable sign-in methods from **Settings** → **Authentication Methods**. Toggle the switch next to each method to control which options are available to your team.
+
+<Note>
+  At least one authentication method must remain enabled at all times.
+</Note>
+
+For enterprise SSO with custom OIDC identity providers (Okta, Entra ID, Google Workspace, etc.), see [SSO Configuration](/visual-builder/sso-configuration).
 
 ## Organizations & Team Management
 
