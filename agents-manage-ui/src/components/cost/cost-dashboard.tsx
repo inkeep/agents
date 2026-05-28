@@ -1,6 +1,6 @@
 'use client';
 
-import { Coins, Database, ExternalLink, Hash, Layers, Zap } from 'lucide-react';
+import { Coins, Database, ExternalLink, Hash } from 'lucide-react';
 import Link from 'next/link';
 import { type ReactNode, useEffect, useState } from 'react';
 import { AreaChartCard } from '@/components/traces/charts/area-chart-card';
@@ -16,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { fetchAgents } from '@/lib/api/agent-full-client';
 import { fetchProjectsWithAgents } from '@/lib/api/projects';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
@@ -66,6 +67,7 @@ function AgentLabel({
 interface CostDashboardProps {
   tenantId: string;
   projectId?: string;
+  agentId?: string;
   startTime: string;
   endTime: string;
 }
@@ -134,7 +136,16 @@ export function bucketByCacheParticipation(byType: UsageSummaryRow[]): UsageSumm
   );
 }
 
-export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostDashboardProps) {
+export type StatScope = 'total' | 'per-conversation' | 'per-message';
+
+export function CostDashboard({
+  tenantId,
+  projectId,
+  startTime,
+  endTime,
+  agentId,
+}: CostDashboardProps) {
+  const [scope, setScope] = useState<StatScope>('total');
   const [summaryByModel, setSummaryByModel] = useState<UsageSummaryRow[]>([]);
   const [summaryByAgent, setSummaryByAgent] = useState<UsageSummaryRow[]>([]);
   const [summaryByType, setSummaryByType] = useState<UsageSummaryRow[]>([]);
@@ -145,6 +156,9 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
   const [events, setEvents] = useState<SigNozUsageEvent[]>([]);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [eventsError, setEventsError] = useState<string | null>(null);
+
+  const [userMessageCount, setUserMessageCount] = useState(0);
+  const [conversationCount, setConversationCount] = useState(0);
 
   const [chartData, setChartData] = useState<Array<{ date: string; cost: number }>>([]);
   const [chartLoading, setChartLoading] = useState(true);
@@ -189,23 +203,31 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
     setSummariesError(null);
     const start = new Date(startTime).getTime();
     const end = new Date(endTime).getTime();
-    getSigNozStatsClient(tenantId)
-      .getUsageCostSummaries(
+    const client = getSigNozStatsClient(tenantId);
+    Promise.all([
+      client.getUsageCostSummaries(
         start,
         end,
         ['model', 'agent', 'generation_type', 'provider'] as const,
-        projectId
-      )
-      .then((summaries) => {
+        projectId,
+        agentId
+      ),
+      client.getUsageCounts(start, end, projectId, agentId),
+    ])
+      .then(([summaries, counts]) => {
         if (cancelled) return;
         setSummaryByModel(summaries.model);
         setSummaryByAgent(summaries.agent);
         setSummaryByType(summaries.generation_type);
         setSummaryByProvider(summaries.provider);
+        setUserMessageCount(counts.messageCount);
+        setConversationCount(counts.conversationCount);
       })
-      .catch((error) => {
+      .catch(() => {
         if (cancelled) return;
-        setSummariesError(error instanceof Error ? error.message : 'Failed to load cost summaries');
+        setSummariesError(
+          'Failed to load cost data. Try refreshing or selecting a different time range.'
+        );
       })
       .finally(() => {
         if (!cancelled) setSummariesLoading(false);
@@ -213,7 +235,7 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
     return () => {
       cancelled = true;
     };
-  }, [tenantId, projectId, startTime, endTime]);
+  }, [tenantId, projectId, agentId, startTime, endTime]);
 
   useEffect(() => {
     let cancelled = false;
@@ -222,14 +244,16 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
     const start = new Date(startTime).getTime();
     const end = new Date(endTime).getTime();
     getSigNozStatsClient(tenantId)
-      .getUsageEventsList(start, end, projectId, undefined, 200)
+      .getUsageEventsList(start, end, { projectId, agentId, limit: 200 })
       .then((rows) => {
         if (cancelled) return;
         setEvents(rows);
       })
-      .catch((error) => {
+      .catch(() => {
         if (cancelled) return;
-        setEventsError(error instanceof Error ? error.message : 'Failed to load cost events');
+        setEventsError(
+          'Failed to load cost events. Try refreshing or selecting a different time range.'
+        );
       })
       .finally(() => {
         if (!cancelled) setEventsLoading(false);
@@ -237,7 +261,7 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
     return () => {
       cancelled = true;
     };
-  }, [tenantId, projectId, startTime, endTime]);
+  }, [tenantId, projectId, agentId, startTime, endTime]);
 
   useEffect(() => {
     let cancelled = false;
@@ -246,14 +270,16 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
     const start = new Date(startTime).getTime();
     const end = new Date(endTime).getTime();
     getSigNozStatsClient(tenantId)
-      .getUsageCostPerDay(start, end, projectId)
+      .getUsageCostPerDay(start, end, projectId, agentId)
       .then((data) => {
         if (cancelled) return;
         setChartData(data);
       })
-      .catch((error) => {
+      .catch(() => {
         if (cancelled) return;
-        setChartError(error instanceof Error ? error.message : 'Failed to load cost chart');
+        setChartError(
+          'Failed to load cost chart. Try refreshing or selecting a different time range.'
+        );
       })
       .finally(() => {
         if (!cancelled) setChartLoading(false);
@@ -261,7 +287,7 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
     return () => {
       cancelled = true;
     };
-  }, [tenantId, projectId, startTime, endTime]);
+  }, [tenantId, projectId, agentId, startTime, endTime]);
 
   const totals = summaryByModel.reduce(
     (acc, row) => ({
@@ -284,21 +310,33 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
     }
   );
 
+  const scopeDivisor =
+    scope === 'per-conversation'
+      ? conversationCount || 1
+      : scope === 'per-message'
+        ? userMessageCount || 1
+        : 1;
+
   return (
     <>
       <UsageStatCards
         totals={totals}
-        modelCount={summaryByModel.length}
+        conversationCount={conversationCount}
+        messageCount={userMessageCount}
         isLoading={summariesLoading}
         error={summariesError}
+        scope={scope}
+        onScopeChange={setScope}
       />
 
+      <span className="text-sm font-medium text-muted-foreground">Cost Breakdown</span>
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         <UsageBreakdownTable
           title="Cost by Model"
           data={summaryByModel}
           isLoading={summariesLoading}
           error={summariesError}
+          divisor={scopeDivisor}
         />
         <UsageBreakdownTable
           title="Cost by Agent"
@@ -309,6 +347,7 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
           formatGroupKey={(agentId) => (
             <AgentLabel agentId={agentId} tenantId={tenantId} agentsById={agentsById} />
           )}
+          divisor={scopeDivisor}
         />
         <UsageBreakdownTable
           title="Cost by Provider"
@@ -316,6 +355,7 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
           isLoading={summariesLoading}
           error={summariesError}
           groupLabel="Provider"
+          divisor={scopeDivisor}
         />
       </div>
 
@@ -389,6 +429,7 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
           error={summariesError}
           formatGroupKey={(key) => key.replace(/_/g, ' ')}
           groupLabel="Generation Type"
+          divisor={scopeDivisor}
         />
         <UsageBreakdownTable
           title="Cost by Cache Participation"
@@ -396,6 +437,7 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
           isLoading={summariesLoading}
           error={summariesError}
           groupLabel="Cache Participation"
+          divisor={scopeDivisor}
         />
       </div>
     </>
@@ -404,9 +446,12 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
 
 export function UsageStatCards({
   totals,
-  modelCount,
+  conversationCount,
+  messageCount,
   isLoading,
   error,
+  scope,
+  onScopeChange,
 }: {
   totals: {
     totalTokens: number;
@@ -417,54 +462,106 @@ export function UsageStatCards({
     totalCacheReadTokens: number;
     totalCacheCreationTokens: number;
   };
-  modelCount: number;
+  conversationCount: number;
+  messageCount: number;
   isLoading: boolean;
   error?: string | null;
+  scope: StatScope;
+  onScopeChange: (scope: StatScope) => void;
 }) {
   const hasError = !!error;
-  const cacheReadDescription =
-    totals.totalCacheCreationTokens > 0
-      ? `${formatTokens(totals.totalCacheCreationTokens)} written`
-      : undefined;
+
+  function cacheBreakdown(read: number, written: number): string | undefined {
+    const parts: string[] = [];
+    if (read > 0) parts.push(`${formatTokens(read)} read`);
+    if (written > 0) parts.push(`${formatTokens(written)} written`);
+    return parts.length > 1 ? parts.join(' / ') : undefined;
+  }
+
+  const stats = (() => {
+    if (scope === 'per-conversation') {
+      const div = conversationCount || 1;
+      const avgCacheRead = Math.round(totals.totalCacheReadTokens / div);
+      const avgCacheWritten = Math.round(totals.totalCacheCreationTokens / div);
+      return {
+        cost: formatCost(totals.totalCost / div),
+        costDescription: `across ${conversationCount} conversation${conversationCount !== 1 ? 's' : ''}`,
+        tokens: formatTokens(Math.round(totals.totalTokens / div)),
+        tokensDescription: `${formatTokens(Math.round(totals.totalInputTokens / div))} in / ${formatTokens(Math.round(totals.totalOutputTokens / div))} out`,
+        cacheTokens: formatTokens(avgCacheRead),
+        cacheDescription: cacheBreakdown(avgCacheRead, avgCacheWritten),
+      };
+    }
+    if (scope === 'per-message') {
+      const div = messageCount || 1;
+      const avgCacheRead = Math.round(totals.totalCacheReadTokens / div);
+      const avgCacheWritten = Math.round(totals.totalCacheCreationTokens / div);
+      return {
+        cost: formatCost(totals.totalCost / div),
+        costDescription: `across ${messageCount} message${messageCount !== 1 ? 's' : ''}`,
+        tokens: formatTokens(Math.round(totals.totalTokens / div)),
+        tokensDescription: `${formatTokens(Math.round(totals.totalInputTokens / div))} in / ${formatTokens(Math.round(totals.totalOutputTokens / div))} out`,
+        cacheTokens: formatTokens(avgCacheRead),
+        cacheDescription: cacheBreakdown(avgCacheRead, avgCacheWritten),
+      };
+    }
+    return {
+      cost: formatCost(totals.totalCost),
+      costDescription: `${messageCount} message${messageCount !== 1 ? 's' : ''} · ${conversationCount} conversation${conversationCount !== 1 ? 's' : ''}`,
+      tokens: formatTokens(totals.totalTokens),
+      tokensDescription: `${formatTokens(totals.totalInputTokens)} in / ${formatTokens(totals.totalOutputTokens)} out`,
+      cacheTokens: formatTokens(totals.totalCacheReadTokens),
+      cacheDescription:
+        totals.totalCacheCreationTokens > 0
+          ? `${formatTokens(totals.totalCacheCreationTokens)} written`
+          : undefined,
+    };
+  })();
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-      <StatCard
-        title="Estimated Cost"
-        Icon={Coins}
-        stat={formatCost(totals.totalCost)}
-        isLoading={isLoading}
-        hasError={hasError}
-      />
-      <StatCard
-        title="Total Tokens"
-        Icon={Hash}
-        stat={formatTokens(totals.totalTokens)}
-        statDescription={`${formatTokens(totals.totalInputTokens)} in / ${formatTokens(totals.totalOutputTokens)} out`}
-        isLoading={isLoading}
-        hasError={hasError}
-      />
-      <StatCard
-        title="Cache-read Tokens"
-        Icon={Database}
-        stat={formatTokens(totals.totalCacheReadTokens)}
-        statDescription={cacheReadDescription}
-        isLoading={isLoading}
-        hasError={hasError}
-      />
-      <StatCard
-        title="Generations"
-        Icon={Zap}
-        stat={totals.totalEvents}
-        isLoading={isLoading}
-        hasError={hasError}
-      />
-      <StatCard
-        title="Models Used"
-        Icon={Layers}
-        stat={modelCount}
-        isLoading={isLoading}
-        hasError={hasError}
-      />
+    <div className="flex flex-col gap-3">
+      <Tabs value={scope} onValueChange={(v) => onScopeChange(v as StatScope)}>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-muted-foreground">Summary</span>
+          <TabsList className="h-8">
+            <TabsTrigger value="total" className="text-xs px-3 h-6">
+              Total
+            </TabsTrigger>
+            <TabsTrigger value="per-conversation" className="text-xs px-3 h-6">
+              Per Conversation
+            </TabsTrigger>
+            <TabsTrigger value="per-message" className="text-xs px-3 h-6">
+              Per Message
+            </TabsTrigger>
+          </TabsList>
+        </div>
+      </Tabs>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatCard
+          title="Cost"
+          Icon={Coins}
+          stat={stats.cost}
+          statDescription={stats.costDescription}
+          isLoading={isLoading}
+          hasError={hasError}
+        />
+        <StatCard
+          title="Tokens"
+          Icon={Hash}
+          stat={stats.tokens}
+          statDescription={stats.tokensDescription}
+          isLoading={isLoading}
+          hasError={hasError}
+        />
+        <StatCard
+          title="Cache Tokens"
+          Icon={Database}
+          stat={stats.cacheTokens}
+          statDescription={stats.cacheDescription}
+          isLoading={isLoading}
+          hasError={hasError}
+        />
+      </div>
     </div>
   );
 }
@@ -476,6 +573,7 @@ export function UsageBreakdownTable({
   error,
   formatGroupKey,
   groupLabel = 'Model',
+  divisor = 1,
 }: {
   title: string;
   data: UsageSummaryRow[];
@@ -483,6 +581,7 @@ export function UsageBreakdownTable({
   error?: string | null;
   formatGroupKey?: (key: string) => ReactNode;
   groupLabel?: string;
+  divisor?: number;
 }) {
   return (
     <Card>
@@ -515,12 +614,14 @@ export function UsageBreakdownTable({
                     </span>
                   </TableCell>
                   <TableCell className="text-right font-medium">
-                    {formatCost(row.totalEstimatedCostUsd)}
+                    {formatCost(row.totalEstimatedCostUsd / divisor)}
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">
-                    {formatTokens(row.totalTokens)}
+                    {formatTokens(Math.round(row.totalTokens / divisor))}
                   </TableCell>
-                  <TableCell className="text-right">{row.eventCount}</TableCell>
+                  <TableCell className="text-right">
+                    {Math.round(row.eventCount / divisor)}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -587,11 +688,13 @@ export function UsageEventsTable({
         ) : events.length === 0 ? (
           <p className="text-sm text-muted-foreground">No cost events for this period</p>
         ) : (
-          <Table className="min-w-max" containerClassName="max-h-[500px] overflow-y-auto">
-            <TableHeader>
+          <Table className="min-w-max" containerClassName="max-h-[500px] overflow-auto">
+            <TableHeader className="sticky top-0 z-20 bg-card">
               <TableRow>
-                <TableHead>Time</TableHead>
-                <TableHead>Conversation</TableHead>
+                <TableHead className="sticky left-0 z-30 bg-card w-[72px] min-w-[72px]">
+                  Time
+                </TableHead>
+                <TableHead className="sticky left-[72px] z-30 bg-card">Conversation</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Model</TableHead>
                 <TableHead>Provider</TableHead>
@@ -608,10 +711,10 @@ export function UsageEventsTable({
             <TableBody>
               {events.map((event) => (
                 <TableRow key={event.spanId}>
-                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap sticky left-0 z-10 bg-card w-[72px] min-w-[72px]">
                     {formatDateAgo(event.timestamp)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="sticky left-[72px] z-10 bg-card">
                     {(projectId || event.projectId) && event.conversationId ? (
                       <Link
                         href={`/${tenantId}/projects/${projectId || event.projectId}/traces/conversations/${event.conversationId}`}

@@ -434,6 +434,10 @@ export default function ConversationDetail({
                     );
                   }
 
+                  const userMessageCount =
+                    conversation.activities?.filter((a) => a.type === 'user_message').length ?? 0;
+                  const costPerMessage = userMessageCount > 0 ? totalCost / userMessageCount : 0;
+
                   return (
                     <div className="space-y-3">
                       <div>
@@ -451,6 +455,15 @@ export default function ConversationDetail({
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5">
                           {events.length} calls
+                          {userMessageCount > 0 && (
+                            <>
+                              {' · ~'}
+                              {costPerMessage < 0.01
+                                ? `$${costPerMessage.toFixed(6)}`
+                                : `$${costPerMessage.toFixed(4)}`}
+                              /message
+                            </>
+                          )}
                         </div>
                       </div>
                       {events.map((event, idx) => (

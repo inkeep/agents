@@ -1,10 +1,15 @@
-import { Hash } from 'lucide-react';
+import { Coins, Hash } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { SLACK_BRAND_COLOR } from '@/constants/theme';
 import type { ConversationStats } from '@/lib/api/signoz-stats';
 import { formatDateAgo, formatDateTime } from '@/lib/utils/format-date';
+
+function formatCostBadge(cost: number): string {
+  if (cost < 0.01) return `$${cost.toFixed(4)}`;
+  return `$${cost.toFixed(2)}`;
+}
 
 interface ConversationListItemProps {
   conversation: ConversationStats;
@@ -22,6 +27,7 @@ export function ConversationListItem({ conversation, projectId }: ConversationLi
     totalErrors,
     toolsUsed,
     startTime,
+    totalEstimatedCostUsd,
   } = conversation;
 
   // Backward-compat: ID prefix detects historical Slack conversations that predate the
@@ -90,6 +96,19 @@ export function ConversationListItem({ conversation, projectId }: ConversationLi
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {totalEstimatedCostUsd != null && totalEstimatedCostUsd > 0 && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                    <Coins className="h-3 w-3" aria-hidden="true" />
+                    {formatCostBadge(totalEstimatedCostUsd)}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Estimated total cost for this conversation</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
             {toolsUsed.length > 0 && (
               <Tooltip>
                 <TooltipTrigger asChild>

@@ -1,6 +1,7 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import {
   bucketByCacheParticipation,
+  type StatScope,
   UsageBreakdownTable,
   UsageEventsTable,
   UsageStatCards,
@@ -162,6 +163,32 @@ describe('UsageBreakdownTable rendering Cost by Cache Participation', () => {
     expect(screen.getByText('Failed to load cost summaries')).toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
+
+  test('divisor prop divides cost, tokens, and calls values', () => {
+    render(
+      <UsageBreakdownTable
+        title="Cost by Model"
+        groupLabel="Model"
+        data={[
+          row({
+            groupKey: 'claude-sonnet',
+            totalEstimatedCostUsd: 1.0,
+            totalTokens: 10_000,
+            eventCount: 20,
+          }),
+        ]}
+        isLoading={false}
+        divisor={5}
+      />
+    );
+
+    const table = screen.getByRole('table');
+    const bodyRow = within(table).getAllByRole('row')[1];
+    const cells = Array.from(bodyRow?.querySelectorAll('td') ?? []).map((c) => c.textContent);
+    expect(cells[1]).toBe('$0.20');
+    expect(cells[2]).toBe('2.0K');
+    expect(cells[3]).toBe('4');
+  });
 });
 
 const totals = (overrides: {
@@ -182,10 +209,12 @@ const totals = (overrides: {
   totalCacheCreationTokens: overrides.totalCacheCreationTokens ?? 0,
 });
 
-describe('UsageStatCards rendering Cache-read Tokens', () => {
+const noop = (_s: StatScope) => {};
+
+describe('UsageStatCards rendering Cache Tokens', () => {
   afterEach(cleanup);
 
-  test('renders a Cache-read Tokens card showing the formatted read-token value', () => {
+  test('renders a Cache Tokens card showing the formatted read-token value', () => {
     render(
       <UsageStatCards
         totals={totals({
@@ -193,12 +222,15 @@ describe('UsageStatCards rendering Cache-read Tokens', () => {
           totalInputTokens: 100,
           totalOutputTokens: 50,
         })}
-        modelCount={2}
+        conversationCount={1}
+        messageCount={1}
         isLoading={false}
+        scope="total"
+        onScopeChange={noop}
       />
     );
 
-    expect(screen.getByText('Cache-read Tokens')).toBeInTheDocument();
+    expect(screen.getByText('Cache Tokens')).toBeInTheDocument();
     expect(screen.getByText('15.9K')).toBeInTheDocument();
   });
 
@@ -206,8 +238,11 @@ describe('UsageStatCards rendering Cache-read Tokens', () => {
     render(
       <UsageStatCards
         totals={totals({ totalCacheReadTokens: 15_927, totalCacheCreationTokens: 5000 })}
-        modelCount={2}
+        conversationCount={1}
+        messageCount={1}
         isLoading={false}
+        scope="total"
+        onScopeChange={noop}
       />
     );
 
@@ -218,33 +253,101 @@ describe('UsageStatCards rendering Cache-read Tokens', () => {
     render(
       <UsageStatCards
         totals={totals({ totalCacheReadTokens: 15_927, totalCacheCreationTokens: 0 })}
-        modelCount={2}
+        conversationCount={1}
+        messageCount={1}
         isLoading={false}
+        scope="total"
+        onScopeChange={noop}
       />
     );
 
     expect(screen.queryByText(/written/i)).not.toBeInTheDocument();
   });
 
-  test('places Cache-read Tokens third — after Total Tokens, before Generations', () => {
+  test('per-conversation scope divides cost and tokens by conversationCount', () => {
+    render(
+      <UsageStatCards
+        totals={totals({
+          totalCost: 1.0,
+          totalTokens: 10_000,
+          totalInputTokens: 6000,
+          totalOutputTokens: 4000,
+        })}
+        conversationCount={5}
+        messageCount={20}
+        isLoading={false}
+        scope="per-conversation"
+        onScopeChange={noop}
+      />
+    );
+    expect(screen.getByText('$0.20')).toBeInTheDocument();
+    expect(screen.getByText('across 5 conversations')).toBeInTheDocument();
+  });
+
+  test('per-message scope divides cost and tokens by messageCount', () => {
+    render(
+      <UsageStatCards
+        totals={totals({
+          totalCost: 1.0,
+          totalTokens: 10_000,
+          totalInputTokens: 6000,
+          totalOutputTokens: 4000,
+        })}
+        conversationCount={5}
+        messageCount={20}
+        isLoading={false}
+        scope="per-message"
+        onScopeChange={noop}
+      />
+    );
+    expect(screen.getByText('$0.05')).toBeInTheDocument();
+    expect(screen.getByText('across 20 messages')).toBeInTheDocument();
+  });
+
+  test('per-conversation scope with zero conversationCount falls back to divisor of 1', () => {
+    render(
+      <UsageStatCards
+        totals={totals({ totalCost: 0.5 })}
+        conversationCount={0}
+        messageCount={0}
+        isLoading={false}
+        scope="per-conversation"
+        onScopeChange={noop}
+      />
+    );
+    expect(screen.getByText('$0.50')).toBeInTheDocument();
+  });
+
+  test('per-message scope with zero messageCount falls back to divisor of 1', () => {
+    render(
+      <UsageStatCards
+        totals={totals({ totalCost: 0.5 })}
+        conversationCount={0}
+        messageCount={0}
+        isLoading={false}
+        scope="per-message"
+        onScopeChange={noop}
+      />
+    );
+    expect(screen.getByText('$0.50')).toBeInTheDocument();
+  });
+
+  test('renders Cost, Tokens, and Cache Tokens cards', () => {
     const { container } = render(
       <UsageStatCards
         totals={totals({ totalCacheReadTokens: 15_927 })}
-        modelCount={2}
+        conversationCount={1}
+        messageCount={1}
         isLoading={false}
+        scope="total"
+        onScopeChange={noop}
       />
     );
 
     const titles = Array.from(container.querySelectorAll('[data-slot="card-title"]')).map((el) =>
       el.textContent?.trim()
     );
-    expect(titles).toEqual([
-      'Estimated Cost',
-      'Total Tokens',
-      'Cache-read Tokens',
-      'Generations',
-      'Models Used',
-    ]);
+    expect(titles).toEqual(['Cost', 'Tokens', 'Cache Tokens']);
   });
 });
 

@@ -33,6 +33,7 @@ export interface ConversationStats {
   hasErrors: boolean;
   firstUserMessage?: string;
   startTime?: number;
+  totalEstimatedCostUsd?: number;
 }
 
 export interface AggregateStats {
@@ -630,7 +631,8 @@ class SigNozStatsAPI {
   private parseDetailResponse(
     resp: any,
     conversationIds: string[],
-    firstSeen: Map<string, number>
+    firstSeen: Map<string, number>,
+    costByConversation?: Map<string, number>
   ): { orderedStats: ConversationStats[] } {
     const toolsSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.TOOLS);
     const metadataSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.CONVERSATION_METADATA);
@@ -675,13 +677,18 @@ class SigNozStatsAPI {
       firstMsgByConv
     );
 
-    // Filter to only include the paginated conversation IDs (in the correct order)
+    if (costByConversation) {
+      for (const s of stats) {
+        const cost = costByConversation.get(s.conversationId);
+        if (cost !== undefined) s.totalEstimatedCostUsd = cost;
+      }
+    }
+
     const statsMap = new Map(stats.map((s) => [s.conversationId, s]));
     const orderedStats = conversationIds
       .map((id) => statsMap.get(id))
       .filter((s): s is ConversationStats => s !== undefined);
 
-    // Sort by first activity to maintain order
     orderedStats.sort((a, b) =>
       byFirstActivity(firstSeen.get(a.conversationId), firstSeen.get(b.conversationId))
     );
@@ -805,7 +812,22 @@ class SigNozStatsAPI {
         };
       }
 
-      const { orderedStats } = this.parseDetailResponse(detailResponse, conversationIds, firstSeen);
+      const costByConversation = await this.fetchCostByConversationIds(
+        startTime,
+        endTime,
+        conversationIds,
+        projectId
+      ).catch((e) => {
+        console.warn('[SigNozStatsAPI] Failed to fetch cost by conversation:', e);
+        return undefined;
+      });
+
+      const { orderedStats } = this.parseDetailResponse(
+        detailResponse,
+        conversationIds,
+        firstSeen,
+        costByConversation
+      );
 
       return {
         data: orderedStats,
@@ -859,11 +881,18 @@ class SigNozStatsAPI {
       conversationIds
     );
 
-    const detailResp = await this.makeRequest(detailPayload, undefined, signal);
+    const [detailResp, slowCostByConv] = await Promise.all([
+      this.makeRequest(detailPayload, undefined, signal),
+      this.fetchCostByConversationIds(startTime, endTime, conversationIds, projectId).catch((e) => {
+        console.warn('[SigNozStatsAPI] Failed to fetch cost by conversation:', e);
+        return undefined;
+      }),
+    ]);
     const { orderedStats } = this.parseDetailResponse(
       detailResp,
       conversationIds,
-      slowPathFirstSeen
+      slowPathFirstSeen,
+      slowCostByConv
     );
 
     return {
@@ -1388,6 +1417,73 @@ class SigNozStatsAPI {
   }
 
   // ---------- Private: transform + filter
+
+  private async fetchCostByConversationIds(
+    startTime: number,
+    endTime: number,
+    conversationIds: string[],
+    projectId?: string
+  ): Promise<Map<string, number>> {
+    if (conversationIds.length === 0) return new Map();
+
+    const filterItems: Array<{ key: string; op: string; value: unknown }> = [
+      {
+        key: SPAN_KEYS.AI_OPERATION_ID,
+        op: OPERATORS.IN,
+        value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+      },
+      {
+        key: SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE,
+        op: OPERATORS.IN,
+        value: [...USAGE_GENERATION_TYPES],
+      },
+      { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.IN, value: conversationIds },
+      ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
+    ];
+
+    const payload = {
+      start: startTime,
+      end: endTime,
+      requestType: REQUEST_TYPES.SCALAR,
+      ...(projectId && { projectId }),
+      compositeQuery: {
+        queries: [
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: usageCostQueryName('conversation'),
+              signal: SIGNALS.TRACES,
+              aggregations: USAGE_COST_AGGREGATIONS.map((expression) => ({ expression })),
+              filter: { expression: buildFilterExpression(filterItems) },
+              groupBy: [
+                {
+                  name: usageCostGroupByKey('conversation'),
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+              ],
+              order: [],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
+            },
+          },
+        ],
+      },
+    };
+
+    const resp = await this.makeRequest(payload, projectId);
+    const rows = extractUsageCostSummaryRows(
+      resp,
+      usageCostQueryName('conversation'),
+      usageCostGroupByKey('conversation')
+    );
+    const map = new Map<string, number>();
+    for (const row of rows) {
+      map.set(row.groupKey, row.totalEstimatedCostUsd);
+    }
+    return map;
+  }
 
   private toConversationStats(
     toolCallsSeries: Series[],
@@ -2986,7 +3082,8 @@ class SigNozStatsAPI {
     startTime: number,
     endTime: number,
     groupings: readonly G[],
-    projectId?: string
+    projectId?: string,
+    agentId?: string
   ): Promise<Record<G, UsageCostSummaryRow[]>> {
     const empty = Object.fromEntries(
       groupings.map((g) => [g, [] as UsageCostSummaryRow[]])
@@ -2995,7 +3092,7 @@ class SigNozStatsAPI {
 
     try {
       const resp = await this.makeRequest(
-        this.buildUsageCostMultiGroupPayload(startTime, endTime, groupings, projectId),
+        this.buildUsageCostMultiGroupPayload(startTime, endTime, groupings, projectId, agentId),
         projectId
       );
 
@@ -3013,9 +3110,17 @@ class SigNozStatsAPI {
   async getUsageEventsList(
     startTime: number,
     endTime: number,
-    projectId?: string,
-    conversationId?: string,
-    limit = 25
+    {
+      projectId,
+      conversationId,
+      agentId,
+      limit = 25,
+    }: {
+      projectId?: string;
+      conversationId?: string;
+      agentId?: string;
+      limit?: number;
+    } = {}
   ): Promise<
     Array<{
       spanId: string;
@@ -3068,6 +3173,7 @@ class SigNozStatsAPI {
         ...(conversationId
           ? [{ key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EQUALS, value: conversationId }]
           : []),
+        ...(agentId ? [{ key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EQUALS, value: agentId }] : []),
       ];
 
       const payload = {
@@ -3165,13 +3271,87 @@ class SigNozStatsAPI {
     }
   }
 
+  async getUsageCounts(
+    startTime: number,
+    endTime: number,
+    projectId?: string,
+    agentId?: string
+  ): Promise<{ messageCount: number; conversationCount: number }> {
+    try {
+      const scopeItems: FilterItem[] = [
+        { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' },
+        ...(projectId
+          ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }]
+          : []),
+        ...(agentId ? [{ key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EQUALS, value: agentId }] : []),
+      ];
+      const queryDefaults = {
+        groupBy: [],
+        order: [],
+        stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+        limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+        disabled: QUERY_DEFAULTS.DISABLED,
+      };
+      const payload = {
+        start: startTime,
+        end: endTime,
+        requestType: REQUEST_TYPES.SCALAR,
+        ...(projectId && { projectId }),
+        compositeQuery: {
+          queries: [
+            {
+              type: QUERY_TYPES.BUILDER_QUERY,
+              spec: {
+                name: 'totalUserMessages',
+                signal: SIGNALS.TRACES,
+                aggregations: [{ expression: 'count()' }],
+                filter: {
+                  expression: buildFilterExpression([
+                    ...scopeItems,
+                    { key: SPAN_KEYS.MESSAGE_CONTENT, op: OPERATORS.EXISTS, value: '' },
+                  ]),
+                },
+                ...queryDefaults,
+              },
+            },
+            {
+              type: QUERY_TYPES.BUILDER_QUERY,
+              spec: {
+                name: 'totalConversations',
+                signal: SIGNALS.TRACES,
+                aggregations: [{ expression: `count_distinct(${SPAN_KEYS.CONVERSATION_ID})` }],
+                filter: { expression: buildFilterExpression(scopeItems) },
+                ...queryDefaults,
+              },
+            },
+          ],
+        },
+      };
+      const resp = await this.makeRequest(payload, projectId);
+      const zero = { values: [{ value: '0' }] } as Series;
+      return {
+        messageCount: countFromSeries(this.extractSeries(resp, 'totalUserMessages')[0] || zero),
+        conversationCount: countFromSeries(
+          this.extractSeries(resp, 'totalConversations')[0] || zero
+        ),
+      };
+    } catch (e) {
+      console.error('getUsageCounts error:', e);
+      return { messageCount: 0, conversationCount: 0 };
+    }
+  }
+
   async getUsageCostPerDay(
     startTime: number,
     endTime: number,
-    projectId?: string
+    projectId?: string,
+    agentId?: string
   ): Promise<Array<{ date: string; cost: number }>> {
     try {
-      const filterItems = buildScopedFilterItems('all-usage', projectId);
+      const baseFilterItems = buildScopedFilterItems('all-usage', projectId);
+      const filterItems = agentId
+        ? [...baseFilterItems, { key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EQUALS, value: agentId }]
+        : baseFilterItems;
 
       const payload = {
         start: startTime,
@@ -3214,7 +3394,8 @@ class SigNozStatsAPI {
     start: number,
     end: number,
     groupings: readonly UsageCostGroupBy[],
-    projectId?: string
+    projectId?: string,
+    agentId?: string
   ) {
     const baseItems: Array<{ key: string; op: string; value: unknown }> = [
       {
@@ -3228,6 +3409,7 @@ class SigNozStatsAPI {
         value: [...USAGE_GENERATION_TYPES],
       },
       ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
+      ...(agentId ? [{ key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EQUALS, value: agentId }] : []),
     ];
     const filterExpression = buildFilterExpression(baseItems);
 

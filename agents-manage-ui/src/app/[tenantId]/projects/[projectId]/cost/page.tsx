@@ -1,9 +1,11 @@
 'use client';
 
 import { notFound } from 'next/navigation';
+import { parseAsString, useQueryState } from 'nuqs';
 import { use } from 'react';
 import { CostDashboard } from '@/components/cost/cost-dashboard';
 import { PageHeader } from '@/components/layout/page-header';
+import { AgentFilter } from '@/components/traces/filters/agent-filter';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
 import { useTracesQueryState } from '@/hooks/use-traces-query-state';
 import { useCapabilitiesQuery } from '@/lib/query/capabilities';
@@ -33,6 +35,9 @@ export default function ProjectUsagePage({
     setCustomDateRange,
   } = useTracesQueryState();
 
+  const [agentId, setAgentId] = useQueryState('agentId', parseAsString);
+  const selectedAgentId = agentId ?? undefined;
+
   const { startTime, endTime } = (() => {
     if (selectedTimeRange === CUSTOM && customStartDate && customEndDate) {
       return {
@@ -54,6 +59,10 @@ export default function ProjectUsagePage({
       />
 
       <div className="flex items-center gap-4 flex-wrap">
+        <AgentFilter
+          selectedValue={selectedAgentId}
+          onSelect={(value) => setAgentId(value ?? null)}
+        />
         <DatePickerWithPresets
           label="Time range"
           onRemove={() => setSelectedTimeRange('30d')}
@@ -74,6 +83,7 @@ export default function ProjectUsagePage({
       <CostDashboard
         tenantId={tenantId}
         projectId={projectId}
+        agentId={selectedAgentId}
         startTime={startTime}
         endTime={endTime}
       />
