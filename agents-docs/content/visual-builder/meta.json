@@ -9,6 +9,7 @@
     "outbound-webhooks",
     "context-fetchers",
     "access-control",
+    "sso-configuration",
     "skills",
     "evaluations",
     "test-suites",

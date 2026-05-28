@@ -1,0 +1,105 @@
+---
+title: SSO Configuration
+description: Configure enterprise SSO providers for your organization on Inkeep Cloud
+icon: LuShield
+---
+
+Organization admins can configure enterprise single sign-on (SSO) and control which authentication methods are available to their team — all from the **Settings** page.
+
+<Note>
+  SSO configuration is available on **Inkeep Cloud** deployments only. Self-hosted deployments configure OAuth providers at the deployment level. See [Authentication Setup](/deployment/authentication).
+</Note>
+
+## Prerequisites
+
+- You must be an **Organization Admin** to access authentication settings.
+- Navigate to **Settings** → **Authentication Methods** to manage sign-in options.
+
+## Managing Authentication Methods
+
+The **Authentication Methods** card lists every sign-in option available to your organization. Use the toggle on each row to enable or disable a method.
+
+| Method | Description |
+|--------|-------------|
+| **Email and password** | Members sign in with their email address and password |
+| **Google** | Members sign in with their Google account (available when configured) |
+| **Microsoft** | Members sign in with their Microsoft account (available when configured) |
+| **SSO providers** | Custom OIDC providers you register (e.g., Okta, Entra ID) |
+
+<Warning>
+  At least one sign-in method must remain enabled at all times. Disabling a method when it is the last active one is blocked.
+</Warning>
+
+## Adding an SSO Provider
+
+1. Go to **Settings** → **Authentication Methods**
+2. Click **Add SSO Provider** at the bottom of the list
+3. Fill in the form fields described below
+4. Copy the **Callback / Redirect URI** and add it to your identity provider (IdP) — see [Configuring Your Identity Provider](#configuring-your-identity-provider)
+5. Click **Configure SSO**
+
+### Form Fields
+
+| Field | Required | Description |
+|-------|:--------:|-------------|
+| **Provider Name** | ✓ | Display name shown to users on the login page (e.g., `Okta`) |
+| **Email Domain** | ✓ | Users whose email matches this domain are automatically routed to this IdP (e.g., `acmecorp.com`) |
+| **Issuer URL** | ✓ | Your IdP's OIDC discovery base URL (e.g., `https://your-org.okta.com`). OIDC metadata is auto-detected from this URL. |
+| **Client ID** | ✓ | The OAuth client ID from your IdP application |
+| **Client Secret** | ✓ | The OAuth client secret from your IdP application |
+| **Scopes** | | Comma-separated OIDC scopes. Defaults to `openid, email, profile, offline_access` |
+| **Auto-provision members** | | Toggle — see [Auto-Provisioning](#auto-provisioning-vs-invitation-based-access) |
+
+<Tip>
+  If you use **Google Workspace** as your IdP, remove `offline_access` from the scopes list — Google Workspace does not support refresh tokens via the `offline_access` scope.
+</Tip>
+
+## Configuring Your Identity Provider
+
+When you open the **Add SSO Provider** form, a read-only **Callback / Redirect URI** is displayed. Copy this URL and register it as the allowed redirect URI in your identity provider before saving.
+
+The callback URL follows this pattern:
+
+```
+https://<your-api-domain>/api/auth/sso/callback/<provider-id>
+```
+
+The provider ID is generated automatically based on your organization slug. You can copy the full URL directly from the form.
+
+## Auto-Provisioning vs Invitation-Based Access
+
+The **Auto-provision members** toggle controls what happens when a user signs in via SSO for the first time.
+
+| Setting | Behavior |
+|---------|----------|
+| **Enabled** (default) | The user is automatically added as an organization member on their first SSO sign-in |
+| **Disabled** | The user must receive an invitation before they can access the organization |
+
+<Tip>
+  Use **invitation-based access** when you want explicit control over who joins your organization, or when you need to assign specific roles (such as Admin) to certain users before they sign in.
+</Tip>
+
+<Note>
+  If a pending invitation exists for a user, auto-provisioning is skipped and the invitation's role assignment is preserved instead.
+</Note>
+
+## Editing an SSO Provider
+
+1. Go to **Settings** → **Authentication Methods**
+2. Find the SSO provider row and click the **⋮** actions menu
+3. Select **Edit**
+4. Update any fields — leave **Client ID** or **Client Secret** blank to keep the existing values
+5. Click **Save Changes**
+
+You can update the display name, email domain, issuer URL, credentials, scopes, and auto-provision setting at any time.
+
+## Removing an SSO Provider
+
+1. Go to **Settings** → **Authentication Methods**
+2. Find the SSO provider row and click the **⋮** actions menu
+3. Select **Remove**
+4. Confirm the removal in the dialog
+
+<Warning>
+  Removing a provider deletes its configuration permanently. Members who relied solely on this provider to sign in will need to use another authentication method. Ensure at least one other method is enabled before removing.
+</Warning>
