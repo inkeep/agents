@@ -238,6 +238,10 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
       createModel: vi.fn().mockReturnValue(mockModel),
       getGenerationParams: vi.fn().mockReturnValue(mockGenerationParams),
       prepareGenerationConfig: vi.fn().mockReturnValue(mockGenerationConfig),
+      shouldRouteViaGateway: vi.fn().mockReturnValue(false),
+      parseModelString: vi
+        .fn()
+        .mockReturnValue({ provider: 'anthropic', modelName: 'claude-sonnet-4-5' }),
       validateConfig: vi.fn().mockReturnValue([]),
     },
   };
@@ -388,6 +392,7 @@ vi.mock('../../../domains/run/agents/SystemPromptBuilder.js', () => ({
         conversationHistory: 0,
         total: 0,
       },
+      artifactsMessage: null,
     }),
   })),
 }));

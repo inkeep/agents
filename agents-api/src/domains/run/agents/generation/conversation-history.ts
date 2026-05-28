@@ -128,13 +128,18 @@ export async function buildInitialMessages(
   systemPrompt: string,
   conversationHistory: string,
   userMessage: string,
-  fileParts?: FilePart[]
+  fileParts?: FilePart[],
+  artifactsMessage: string | null = null
 ): Promise<any[]> {
   const messages: any[] = [];
   messages.push({ role: 'system', content: systemPrompt });
 
   if (conversationHistory.trim() !== '') {
     messages.push({ role: 'user', content: conversationHistory });
+  }
+
+  if (artifactsMessage && artifactsMessage.trim() !== '') {
+    messages.push({ role: 'user', content: artifactsMessage });
   }
 
   const userContent = await buildUserMessageContent(userMessage, fileParts);

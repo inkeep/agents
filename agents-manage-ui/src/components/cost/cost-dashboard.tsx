@@ -1,6 +1,6 @@
 'use client';
 
-import { Coins, ExternalLink, Hash, Layers, Zap } from 'lucide-react';
+import { Coins, Database, ExternalLink, Hash, Layers, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { type ReactNode, useEffect, useState } from 'react';
 import { AreaChartCard } from '@/components/traces/charts/area-chart-card';
@@ -77,6 +77,61 @@ interface UsageSummaryRow {
   totalTokens: number;
   totalEstimatedCostUsd: number;
   eventCount: number;
+  totalCacheReadTokens: number;
+  totalCacheCreationTokens: number;
+}
+
+// "Cost by Cache Participation" is derived CLIENT-SIDE from the existing summaryByType data
+// (option ii spirit per US-013 AC2, executed client-side to avoid a second SigNoz round-trip).
+// Each generation_type bucket is classified by its aggregate cache token columns from US-011:
+//   Cached    — at least some calls in this generation_type hit the cache (totalCacheReadTokens > 0)
+//   Cache writes — wrote to cache but no reads in window (potential cache regression area)
+//   Uncached  — no cache participation at all (legacy spans / non-eligible types / NOT-SUPPORTED)
+// The full 5-state per-call derivation (HIT / MISS-regression / MISS-expected / NOT-ATTEMPTED /
+// NOT-SUPPORTED-BY-PROVIDER) requires per-call prefix_signature comparison and is reserved for the
+// per-call timeline badge (US-012) + debug CLI (US-014) per D8/D11.
+export type CacheParticipationBucket = 'Cached' | 'Cache writes' | 'Uncached';
+
+const CACHE_PARTICIPATION_ORDER: readonly CacheParticipationBucket[] = [
+  'Cached',
+  'Cache writes',
+  'Uncached',
+] as const;
+
+function classifyByCacheParticipation(row: UsageSummaryRow): CacheParticipationBucket {
+  if (row.totalCacheReadTokens > 0) return 'Cached';
+  if (row.totalCacheCreationTokens > 0) return 'Cache writes';
+  return 'Uncached';
+}
+
+export function bucketByCacheParticipation(byType: UsageSummaryRow[]): UsageSummaryRow[] {
+  const buckets = new Map<CacheParticipationBucket, UsageSummaryRow>();
+  for (const state of CACHE_PARTICIPATION_ORDER) {
+    buckets.set(state, {
+      groupKey: state,
+      totalInputTokens: 0,
+      totalOutputTokens: 0,
+      totalTokens: 0,
+      totalEstimatedCostUsd: 0,
+      eventCount: 0,
+      totalCacheReadTokens: 0,
+      totalCacheCreationTokens: 0,
+    });
+  }
+  for (const row of byType) {
+    const bucket = buckets.get(classifyByCacheParticipation(row));
+    if (!bucket) continue;
+    bucket.totalInputTokens += row.totalInputTokens;
+    bucket.totalOutputTokens += row.totalOutputTokens;
+    bucket.totalTokens += row.totalTokens;
+    bucket.totalEstimatedCostUsd += row.totalEstimatedCostUsd;
+    bucket.eventCount += row.eventCount;
+    bucket.totalCacheReadTokens += row.totalCacheReadTokens;
+    bucket.totalCacheCreationTokens += row.totalCacheCreationTokens;
+  }
+  return CACHE_PARTICIPATION_ORDER.map((state) => buckets.get(state)).filter(
+    (row): row is UsageSummaryRow => row != null && row.eventCount > 0
+  );
 }
 
 export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostDashboardProps) {
@@ -215,8 +270,18 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
       totalOutputTokens: acc.totalOutputTokens + row.totalOutputTokens,
       totalCost: acc.totalCost + row.totalEstimatedCostUsd,
       totalEvents: acc.totalEvents + row.eventCount,
+      totalCacheReadTokens: acc.totalCacheReadTokens + row.totalCacheReadTokens,
+      totalCacheCreationTokens: acc.totalCacheCreationTokens + row.totalCacheCreationTokens,
     }),
-    { totalTokens: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCost: 0, totalEvents: 0 }
+    {
+      totalTokens: 0,
+      totalInputTokens: 0,
+      totalOutputTokens: 0,
+      totalCost: 0,
+      totalEvents: 0,
+      totalCacheReadTokens: 0,
+      totalCacheCreationTokens: 0,
+    }
   );
 
   return (
@@ -316,19 +381,28 @@ export function CostDashboard({ tenantId, projectId, startTime, endTime }: CostD
         </div>
       </div>
 
-      <UsageBreakdownTable
-        title="Cost by Generation Type"
-        data={summaryByType}
-        isLoading={summariesLoading}
-        error={summariesError}
-        formatGroupKey={(key) => key.replace(/_/g, ' ')}
-        groupLabel="Generation Type"
-      />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <UsageBreakdownTable
+          title="Cost by Generation Type"
+          data={summaryByType}
+          isLoading={summariesLoading}
+          error={summariesError}
+          formatGroupKey={(key) => key.replace(/_/g, ' ')}
+          groupLabel="Generation Type"
+        />
+        <UsageBreakdownTable
+          title="Cost by Cache Participation"
+          data={bucketByCacheParticipation(summaryByType)}
+          isLoading={summariesLoading}
+          error={summariesError}
+          groupLabel="Cache Participation"
+        />
+      </div>
     </>
   );
 }
 
-function UsageStatCards({
+export function UsageStatCards({
   totals,
   modelCount,
   isLoading,
@@ -340,14 +414,20 @@ function UsageStatCards({
     totalOutputTokens: number;
     totalCost: number;
     totalEvents: number;
+    totalCacheReadTokens: number;
+    totalCacheCreationTokens: number;
   };
   modelCount: number;
   isLoading: boolean;
   error?: string | null;
 }) {
   const hasError = !!error;
+  const cacheReadDescription =
+    totals.totalCacheCreationTokens > 0
+      ? `${formatTokens(totals.totalCacheCreationTokens)} written`
+      : undefined;
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
       <StatCard
         title="Estimated Cost"
         Icon={Coins}
@@ -360,6 +440,14 @@ function UsageStatCards({
         Icon={Hash}
         stat={formatTokens(totals.totalTokens)}
         statDescription={`${formatTokens(totals.totalInputTokens)} in / ${formatTokens(totals.totalOutputTokens)} out`}
+        isLoading={isLoading}
+        hasError={hasError}
+      />
+      <StatCard
+        title="Cache-read Tokens"
+        Icon={Database}
+        stat={formatTokens(totals.totalCacheReadTokens)}
+        statDescription={cacheReadDescription}
         isLoading={isLoading}
         hasError={hasError}
       />
@@ -381,7 +469,7 @@ function UsageStatCards({
   );
 }
 
-function UsageBreakdownTable({
+export function UsageBreakdownTable({
   title,
   data,
   isLoading,
@@ -464,12 +552,14 @@ interface SigNozUsageEvent {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
   estimatedCostUsd: number;
   finishReason: string;
   status: string;
 }
 
-function UsageEventsTable({
+export function UsageEventsTable({
   tenantId,
   projectId,
   events,
@@ -507,6 +597,8 @@ function UsageEventsTable({
                 <TableHead>Provider</TableHead>
                 <TableHead className="text-right">Cost</TableHead>
                 <TableHead className="text-right">In</TableHead>
+                <TableHead className="text-right">Cache read</TableHead>
+                <TableHead className="text-right">Cache write</TableHead>
                 <TableHead className="text-right">Out</TableHead>
                 <TableHead>Agent</TableHead>
                 <TableHead>Sub Agent</TableHead>
@@ -548,6 +640,12 @@ function UsageEventsTable({
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">
                     {formatTokens(event.inputTokens)}
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground">
+                    {event.cacheReadTokens ? formatTokens(event.cacheReadTokens) : '—'}
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground">
+                    {event.cacheCreationTokens ? formatTokens(event.cacheCreationTokens) : '—'}
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">
                     {formatTokens(event.outputTokens)}

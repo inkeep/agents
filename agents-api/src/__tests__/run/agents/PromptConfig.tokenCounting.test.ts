@@ -51,8 +51,8 @@ describe('PromptConfig Token Counting', () => {
       const result = builder.buildSystemPrompt(config);
 
       expect(result.breakdown.components.artifactsSection).toBeGreaterThan(0);
-      expect(result.prompt).toContain('<name>Test Documentation</name>');
-      expect(result.prompt).toContain('<artifact_id>test-artifact-1</artifact_id>');
+      expect(result.artifactsMessage).toContain('<name>Test Documentation</name>');
+      expect(result.artifactsMessage).toContain('<artifact_id>test-artifact-1</artifact_id>');
     });
 
     test('should include artifact instructions in systemPromptTemplate, not artifactsSection', () => {

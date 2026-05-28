@@ -31,6 +31,7 @@ import { enforceOutputContract, resolveContractToolChoice } from '../output-cont
 import { handleStreamGeneration } from '../streaming/stream-handler';
 import { V1_BREAKDOWN_SCHEMA } from '../versions/v1/PromptConfig';
 import { handlePrepareStepCompression, handleStopWhenConditions } from './ai-sdk-callbacks';
+import { attachPromptCaching } from './caching-actuator';
 import { setupCompression } from './compression';
 import { buildConversationHistory, buildInitialMessages } from './conversation-history';
 import { configureModelSettings } from './model-config';
@@ -339,6 +340,7 @@ export async function runGenerate(
           systemPrompt,
           sanitizedTools,
           contextBreakdown: initialContextBreakdown,
+          artifactsMessage,
         } = await loadToolsAndPrompts(ctx, sessionId, streamRequestId || undefined, runtimeContext);
 
         const { conversationHistory, contextBreakdown } = await buildConversationHistory(
@@ -412,7 +414,8 @@ export async function runGenerate(
           systemPrompt,
           conversationHistory,
           effectiveUserMessage,
-          compatibleFileParts
+          compatibleFileParts,
+          artifactsMessage
         );
 
         const { originalMessageCount, compressor } = setupCompression(
@@ -539,7 +542,12 @@ export async function runGenerate(
             }
           : baseConfig;
 
-        const nonStreamingConfig = withJsonPostProcessing(generationConfig);
+        const cachedGenerationConfig = attachPromptCaching(
+          generationConfig as Record<string, unknown>,
+          primaryModelSettings
+        );
+
+        const nonStreamingConfig = withJsonPostProcessing(cachedGenerationConfig);
 
         logger.info(
           {
@@ -551,7 +559,9 @@ export async function runGenerate(
 
         let rawResponse: Record<string, unknown> | ResolvedGenerationResponse;
         if (shouldStream) {
-          const streamResult = streamText(generationConfig as Parameters<typeof streamText>[0]);
+          const streamResult = streamText(
+            cachedGenerationConfig as Parameters<typeof streamText>[0]
+          );
           rawResponse = await handleStreamGeneration(
             ctx,
             streamResult,

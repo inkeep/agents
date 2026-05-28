@@ -1,3 +1,5 @@
+import type { CacheState } from '@/constants/signoz';
+
 export type PanelType =
   | ActivityKind
   | 'delegation'
@@ -154,6 +156,11 @@ export interface ActivityItem {
   streamBufferSizeBytes?: number;
   toolCallId?: string;
   toolResponseContent?: string;
+  cacheReadTokens?: number;
+  cacheCreationTokens?: number;
+  cacheMarkerCount?: number;
+  cachePrefixSignature?: string;
+  cacheState?: CacheState;
 }
 
 interface ToolCall {

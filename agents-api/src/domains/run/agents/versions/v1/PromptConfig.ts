@@ -147,14 +147,25 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
       config.artifactComponents && config.artifactComponents.length > 0
     );
 
-    const artifactsSection = this.generateArtifactsSection(
+    const artifactsStaticSection = this.generateArtifactsSection(
       templates,
       config.artifacts,
       hasArtifactComponents,
       config.artifactComponents,
       config.hasAgentArtifactComponents,
-      config.allProjectArtifactComponents
+      config.allProjectArtifactComponents,
+      true
     );
+
+    const typeSchemaMap = this.buildTypeSchemaMap(
+      config.allProjectArtifactComponents ?? config.artifactComponents ?? []
+    );
+    const artifactsMessage =
+      config.artifacts?.length > 0
+        ? config.artifacts
+            .map((artifact) => this.generateArtifactXml(templates, artifact, typeSchemaMap))
+            .join('\n')
+        : null;
 
     const artifactInstructionsTokens = this.getArtifactInstructionsTokens(
       templates,
@@ -164,12 +175,7 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
     );
     breakdown.components.systemPromptTemplate += artifactInstructionsTokens;
 
-    const actualArtifactsXml =
-      config.artifacts?.length > 0
-        ? config.artifacts
-            .map((artifact) => this.generateArtifactXml(templates, artifact))
-            .join('\n  ')
-        : '';
+    const actualArtifactsXml = artifactsMessage ?? '';
     breakdown.components.artifactsSection = estimateTokens(actualArtifactsXml);
 
     if (hasArtifactComponents) {
@@ -180,7 +186,7 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
       breakdown.components.artifactComponents = estimateTokens(creationInstructions);
     }
 
-    systemPrompt = systemPrompt.replace('{{ARTIFACTS_SECTION}}', artifactsSection);
+    systemPrompt = systemPrompt.replace('{{ARTIFACTS_SECTION}}', artifactsStaticSection);
 
     const normalizedMcpServerGroups = config.mcpServerGroups?.map((group) => ({
       ...group,
@@ -223,6 +229,7 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
     return {
       prompt: systemPrompt,
       breakdown,
+      artifactsMessage,
     };
   }
 
@@ -736,7 +743,8 @@ ${typeDescriptions}
     hasArtifactComponents: boolean = false,
     artifactComponents?: any[],
     hasAgentArtifactComponents?: boolean,
-    allProjectArtifactComponents?: any[]
+    allProjectArtifactComponents?: any[],
+    excludeArtifactXml: boolean = false
   ): string {
     const shouldShowReferencingRules = hasAgentArtifactComponents || artifacts.length > 0;
     const rules = this.getArtifactReferencingRules(
@@ -749,10 +757,6 @@ ${typeDescriptions}
       artifactComponents
     );
 
-    const typeSchemaMap = this.buildTypeSchemaMap(
-      allProjectArtifactComponents ?? artifactComponents ?? []
-    );
-
     if (artifacts.length === 0) {
       return `<available_artifacts description="No artifacts are currently available, but you may create them during execution.
 
@@ -762,6 +766,20 @@ ${creationInstructions}
 
 "></available_artifacts>`;
     }
+
+    if (excludeArtifactXml) {
+      return `<available_artifacts description="These are the artifacts available for you to use in generating responses.
+
+${rules}
+
+${creationInstructions}
+
+"></available_artifacts>`;
+    }
+
+    const typeSchemaMap = this.buildTypeSchemaMap(
+      allProjectArtifactComponents ?? artifactComponents ?? []
+    );
 
     const artifactsXml = artifacts
       .map((artifact) => this.generateArtifactXml(templates, artifact, typeSchemaMap))

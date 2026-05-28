@@ -163,7 +163,6 @@ export function getClientCurrentTime(ctx: AgentRunContext): string | undefined {
       month: 'long',
       day: 'numeric',
       hour: 'numeric',
-      minute: '2-digit',
       timeZoneName: 'short',
     });
   } catch (error) {

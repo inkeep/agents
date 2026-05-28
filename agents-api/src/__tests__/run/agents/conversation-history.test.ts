@@ -11,7 +11,10 @@ vi.mock('../../../domains/run/services/blob-storage', async (importOriginal) => 
   return { ...actual, getBlobStorageProvider: () => ({ download: downloadMock }) };
 });
 
-import { buildUserMessageContent } from '../../../domains/run/agents/generation/conversation-history';
+import {
+  buildInitialMessages,
+  buildUserMessageContent,
+} from '../../../domains/run/agents/generation/conversation-history';
 
 const PPTX_MIME = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
 
@@ -156,5 +159,95 @@ describe('buildUserMessageContent', () => {
         text: expect.stringContaining('[Attachment unavailable]'),
       },
     ]);
+  });
+});
+
+describe('buildInitialMessages', () => {
+  const ARTIFACTS_XML = '<artifact id="a1"><name>Test Documentation</name></artifact>';
+
+  it('places artifacts as a user-role message between history and the new user message', async () => {
+    const messages = await buildInitialMessages(
+      'SYSTEM RULES',
+      'prior conversation history',
+      'what is the status?',
+      undefined,
+      ARTIFACTS_XML
+    );
+
+    expect(messages).toHaveLength(4);
+    expect(messages[0]).toEqual({ role: 'system', content: 'SYSTEM RULES' });
+    expect(messages[1]).toEqual({ role: 'user', content: 'prior conversation history' });
+    expect(messages[2]).toEqual({ role: 'user', content: ARTIFACTS_XML });
+    expect(messages[3]).toEqual({ role: 'user', content: 'what is the status?' });
+  });
+
+  it('keeps the 3-message shape when artifactsMessage is null', async () => {
+    const messages = await buildInitialMessages(
+      'SYSTEM RULES',
+      'prior conversation history',
+      'what is the status?',
+      undefined,
+      null
+    );
+
+    expect(messages).toHaveLength(3);
+    expect(messages.map((m) => m.role)).toEqual(['system', 'user', 'user']);
+    expect(messages[1]).toEqual({ role: 'user', content: 'prior conversation history' });
+    expect(messages[2]).toEqual({ role: 'user', content: 'what is the status?' });
+  });
+
+  it('defaults to the 3-message shape when artifactsMessage is omitted', async () => {
+    const messages = await buildInitialMessages(
+      'SYSTEM RULES',
+      'prior conversation history',
+      'what is the status?'
+    );
+
+    expect(messages).toHaveLength(3);
+    expect(messages.map((m) => m.role)).toEqual(['system', 'user', 'user']);
+  });
+
+  it('keeps per-artifact XML in the artifacts message, not the system message', async () => {
+    const systemPrompt = 'SYSTEM RULES with static artifact instructions but no per-artifact XML';
+
+    const messages = await buildInitialMessages(
+      systemPrompt,
+      'history',
+      'question',
+      undefined,
+      ARTIFACTS_XML
+    );
+
+    expect(messages[0].content).toBe(systemPrompt);
+    expect(messages[0].content).not.toContain('<name>Test Documentation</name>');
+    expect(messages[2]).toEqual({ role: 'user', content: ARTIFACTS_XML });
+  });
+
+  it('inserts the artifacts message even when there is no conversation history', async () => {
+    const messages = await buildInitialMessages(
+      'SYSTEM RULES',
+      '',
+      'question',
+      undefined,
+      ARTIFACTS_XML
+    );
+
+    expect(messages).toHaveLength(3);
+    expect(messages[0].role).toBe('system');
+    expect(messages[1]).toEqual({ role: 'user', content: ARTIFACTS_XML });
+    expect(messages[2]).toEqual({ role: 'user', content: 'question' });
+  });
+
+  it('omits an empty-string artifactsMessage', async () => {
+    const messages = await buildInitialMessages(
+      'SYSTEM RULES',
+      'history',
+      'question',
+      undefined,
+      '   '
+    );
+
+    expect(messages).toHaveLength(3);
+    expect(messages.map((m) => m.role)).toEqual(['system', 'user', 'user']);
   });
 });

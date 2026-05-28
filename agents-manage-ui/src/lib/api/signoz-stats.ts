@@ -278,16 +278,27 @@ interface UsageCostSummaryRow {
   totalTokens: number;
   totalEstimatedCostUsd: number;
   eventCount: number;
+  totalCacheReadTokens: number;
+  totalCacheCreationTokens: number;
 }
 
 // Single source of truth for cost-summary aggregations: the expression list
 // sent to SigNoz and the response-column indices used to parse it are both
-// derived from this array, so reordering it keeps them in sync.
-const USAGE_COST_AGGREGATION_ORDER = [
+// derived from this array, so reordering it keeps them in sync. Additions
+// must be append-only because downstream dashboards bind to these positions.
+export const USAGE_COST_AGGREGATION_ORDER = [
   { key: 'inputTokens', expression: `sum(${SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS})` },
   { key: 'outputTokens', expression: `sum(${SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS})` },
   { key: 'cost', expression: `sum(${SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD})` },
   { key: 'eventCount', expression: 'count()' },
+  {
+    key: 'cacheReadTokens',
+    expression: `sum(${SPAN_KEYS.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS})`,
+  },
+  {
+    key: 'cacheCreationTokens',
+    expression: `sum(${SPAN_KEYS.GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS})`,
+  },
 ] as const;
 
 type UsageCostAggregationKey = (typeof USAGE_COST_AGGREGATION_ORDER)[number]['key'];
@@ -378,6 +389,8 @@ const extractUsageCostSummaryRows = (
         totalTokens: totalInputTokens + totalOutputTokens,
         totalEstimatedCostUsd: vals[USAGE_COST_AGGREGATION_INDEX.cost] ?? 0,
         eventCount: Math.round(vals[USAGE_COST_AGGREGATION_INDEX.eventCount] ?? 0),
+        totalCacheReadTokens: vals[USAGE_COST_AGGREGATION_INDEX.cacheReadTokens] ?? 0,
+        totalCacheCreationTokens: vals[USAGE_COST_AGGREGATION_INDEX.cacheCreationTokens] ?? 0,
       };
     })
     .sort((a, b) => b.totalTokens - a.totalTokens);
@@ -3020,6 +3033,8 @@ class SigNozStatsAPI {
       inputTokens: number;
       outputTokens: number;
       totalTokens: number;
+      cacheReadTokens: number;
+      cacheCreationTokens: number;
       estimatedCostUsd: number;
       finishReason: string;
       status: string;
@@ -3085,6 +3100,8 @@ class SigNozStatsAPI {
                   sf(SPAN_KEYS.PROJECT_ID, str, attrCtx),
                   sf(SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, float64, attrCtx),
                   sf(SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, float64, attrCtx),
+                  sf(SPAN_KEYS.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, float64, attrCtx),
+                  sf(SPAN_KEYS.GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, float64, attrCtx),
                   sf(SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, float64, attrCtx),
                   sf(SPAN_KEYS.AI_RESPONSE_FINISH_REASON, str, attrCtx),
                 ],
@@ -3114,6 +3131,9 @@ class SigNozStatsAPI {
           Number(
             d[SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS] || d[SPAN_KEYS.AI_USAGE_COMPLETION_TOKENS]
           ) || 0;
+        const cacheReadTokens = Number(d[SPAN_KEYS.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]) || 0;
+        const cacheCreationTokens =
+          Number(d[SPAN_KEYS.GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]) || 0;
         const cost = Number(d[SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD]) || 0;
 
         return {
@@ -3132,6 +3152,8 @@ class SigNozStatsAPI {
           inputTokens,
           outputTokens,
           totalTokens: inputTokens + outputTokens,
+          cacheReadTokens,
+          cacheCreationTokens,
           estimatedCostUsd: cost,
           finishReason: d[SPAN_KEYS.AI_RESPONSE_FINISH_REASON] || '',
           status: d.hasError === true || d.hasError === 'true' ? 'failed' : 'succeeded',

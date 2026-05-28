@@ -175,6 +175,26 @@ export class ModelFactory {
   }
 
   /**
+   * Whether the given model settings will route through the Vercel AI Gateway
+   * vs. instantiating a direct provider client. Mirrors the gate used inside
+   * createModel so callers (e.g. the prompt-caching actuator) can detect mode
+   * without recreating the model instance.
+   */
+  static shouldRouteViaGateway(modelSettings: ModelSettings): boolean {
+    const modelString = modelSettings.model?.trim();
+    if (!modelString) {
+      return false;
+    }
+    const { provider } = ModelFactory.parseModelString(modelString);
+    const providerConfig = ModelFactory.extractProviderConfig(modelSettings.providerOptions);
+    return (
+      !!process.env.AI_GATEWAY_API_KEY &&
+      GATEWAY_ROUTABLE_PROVIDERS_SET.has(provider) &&
+      Object.keys(providerConfig).length === 0
+    );
+  }
+
+  /**
    * Create a language model instance from configuration
    * Throws error if no config provided - models must be configured at project level
    */
@@ -204,14 +224,14 @@ export class ModelFactory {
 
     const providerConfig = ModelFactory.extractProviderConfig(modelSettings.providerOptions);
 
-    const shouldRouteViaGateway =
-      !!process.env.AI_GATEWAY_API_KEY &&
-      GATEWAY_ROUTABLE_PROVIDERS_SET.has(provider) &&
-      Object.keys(providerConfig).length === 0;
+    const routeViaGateway = ModelFactory.shouldRouteViaGateway({
+      model: modelSettings.model,
+      providerOptions: modelSettings.providerOptions,
+    });
 
     let model: LanguageModel;
 
-    if (shouldRouteViaGateway) {
+    if (routeViaGateway) {
       const hasAllowedProviders = !!modelSettings.allowedProviders?.length;
       model = gateway(hasAllowedProviders ? modelName : `${provider}/${modelName}`);
     } else if (

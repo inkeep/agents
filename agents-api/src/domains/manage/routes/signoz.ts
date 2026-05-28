@@ -1,4 +1,10 @@
-import { canViewProject, createApiError, type OrgRole, SPAN_KEYS } from '@inkeep/agents-core';
+import {
+  buildFilterExpression,
+  canViewProject,
+  createApiError,
+  type OrgRole,
+  SPAN_KEYS,
+} from '@inkeep/agents-core';
 import type { Context } from 'hono';
 import { Hono } from 'hono';
 import { env } from '../../../env';
@@ -65,7 +71,7 @@ async function authorizeProject(c: Ctx, projectId: string | undefined) {
   return { tenantId, userId };
 }
 
-class FetchResponseError extends Error {
+export class FetchResponseError extends Error {
   status: number;
   data: unknown;
 
@@ -77,20 +83,44 @@ class FetchResponseError extends Error {
   }
 }
 
-const KEY_NOT_FOUND_RE = /key `(.+)` not found/i;
+// SigNoz reports an unknown attribute key with either `key \`X\` not found`
+// (v5 multi-error array shape) or `field \`X\` not found` (v0.96.1 flat-message
+// shape). Match both nouns.
+const MISSING_KEY_RE = /(?:key|field) `(.+?)` not found/i;
 
-function getMissingKeys(error: unknown): string[] | null {
-  if (!(error instanceof FetchResponseError) || error.status !== 400) return null;
-  const errorData = error.data as any;
+function extractMissingKeysFromBody(data: unknown): string[] {
+  const errorData = data as any;
   const errors: any[] = errorData?.error?.errors ?? [];
-  const keys = errors.map((e: any) => KEY_NOT_FOUND_RE.exec(e?.message)?.[1]).filter(Boolean);
-  if (keys.length === 0 || keys.length !== errors.length) return null;
-  const unique = [...new Set(keys)] as string[];
-  logger.warn({ missingKeys: unique }, 'SigNoz attributes not yet ingested');
-  return unique;
+  if (errors.length > 0) {
+    const keys = errors.map((e: any) => MISSING_KEY_RE.exec(e?.message)?.[1]).filter(Boolean);
+    // Only trust the array shape when every error parses as a missing key.
+    if (keys.length > 0 && keys.length === errors.length) return [...new Set(keys)] as string[];
+    return [];
+  }
+  // v0.96.1 flat shape: { error: { code, message: "field `X` not found" } }.
+  const flat = MISSING_KEY_RE.exec(errorData?.error?.message)?.[1];
+  return flat ? [flat] : [];
 }
 
-function queryReferencesKeys(query: any, keys: string[]): boolean {
+// Extract any missing-attribute keys carried in a SigNoz error body.
+//
+// Older SigNoz returns HTTP 400 with a structured `key \`X\` not found` list.
+// SigNoz v0.96.1 instead returns HTTP 500 with a *generic* internal-error body
+// for raw queries that select an attribute key with no materialized column —
+// carrying no key names at all (see queryWithRetry's untyped re-probe for that
+// case). It also returns HTTP 400 with a flat `field \`X\` not found` message
+// (one key at a time) when selectFields are sent untyped. Accept 400 and 500 so
+// the strip-and-retry path can recover under both versions.
+export function getMissingKeys(error: unknown): string[] | null {
+  if (!(error instanceof FetchResponseError)) return null;
+  if (error.status !== 400 && error.status !== 500) return null;
+  const keys = extractMissingKeysFromBody(error.data);
+  if (keys.length === 0) return null;
+  logger.warn({ missingKeys: keys }, 'SigNoz attributes not yet ingested');
+  return keys;
+}
+
+export function queryReferencesKeys(query: any, keys: string[]): boolean {
   const spec = query?.spec;
   const searchable = [
     spec?.filter?.expression ?? '',
@@ -100,6 +130,72 @@ function queryReferencesKeys(query: any, keys: string[]): boolean {
   return keys.some((k) => searchable.some((t: string) => t.includes(k)));
 }
 
+// Remove the given attribute keys from every query's selectFields, leaving the
+// rest of each query (filter, groupBy, other selects) intact. Downstream
+// consumers read span attributes with a default fallback, so dropping a select
+// for a key that has no rows is non-destructive — the field would be absent from
+// the row data anyway. Returns null when nothing could be stripped (the key is
+// only referenced by a filter/groupBy, not a select), signalling the caller to
+// fall back to dropping whole queries.
+export function stripSelectFields(payload: any, keys: string[]): any | null {
+  const queries: any[] = payload.compositeQuery?.queries ?? [];
+  let strippedAny = false;
+  const next = queries.map((q: any) => {
+    const fields: any[] = q?.spec?.selectFields ?? [];
+    const kept = fields.filter((f: any) => !keys.some((k) => f?.name === k));
+    if (kept.length === fields.length) return q;
+    strippedAny = true;
+    return { ...q, spec: { ...q.spec, selectFields: kept } };
+  });
+  if (!strippedAny) return null;
+  return { ...payload, compositeQuery: { ...payload.compositeQuery, queries: next } };
+}
+
+function withUntypedAttributeSelects(payload: any): any {
+  const queries: any[] = payload.compositeQuery?.queries ?? [];
+  const untypedQueries = queries.map((q: any) => {
+    const fields: any[] = q?.spec?.selectFields ?? [];
+    const untyped = fields.map((f: any) =>
+      f?.fieldContext === 'attribute' ? { name: f.name } : f
+    );
+    return { ...q, spec: { ...q.spec, selectFields: untyped } };
+  });
+  return { ...payload, compositeQuery: { ...payload.compositeQuery, queries: untypedQueries } };
+}
+
+// Discover every missing attribute key for a query whose typed form 500s without
+// naming them (the SigNoz v0.96.1 quirk). Re-issuing with attribute selectFields
+// sent untyped (no fieldDataType) downgrades the failure to an HTTP 400 that
+// names one missing field at a time. Strip that field and re-probe untyped until
+// the probe succeeds (or yields no parseable key), accumulating the full set in
+// one bounded sweep so the caller can strip them all and retry the typed query
+// just once — turning 2N round-trips into N+1. Returns the keys discovered.
+async function discoverMissingKeysUntyped(
+  signoz: SignozConfig,
+  payload: any,
+  maxRetries: number,
+  deadlineSignal: AbortSignal
+): Promise<string[]> {
+  const discovered: string[] = [];
+  let probe = withUntypedAttributeSelects(payload);
+
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      await signozPost(signoz.endpoint, probe, signoz.headers, 30000, deadlineSignal);
+      return discovered; // untyped form succeeds — all missing keys found.
+    } catch (probeError) {
+      if (!(probeError instanceof FetchResponseError)) return discovered;
+      const keys = extractMissingKeysFromBody(probeError.data);
+      if (keys.length === 0) return discovered;
+      for (const k of keys) if (!discovered.includes(k)) discovered.push(k);
+      const stripped = stripSelectFields(probe, keys);
+      if (!stripped) return discovered; // referenced only by filter/groupBy.
+      probe = stripped;
+    }
+  }
+  return discovered;
+}
+
 type SignozConfig = { endpoint: string; headers: Record<string, string> };
 const EMPTY_RESPONSE = { data: { status: 'success', data: { data: { results: [] } } } };
 
@@ -107,20 +203,40 @@ async function signozPost(
   endpoint: string,
   body: any,
   headers: Record<string, string>,
-  timeout: number
+  timeout: number,
+  deadlineSignal?: AbortSignal
 ): Promise<{ data: any }> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  // Combine the per-call timeout with the caller's overall wall-clock deadline
+  // (if any) so either firing aborts this request. The per-call 30s timeout
+  // still bounds a single slow request; the deadline bounds the whole retry
+  // sweep across queryWithRetry + discoverMissingKeysUntyped.
+  const signal = deadlineSignal
+    ? AbortSignal.any([controller.signal, deadlineSignal])
+    : controller.signal;
 
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
-      signal: controller.signal,
+      signal,
     });
 
-    const data = await response.json();
+    // Read the body once as text, then parse — so a non-JSON error body (HTML
+    // error page, empty 502, gateway timeout) is preserved verbatim on the
+    // FetchResponseError (with the upstream status) rather than lost to a
+    // double-read or masked by a JSON SyntaxError that falls through to the
+    // generic 500 handler.
+    const rawBody = await response.text();
+    let data: any;
+    try {
+      data = rawBody ? JSON.parse(rawBody) : null;
+    } catch {
+      throw new FetchResponseError(response.status, rawBody);
+    }
 
     if (!response.ok) {
       throw new FetchResponseError(response.status, data);
@@ -132,31 +248,114 @@ async function signozPost(
   }
 }
 
-async function queryWithRetry(
+// Bound the strip-and-retry loop. SigNoz v0.96.1 names one missing key per
+// response, so a query selecting many feature-optional attribute keys against a
+// conversation that exercises few of them can need one iteration per absent key.
+// The cap is a safety valve against a pathological loop; real conversations
+// converge well under it. Rather than a fixed oversized cap, derive it from the
+// query's own selectField count (each absent key costs at most one iteration),
+// clamped to a floor (small queries still get a few retries) and a ceiling.
+const MISSING_KEY_RETRY_FLOOR = 8;
+const MISSING_KEY_RETRY_CEILING = 80;
+
+// Overall wall-clock deadline for an entire queryWithRetry call, covering both
+// the outer retry loop and the nested discoverMissingKeysUntyped sweep. Bounds
+// the worst case where each round-trip is slow but individually under the
+// per-call 30s timeout, so the loops would otherwise run for minutes.
+const QUERY_WALL_CLOCK_DEADLINE_MS = 120_000;
+
+// Count the selectFields declared across every query in the composite payload.
+// Used to size the strip-and-retry cap proportionally to the query's breadth.
+function countSelectFields(payload: any): number {
+  const queries: any[] = payload?.compositeQuery?.queries ?? [];
+  return queries.reduce((total: number, q: any) => total + (q?.spec?.selectFields?.length ?? 0), 0);
+}
+
+export function effectiveRetryCap(payload: any): number {
+  const proportional = 2 * countSelectFields(payload);
+  return Math.min(MISSING_KEY_RETRY_CEILING, Math.max(MISSING_KEY_RETRY_FLOOR, proportional));
+}
+
+export async function queryWithRetry(
   signoz: SignozConfig,
   payload: any
 ): Promise<{ data: any; retried: boolean }> {
+  let current = payload;
+  let retried = false;
+  const maxRetries = effectiveRetryCap(payload);
+
+  const deadline = new AbortController();
+  const deadlineId = setTimeout(() => deadline.abort(), QUERY_WALL_CLOCK_DEADLINE_MS);
+
   try {
-    const resp = await signozPost(signoz.endpoint, payload, signoz.headers, 30000);
-    return { data: resp, retried: false };
-  } catch (error) {
-    const missing = getMissingKeys(error);
-    if (!missing) throw error;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const resp = await signozPost(
+          signoz.endpoint,
+          current,
+          signoz.headers,
+          30000,
+          deadline.signal
+        );
+        return { data: resp, retried };
+      } catch (error) {
+        // Directly parseable missing keys (structured 400, or flat 400/500 body).
+        let missing = getMissingKeys(error);
 
-    const queries: any[] = payload.compositeQuery?.queries ?? [];
-    const kept = queries.filter((q: any) => !queryReferencesKeys(q, missing));
-    if (kept.length === queries.length) throw error;
+        // SigNoz v0.96.1 returns a generic 500 with no key names when a typed
+        // selectField targets an attribute with no materialized column. Sweep the
+        // query with untyped attribute selects to discover the full missing-key set
+        // in one pass, then strip them all and retry typed exactly once.
+        if (!missing && error instanceof FetchResponseError && error.status === 500) {
+          const probed = await discoverMissingKeysUntyped(
+            signoz,
+            current,
+            maxRetries,
+            deadline.signal
+          );
+          if (probed.length > 0) missing = probed;
+        }
 
-    logger.info(
-      { removedCount: queries.length - kept.length, remaining: kept.length, missingKeys: missing },
-      'Retrying SigNoz query without queries referencing missing keys'
-    );
+        if (!missing) throw error;
 
-    if (kept.length === 0) return { data: EMPTY_RESPONSE, retried: true };
+        // Prefer stripping just the offending selectField(s); fall back to dropping
+        // whole queries when the key is referenced elsewhere (filter/groupBy).
+        const fieldStripped = stripSelectFields(current, missing);
+        if (fieldStripped) {
+          logger.info(
+            { missingKeys: missing, strategy: 'strip-select-fields' },
+            'Retrying SigNoz query without missing attribute selectFields'
+          );
+          current = fieldStripped;
+          retried = true;
+          continue;
+        }
 
-    const stripped = { ...payload, compositeQuery: { ...payload.compositeQuery, queries: kept } };
-    const resp = await signozPost(signoz.endpoint, stripped, signoz.headers, 30000);
-    return { data: resp, retried: true };
+        const queries: any[] = current.compositeQuery?.queries ?? [];
+        const kept = queries.filter((q: any) => !queryReferencesKeys(q, missing));
+        if (kept.length === queries.length) throw error;
+
+        logger.info(
+          {
+            removedCount: queries.length - kept.length,
+            remaining: kept.length,
+            missingKeys: missing,
+            strategy: 'drop-queries',
+          },
+          'Retrying SigNoz query without queries referencing missing keys'
+        );
+
+        if (kept.length === 0) return { data: EMPTY_RESPONSE, retried: true };
+        current = { ...current, compositeQuery: { ...current.compositeQuery, queries: kept } };
+        retried = true;
+      }
+    }
+
+    // Cap exhausted — issue one final attempt and let any error propagate.
+    const resp = await signozPost(signoz.endpoint, current, signoz.headers, 30000, deadline.signal);
+    return { data: resp, retried };
+  } finally {
+    clearTimeout(deadlineId);
   }
 }
 
@@ -306,7 +505,9 @@ app.post('/query-batch', async (c) => {
       }
     }
 
-    const convIdExpr = `${SPAN_KEYS.CONVERSATION_ID} IN (${conversationIds.map((id) => `'${id}'`).join(', ')})`;
+    const convIdExpr = buildFilterExpression([
+      { key: SPAN_KEYS.CONVERSATION_ID, op: 'in', value: conversationIds },
+    ]);
     for (const { spec } of detailPayloadTemplate.compositeQuery.queries) {
       spec.filter = { expression: `(${spec.filter.expression}) AND ${convIdExpr}` };
     }

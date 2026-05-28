@@ -80,7 +80,7 @@
     "@workflow/world-local": "^4.1.0-beta.40",
     "@workflow/world-postgres": "^4.1.0-beta.42",
     "@workflow/world-vercel": "^4.1.0-beta.41",
-    "ai": "6.0.14",
+    "ai": "6.0.191",
     "ajv": "^8.18.0",
     "altcha-lib": "^1.4.1",
     "cron-parser": "^5.5.0",

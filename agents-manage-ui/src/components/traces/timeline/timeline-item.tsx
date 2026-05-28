@@ -21,6 +21,7 @@ import {
 import { Streamdown } from 'streamdown';
 import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
 import { Bubble } from '@/components/traces/timeline/bubble';
+import { CacheStateBadge } from '@/components/traces/timeline/cache-state-badge';
 import { Flow } from '@/components/traces/timeline/flow';
 import { TagRow } from '@/components/traces/timeline/tag-row';
 import {
@@ -273,30 +274,41 @@ export function TimelineItem({
                 <Streamdown>{activity.description}</Streamdown>
               </span>
             </button>
-            {activity.costUsd != null && (
-              <span className="flex-shrink-0 text-xs font-mono text-emerald-600 dark:text-emerald-400">
-                {activity.costUsd < 0.01
-                  ? `$${activity.costUsd.toFixed(6)}`
-                  : `$${activity.costUsd.toFixed(4)}`}
-              </span>
-            )}
-            {hasChildren && onToggleCollapse && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleCollapse();
-                }}
-                className="flex-shrink-0 inline-flex items-center justify-center w-5 h-5 rounded hover:bg-muted transition-colors"
-                title={isCollapsed ? 'Expand children' : 'Collapse children'}
-              >
-                {isCollapsed ? (
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                )}
-              </button>
-            )}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {(activity.type === ACTIVITY_TYPES.AI_GENERATION ||
+                activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT) && (
+                <CacheStateBadge
+                  state={activity.cacheState}
+                  readTokens={activity.cacheReadTokens}
+                  writeTokens={activity.cacheCreationTokens}
+                  className="flex-shrink-0"
+                />
+              )}
+              {activity.costUsd != null && (
+                <span className="flex-shrink-0 text-xs font-mono text-emerald-600 dark:text-emerald-400">
+                  {activity.costUsd < 0.01
+                    ? `$${activity.costUsd.toFixed(6)}`
+                    : `$${activity.costUsd.toFixed(4)}`}
+                </span>
+              )}
+              {hasChildren && onToggleCollapse && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleCollapse();
+                  }}
+                  className="flex-shrink-0 inline-flex items-center justify-center w-5 h-5 rounded hover:bg-muted transition-colors"
+                  title={isCollapsed ? 'Expand children' : 'Collapse children'}
+                >
+                  {isCollapsed ? (
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </button>
+              )}
+            </div>
           </div>
 
           {/* user message bubble - render parts if available, otherwise fall back to messageContent */}

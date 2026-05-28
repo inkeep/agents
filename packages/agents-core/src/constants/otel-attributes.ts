@@ -92,6 +92,14 @@ export const SPAN_KEYS = {
   GEN_AI_USAGE_OUTPUT_TOKENS: 'gen_ai.usage.output_tokens',
   GEN_AI_COST_ESTIMATED_USD: 'gen_ai.cost.estimated_usd',
 
+  // Cache outcome (OTel-GenAI semconv v1.41.1 aligned)
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS: 'gen_ai.usage.cache_read.input_tokens',
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS: 'gen_ai.usage.cache_creation.input_tokens',
+
+  // Cache intent (Inkeep namespace)
+  CACHE_INTENT_MARKER_COUNT: 'cache.intent.marker_count',
+  CACHE_INTENT_PREFIX_SIGNATURE: 'cache.intent.prefix_signature',
+
   // Provider routing
   GEN_AI_REQUEST_PROVIDER: 'gen_ai.request.provider',
   GEN_AI_RESPONSE_PROVIDER: 'gen_ai.response.provider',

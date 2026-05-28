@@ -265,6 +265,15 @@ const envSchema = z
       .optional()
       .describe('Google Generative AI API key for Gemini models'),
 
+    // Prompt Caching
+    INKEEP_PROMPT_CACHING_ENABLED: z
+      .stringbool()
+      .optional()
+      .default(true)
+      .describe(
+        "Deployment-level kill switch for Inkeep-attached Anthropic prompt caching at the main agent generation call sites. Default 'true' (caching enabled). Set to 'false' to disable Inkeep-attached caching globally — useful for A/B testing or self-host opt-out. Customer-provided providerOptions still pass through to the model SDK unchanged when disabled."
+      ),
+
     // GitHub App Configuration
     GITHUB_APP_ID: z.string().optional().describe('GitHub App ID for GitHub integration'),
     GITHUB_APP_PRIVATE_KEY: z
