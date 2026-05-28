@@ -97,6 +97,40 @@ try {
 }
 ```
 
+## Cache Telemetry Attributes
+
+LLM generation spans carry cache telemetry emitted by the gateway cost middleware. These attributes are defined in `packages/agents-core/src/constants/otel-attributes.ts` and consumed by the Manage UI trace timeline and cost dashboard.
+
+### Outcome attributes (OTel-GenAI semconv v1.41.1 aligned)
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `gen_ai.usage.cache_read.input_tokens` | number | Tokens served from the provider cache on this call |
+| `gen_ai.usage.cache_creation.input_tokens` | number | Tokens written to the provider cache on this call |
+
+`gen_ai.usage.input_tokens` (the existing total) is cache-inclusive and unchanged. `no_cache_input_tokens` is derivable as `input_tokens − cache_read − cache_creation` and is not emitted.
+
+### Intent attributes (Inkeep `cache.intent.*` namespace)
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `cache.intent.marker_count` | int (0–4) | Number of cache markers attached to the request prefix |
+| `cache.intent.prefix_signature` | string | 10-character SHA-256 hex prefix of the cacheable prefix (system prompts and tool definitions), used to distinguish MISS-expected (prefix changed) from MISS-regression (stable prefix, no read) |
+
+### Cache state (consumer-derived, not a span attribute)
+
+`cache_state` is **not emitted as a span attribute** — it is computed by consumers (Manage UI, the `pnpm cache-debug` CLI) from the four attributes above plus prior-turn signature comparison:
+
+| State | Derivation |
+|-------|-----------|
+| `HIT` | `marker_count > 0` and `cache_read > 0` |
+| `MISS-expected` | `marker_count > 0`, `cache_read = 0`, prefix signature differs from previous call |
+| `MISS-regression` | `marker_count > 0`, `cache_read = 0`, prefix signature identical to previous call |
+| `NOT-ATTEMPTED` | `marker_count = 0` |
+| `NOT-SUPPORTED-BY-PROVIDER` | Provider metadata absent or provider does not support marker-based caching |
+
+When adding new span attributes, follow the same append-only rule: additions to `USAGE_COST_AGGREGATION_ORDER` in `signoz-stats.ts` must be appended, never reordered, because the consumer side uses positional indexing.
+
 ## Best Practices
 
 ### 1. Consistent Naming Convention

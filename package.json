@@ -89,7 +89,8 @@
     "check:packagemanager-sync": "node scripts/check-packagemanager-sync.mjs",
     "setup-slack-dev": "tsx scripts/setup-slack-dev.ts",
     "setup-oauth-client": "tsx scripts/setup-oauth-client.ts",
-    "setup-gateway-client": "tsx scripts/setup-gateway-client.ts"
+    "setup-gateway-client": "tsx scripts/setup-gateway-client.ts",
+    "cache-debug": "tsx scripts/cache-debug/index.ts"
   },
   "version": "0.1.0",
   "dependencies": {

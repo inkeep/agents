@@ -25,7 +25,12 @@ export async function loadToolsAndPrompts(
       apiKey?: string;
     };
   }
-): Promise<{ systemPrompt: string; sanitizedTools: ToolSet; contextBreakdown: ContextBreakdown }> {
+): Promise<{
+  systemPrompt: string;
+  sanitizedTools: ToolSet;
+  contextBreakdown: ContextBreakdown;
+  artifactsMessage: string | null;
+}> {
   const [mcpToolsResult, functionTools, relationTools, defaultTools] = await tracer.startActiveSpan(
     'agent.load_tools',
     {
@@ -65,6 +70,7 @@ export async function loadToolsAndPrompts(
 
   const systemPrompt = systemPromptResult.prompt;
   const contextBreakdown = systemPromptResult.breakdown;
+  const artifactsMessage = systemPromptResult.artifactsMessage;
 
   const allTools = {
     ...mcpTools,
@@ -75,5 +81,5 @@ export async function loadToolsAndPrompts(
 
   const sanitizedTools = sanitizeToolsForAISDK(allTools);
 
-  return { systemPrompt, sanitizedTools, contextBreakdown };
+  return { systemPrompt, sanitizedTools, contextBreakdown, artifactsMessage };
 }

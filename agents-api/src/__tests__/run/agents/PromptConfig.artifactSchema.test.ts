@@ -56,7 +56,7 @@ describe('PromptConfig — artifact type and schema in generated XML', () => {
     };
 
     const result = builder.buildSystemPrompt(config);
-    expect(result.prompt).toContain('<type>ResearchDoc</type>');
+    expect(result.artifactsMessage).toContain('<type>ResearchDoc</type>');
   });
 
   test('artifact XML includes <type>unknown</type> when artifact has no type', () => {
@@ -69,7 +69,7 @@ describe('PromptConfig — artifact type and schema in generated XML', () => {
     };
 
     const result = builder.buildSystemPrompt(config);
-    expect(result.prompt).toContain('<type>unknown</type>');
+    expect(result.artifactsMessage).toContain('<type>unknown</type>');
   });
 
   test('type_schema shows PREVIEW and FULL sections when type matches a component', () => {
@@ -82,7 +82,9 @@ describe('PromptConfig — artifact type and schema in generated XML', () => {
     };
 
     const result = builder.buildSystemPrompt(config);
-    const typeSchemaMatch = result.prompt.match(/<type_schema>([\s\S]*?)<\/type_schema>/);
+    const typeSchemaMatch = result.artifactsMessage?.match(
+      /<type_schema>([\s\S]*?)<\/type_schema>/
+    );
     expect(typeSchemaMatch).not.toBeNull();
     expect(typeSchemaMatch?.[1]).toContain('DISPLAYED to user');
     expect(typeSchemaMatch?.[1]).toContain('TOOL CHAINING');
@@ -98,7 +100,9 @@ describe('PromptConfig — artifact type and schema in generated XML', () => {
     };
 
     const result = builder.buildSystemPrompt(config);
-    const typeSchemaMatch = result.prompt.match(/<type_schema>([\s\S]*?)<\/type_schema>/);
+    const typeSchemaMatch = result.artifactsMessage?.match(
+      /<type_schema>([\s\S]*?)<\/type_schema>/
+    );
     const typeSchemaContent = typeSchemaMatch?.[1] ?? '';
     const previewIndex = typeSchemaContent.indexOf('DISPLAYED to user');
     const fullIndex = typeSchemaContent.indexOf('TOOL CHAINING');
@@ -119,7 +123,9 @@ describe('PromptConfig — artifact type and schema in generated XML', () => {
     };
 
     const result = builder.buildSystemPrompt(config);
-    const typeSchemaMatch = result.prompt.match(/<type_schema>([\s\S]*?)<\/type_schema>/);
+    const typeSchemaMatch = result.artifactsMessage?.match(
+      /<type_schema>([\s\S]*?)<\/type_schema>/
+    );
     const typeSchemaContent = typeSchemaMatch?.[1] ?? '';
     const fullIndex = typeSchemaContent.indexOf('TOOL CHAINING');
     const fullSection = typeSchemaContent.slice(fullIndex);
@@ -139,7 +145,7 @@ describe('PromptConfig — artifact type and schema in generated XML', () => {
     };
 
     const result = builder.buildSystemPrompt(config);
-    expect(result.prompt).toContain('Schema not available');
+    expect(result.artifactsMessage).toContain('Schema not available');
   });
 
   test('uses allProjectArtifactComponents for type schema map over artifactComponents', () => {
@@ -167,9 +173,9 @@ describe('PromptConfig — artifact type and schema in generated XML', () => {
     };
 
     const result = builder.buildSystemPrompt(config);
-    expect(result.prompt).toContain('<type>SpecialDoc</type>');
-    expect(result.prompt).not.toContain('Schema not available');
-    expect(result.prompt).toContain('"headline"');
+    expect(result.artifactsMessage).toContain('<type>SpecialDoc</type>');
+    expect(result.artifactsMessage).not.toContain('Schema not available');
+    expect(result.artifactsMessage).toContain('"headline"');
   });
 
   test('falls back to artifactComponents when allProjectArtifactComponents is absent', () => {
@@ -182,8 +188,8 @@ describe('PromptConfig — artifact type and schema in generated XML', () => {
     };
 
     const result = builder.buildSystemPrompt(config);
-    expect(result.prompt).toContain('<type>ResearchDoc</type>');
-    expect(result.prompt).not.toContain('Schema not available');
+    expect(result.artifactsMessage).toContain('<type>ResearchDoc</type>');
+    expect(result.artifactsMessage).not.toContain('Schema not available');
   });
 
   test('handles artifact with empty allProjectArtifactComponents gracefully', () => {
@@ -196,6 +202,6 @@ describe('PromptConfig — artifact type and schema in generated XML', () => {
     };
 
     const result = builder.buildSystemPrompt(config);
-    expect(result.prompt).toContain('Schema not available');
+    expect(result.artifactsMessage).toContain('Schema not available');
   });
 });

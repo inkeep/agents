@@ -155,7 +155,12 @@ export async function copyFullTraceToClipboard(
 const VISIBLE_FIELDS_BY_TYPE: Record<ActivityKind, (keyof ActivityItem)[]> = {
   [ACTIVITY_TYPES.USER_MESSAGE]: ['messageContent', 'messageParts'],
   [ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE]: ['aiResponseContent'],
-  [ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT]: ['aiStreamTextContent'],
+  [ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT]: [
+    'aiStreamTextContent',
+    'cacheState',
+    'cacheReadTokens',
+    'cacheCreationTokens',
+  ],
   [ACTIVITY_TYPES.CONTEXT_FETCH]: ['toolResult'],
   [ACTIVITY_TYPES.CONTEXT_RESOLUTION]: ['contextUrl'],
   [ACTIVITY_TYPES.TOOL_CALL]: [
@@ -177,7 +182,7 @@ const VISIBLE_FIELDS_BY_TYPE: Record<ActivityKind, (keyof ActivityItem)[]> = {
     'artifactOriginalTokenSize',
     'artifactContextWindowSize',
   ],
-  [ACTIVITY_TYPES.AI_GENERATION]: [],
+  [ACTIVITY_TYPES.AI_GENERATION]: ['cacheState', 'cacheReadTokens', 'cacheCreationTokens'],
   [ACTIVITY_TYPES.AGENT_GENERATION]: [],
   [ACTIVITY_TYPES.TOOL_APPROVAL_REQUESTED]: ['approvalToolName'],
   [ACTIVITY_TYPES.TOOL_APPROVAL_APPROVED]: ['approvalToolName'],
@@ -212,7 +217,7 @@ const ERROR_FIELDS: (keyof ActivityItem)[] = ['otelStatusDescription', 'toolStat
 /**
  * Formats an activity to show only what's visible on the timeline (without clicking into details)
  */
-function formatActivityForSummary(activity: ActivityItem): Record<string, unknown> {
+export function formatActivityForSummary(activity: ActivityItem): Record<string, unknown> {
   const visibleFields = new Set([
     ...BASE_VISIBLE_FIELDS,
     ...(VISIBLE_FIELDS_BY_TYPE[activity.type] || []),

@@ -60,6 +60,8 @@ export default function ConversationDetail({
       resolvedModel?: string;
       requestedModel?: string;
       model: string;
+      cacheReadTokens?: number;
+      cacheCreationTokens?: number;
     }>
   >([]);
   const [loading, setLoading] = useState(true);
@@ -473,6 +475,13 @@ export default function ConversationDetail({
                               label="Tokens"
                               value={`${event.inputTokens.toLocaleString()} in / ${event.outputTokens.toLocaleString()} out`}
                             />
+                            {((event.cacheReadTokens ?? 0) > 0 ||
+                              (event.cacheCreationTokens ?? 0) > 0) && (
+                              <InfoRow
+                                label="Cache"
+                                value={`${(event.cacheReadTokens ?? 0).toLocaleString()} read / ${(event.cacheCreationTokens ?? 0).toLocaleString()} write`}
+                              />
+                            )}
                             <InfoRow label="Model" value={event.model} />
                           </div>
                         </div>

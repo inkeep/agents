@@ -11,15 +11,19 @@ import {
   AGENT_IDS,
   AI_OPERATIONS,
   buildFilterExpression,
+  type CacheState,
+  deriveCacheState,
   FIELD_CONTEXTS,
   FIELD_DATA_TYPES,
   GENERATION_TYPES,
+  isProviderSupportedForCaching,
   OPERATORS,
   ORDER_DIRECTIONS,
   QUERY_DEFAULTS,
   QUERY_EXPRESSIONS,
   QUERY_TYPES,
   REQUEST_TYPES,
+  resolveCachingProvider,
   SIGNALS,
   SPAN_KEYS,
   SPAN_NAMES,
@@ -215,9 +219,13 @@ const float64 = FIELD_DATA_TYPES.FLOAT64;
 const bool = FIELD_DATA_TYPES.BOOL;
 
 function buildBaseExpression(conversationId: string, projectId?: string): string {
-  const parts = [`${SPAN_KEYS.CONVERSATION_ID} = '${conversationId}'`];
-  if (projectId) parts.push(`${SPAN_KEYS.PROJECT_ID} = '${projectId}'`);
-  return parts.join(' AND ');
+  // Route through buildFilterExpression (which single-quote-escapes values) rather than
+  // raw-interpolating the ids into the filter string — keeps escaping consistent with the
+  // other queries in this file and closes a latent filter-injection vector.
+  return buildFilterExpression([
+    { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EQUALS, value: conversationId },
+    ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
+  ]);
 }
 
 function buildQueryEnvelope(
@@ -282,7 +290,6 @@ function buildConversationPayloads(
         sf(SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID, str, attr),
         sf(SPAN_KEYS.TOOL_PURPOSE, str, attr),
         sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
-        sf(SPAN_KEYS.OTEL_STATUS_DESCRIPTION, str, attr),
         sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
         sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
         sf(SPAN_KEYS.AGENT_ID, str, attr),
@@ -325,7 +332,6 @@ function buildConversationPayloads(
         sf(SPAN_KEYS.MESSAGE_ID, str, attr),
         sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
         sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
-        sf(SPAN_KEYS.OTEL_STATUS_DESCRIPTION, str, attr),
         sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
       ]
     ),
@@ -345,9 +351,14 @@ function buildConversationPayloads(
         sf(SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME, str, attr),
         sf(SPAN_KEYS.AI_MODEL_ID, str, attr),
         sf(SPAN_KEYS.AI_MODEL_PROVIDER, str, attr),
+        sf(SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER, str, attr),
         sf(SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, int64, attr),
         sf(SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, int64, attr),
         sf(SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, float64, attr),
+        sf(SPAN_KEYS.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, int64, attr),
+        sf(SPAN_KEYS.GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, int64, attr),
+        sf(SPAN_KEYS.CACHE_INTENT_MARKER_COUNT, int64, attr),
+        sf(SPAN_KEYS.CACHE_INTENT_PREFIX_SIGNATURE, str, attr),
         sf(SPAN_KEYS.AI_RESPONSE_TEXT, str, attr),
         sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
         sf(SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE, str, attr),
@@ -362,7 +373,6 @@ function buildConversationPayloads(
         sf(SPAN_KEYS.TIMESTAMP, int64, span),
         sf(SPAN_KEYS.HAS_ERROR, bool, span),
         sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
-        sf(SPAN_KEYS.OTEL_STATUS_DESCRIPTION, str, attr),
         sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
         sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
         sf(CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE, int64, attr),
@@ -384,7 +394,6 @@ function buildConversationPayloads(
         sf(SPAN_KEYS.HAS_ERROR, bool, span),
         sf(SPAN_KEYS.CONTEXT_URL, str, attr),
         sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
-        sf(SPAN_KEYS.OTEL_STATUS_DESCRIPTION, str, attr),
         sf(SPAN_KEYS.CONTEXT_CONFIG_ID, str, attr),
         sf(SPAN_KEYS.CONTEXT_AGENT_ID, str, attr),
         sf(SPAN_KEYS.CONTEXT_HEADERS_KEYS, str, attr),
@@ -551,6 +560,8 @@ type ConversationUsageEvent = {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
   estimatedCostUsd: number;
   finishReason: string;
   status: 'failed' | 'succeeded';
@@ -606,6 +617,8 @@ function buildUsageEventsPayload(
               sf(SPAN_KEYS.CONVERSATION_ID, str, attr),
               sf(SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, float64, attr),
               sf(SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, float64, attr),
+              sf(SPAN_KEYS.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, float64, attr),
+              sf(SPAN_KEYS.GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, float64, attr),
               sf(SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, float64, attr),
               sf(SPAN_KEYS.AI_RESPONSE_FINISH_REASON, str, attr),
             ],
@@ -631,6 +644,8 @@ function parseUsageEvents(resp: SigNozResp): ConversationUsageEvent[] {
     const outputTokens =
       Number(d[SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS] || d[SPAN_KEYS.AI_USAGE_COMPLETION_TOKENS]) ||
       0;
+    const cacheReadTokens = Number(d[SPAN_KEYS.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]) || 0;
+    const cacheCreationTokens = Number(d[SPAN_KEYS.GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]) || 0;
     const cost = Number(d[SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD]) || 0;
 
     return {
@@ -647,6 +662,8 @@ function parseUsageEvents(resp: SigNozResp): ConversationUsageEvent[] {
       inputTokens,
       outputTokens,
       totalTokens: inputTokens + outputTokens,
+      cacheReadTokens,
+      cacheCreationTokens,
       estimatedCostUsd: cost,
       finishReason: d[SPAN_KEYS.AI_RESPONSE_FINISH_REASON] || '',
       status: d.hasError === true || d.hasError === 'true' ? 'failed' : 'succeeded',
@@ -754,6 +771,41 @@ export async function GET(
       const op = getString(row, SPAN_KEYS.AI_OPERATION_ID);
       if (op === AI_OPERATIONS.GENERATE_TEXT) aiGenerationSpans.push(row);
       else if (op === AI_OPERATIONS.STREAM_TEXT) aiStreamingSpans.push(row);
+    }
+
+    const cacheStateBySpanId = new Map<string, CacheState>();
+    const llmCallsChronological = [...aiGenerationSpans, ...aiStreamingSpans].sort((a, b) =>
+      String(a.timestamp ?? '').localeCompare(String(b.timestamp ?? ''))
+    );
+    const priorSignatureByAgent = new Map<string, string>();
+    for (const llmSpan of llmCallsChronological) {
+      const spanId = getString(llmSpan, SPAN_KEYS.SPAN_ID, '');
+      if (!spanId) continue;
+      const subAgentId =
+        getString(llmSpan, SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, '') ||
+        getString(llmSpan, SPAN_KEYS.AGENT_ID, '') ||
+        '_default';
+      // Resolve the provider for the caching-support gate: gateway-routed spans
+      // report ai.model.provider='gateway' (not caching-capable) while the real
+      // backend that owns the cache keys is in gen_ai.response.provider. Prefer
+      // the resolved provider so gateway deployments don't misclassify HITs.
+      const cachingProvider = resolveCachingProvider({
+        requestProvider: getString(llmSpan, SPAN_KEYS.AI_MODEL_PROVIDER, ''),
+        responseProvider: getString(llmSpan, SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER, ''),
+      });
+      const prefixSignature =
+        getString(llmSpan, SPAN_KEYS.CACHE_INTENT_PREFIX_SIGNATURE, '') || null;
+      const state = deriveCacheState({
+        markerCount: getNumber(llmSpan, SPAN_KEYS.CACHE_INTENT_MARKER_COUNT, 0),
+        prefixSignature,
+        cacheRead: getNumber(llmSpan, SPAN_KEYS.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, 0),
+        priorSignature: priorSignatureByAgent.get(subAgentId) ?? null,
+        providerSupportsCaching: cachingProvider
+          ? isProviderSupportedForCaching(cachingProvider)
+          : true,
+      });
+      cacheStateBySpanId.set(spanId, state);
+      if (prefixSignature) priorSignatureByAgent.set(subAgentId, prefixSignature);
     }
     const agentGenerationSpans = parseList(resp, QUERY_EXPRESSIONS.AGENT_GENERATIONS);
     const spansWithErrorsList = parseList(resp, QUERY_EXPRESSIONS.SPANS_WITH_ERRORS);
@@ -968,6 +1020,12 @@ export async function GET(
       // durable tool execution
       toolCallId?: string;
       toolResponseContent?: string;
+      // prompt caching (D11 SPAN_KEYS + derived state)
+      cacheReadTokens?: number;
+      cacheCreationTokens?: number;
+      cacheMarkerCount?: number;
+      cachePrefixSignature?: string;
+      cacheState?: CacheState;
     };
 
     const activities: Activity[] = [];
@@ -1183,6 +1241,10 @@ export async function GET(
       const formatted = genType
         ? formatGenerationType(genType, genResponseText)
         : { description: 'AI model generating text' };
+      const cacheRead = getNumber(span, SPAN_KEYS.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, 0);
+      const cacheCreation = getNumber(span, SPAN_KEYS.GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, 0);
+      const markerCount = getNumber(span, SPAN_KEYS.CACHE_INTENT_MARKER_COUNT, 0);
+      const prefixSig = getString(span, SPAN_KEYS.CACHE_INTENT_PREFIX_SIGNATURE, '');
       activities.push({
         id: aiGeneration,
         type: ACTIVITY_TYPES.AI_GENERATION,
@@ -1199,6 +1261,11 @@ export async function GET(
         costUsd: getNumber(span, SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, 0) || undefined,
         aiTelemetryFunctionId: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
         aiTelemetryPhase: getString(span, SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE, '') || undefined,
+        cacheReadTokens: cacheRead || undefined,
+        cacheCreationTokens: cacheCreation || undefined,
+        cacheMarkerCount: markerCount || undefined,
+        cachePrefixSignature: prefixSig || undefined,
+        cacheState: cacheStateBySpanId.get(aiGeneration),
       });
     }
 
@@ -1241,6 +1308,14 @@ export async function GET(
       const streamFormatted = streamGenType
         ? formatGenerationType(streamGenType, streamResponseText)
         : { description: 'AI model streaming text' };
+      const cacheReadStream = getNumber(span, SPAN_KEYS.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, 0);
+      const cacheCreationStream = getNumber(
+        span,
+        SPAN_KEYS.GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+        0
+      );
+      const markerCountStream = getNumber(span, SPAN_KEYS.CACHE_INTENT_MARKER_COUNT, 0);
+      const prefixSigStream = getString(span, SPAN_KEYS.CACHE_INTENT_PREFIX_SIGNATURE, '');
       activities.push({
         id: aiStreamingText,
         type: ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT,
@@ -1265,6 +1340,11 @@ export async function GET(
         aiTelemetryFunctionId: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
         aiTelemetryPhase: getString(span, SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE, '') || undefined,
         otelStatusDescription: statusMessage || undefined,
+        cacheReadTokens: cacheReadStream || undefined,
+        cacheCreationTokens: cacheCreationStream || undefined,
+        cacheMarkerCount: markerCountStream || undefined,
+        cachePrefixSignature: prefixSigStream || undefined,
+        cacheState: cacheStateBySpanId.get(aiStreamingText),
       });
     }
 

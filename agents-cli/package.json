@@ -41,7 +41,7 @@
     "@inkeep/agents-core": "workspace:^",
     "@inkeep/agents-sdk": "workspace:^",
     "@vercel/otel": "^2.0.1",
-    "ai": "6.0.14",
+    "ai": "6.0.191",
     "chalk": "^5.3.0",
     "cli-table3": "^0.6.3",
     "commander": "^14.0.0",

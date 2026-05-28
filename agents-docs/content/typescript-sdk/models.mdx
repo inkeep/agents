@@ -456,7 +456,11 @@ models: {
 
 ### Advanced: Manual Gateway Provider Options
 
-You can also configure gateway routing directly via `providerOptions` for access to the full [gateway provider options](https://ai-sdk.dev/providers/ai-sdk-providers/ai-gateway#gateway-provider-options) (`order`, `only`, `models`, `byok`, `providerTimeouts`, `tags`, `zeroDataRetention`):
+You can also configure gateway routing directly via `providerOptions` for access to the full [gateway provider options](https://ai-sdk.dev/providers/ai-sdk-providers/ai-gateway#gateway-provider-options) (`order`, `only`, `models`, `byok`, `providerTimeouts`, `tags`, `zeroDataRetention`).
+
+<Note>
+`providerOptions.gateway.caching` and `providerOptions.anthropic.cacheControl` interact with Inkeep's default-on [prompt caching](/guides/observability/prompt-caching). Inkeep applies its caching default only when you haven't set a value — if you set `providerOptions.gateway.caching` or `providerOptions.anthropic.cacheControl` explicitly, your value is preserved.
+</Note>
 
 ```typescript
 models: {
