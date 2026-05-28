@@ -19,6 +19,10 @@ export const DEFAULT_GOOGLE_SUMMARIZER_MODEL = GOOGLE_MODELS.GEMINI_2_5_FLASH_LI
 export const modelOptions = {
   anthropic: [
     {
+      value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_8,
+      label: 'Claude Opus 4.8',
+    },
+    {
       value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_7,
       label: 'Claude Opus 4.7',
     },
