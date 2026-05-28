@@ -1,5 +1,18 @@
 # @inkeep/agents-api
 
+## 0.74.3
+
+### Patch Changes
+
+- d6c3176: Enable Anthropic prompt caching by default at the main agent generation call (gateway and direct mode), gated by the new INKEEP_PROMPT_CACHING_ENABLED env var, and stabilize the cacheable system-prompt prefix across turns
+- d6c3176: Harden the SigNoz query proxy to recover when SigNoz rejects unknown attribute keys with HTTP 500 (v0.96.x returns 500, not 400, for unrecognized select fields). The proxy now reprobes with untyped selects to surface the offending fields, strips them, and retries — so trace queries that reference newly added span attributes degrade gracefully instead of failing the whole request. The strip-and-retry loop is also bounded by an overall wall-clock deadline and a retry cap that scales with the query's select-field count, so a partially-degraded SigNoz cannot hold a request open indefinitely (notably on self-hosted deployments without an implicit function timeout). Non-JSON error responses (HTML error pages, empty gateway timeouts) now surface an error carrying the upstream status instead of an opaque JSON parse failure.
+- Updated dependencies [87e4bf1]
+- Updated dependencies [d6c3176]
+  - @inkeep/agents-core@0.74.3
+  - @inkeep/agents-work-apps@0.74.3
+  - @inkeep/agents-email@0.74.3
+  - @inkeep/agents-mcp@0.74.3
+
 ## 0.74.2
 
 ### Patch Changes
