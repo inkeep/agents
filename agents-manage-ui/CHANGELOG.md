@@ -1,5 +1,13 @@
 # @inkeep/agents-manage-ui
 
+## 0.75.0
+
+### Patch Changes
+
+- dcb6914: Cost page improvements to show per conversation costs
+- Updated dependencies [db2be2f]
+  - @inkeep/agents-core@0.75.0
+
 ## 0.74.4
 
 ### Patch Changes

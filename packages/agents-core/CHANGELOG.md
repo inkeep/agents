@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.75.0
+
+### Minor Changes
+
+- db2be2f: Add ALTCHA Sentinel helpers (verifySentinelPayload, isSentinelEnabled, isSentinelUpstreamUnavailable, SentinelError, SentinelVerifyResult) for typed bot protection results with infrastructure-error discrimination.
+
 ## 0.74.4
 
 ### Patch Changes
