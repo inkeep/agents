@@ -101,6 +101,15 @@ INKEEP_AGENTS_JWT_SIGNING_SECRET=
 
 # Optional: set to 'false' to disable Inkeep-attached Anthropic prompt caching
 # INKEEP_PROMPT_CACHING_ENABLED=false
+
+# Optional: ALTCHA Sentinel bot protection (all three required together, or all unset)
+# INKEEP_SENTINEL_API_KEY_ID=
+# INKEEP_SENTINEL_API_KEY_SECRET=
+# INKEEP_SENTINEL_BASE_URL=
+
+# Optional: Legacy PoW compatibility (both required together; migration-only)
+# INKEEP_SENTINEL_V1_API_KEY_ID=
+# INKEEP_SENTINEL_V1_API_KEY_SECRET=
 ```
 
 | Environment Variable                  | Value                                                                                                                                                                                                                                      |
@@ -118,6 +127,11 @@ INKEEP_AGENTS_JWT_SIGNING_SECRET=
 | `NANGO_SERVER_URL`                    | `https://api.nango.dev`                                                                                                                                                                                                                    |
 | `INKEEP_AGENTS_JWT_SIGNING_SECRET`    | Run `openssl rand -hex 32` in your terminal to generate this value. Save this value for `INKEEP_AGENTS_JWT_SIGNING_SECRET` in Step 7.                                                                                                      |
 | `INKEEP_PROMPT_CACHING_ENABLED`       | (Optional) Set to `false` to disable Inkeep-attached Anthropic prompt caching globally. Defaults to `true`. See [Prompt Caching](/guides/observability/prompt-caching) for details.                                                        |
+| `INKEEP_SENTINEL_API_KEY_ID`          | (Optional) ALTCHA Sentinel API key ID for bot protection. Required with `INKEEP_SENTINEL_API_KEY_SECRET` and `INKEEP_SENTINEL_BASE_URL`.                                                       |
+| `INKEEP_SENTINEL_API_KEY_SECRET`      | (Optional) ALTCHA Sentinel API key secret. Required with `INKEEP_SENTINEL_API_KEY_ID` and `INKEEP_SENTINEL_BASE_URL`.                                                                          |
+| `INKEEP_SENTINEL_BASE_URL`            | (Optional) ALTCHA Sentinel service base URL. Required with `INKEEP_SENTINEL_API_KEY_ID` and `INKEEP_SENTINEL_API_KEY_SECRET`.                                                                  |
+| `INKEEP_SENTINEL_V1_API_KEY_ID`       | (Optional) Legacy PoW compatibility API key ID. For migration only; reuses `INKEEP_SENTINEL_BASE_URL`.                                                                                         |
+| `INKEEP_SENTINEL_V1_API_KEY_SECRET`   | (Optional) Legacy PoW compatibility API key secret. For migration only.                                                                                                                        |
 
 ### Step 8: Create a Vercel project for Manage UI
 
