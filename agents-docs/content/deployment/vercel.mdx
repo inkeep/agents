@@ -99,6 +99,11 @@ NANGO_SERVER_URL=https://api.nango.dev
 
 INKEEP_AGENTS_JWT_SIGNING_SECRET=
 
+# Bot Protection (ALTCHA Sentinel)
+INKEEP_SENTINEL_API_KEY_ID=
+INKEEP_SENTINEL_API_KEY_SECRET=
+INKEEP_SENTINEL_BASE_URL=https://challenges.inkeep.com
+
 # Optional: set to 'false' to disable Inkeep-attached Anthropic prompt caching
 # INKEEP_PROMPT_CACHING_ENABLED=false
 ```
@@ -118,6 +123,9 @@ INKEEP_AGENTS_JWT_SIGNING_SECRET=
 | `NANGO_SERVER_URL`                    | `https://api.nango.dev`                                                                                                                                                                                                                    |
 | `INKEEP_AGENTS_JWT_SIGNING_SECRET`    | Run `openssl rand -hex 32` in your terminal to generate this value. Save this value for `INKEEP_AGENTS_JWT_SIGNING_SECRET` in Step 7.                                                                                                      |
 | `INKEEP_PROMPT_CACHING_ENABLED`       | (Optional) Set to `false` to disable Inkeep-attached Anthropic prompt caching globally. Defaults to `true`. See [Prompt Caching](/guides/observability/prompt-caching) for details.                                                        |
+| `INKEEP_SENTINEL_API_KEY_ID`          | API key ID for [ALTCHA Sentinel](https://altcha.org/sentinel) bot protection. Required for production deployments using the embedded chat widget with anonymous sessions.                                                                   |
+| `INKEEP_SENTINEL_API_KEY_SECRET`      | API key secret for ALTCHA Sentinel bot protection (min 32 chars). Generate or retrieve from your Sentinel dashboard.                                                                                                                        |
+| `INKEEP_SENTINEL_BASE_URL`            | `https://challenges.inkeep.com`                                                                                                                                                                                                            |
 
 ### Step 8: Create a Vercel project for Manage UI
 
