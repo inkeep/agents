@@ -68,6 +68,10 @@ metadata:
 
 The body content after the frontmatter contains the actual instructions in Markdown format.
 
+<Tip>
+The `description` is how the agent decides whether to load an on-demand skill, so make it specific and front-load the scenarios it applies to ("Use when…"). Keep it tight: descriptions are capped at **1024 characters**, and every always-loaded skill — plus the outline of each on-demand skill — sits in the system prompt on every turn, so verbose descriptions cost context. See [Tuning Agents](/guides/agent-engineering/tuning-agents#keep-tool-and-skill-descriptions-tight).
+</Tip>
+
 ## Loading Skills
 
 Use `loadSkills()` to load all skills from a directory:

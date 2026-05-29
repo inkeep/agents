@@ -1,5 +1,5 @@
 {
   "title": "Structured Outputs",
   "icon": "LuLayoutTemplate",
-  "pages": ["data-components", "artifact-components", "status-components", "..."]
+  "pages": ["data-components", "artifact-components", "status-components", "output-contract", "..."]
 }

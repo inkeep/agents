@@ -261,6 +261,16 @@ models: {
 </Tab>
 </Tabs>
 
+**Controlling reasoning:**
+
+Each provider exposes reasoning through `providerOptions` (see the examples above):
+
+- **Anthropic** — `anthropic.thinking`
+- **OpenAI** — `openai.reasoningEffort`
+- **Google** — `google.thinkingConfig.thinkingBudget`
+
+Whether a model reasons **by default** varies by provider and changes as models are updated — check the provider's own reference: [Anthropic extended thinking](https://platform.claude.com/docs/en/build-with-claude/extended-thinking), [OpenAI reasoning](https://developers.openai.com/api/docs/guides/reasoning), and [Google thinking](https://ai.google.dev/gemini-api/docs/thinking). As a rule of thumb, Anthropic and OpenAI models start with reasoning off (opt-in), while many Google models have it on by default (opt-out). For guidance on *when* to disable reasoning, see [Tuning Agents](/guides/agent-engineering/tuning-agents#control-reasoning).
+
 **Vercel AI Gateway:**
 
 When `AI_GATEWAY_API_KEY` is set, Anthropic, OpenAI, and Google models are automatically routed through [Vercel AI Gateway](https://ai-sdk.dev/providers/ai-sdk-providers/ai-gateway) for per-request cost tracking. No configuration changes are needed — your existing model strings work as-is. See [AI Gateway](#ai-gateway) below for fallback models, allowed providers, and advanced gateway configuration.
