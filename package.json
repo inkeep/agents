@@ -105,7 +105,7 @@
     "lint-staged": "^16.1.5",
     "sharp": "^0.34.5",
     "tsx": "^4.21.0",
-    "turbo": "^2.7.0",
+    "turbo": "^2.9.14",
     "unique-names-generator": "^4.7.1",
     "vitest": "^3.2.4",
     "yaml": "^2.8.2"
