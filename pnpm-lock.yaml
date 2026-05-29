@@ -464,11 +464,11 @@ importers:
         specifier: workspace:*
         version: link:../packages/agents-core
       '@inkeep/agents-ui':
-        specifier: ^0.16.4
-        version: 0.16.4(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: ^0.17.0
+        version: 0.17.0(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@inkeep/agents-ui-cloud':
-        specifier: ^0.16.4
-        version: 0.16.4(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: ^0.17.0
+        version: 0.17.0(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@inkeep/docskit':
         specifier: ^0.0.8
         version: 0.0.8(@svta/cml-cta@1.0.1(@svta/cml-structured-field-values@1.0.1(@svta/cml-utils@1.0.1))(@svta/cml-utils@1.0.1))(@svta/cml-structured-field-values@1.0.1(@svta/cml-utils@1.0.1))(@svta/cml-utils@1.0.1)(next@16.2.6(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0(patch_hash=fb57ddbf6d253ca059e800cec47d55e177a15be89f100146c8ed5e4ba56697ed))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react-router@7.13.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(vite@7.3.3(@types/node@24.0.7)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0))
@@ -3528,14 +3528,17 @@ packages:
   '@inkeep/agents-manage-ui@0.41.1':
     resolution: {integrity: sha512-30g1KSk2zt+qOY+pWmjEohoSJLObCLG6sWheEOUuM0vED9xzLNd+gF/Np7dmrWSTtacDnAR23ARgMHlzeIWPhw==}
 
-  '@inkeep/agents-ui-cloud@0.16.4':
-    resolution: {integrity: sha512-/y8QO67e+j7AXVVhkTSUzNU6ZGFx+qbmE//pDJnqpez9V6Ns4ZLvaRMQ2f/3NFCuc0rnFaewgbXjcABj8Mg7YA==}
+  '@inkeep/agents-ui-cloud@0.17.0':
+    resolution: {integrity: sha512-/KIv+C/khKJLyMLU21qpdHXpMrWXfWkf3JAJl1utfLCEIjDvuUq/NeCBsKHUSUbDFSvxwLCN6gS0S37+0VQdZA==}
 
   '@inkeep/agents-ui@0.15.27':
     resolution: {integrity: sha512-LyGcLmIsxe8gEGYpgMkyBcNzipeUFpxNEww89iAbr3AkiI5ebAwsGw641guFEE/kv3zTDOdhw8yDuccXX9M9GA==}
 
   '@inkeep/agents-ui@0.16.4':
     resolution: {integrity: sha512-TcOzoEU0sy+yylSubm6NOabZ1OKLU0P6egvw7kQUhRsX4XqLgDVq1wN+rHoOH88/jAwZ13JEtTQz7j77VJTD2w==}
+
+  '@inkeep/agents-ui@0.17.0':
+    resolution: {integrity: sha512-c1P+adVtgb8LU9G3f16plWj+xmm361bOvfcJ2oDnFpw8fx6D+SrSw7ed4um6rkUDDFcjE+45hQ2jFqaRhNqdGA==}
 
   '@inkeep/docskit@0.0.8':
     resolution: {integrity: sha512-TADEWay7CTZNQS+Fjy4qQH2QcYkUB2USmfrAUDt2TmW827T2a7Zy2lyYaJx3wFYfGGN34djY2s1PxEZkWeGYrw==}
@@ -9337,6 +9340,9 @@ packages:
   altcha-lib@1.4.1:
     resolution: {integrity: sha512-MAXP9tkQOA2SE9Gwoe3LAcZbcDpp3XzYc5GDVej/y3eMNaFG/eVnRY1/7SGFW0RPsViEjPf+hi5eANjuZrH1xA==}
 
+  altcha@3.0.10:
+    resolution: {integrity: sha512-JMmjNb14bfXrQc2vgjfFxH5YmEEmJ4BZz/sJ1dhiBUswvtXDlzCVBtFYtu9EzDYMfrXA22hU+4hRBY6ROsP0Yw==}
+
   ansi-align@3.0.1:
     resolution: {integrity: sha512-IOfwwBF5iczOjp/WeY4YxyjqAFMQoZufdQWDd19SEExbVLNXqvpzSJ/M7Za4/sCPmQ0+GRquoA7bGcINcxew6w==}
 
@@ -11758,6 +11764,9 @@ packages:
   has-tostringtag@1.0.2:
     resolution: {integrity: sha512-NqADB8VjPFLM2V0VvHUewwwsw0ZWBaIdgo+ieHtK3hasLz4qeCRjYcqfB6AQrBggRKppKF8L52/VqdVsO47Dlw==}
     engines: {node: '>= 0.4'}
+
+  hash-wasm@4.12.0:
+    resolution: {integrity: sha512-+/2B2rYLb48I/evdOIhP+K/DD2ca2fgBjp6O+GBEnCDk2e4rpeXIK8GvIyRPjTezgmWn9gmKwkQjjx6BtqDHVQ==}
 
   hasha@5.2.2:
     resolution: {integrity: sha512-Hrp5vIK/xr5SkeN2onO32H0MgNZ0f17HRNH39WfL0SYUNOTZ5Lz1TJ8Pajo/87dYGEFlLMm7mIc/k/s6Bvz9HQ==}
@@ -18926,9 +18935,9 @@ snapshots:
       - webpack
       - ws
 
-  '@inkeep/agents-ui-cloud@0.16.4(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+  '@inkeep/agents-ui-cloud@0.17.0(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
-      '@inkeep/agents-ui': 0.16.4(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@inkeep/agents-ui': 0.17.0(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@radix-ui/react-use-controllable-state': 1.2.2(@types/react@19.2.7)(react@19.2.4)
       lucide-react: 0.503.0(react@19.2.4)
     transitivePeerDependencies:
@@ -19045,6 +19054,75 @@ snapshots:
       '@zag-js/remove-scroll': 1.38.2
       ai: 6.0.44(zod@4.3.6)
       altcha-lib: 1.4.1
+      aria-hidden: 1.2.6
+      class-variance-authority: 0.7.1
+      clsx: 2.1.1
+      colorjs.io: 0.5.2
+      dequal: 2.0.3
+      humps: 2.0.1
+      lucide-react: 0.503.0(react@19.2.4)
+      marked: 15.0.12
+      merge-anything: 5.1.7
+      openai: 4.78.1(zod@4.3.6)
+      prism-react-renderer: 2.4.1(react@19.2.4)
+      react-error-boundary: 6.0.3(react@19.2.4)
+      react-hook-form: 7.54.2(react@19.2.4)
+      react-markdown: 9.0.3(@types/react@19.2.7)(react@19.2.4)
+      react-remove-scroll: 2.7.2(@types/react@19.2.7)(react@19.2.4)
+      react-svg: 16.3.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      react-textarea-autosize: 8.5.7(@types/react@19.2.7)(react@19.2.4)
+      rehype-raw: 7.0.0
+      remark-gfm: 4.0.1
+      remark-supersub: 1.0.0
+      tailwind-merge: 2.6.0
+      unist-util-visit: 5.1.0
+      use-sync-external-store: 1.6.0(react@19.2.4)
+      zod: 4.3.6
+    transitivePeerDependencies:
+      - '@types/react'
+      - '@types/react-dom'
+      - encoding
+      - react
+      - react-dom
+      - supports-color
+
+  '@inkeep/agents-ui@0.17.0(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+    dependencies:
+      '@ai-sdk/openai': 3.0.14(zod@4.3.6)
+      '@ai-sdk/react': 3.0.46(react@19.2.4)(zod@4.3.6)
+      '@radix-ui/number': 1.1.1
+      '@radix-ui/primitive': 1.1.3
+      '@radix-ui/react-avatar': 1.1.2(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@radix-ui/react-checkbox': 1.1.3(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@radix-ui/react-collection': 1.1.8(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@radix-ui/react-compose-refs': 1.1.2(@types/react@19.2.7)(react@19.2.4)
+      '@radix-ui/react-context': 1.1.3(@types/react@19.2.7)(react@19.2.4)
+      '@radix-ui/react-direction': 1.1.1(@types/react@19.2.7)(react@19.2.4)
+      '@radix-ui/react-dismissable-layer': 1.1.11(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@radix-ui/react-focus-guards': 1.1.3(@types/react@19.2.7)(react@19.2.4)
+      '@radix-ui/react-focus-scope': 1.1.8(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@radix-ui/react-hover-card': 1.1.15(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@radix-ui/react-id': 1.1.1(@types/react@19.2.7)(react@19.2.4)
+      '@radix-ui/react-popover': 1.1.6(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@radix-ui/react-popper': 1.2.8(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@radix-ui/react-portal': 1.1.10(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@radix-ui/react-presence': 1.1.5(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@radix-ui/react-primitive': 2.1.4(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@radix-ui/react-scroll-area': 1.2.2(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@radix-ui/react-slot': 1.2.4(@types/react@19.2.7)(react@19.2.4)
+      '@radix-ui/react-tabs': 1.1.13(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@radix-ui/react-tooltip': 1.1.6(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@radix-ui/react-use-callback-ref': 1.1.1(@types/react@19.2.7)(react@19.2.4)
+      '@radix-ui/react-use-controllable-state': 1.2.2(@types/react@19.2.7)(react@19.2.4)
+      '@radix-ui/react-use-layout-effect': 1.1.1(@types/react@19.2.7)(react@19.2.4)
+      '@zag-js/combobox': 1.38.2
+      '@zag-js/file-upload': 1.38.2
+      '@zag-js/focus-trap': 1.38.2
+      '@zag-js/presence': 1.38.2
+      '@zag-js/react': 1.38.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@zag-js/remove-scroll': 1.38.2
+      ai: 6.0.44(zod@4.3.6)
+      altcha: 3.0.10
       aria-hidden: 1.2.6
       class-variance-authority: 0.7.1
       clsx: 2.1.1
@@ -27862,6 +27940,10 @@ snapshots:
 
   altcha-lib@1.4.1: {}
 
+  altcha@3.0.10:
+    dependencies:
+      hash-wasm: 4.12.0
+
   ansi-align@3.0.1:
     dependencies:
       string-width: 4.2.3
@@ -30548,6 +30630,8 @@ snapshots:
   has-tostringtag@1.0.2:
     dependencies:
       has-symbols: 1.1.0
+
+  hash-wasm@4.12.0: {}
 
   hasha@5.2.2:
     dependencies:
