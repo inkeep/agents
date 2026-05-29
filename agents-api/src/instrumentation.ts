@@ -65,6 +65,31 @@ export const defaultInstrumentations: NonNullable<NodeSDKConfiguration['instrume
         const path = span.attributes?.['url.path'];
         if (method && path)
           span.updateName(host ? `${method} ${host}${path}` : `${method} ${path}`);
+
+        // Sentinel /v1/verify/signature requires credentials as URL query params
+        // (Bearer auth returns 403). Auto-instrumentation captures the full URL
+        // in url.full and url.query, exposing both apiSecret AND apiKey (key ID)
+        // to trace storage. Redact both on any outbound span — even the key ID
+        // is sensitive enough to keep out of long-lived span storage.
+        const redactCredentials = (value: string): string =>
+          value
+            .replace(/([?&]apiSecret=)[^&]*/g, '$1REDACTED')
+            .replace(/([?&]apiKey=)[^&]*/g, '$1REDACTED');
+
+        const urlFull = span.attributes?.['url.full'];
+        if (
+          typeof urlFull === 'string' &&
+          (urlFull.includes('apiSecret=') || urlFull.includes('apiKey='))
+        ) {
+          span.setAttribute('url.full', redactCredentials(urlFull));
+        }
+        const urlQuery = span.attributes?.['url.query'];
+        if (
+          typeof urlQuery === 'string' &&
+          (urlQuery.includes('apiSecret=') || urlQuery.includes('apiKey='))
+        ) {
+          span.setAttribute('url.query', redactCredentials(urlQuery));
+        }
       },
     },
     '@opentelemetry/instrumentation-fs': { enabled: false },

@@ -137,7 +137,7 @@ describe('generateSecrets (via runSetup)', () => {
     };
   }
 
-  it('should generate all 7 secrets when .env has all placeholders', async () => {
+  it('should generate all 6 secrets when .env has all placeholders', async () => {
     mockEnvFileContent = [
       '# INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=',
       '# INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=',
@@ -145,7 +145,6 @@ describe('generateSecrets (via runSetup)', () => {
       'BETTER_AUTH_SECRET=your-secret-key-change-in-production',
       'INKEEP_AGENTS_MANAGE_UI_PASSWORD=change-me-Pass!@1234',
       '# INKEEP_ANON_JWT_SECRET=',
-      '# INKEEP_POW_HMAC_SECRET=',
     ].join('\n');
 
     const { runSetup } = await import('../setup.js');
@@ -161,7 +160,6 @@ describe('generateSecrets (via runSetup)', () => {
     expect(writtenEnvContent).not.toContain('your-secret-key-change-in-production');
     expect(writtenEnvContent).not.toContain('change-me-Pass!@1234');
     expect(writtenEnvContent).toContain(`INKEEP_ANON_JWT_SECRET=${MOCK_HEX_32}`);
-    expect(writtenEnvContent).toContain(`INKEEP_POW_HMAC_SECRET=${MOCK_HEX_32}`);
   });
 
   it('should preserve all user-customized values', async () => {
@@ -172,7 +170,6 @@ describe('generateSecrets (via runSetup)', () => {
       'BETTER_AUTH_SECRET=my-custom-auth-secret',
       'INKEEP_AGENTS_MANAGE_UI_PASSWORD=my-strong-password',
       'INKEEP_ANON_JWT_SECRET=my-custom-anon-secret-that-is-32chars-long',
-      'INKEEP_POW_HMAC_SECRET=my-custom-pow-secret-that-is-32chars-long!',
     ].join('\n');
 
     const { runSetup } = await import('../setup.js');
@@ -189,7 +186,6 @@ describe('generateSecrets (via runSetup)', () => {
       'BETTER_AUTH_SECRET=your-secret-key-change-in-production',
       'INKEEP_AGENTS_MANAGE_UI_PASSWORD=my-strong-password',
       'INKEEP_ANON_JWT_SECRET=my-custom-anon-secret-that-is-32chars-long',
-      'INKEEP_POW_HMAC_SECRET=my-custom-pow-secret-that-is-32chars-long!',
     ].join('\n');
 
     const { runSetup } = await import('../setup.js');
@@ -211,7 +207,6 @@ describe('generateSecrets (via runSetup)', () => {
       'BETTER_AUTH_SECRET=',
       'INKEEP_AGENTS_MANAGE_UI_PASSWORD=',
       'INKEEP_ANON_JWT_SECRET=',
-      'INKEEP_POW_HMAC_SECRET=',
     ].join('\n');
 
     const { runSetup } = await import('../setup.js');
@@ -222,7 +217,6 @@ describe('generateSecrets (via runSetup)', () => {
     expect(writtenEnvContent).toContain(`INKEEP_AGENTS_MANAGE_UI_PASSWORD=${MOCK_PASSWORD}`);
     expect(writtenEnvContent).toContain('INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=existing-key');
     expect(writtenEnvContent).toContain(`INKEEP_ANON_JWT_SECRET=${MOCK_HEX_32}`);
-    expect(writtenEnvContent).toContain(`INKEEP_POW_HMAC_SECRET=${MOCK_HEX_32}`);
   });
 
   it('should append secrets when lines are missing from .env', async () => {
@@ -252,7 +246,6 @@ describe('generateSecrets (via runSetup)', () => {
       'BETTER_AUTH_SECRET=your-secret-key-change-in-production',
       'INKEEP_AGENTS_MANAGE_UI_PASSWORD=change-me-Pass!@1234',
       '# INKEEP_ANON_JWT_SECRET=',
-      '# INKEEP_POW_HMAC_SECRET=',
     ].join('\n');
 
     const { runSetup } = await import('../setup.js');
@@ -272,7 +265,6 @@ describe('generateSecrets (via runSetup)', () => {
     process.env.INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY = 'my-real-private-key';
     process.env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY = 'my-real-public-key';
     process.env.INKEEP_ANON_JWT_SECRET = 'my-custom-anon-secret';
-    process.env.INKEEP_POW_HMAC_SECRET = 'my-custom-pow-secret';
 
     mockEnvFileContent = [
       'INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=my-real-private-key',
@@ -281,7 +273,6 @@ describe('generateSecrets (via runSetup)', () => {
       'BETTER_AUTH_SECRET=my-real-secret',
       'INKEEP_AGENTS_MANAGE_UI_PASSWORD=my-strong-password',
       'INKEEP_ANON_JWT_SECRET=my-custom-anon-secret',
-      'INKEEP_POW_HMAC_SECRET=my-custom-pow-secret',
     ].join('\n');
 
     const { runSetup } = await import('../setup.js');

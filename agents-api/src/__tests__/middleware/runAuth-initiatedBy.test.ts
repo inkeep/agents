@@ -15,7 +15,6 @@ vi.mock('../../env.js', () => ({
     INKEEP_AGENTS_API_URL: 'http://localhost:3000',
     INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY: undefined,
     INKEEP_AGENTS_RUN_API_BYPASS_SECRET: undefined,
-    INKEEP_POW_HMAC_SECRET: undefined,
   },
 }));
 
@@ -33,8 +32,6 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     getAppById: vi.fn(() => vi.fn().mockResolvedValue(null)),
     updateAppLastUsed: vi.fn(() => vi.fn().mockResolvedValue(undefined)),
     validateOrigin: vi.fn().mockReturnValue(false),
-    verifyPoW: vi.fn().mockResolvedValue({ ok: false }),
-    getPoWErrorMessage: vi.fn().mockReturnValue('PoW failed'),
     isSlackUserToken: vi.fn().mockReturnValue(false),
     verifySlackUserToken: vi.fn().mockResolvedValue({ valid: false }),
   };

@@ -11,7 +11,6 @@ const {
   verifyTempTokenMock,
   canUseProjectStrictMock,
   validateTargetAgentMock,
-  verifyPoWMock,
 } = vi.hoisted(() => ({
   validateAndGetApiKeyMock: vi.fn(),
   getAppByIdMock: vi.fn(() => vi.fn()),
@@ -23,7 +22,6 @@ const {
   verifyTempTokenMock: vi.fn(),
   canUseProjectStrictMock: vi.fn(),
   validateTargetAgentMock: vi.fn(),
-  verifyPoWMock: vi.fn().mockResolvedValue({ ok: true }),
 }));
 
 const { jwtVerifyMock } = vi.hoisted(() => ({
@@ -46,16 +44,7 @@ vi.mock('@inkeep/agents-core', () => ({
   verifyTempToken: verifyTempTokenMock,
   canUseProjectStrict: canUseProjectStrictMock,
   validateTargetAgent: validateTargetAgentMock,
-  verifyPoW: verifyPoWMock,
   getInProcessFetch: () => vi.fn(),
-  getPoWErrorMessage: (error: string) => {
-    const messages: Record<string, string> = {
-      pow_expired: 'Proof-of-work challenge has expired.',
-      pow_required: 'Proof-of-work challenge solution is required.',
-      pow_invalid: 'Proof-of-work challenge solution is invalid.',
-    };
-    return messages[error] ?? 'Unknown PoW error';
-  },
   getLogger: () => ({
     debug: vi.fn(),
     error: vi.fn(),
@@ -141,7 +130,6 @@ describe('app prompt resolution via appId', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     verifyServiceTokenMock.mockResolvedValue({ valid: false, error: 'Invalid token' });
-    verifyPoWMock.mockResolvedValue({ ok: true });
     app = new Hono();
     app.use('*', async (c, next) => {
       c.set('db' as never, {});

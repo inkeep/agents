@@ -64,15 +64,32 @@ const createTestApiApp = async ({
 };
 
 describe('Anonymous Session Endpoint', () => {
-  let originalPowSecret: string | undefined;
+  let originalSentinelKeyId: string | undefined;
+  let originalSentinelKeySecret: string | undefined;
+  let originalSentinelBaseUrl: string | undefined;
+  let originalSentinelV1KeyId: string | undefined;
+  let originalSentinelV1KeySecret: string | undefined;
 
   beforeEach(() => {
-    originalPowSecret = env.INKEEP_POW_HMAC_SECRET;
-    (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = undefined;
+    originalSentinelKeyId = env.INKEEP_SENTINEL_API_KEY_ID;
+    originalSentinelKeySecret = env.INKEEP_SENTINEL_API_KEY_SECRET;
+    originalSentinelBaseUrl = env.INKEEP_SENTINEL_BASE_URL;
+    originalSentinelV1KeyId = env.INKEEP_SENTINEL_V1_API_KEY_ID;
+    originalSentinelV1KeySecret = env.INKEEP_SENTINEL_V1_API_KEY_SECRET;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_API_KEY_ID = undefined;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_API_KEY_SECRET = undefined;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_BASE_URL = undefined;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_V1_API_KEY_ID = undefined;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_V1_API_KEY_SECRET = undefined;
   });
 
   afterEach(() => {
-    (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = originalPowSecret;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_API_KEY_ID = originalSentinelKeyId;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_API_KEY_SECRET = originalSentinelKeySecret;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_BASE_URL = originalSentinelBaseUrl;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_V1_API_KEY_ID = originalSentinelV1KeyId;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_V1_API_KEY_SECRET =
+      originalSentinelV1KeySecret;
   });
 
   describe('POST /run/auth/apps/{appId}/anonymous-session', () => {
@@ -309,15 +326,32 @@ describe('Anonymous Session Endpoint', () => {
 });
 
 describe('Anonymous Session — allowAnonymous enforcement', () => {
-  let originalPowSecret: string | undefined;
+  let originalSentinelKeyId: string | undefined;
+  let originalSentinelKeySecret: string | undefined;
+  let originalSentinelBaseUrl: string | undefined;
+  let originalSentinelV1KeyId: string | undefined;
+  let originalSentinelV1KeySecret: string | undefined;
 
   beforeEach(() => {
-    originalPowSecret = env.INKEEP_POW_HMAC_SECRET;
-    (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = undefined;
+    originalSentinelKeyId = env.INKEEP_SENTINEL_API_KEY_ID;
+    originalSentinelKeySecret = env.INKEEP_SENTINEL_API_KEY_SECRET;
+    originalSentinelBaseUrl = env.INKEEP_SENTINEL_BASE_URL;
+    originalSentinelV1KeyId = env.INKEEP_SENTINEL_V1_API_KEY_ID;
+    originalSentinelV1KeySecret = env.INKEEP_SENTINEL_V1_API_KEY_SECRET;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_API_KEY_ID = undefined;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_API_KEY_SECRET = undefined;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_BASE_URL = undefined;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_V1_API_KEY_ID = undefined;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_V1_API_KEY_SECRET = undefined;
   });
 
   afterEach(() => {
-    (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = originalPowSecret;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_API_KEY_ID = originalSentinelKeyId;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_API_KEY_SECRET = originalSentinelKeySecret;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_BASE_URL = originalSentinelBaseUrl;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_V1_API_KEY_ID = originalSentinelV1KeyId;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_V1_API_KEY_SECRET =
+      originalSentinelV1KeySecret;
   });
 
   const setAllowAnonymous = async (
@@ -438,15 +472,32 @@ describe('Anonymous Session — allowAnonymous enforcement', () => {
 });
 
 describe('Anonymous Session Rolling Refresh', () => {
-  let originalPowSecret: string | undefined;
+  let originalSentinelKeyId: string | undefined;
+  let originalSentinelKeySecret: string | undefined;
+  let originalSentinelBaseUrl: string | undefined;
+  let originalSentinelV1KeyId: string | undefined;
+  let originalSentinelV1KeySecret: string | undefined;
 
   beforeEach(() => {
-    originalPowSecret = env.INKEEP_POW_HMAC_SECRET;
-    (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = undefined;
+    originalSentinelKeyId = env.INKEEP_SENTINEL_API_KEY_ID;
+    originalSentinelKeySecret = env.INKEEP_SENTINEL_API_KEY_SECRET;
+    originalSentinelBaseUrl = env.INKEEP_SENTINEL_BASE_URL;
+    originalSentinelV1KeyId = env.INKEEP_SENTINEL_V1_API_KEY_ID;
+    originalSentinelV1KeySecret = env.INKEEP_SENTINEL_V1_API_KEY_SECRET;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_API_KEY_ID = undefined;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_API_KEY_SECRET = undefined;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_BASE_URL = undefined;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_V1_API_KEY_ID = undefined;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_V1_API_KEY_SECRET = undefined;
   });
 
   afterEach(() => {
-    (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = originalPowSecret;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_API_KEY_ID = originalSentinelKeyId;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_API_KEY_SECRET = originalSentinelKeySecret;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_BASE_URL = originalSentinelBaseUrl;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_V1_API_KEY_ID = originalSentinelV1KeyId;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_V1_API_KEY_SECRET =
+      originalSentinelV1KeySecret;
   });
 
   it('should preserve anonymous identity when valid Bearer token is provided', async () => {
@@ -737,242 +788,5 @@ describe('Anonymous Session Rolling Refresh', () => {
     });
     expect(payload.sub).not.toBe('anon_bad-sig-user');
     expect(payload.sub).toMatch(/^anon_/);
-  });
-});
-
-const TEST_POW_SECRET = 'test-pow-hmac-secret-that-is-at-least-32-characters-long';
-
-describe('Anonymous Session PoW Enforcement', () => {
-  describe('POST /run/auth/apps/{appId}/anonymous-session with PoW', () => {
-    let originalSecret: string | undefined;
-
-    beforeEach(() => {
-      originalSecret = env.INKEEP_POW_HMAC_SECRET;
-    });
-
-    afterEach(() => {
-      (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = originalSecret;
-    });
-
-    it('should succeed when PoW is disabled (no HMAC secret)', async () => {
-      (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = undefined;
-
-      const tenantId = await createTestTenantWithOrg('anon-pow-disabled');
-      const projectId = 'default-project';
-      await createTestProject(manageDbClient, tenantId, projectId);
-      const appRecord = await createTestWebClientApp({ tenantId, projectId });
-
-      const res = await app.request(`/run/auth/apps/${appRecord.id}/anonymous-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Origin: 'https://help.customer.com',
-        },
-      });
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.token).toBeDefined();
-    });
-
-    it('should return 400 with human-readable message when PoW header is missing', async () => {
-      (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = TEST_POW_SECRET;
-
-      const tenantId = await createTestTenantWithOrg('anon-pow-required');
-      const projectId = 'default-project';
-      await createTestProject(manageDbClient, tenantId, projectId);
-      const appRecord = await createTestWebClientApp({ tenantId, projectId });
-
-      const res = await app.request(`/run/auth/apps/${appRecord.id}/anonymous-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Origin: 'https://help.customer.com',
-        },
-      });
-
-      expect(res.status).toBe(400);
-      const body = await res.json();
-      expect(body.error.code).toBe('bad_request');
-      expect(body.error.message).toBe('Proof-of-work challenge solution is required.');
-    });
-
-    it('should return 400 with human-readable message when PoW solution is invalid', async () => {
-      (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = TEST_POW_SECRET;
-
-      const tenantId = await createTestTenantWithOrg('anon-pow-invalid');
-      const projectId = 'default-project';
-      await createTestProject(manageDbClient, tenantId, projectId);
-      const appRecord = await createTestWebClientApp({ tenantId, projectId });
-
-      const res = await app.request(`/run/auth/apps/${appRecord.id}/anonymous-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Origin: 'https://help.customer.com',
-          'X-Inkeep-Challenge-Solution': 'invalid-base64-garbage',
-        },
-      });
-
-      expect(res.status).toBe(400);
-      const body = await res.json();
-      expect(body.error.code).toBe('bad_request');
-      expect(body.error.message).toBe('Proof-of-work challenge solution is invalid.');
-    });
-
-    it('should return 400 with expiry message when PoW solution is expired', async () => {
-      const { createChallenge, solveChallenge } = await import('altcha-lib');
-
-      (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = TEST_POW_SECRET;
-
-      const tenantId = await createTestTenantWithOrg('anon-pow-expired');
-      const projectId = 'default-project';
-      await createTestProject(manageDbClient, tenantId, projectId);
-      const appRecord = await createTestWebClientApp({ tenantId, projectId });
-
-      const challenge = await createChallenge({
-        hmacKey: TEST_POW_SECRET,
-        algorithm: 'SHA-256',
-        maxnumber: 1000,
-        expires: new Date(Date.now() - 1000),
-      });
-
-      const { promise: solutionPromise } = solveChallenge(
-        challenge.challenge,
-        challenge.salt,
-        challenge.algorithm,
-        challenge.maxnumber
-      );
-      const solution = await solutionPromise;
-
-      const payload = btoa(
-        JSON.stringify({
-          algorithm: challenge.algorithm,
-          challenge: challenge.challenge,
-          number: solution?.number,
-          salt: challenge.salt,
-          signature: challenge.signature,
-        })
-      );
-
-      const res = await app.request(`/run/auth/apps/${appRecord.id}/anonymous-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Origin: 'https://help.customer.com',
-          'X-Inkeep-Challenge-Solution': payload,
-        },
-      });
-
-      expect(res.status).toBe(400);
-      const body = await res.json();
-      expect(body.error.code).toBe('bad_request');
-      expect(body.error.message).toBe(
-        'Proof-of-work challenge has expired. Please request a new challenge.'
-      );
-    });
-
-    it('should succeed with valid PoW solution', async () => {
-      const { createChallenge, solveChallenge } = await import('altcha-lib');
-
-      (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = TEST_POW_SECRET;
-
-      const tenantId = await createTestTenantWithOrg('anon-pow-valid');
-      const projectId = 'default-project';
-      await createTestProject(manageDbClient, tenantId, projectId);
-      const appRecord = await createTestWebClientApp({ tenantId, projectId });
-
-      const challenge = await createChallenge({
-        hmacKey: TEST_POW_SECRET,
-        algorithm: 'SHA-256',
-        maxnumber: 1000,
-        expires: new Date(Date.now() + 300_000),
-      });
-
-      const { promise: solutionPromise } = solveChallenge(
-        challenge.challenge,
-        challenge.salt,
-        challenge.algorithm,
-        challenge.maxnumber
-      );
-      const solution = await solutionPromise;
-
-      const payload = btoa(
-        JSON.stringify({
-          algorithm: challenge.algorithm,
-          challenge: challenge.challenge,
-          number: solution?.number,
-          salt: challenge.salt,
-          signature: challenge.signature,
-        })
-      );
-
-      const res = await app.request(`/run/auth/apps/${appRecord.id}/anonymous-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Origin: 'https://help.customer.com',
-          'X-Inkeep-Challenge-Solution': payload,
-        },
-      });
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.token).toBeDefined();
-      expect(body.expiresAt).toBeDefined();
-    });
-  });
-});
-
-describe('PoW Challenge Endpoint', () => {
-  describe('GET /run/auth/pow/challenge', () => {
-    let originalSecret: string | undefined;
-
-    beforeEach(() => {
-      originalSecret = env.INKEEP_POW_HMAC_SECRET;
-    });
-
-    afterEach(() => {
-      (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = originalSecret;
-    });
-
-    it('should return 404 when PoW is disabled', async () => {
-      (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = undefined;
-
-      const res = await app.request('/run/auth/pow/challenge', { method: 'GET' });
-
-      expect(res.status).toBe(404);
-      const body = await res.json();
-      expect(body.error.code).toBe('not_found');
-      expect(body.error.message).toBe('PoW is not enabled');
-    });
-
-    it('should return a valid challenge when PoW is enabled', async () => {
-      (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = TEST_POW_SECRET;
-
-      const res = await app.request('/run/auth/pow/challenge', { method: 'GET' });
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.algorithm).toBe('SHA-256');
-      expect(body.challenge).toBeDefined();
-      expect(typeof body.challenge).toBe('string');
-      expect(body.maxnumber).toBeDefined();
-      expect(typeof body.maxnumber).toBe('number');
-      expect(body.salt).toBeDefined();
-      expect(typeof body.salt).toBe('string');
-      expect(body.signature).toBeDefined();
-      expect(typeof body.signature).toBe('string');
-    });
-
-    it('should return challenges with expires encoded in salt', async () => {
-      (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = TEST_POW_SECRET;
-
-      const res = await app.request('/run/auth/pow/challenge', { method: 'GET' });
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.salt).toContain('expires=');
-    });
   });
 });

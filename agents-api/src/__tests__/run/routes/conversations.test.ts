@@ -82,15 +82,23 @@ const createTestConversation = async ({
 };
 
 describe('Run API - End-User Conversation History', () => {
-  let originalPowSecret: string | undefined;
+  let originalSentinelKeyId: string | undefined;
+  let originalSentinelKeySecret: string | undefined;
+  let originalSentinelBaseUrl: string | undefined;
 
   beforeEach(() => {
-    originalPowSecret = env.INKEEP_POW_HMAC_SECRET;
-    (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = undefined;
+    originalSentinelKeyId = env.INKEEP_SENTINEL_API_KEY_ID;
+    originalSentinelKeySecret = env.INKEEP_SENTINEL_API_KEY_SECRET;
+    originalSentinelBaseUrl = env.INKEEP_SENTINEL_BASE_URL;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_API_KEY_ID = undefined;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_API_KEY_SECRET = undefined;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_BASE_URL = undefined;
   });
 
   afterEach(() => {
-    (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = originalPowSecret;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_API_KEY_ID = originalSentinelKeyId;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_API_KEY_SECRET = originalSentinelKeySecret;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_BASE_URL = originalSentinelBaseUrl;
   });
 
   describe('GET /run/v1/conversations', () => {
