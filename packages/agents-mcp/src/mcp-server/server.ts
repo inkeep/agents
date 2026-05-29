@@ -58,7 +58,6 @@ import { tool$artifactComponentsGetArtifactComponentById } from "./tools/artifac
 import { tool$artifactComponentsListArtifactComponents } from "./tools/artifactComponentsListArtifactComponents.js";
 import { tool$artifactComponentsUpdateArtifactComponent } from "./tools/artifactComponentsUpdateArtifactComponent.js";
 import { tool$authCreateAnonymousSession } from "./tools/authCreateAnonymousSession.js";
-import { tool$authGetPowChallenge } from "./tools/authGetPowChallenge.js";
 import { tool$branchesCreateBranch } from "./tools/branchesCreateBranch.js";
 import { tool$branchesDeleteBranch } from "./tools/branchesDeleteBranch.js";
 import { tool$branchesGetBranch } from "./tools/branchesGetBranch.js";
@@ -637,7 +636,6 @@ export function createMCPServer(deps: {
   tool(tool$oAuthMcpOauthCallback);
   tool(tool$oAuthSlackInstall);
   tool(tool$oAuthSlackOauthRedirect);
-  tool(tool$authGetPowChallenge);
   tool(tool$authCreateAnonymousSession);
   tool(
     tool$webhooksPostRunTenantsTenantIdProjectsProjectIdAgentsAgentIdTriggersTriggerId,

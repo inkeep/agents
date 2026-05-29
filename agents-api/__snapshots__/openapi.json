@@ -6831,6 +6831,62 @@
         ],
         "type": "object"
       },
+      "LegacyPowIsNotEnabled": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProblemDetails"
+          },
+          {
+            "properties": {
+              "code": {
+                "description": "A short code indicating the error code returned.",
+                "enum": [
+                  "not_found"
+                ],
+                "example": "not_found",
+                "type": "string"
+              },
+              "detail": {
+                "description": "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong.",
+                "example": "Legacy PoW is not enabled",
+                "type": "string"
+              },
+              "error": {
+                "description": "Legacy error format for backward compatibility.",
+                "properties": {
+                  "code": {
+                    "description": "A short code indicating the error code returned.",
+                    "enum": [
+                      "not_found"
+                    ],
+                    "example": "not_found",
+                    "type": "string"
+                  },
+                  "message": {
+                    "description": "A concise error message suitable for display to end users. May be truncated if the full detail is long.",
+                    "example": "Legacy PoW is not enabled",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "type": "object"
+              },
+              "title": {
+                "description": "A short, human-readable summary of the problem type.",
+                "example": "Not Found",
+                "type": "string"
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "type": "object"
+          }
+        ]
+      },
       "MCPCatalogListResponse": {
         "properties": {
           "data": {
@@ -7596,6 +7652,67 @@
           }
         ]
       },
+      "OriginNotAllowed": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProblemDetails"
+          },
+          {
+            "properties": {
+              "code": {
+                "description": "A short code indicating the error code returned.",
+                "enum": [
+                  "forbidden"
+                ],
+                "example": "forbidden",
+                "type": "string"
+              },
+              "detail": {
+                "description": "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong.",
+                "example": "Origin not allowed",
+                "type": "string"
+              },
+              "error": {
+                "description": "Legacy error format for backward compatibility.",
+                "properties": {
+                  "code": {
+                    "description": "A short code indicating the error code returned.",
+                    "enum": [
+                      "forbidden"
+                    ],
+                    "example": "forbidden",
+                    "type": "string"
+                  },
+                  "message": {
+                    "description": "A concise error message suitable for display to end users. May be truncated if the full detail is long.",
+                    "example": "Origin not allowed",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "type": "object"
+              },
+              "status": {
+                "description": "The HTTP status code.",
+                "example": 403,
+                "type": "integer"
+              },
+              "title": {
+                "description": "A short, human-readable summary of the problem type.",
+                "example": "Forbidden",
+                "type": "string"
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "type": "object"
+          }
+        ]
+      },
       "OutputContract": {
         "additionalProperties": {
           "nullable": true
@@ -7743,59 +7860,6 @@
         ],
         "type": "object"
       },
-      "PowChallengeResponse": {
-        "properties": {
-          "algorithm": {
-            "example": "SHA-256",
-            "type": "string"
-          },
-          "challenge": {
-            "type": "string"
-          },
-          "maxnumber": {
-            "type": "number"
-          },
-          "salt": {
-            "type": "string"
-          },
-          "signature": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "algorithm",
-          "challenge",
-          "salt",
-          "signature"
-        ],
-        "type": "object"
-      },
-      "PowDisabledError": {
-        "properties": {
-          "error": {
-            "properties": {
-              "code": {
-                "enum": [
-                  "not_found"
-                ],
-                "type": "string"
-              },
-              "message": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "code",
-              "message"
-            ],
-            "type": "object"
-          }
-        },
-        "required": [
-          "error"
-        ],
-        "type": "object"
-      },
       "ProblemDetails": {
         "properties": {
           "code": {
@@ -7809,7 +7873,9 @@
               "conflict",
               "too_many_requests",
               "internal_server_error",
-              "unprocessable_entity"
+              "unprocessable_entity",
+              "bad_gateway",
+              "service_unavailable"
             ],
             "example": "not_found",
             "type": "string"
@@ -8821,6 +8887,123 @@
           "pagination"
         ],
         "type": "object"
+      },
+      "SentinelIsNotEnabledOrAppNotFound": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProblemDetails"
+          },
+          {
+            "properties": {
+              "code": {
+                "description": "A short code indicating the error code returned.",
+                "enum": [
+                  "not_found"
+                ],
+                "example": "not_found",
+                "type": "string"
+              },
+              "detail": {
+                "description": "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong.",
+                "example": "Sentinel is not enabled or app not found",
+                "type": "string"
+              },
+              "error": {
+                "description": "Legacy error format for backward compatibility.",
+                "properties": {
+                  "code": {
+                    "description": "A short code indicating the error code returned.",
+                    "enum": [
+                      "not_found"
+                    ],
+                    "example": "not_found",
+                    "type": "string"
+                  },
+                  "message": {
+                    "description": "A concise error message suitable for display to end users. May be truncated if the full detail is long.",
+                    "example": "Sentinel is not enabled or app not found",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "type": "object"
+              },
+              "title": {
+                "description": "A short, human-readable summary of the problem type.",
+                "example": "Not Found",
+                "type": "string"
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "SentinelUpstreamError": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProblemDetails"
+          },
+          {
+            "properties": {
+              "code": {
+                "description": "A short code indicating the error code returned.",
+                "enum": [
+                  "bad_gateway"
+                ],
+                "example": "bad_gateway",
+                "type": "string"
+              },
+              "detail": {
+                "description": "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong.",
+                "example": "Sentinel upstream error",
+                "type": "string"
+              },
+              "error": {
+                "description": "Legacy error format for backward compatibility.",
+                "properties": {
+                  "code": {
+                    "description": "A short code indicating the error code returned.",
+                    "enum": [
+                      "bad_gateway"
+                    ],
+                    "example": "bad_gateway",
+                    "type": "string"
+                  },
+                  "message": {
+                    "description": "A concise error message suitable for display to end users. May be truncated if the full detail is long.",
+                    "example": "Sentinel upstream error",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "type": "object"
+              },
+              "status": {
+                "description": "The HTTP status code.",
+                "example": 502,
+                "type": "integer"
+              },
+              "title": {
+                "description": "A short, human-readable summary of the problem type.",
+                "example": "Bad Gateway",
+                "type": "string"
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "type": "object"
+          }
+        ]
       },
       "SetScheduledTriggerUsersRequest": {
         "properties": {
@@ -50439,32 +50622,243 @@
     },
     "/run/auth/pow/challenge": {
       "get": {
-        "description": "Fetch an ALTCHA Proof-of-Work challenge. Returns 404 when PoW is not enabled on the server.",
+        "description": "Compatibility proxy to ALTCHA Sentinel PoW v1 (classic proof-of-work) for embedded widgets predating the Sentinel rename. Returns 404 when Sentinel PoW v1 is not configured.",
         "operationId": "get-pow-challenge",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PowChallengeResponse"
+                  "nullable": true
                 }
               }
             },
-            "description": "PoW challenge generated successfully"
+            "description": "Legacy PoW challenge returned"
           },
           "404": {
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PowDisabledError"
+                  "$ref": "#/components/schemas/LegacyPowIsNotEnabled"
                 }
               }
             },
-            "description": "PoW is not enabled"
+            "description": "Legacy PoW is not enabled"
+          },
+          "502": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SentinelUpstreamError"
+                }
+              }
+            },
+            "description": "Sentinel upstream error"
           }
         },
         "security": [],
-        "summary": "Get PoW Challenge",
+        "summary": "Get Legacy PoW Challenge",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/run/auth/sentinel/challenge": {
+      "get": {
+        "description": "Proxy to ALTCHA Sentinel challenge endpoint. Returns 404 when Sentinel is not configured.",
+        "operationId": "get-sentinel-challenge",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "appId",
+            "required": true,
+            "schema": {
+              "example": "app_a1b2c3d4e5f6",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "endpointClass",
+            "required": false,
+            "schema": {
+              "example": "chat",
+              "maxLength": 32,
+              "pattern": "^[a-z0-9-]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": true
+                }
+              }
+            },
+            "description": "Sentinel challenge returned"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OriginNotAllowed"
+                }
+              }
+            },
+            "description": "Origin not allowed"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SentinelIsNotEnabledOrAppNotFound"
+                }
+              }
+            },
+            "description": "Sentinel is not enabled or app not found"
+          },
+          "502": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SentinelUpstreamError"
+                }
+              }
+            },
+            "description": "Sentinel upstream error"
+          }
+        },
+        "security": [],
+        "summary": "Get Sentinel Challenge",
+        "tags": [
+          "Auth"
+        ]
+      },
+      "post": {
+        "description": "Proxy POST to ALTCHA Sentinel challenge endpoint (HIS interaction data). Returns 404 when Sentinel is not configured.",
+        "operationId": "post-sentinel-challenge",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "appId",
+            "required": true,
+            "schema": {
+              "example": "app_a1b2c3d4e5f6",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": true
+                }
+              }
+            },
+            "description": "Sentinel challenge returned"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OriginNotAllowed"
+                }
+              }
+            },
+            "description": "Origin not allowed"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SentinelIsNotEnabledOrAppNotFound"
+                }
+              }
+            },
+            "description": "Sentinel is not enabled or app not found"
+          },
+          "502": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SentinelUpstreamError"
+                }
+              }
+            },
+            "description": "Sentinel upstream error"
+          }
+        },
+        "security": [],
+        "summary": "Post Sentinel HIS Challenge",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/run/auth/sentinel/verify": {
+      "post": {
+        "description": "Proxy to ALTCHA Sentinel verification endpoint.",
+        "operationId": "verify-sentinel",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "appId",
+            "required": true,
+            "schema": {
+              "example": "app_a1b2c3d4e5f6",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": true
+                }
+              }
+            },
+            "description": "Sentinel verification result"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OriginNotAllowed"
+                }
+              }
+            },
+            "description": "Origin not allowed"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SentinelIsNotEnabledOrAppNotFound"
+                }
+              }
+            },
+            "description": "Sentinel is not enabled or app not found"
+          },
+          "502": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SentinelUpstreamError"
+                }
+              }
+            },
+            "description": "Sentinel upstream error"
+          }
+        },
+        "security": [],
+        "summary": "Verify Sentinel Payload",
         "tags": [
           "Auth"
         ]

@@ -15,7 +15,9 @@ vi.mock('../../env.js', () => ({
     INKEEP_AGENTS_API_URL: 'http://localhost:3000',
     INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY: undefined,
     INKEEP_AGENTS_RUN_API_BYPASS_SECRET: undefined,
-    INKEEP_POW_HMAC_SECRET: undefined,
+    INKEEP_SENTINEL_API_KEY_ID: 'test-sentinel-key-id',
+    INKEEP_SENTINEL_API_KEY_SECRET: 'test-sentinel-secret',
+    INKEEP_SENTINEL_BASE_URL: 'https://test-sentinel.example.com',
   },
 }));
 
@@ -27,14 +29,21 @@ const {
   mockGetAppById,
   mockGetAgentById,
   mockValidateOrigin,
-  mockVerifyPoW,
   mockCanUseProjectStrict,
+  mockVerifySentinelPayload,
+  mockIsSentinelEnabled,
 } = vi.hoisted(() => ({
   mockGetAppById: vi.fn(() => vi.fn().mockResolvedValue(null)),
   mockGetAgentById: vi.fn(() => vi.fn().mockResolvedValue({ id: 'agent-1' })),
   mockValidateOrigin: vi.fn().mockReturnValue(true),
-  mockVerifyPoW: vi.fn().mockResolvedValue({ ok: true }),
   mockCanUseProjectStrict: vi.fn().mockResolvedValue(true),
+  mockVerifySentinelPayload: vi.fn().mockResolvedValue({
+    ok: true,
+    classification: 'good',
+    score: 0.99,
+    verificationId: 'test-verification-id',
+  }),
+  mockIsSentinelEnabled: vi.fn().mockReturnValue(true),
 }));
 
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
@@ -47,10 +56,10 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     getAppById: mockGetAppById,
     updateAppLastUsed: vi.fn(() => vi.fn().mockResolvedValue(undefined)),
     validateOrigin: mockValidateOrigin,
-    verifyPoW: mockVerifyPoW,
-    getPoWErrorMessage: vi.fn().mockReturnValue('PoW failed'),
     isSlackUserToken: vi.fn().mockReturnValue(false),
     verifySlackUserToken: vi.fn().mockResolvedValue({ valid: false }),
+    verifySentinelPayload: mockVerifySentinelPayload,
+    isSentinelEnabled: mockIsSentinelEnabled,
   };
 });
 
@@ -139,8 +148,14 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     mockValidateOrigin.mockReturnValue(true);
-    mockVerifyPoW.mockResolvedValue({ ok: true });
     mockCanUseProjectStrict.mockResolvedValue(true);
+    mockIsSentinelEnabled.mockReturnValue(true);
+    mockVerifySentinelPayload.mockResolvedValue({
+      ok: true,
+      classification: 'good',
+      score: 0.99,
+      verificationId: 'test-verification-id',
+    });
 
     const rsaPair = await generateKeyPair('RS256', { extractable: true });
     rsaPublicKeyPem = await exportSPKI(rsaPair.publicKey);
@@ -961,6 +976,317 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
       expect(res.status).toBe(403);
       const body = await res.json();
       expect(body.detail).toContain('not authorized for this app');
+    });
+  });
+
+  describe('Sentinel scoring on authenticated requests', () => {
+    async function makeAuthenticatedAppAndToken() {
+      const app = makeAppWithAuth([
+        {
+          kid: 'sentinel-test-key',
+          publicKey: rsaPublicKeyPem,
+          algorithm: 'RS256',
+          addedAt: new Date().toISOString(),
+        },
+      ]);
+      mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(app));
+      const token = await signJwt(
+        rsaPrivateKey,
+        'RS256',
+        {},
+        { kid: 'sentinel-test-key', sub: 'user_authed' }
+      );
+      return { app, token };
+    }
+
+    function makeSentinelHeader(payload: string = 'test-sentinel-payload') {
+      return btoa(JSON.stringify({ payload }));
+    }
+
+    it('should verify Sentinel payload on authenticated POST and allow when classification=good', async () => {
+      const { token } = await makeAuthenticatedAppAndToken();
+
+      const { app: testApp, getContext } = createTestApp();
+      const res = await testApp.request('/test', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          'x-inkeep-challenge-solution': makeSentinelHeader(),
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockVerifySentinelPayload).toHaveBeenCalledTimes(1);
+      expect(mockVerifySentinelPayload).toHaveBeenCalledWith(
+        'test-sentinel-payload',
+        'https://test-sentinel.example.com',
+        'test-sentinel-key-id',
+        'test-sentinel-secret'
+      );
+      expect(getContext()?.metadata?.authMethod).toBe('app_credential_web_client_authenticated');
+    });
+
+    it('should reject with 403 when Sentinel returns verified=false (bot detected)', async () => {
+      mockVerifySentinelPayload.mockResolvedValueOnce({
+        ok: false,
+        error: 'sentinel_rejected',
+        reason: 'bot_detected',
+      });
+      const { token } = await makeAuthenticatedAppAndToken();
+
+      const { app: testApp } = createTestApp();
+      const res = await testApp.request('/test', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          'x-inkeep-challenge-solution': makeSentinelHeader(),
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(403);
+      const body = await res.text();
+      expect(body).toContain('Bot protection verification failed');
+    });
+
+    it('should allow request through when Sentinel header is absent (widget mid-solve)', async () => {
+      const { token } = await makeAuthenticatedAppAndToken();
+
+      const { app: testApp, getContext } = createTestApp();
+      const res = await testApp.request('/test', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockVerifySentinelPayload).not.toHaveBeenCalled();
+      expect(getContext()?.metadata?.authMethod).toBe('app_credential_web_client_authenticated');
+    });
+
+    it('should skip Sentinel check on GET requests', async () => {
+      const { token } = await makeAuthenticatedAppAndToken();
+
+      const { app: testApp } = createTestApp();
+      const res = await testApp.request('/test', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          'x-inkeep-challenge-solution': makeSentinelHeader(),
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockVerifySentinelPayload).not.toHaveBeenCalled();
+    });
+
+    it('should skip Sentinel check when Sentinel is not configured', async () => {
+      mockIsSentinelEnabled.mockReturnValueOnce(false);
+      const { token } = await makeAuthenticatedAppAndToken();
+
+      const { app: testApp } = createTestApp();
+      const res = await testApp.request('/test', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          'x-inkeep-challenge-solution': makeSentinelHeader(),
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockVerifySentinelPayload).not.toHaveBeenCalled();
+    });
+
+    it('should allow request through when Sentinel upstream errors (fail-open on transient errors)', async () => {
+      // verifySentinelPayload handles network errors internally and returns a Result;
+      // it does not throw. Fail-open is triggered by the upstream-error error codes
+      // (sentinel_network_error, sentinel_invalid_response) classified by
+      // isSentinelUpstreamUnavailable.
+      mockVerifySentinelPayload.mockResolvedValueOnce({
+        ok: false,
+        error: 'sentinel_network_error',
+        reason: 'Connection timeout',
+      });
+      const { token } = await makeAuthenticatedAppAndToken();
+
+      const { app: testApp, getContext } = createTestApp();
+      const res = await testApp.request('/test', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          'x-inkeep-challenge-solution': makeSentinelHeader(),
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockVerifySentinelPayload).toHaveBeenCalledTimes(1);
+      expect(getContext()?.metadata?.authMethod).toBe('app_credential_web_client_authenticated');
+    });
+
+    it('should propagate unexpected exceptions instead of silently failing open', async () => {
+      // verifySentinelPayload should never throw — it returns Result types. If a
+      // programming bug (TypeError, ReferenceError, etc.) escapes from the function,
+      // it must NOT be caught and mapped to fail-open. Doing so would create the very
+      // bypass we're trying to prevent (attacker triggers an unexpected exception →
+      // request proceeds as if Sentinel approved).
+      mockVerifySentinelPayload.mockRejectedValueOnce(new TypeError('programming bug'));
+      const { token } = await makeAuthenticatedAppAndToken();
+
+      const { app: testApp } = createTestApp();
+      const res = await testApp.request('/test', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          'x-inkeep-challenge-solution': makeSentinelHeader(),
+          Origin: 'https://example.com',
+        },
+      });
+
+      // 500 is correct here — an unhandled exception from the verification path is a
+      // server error, not a fail-open path.
+      expect(res.status).toBe(500);
+    });
+
+    it('should reject with 400 when challenge header is malformed', async () => {
+      const { token } = await makeAuthenticatedAppAndToken();
+
+      const { app: testApp } = createTestApp();
+      const res = await testApp.request('/test', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          'x-inkeep-challenge-solution': 'not-base64-json',
+          Origin: 'https://example.com',
+        },
+      });
+
+      // Malformed header is fail-closed: legit widgets always produce valid
+      // headers, so junk indicates a bypass attempt rather than a transient issue.
+      expect(res.status).toBe(400);
+      expect(mockVerifySentinelPayload).not.toHaveBeenCalled();
+    });
+
+    it('should reject with 400 when challenge header decodes to JSON without a payload field', async () => {
+      const { token } = await makeAuthenticatedAppAndToken();
+
+      const { app: testApp } = createTestApp();
+      const res = await testApp.request('/test', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          // Structurally valid base64-encoded JSON, but no `payload` field.
+          // Previously bypassed Sentinel verification silently; must now be rejected.
+          'x-inkeep-challenge-solution': btoa(JSON.stringify({ notPayload: 'anything' })),
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(400);
+      expect(mockVerifySentinelPayload).not.toHaveBeenCalled();
+    });
+
+    it('should fail open when Sentinel returns sentinel_network_error (upstream unavailable)', async () => {
+      mockVerifySentinelPayload.mockResolvedValueOnce({
+        ok: false,
+        error: 'sentinel_network_error',
+        reason: 'fetch failed',
+      });
+      const { token } = await makeAuthenticatedAppAndToken();
+
+      const { app: testApp, getContext } = createTestApp();
+      const res = await testApp.request('/test', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          'x-inkeep-challenge-solution': makeSentinelHeader(),
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(getContext()?.metadata?.authMethod).toBe('app_credential_web_client_authenticated');
+    });
+
+    it('should fail open when Sentinel returns sentinel_invalid_response', async () => {
+      mockVerifySentinelPayload.mockResolvedValueOnce({
+        ok: false,
+        error: 'sentinel_invalid_response',
+        reason: 'Non-JSON response (HTTP 502)',
+      });
+      const { token } = await makeAuthenticatedAppAndToken();
+
+      const { app: testApp } = createTestApp();
+      const res = await testApp.request('/test', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          'x-inkeep-challenge-solution': makeSentinelHeader(),
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(200);
+    });
+
+    it('should fail closed (403) when Sentinel returns sentinel_verify_failed', async () => {
+      mockVerifySentinelPayload.mockResolvedValueOnce({
+        ok: false,
+        error: 'sentinel_verify_failed',
+        reason: 'HTTP 400',
+      });
+      const { token } = await makeAuthenticatedAppAndToken();
+
+      const { app: testApp } = createTestApp();
+      const res = await testApp.request('/test', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          'x-inkeep-challenge-solution': makeSentinelHeader(),
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('should fail closed (403) when Sentinel returns sentinel_rejected (bot detected)', async () => {
+      mockVerifySentinelPayload.mockResolvedValueOnce({
+        ok: false,
+        error: 'sentinel_rejected',
+        reason: 'bot_detected',
+      });
+      const { token } = await makeAuthenticatedAppAndToken();
+
+      const { app: testApp } = createTestApp();
+      const res = await testApp.request('/test', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          'x-inkeep-challenge-solution': makeSentinelHeader(),
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(403);
     });
   });
 });

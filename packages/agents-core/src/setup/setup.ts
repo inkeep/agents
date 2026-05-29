@@ -360,11 +360,6 @@ async function generateSecrets() {
       placeholders: [],
       generate: () => randomBytes(32).toString('hex'),
     },
-    {
-      varName: 'INKEEP_POW_HMAC_SECRET',
-      placeholders: [],
-      generate: () => randomBytes(32).toString('hex'),
-    },
   ];
 
   for (const { varName, placeholders, generate } of secretDefs) {

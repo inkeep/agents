@@ -261,9 +261,6 @@ importers:
       ajv:
         specifier: ^8.18.0
         version: 8.18.0
-      altcha-lib:
-        specifier: ^1.4.1
-        version: 1.4.1
       cron-parser:
         specifier: ^5.5.0
         version: 5.5.0

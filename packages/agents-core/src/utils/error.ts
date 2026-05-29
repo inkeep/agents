@@ -98,6 +98,8 @@ export const ErrorCode = z.enum([
   'too_many_requests',
   'internal_server_error',
   'unprocessable_entity',
+  'bad_gateway',
+  'service_unavailable',
 ]);
 
 const errorCodeToHttpStatus: Record<z.infer<typeof ErrorCode>, number> = {
@@ -110,6 +112,8 @@ const errorCodeToHttpStatus: Record<z.infer<typeof ErrorCode>, number> = {
   too_many_requests: 429,
   unprocessable_entity: 422,
   internal_server_error: 500,
+  bad_gateway: 502,
+  service_unavailable: 503,
 };
 
 export const ERROR_DOCS_BASE_URL = 'https://docs.inkeep.com/agents-api/errors';
@@ -303,6 +307,10 @@ function getTitleFromCode(code: ErrorCodes): string {
       return 'Unprocessable Entity';
     case 'internal_server_error':
       return 'Internal Server Error';
+    case 'bad_gateway':
+      return 'Bad Gateway';
+    case 'service_unavailable':
+      return 'Service Unavailable';
     default:
       return 'Error';
   }

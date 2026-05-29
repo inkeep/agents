@@ -147,31 +147,6 @@ const envSchema = z
         'Lifetime in seconds for anonymous session JWTs. Min 60s, max 2592000s (30 days). Default 2592000s (30 days).'
       ),
 
-    // Proof-of-Work (ALTCHA)
-    INKEEP_POW_HMAC_SECRET: z
-      .string()
-      .min(32, 'INKEEP_POW_HMAC_SECRET must be at least 32 characters')
-      .optional()
-      .describe(
-        'HMAC secret for signing PoW challenges. Presence enables PoW globally for web_client apps. Min 32 characters.'
-      ),
-    INKEEP_POW_DIFFICULTY: z.coerce
-      .number()
-      .int()
-      .optional()
-      .default(50000)
-      .describe('maxnumber parameter for PoW challenge difficulty. Default 50000.'),
-    INKEEP_POW_CHALLENGE_TTL_SECONDS: z.coerce
-      .number()
-      .int()
-      .min(60)
-      .max(3600)
-      .optional()
-      .default(3600)
-      .describe(
-        'PoW challenge expiry in seconds. Min 60s, max 3600s (1 hour). Default 3600s (1 hour).'
-      ),
-
     // Captcha (Google reCAPTCHA v3) — cloud-only login surface
     INKEEP_RECAPTCHA_SECRET_KEY: z
       .string()
@@ -188,6 +163,49 @@ const envSchema = z
       .default(0.5)
       .describe(
         'Minimum reCAPTCHA v3 score (0.0–1.0) required to pass verification. Default 0.5; tune based on observed false-positive rate.'
+      ),
+
+    // ALTCHA Sentinel (hosted bot protection)
+    INKEEP_SENTINEL_API_KEY_ID: z
+      .string()
+      .optional()
+      .describe(
+        'ALTCHA Sentinel Restricted-tier API key ID. Presence enables Sentinel bot protection for widget-based auth flows. Sentinel verification fails open when the upstream is unreachable. Requires an upstream proxy that sets x-real-ip; client-supplied x-forwarded-for is intentionally ignored.'
+      ),
+    INKEEP_SENTINEL_API_KEY_SECRET: z
+      .string()
+      .min(32)
+      .optional()
+      .describe(
+        'ALTCHA Sentinel Restricted-tier API key secret. Required for /v1/verify/signature authentication when INKEEP_SENTINEL_API_KEY_ID is set.'
+      ),
+    INKEEP_SENTINEL_BASE_URL: z
+      .string()
+      .url()
+      .refine((url) => url.startsWith('https://'), {
+        message: 'INKEEP_SENTINEL_BASE_URL must use HTTPS — credentials are sent as query params',
+      })
+      .optional()
+      .describe(
+        'ALTCHA Sentinel base URL (e.g. https://challenges.inkeep.com). Required when INKEEP_SENTINEL_API_KEY_ID is set. Must be HTTPS.'
+      ),
+
+    // ALTCHA Sentinel — legacy PoW v1 (backward compatibility for embedded widgets that predate
+    // the pow→sentinel rename). Backed by a separate Sentinel Security Group configured for PoW v1
+    // (no HIS): challenges are proxied via GET /run/auth/pow/challenge and solutions are verified
+    // locally with the v1 secret as the HMAC key. Shares INKEEP_SENTINEL_BASE_URL.
+    INKEEP_SENTINEL_V1_API_KEY_ID: z
+      .string()
+      .optional()
+      .describe(
+        'ALTCHA Sentinel Restricted-tier API key ID for the PoW v1 (classic, no-HIS) Security Group. Presence enables the legacy GET /run/auth/pow/challenge compatibility endpoint for older embedded widgets. Uses INKEEP_SENTINEL_BASE_URL.'
+      ),
+    INKEEP_SENTINEL_V1_API_KEY_SECRET: z
+      .string()
+      .min(32)
+      .optional()
+      .describe(
+        'ALTCHA Sentinel Restricted-tier API key secret for the PoW v1 Security Group. Used as the HMAC key to verify classic proof-of-work solutions locally (altcha-lib). Required when INKEEP_SENTINEL_V1_API_KEY_ID is set.'
       ),
 
     // JWT Keys (for Playground)
@@ -395,6 +413,39 @@ const envSchema = z
         code: z.ZodIssueCode.custom,
         path: ['BLOB_STORAGE_LOCAL_PATH'],
         message: 'BLOB_STORAGE_LOCAL_PATH must be set and non-empty. Default is .blob-storage.',
+      });
+    }
+
+    const sentinelVars = [
+      data.INKEEP_SENTINEL_API_KEY_ID,
+      data.INKEEP_SENTINEL_API_KEY_SECRET,
+      data.INKEEP_SENTINEL_BASE_URL,
+    ];
+    const sentinelSet = sentinelVars.filter(Boolean);
+    if (sentinelSet.length > 0 && sentinelSet.length < 3) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'INKEEP_SENTINEL_API_KEY_ID, INKEEP_SENTINEL_API_KEY_SECRET, and INKEEP_SENTINEL_BASE_URL must all be set together or all be unset',
+      });
+    }
+
+    const sentinelV1Set = [
+      data.INKEEP_SENTINEL_V1_API_KEY_ID,
+      data.INKEEP_SENTINEL_V1_API_KEY_SECRET,
+    ].filter(Boolean);
+    if (sentinelV1Set.length === 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'INKEEP_SENTINEL_V1_API_KEY_ID and INKEEP_SENTINEL_V1_API_KEY_SECRET must both be set together or both be unset',
+      });
+    }
+    if (sentinelV1Set.length === 2 && !data.INKEEP_SENTINEL_BASE_URL) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'INKEEP_SENTINEL_BASE_URL is required when INKEEP_SENTINEL_V1_API_KEY_ID/SECRET are set (the PoW v1 challenge proxy uses it)',
       });
     }
   });
