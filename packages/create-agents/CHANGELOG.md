@@ -1,5 +1,12 @@
 # @inkeep/create-agents
 
+## 0.75.0
+
+### Patch Changes
+
+- Updated dependencies [db2be2f]
+  - @inkeep/agents-core@0.75.0
+
 ## 0.74.4
 
 ### Patch Changes
