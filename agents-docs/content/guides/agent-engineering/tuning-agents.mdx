@@ -1,0 +1,75 @@
+---
+title: Tuning Agents for Cost and Performance
+sidebarTitle: Tuning Agents
+description: The knobs Inkeep gives you to balance cost, latency, quality, and reliability — model choice per slot, reasoning effort, prompt caching, output contracts, description hygiene, and execution limits.
+icon: LuGauge
+keywords: cost, latency, performance, reasoning, prompt caching, model selection, summarizer, output contract, runtime limits
+---
+
+Once an agent works, the next job is tuning it. Inkeep gives you a set of mostly-independent knobs to trade off **cost, latency, quality, and reliability** — without rewriting prompts. This guide explains each knob and when to reach for it. Each section links to its reference page.
+
+## Pick the right model for each slot
+
+Every agent has three model slots, and they don't all need the same model:
+
+| Slot | Does | Reach for |
+|------|------|-----------|
+| `base` | Text generation and reasoning — the hard work | The most capable model the task needs |
+| `structuredOutput` | JSON / structured output only | A smaller, cheaper model that reliably emits valid JSON (for example `claude-haiku-4-5` or `gpt-4.1-mini`) |
+| `summarizer` | Summaries and status updates — high-volume, low-difficulty | The cheapest fast model (for example `gpt-5.4-nano` or `gemini-2.5-flash-lite`) |
+
+`structuredOutput` and `summarizer` both fall back to `base` when unset. The win is overriding them: the summarizer in particular fires often and rarely needs a frontier model, so pointing it at a small model cuts cost with no quality loss on the main answer.
+
+<Tip>The `inkeep init` defaults are a safe starting point, not the optimum — see the [CLI defaults table](/typescript-sdk/models#cli-defaults). Tune the cheap slots first.</Tip>
+
+See [Model Configuration](/typescript-sdk/models) for the full model list and how to set each slot.
+
+## Control reasoning
+
+Extended reasoning (also called "thinking") helps on genuinely hard, multi-step problems — but it adds latency and token cost on every call. **Conversational, routing, and simple-lookup agents usually don't need it.**
+
+Defaults differ by provider, so know what you're starting from:
+
+| Provider | Reasoning by default | Turn it down / off with |
+|----------|----------------------|-------------------------|
+| **Anthropic** (Claude 4.x) | Off — nothing thinks until you opt in | Simply omit the `thinking` block |
+| **OpenAI** (GPT-5.x) | Mostly off | `providerOptions.openai.reasoningEffort: 'none'` |
+| **Google** (Gemini) | Often **on** by default | `providerOptions.google.thinkingConfig: { thinkingBudget: 0 }` on 2.5 Flash, or use 2.5 Flash-Lite |
+
+<Tip>For a simple conversational or routing sub agent, leave reasoning off and reserve it for the sub agents doing real planning. On Google models especially, check whether you're paying for thinking you don't need.</Tip>
+
+Providers change their defaults over time — confirm against the provider's current docs. See [Provider Options](/typescript-sdk/models#provider-options) for the exact syntax per provider.
+
+## Anthropic prompt caching is on by default
+
+Inkeep enables Anthropic prompt caching automatically, on the main agent generation call. The stable prompt prefix (tool definitions plus the system prompt) is reused across turns at the provider's reduced cache-read rate, which cuts cost for most agentic workflows where a sub agent takes several steps (multiple tool calls in a turn). Other call sites (status updates, distillation) get only whatever caching the provider applies automatically. **No configuration is required.**
+
+<Note>
+If you ever need to confirm: prompt caching is enabled by default — you don't need to turn it on. See [Prompt Caching](/guides/observability/prompt-caching) to observe cache hits and to control it.
+</Note>
+
+## Constrain responses with output contracts
+
+In a multi-stage pipeline (for example `query → select → respond`), the intermediate stages shouldn't narrate to the user. An **output contract** lets you require structured output, specific components or artifacts, or a transfer — and forbid free text — instead of relying on prompt discipline. That saves the cost of wasted narration and makes the pipeline more reliable.
+
+Configure it in code via a sub agent's `outputContract`, or visually in the **Guardrails** section of a sub agent.
+
+- [Output Contract (TypeScript SDK)](/typescript-sdk/structured-outputs/output-contract)
+- [Guardrails (Visual Builder)](/visual-builder/structured-outputs/output-contract)
+
+## Keep tool and skill descriptions tight
+
+Tool descriptions, always-loaded skills, and the outline of on-demand skills all sit in the system prompt on **every turn**. Verbose descriptions inflate input cost and can dilute the model's routing decisions. Make each description specific and concise, and front-load the "use when…" trigger so the agent can route on the first words.
+
+<Tip>Skill descriptions are capped at **1024 characters** — but the practical target is much shorter. A tight, trigger-first description routes better than a long one. See [Writing effective descriptions](/visual-builder/skills#writing-effective-descriptions).</Tip>
+
+See [Skills](/typescript-sdk/skills) and [MCP Servers](/guides/mcp-servers/overview) for where descriptions are authored.
+
+## Bound runaway execution
+
+Caps stop a misbehaving agent from running up cost in a loop. Two matter most:
+
+- **Generation steps per sub-agent turn** (`stopWhen: { stepCountIs }`, default 12) — how many LLM calls a sub agent may make in one activation.
+- **Transfer count** (`stopWhen: { transferCountIs }`, default 10) — how many hand-offs can happen in a turn.
+
+Raise these for long-running orchestration agents; keep them low for tight, predictable agents. See [Configure Runtime Limits](/typescript-sdk/configure-runtime-limits).

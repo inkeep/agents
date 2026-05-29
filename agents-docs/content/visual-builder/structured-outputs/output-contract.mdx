@@ -1,0 +1,69 @@
+---
+title: Guardrails in Visual Builder
+sidebarTitle: Guardrails
+description: Constrain what a sub agent can emit — require components, artifacts, or a transfer, and forbid free text — using the Guardrails section in the Visual Builder.
+icon: LuFileCheck
+---
+
+Each sub agent has a **Guardrails** section that defines its *output contract*: the set of rules its responses must satisfy. By default a sub agent can respond however it likes — narrate free text, emit a component, or transfer. Guardrails let you declare — and have the framework enforce — that a response takes a specific shape, instead of relying on prompt discipline alone.
+
+This is most useful for multi-stage pipelines (for example `query → select → respond`) where the intermediate stages should hand off structured data rather than narrate to the user.
+
+<Note>
+In the TypeScript SDK, this is the sub agent's [`outputContract`](/typescript-sdk/structured-outputs/output-contract). Guardrails configure the same contract visually.
+</Note>
+
+## Open the Guardrails editor
+
+1. Open your agent in the Visual Builder and select a sub agent to open its side panel.
+2. Scroll to the **Guardrails** section. Its summary shows what the sub agent can emit (its components and artifacts) and any active rules.
+3. Click **Configure** to open the Guardrails dialog.
+
+## Require components or artifacts
+
+The **Components** and **Artifacts** fields hold the [data components](/visual-builder/structured-outputs/data-components) and [artifact components](/visual-builder/structured-outputs/artifact-components) this sub agent can emit. The count badge next to each label reflects how many are selected.
+
+1. Use **Components** / **Artifacts** to add the items this sub agent is allowed to emit.
+2. **Click a selected item to require it.** Required items are highlighted and must appear in **every** response (require-all). Click again to make it optional.
+3. Removing an item from the inventory also clears its required state.
+
+<Note>
+Selecting a component or artifact only makes it *available* — click the selected chip to toggle whether it is *required*.
+</Note>
+
+## Forbid free text
+
+Uncheck **Include text** to stop the sub agent from emitting free-form prose. When unchecked, the sub agent can only respond with the components and artifacts above, a transfer, or tool calls. Leave it checked to allow narration alongside any required items.
+
+## Require a transfer
+
+When the sub agent has at least one transfer target, a **Require transfer** switch appears. Turn it on to make every response hand off to another sub agent instead of replying directly.
+
+<Note>
+**Require transfer** is mutually exclusive with required components or artifacts. A turn ends one way — a transfer hands off, or a component or artifact is emitted, not both.
+</Note>
+
+## Choose what happens on a violation
+
+The **On violation** setting controls what the framework does when a response breaks a rule:
+
+| Option | Behavior |
+|---|---|
+| **Reject** (default) | The run fails with a structured contract-violation error. The error names the sub agent and the rule that was broken, so a chat widget or API caller can surface a useful message instead of a raw failure. |
+| **Warn** | The violation is logged and the response is surfaced as-is. Use this to observe how often a contract would trip before you enforce it. |
+
+## Field reference
+
+| Guardrail | Output contract field | Effect |
+|---|---|---|
+| **Components** (click to require) | `requireComponent` | Every required data component must appear in the response. |
+| **Artifacts** (click to require) | `requireArtifact` | Every required artifact must be created or referenced. |
+| **Include text** (unchecked) | `allowText: false` | Free-form prose is forbidden; components, artifacts, transfers, and tool calls are still allowed. |
+| **Require transfer** | `requireTransfer` | The response must transfer to another sub agent. |
+| **On violation** | `onViolation` | **Reject** fails the run; **Warn** logs the violation and surfaces the response. |
+
+## Related
+
+- [Output Contract (TypeScript SDK)](/typescript-sdk/structured-outputs/output-contract)
+- [Data Components in Visual Builder](/visual-builder/structured-outputs/data-components)
+- [Artifact Components in Visual Builder](/visual-builder/structured-outputs/artifact-components)
