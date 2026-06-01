@@ -167,7 +167,7 @@ function findAgentFiles(): string[] {
 }
 
 function findSkillFiles(): string[] {
-  const skillDirs = ['.agents/skills', '.claude/skills', '.cursor/skills'];
+  const skillDirs = ['.agents/skills', '.claude/skills'];
   const files: string[] = [];
 
   for (const skillsDir of skillDirs) {
