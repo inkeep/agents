@@ -4,8 +4,10 @@ import {
   AI_TOOL_TYPES,
   buildFilterExpression,
   buildOrExpression,
+  EVAL_GENERATION_TYPES,
   FIELD_CONTEXTS,
   FIELD_DATA_TYPES,
+  NON_EVAL_USAGE_GENERATION_TYPES,
   OPERATORS,
   ORDER_DIRECTIONS,
   QUERY_DEFAULTS,
@@ -137,7 +139,7 @@ const CONVERSATION_SCOPE_FILTER: FilterItem = {
 const GENERATION_TYPE_SCOPE_FILTER: FilterItem = {
   key: SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE,
   op: OPERATORS.IN,
-  value: [...USAGE_GENERATION_TYPES],
+  value: [...NON_EVAL_USAGE_GENERATION_TYPES],
 };
 
 const buildScopedFilterItems = (
@@ -1435,7 +1437,7 @@ class SigNozStatsAPI {
       {
         key: SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE,
         op: OPERATORS.IN,
-        value: [...USAGE_GENERATION_TYPES],
+        value: [...NON_EVAL_USAGE_GENERATION_TYPES],
       },
       { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.IN, value: conversationIds },
       ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
@@ -3165,7 +3167,7 @@ class SigNozStatsAPI {
         {
           key: SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE,
           op: OPERATORS.IN,
-          value: [...USAGE_GENERATION_TYPES],
+          value: [...NON_EVAL_USAGE_GENERATION_TYPES],
         },
         ...(projectId
           ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }]
@@ -3341,6 +3343,81 @@ class SigNozStatsAPI {
     }
   }
 
+  async getEvalUsageSummary(
+    startTime: number,
+    endTime: number,
+    projectId?: string,
+    agentId?: string
+  ): Promise<{
+    totalCost: number;
+    totalTokens: number;
+    evalCallCount: number;
+    conversationsEvaluated: number;
+  }> {
+    const empty = { totalCost: 0, totalTokens: 0, evalCallCount: 0, conversationsEvaluated: 0 };
+    try {
+      const filterExpression = buildFilterExpression([
+        AI_OPERATION_FILTER,
+        {
+          key: SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE,
+          op: OPERATORS.IN,
+          value: [...EVAL_GENERATION_TYPES],
+        },
+        ...(projectId
+          ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }]
+          : []),
+        ...(agentId ? [{ key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EQUALS, value: agentId }] : []),
+      ]);
+      const queryName = 'evalUsageByConversation';
+      const payload = {
+        start: startTime,
+        end: endTime,
+        requestType: REQUEST_TYPES.SCALAR,
+        ...(projectId && { projectId }),
+        compositeQuery: {
+          queries: [
+            {
+              type: QUERY_TYPES.BUILDER_QUERY,
+              spec: {
+                name: queryName,
+                signal: SIGNALS.TRACES,
+                aggregations: USAGE_COST_AGGREGATIONS.map((expression) => ({ expression })),
+                filter: { expression: filterExpression },
+                groupBy: [
+                  {
+                    name: SPAN_KEYS.CONVERSATION_ID,
+                    fieldDataType: FIELD_DATA_TYPES.STRING,
+                    fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                  },
+                ],
+                order: [],
+                stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+                limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+                disabled: QUERY_DEFAULTS.DISABLED,
+              },
+            },
+          ],
+        },
+      };
+      const resp = await this.makeRequest(payload, projectId);
+      const rows = extractUsageCostSummaryRows(resp, queryName, SPAN_KEYS.CONVERSATION_ID).filter(
+        (r) => r.groupKey && r.groupKey !== UNKNOWN_VALUE
+      );
+      return rows.reduce(
+        (acc, r) => ({
+          totalCost: acc.totalCost + r.totalEstimatedCostUsd,
+          totalTokens: acc.totalTokens + r.totalTokens,
+          evalCallCount: acc.evalCallCount + r.eventCount,
+          conversationsEvaluated: acc.conversationsEvaluated + 1,
+        }),
+        empty
+      );
+    } catch (e) {
+      console.error('getEvalUsageSummary error:', e);
+      throw e;
+    }
+  }
+
   async getUsageCostPerDay(
     startTime: number,
     endTime: number,
@@ -3397,21 +3474,29 @@ class SigNozStatsAPI {
     projectId?: string,
     agentId?: string
   ) {
-    const baseItems: Array<{ key: string; op: string; value: unknown }> = [
+    const sharedItems: Array<{ key: string; op: string; value: unknown }> = [
       {
         key: SPAN_KEYS.AI_OPERATION_ID,
         op: OPERATORS.IN,
         value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
       },
-      {
-        key: SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE,
-        op: OPERATORS.IN,
-        value: [...USAGE_GENERATION_TYPES],
-      },
       ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
       ...(agentId ? [{ key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EQUALS, value: agentId }] : []),
     ];
-    const filterExpression = buildFilterExpression(baseItems);
+
+    // The "generation_type" breakdown keeps eval rows visible
+    const filterExpressionFor = (g: UsageCostGroupBy) =>
+      buildFilterExpression([
+        ...sharedItems,
+        {
+          key: SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE,
+          op: OPERATORS.IN,
+          value:
+            g === 'generation_type'
+              ? [...USAGE_GENERATION_TYPES]
+              : [...NON_EVAL_USAGE_GENERATION_TYPES],
+        },
+      ]);
 
     const queries = groupings.map((g) => ({
       type: QUERY_TYPES.BUILDER_QUERY,
@@ -3419,7 +3504,7 @@ class SigNozStatsAPI {
         name: usageCostQueryName(g),
         signal: SIGNALS.TRACES,
         aggregations: USAGE_COST_AGGREGATIONS.map((expression) => ({ expression })),
-        filter: { expression: filterExpression },
+        filter: { expression: filterExpressionFor(g) },
         groupBy: [
           {
             name: usageCostGroupByKey(g),

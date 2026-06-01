@@ -1,6 +1,6 @@
 'use client';
 
-import { Coins, Database, ExternalLink, Hash } from 'lucide-react';
+import { Coins, Database, ExternalLink, FlaskConical, Hash } from 'lucide-react';
 import Link from 'next/link';
 import { type ReactNode, useEffect, useState } from 'react';
 import { AreaChartCard } from '@/components/traces/charts/area-chart-card';
@@ -17,6 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { isEvalGenerationType } from '@/constants/signoz';
 import { fetchAgents } from '@/lib/api/agent-full-client';
 import { fetchProjectsWithAgents } from '@/lib/api/projects';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
@@ -82,6 +83,20 @@ interface UsageSummaryRow {
   totalCacheReadTokens: number;
   totalCacheCreationTokens: number;
 }
+
+interface EvalSummary {
+  totalCost: number;
+  totalTokens: number;
+  evalCallCount: number;
+  conversationsEvaluated: number;
+}
+
+const EMPTY_EVAL_SUMMARY: EvalSummary = {
+  totalCost: 0,
+  totalTokens: 0,
+  evalCallCount: 0,
+  conversationsEvaluated: 0,
+};
 
 // "Cost by Cache Participation" is derived CLIENT-SIDE from the existing summaryByType data
 // (option ii spirit per US-013 AC2, executed client-side to avoid a second SigNoz round-trip).
@@ -150,6 +165,7 @@ export function CostDashboard({
   const [summaryByAgent, setSummaryByAgent] = useState<UsageSummaryRow[]>([]);
   const [summaryByType, setSummaryByType] = useState<UsageSummaryRow[]>([]);
   const [summaryByProvider, setSummaryByProvider] = useState<UsageSummaryRow[]>([]);
+  const [evalSummary, setEvalSummary] = useState<EvalSummary>(EMPTY_EVAL_SUMMARY);
   const [summariesLoading, setSummariesLoading] = useState(true);
   const [summariesError, setSummariesError] = useState<string | null>(null);
 
@@ -213,8 +229,12 @@ export function CostDashboard({
         agentId
       ),
       client.getUsageCounts(start, end, projectId, agentId),
+      client.getEvalUsageSummary(start, end, projectId, agentId).catch((e) => {
+        console.warn('[CostDashboard] Eval summary failed, hiding eval card:', e);
+        return EMPTY_EVAL_SUMMARY;
+      }),
     ])
-      .then(([summaries, counts]) => {
+      .then(([summaries, counts, evals]) => {
         if (cancelled) return;
         setSummaryByModel(summaries.model);
         setSummaryByAgent(summaries.agent);
@@ -222,6 +242,7 @@ export function CostDashboard({
         setSummaryByProvider(summaries.provider);
         setUserMessageCount(counts.messageCount);
         setConversationCount(counts.conversationCount);
+        setEvalSummary(evals);
       })
       .catch(() => {
         if (cancelled) return;
@@ -421,7 +442,10 @@ export function CostDashboard({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {evalSummary.conversationsEvaluated > 0 && (
+          <EvalCostCard evalSummary={evalSummary} isLoading={summariesLoading} />
+        )}
         <UsageBreakdownTable
           title="Cost by Generation Type"
           data={summaryByType}
@@ -433,7 +457,9 @@ export function CostDashboard({
         />
         <UsageBreakdownTable
           title="Cost by Cache Participation"
-          data={bucketByCacheParticipation(summaryByType)}
+          data={bucketByCacheParticipation(
+            summaryByType.filter((row) => !isEvalGenerationType(row.groupKey))
+          )}
           isLoading={summariesLoading}
           error={summariesError}
           groupLabel="Cache Participation"
@@ -536,7 +562,7 @@ export function UsageStatCards({
           </TabsList>
         </div>
       </Tabs>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <StatCard
           title="Cost"
           Icon={Coins}
@@ -563,6 +589,40 @@ export function UsageStatCards({
         />
       </div>
     </div>
+  );
+}
+
+export function EvalCostCard({
+  evalSummary,
+  isLoading,
+}: {
+  evalSummary: EvalSummary;
+  isLoading: boolean;
+}) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">Evaluation Cost</CardTitle>
+        <FlaskConical className="h-4 w-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <Skeleton className="h-12 w-full" />
+        ) : (
+          <>
+            <div className="text-2xl font-bold">{formatCost(evalSummary.totalCost)}</div>
+            {evalSummary.evalCallCount > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {formatCost(evalSummary.totalCost / evalSummary.evalCallCount)} per evaluation
+              </p>
+            )}
+            <div className="text-xs text-muted-foreground mt-0.5">
+              {formatTokens(evalSummary.totalTokens)} tokens
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

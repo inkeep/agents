@@ -15,8 +15,9 @@ import {
   deriveCacheState,
   FIELD_CONTEXTS,
   FIELD_DATA_TYPES,
-  GENERATION_TYPES,
+  isEvalGenerationType,
   isProviderSupportedForCaching,
+  NON_EVAL_USAGE_GENERATION_TYPES,
   OPERATORS,
   ORDER_DIRECTIONS,
   QUERY_DEFAULTS,
@@ -28,7 +29,6 @@ import {
   SPAN_KEYS,
   SPAN_NAMES,
   UNKNOWN_VALUE,
-  USAGE_GENERATION_TYPES,
 } from '@/constants/signoz';
 import { getAgentsApiUrl } from '@/lib/api/api-config';
 import { fetchWithRetry } from '@/lib/api/fetch-with-retry';
@@ -541,11 +541,6 @@ function buildConversationPayloads(
 
 // ---------- Usage events (cost / token usage for this conversation)
 
-// Subset of USAGE_GENERATION_TYPES that the conversation detail UI actually renders.
-const CONVERSATION_USAGE_GENERATION_TYPES = USAGE_GENERATION_TYPES.filter(
-  (t) => t !== GENERATION_TYPES.EVAL_SCORING && t !== GENERATION_TYPES.EVAL_SIMULATION
-);
-
 type ConversationUsageEvent = {
   spanId: string;
   parentSpanId: string;
@@ -583,7 +578,7 @@ function buildUsageEventsPayload(
     {
       key: SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE,
       op: OPERATORS.IN,
-      value: CONVERSATION_USAGE_GENERATION_TYPES,
+      value: [...NON_EVAL_USAGE_GENERATION_TYPES],
     },
     { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EQUALS, value: conversationId },
     ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
@@ -768,6 +763,8 @@ export async function GET(
     const aiGenerationSpans: SigNozListItem[] = [];
     const aiStreamingSpans: SigNozListItem[] = [];
     for (const row of parseList(resp, QUERY_EXPRESSIONS.AI_LLM_CALLS)) {
+      const genType = getString(row, SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, '');
+      if (isEvalGenerationType(genType)) continue;
       const op = getString(row, SPAN_KEYS.AI_OPERATION_ID);
       if (op === AI_OPERATIONS.GENERATE_TEXT) aiGenerationSpans.push(row);
       else if (op === AI_OPERATIONS.STREAM_TEXT) aiStreamingSpans.push(row);
@@ -1230,8 +1227,6 @@ export async function GET(
     // ai generations
     for (const span of aiGenerationSpans) {
       const genType = getString(span, SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, '');
-      if (genType === GENERATION_TYPES.EVAL_SCORING || genType === GENERATION_TYPES.EVAL_SIMULATION)
-        continue;
 
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;

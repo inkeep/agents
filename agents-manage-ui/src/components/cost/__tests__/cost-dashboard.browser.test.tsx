@@ -1,6 +1,7 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import {
   bucketByCacheParticipation,
+  EvalCostCard,
   type StatScope,
   UsageBreakdownTable,
   UsageEventsTable,
@@ -348,6 +349,45 @@ describe('UsageStatCards rendering Cache Tokens', () => {
       el.textContent?.trim()
     );
     expect(titles).toEqual(['Cost', 'Tokens', 'Cache Tokens']);
+  });
+});
+
+describe('EvalCostCard', () => {
+  afterEach(cleanup);
+
+  test('renders eval cost and cost per evaluation when evals ran', () => {
+    render(
+      <EvalCostCard
+        evalSummary={{
+          totalCost: 1.6,
+          totalTokens: 500_000,
+          evalCallCount: 8,
+          conversationsEvaluated: 4,
+        }}
+        isLoading={false}
+      />
+    );
+    expect(screen.getByText('Evaluation Cost')).toBeInTheDocument();
+    expect(screen.getByText('$1.60')).toBeInTheDocument();
+    // $1.60 / 8 eval calls = $0.20 per evaluation
+    expect(screen.getByText('$0.20 per evaluation')).toBeInTheDocument();
+    expect(screen.getByText('500.0K tokens')).toBeInTheDocument();
+  });
+
+  test('hides per-evaluation line when evalCallCount is zero', () => {
+    render(
+      <EvalCostCard
+        evalSummary={{
+          totalCost: 0.5,
+          totalTokens: 10_000,
+          evalCallCount: 0,
+          conversationsEvaluated: 2,
+        }}
+        isLoading={false}
+      />
+    );
+    expect(screen.getByText('$0.50')).toBeInTheDocument();
+    expect(screen.queryByText(/per evaluation/)).not.toBeInTheDocument();
   });
 });
 
