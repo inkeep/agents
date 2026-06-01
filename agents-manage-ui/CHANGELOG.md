@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.75.1
+
+### Patch Changes
+
+- 2042ce9: Exclude evaluation LLM calls from per-conversation and cost-page spend figures so cost is consistent across the conversation list, conversation detail, and cost dashboard.
+- Updated dependencies [d7a6762]
+- Updated dependencies [2042ce9]
+  - @inkeep/agents-core@0.75.1
+
 ## 0.75.0
 
 ### Patch Changes
