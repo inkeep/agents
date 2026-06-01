@@ -224,6 +224,27 @@ describe('webhookDestinations DAL', () => {
       });
       expect(updatedDests).toHaveLength(0);
     });
+
+    it('filters destinations by event type when destination subscribes to multiple event types', async () => {
+      await insertWebhookDestination('wh-multi-events', {
+        eventTypes: ['conversation.created', 'feedback.created', 'event.created'],
+      });
+
+      const feedbackDests = await listWebhookDestinationsForEvent(testManageDbClient)({
+        scopes: { tenantId, projectId },
+        eventType: 'feedback.created',
+        agentId: 'agent-1',
+      });
+      expect(feedbackDests).toHaveLength(1);
+      expect(feedbackDests[0].id).toBe('wh-multi-events');
+
+      const evalDests = await listWebhookDestinationsForEvent(testManageDbClient)({
+        scopes: { tenantId, projectId },
+        eventType: 'evaluation.failed',
+        agentId: 'agent-1',
+      });
+      expect(evalDests).toHaveLength(0);
+    });
   });
 
   describe('updateWebhookDestination', () => {

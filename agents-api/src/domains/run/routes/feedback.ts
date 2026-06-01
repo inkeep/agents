@@ -100,7 +100,7 @@ app.openapi(
       runDbClient,
       tenantId,
       projectId,
-      agentId: conversation.agentId ?? undefined,
+      agentId: conversation.agentId ?? '',
       feedback: created,
     });
 

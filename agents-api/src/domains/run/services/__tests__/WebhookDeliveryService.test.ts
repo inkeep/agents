@@ -412,6 +412,7 @@ describe('WebhookDeliveryService', () => {
         runDbClient: 'mock-run-db' as any,
         tenantId: 'tenant-1',
         projectId: 'project-1',
+        agentId: 'caller-agent',
         feedback: feedback as any,
       });
       await flushDeferred();
@@ -422,7 +423,21 @@ describe('WebhookDeliveryService', () => {
       expect(wireFeedback).not.toHaveProperty('projectId');
     });
 
-    it('derives agentId from conversation when caller does not pass one (fixes M1)', async () => {
+    it('uses the provided agentId in the envelope', async () => {
+      await emitFeedbackWebhook({
+        runDbClient: 'mock-run-db' as any,
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        agentId: 'explicit-agent',
+        feedback: feedback as any,
+      });
+      await flushDeferred();
+
+      const dispatchedPayload = mockStart.mock.calls[0][1][0];
+      expect(dispatchedPayload.payload.agentId).toBe('explicit-agent');
+    });
+
+    it('derives agentId from conversation when caller does not pass one', async () => {
       await emitFeedbackWebhook({
         runDbClient: 'mock-run-db' as any,
         tenantId: 'tenant-1',
@@ -468,23 +483,6 @@ describe('WebhookDeliveryService', () => {
   });
 
   describe('emitEvaluationFailedWebhook', () => {
-    const conversation = {
-      id: 'conv-1',
-      tenantId: 'tenant-1',
-      projectId: 'project-1',
-      userId: 'user-1',
-      agentId: 'agent-1',
-      activeSubAgentId: null,
-      ref: null,
-      title: null,
-      lastContextResolution: null,
-      metadata: null,
-      userProperties: null,
-      properties: null,
-      createdAt: '2026-05-05T10:00:00.000Z',
-      updatedAt: '2026-05-05T10:00:01.000Z',
-    };
-
     const evalResult = {
       id: 'eval-result-1',
       evaluatorId: 'evaluator-1',
@@ -492,15 +490,22 @@ describe('WebhookDeliveryService', () => {
       evaluationRunId: 'run-1',
     };
 
+    const resolvedRef = { type: 'branch' as const, name: 'tenant-1_project-1_main', hash: 'abc' };
+
     const failedScoreConditions = [{ field: 'score', operator: '>=', value: 0.7, actual: 0.3 }];
+
+    const baseEvalParams = {
+      runDbClient: 'mock-run-db' as any,
+      tenantId: 'tenant-1',
+      projectId: 'project-1',
+      agentId: 'agent-1',
+      evaluationResult: evalResult,
+      evaluator: { id: 'evaluator-1', name: 'Quality Check' },
+      resolvedRef,
+    };
 
     beforeEach(() => {
       pendingDeferred.length = 0;
-      mockGetConversation.mockReturnValue(() => Promise.resolve(conversation));
-      mockGetConversationHistory.mockReturnValue(() => Promise.resolve([]));
-      mockGetResolvedRef.mockReturnValue(() =>
-        Promise.resolve({ type: 'branch', name: 'tenant-1_project-1_main', hash: 'abc' })
-      );
       mockWithRef.mockImplementation(async (_pool: any, _ref: any, fn: any) => fn('mock-db'));
       mockListForEvent.mockReturnValue(() =>
         Promise.resolve([{ id: 'dest-1', url: 'https://hooks.slack.com/services/T/B/x' }])
@@ -510,13 +515,9 @@ describe('WebhookDeliveryService', () => {
 
     it('emits evaluation.failed with Block Kit payload when criteria fails', async () => {
       await emitEvaluationFailedWebhook({
-        runDbClient: 'mock-run-db' as any,
-        tenantId: 'tenant-1',
-        projectId: 'project-1',
+        ...baseEvalParams,
         verdict: 'failed',
         failedConditions: failedScoreConditions,
-        evaluationResult: evalResult,
-        evaluator: { id: 'evaluator-1', name: 'Quality Check' },
       });
       await flushDeferred();
 
@@ -544,13 +545,9 @@ describe('WebhookDeliveryService', () => {
       );
 
       await emitEvaluationFailedWebhook({
-        runDbClient: 'mock-run-db' as any,
-        tenantId: 'tenant-1',
-        projectId: 'project-1',
+        ...baseEvalParams,
         verdict: 'failed',
         failedConditions: failedScoreConditions,
-        evaluationResult: evalResult,
-        evaluator: { id: 'evaluator-1', name: 'Quality Check' },
       });
       await flushDeferred();
 
@@ -573,13 +570,9 @@ describe('WebhookDeliveryService', () => {
       );
 
       await emitEvaluationFailedWebhook({
-        runDbClient: 'mock-run-db' as any,
-        tenantId: 'tenant-1',
-        projectId: 'project-1',
+        ...baseEvalParams,
         verdict: 'failed',
         failedConditions: failedScoreConditions,
-        evaluationResult: evalResult,
-        evaluator: { id: 'evaluator-1', name: 'Quality Check' },
       });
       await flushDeferred();
 
@@ -604,13 +597,9 @@ describe('WebhookDeliveryService', () => {
       );
 
       await emitEvaluationFailedWebhook({
-        runDbClient: 'mock-run-db' as any,
-        tenantId: 'tenant-1',
-        projectId: 'project-1',
+        ...baseEvalParams,
         verdict: 'failed',
         failedConditions: failedScoreConditions,
-        evaluationResult: evalResult,
-        evaluator: { id: 'evaluator-1', name: 'Quality Check' },
       });
       await flushDeferred();
 
@@ -629,13 +618,9 @@ describe('WebhookDeliveryService', () => {
       );
 
       await emitEvaluationFailedWebhook({
-        runDbClient: 'mock-run-db' as any,
-        tenantId: 'tenant-1',
-        projectId: 'project-1',
+        ...baseEvalParams,
         verdict: 'failed',
         failedConditions: failedScoreConditions,
-        evaluationResult: evalResult,
-        evaluator: { id: 'evaluator-1', name: 'Quality Check' },
       });
       await flushDeferred();
 
@@ -650,13 +635,9 @@ describe('WebhookDeliveryService', () => {
 
     it('does not emit when criteria passes', async () => {
       await emitEvaluationFailedWebhook({
-        runDbClient: 'mock-run-db' as any,
-        tenantId: 'tenant-1',
-        projectId: 'project-1',
+        ...baseEvalParams,
         verdict: 'passed',
         failedConditions: [],
-        evaluationResult: evalResult,
-        evaluator: { id: 'evaluator-1', name: 'Quality Check' },
       });
       await flushDeferred();
 
@@ -665,30 +646,22 @@ describe('WebhookDeliveryService', () => {
 
     it('does not emit when evaluator has no pass criteria', async () => {
       await emitEvaluationFailedWebhook({
-        runDbClient: 'mock-run-db' as any,
-        tenantId: 'tenant-1',
-        projectId: 'project-1',
+        ...baseEvalParams,
         verdict: 'no_criteria',
         failedConditions: [],
-        evaluationResult: evalResult,
-        evaluator: { id: 'evaluator-1', name: 'Quality Check' },
       });
       await flushDeferred();
 
       expect(mockStart).not.toHaveBeenCalled();
     });
 
-    it('skips dispatch when conversation is not found', async () => {
-      mockGetConversation.mockReturnValue(() => Promise.resolve(undefined));
+    it('skips dispatch when no destinations match', async () => {
+      mockListForEvent.mockReturnValue(() => Promise.resolve([]));
 
       await emitEvaluationFailedWebhook({
-        runDbClient: 'mock-run-db' as any,
-        tenantId: 'tenant-1',
-        projectId: 'project-1',
+        ...baseEvalParams,
         verdict: 'failed',
         failedConditions: failedScoreConditions,
-        evaluationResult: evalResult,
-        evaluator: { id: 'evaluator-1', name: 'Quality Check' },
       });
       await flushDeferred();
 
@@ -696,17 +669,13 @@ describe('WebhookDeliveryService', () => {
     });
 
     it('swallows errors and does not throw', async () => {
-      mockGetConversation.mockReturnValue(() => Promise.reject(new Error('DB down')));
+      mockWithRef.mockRejectedValue(new Error('DB down'));
 
       await expect(
         emitEvaluationFailedWebhook({
-          runDbClient: 'mock-run-db' as any,
-          tenantId: 'tenant-1',
-          projectId: 'project-1',
+          ...baseEvalParams,
           verdict: 'failed',
           failedConditions: failedScoreConditions,
-          evaluationResult: evalResult,
-          evaluator: { id: 'evaluator-1', name: 'Quality Check' },
         })
       ).resolves.toBeUndefined();
       await expect(flushDeferred()).resolves.toBeUndefined();
