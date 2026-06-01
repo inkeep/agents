@@ -245,13 +245,23 @@ export const GENERATION_TYPES = {
   MID_GENERATION_COMPRESSION: 'mid_generation_compression',
   ARTIFACT_METADATA: 'artifact_metadata',
   STATUS_UPDATE: 'status_update',
-  EVAL_SIMULATION: 'eval_simulation',
   EVAL_SCORING: 'eval_scoring',
   COMPONENT_RENDER: 'component_render',
 } as const;
 
 /** Valid generation types for usage tracking */
 export const USAGE_GENERATION_TYPES = Object.values(GENERATION_TYPES);
+
+export const EVAL_GENERATION_TYPES = [GENERATION_TYPES.EVAL_SCORING] as const;
+
+const EVAL_GENERATION_TYPE_SET = new Set<string>(EVAL_GENERATION_TYPES);
+
+export const isEvalGenerationType = (generationType: string): boolean =>
+  EVAL_GENERATION_TYPE_SET.has(generationType);
+
+export const NON_EVAL_USAGE_GENERATION_TYPES = USAGE_GENERATION_TYPES.filter(
+  (generationType) => !isEvalGenerationType(generationType)
+);
 
 /** Agent IDs */
 export const AGENT_IDS = {
