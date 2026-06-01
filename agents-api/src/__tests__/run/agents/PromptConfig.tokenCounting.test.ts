@@ -1,3 +1,4 @@
+import type { ArtifactComponentApiInsert } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, test } from 'vitest';
 import { SystemPromptBuilder } from '../../../domains/run/agents/SystemPromptBuilder';
 import type { SystemPromptV1 } from '../../../domains/run/agents/types';
@@ -100,6 +101,49 @@ describe('PromptConfig Token Counting', () => {
       expect(result.breakdown.components.artifactsSection).toBe(0);
       expect(result.breakdown.components.artifactComponents).toBeGreaterThan(0);
       expect(result.breakdown.components.systemPromptTemplate).toBeGreaterThan(0);
+    });
+
+    test('structured mode counts the emitted structured artifact block, not text-mode instructions', () => {
+      const artifactComponents: ArtifactComponentApiInsert[] = [
+        {
+          id: 'test-artifact-component',
+          name: 'TestArtifact',
+          description: 'A test artifact type',
+          props: {
+            type: 'object',
+            properties: {
+              title: { type: 'string', description: 'The title', inPreview: true },
+              content: { type: 'string', description: 'The content', inPreview: false },
+            },
+          },
+        },
+      ];
+      const textMode = builder.buildSystemPrompt({
+        corePrompt: 'You are a helpful assistant.',
+        tools: [],
+        dataComponents: [],
+        artifacts: [],
+        artifactComponents,
+        hasAgentArtifactComponents: true,
+        hasStructuredOutput: false,
+      });
+      const structuredMode = builder.buildSystemPrompt({
+        corePrompt: 'You are a helpful assistant.',
+        tools: [],
+        dataComponents: [],
+        artifacts: [],
+        artifactComponents,
+        hasAgentArtifactComponents: true,
+        hasStructuredOutput: true,
+      });
+
+      // Structured mode emits getStructuredArtifactRules; its cost lands in
+      // artifactComponents, and the text-mode artifact instruction overhead is NOT added to
+      // systemPromptTemplate (which is why structured's template bucket is smaller).
+      expect(structuredMode.breakdown.components.artifactComponents).toBeGreaterThan(0);
+      expect(structuredMode.breakdown.components.systemPromptTemplate).toBeLessThan(
+        textMode.breakdown.components.systemPromptTemplate
+      );
     });
 
     test('should have consistent total tokens regardless of artifact count', () => {

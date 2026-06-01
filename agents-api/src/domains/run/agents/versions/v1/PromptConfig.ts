@@ -147,6 +147,8 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
       config.artifactComponents && config.artifactComponents.length > 0
     );
 
+    const structuredMode = config.hasStructuredOutput ?? false;
+
     const artifactsStaticSection = this.generateArtifactsSection(
       templates,
       config.artifacts,
@@ -154,7 +156,8 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
       config.artifactComponents,
       config.hasAgentArtifactComponents,
       config.allProjectArtifactComponents,
-      true
+      true,
+      structuredMode
     );
 
     const typeSchemaMap = this.buildTypeSchemaMap(
@@ -167,23 +170,31 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
             .join('\n')
         : null;
 
-    const artifactInstructionsTokens = this.getArtifactInstructionsTokens(
-      templates,
-      hasArtifactComponents,
-      config.hasAgentArtifactComponents,
-      (config.artifacts?.length ?? 0) > 0
-    );
-    breakdown.components.systemPromptTemplate += artifactInstructionsTokens;
-
     const actualArtifactsXml = artifactsMessage ?? '';
     breakdown.components.artifactsSection = estimateTokens(actualArtifactsXml);
 
-    if (hasArtifactComponents) {
-      const creationInstructions = this.getArtifactCreationInstructions(
+    // Token breakdown must reflect what's actually emitted. In structured mode the
+    // artifact block is `getStructuredArtifactRules` (no text-tag rules, no separate
+    // AVAILABLE ARTIFACT TYPES block), so estimate the real emitted section rather than the
+    // text-mode estimators — otherwise the breakdown silently overcounts in structured mode.
+    if (structuredMode) {
+      breakdown.components.artifactComponents = estimateTokens(artifactsStaticSection);
+    } else {
+      const artifactInstructionsTokens = this.getArtifactInstructionsTokens(
+        templates,
         hasArtifactComponents,
-        config.artifactComponents
+        config.hasAgentArtifactComponents,
+        (config.artifacts?.length ?? 0) > 0
       );
-      breakdown.components.artifactComponents = estimateTokens(creationInstructions);
+      breakdown.components.systemPromptTemplate += artifactInstructionsTokens;
+
+      if (hasArtifactComponents) {
+        const creationInstructions = this.getArtifactCreationInstructions(
+          hasArtifactComponents,
+          config.artifactComponents
+        );
+        breakdown.components.artifactComponents = estimateTokens(creationInstructions);
+      }
     }
 
     systemPrompt = systemPrompt.replace('{{ARTIFACTS_SECTION}}', artifactsStaticSection);
@@ -656,6 +667,70 @@ IMPORTANT GUIDELINES:
     return '';
   }
 
+  /**
+   * Structured-output artifact instructions: emit structured Artifact / ArtifactCreate_
+   * components (never <artifact:*> tags). Text-mode peer: getArtifactReferencingRules.
+   */
+  private getStructuredArtifactRules(
+    hasArtifactComponents: boolean = false,
+    shouldShow: boolean = true
+  ): string {
+    if (!shouldShow && !hasArtifactComponents) {
+      return '';
+    }
+
+    const createBlock = hasArtifactComponents
+      ? `
+CREATE — save data from a tool result as a citable artifact:
+- Emit an "ArtifactCreate_<TypeName>" data component in your dataComponents array (the
+  available ArtifactCreate_* types and their field schemas are listed in the data components
+  section above). Set its props:
+  - artifact_id: a unique id you choose (e.g. "citation-1").
+  - tool_call_id: the EXACT tool_call_id from the tool execution that produced the data
+    (e.g. "call_xyz789" / "toolu_abc123"). NEVER invent or guess this id.
+  - base_selector: a JMESPath selector starting with "result." that navigates to ONE specific
+    item (use filtering to avoid arrays, e.g. "result.items[?type=='guide']").
+  - details_selector: JMESPath selectors RELATIVE to base_selector that map to the artifact's
+    schema fields. Include ALL schema fields (preview and non-preview).
+- JMESPath rules: select ONE item (never an array); filters use single quotes
+  ("[?title=='API Guide']"); details selectors are relative to base_selector.
+- ⚠️ Only create artifacts from original tool results — never from ${ARTIFACT_TOOL.GET_REFERENCE} output.
+`
+      : '';
+
+    const referenceBlock = `
+REFERENCE — cite a previously created or available artifact:
+- Emit an "Artifact" data component with props { artifact_id, tool_call_id } using the exact
+  ids of the artifact you are citing. This renders as a citation.
+- ⚠️ Only the preview fields of a referenced artifact are visible to you. If you need the full
+  contents, pass the artifact to a capable tool (tool-chain) or call ${ARTIFACT_TOOL.GET_REFERENCE}.
+`;
+
+    const toolChainBlock = `
+TOOL CHAIN (PREFERRED) — pass an artifact's data INTO a tool call:
+- Set the target parameter to null and add "${SENTINEL_KEY.REFS}": { "<paramName>": { "${SENTINEL_KEY.ARTIFACT}": "<artifact_id>", "${SENTINEL_KEY.TOOL}": "<tool_call_id>" } }.
+- Add "${SENTINEL_KEY.SELECT}": "<jmespath>" inside the ref entry to filter to a field.
+- Never copy tool output inline as a tool argument — always tool-chain.
+`;
+
+    const discipline = `
+CITATION DISCIPLINE:
+- You must CREATE an artifact before you can REFERENCE it — you cannot reference one that does
+  not exist yet. Creating an artifact IS a citation; only emit a separate Artifact reference
+  when citing the SAME artifact again for a different statement.
+- Back every claim drawn from a tool result with an artifact.
+- binary_attachment artifacts: previews usually carry metadata only (filename, mimeType, …),
+  not file contents — do not infer contents from preview metadata.
+`;
+
+    return `ARTIFACT MANAGEMENT (structured output):
+
+You are emitting a structured JSON response (a dataComponents array). Artifacts are emitted
+ONLY as structured data components (below). Do NOT use in-text artifact markers/tags — they are
+not valid in this mode and will not render.
+${createBlock}${referenceBlock}${toolChainBlock}${discipline}`;
+  }
+
   private getArtifactCreationInstructions(
     hasArtifactComponents: boolean,
     artifactComponents?: any[]
@@ -744,18 +819,23 @@ ${typeDescriptions}
     artifactComponents?: any[],
     hasAgentArtifactComponents?: boolean,
     allProjectArtifactComponents?: any[],
-    excludeArtifactXml: boolean = false
+    excludeArtifactXml: boolean = false,
+    structuredMode: boolean = false
   ): string {
     const shouldShowReferencingRules = hasAgentArtifactComponents || artifacts.length > 0;
-    const rules = this.getArtifactReferencingRules(
-      hasArtifactComponents,
-      templates,
-      shouldShowReferencingRules
-    );
-    const creationInstructions = this.getArtifactCreationInstructions(
-      hasArtifactComponents,
-      artifactComponents
-    );
+    const rules = structuredMode
+      ? this.getStructuredArtifactRules(hasArtifactComponents, shouldShowReferencingRules)
+      : this.getArtifactReferencingRules(
+          hasArtifactComponents,
+          templates,
+          shouldShowReferencingRules
+        );
+    // In structured mode the per-type field schemas already render in the data components
+    // section (ArtifactCreate_* props are JMESPath-enhanced); the tag-flavored
+    // AVAILABLE ARTIFACT TYPES block is suppressed to keep structured mode tag-free.
+    const creationInstructions = structuredMode
+      ? ''
+      : this.getArtifactCreationInstructions(hasArtifactComponents, artifactComponents);
 
     if (artifacts.length === 0) {
       return `<available_artifacts description="No artifacts are currently available, but you may create them during execution.

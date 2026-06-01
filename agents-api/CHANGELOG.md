@@ -1,5 +1,18 @@
 # @inkeep/agents-api
 
+## 0.75.1
+
+### Patch Changes
+
+- d7a6762: Reduce amount of database reads for outbound webhooks
+- 084ebdf: Exempt manage routes that never read the version-controlled config database (SigNoz proxy, GitHub, entitlements, feedback, tenant apps, project memberships, password reset links) from the branch-scoped database middleware. These routes previously pinned a Doltgres connection for the entire request — including slow external calls — which under load exhausted the connection pool and surfaced as "timeout exceeded when trying to connect" on `/manage` endpoints.
+- Updated dependencies [d7a6762]
+- Updated dependencies [2042ce9]
+  - @inkeep/agents-core@0.75.1
+  - @inkeep/agents-work-apps@0.75.1
+  - @inkeep/agents-email@0.75.1
+  - @inkeep/agents-mcp@0.75.1
+
 ## 0.75.0
 
 ### Minor Changes

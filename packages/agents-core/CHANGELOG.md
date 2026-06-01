@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.75.1
+
+### Patch Changes
+
+- d7a6762: Reduce amount of database reads for outbound webhooks
+- 2042ce9: Exclude evaluation LLM calls from per-conversation and cost-page spend figures so cost is consistent across the conversation list, conversation detail, and cost dashboard.
+
 ## 0.75.0
 
 ### Minor Changes
