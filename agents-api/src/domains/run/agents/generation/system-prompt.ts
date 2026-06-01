@@ -15,6 +15,7 @@ import {
 import type { AgentRunContext, AiSdkToolDefinition } from '../agent-types';
 import { agentHasArtifactComponents, createLoadSkillTool } from '../tools/default-tools';
 import type { SystemPromptV1 } from '../types';
+import { computeHasStructuredOutput } from './model-config';
 
 const logger = getLogger('Agent');
 
@@ -371,9 +372,9 @@ export async function buildSystemPrompt(
   const compressionConfig = getModelAwareCompressionConfig();
   const agentHasArtifacts = (await agentHasArtifactComponents(ctx)) || compressionConfig.enabled;
 
-  const hasStructuredOutput = Boolean(
-    ctx.config.dataComponents && ctx.config.dataComponents.length > 0
-  );
+  // includeDataComponents can be true with an empty dataComponents array (allowText:false
+  // artifact-only case, where G1 is true) — generateDataComponentsSection no-ops on empty.
+  const hasStructuredOutput = computeHasStructuredOutput(ctx);
   const includeDataComponents = hasStructuredOutput && !excludeDataComponents;
 
   logger.info(
@@ -404,6 +405,7 @@ export async function buildSystemPrompt(
     hasTransferRelations: (ctx.config.transferRelations?.length ?? 0) > 0,
     hasDelegateRelations: (ctx.config.delegateRelations?.length ?? 0) > 0,
     includeDataComponents,
+    hasStructuredOutput,
     clientCurrentTime,
     outputContract: ctx.config.outputContract,
     resolvedAllowText: ctx.resolvedAllowText,
