@@ -24,7 +24,7 @@
       "**",
       "!packages/agents-mcp",
       "!**/__snapshots__/*.json",
-      // The .agents/skills, .cursor/skills, and .codex/skills entries under
+      // The .agents/skills and .codex/skills entries under
       // public/agents/ are real directories of per-skill symlinks back into
       // the repo-root canonical at ../../../.agents/skills/<skill>. Without
       // these excludes, biome traverses through the symlinks and reformats
@@ -34,8 +34,7 @@
       // internal-only and their formatting is owned by the
       // cross-harness-skills-sync workflow, not by biome.
       "!.agents/skills",
-      "!.codex/skills",
-      "!.cursor/skills"
+      "!.codex/skills"
     ]
   },
   "linter": {

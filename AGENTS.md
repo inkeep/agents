@@ -785,11 +785,11 @@ curl "http://localhost:16686/api/traces?service=inkeep-agents-api&start=16409952
 
 ## AI Coding Assistant Guidance
 
-This repository uses symlinks so multiple AI tools (Claude Code, Cursor, Codex) read from the same instructions.
+This repository keeps one canonical source for agent guidance and skills, mirrored into each tool's native location.
 
-| Source (edit this) | Symlinks (don't edit) |
+| Source (edit this) | Generated mirror (don't edit) |
 |--------------------|----------------------|
 | `AGENTS.md` | `CLAUDE.md` |
-| `.cursor/skills/` | `.claude/skills/`, `.codex/skills/` |
+| `.agents/skills/` | `.codex/skills/` |
 
-AGENTS.md is always loaded by the Agent Harness, and Skills provide on-demand expertise for specific development tasks. They are auto-discovered — no need to document them here.
+Cursor reads `.agents/skills/` natively and Claude Code loads skills via plugins, so neither needs a generated mirror. AGENTS.md is always loaded by the Agent Harness, and Skills provide on-demand expertise for specific development tasks. They are auto-discovered — no need to document them here.
