@@ -375,6 +375,7 @@ async function executeEvaluatorStep(
         runDbClient,
         tenantId,
         projectId,
+        agentId: conversation.agentId ?? '',
         verdict,
         failedConditions,
         evaluationResult: {
@@ -384,6 +385,7 @@ async function executeEvaluatorStep(
           evaluationRunId,
         },
         evaluator: { id: evaluator.id, name: evaluator.name },
+        resolvedRef,
       });
     } catch (emitErr) {
       logger.warn(

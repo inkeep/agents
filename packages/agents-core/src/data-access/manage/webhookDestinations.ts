@@ -112,42 +112,51 @@ export const listWebhookDestinationsForEvent =
     const { scopes, eventType, agentId } = params;
 
     const rows = await db
-      .select()
+      .select({
+        dest: webhookDestinations,
+        scopedAgentId: webhookDestinationAgents.agentId,
+      })
       .from(webhookDestinations)
+      .leftJoin(
+        webhookDestinationAgents,
+        and(
+          eq(webhookDestinationAgents.tenantId, webhookDestinations.tenantId),
+          eq(webhookDestinationAgents.projectId, webhookDestinations.projectId),
+          eq(webhookDestinationAgents.webhookDestinationId, webhookDestinations.id)
+        )
+      )
       .where(
         and(projectScopedWhere(webhookDestinations, scopes), eq(webhookDestinations.enabled, true))
       );
 
-    const eventMatched = (rows as WebhookDestinationSelect[]).filter((dest) => {
-      const types = dest.eventTypes;
-      return Array.isArray(types) && (types as string[]).includes(eventType);
+    const filtered = rows.filter((row) => {
+      const types = row.dest.eventTypes;
+      return Array.isArray(types) && types.includes(eventType);
     });
 
-    if (eventMatched.length === 0) return [];
+    if (filtered.length === 0) return [];
 
-    const destIds = eventMatched.map((d) => d.id);
-    const agentRows = await db
-      .select()
-      .from(webhookDestinationAgents)
-      .where(
-        and(
-          eq(webhookDestinationAgents.tenantId, scopes.tenantId),
-          eq(webhookDestinationAgents.projectId, scopes.projectId),
-          inArray(webhookDestinationAgents.webhookDestinationId, destIds)
-        )
-      );
-
-    const agentsByDest = new Map<string, string[]>();
-    for (const row of agentRows) {
-      const list = agentsByDest.get(row.webhookDestinationId) ?? [];
-      list.push(row.agentId);
-      agentsByDest.set(row.webhookDestinationId, list);
+    const destMap = new Map<string, { dest: WebhookDestinationSelect; agents: string[] }>();
+    for (const row of filtered) {
+      const existing = destMap.get(row.dest.id);
+      if (existing) {
+        if (row.scopedAgentId) existing.agents.push(row.scopedAgentId);
+      } else {
+        destMap.set(row.dest.id, {
+          dest: row.dest as WebhookDestinationSelect,
+          agents: row.scopedAgentId ? [row.scopedAgentId] : [],
+        });
+      }
     }
 
-    return eventMatched.filter((dest) => {
-      const agents = agentsByDest.get(dest.id);
-      return !agents || agents.includes(agentId);
-    });
+    const results: WebhookDestinationSelect[] = [];
+    for (const { dest, agents } of destMap.values()) {
+      if (agents.length === 0 || agents.includes(agentId)) {
+        results.push(dest);
+      }
+    }
+
+    return results;
   };
 
 export const createWebhookDestination =

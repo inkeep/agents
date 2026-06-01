@@ -53,72 +53,14 @@ export interface EmitWebhookEventParams {
   slackMeta?: WebhookSlackMeta;
 }
 
-export interface EmitConversationWebhookParams {
-  runDbClient: AgentsRunDatabaseClient;
+async function lookupWebhookDestinations(params: {
   tenantId: string;
   projectId: string;
   agentId: string;
-  conversationId: string;
   resolvedRef: ResolvedRef;
   eventType: WebhookEventType;
-}
-
-export async function emitConversationWebhook(
-  params: EmitConversationWebhookParams
-): Promise<void> {
-  const {
-    runDbClient: db,
-    tenantId,
-    projectId,
-    agentId,
-    conversationId,
-    resolvedRef,
-    eventType,
-  } = params;
-  const scopes = { tenantId, projectId };
-
-  const promise = Promise.all([
-    getConversation(db)({ scopes, conversationId }),
-    getConversationHistory(db)({
-      scopes,
-      conversationId,
-      options: { limit: CONVERSATION_DETAIL_MESSAGE_LIMIT },
-    }),
-  ])
-    .then(([conversation, messages]) => {
-      if (!conversation) {
-        logger.warn({ conversationId, eventType }, 'Skipping webhook emit: conversation not found');
-        return;
-      }
-      const detail = formatConversationDetail(conversation, messages);
-      return emitWebhookEvent({
-        tenantId,
-        projectId,
-        agentId,
-        resolvedRef,
-        eventType,
-        data: { conversation: detail },
-      });
-    })
-    .catch((err) => {
-      logger.warn(
-        {
-          error: err instanceof Error ? err.message : String(err),
-          conversationId,
-        },
-        `Failed to emit ${eventType} webhook event`
-      );
-    });
-
-  const waitUntil = await getWaitUntil();
-  if (waitUntil) {
-    waitUntil(promise);
-  }
-}
-
-export async function emitWebhookEvent(params: EmitWebhookEventParams): Promise<void> {
-  const { tenantId, projectId, agentId, resolvedRef, eventType, data, slackMeta } = params;
-
+}): Promise<WebhookDestinationSelect[]> {
+  const { tenantId, projectId, agentId, resolvedRef, eventType } = params;
   let destinations: WebhookDestinationSelect[] = [];
 
   try {
@@ -140,12 +82,23 @@ export async function emitWebhookEvent(params: EmitWebhookEventParams): Promise<
       },
       'Failed to query webhook destinations'
     );
-    return;
   }
 
-  if (destinations.length === 0) {
-    return;
-  }
+  return destinations;
+}
+
+interface DispatchToDestinationsParams {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  eventType: WebhookEventType;
+  data: Record<string, unknown>;
+  destinations: WebhookDestinationSelect[];
+  slackMeta?: WebhookSlackMeta;
+}
+
+async function dispatchToDestinations(params: DispatchToDestinationsParams): Promise<void> {
+  const { tenantId, projectId, agentId, eventType, data, destinations, slackMeta } = params;
 
   const envelope: WebhookEventEnvelope = {
     type: eventType,
@@ -230,6 +183,32 @@ export async function emitWebhookEvent(params: EmitWebhookEventParams): Promise<
   }
 }
 
+export async function emitWebhookEvent(params: EmitWebhookEventParams): Promise<void> {
+  const { tenantId, projectId, agentId, resolvedRef, eventType, data, slackMeta } = params;
+
+  const destinations = await lookupWebhookDestinations({
+    tenantId,
+    projectId,
+    agentId,
+    resolvedRef,
+    eventType,
+  });
+
+  if (destinations.length === 0) {
+    return;
+  }
+
+  await dispatchToDestinations({
+    tenantId,
+    projectId,
+    agentId,
+    eventType,
+    data,
+    destinations,
+    slackMeta,
+  });
+}
+
 export function emitWebhookEventFireAndForget(
   params: EmitWebhookEventParams,
   context: string
@@ -252,56 +231,147 @@ export function emitWebhookEventFireAndForget(
     });
 }
 
-export interface EmitFeedbackWebhookParams {
+export interface EmitConversationWebhookParams {
   runDbClient: AgentsRunDatabaseClient;
   tenantId: string;
   projectId: string;
-  agentId?: string;
-  feedback: FeedbackSelect;
+  agentId: string;
+  conversationId: string;
+  resolvedRef: ResolvedRef;
+  eventType: WebhookEventType;
 }
 
-export async function emitFeedbackWebhook(params: EmitFeedbackWebhookParams): Promise<void> {
-  const { runDbClient: db, tenantId, projectId, agentId, feedback } = params;
+export async function emitConversationWebhook(
+  params: EmitConversationWebhookParams
+): Promise<void> {
+  const {
+    runDbClient: db,
+    tenantId,
+    projectId,
+    agentId,
+    conversationId,
+    resolvedRef,
+    eventType,
+  } = params;
   const scopes = { tenantId, projectId };
 
-  const promise = Promise.all([
-    getProjectMainResolvedRef(manageDbClient)(tenantId, projectId),
-    getConversation(db)({ scopes, conversationId: feedback.conversationId }),
-    getConversationHistory(db)({
-      scopes,
-      conversationId: feedback.conversationId,
-      options: { limit: CONVERSATION_DETAIL_MESSAGE_LIMIT },
-    }),
-  ])
-    .then(([resolvedRef, conversation, messages]) => {
+  const promise = lookupWebhookDestinations({
+    tenantId,
+    projectId,
+    agentId,
+    resolvedRef,
+    eventType,
+  })
+    .then(async (destinations) => {
+      if (destinations.length === 0) return;
+
+      const [conversation, messages] = await Promise.all([
+        getConversation(db)({ scopes, conversationId }),
+        getConversationHistory(db)({
+          scopes,
+          conversationId,
+          options: { limit: CONVERSATION_DETAIL_MESSAGE_LIMIT },
+        }),
+      ]);
+
       if (!conversation) {
-        logger.warn(
-          { conversationId: feedback.conversationId, feedbackId: feedback.id },
-          'Skipping feedback webhook emit: conversation not found'
-        );
+        logger.warn({ conversationId, eventType }, 'Skipping webhook emit: conversation not found');
         return;
       }
-      return emitWebhookEvent({
+      const detail = formatConversationDetail(conversation, messages);
+      return dispatchToDestinations({
         tenantId,
         projectId,
-        agentId: agentId ?? conversation.agentId ?? '',
-        resolvedRef,
-        eventType: 'feedback.created',
-        data: {
-          feedback: formatFeedback(feedback),
-          conversation: formatConversationDetail(conversation, messages),
-        },
+        agentId,
+        eventType,
+        data: { conversation: detail },
+        destinations,
       });
     })
     .catch((err) => {
       logger.warn(
         {
           error: err instanceof Error ? err.message : String(err),
-          feedbackId: feedback.id,
+          conversationId,
         },
-        'Failed to emit feedback.created webhook event'
+        `Failed to emit ${eventType} webhook event`
       );
     });
+
+  const waitUntil = await getWaitUntil();
+  if (waitUntil) {
+    waitUntil(promise);
+  }
+}
+
+export interface EmitFeedbackWebhookParams {
+  runDbClient: AgentsRunDatabaseClient;
+  tenantId: string;
+  projectId: string;
+  agentId?: string;
+  feedback: FeedbackSelect;
+  resolvedRef?: ResolvedRef;
+}
+
+export async function emitFeedbackWebhook(params: EmitFeedbackWebhookParams): Promise<void> {
+  const { runDbClient: db, tenantId, projectId, feedback } = params;
+  const scopes = { tenantId, projectId };
+
+  const promise = (async () => {
+    const resolvedRef =
+      params.resolvedRef ?? (await getProjectMainResolvedRef(manageDbClient)(tenantId, projectId));
+
+    const conversation = await getConversation(db)({
+      scopes,
+      conversationId: feedback.conversationId,
+    });
+
+    if (!conversation) {
+      logger.warn(
+        { conversationId: feedback.conversationId, feedbackId: feedback.id },
+        'Skipping feedback webhook emit: conversation not found'
+      );
+      return;
+    }
+
+    const agentId = params.agentId ?? conversation.agentId ?? '';
+
+    const destinations = await lookupWebhookDestinations({
+      tenantId,
+      projectId,
+      agentId,
+      resolvedRef,
+      eventType: 'feedback.created',
+    });
+
+    if (destinations.length === 0) return;
+
+    const messages = await getConversationHistory(db)({
+      scopes,
+      conversationId: feedback.conversationId,
+      options: { limit: CONVERSATION_DETAIL_MESSAGE_LIMIT },
+    });
+
+    return dispatchToDestinations({
+      tenantId,
+      projectId,
+      agentId,
+      eventType: 'feedback.created',
+      data: {
+        feedback: formatFeedback(feedback),
+        conversation: formatConversationDetail(conversation, messages),
+      },
+      destinations,
+    });
+  })().catch((err) => {
+    logger.warn(
+      {
+        error: err instanceof Error ? err.message : String(err),
+        feedbackId: feedback.id,
+      },
+      'Failed to emit feedback.created webhook event'
+    );
+  });
 
   const waitUntil = await getWaitUntil();
   if (waitUntil) {
@@ -350,6 +420,7 @@ export interface EmitEvaluationFailedWebhookParams {
   runDbClient: AgentsRunDatabaseClient;
   tenantId: string;
   projectId: string;
+  agentId: string;
   verdict: EvaluationStatus;
   failedConditions: Array<{
     field: string;
@@ -364,6 +435,7 @@ export interface EmitEvaluationFailedWebhookParams {
     evaluationRunId: string | null;
   };
   evaluator: { id: string; name: string };
+  resolvedRef: ResolvedRef;
 }
 
 export async function emitEvaluationFailedWebhook(
@@ -373,69 +445,63 @@ export async function emitEvaluationFailedWebhook(
     runDbClient: db,
     tenantId,
     projectId,
+    agentId,
     verdict,
     failedConditions,
     evaluationResult,
     evaluator,
+    resolvedRef,
   } = params;
-  const scopes = { tenantId, projectId };
 
   if (verdict !== 'failed') {
     return;
   }
 
-  const evaluationRunPromise = evaluationResult.evaluationRunId
-    ? getEvaluationRunById(db)({
-        scopes: { tenantId, projectId, evaluationRunId: evaluationResult.evaluationRunId },
-      })
-    : Promise.resolve(null);
-
-  const promise = Promise.all([
-    getProjectMainResolvedRef(manageDbClient)(tenantId, projectId),
-    getConversation(db)({ scopes, conversationId: evaluationResult.conversationId }),
-    evaluationRunPromise,
-  ])
-    .then(([resolvedRef, conversation, evaluationRun]) => {
-      if (!conversation) {
-        logger.warn(
-          {
-            conversationId: evaluationResult.conversationId,
-            evaluationResultId: evaluationResult.id,
-          },
-          'Skipping evaluation.failed webhook emit: conversation not found'
-        );
-        return;
-      }
-
-      return emitWebhookEvent({
-        tenantId,
-        projectId,
-        agentId: conversation.agentId ?? '',
-        resolvedRef,
-        eventType: 'evaluation.failed',
-        data: {
-          evaluator: { id: evaluator.id, name: evaluator.name },
-          conversation: { id: evaluationResult.conversationId },
-          failedConditions,
-        },
-        slackMeta: {
-          evaluationRunConfigId: evaluationRun?.evaluationRunConfigId ?? null,
-          evaluationJobConfigId: evaluationRun?.evaluationJobConfigId ?? null,
-        },
-      });
-    })
-    .catch((err) => {
-      logger.warn(
-        {
-          error: err instanceof Error ? err.message : String(err),
-          evaluationResultId: evaluationResult.id,
-          evaluatorId: evaluationResult.evaluatorId,
-          conversationId: evaluationResult.conversationId,
-          evaluationRunId: evaluationResult.evaluationRunId,
-        },
-        'Failed to emit evaluation.failed webhook event'
-      );
+  const promise = (async () => {
+    const destinations = await lookupWebhookDestinations({
+      tenantId,
+      projectId,
+      agentId,
+      resolvedRef,
+      eventType: 'evaluation.failed',
     });
+
+    if (destinations.length === 0) return;
+
+    const evaluationRun = evaluationResult.evaluationRunId
+      ? await getEvaluationRunById(db)({
+          scopes: { tenantId, projectId, evaluationRunId: evaluationResult.evaluationRunId },
+        })
+      : null;
+
+    return dispatchToDestinations({
+      tenantId,
+      projectId,
+      agentId,
+      eventType: 'evaluation.failed',
+      data: {
+        evaluator: { id: evaluator.id, name: evaluator.name },
+        conversation: { id: evaluationResult.conversationId },
+        failedConditions,
+      },
+      destinations,
+      slackMeta: {
+        evaluationRunConfigId: evaluationRun?.evaluationRunConfigId ?? null,
+        evaluationJobConfigId: evaluationRun?.evaluationJobConfigId ?? null,
+      },
+    });
+  })().catch((err) => {
+    logger.warn(
+      {
+        error: err instanceof Error ? err.message : String(err),
+        evaluationResultId: evaluationResult.id,
+        evaluatorId: evaluationResult.evaluatorId,
+        conversationId: evaluationResult.conversationId,
+        evaluationRunId: evaluationResult.evaluationRunId,
+      },
+      'Failed to emit evaluation.failed webhook event'
+    );
+  });
 
   const waitUntil = await getWaitUntil();
   if (waitUntil) {
