@@ -37,6 +37,7 @@ import {
   workAppsCorsConfig,
 } from './middleware';
 import { branchScopedDbMiddleware } from './middleware/branchScopedDb';
+import { isManageRouteExemptFromBranchScopedDb } from './middleware/manageBranchScopedDbExemptions';
 import { projectConfigMiddleware, projectConfigMiddlewareExcept } from './middleware/projectConfig';
 import { manageRefMiddleware, runRefMiddleware, writeProtectionMiddleware } from './middleware/ref';
 import { sessionContext } from './middleware/sessionAuth';
@@ -270,10 +271,22 @@ function createAgentsHono(config: AppConfig) {
   app.use('/run/v1/*', runApiKeyAuth());
   app.use('/run/api/*', runApiKeyAuth());
 
-  // Ref versioning middleware for all tenant routes - MUST be before route mounting
-  app.use('/manage/tenants/*', async (c, next) => manageRefMiddleware(c, next));
-  app.use('/manage/tenants/*', (c, next) => writeProtectionMiddleware(c, next));
-  app.use('/manage/tenants/*', async (c, next) => branchScopedDbMiddleware(c, next));
+  // Ref versioning middleware for all tenant routes - MUST be before route mounting.
+  // Routes that never touch the manage Doltgres DB are exempted so they don't
+  // resolve a ref or pin a branch-scoped connection (see
+  // manageBranchScopedDbExemptions). Tenant/session auth above this still applies.
+  app.use('/manage/tenants/*', async (c, next) => {
+    if (isManageRouteExemptFromBranchScopedDb(c.req.path)) return next();
+    return manageRefMiddleware(c, next);
+  });
+  app.use('/manage/tenants/*', (c, next) => {
+    if (isManageRouteExemptFromBranchScopedDb(c.req.path)) return next();
+    return writeProtectionMiddleware(c, next);
+  });
+  app.use('/manage/tenants/*', async (c, next) => {
+    if (isManageRouteExemptFromBranchScopedDb(c.req.path)) return next();
+    return branchScopedDbMiddleware(c, next);
+  });
 
   // Apply ref middleware to all execution routes (skip public auth endpoints)
   app.use('/run/*', async (c, next) => {
