@@ -1,5 +1,13 @@
 # @inkeep/agents-manage-ui
 
+## 0.75.3
+
+### Patch Changes
+
+- 68e8093: Consolidate conversation trace queries into single SigNoz query
+- Updated dependencies [c9072d5]
+  - @inkeep/agents-core@0.75.3
+
 ## 0.75.2
 
 ### Patch Changes
