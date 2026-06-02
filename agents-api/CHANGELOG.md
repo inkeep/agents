@@ -1,5 +1,16 @@
 # @inkeep/agents-api
 
+## 0.75.4
+
+### Patch Changes
+
+- cbae12e: Teach the JMESPath selector craft (base_selector/details_selector rules, forbidden patterns, data-inspection steps, common failure points) in structured-output mode too, not just text mode. Improves artifact creation quality for agents that emit structured data components. The structured guidance is tag-free so no `<artifact:*>` syntax leaks into data-component mode.
+- cbae12e: Hide internal compressed tool_result artifacts from end-user conversation surfaces while keeping them model-facing
+  - @inkeep/agents-core@0.75.4
+  - @inkeep/agents-email@0.75.4
+  - @inkeep/agents-mcp@0.75.4
+  - @inkeep/agents-work-apps@0.75.4
+
 ## 0.75.3
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @inkeep/create-agents
 
+## 0.75.4
+
+### Patch Changes
+
+- @inkeep/agents-core@0.75.4
+
 ## 0.75.3
 
 ### Patch Changes
