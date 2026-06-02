@@ -1,0 +1,286 @@
+---
+title: Pass context to the widget
+sidebarTitle: "User & page context"
+description: Send page, session, and user context to your agent so it can give personalized, situation-aware responses.
+keywords: pass context, user context, page context, current page, custom headers, personalization, session context, headers schema, context fetchers, userProperties, verified identity
+icon: LuShare2
+---
+
+Give your agent context about who the user is so it can respond more specifically, like their name, plan, current page, or where they are in a flow.
+
+## How context reaches your agent
+
+Context that the agent (the model) should actually read is passed as **HTTP headers** via the widget's `aiChatSettings.headers` prop. You define a headers schema on the agent, and the values become available in two places:
+
+- **In the prompt**, via the `{{headers.<key>}}` template syntax
+- **In [context fetchers](/typescript-sdk/context-fetchers)**, which can call your own APIs using header values and expose the result as `{{<variable>.<field>}}`
+
+## Automatic context (timestamp & timezone)
+
+The chat components automatically send the following headers with each request to provide client context:
+
+| Header | Description | Example Value |
+|--------|-------------|---------------|
+| `x-inkeep-client-timestamp` | The client's current timestamp in ISO 8601 format | `2025-01-30T18:15:00.000Z` |
+| `x-inkeep-client-timezone` | The client's timezone identifier | `America/New_York` |
+
+These headers enable your agents to provide time-aware responses. See [Headers](/typescript-sdk/headers#widget-provided-headers) to learn how to use these values in your agent configuration.
+
+## Page & session context (custom headers)
+
+You can pass custom headers to the chat components via the `headers` prop in `aiChatSettings`. Common use cases include passing the current page URL, user context, or session metadata. Custom headers are validated against a schema you define in the agent settings, then made available in your agent prompt via template syntax.
+
+In the following example, you'll pass the current page URL to the agent.
+
+<Steps>
+  <Step>
+    #### Define the headers schema
+
+    In the Visual Builder, navigate to **Agents** in the left sidebar, select your agent, then open the **Agent Settings** pane and scroll down to **Headers schema** and add the following schema:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "x-current-url": {
+      "type": "string",
+      "description": "The URL the user is currently viewing."
+    }
+  },
+  "required": []
+}
+```
+
+  </Step>
+  <Step>
+    #### Reference the header in your agent prompt
+
+    Use the key defined in your headers schema with the `{{headers.<key>}}` template syntax:
+
+```text
+The user is currently viewing {{headers.x-current-url}}.
+```
+
+  </Step>
+  <Step>
+    #### Pass the header value from your chat component
+
+<CodeGroup>
+```tsx title="React"
+import { InkeepChatButton, type InkeepAIChatSettings } from '@inkeep/agents-ui-cloud'
+import { useState, useEffect } from 'react'
+
+export default function ChatButton() {
+  const [currentUrl, setCurrentUrl] = useState<string>()
+
+  useEffect(() => {
+    const sync = () => setCurrentUrl(window.location.href)
+    sync()
+    window.addEventListener('hashchange', sync)
+    window.addEventListener('popstate', sync)
+    return () => {
+      window.removeEventListener('hashchange', sync)
+      window.removeEventListener('popstate', sync)
+    }
+  }, [])
+
+  const aiChatSettings: InkeepAIChatSettings = {
+    baseUrl: 'https://your-api.example.com',
+    appId: 'YOUR_APP_ID',
+    ...(currentUrl && {
+      headers: {
+        'x-current-url': currentUrl,
+      },
+    }),
+  }
+
+  return <InkeepChatButton aiChatSettings={aiChatSettings} />;
+}
+```
+
+```js title="JavaScript"
+const chatButton = Inkeep.ChatButton({
+  aiChatSettings: {
+    baseUrl: 'https://your-api.example.com',
+    appId: 'YOUR_APP_ID',
+    headers: {
+      'x-current-url': window.location.href,
+    },
+  },
+});
+
+function syncUrl() {
+  chatButton.update({
+    aiChatSettings: {
+      headers: { 'x-current-url': window.location.href },
+    },
+  });
+}
+
+window.addEventListener('hashchange', syncUrl);
+window.addEventListener('popstate', syncUrl);
+```
+
+```tsx title="Next.js"
+'use client';
+
+import dynamic from 'next/dynamic';
+import type { InkeepChatButtonProps } from '@inkeep/agents-ui-cloud';
+import { usePathname, useSearchParams } from 'next/navigation';
+
+const InkeepChatButton = dynamic(
+  () => import('@inkeep/agents-ui-cloud').then((mod) => mod.InkeepChatButton),
+  { ssr: false },
+);
+
+export default function ChatButton() {
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  // Recomputed on every client navigation, since the hooks above re-render the
+  // component. Safe to read window here because this component is client-only (ssr: false).
+  const search = searchParams.toString()
+  const currentUrl =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}${pathname}${search ? `?${search}` : ''}`
+      : undefined
+
+  const buttonProps: InkeepChatButtonProps = {
+    aiChatSettings: {
+      baseUrl: 'https://your-api.example.com',
+      appId: process.env.NEXT_PUBLIC_INKEEP_APP_ID, // Your app ID
+      ...(currentUrl && {
+        headers: {
+          'x-current-url': currentUrl,
+        },
+      }),
+    },
+  };
+  return <InkeepChatButton {...buttonProps} />;
+}
+```
+</CodeGroup>
+
+  </Step>
+</Steps>
+
+<Note>
+  Update header values whenever the context changes — on client-side navigation, after login, or when the user advances a step. In React, derive them from state/router so a re-render passes new values; with the JavaScript API, call `.update({ aiChatSettings: { headers: { ... } } })` (as shown above).
+</Note>
+
+## User context (name, plan, onboarding step)
+
+User attributes work exactly like the page example above — declare each key in your headers schema, reference it in the prompt, and pass it from the widget. The values come from your app's auth or session state rather than the browser. This example passes the user's name and plan; add more keys (like `x-onboarding-step`) the same way.
+
+<Steps>
+  <Step>
+    #### Define the headers schema
+
+    In the **Agent Settings** → **Headers schema**, add a property for each attribute you want to pass:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "x-user-name": {
+      "type": "string",
+      "description": "The user's display name."
+    },
+    "x-user-plan": {
+      "type": "string",
+      "description": "The user's subscription plan, e.g. free or pro."
+    }
+  },
+  "required": []
+}
+```
+
+  </Step>
+  <Step>
+    #### Reference the headers in your agent prompt
+
+    Use the keys from your headers schema with the `{{headers.<key>}}` template syntax:
+
+```text
+You are helping {{headers.x-user-name}} on the {{headers.x-user-plan}} plan.
+```
+
+  </Step>
+  <Step>
+    #### Pass the header values from your chat component
+
+<CodeGroup>
+```tsx title="React"
+import { InkeepChatButton, type InkeepAIChatSettings, type InkeepBaseSettings } from '@inkeep/agents-ui-cloud'
+
+// `user` comes from your auth/session state (props, context, or a hook like useUser()).
+export default function ChatButton({ user }: { user?: { name: string; plan: string } }) {
+  const aiChatSettings: InkeepAIChatSettings = {
+    baseUrl: 'https://your-api.example.com',
+    appId: 'YOUR_APP_ID',
+    ...(user && {
+      headers: {
+        'x-user-name': user.name,
+        'x-user-plan': user.plan,
+      },
+    }),
+  }
+
+  const baseSettings: InkeepBaseSettings = {
+    // Associate analytics events with this user — pass userProperties.
+    ...(user && {
+      userProperties: {
+        name: user.name,
+        plan: user.plan,
+      },
+    }),
+  }
+
+  return <InkeepChatButton baseSettings={baseSettings} aiChatSettings={aiChatSettings} />;
+}
+```
+
+```js title="JavaScript"
+// `currentUser` comes from your app's auth/session state.
+const chatButton = Inkeep.ChatButton({
+  baseSettings: {
+    // Associate analytics events with this user — pass userProperties.
+    userProperties: {
+      name: currentUser.name,
+      plan: currentUser.plan,
+    },
+  },
+  aiChatSettings: {
+    baseUrl: 'https://your-api.example.com',
+    appId: 'YOUR_APP_ID',
+    headers: {
+      'x-user-name': currentUser.name,
+      'x-user-plan': currentUser.plan,
+    },
+  },
+});
+
+// Refresh the values after the user logs in or changes plan.
+function syncUser(user) {
+  chatButton.update({
+    baseSettings: {
+      userProperties: {
+        name: user.name,
+        plan: user.plan,
+      },
+    },
+    aiChatSettings: {
+      headers: {
+        'x-user-name': user.name,
+        'x-user-plan': user.plan,
+      },
+    },
+  });
+}
+```
+</CodeGroup>
+
+  </Step>
+</Steps>
+
+For richer data, use a **[context fetcher](/typescript-sdk/context-fetchers)**: pass an identifier like `x-user-id` as a header, and have the agent fetch the full user record from your API at conversation start. The fetched fields are then available in the prompt as context variables.
