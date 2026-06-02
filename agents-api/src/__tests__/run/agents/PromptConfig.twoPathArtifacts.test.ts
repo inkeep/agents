@@ -72,6 +72,31 @@ describe('PromptConfig — two-path artifact emission (structured vs text)', () 
     expect(prompt).toContain('artifact:ref');
   });
 
+  test('T4: structured mode carries the JMESPath selector craft (tag-free)', () => {
+    const { prompt } = builder.buildSystemPrompt(
+      baseConfig({
+        dataComponents: [
+          {
+            id: 'dc1',
+            name: 'Answer',
+            description: 'An answer',
+            props: { type: 'object', properties: { text: { type: 'string' } } },
+          } as any,
+        ],
+        includeDataComponents: true,
+        hasStructuredOutput: true,
+      })
+    );
+    // The high-value selector craft must be present in structured mode...
+    expect(prompt).toContain('FORBIDDEN JMESPATH PATTERNS');
+    expect(prompt).toContain('COMMON FAILURE POINTS');
+    expect(prompt).toContain('_structureHints.exampleSelectors');
+    expect(prompt).toContain('SELECTOR CRAFT');
+    // ...but still without any XML tag syntax bleeding in.
+    expect(prompt).not.toContain('artifact:create');
+    expect(prompt).not.toContain('artifact:ref');
+  });
+
   test('T5: allowText:false artifact-only (structured, no data components) teaches structured, not tags', () => {
     const { prompt } = builder.buildSystemPrompt(
       baseConfig({

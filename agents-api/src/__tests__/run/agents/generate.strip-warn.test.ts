@@ -1,3 +1,4 @@
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
@@ -12,9 +13,7 @@ const { buildInitialMessagesMock, buildConversationHistoryMock } = vi.hoisted(()
   }),
 }));
 
-vi.mock('../../../../logger', () => ({
-  getLogger: () => ({ warn: vi.fn(), info: vi.fn(), debug: vi.fn(), error: vi.fn() }),
-}));
+vi.mock('../../../../logger', () => createMockLoggerModule().module);
 
 vi.mock('ai', () => ({
   generateText: vi.fn().mockResolvedValue({
@@ -123,7 +122,7 @@ vi.mock('../../../domains/run/agents/versions/v1/PromptConfig', () => ({
 // Import under test (after all mocks are registered)
 // ---------------------------------------------------------------------------
 
-import { runGenerate } from '../../../domains/run/agents/generation/generate';
+import { mapPartsToEventParts, runGenerate } from '../../../domains/run/agents/generation/generate';
 
 // ---------------------------------------------------------------------------
 // Minimal context fixture
@@ -272,5 +271,59 @@ describe('runGenerate — strip + warn', () => {
     expect(filePartsArg).toHaveLength(0);
     expect(userMessageArg).toBe('Hello world.');
     expect(userMessageArg).not.toContain('[Attachment omitted:');
+  });
+});
+
+describe('mapPartsToEventParts - internal artifact suppression', () => {
+  it('strips internal tool_result artifact parts from the end-user event stream', () => {
+    const result = mapPartsToEventParts([
+      { kind: 'text', text: 'Here is your answer' },
+      {
+        kind: 'data',
+        data: { artifactId: 'compress_x', toolCallId: 'call-1', type: 'tool_result' },
+      },
+      {
+        kind: 'data',
+        data: { artifactId: 'art-1', toolCallId: 'call-2', type: 'code' },
+      },
+    ] as any);
+
+    expect(result).toEqual([
+      { type: 'text', content: 'Here is your answer' },
+      {
+        type: 'data_artifact',
+        data: { artifactId: 'art-1', toolCallId: 'call-2', type: 'code' },
+      },
+    ]);
+    expect(
+      result.some((p) => (p.data as { type?: string } | undefined)?.type === 'tool_result')
+    ).toBe(false);
+  });
+
+  it('returns an empty array when all parts are internal tool_result artifacts', () => {
+    const result = mapPartsToEventParts([
+      {
+        kind: 'data',
+        data: { artifactId: 'compress_a', toolCallId: 'call-1', type: 'tool_result' },
+      },
+      {
+        kind: 'data',
+        data: { artifactId: 'compress_b', toolCallId: 'call-2', type: 'tool_result' },
+      },
+    ] as any);
+
+    expect(result).toEqual([]);
+  });
+
+  it('keeps non-artifact data components and plain artifacts', () => {
+    const result = mapPartsToEventParts([
+      { kind: 'data', data: { component: 'chart' } },
+      { kind: 'data', data: { artifactId: 'a', toolCallId: 'b', type: 'code' } },
+    ] as any);
+
+    expect(result).toEqual([
+      { type: 'data_component', data: { component: 'chart' } },
+      { type: 'data_artifact', data: { artifactId: 'a', toolCallId: 'b', type: 'code' } },
+    ]);
   });
 });

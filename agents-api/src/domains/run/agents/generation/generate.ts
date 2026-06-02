@@ -14,6 +14,7 @@ import type { StepResult, ToolSet } from 'ai';
 import { generateText, Output, streamText } from 'ai';
 import { getLogger } from '../../../../logger';
 import type { StreamPart } from '../../artifacts/ArtifactParser';
+import { isInternalToolResultArtifactData } from '../../artifacts/internal-artifacts';
 import type { MidGenerationCompressor } from '../../compression/MidGenerationCompressor';
 import { emitWebhookEventFireAndForget } from '../../services/WebhookDeliveryService';
 import { agentSessionManager } from '../../session/AgentSession';
@@ -186,32 +187,46 @@ export function selectStructuredFallbackText(response: ResolvedGenerationRespons
   return stepText || '';
 }
 
-export function mapPartsToEventParts(
-  parts: Array<{ kind?: string; text?: string; data?: unknown } | StreamPart> | undefined | null
-): Array<{
+type EventPart = {
   type: 'text' | 'data_component' | 'data_artifact';
   content?: string;
   data?: unknown;
-}> {
-  return (parts || []).map((part) => {
+};
+
+export function mapPartsToEventParts(
+  parts: Array<{ kind?: string; text?: string; data?: unknown } | StreamPart> | undefined | null
+): Array<EventPart> {
+  return (parts || []).flatMap((part): EventPart[] => {
     if (part.kind === 'text') {
-      return { type: 'text' as const, content: (part as StreamPart).text ?? '' };
+      return [{ type: 'text' as const, content: (part as StreamPart).text ?? '' }];
     }
     if (part.kind === 'data') {
       const data = (part as StreamPart).data as
         | { artifactId?: unknown; toolCallId?: unknown }
         | undefined;
+      // Internal tool_result artifacts are model-facing only — strip from the
+      // end-user event stream. They remain in the ledger and model history.
+      // See SPEC 2026-05-30-internal-compressed-artifact-suppression (D1–D3).
+      if (isInternalToolResultArtifactData(data)) {
+        logger.debug(
+          { artifactId: data?.artifactId, op: 'mapPartsToEventParts' },
+          'Suppressed internal tool_result artifact from end-user event stream'
+        );
+        return [];
+      }
       const isArtifact = Boolean(data?.artifactId && data?.toolCallId);
-      return {
-        type: isArtifact ? ('data_artifact' as const) : ('data_component' as const),
-        data: (part as StreamPart).data,
-      };
+      return [
+        {
+          type: isArtifact ? ('data_artifact' as const) : ('data_component' as const),
+          data: (part as StreamPart).data,
+        },
+      ];
     }
     logger.warn(
       { kind: part.kind, op: 'mapPartsToEventParts' },
       'unknown part kind — mapping to empty text part'
     );
-    return { type: 'text' as const, content: '' };
+    return [{ type: 'text' as const, content: '' }];
   });
 }
 
