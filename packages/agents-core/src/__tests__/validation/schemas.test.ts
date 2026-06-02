@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   ConversationInsertSchema,
+  DataComponentApiInsertSchema,
+  DataComponentApiUpdateSchema,
   MessageInsertSchema,
   PaginationQueryParamsSchema,
   PaginationSchema,
@@ -125,6 +127,35 @@ describe('Validation Schemas', () => {
       // This should not throw because tenantId is omitted from the schema
       const result = SubAgentApiUpdateSchema.parse(invalidUpdate);
       expect(result).not.toHaveProperty('tenantId');
+    });
+  });
+
+  describe('DataComponentApiUpdateSchema', () => {
+    it('should allow partial updates that omit name and props', () => {
+      // Clearing the render (the "delete renderer" path) sends only id + render.
+      expect(() =>
+        DataComponentApiUpdateSchema.parse({ id: 'tasks-agent', render: null })
+      ).not.toThrow();
+    });
+
+    it('should allow setting a render object', () => {
+      expect(() =>
+        DataComponentApiUpdateSchema.parse({
+          id: 'tasks-agent',
+          render: { component: '<div />', mockData: {} },
+        })
+      ).not.toThrow();
+    });
+
+    it('should allow an empty update object', () => {
+      expect(() => DataComponentApiUpdateSchema.parse({})).not.toThrow();
+    });
+  });
+
+  describe('DataComponentApiInsertSchema', () => {
+    it('should still require name and props on create', () => {
+      const result = DataComponentApiInsertSchema.safeParse({ id: 'tasks-agent', render: null });
+      expect(result.success).toBe(false);
     });
   });
 
