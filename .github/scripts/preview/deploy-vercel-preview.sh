@@ -114,6 +114,7 @@ deploy_and_alias() {
   log_file="$(mktemp)"
   vercel deploy \
     --yes \
+    --archive=tgz \
     --token="${VERCEL_TOKEN}" \
     --scope="${VERCEL_ORG_ID}" \
     -m githubDeployment=1 \
