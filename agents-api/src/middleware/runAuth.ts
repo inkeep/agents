@@ -3,15 +3,12 @@ import {
   canUseProjectStrict,
   createApiError,
   getAppById,
-  isSentinelEnabled,
-  isSentinelUpstreamUnavailable,
   isSlackUserToken,
   type PublicKeyConfig,
   updateAppLastUsed,
   validateAndGetApiKey,
   validateOrigin,
   validateTargetAgent,
-  verifySentinelPayload,
   verifyServiceToken,
   verifySlackUserToken,
   type WebClientConfig,
@@ -855,81 +852,14 @@ async function tryAppCredentialAuth(reqData: RequestData): Promise<AuthAttempt> 
           'App credential authenticated (asymmetric)'
         );
 
-        // Bot protection scoring for authenticated users — orthogonal to identity.
-        // If a Sentinel payload is present, verify it. Reject if scored as bot.
-        // Absent header is allowed (widget may not have finished solving yet).
-        // Malformed header is rejected (legit widgets always produce valid headers; junk = bypass attempt).
-        // Sentinel upstream unavailability is fail-open so a Sentinel outage doesn't break authenticated traffic.
-        //
-        // Scope: v2 (Sentinel HIS) only. The legacy PoW v1 compatibility path is intentionally
-        // scoped to anonymous-session creation — once a v1 user holds a session token, subsequent
-        // authenticated requests don't carry a v1 envelope. Operators running in v1-only mode get
-        // no bot scoring on authenticated requests; the migration target is v2.
-        if (reqData.request.method !== 'GET') {
-          const challengeHeader = reqData.request.headers.get('x-inkeep-challenge-solution');
-          const sentinelKeyId = env.INKEEP_SENTINEL_API_KEY_ID;
-          const sentinelKeySecret = env.INKEEP_SENTINEL_API_KEY_SECRET;
-          const sentinelBaseUrl = env.INKEEP_SENTINEL_BASE_URL;
-
-          if (
-            challengeHeader &&
-            isSentinelEnabled(sentinelKeyId) &&
-            sentinelBaseUrl &&
-            sentinelKeySecret
-          ) {
-            let decodedPayload: string;
-            try {
-              const decoded = JSON.parse(atob(challengeHeader));
-              if (typeof decoded.payload !== 'string') {
-                throw new Error('payload missing');
-              }
-              decodedPayload = decoded.payload;
-            } catch (err) {
-              appLogger.warn(
-                { appId: app.id, error: err instanceof Error ? err.message : String(err) },
-                'Sentinel challenge header could not be decoded'
-              );
-              throw createApiError({
-                code: 'bad_request',
-                message: 'Bot protection challenge solution is invalid.',
-              });
-            }
-
-            // verifySentinelPayload handles its own errors and returns Result types — see
-            // pow.ts. A .catch() here would map programming bugs to sentinel_network_error
-            // (fail-open), creating the bypass we're trying to prevent.
-            const result = await verifySentinelPayload(
-              decodedPayload,
-              sentinelBaseUrl,
-              sentinelKeyId,
-              sentinelKeySecret
-            );
-            appLogger.info(
-              {
-                appId: app.id,
-                endUserId,
-                verified: result.ok,
-                ...(result.ok
-                  ? { classification: result.classification, score: result.score }
-                  : { error: result.error, reason: result.reason }),
-              },
-              'Sentinel scoring (authenticated user)'
-            );
-            if (!result.ok) {
-              if (isSentinelUpstreamUnavailable(result.error)) {
-                appLogger.warn(
-                  { appId: app.id, error: result.error, reason: result.reason },
-                  'Sentinel upstream unavailable; allowing authenticated request without bot verification'
-                );
-              } else {
-                throw createApiError({
-                  code: 'forbidden',
-                  message: 'Bot protection verification failed',
-                });
-              }
-            }
-          }
-        }
+        // No bot-protection scoring on authenticated requests. Bot protection gates session
+        // establishment only — the anonymous-session route (run/routes/auth.ts) verifies the
+        // Sentinel/PoW challenge once, and the resulting JWT proves it was passed. An app-signed
+        // authenticated credential is stronger proof of legitimacy than an ALTCHA proof-of-work,
+        // so per-request scoring here added breakage risk (it hard-rejected older widget builds
+        // that send a legacy v1-shaped challenge header) without meaningful security gain. The
+        // `x-inkeep-challenge-solution` header is ignored on authenticated requests; abuse by an
+        // already-authenticated end user is a rate-limiting concern, not a bot-protection one.
 
         return {
           authResult: {
