@@ -1,6 +1,7 @@
 import type { FullExecutionContext } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
 import { ArtifactParser, type StreamPart } from '../artifacts/ArtifactParser';
+import { isInternalToolResultArtifactData } from '../artifacts/internal-artifacts';
 import {
   STREAM_PARSER_MAX_COLLECTED_PARTS,
   STREAM_PARSER_MAX_SNAPSHOT_SIZE,
@@ -665,6 +666,15 @@ export class IncrementalStreamParser {
       const isArtifact = part.data.artifactId && part.data.toolCallId;
 
       if (isArtifact) {
+        // Internal tool_result artifacts (auto-compressed oversized tool results)
+        // are model-facing plumbing — they must reach the model's history but must
+        // NOT stream to the end user as citation/"References" cards. Drop here, the
+        // live SSE write boundary, mirroring the strip in mapPartsToEventParts
+        // (session event) and toVercelMessage (chat reload).
+        // See SPEC 2026-05-30-internal-compressed-artifact-suppression (D1–D3).
+        if (isInternalToolResultArtifactData(part.data)) {
+          return;
+        }
         await this.streamHelper.writeData('data-artifact', part.data);
       } else {
         await this.streamHelper.writeData('data-component', part.data);

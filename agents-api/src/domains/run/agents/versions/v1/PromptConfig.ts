@@ -668,6 +668,67 @@ IMPORTANT GUIDELINES:
   }
 
   /**
+   * Mode-agnostic JMESPath selector craft for creating artifacts (base_selector +
+   * details_selector). Contains NO <artifact:*> tag syntax so it is safe to inject into
+   * structured (data-component) mode. Text mode teaches the same craft in tag form via
+   * getArtifactReferencingRules / getArtifactCreationGuidance.
+   */
+  private getSelectorCraft(): string {
+    return `
+SELECTOR CRAFT — writing base_selector + details_selector:
+- base_selector points to ONE specific item in the tool result; details_selector entries are
+  JMESPath selectors RELATIVE to it. Example: if base_selector = "result.documents[?type=='api'][0]",
+  a details_selector field uses "title", NOT "documents[0].title".
+- details_selector values are SELECTORS, not literal values. NEVER write a literal like "Inkeep"
+  or "2023" — always a selector like "metadata.company" or "founded_year" that the system
+  evaluates against the tool result.
+
+ALWAYS SELECT A SINGLE ITEM, NEVER AN ARRAY:
+- Filter to one item: result.items[?title=='API Guide'][0]
+- Exact match: result.documents[?name=='Setup Instructions'][0]
+
+🚫 FORBIDDEN JMESPATH PATTERNS:
+❌ [?title~'.*text.*'] or any ~ (regex) operator
+❌ contains(@, 'text') or any @ operator usage
+❌ [?field=="value"] (double quotes in filters)
+❌ result.items[?type=='doc'][?status=='active'] (chained filters)
+
+✅ CORRECT JMESPATH SYNTAX:
+✅ [?contains(title, 'text')]
+✅ [?title=='exact match']
+✅ [?contains(title, 'Slack') && contains(title, 'Discord')]
+✅ [?starts_with(url, 'https://')]
+✅ [?type=='doc' && status=='active']
+
+🚨 QUOTE PATTERN — inside a filter use SINGLE quotes only: [?field=='value']. Never double
+quotes, never escaped or mixed quotes.
+
+EXAMINE THE TOOL RESULT BEFORE WRITING SELECTORS:
+1. INSPECT THE ACTUAL DATA FIRST — read the real field names and values; don't assume them from
+   the user's question.
+2. USE STRUCTURE HINTS — _structureHints.exampleSelectors show real working paths you can copy;
+   _structureHints.commonFields lists available field names.
+3. MATCH ACTUAL VALUES — use exact titles/types that exist in the data (e.g. a doc titled
+   "Inkeep" with record_type=='site'), not guesses.
+4. VALIDATE — your base_selector must match an actual item; use compound conditions when needed:
+   [?title=='Inkeep' && record_type=='site'].
+
+COMMON FAILURE POINTS (AVOID):
+1. Array selection: result.items ❌ → result.items[?type=='guide'] ✅
+2. Similar key names (title vs name vs heading) → check the actual field names.
+3. Repeated keys → use a more specific filter: [?title=='Guide' && section=='setup'].
+4. Case sensitivity ('Guide' vs 'guide') → match the exact case from the data.
+5. Missing nested levels ("content.text" vs "body.content.text") → include all intermediate levels.
+
+EXAMPLE BASE SELECTORS:
+❌ result.data[?type=="document"] (double quotes invalid)
+✅ result.structuredContent.content[0] (first item)
+✅ result.items[?type=='document'][0] (filter by type, single quotes)
+✅ result.documents[?status=='published'][0] (filter by status)
+`;
+  }
+
+  /**
    * Structured-output artifact instructions: emit structured Artifact / ArtifactCreate_
    * components (never <artifact:*> tags). Text-mode peer: getArtifactReferencingRules.
    */
@@ -692,10 +753,8 @@ CREATE — save data from a tool result as a citable artifact:
     item (use filtering to avoid arrays, e.g. "result.items[?type=='guide']").
   - details_selector: JMESPath selectors RELATIVE to base_selector that map to the artifact's
     schema fields. Include ALL schema fields (preview and non-preview).
-- JMESPath rules: select ONE item (never an array); filters use single quotes
-  ("[?title=='API Guide']"); details selectors are relative to base_selector.
 - ⚠️ Only create artifacts from original tool results — never from ${ARTIFACT_TOOL.GET_REFERENCE} output.
-`
+${this.getSelectorCraft()}`
       : '';
 
     const referenceBlock = `

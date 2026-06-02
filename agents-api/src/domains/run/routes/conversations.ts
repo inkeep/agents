@@ -19,6 +19,7 @@ import { stream } from 'hono/streaming';
 import { getRun } from 'workflow/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
+import { isInternalToolResultArtifactData } from '../artifacts/internal-artifacts';
 import {
   asArtifactRef,
   createReplayHydrationContext,
@@ -102,6 +103,20 @@ async function toVercelMessage(
           const hydrated = await hydrateArtifactRef(hydration, ref);
           // Ledger miss drops the part entirely, matching streaming behavior.
           if (hydrated) {
+            // Internal tool_result artifacts are model-facing only — strip from
+            // the end-user replay. They remain in the ledger and model history.
+            // See SPEC 2026-05-30-internal-compressed-artifact-suppression (D1–D3).
+            if (isInternalToolResultArtifactData(hydrated.data)) {
+              logger.debug(
+                {
+                  messageId: msg.id,
+                  artifactId: ref.artifactId,
+                  toolCallId: ref.toolCallId,
+                },
+                'Suppressed internal tool_result artifact from end-user replay'
+              );
+              continue;
+            }
             parts.push(hydrated);
           } else {
             logger.debug(

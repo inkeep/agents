@@ -1,4 +1,4 @@
-import { createConversation } from '@inkeep/agents-core';
+import { addLedgerArtifacts, createConversation, createMessage } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it } from 'vitest';
 import manageDbClient from '../../../../data/db/manageDbClient';
@@ -123,6 +123,85 @@ describe('Manage API - Conversation List', () => {
       expect(body.data.conversations).toHaveLength(0);
       expect(body.data.pagination.total).toBe(0);
       expect(body.data.pagination.hasMore).toBe(false);
+    });
+
+    it('keeps internal tool_result artifacts on the builder console path (D2 regression guard)', async () => {
+      // D2: the end-user surfaces strip internal tool_result artifacts, but the
+      // builder/admin console must keep them. The manage detail endpoint is a
+      // separate code path (formatConversationDetail + formatMessagesForLLMContext)
+      // that never routes through toVercelMessage / isInternalToolResultArtifactData,
+      // so the suppression is structurally absent here. This guards against a future
+      // refactor leaking the strip into the manage path: GET-ing a conversation that
+      // carries a tool_result artifact must still return the message end-to-end.
+      const tenantId = await createTestTenantWithOrg('manage-conv-tool-result');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const conv = await createTestConversation({
+        tenantId,
+        projectId,
+        title: 'Conversation with internal artifact',
+        agentId: 'support-agent',
+      });
+
+      const internalArtifactId = 'compress_tool_call_d2';
+      const internalToolCallId = 'call-internal-d2';
+      await addLedgerArtifacts(runDbClient)({
+        scopes: { tenantId, projectId },
+        contextId: conv.id,
+        taskId: `task-${crypto.randomUUID()}`,
+        toolCallId: internalToolCallId,
+        artifacts: [
+          {
+            artifactId: internalArtifactId,
+            name: 'Tool result',
+            description: 'compressed to save context space',
+            type: 'tool_result',
+            parts: [{ kind: 'data', data: { summary: { content: 'internal plumbing' } } }],
+            metadata: { artifactType: 'tool_result' },
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      });
+
+      const messageId = `msg-${crypto.randomUUID()}`;
+      await createMessage(runDbClient)({
+        scopes: { tenantId, projectId },
+        data: {
+          id: messageId,
+          conversationId: conv.id,
+          role: 'agent',
+          content: {
+            text: 'Here is your answer grounded on internal tooling.',
+            parts: [
+              { kind: 'text', text: 'Here is your answer grounded on internal tooling.' },
+              {
+                kind: 'data',
+                data: JSON.stringify({
+                  artifactId: internalArtifactId,
+                  toolCallId: internalToolCallId,
+                }),
+              },
+            ],
+          },
+          visibility: 'user-facing',
+          messageType: 'chat',
+        },
+      });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/conversations/${conv.id}`
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      const messages = body.data.conversation.messages;
+      const msg = messages.find((m: { id: string }) => m.id === messageId);
+      expect(msg).toBeDefined();
+      expect(msg.content).toBe('Here is your answer grounded on internal tooling.');
+      expect(body.data.formatted.llmContext).toContain(
+        'Here is your answer grounded on internal tooling.'
+      );
     });
 
     it('should include userId field in manage response', async () => {
