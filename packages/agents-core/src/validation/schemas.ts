@@ -2023,6 +2023,7 @@ export const DataComponentApiInsertSchema = createApiInsertSchema(DataComponentI
   .openapi('DataComponentCreate');
 export const DataComponentApiUpdateSchema = createApiUpdateSchema(DataComponentUpdateSchema)
   .extend(DataComponentExtendSchema)
+  .partial()
   .openapi('DataComponentUpdate');
 
 export const SubAgentDataComponentSelectSchema = createSelectSchema(subAgentDataComponents);

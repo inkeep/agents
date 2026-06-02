@@ -1,5 +1,38 @@
 # @inkeep/agents-api
 
+## 0.75.4
+
+### Patch Changes
+
+- cbae12e: Teach the JMESPath selector craft (base_selector/details_selector rules, forbidden patterns, data-inspection steps, common failure points) in structured-output mode too, not just text mode. Improves artifact creation quality for agents that emit structured data components. The structured guidance is tag-free so no `<artifact:*>` syntax leaks into data-component mode.
+- cbae12e: Hide internal compressed tool_result artifacts from end-user conversation surfaces while keeping them model-facing
+  - @inkeep/agents-core@0.75.4
+  - @inkeep/agents-email@0.75.4
+  - @inkeep/agents-mcp@0.75.4
+  - @inkeep/agents-work-apps@0.75.4
+
+## 0.75.3
+
+### Patch Changes
+
+- Updated dependencies [c9072d5]
+  - @inkeep/agents-core@0.75.3
+  - @inkeep/agents-work-apps@0.75.3
+  - @inkeep/agents-email@0.75.3
+  - @inkeep/agents-mcp@0.75.3
+
+## 0.75.2
+
+### Patch Changes
+
+- 58218b5: Preserve Sentinel challenge rate-limit responses
+- 2d6c1d4: Fix structured-output agents emitting artifact citations as raw <artifact:ref> text. The system prompt now gates artifact instructions on output mode: structured-output agents (data components enabled) are instructed to emit artifacts as structured Artifact/ArtifactCreate\_ components, while text-mode agents keep the <artifact:\*> tag syntax.
+- 452bbef: Remove per-request bot-protection scoring from authenticated requests. Bot protection now gates anonymous-session creation only; authenticated requests rely on their app-signed JWT and ignore the challenge header. This fixes authenticated widget builds that send a legacy challenge-header shape being rejected with a 400 "Bot protection challenge solution is invalid" error.
+  - @inkeep/agents-core@0.75.2
+  - @inkeep/agents-email@0.75.2
+  - @inkeep/agents-mcp@0.75.2
+  - @inkeep/agents-work-apps@0.75.2
+
 ## 0.75.1
 
 ### Patch Changes

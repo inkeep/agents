@@ -15,13 +15,11 @@ import {
   deriveCacheState,
   FIELD_CONTEXTS,
   FIELD_DATA_TYPES,
-  isEvalGenerationType,
   isProviderSupportedForCaching,
   NON_EVAL_USAGE_GENERATION_TYPES,
   OPERATORS,
   ORDER_DIRECTIONS,
   QUERY_DEFAULTS,
-  QUERY_EXPRESSIONS,
   QUERY_TYPES,
   REQUEST_TYPES,
   resolveCachingProvider,
@@ -195,14 +193,6 @@ async function signozQuery(
   }
 }
 
-function parseList(resp: SigNozResp, name: string): SigNozListItem[] {
-  return resp.results.find((r) => r.queryName === name)?.rows ?? [];
-}
-
-function parseListByName(resp: SigNozResp, queryName: string, spanName: string): SigNozListItem[] {
-  return parseList(resp, queryName).filter((row) => getString(row, SPAN_KEYS.NAME) === spanName);
-}
-
 // ---------- Payload builder (single combined "list" payload)
 
 type SelectField = { name: string; fieldDataType: string; fieldContext: string };
@@ -228,11 +218,13 @@ function buildBaseExpression(conversationId: string, projectId?: string): string
   ]);
 }
 
+const SPAN_QUERY_LIMIT = 10_000;
+
 function buildQueryEnvelope(
   name: string,
   filterExpression: string,
   selectFields: SelectField[],
-  limit = 10000
+  limit = SPAN_QUERY_LIMIT
 ): any {
   return {
     type: QUERY_TYPES.BUILDER_QUERY,
@@ -259,7 +251,7 @@ function wrapQueries(queries: any[], start: number, end: number, projectId?: str
   };
 }
 
-function buildConversationPayloads(
+function buildAllSpansPayload(
   conversationId: string,
   start = Date.now() - DEFAULT_LOOKBACK_MS,
   end = Date.now(),
@@ -267,276 +259,216 @@ function buildConversationPayloads(
 ) {
   const base = buildBaseExpression(conversationId, projectId);
 
-  const coreQueries = [
-    buildQueryEnvelope(
-      QUERY_EXPRESSIONS.TOOL_CALLS,
-      `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.AI_TOOL_CALL}'`,
-      [
-        sf(SPAN_KEYS.SPAN_ID, str, span),
-        sf(SPAN_KEYS.TIMESTAMP, int64, span),
-        sf(SPAN_KEYS.HAS_ERROR, bool, span),
-        sf(SPAN_KEYS.DURATION_NANO, float64, span),
-        sf(SPAN_KEYS.AI_TOOL_CALL_NAME, str, attr),
-        sf(SPAN_KEYS.AI_TOOL_CALL_RESULT, str, attr),
-        sf(SPAN_KEYS.AI_TOOL_CALL_ARGS, str, attr),
-        sf(SPAN_KEYS.AI_TOOL_TYPE, str, attr),
-        sf(SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID, str, attr),
-        sf(SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, str, attr),
-        sf(SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, str, attr),
-        sf(SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID, str, attr),
-        sf(SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID, str, attr),
-        sf(SPAN_KEYS.DELEGATION_TYPE, str, attr),
-        sf(SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID, str, attr),
-        sf(SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID, str, attr),
-        sf(SPAN_KEYS.TOOL_PURPOSE, str, attr),
-        sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
-        sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
-        sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
-        sf(SPAN_KEYS.AGENT_ID, str, attr),
-        sf(SPAN_KEYS.AGENT_NAME, str, attr),
-      ]
-    ),
-    buildQueryEnvelope(
-      QUERY_EXPRESSIONS.USER_MESSAGES,
-      `${base} AND ${SPAN_KEYS.MESSAGE_CONTENT} != ''`,
-      [
-        sf(SPAN_KEYS.SPAN_ID, str, span),
-
-        sf(SPAN_KEYS.TIMESTAMP, int64, span),
-        sf(SPAN_KEYS.HAS_ERROR, bool, span),
-        sf(SPAN_KEYS.DURATION_NANO, float64, span),
-        sf(SPAN_KEYS.MESSAGE_CONTENT, str, attr),
-        sf(SPAN_KEYS.MESSAGE_PARTS, str, attr),
-        sf(SPAN_KEYS.MESSAGE_TIMESTAMP, str, attr),
-        sf(SPAN_KEYS.MESSAGE_ID, str, attr),
-        sf(SPAN_KEYS.AGENT_ID, str, attr),
-        sf(SPAN_KEYS.AGENT_NAME, str, attr),
-        sf(SPAN_KEYS.INVOCATION_TYPE, str, attr),
-        sf(SPAN_KEYS.INVOCATION_ENTRY_POINT, str, attr),
-        sf(SPAN_KEYS.TRIGGER_ID, str, attr),
-        sf(SPAN_KEYS.TRIGGER_INVOCATION_ID, str, attr),
-        sf(SPAN_KEYS.TRIGGER_RUN_AS_USER_ID, str, attr),
-      ]
-    ),
-    buildQueryEnvelope(
-      QUERY_EXPRESSIONS.AI_ASSISTANT_MESSAGES,
-      `${base} AND ${SPAN_KEYS.AI_RESPONSE_CONTENT} != ''`,
-      [
-        sf(SPAN_KEYS.SPAN_ID, str, span),
-
-        sf(SPAN_KEYS.TIMESTAMP, int64, span),
-        sf(SPAN_KEYS.HAS_ERROR, bool, span),
-        sf(SPAN_KEYS.DURATION_NANO, float64, span),
-        sf(SPAN_KEYS.AI_RESPONSE_CONTENT, str, attr),
-        sf(SPAN_KEYS.AI_RESPONSE_TIMESTAMP, str, attr),
-        sf(SPAN_KEYS.MESSAGE_ID, str, attr),
-        sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
-        sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
-        sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
-      ]
-    ),
-    buildQueryEnvelope(
-      QUERY_EXPRESSIONS.AI_LLM_CALLS,
-      `${base} AND ${SPAN_KEYS.AI_OPERATION_ID} IN ('${AI_OPERATIONS.GENERATE_TEXT}', '${AI_OPERATIONS.STREAM_TEXT}')`,
-      [
-        sf(SPAN_KEYS.SPAN_ID, str, span),
-
-        sf(SPAN_KEYS.TIMESTAMP, int64, span),
-        sf(SPAN_KEYS.HAS_ERROR, bool, span),
-        sf(SPAN_KEYS.DURATION_NANO, float64, span),
-        sf(SPAN_KEYS.AI_OPERATION_ID, str, attr),
-        sf(SPAN_KEYS.AGENT_ID, str, attr),
-        sf(SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, str, attr),
-        sf(SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, str, attr),
-        sf(SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME, str, attr),
-        sf(SPAN_KEYS.AI_MODEL_ID, str, attr),
-        sf(SPAN_KEYS.AI_MODEL_PROVIDER, str, attr),
-        sf(SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER, str, attr),
-        sf(SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, int64, attr),
-        sf(SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, int64, attr),
-        sf(SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, float64, attr),
-        sf(SPAN_KEYS.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, int64, attr),
-        sf(SPAN_KEYS.GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, int64, attr),
-        sf(SPAN_KEYS.CACHE_INTENT_MARKER_COUNT, int64, attr),
-        sf(SPAN_KEYS.CACHE_INTENT_PREFIX_SIGNATURE, str, attr),
-        sf(SPAN_KEYS.AI_RESPONSE_TEXT, str, attr),
-        sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
-        sf(SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE, str, attr),
-        sf(SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, str, attr),
-      ]
-    ),
-    buildQueryEnvelope(
-      QUERY_EXPRESSIONS.AGENT_GENERATIONS,
-      `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.AGENT_GENERATION}'`,
-      [
-        sf(SPAN_KEYS.SPAN_ID, str, span),
-        sf(SPAN_KEYS.TIMESTAMP, int64, span),
-        sf(SPAN_KEYS.HAS_ERROR, bool, span),
-        sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
-        sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
-        sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
-        sf(CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE, int64, attr),
-        ...V1_BREAKDOWN_SCHEMA.map((def) => sf(def.spanAttribute, int64, attr)),
-      ]
-    ),
+  const allFields: SelectField[] = [
+    sf(SPAN_KEYS.SPAN_ID, str, span),
+    sf(SPAN_KEYS.TRACE_ID, str, span),
+    sf(SPAN_KEYS.NAME, str, span),
+    sf(SPAN_KEYS.PARENT_SPAN_ID, str, span),
+    sf(SPAN_KEYS.TIMESTAMP, int64, span),
+    sf(SPAN_KEYS.HAS_ERROR, bool, span),
+    sf(SPAN_KEYS.DURATION_NANO, float64, span),
+    sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
+    sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
+    sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
+    sf(SPAN_KEYS.AGENT_ID, str, attr),
+    sf(SPAN_KEYS.AGENT_NAME, str, attr),
+    sf(SPAN_KEYS.MESSAGE_ID, str, attr),
+    sf(SPAN_KEYS.AI_TOOL_CALL_NAME, str, attr),
+    sf(SPAN_KEYS.AI_TOOL_CALL_ARGS, str, attr),
+    sf(SPAN_KEYS.AI_TOOL_CALL_RESULT, str, attr),
+    sf(SPAN_KEYS.AI_TOOL_TYPE, str, attr),
+    sf(SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID, str, attr),
+    sf(SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, str, attr),
+    sf(SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, str, attr),
+    sf(SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID, str, attr),
+    sf(SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID, str, attr),
+    sf(SPAN_KEYS.DELEGATION_TYPE, str, attr),
+    sf(SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID, str, attr),
+    sf(SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID, str, attr),
+    sf(SPAN_KEYS.TOOL_PURPOSE, str, attr),
+    sf(SPAN_KEYS.MESSAGE_CONTENT, str, attr),
+    sf(SPAN_KEYS.MESSAGE_PARTS, str, attr),
+    sf(SPAN_KEYS.MESSAGE_TIMESTAMP, str, attr),
+    sf(SPAN_KEYS.INVOCATION_TYPE, str, attr),
+    sf(SPAN_KEYS.INVOCATION_ENTRY_POINT, str, attr),
+    sf(SPAN_KEYS.TRIGGER_ID, str, attr),
+    sf(SPAN_KEYS.TRIGGER_INVOCATION_ID, str, attr),
+    sf(SPAN_KEYS.TRIGGER_RUN_AS_USER_ID, str, attr),
+    sf(SPAN_KEYS.AI_RESPONSE_CONTENT, str, attr),
+    sf(SPAN_KEYS.AI_RESPONSE_TIMESTAMP, str, attr),
+    sf(SPAN_KEYS.AI_OPERATION_ID, str, attr),
+    sf(SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, str, attr),
+    sf(SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME, str, attr),
+    sf(SPAN_KEYS.AI_MODEL_ID, str, attr),
+    sf(SPAN_KEYS.AI_MODEL_PROVIDER, str, attr),
+    sf(SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER, str, attr),
+    sf(SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, int64, attr),
+    sf(SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, int64, attr),
+    sf(SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, float64, attr),
+    sf(SPAN_KEYS.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, int64, attr),
+    sf(SPAN_KEYS.GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, int64, attr),
+    sf(SPAN_KEYS.CACHE_INTENT_MARKER_COUNT, int64, attr),
+    sf(SPAN_KEYS.CACHE_INTENT_PREFIX_SIGNATURE, str, attr),
+    sf(SPAN_KEYS.AI_RESPONSE_TEXT, str, attr),
+    sf(SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE, str, attr),
+    sf(SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, str, attr),
+    sf(CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE, int64, attr),
+    ...V1_BREAKDOWN_SCHEMA.map((def) => sf(def.spanAttribute, int64, attr)),
+    sf(SPAN_KEYS.CONTEXT_URL, str, attr),
+    sf(SPAN_KEYS.CONTEXT_CONFIG_ID, str, attr),
+    sf(SPAN_KEYS.CONTEXT_AGENT_ID, str, attr),
+    sf(SPAN_KEYS.CONTEXT_HEADERS_KEYS, str, attr),
+    sf(SPAN_KEYS.HTTP_URL, str, attr),
+    sf(SPAN_KEYS.HTTP_STATUS_CODE, str, attr),
+    sf(SPAN_KEYS.HTTP_RESPONSE_BODY_SIZE, str, attr),
+    sf(SPAN_KEYS.ARTIFACT_ID, str, attr),
+    sf(SPAN_KEYS.ARTIFACT_TYPE, str, attr),
+    sf(SPAN_KEYS.ARTIFACT_TOOL_CALL_ID, str, attr),
+    sf(SPAN_KEYS.ARTIFACT_NAME, str, attr),
+    sf(SPAN_KEYS.ARTIFACT_DESCRIPTION, str, attr),
+    sf(SPAN_KEYS.ARTIFACT_DATA, str, attr),
+    sf(SPAN_KEYS.ARTIFACT_IS_OVERSIZED, bool, attr),
+    sf(SPAN_KEYS.ARTIFACT_RETRIEVAL_BLOCKED, bool, attr),
+    sf(SPAN_KEYS.ARTIFACT_ORIGINAL_TOKEN_SIZE, int64, attr),
+    sf(SPAN_KEYS.ARTIFACT_CONTEXT_WINDOW_SIZE, int64, attr),
+    sf(SPAN_KEYS.TOOL_NAME, str, attr),
+    sf(SPAN_KEYS.TOOL_CALL_ID, str, attr),
+    sf(SPAN_KEYS.COMPRESSION_TYPE, str, attr),
+    sf(SPAN_KEYS.COMPRESSION_SESSION_ID, str, attr),
+    sf(SPAN_KEYS.COMPRESSION_GENERATED_TOKENS, int64, attr),
+    sf(SPAN_KEYS.COMPRESSION_TOTAL_CONTEXT_TOKENS, int64, attr),
+    sf(SPAN_KEYS.COMPRESSION_TRIGGER_AT, int64, attr),
+    sf(SPAN_KEYS.COMPRESSION_RESULT_OUTPUT_TOKENS, int64, attr),
+    sf(SPAN_KEYS.COMPRESSION_RESULT_COMPRESSION_RATIO, float64, attr),
+    sf(SPAN_KEYS.COMPRESSION_RESULT_HIGH_LEVEL, str, attr),
+    sf(SPAN_KEYS.COMPRESSION_SUCCESS, bool, attr),
+    sf(SPAN_KEYS.COMPRESSION_ERROR, str, attr),
+    sf(SPAN_KEYS.AGENT_MAX_STEPS_REACHED, bool, attr),
+    sf(SPAN_KEYS.AGENT_STEPS_COMPLETED, int64, attr),
+    sf(SPAN_KEYS.AGENT_MAX_STEPS, int64, attr),
+    sf(SPAN_KEYS.STREAM_CLEANUP_REASON, str, attr),
+    sf(SPAN_KEYS.STREAM_MAX_LIFETIME_MS, int64, attr),
+    sf(SPAN_KEYS.STREAM_BUFFER_SIZE_BYTES, int64, attr),
+    sf(SPAN_KEYS.TOOL_RESPONSE_CONTENT, str, attr),
+    sf(SPAN_KEYS.TOOL_RESPONSE_TIMESTAMP, str, attr),
+    sf(SPAN_KEYS.AI_RESPONSE_FINISH_REASON, str, attr),
   ];
 
-  const contextQueries = [
-    buildQueryEnvelope(
-      QUERY_EXPRESSIONS.CONTEXT_RESOLUTION_AND_HANDLE,
-      `${base} AND ${SPAN_KEYS.NAME} IN ('${SPAN_NAMES.CONTEXT_RESOLUTION}', '${SPAN_NAMES.CONTEXT_HANDLE}')`,
-      [
-        sf(SPAN_KEYS.SPAN_ID, str, span),
+  return wrapQueries([buildQueryEnvelope('allSpans', base, allFields)], start, end, projectId);
+}
 
-        sf(SPAN_KEYS.NAME, str, span),
-        sf(SPAN_KEYS.TIMESTAMP, int64, span),
-        sf(SPAN_KEYS.DURATION_NANO, float64, span),
-        sf(SPAN_KEYS.HAS_ERROR, bool, span),
-        sf(SPAN_KEYS.CONTEXT_URL, str, attr),
-        sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
-        sf(SPAN_KEYS.CONTEXT_CONFIG_ID, str, attr),
-        sf(SPAN_KEYS.CONTEXT_AGENT_ID, str, attr),
-        sf(SPAN_KEYS.CONTEXT_HEADERS_KEYS, str, attr),
-      ]
-    ),
-    buildQueryEnvelope(
-      QUERY_EXPRESSIONS.CONTEXT_FETCHERS,
-      `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.CONTEXT_FETCHER}'`,
-      [
-        sf(SPAN_KEYS.SPAN_ID, str, span),
+const NON_EVAL_USAGE_SET: Set<string> = new Set(NON_EVAL_USAGE_GENERATION_TYPES);
 
-        sf(SPAN_KEYS.TIMESTAMP, int64, span),
-        sf(SPAN_KEYS.DURATION_NANO, float64, span),
-        sf(SPAN_KEYS.HAS_ERROR, bool, span),
-        sf(SPAN_KEYS.HTTP_URL, str, attr),
-        sf(SPAN_KEYS.HTTP_STATUS_CODE, str, attr),
-        sf(SPAN_KEYS.HTTP_RESPONSE_BODY_SIZE, str, attr),
-        sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
-      ]
-    ),
-    buildQueryEnvelope(QUERY_EXPRESSIONS.DURATION_SPANS, base, [
-      sf(SPAN_KEYS.SPAN_ID, str, span),
+function classifySpans(allRows: SigNozListItem[]) {
+  const toolCallSpans: SigNozListItem[] = [];
+  const userMessageSpans: SigNozListItem[] = [];
+  const aiAssistantSpans: SigNozListItem[] = [];
+  const aiGenerationSpans: SigNozListItem[] = [];
+  const aiStreamingSpans: SigNozListItem[] = [];
+  const agentGenerationSpans: SigNozListItem[] = [];
+  const contextResolutionSpans: SigNozListItem[] = [];
+  const contextHandleSpans: SigNozListItem[] = [];
+  const contextFetcherSpans: SigNozListItem[] = [];
+  const artifactProcessingSpans: SigNozListItem[] = [];
+  const toolApprovalRequestedSpans: SigNozListItem[] = [];
+  const toolApprovalApprovedSpans: SigNozListItem[] = [];
+  const toolApprovalDeniedSpans: SigNozListItem[] = [];
+  const compressionSpans: SigNozListItem[] = [];
+  const maxStepsReachedSpans: SigNozListItem[] = [];
+  const streamLifetimeExceededSpans: SigNozListItem[] = [];
+  const durableToolExecutionSpans: SigNozListItem[] = [];
+  const spansWithErrorsList: SigNozListItem[] = [];
 
-      sf(SPAN_KEYS.PARENT_SPAN_ID, str, span),
-      sf(SPAN_KEYS.DURATION_NANO, float64, span),
-      sf(SPAN_KEYS.TIMESTAMP, int64, span),
-    ]),
-    buildQueryEnvelope(
-      QUERY_EXPRESSIONS.ARTIFACT_PROCESSING,
-      `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.ARTIFACT_PROCESSING}'`,
-      [
-        sf(SPAN_KEYS.SPAN_ID, str, span),
-        sf(SPAN_KEYS.HAS_ERROR, bool, span),
-        sf(SPAN_KEYS.ARTIFACT_ID, str, attr),
-        sf(SPAN_KEYS.ARTIFACT_TYPE, str, attr),
-        sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
-        sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
-        sf(SPAN_KEYS.ARTIFACT_TOOL_CALL_ID, str, attr),
-        sf(SPAN_KEYS.ARTIFACT_NAME, str, attr),
-        sf(SPAN_KEYS.ARTIFACT_DESCRIPTION, str, attr),
-        sf(SPAN_KEYS.ARTIFACT_DATA, str, attr),
-        sf(SPAN_KEYS.STATUS_MESSAGE, str, attr),
-        sf(SPAN_KEYS.ARTIFACT_IS_OVERSIZED, bool, attr),
-        sf(SPAN_KEYS.ARTIFACT_RETRIEVAL_BLOCKED, bool, attr),
-        sf(SPAN_KEYS.ARTIFACT_ORIGINAL_TOKEN_SIZE, int64, attr),
-        sf(SPAN_KEYS.ARTIFACT_CONTEXT_WINDOW_SIZE, int64, attr),
-      ]
-    ),
-  ];
+  for (const row of allRows) {
+    const name = getString(row, SPAN_KEYS.NAME);
+    const hasError = getField(row, SPAN_KEYS.HAS_ERROR) === true;
 
-  const eventQueries = [
-    buildQueryEnvelope(
-      QUERY_EXPRESSIONS.SPANS_WITH_ERRORS,
-      `${base} AND ${SPAN_KEYS.HAS_ERROR} = true`,
-      [sf(SPAN_KEYS.SPAN_ID, str, span), sf(SPAN_KEYS.NAME, str, span)]
-    ),
-    buildQueryEnvelope(
-      QUERY_EXPRESSIONS.TOOL_APPROVALS,
-      `${base} AND ${SPAN_KEYS.NAME} IN ('${SPAN_NAMES.TOOL_APPROVAL_REQUESTED}', '${SPAN_NAMES.TOOL_APPROVAL_APPROVED}', '${SPAN_NAMES.TOOL_APPROVAL_DENIED}')`,
-      [
-        sf(SPAN_KEYS.SPAN_ID, str, span),
+    if (hasError) spansWithErrorsList.push(row);
 
-        sf(SPAN_KEYS.NAME, str, span),
-        sf(SPAN_KEYS.TIMESTAMP, int64, span),
-        sf(SPAN_KEYS.HAS_ERROR, bool, span),
-        sf(SPAN_KEYS.TOOL_NAME, str, attr),
-        sf(SPAN_KEYS.TOOL_CALL_ID, str, attr),
-        sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
-        sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
-      ]
-    ),
-    buildQueryEnvelope(
-      QUERY_EXPRESSIONS.COMPRESSION,
-      `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.COMPRESSOR_SAFE_COMPRESS}'`,
-      [
-        sf(SPAN_KEYS.SPAN_ID, str, span),
+    switch (name) {
+      case SPAN_NAMES.AI_TOOL_CALL:
+        toolCallSpans.push(row);
+        break;
+      case SPAN_NAMES.AGENT_GENERATION:
+        agentGenerationSpans.push(row);
+        break;
+      case SPAN_NAMES.CONTEXT_RESOLUTION:
+        contextResolutionSpans.push(row);
+        break;
+      case SPAN_NAMES.CONTEXT_HANDLE:
+        contextHandleSpans.push(row);
+        break;
+      case SPAN_NAMES.CONTEXT_FETCHER:
+        contextFetcherSpans.push(row);
+        break;
+      case SPAN_NAMES.ARTIFACT_PROCESSING:
+        artifactProcessingSpans.push(row);
+        break;
+      case SPAN_NAMES.TOOL_APPROVAL_REQUESTED:
+        toolApprovalRequestedSpans.push(row);
+        break;
+      case SPAN_NAMES.TOOL_APPROVAL_APPROVED:
+        toolApprovalApprovedSpans.push(row);
+        break;
+      case SPAN_NAMES.TOOL_APPROVAL_DENIED:
+        toolApprovalDeniedSpans.push(row);
+        break;
+      case SPAN_NAMES.COMPRESSOR_SAFE_COMPRESS:
+        compressionSpans.push(row);
+        break;
+      case SPAN_NAMES.AGENT_MAX_STEPS_REACHED:
+        maxStepsReachedSpans.push(row);
+        break;
+      case SPAN_NAMES.STREAM_FORCE_CLEANUP:
+        streamLifetimeExceededSpans.push(row);
+        break;
+      case SPAN_NAMES.DURABLE_TOOL_EXECUTION:
+        durableToolExecutionSpans.push(row);
+        break;
+      default: {
+        const msgContent = getString(row, SPAN_KEYS.MESSAGE_CONTENT);
+        if (msgContent) {
+          userMessageSpans.push(row);
+          break;
+        }
+        const aiContent = getString(row, SPAN_KEYS.AI_RESPONSE_CONTENT);
+        if (aiContent) {
+          aiAssistantSpans.push(row);
+          break;
+        }
+        const opId = getString(row, SPAN_KEYS.AI_OPERATION_ID);
+        if (opId === AI_OPERATIONS.GENERATE_TEXT || opId === AI_OPERATIONS.STREAM_TEXT) {
+          const genType = getString(row, SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE);
+          if (genType && NON_EVAL_USAGE_SET.has(genType)) {
+            if (opId === AI_OPERATIONS.GENERATE_TEXT) aiGenerationSpans.push(row);
+            else aiStreamingSpans.push(row);
+          }
+        }
+        break;
+      }
+    }
+  }
 
-        sf(SPAN_KEYS.TIMESTAMP, int64, span),
-        sf(SPAN_KEYS.HAS_ERROR, bool, span),
-        sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
-        sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
-        sf(SPAN_KEYS.COMPRESSION_TYPE, str, attr),
-        sf(SPAN_KEYS.COMPRESSION_SESSION_ID, str, attr),
-        sf(SPAN_KEYS.COMPRESSION_GENERATED_TOKENS, int64, attr),
-        sf(SPAN_KEYS.COMPRESSION_TOTAL_CONTEXT_TOKENS, int64, attr),
-        sf(SPAN_KEYS.COMPRESSION_TRIGGER_AT, int64, attr),
-        sf(SPAN_KEYS.COMPRESSION_RESULT_OUTPUT_TOKENS, int64, attr),
-        sf(SPAN_KEYS.COMPRESSION_RESULT_COMPRESSION_RATIO, float64, attr),
-        sf(SPAN_KEYS.COMPRESSION_RESULT_HIGH_LEVEL, str, attr),
-        sf(SPAN_KEYS.COMPRESSION_SUCCESS, bool, attr),
-        sf(SPAN_KEYS.COMPRESSION_ERROR, str, attr),
-      ]
-    ),
-    buildQueryEnvelope(
-      QUERY_EXPRESSIONS.MAX_STEPS_REACHED,
-      `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.AGENT_MAX_STEPS_REACHED}'`,
-      [
-        sf(SPAN_KEYS.SPAN_ID, str, span),
-
-        sf(SPAN_KEYS.TIMESTAMP, int64, span),
-        sf(SPAN_KEYS.HAS_ERROR, bool, span),
-        sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
-        sf(SPAN_KEYS.SUB_AGENT_NAME, str, attr),
-        sf(SPAN_KEYS.AGENT_ID, str, attr),
-        sf(SPAN_KEYS.AGENT_NAME, str, attr),
-        sf(SPAN_KEYS.AGENT_MAX_STEPS_REACHED, bool, attr),
-        sf(SPAN_KEYS.AGENT_STEPS_COMPLETED, int64, attr),
-        sf(SPAN_KEYS.AGENT_MAX_STEPS, int64, attr),
-      ]
-    ),
-    buildQueryEnvelope(
-      QUERY_EXPRESSIONS.STREAM_LIFETIME_EXCEEDED,
-      `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.STREAM_FORCE_CLEANUP}'`,
-      [
-        sf(SPAN_KEYS.SPAN_ID, str, span),
-        sf(SPAN_KEYS.TIMESTAMP, int64, span),
-        sf(SPAN_KEYS.HAS_ERROR, bool, span),
-        sf(SPAN_KEYS.STREAM_CLEANUP_REASON, str, attr),
-        sf(SPAN_KEYS.STREAM_MAX_LIFETIME_MS, int64, attr),
-        sf(SPAN_KEYS.STREAM_BUFFER_SIZE_BYTES, int64, attr),
-      ]
-    ),
-    buildQueryEnvelope(
-      QUERY_EXPRESSIONS.DURABLE_TOOL_EXECUTIONS,
-      `${base} AND ${SPAN_KEYS.NAME} = '${SPAN_NAMES.DURABLE_TOOL_EXECUTION}'`,
-      [
-        sf(SPAN_KEYS.SPAN_ID, str, span),
-        sf(SPAN_KEYS.TIMESTAMP, int64, span),
-        sf(SPAN_KEYS.HAS_ERROR, bool, span),
-        sf(SPAN_KEYS.TOOL_NAME, str, attr),
-        sf(SPAN_KEYS.TOOL_CALL_ID, str, attr),
-        sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
-        sf(SPAN_KEYS.TOOL_RESPONSE_CONTENT, str, attr),
-        sf(SPAN_KEYS.TOOL_RESPONSE_TIMESTAMP, str, attr),
-      ]
-    ),
-  ];
-
-  return [
-    wrapQueries(coreQueries, start, end, projectId),
-    wrapQueries(contextQueries, start, end, projectId),
-    wrapQueries(eventQueries, start, end, projectId),
-  ];
+  return {
+    toolCallSpans,
+    userMessageSpans,
+    aiAssistantSpans,
+    aiGenerationSpans,
+    aiStreamingSpans,
+    agentGenerationSpans,
+    contextResolutionSpans,
+    contextHandleSpans,
+    contextFetcherSpans,
+    artifactProcessingSpans,
+    toolApprovalRequestedSpans,
+    toolApprovalApprovedSpans,
+    toolApprovalDeniedSpans,
+    compressionSpans,
+    maxStepsReachedSpans,
+    streamLifetimeExceededSpans,
+    durableToolExecutionSpans,
+    spansWithErrorsList,
+  };
 }
 
 // ---------- Usage events (cost / token usage for this conversation)
@@ -562,106 +494,44 @@ type ConversationUsageEvent = {
   status: 'failed' | 'succeeded';
 };
 
-function buildUsageEventsPayload(
-  conversationId: string,
-  start: number,
-  end: number,
-  projectId?: string,
-  limit = 200
-) {
-  const filterItems: Array<{ key: string; op: string; value: unknown }> = [
-    {
-      key: SPAN_KEYS.AI_OPERATION_ID,
-      op: OPERATORS.IN,
-      value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
-    },
-    {
-      key: SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE,
-      op: OPERATORS.IN,
-      value: [...NON_EVAL_USAGE_GENERATION_TYPES],
-    },
-    { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EQUALS, value: conversationId },
-    ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
-  ];
-
-  return {
-    start,
-    end,
-    requestType: REQUEST_TYPES.RAW,
-    ...(projectId && { projectId }),
-    compositeQuery: {
-      queries: [
-        {
-          type: QUERY_TYPES.BUILDER_QUERY,
-          spec: {
-            name: QUERY_EXPRESSIONS.USAGE_EVENTS,
-            signal: SIGNALS.TRACES,
-            filter: { expression: buildFilterExpression(filterItems) },
-            selectFields: [
-              sf(SPAN_KEYS.SPAN_ID, str, span),
-              sf(SPAN_KEYS.PARENT_SPAN_ID, str, span),
-              sf(SPAN_KEYS.TRACE_ID, str, span),
-              sf(SPAN_KEYS.HAS_ERROR, bool, span),
-              sf(SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, str, attr),
-              sf(SPAN_KEYS.AI_MODEL_ID, str, attr),
-              sf(SPAN_KEYS.AI_MODEL_PROVIDER, str, attr),
-              sf(SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER, str, attr),
-              sf(SPAN_KEYS.AGENT_ID, str, attr),
-              sf(SPAN_KEYS.SUB_AGENT_ID, str, attr),
-              sf(SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, str, attr),
-              sf(SPAN_KEYS.CONVERSATION_ID, str, attr),
-              sf(SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, float64, attr),
-              sf(SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, float64, attr),
-              sf(SPAN_KEYS.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, float64, attr),
-              sf(SPAN_KEYS.GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, float64, attr),
-              sf(SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, float64, attr),
-              sf(SPAN_KEYS.AI_RESPONSE_FINISH_REASON, str, attr),
-            ],
-            order: [{ key: { name: SPAN_KEYS.TIMESTAMP }, direction: ORDER_DIRECTIONS.DESC }],
-            limit,
-            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            disabled: QUERY_DEFAULTS.DISABLED,
-          },
-        },
-      ],
-    },
-  };
-}
-
-function parseUsageEvents(resp: SigNozResp): ConversationUsageEvent[] {
-  const rows = resp.results.find((r) => r.queryName === QUERY_EXPRESSIONS.USAGE_EVENTS)?.rows ?? [];
-  return rows.map((row: any) => {
-    const d = row?.data ?? row;
-    const ts = row.timestamp || d.timestamp || '';
-
-    const inputTokens =
-      Number(d[SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS] || d[SPAN_KEYS.AI_USAGE_PROMPT_TOKENS]) || 0;
-    const outputTokens =
-      Number(d[SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS] || d[SPAN_KEYS.AI_USAGE_COMPLETION_TOKENS]) ||
-      0;
-    const cacheReadTokens = Number(d[SPAN_KEYS.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]) || 0;
-    const cacheCreationTokens = Number(d[SPAN_KEYS.GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS]) || 0;
-    const cost = Number(d[SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD]) || 0;
+function deriveUsageEvents(
+  spans: SigNozListItem[],
+  conversationId: string
+): ConversationUsageEvent[] {
+  return spans.map((row) => {
+    const inputTokens = getNumber(row, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0);
+    const outputTokens = getNumber(row, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0);
+    const cacheReadTokens = getNumber(row, SPAN_KEYS.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, 0);
+    const cacheCreationTokens = getNumber(
+      row,
+      SPAN_KEYS.GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS,
+      0
+    );
+    const cost = getNumber(row, SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, 0);
 
     return {
-      spanId: d.spanID || '',
-      parentSpanId: d.parentSpanID || '',
-      traceId: d.traceID || '',
-      timestamp: ts,
-      generationType: d[SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE] || 'unknown',
-      model: d[SPAN_KEYS.AI_MODEL_ID] || 'unknown',
-      provider: d[SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER] || d[SPAN_KEYS.AI_MODEL_PROVIDER] || '',
-      agentId: d[SPAN_KEYS.AGENT_ID] || '',
-      subAgentId: d[SPAN_KEYS.SUB_AGENT_ID] || d[SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID] || '',
-      conversationId: d[SPAN_KEYS.CONVERSATION_ID] || '',
+      spanId: getString(row, SPAN_KEYS.SPAN_ID, ''),
+      parentSpanId: getString(row, SPAN_KEYS.PARENT_SPAN_ID, ''),
+      traceId: getString(row, SPAN_KEYS.TRACE_ID, ''),
+      timestamp: row.timestamp || getString(row, SPAN_KEYS.TIMESTAMP, ''),
+      generationType: getString(row, SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, 'unknown'),
+      model: getString(row, SPAN_KEYS.AI_MODEL_ID, 'unknown'),
+      provider:
+        getString(row, SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER, '') ||
+        getString(row, SPAN_KEYS.AI_MODEL_PROVIDER, ''),
+      agentId: getString(row, SPAN_KEYS.AGENT_ID, ''),
+      subAgentId:
+        getString(row, SPAN_KEYS.SUB_AGENT_ID, '') ||
+        getString(row, SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, ''),
+      conversationId,
       inputTokens,
       outputTokens,
       totalTokens: inputTokens + outputTokens,
       cacheReadTokens,
       cacheCreationTokens,
       estimatedCostUsd: cost,
-      finishReason: d[SPAN_KEYS.AI_RESPONSE_FINISH_REASON] || '',
-      status: d.hasError === true || d.hasError === 'true' ? 'failed' : 'succeeded',
+      finishReason: getString(row, SPAN_KEYS.AI_RESPONSE_FINISH_REASON, ''),
+      status: getField(row, SPAN_KEYS.HAS_ERROR) === true ? 'failed' : 'succeeded',
     };
   });
 }
@@ -707,68 +577,37 @@ export async function GET(
     const { start, end } = timeRange;
     const tTimeRange = Date.now();
 
-    const payloads = buildConversationPayloads(conversationId, start, end, projectId);
-    const batchLabels = ['core', 'context', 'events'] as const;
-    const usageEventsPayload = buildUsageEventsPayload(conversationId, start, end, projectId);
+    const allSpansPayload = buildAllSpansPayload(conversationId, start, end, projectId);
 
-    const [batchResults, usageEventsResp] = await Promise.all([
-      Promise.all(
-        payloads.map(async (p, i) => {
-          const batchStart = Date.now();
-          const result = await signozQuery(p, tenantId, authResult.headers);
-          logger.info(
-            {
-              batch: batchLabels[i],
-              queries: p.compositeQuery.queries.length,
-              ms: Date.now() - batchStart,
-            },
-            `signoz batch complete`
-          );
-          return result;
-        })
-      ),
-      (async () => {
-        const batchStart = Date.now();
-        try {
-          const result = await signozQuery(usageEventsPayload, tenantId, authResult.headers);
-          logger.info(
-            { batch: 'usage-events', ms: Date.now() - batchStart },
-            'signoz batch complete'
-          );
-          return result;
-        } catch (err) {
-          logger.warn(
-            {
-              conversationId,
-              tenantId,
-              projectId,
-              ms: Date.now() - batchStart,
-              error: err instanceof Error ? err.message : String(err),
-            },
-            'usage events query failed; returning empty list'
-          );
-          return { results: [] } as SigNozResp;
-        }
-      })(),
-    ]);
+    const batchStart = Date.now();
+    const allSpansResp = await signozQuery(allSpansPayload, tenantId, authResult.headers);
+    logger.info(
+      { batch: 'all-spans', queries: 1, ms: Date.now() - batchStart },
+      'signoz batch complete'
+    );
     const tSignoz = Date.now();
 
-    const resp: SigNozResp = { results: batchResults.flatMap((r) => r.results) };
-
-    const usageEvents = parseUsageEvents(usageEventsResp);
-
-    const toolCallSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_CALLS);
-    const userMessageSpans = parseList(resp, QUERY_EXPRESSIONS.USER_MESSAGES);
-    const aiAssistantSpans = parseList(resp, QUERY_EXPRESSIONS.AI_ASSISTANT_MESSAGES);
-    const aiGenerationSpans: SigNozListItem[] = [];
-    const aiStreamingSpans: SigNozListItem[] = [];
-    for (const row of parseList(resp, QUERY_EXPRESSIONS.AI_LLM_CALLS)) {
-      const genType = getString(row, SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE, '');
-      if (isEvalGenerationType(genType)) continue;
-      const op = getString(row, SPAN_KEYS.AI_OPERATION_ID);
-      if (op === AI_OPERATIONS.GENERATE_TEXT) aiGenerationSpans.push(row);
-      else if (op === AI_OPERATIONS.STREAM_TEXT) aiStreamingSpans.push(row);
+    const allRows = allSpansResp.results.flatMap((r) => r.rows ?? []);
+    if (allRows.length >= SPAN_QUERY_LIMIT) {
+      logger.warn(
+        { conversationId, rowCount: allRows.length, limit: SPAN_QUERY_LIMIT },
+        'span query hit limit, results may be truncated'
+      );
     }
+
+    const classified = classifySpans(allRows);
+    const {
+      toolCallSpans,
+      userMessageSpans,
+      aiAssistantSpans,
+      aiGenerationSpans,
+      aiStreamingSpans,
+    } = classified;
+
+    const usageEvents = deriveUsageEvents(
+      [...aiGenerationSpans, ...aiStreamingSpans],
+      conversationId
+    );
 
     const cacheStateBySpanId = new Map<string, CacheState>();
     const llmCallsChronological = [...aiGenerationSpans, ...aiStreamingSpans].sort((a, b) =>
@@ -804,42 +643,22 @@ export async function GET(
       cacheStateBySpanId.set(spanId, state);
       if (prefixSignature) priorSignatureByAgent.set(subAgentId, prefixSignature);
     }
-    const agentGenerationSpans = parseList(resp, QUERY_EXPRESSIONS.AGENT_GENERATIONS);
-    const spansWithErrorsList = parseList(resp, QUERY_EXPRESSIONS.SPANS_WITH_ERRORS);
-
-    const contextResolutionSpans = parseListByName(
-      resp,
-      QUERY_EXPRESSIONS.CONTEXT_RESOLUTION_AND_HANDLE,
-      SPAN_NAMES.CONTEXT_RESOLUTION
-    );
-    const contextHandleSpans = parseListByName(
-      resp,
-      QUERY_EXPRESSIONS.CONTEXT_RESOLUTION_AND_HANDLE,
-      SPAN_NAMES.CONTEXT_HANDLE
-    );
-    const contextFetcherSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_FETCHERS);
-    const durationSpans = parseList(resp, QUERY_EXPRESSIONS.DURATION_SPANS);
-    const artifactProcessingSpans = parseList(resp, QUERY_EXPRESSIONS.ARTIFACT_PROCESSING);
-
-    const toolApprovalRequestedSpans = parseListByName(
-      resp,
-      QUERY_EXPRESSIONS.TOOL_APPROVALS,
-      SPAN_NAMES.TOOL_APPROVAL_REQUESTED
-    );
-    const toolApprovalApprovedSpans = parseListByName(
-      resp,
-      QUERY_EXPRESSIONS.TOOL_APPROVALS,
-      SPAN_NAMES.TOOL_APPROVAL_APPROVED
-    );
-    const toolApprovalDeniedSpans = parseListByName(
-      resp,
-      QUERY_EXPRESSIONS.TOOL_APPROVALS,
-      SPAN_NAMES.TOOL_APPROVAL_DENIED
-    );
-    const compressionSpans = parseList(resp, QUERY_EXPRESSIONS.COMPRESSION);
-    const maxStepsReachedSpans = parseList(resp, QUERY_EXPRESSIONS.MAX_STEPS_REACHED);
-    const streamLifetimeExceededSpans = parseList(resp, QUERY_EXPRESSIONS.STREAM_LIFETIME_EXCEEDED);
-    const durableToolExecutionSpans = parseList(resp, QUERY_EXPRESSIONS.DURABLE_TOOL_EXECUTIONS);
+    const {
+      agentGenerationSpans,
+      spansWithErrorsList,
+      contextResolutionSpans,
+      contextHandleSpans,
+      contextFetcherSpans,
+      artifactProcessingSpans,
+      toolApprovalRequestedSpans,
+      toolApprovalApprovedSpans,
+      toolApprovalDeniedSpans,
+      compressionSpans,
+      maxStepsReachedSpans,
+      streamLifetimeExceededSpans,
+      durableToolExecutionSpans,
+    } = classified;
+    const durationSpans = allRows;
 
     logger.info(
       {
@@ -1049,7 +868,6 @@ export async function GET(
       const transferFromSubAgentId = getString(span, SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID, '');
       const transferToSubAgentId = getString(span, SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID, '');
 
-      // Extract tool call args and result for ALL tool calls
       const toolCallArgs = getString(span, SPAN_KEYS.AI_TOOL_CALL_ARGS, '');
       const toolCallResult = getString(span, SPAN_KEYS.AI_TOOL_CALL_RESULT, '');
 

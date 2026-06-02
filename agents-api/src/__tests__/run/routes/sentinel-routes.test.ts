@@ -163,6 +163,19 @@ describe('Sentinel proxy routes', () => {
       const body = await res.json();
       expect(body.detail).toBe('Origin not allowed');
     });
+
+    it('should preserve upstream rate limits as 429', async () => {
+      fetchSpy.mockResolvedValueOnce(new Response('rate limited', { status: 429 }));
+
+      const app = createApp();
+      const res = await app.request(`/run/auth/sentinel/challenge?appId=${PROXY_APP_ID}`, {
+        headers: proxyHeaders,
+      });
+
+      expect(res.status).toBe(429);
+      const body = await res.json();
+      expect(body.detail).toBe('Challenge service rate limit exceeded');
+    });
   });
 
   describe('POST /run/auth/sentinel/verify', () => {
@@ -210,6 +223,21 @@ describe('Sentinel proxy routes', () => {
           method: 'POST',
         })
       );
+    });
+
+    it('should preserve upstream rate limits as 429', async () => {
+      fetchSpy.mockResolvedValueOnce(new Response('rate limited', { status: 429 }));
+
+      const app = createApp();
+      const res = await app.request(`/run/auth/sentinel/verify?appId=${PROXY_APP_ID}`, {
+        method: 'POST',
+        headers: { ...proxyHeaders, 'content-type': 'application/json' },
+        body: JSON.stringify({ payload: 'sentinel-payload-data' }),
+      });
+
+      expect(res.status).toBe(429);
+      const body = await res.json();
+      expect(body.detail).toBe('Challenge service rate limit exceeded');
     });
   });
 
@@ -286,6 +314,21 @@ describe('Sentinel proxy routes', () => {
       expect(res.status).toBe(404);
       const body = await res.json();
       expect(body.detail).toBe('Sentinel is not enabled');
+    });
+
+    it('should preserve upstream rate limits as 429', async () => {
+      fetchSpy.mockResolvedValueOnce(new Response('rate limited', { status: 429 }));
+
+      const app = createApp();
+      const res = await app.request(`/run/auth/sentinel/challenge?appId=${PROXY_APP_ID}`, {
+        method: 'POST',
+        headers: { ...proxyHeaders, 'content-type': 'application/json' },
+        body: JSON.stringify({ his: 'interaction-payload' }),
+      });
+
+      expect(res.status).toBe(429);
+      const body = await res.json();
+      expect(body.detail).toBe('Challenge service rate limit exceeded');
     });
   });
 
@@ -606,6 +649,20 @@ describe('Sentinel proxy routes', () => {
       const res = await app.request('/run/auth/pow/challenge');
 
       expect(res.status).toBe(502);
+    });
+
+    it('should preserve upstream rate limits as 429', async () => {
+      mocks.env.INKEEP_SENTINEL_V1_API_KEY_ID = 'v1_key_abc';
+      mocks.env.INKEEP_SENTINEL_V1_API_KEY_SECRET = 'v1-secret-that-is-at-least-32-chars-long';
+
+      fetchSpy.mockResolvedValueOnce(new Response('rate limited', { status: 429 }));
+
+      const app = createApp();
+      const res = await app.request('/run/auth/pow/challenge');
+
+      expect(res.status).toBe(429);
+      const body = await res.json();
+      expect(body.detail).toBe('Challenge service rate limit exceeded');
     });
 
     it('should return 502 when the upstream fetch throws', async () => {

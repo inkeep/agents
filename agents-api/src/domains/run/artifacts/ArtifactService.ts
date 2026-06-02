@@ -540,7 +540,13 @@ export class ArtifactService {
       toolCallId,
       name: artifact.name || 'Processing...',
       description: artifact.description || 'Name and description being generated...',
-      type: artifact.metadata?.artifactType || artifact.artifactType,
+      // `artifact.type` is the canonical ledger column (`ledger_artifacts.type`,
+      // returned by `getLedgerArtifacts`). The cache path also stashes the type in
+      // `metadata.artifactType` (see `cacheArtifact`), so prefer that when present,
+      // but fall back to the column so the type survives a cold ledger read. Without
+      // this fallback, compressed `tool_result` artifacts (which never hit the cache)
+      // round-trip with `type: undefined`, defeating internal-artifact suppression.
+      type: artifact.metadata?.artifactType || artifact.artifactType || artifact.type,
       data,
     };
   }
@@ -603,7 +609,9 @@ export class ArtifactService {
       toolCallId,
       name: artifact.name || 'Processing...',
       description: artifact.description || 'Name and description being generated...',
-      type: artifact.metadata?.artifactType || artifact.artifactType,
+      // See `formatArtifactSummaryData`: fall back to the canonical `type` column so
+      // a cold ledger read preserves the artifact type (e.g. internal `tool_result`).
+      type: artifact.metadata?.artifactType || artifact.artifactType || artifact.type,
       data,
       metadata: artifact.metadata,
     };

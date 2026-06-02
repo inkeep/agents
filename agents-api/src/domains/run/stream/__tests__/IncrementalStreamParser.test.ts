@@ -702,4 +702,61 @@ describe('IncrementalStreamParser', () => {
       }
     });
   });
+
+  describe('internal tool_result artifact suppression (live SSE)', () => {
+    it('does not stream an internal tool_result artifact to the end user', async () => {
+      const internalArtifactPart = {
+        kind: 'data',
+        data: {
+          artifactId: 'compress_search_toolu_123_abcd1234',
+          toolCallId: 'toolu_123',
+          name: 'Tool result',
+          type: 'tool_result',
+          artifactSummary: {
+            note: 'Tool result from search-inkeep-docs - compressed to save context space',
+          },
+        },
+      } as any;
+
+      await (parser as any).streamPart(internalArtifactPart);
+
+      expect(mockStreamHelper.writeData).not.toHaveBeenCalled();
+    });
+
+    it('still streams a normal (non-internal) artifact as data-artifact', async () => {
+      const normalArtifactPart = {
+        kind: 'data',
+        data: {
+          artifactId: 'art_123',
+          toolCallId: 'toolu_456',
+          name: 'Citation',
+          type: 'SourceCitation',
+          artifactSummary: { title: 'Docs' },
+        },
+      } as any;
+
+      await (parser as any).streamPart(normalArtifactPart);
+
+      expect(mockStreamHelper.writeData).toHaveBeenCalledTimes(1);
+      expect(mockStreamHelper.writeData).toHaveBeenCalledWith(
+        'data-artifact',
+        normalArtifactPart.data
+      );
+    });
+
+    it('still streams a regular data component (no artifact ref) as data-component', async () => {
+      const dataComponentPart = {
+        kind: 'data',
+        data: { id: 'comp1', name: 'Text', props: { text: 'hello' } },
+      } as any;
+
+      await (parser as any).streamPart(dataComponentPart);
+
+      expect(mockStreamHelper.writeData).toHaveBeenCalledTimes(1);
+      expect(mockStreamHelper.writeData).toHaveBeenCalledWith(
+        'data-component',
+        dataComponentPart.data
+      );
+    });
+  });
 });

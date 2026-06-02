@@ -99,6 +99,19 @@ function rewriteChallengeUrls(body: unknown, appId: string): void {
   }
 }
 
+function createChallengeUpstreamError(status: number): HTTPException {
+  if (status === 429) {
+    return createApiError({
+      code: 'too_many_requests',
+      message: 'Challenge service rate limit exceeded',
+    });
+  }
+  return createApiError({
+    code: 'bad_gateway',
+    message: 'Challenge service temporarily unavailable',
+  });
+}
+
 // Look up the app for proxy-route origin validation. Throws 404 if the app doesn't exist
 // or is disabled, 403 if the Origin header isn't in the app's allowedDomains.
 async function validateProxyOrigin(
@@ -172,6 +185,7 @@ app.openapi(
       },
       403: errorSchemaFactory('forbidden', 'Origin not allowed'),
       404: errorSchemaFactory('not_found', 'Sentinel is not enabled or app not found'),
+      429: errorSchemaFactory('too_many_requests', 'Challenge service rate limit exceeded'),
       502: errorSchemaFactory('bad_gateway', 'Sentinel upstream error'),
     },
   }),
@@ -197,11 +211,8 @@ app.openapi(
         signal: AbortSignal.timeout(5_000),
       });
       if (!upstream.ok) {
-        logger.warn({ status: upstream.status }, 'Sentinel challenge upstream error');
-        throw createApiError({
-          code: 'bad_gateway',
-          message: 'Challenge service temporarily unavailable',
-        });
+        logger.warn({ status: upstream.status, appId }, 'Sentinel challenge upstream error');
+        throw createChallengeUpstreamError(upstream.status);
       }
       const body = await upstream.json();
       rewriteChallengeUrls(body, appId);
@@ -247,6 +258,7 @@ app.openapi(
       },
       403: errorSchemaFactory('forbidden', 'Origin not allowed'),
       404: errorSchemaFactory('not_found', 'Sentinel is not enabled or app not found'),
+      429: errorSchemaFactory('too_many_requests', 'Challenge service rate limit exceeded'),
       502: errorSchemaFactory('bad_gateway', 'Sentinel upstream error'),
     },
   }),
@@ -272,11 +284,8 @@ app.openapi(
         signal: AbortSignal.timeout(5_000),
       });
       if (!upstream.ok) {
-        logger.warn({ status: upstream.status }, 'Sentinel HIS challenge upstream error');
-        throw createApiError({
-          code: 'bad_gateway',
-          message: 'Challenge service temporarily unavailable',
-        });
+        logger.warn({ status: upstream.status, appId }, 'Sentinel HIS challenge upstream error');
+        throw createChallengeUpstreamError(upstream.status);
       }
       const body = await upstream.json();
       rewriteChallengeUrls(body, appId);
@@ -321,6 +330,7 @@ app.openapi(
       },
       403: errorSchemaFactory('forbidden', 'Origin not allowed'),
       404: errorSchemaFactory('not_found', 'Sentinel is not enabled or app not found'),
+      429: errorSchemaFactory('too_many_requests', 'Challenge service rate limit exceeded'),
       502: errorSchemaFactory('bad_gateway', 'Sentinel upstream error'),
     },
   }),
@@ -346,11 +356,8 @@ app.openapi(
         signal: AbortSignal.timeout(5_000),
       });
       if (!upstream.ok) {
-        logger.warn({ status: upstream.status }, 'Sentinel verify upstream error');
-        throw createApiError({
-          code: 'bad_gateway',
-          message: 'Verification service temporarily unavailable',
-        });
+        logger.warn({ status: upstream.status, appId }, 'Sentinel verify upstream error');
+        throw createChallengeUpstreamError(upstream.status);
       }
       const body = await upstream.json();
       return c.json(body, 200);
@@ -395,6 +402,7 @@ app.openapi(
         },
       },
       404: errorSchemaFactory('not_found', 'Legacy PoW is not enabled'),
+      429: errorSchemaFactory('too_many_requests', 'Challenge service rate limit exceeded'),
       502: errorSchemaFactory('bad_gateway', 'Sentinel upstream error'),
     },
   }),
@@ -418,10 +426,7 @@ app.openapi(
       });
       if (!upstream.ok) {
         logger.warn({ status: upstream.status }, 'Legacy PoW challenge upstream error');
-        throw createApiError({
-          code: 'bad_gateway',
-          message: 'Challenge service temporarily unavailable',
-        });
+        throw createChallengeUpstreamError(upstream.status);
       }
       const body = (await upstream.json()) as Record<string, unknown>;
       // Older widgets read a top-level numeric `expiresAt` (ms) for refresh timing. Sentinel
