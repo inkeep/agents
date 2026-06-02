@@ -1,5 +1,17 @@
 # @inkeep/agents-api
 
+## 0.75.2
+
+### Patch Changes
+
+- 58218b5: Preserve Sentinel challenge rate-limit responses
+- 2d6c1d4: Fix structured-output agents emitting artifact citations as raw <artifact:ref> text. The system prompt now gates artifact instructions on output mode: structured-output agents (data components enabled) are instructed to emit artifacts as structured Artifact/ArtifactCreate\_ components, while text-mode agents keep the <artifact:\*> tag syntax.
+- 452bbef: Remove per-request bot-protection scoring from authenticated requests. Bot protection now gates anonymous-session creation only; authenticated requests rely on their app-signed JWT and ignore the challenge header. This fixes authenticated widget builds that send a legacy challenge-header shape being rejected with a 400 "Bot protection challenge solution is invalid" error.
+  - @inkeep/agents-core@0.75.2
+  - @inkeep/agents-email@0.75.2
+  - @inkeep/agents-mcp@0.75.2
+  - @inkeep/agents-work-apps@0.75.2
+
 ## 0.75.1
 
 ### Patch Changes
