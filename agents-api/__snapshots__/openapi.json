@@ -3245,10 +3245,6 @@
             ]
           }
         },
-        "required": [
-          "name",
-          "props"
-        ],
         "type": "object"
       },
       "DataPart": {
