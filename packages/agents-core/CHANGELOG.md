@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.75.3
+
+### Patch Changes
+
+- c9072d5: Fix data component partial updates rejecting bodies without name and props (e.g. clearing the component renderer)
+
 ## 0.75.2
 
 ## 0.75.1
