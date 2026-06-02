@@ -32,3 +32,13 @@ If seeing many oversized artifacts, consider:
 - Paginate large result sets
 - Pre-summarize responses in tools
 - Use models with larger context windows
+
+## Internal Artifacts
+
+The runtime may automatically create **internal artifacts** (of type `tool_result`) when it compresses oversized tool results to fit the model's context window. These are system-level bookkeeping — they allow the model to continue referencing compressed data by ID.
+
+Internal artifacts are **hidden from end users** and will not appear as citations or reference cards in chat UIs. They remain fully visible to:
+- **The model** — for reasoning and grounding responses
+- **The builder/admin console** — for debugging agent behavior via traces
+
+User-created artifacts (via `artifact:create` or artifact components) are unaffected and always visible to end users.
