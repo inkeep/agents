@@ -40,10 +40,15 @@ export const schemaValidationDefaults = {
   STATUS_UPDATE_MAX_INTERVAL_SECONDS: 600, // 10 minutes
 
   // Prompt Text Length Validation
-  // Maximum character limits for agent and sub-agent system prompts to prevent excessive token usage.
-  // Enforced during agent configuration to ensure prompts remain focused and manageable.
+  // VALIDATION_AGENT_PROMPT_MAX_CHARS is the shared cap for the main system prompts:
+  // both the agent-level prompt (rendered as <agent_context>) and each sub-agent's own
+  // prompt (rendered as <core_instructions>). A generous ceiling that comfortably fits
+  // large grounding/context documents (~200k chars ≈ ~50k tokens) while still guarding
+  // against pathological input. Override via AGENTS_VALIDATION_AGENT_PROMPT_MAX_CHARS.
+  // NOTE: VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS (despite its name) caps the status-update
+  // "custom prompt", NOT a sub-agent prompt. Renaming it is tracked as follow-up work.
   VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS: 2_000,
-  VALIDATION_AGENT_PROMPT_MAX_CHARS: 5_000,
+  VALIDATION_AGENT_PROMPT_MAX_CHARS: 200_000,
 
   // Context Fetcher HTTP Timeout
   // Maximum time allowed for HTTP requests made by Context Fetchers (e.g., CRM lookups, external API calls).
