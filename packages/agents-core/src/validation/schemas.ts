@@ -294,6 +294,17 @@ export const SubAgentInsertSchema = createInsertSchema(subAgents).extend({
   // nullable so the contract can be explicitly cleared (the column is nullable);
   // a full-agent update writes null to drop a removed contract.
   outputContract: OutputContractSchema.nullable().optional(),
+  // Shared system-prompt cap (sub-agent prompt -> <core_instructions>), same ceiling as the
+  // agent-level prompt. Capped at the base so REST sub-agent create/PATCH enforce it.
+  prompt: z
+    .string()
+    .trim()
+    .max(
+      VALIDATION_AGENT_PROMPT_MAX_CHARS,
+      `Sub-agent prompt cannot exceed ${VALIDATION_AGENT_PROMPT_MAX_CHARS} characters`
+    )
+    .nullable()
+    .optional(),
 });
 
 export const SubAgentUpdateSchema = SubAgentInsertSchema.partial();
@@ -401,6 +412,17 @@ export const AgentInsertSchema = createInsertSchema(agents, {
       example: 'my-default-subagent',
     }),
   executionMode: () => z.enum(['classic', 'durable']).optional(),
+  // Shared system-prompt cap (agent-level prompt -> <agent_context>). Capped at the base
+  // so every write path (standalone REST create/PATCH + full-graph) enforces it consistently.
+  prompt: () =>
+    z
+      .string()
+      .trim()
+      .max(
+        VALIDATION_AGENT_PROMPT_MAX_CHARS,
+        `Agent prompt cannot exceed ${VALIDATION_AGENT_PROMPT_MAX_CHARS} characters`
+      )
+      .optional(),
 });
 export const AgentUpdateSchema = AgentInsertSchema.partial();
 
@@ -2891,7 +2913,15 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
     )
     .optional(),
   canTransferTo: z.array(z.string()).optional(),
-  prompt: z.string().trim().optional(),
+  prompt: z
+    .string()
+    .trim()
+    .max(
+      VALIDATION_AGENT_PROMPT_MAX_CHARS,
+      `Sub-agent prompt cannot exceed ${VALIDATION_AGENT_PROMPT_MAX_CHARS} characters`
+    )
+    .nullable()
+    .optional(),
   canDelegateTo: z
     .array(
       z.union([

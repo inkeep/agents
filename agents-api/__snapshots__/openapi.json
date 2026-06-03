@@ -274,6 +274,7 @@
             "$ref": "#/components/schemas/NameSchema"
           },
           "prompt": {
+            "maxLength": 200000,
             "nullable": true,
             "type": "string"
           },
@@ -577,6 +578,7 @@
             "$ref": "#/components/schemas/NameSchema"
           },
           "prompt": {
+            "maxLength": 200000,
             "nullable": true,
             "type": "string"
           },
@@ -677,7 +679,7 @@
                 "$ref": "#/components/schemas/Model"
               },
               "prompt": {
-                "maxLength": 5000,
+                "maxLength": 200000,
                 "type": "string"
               },
               "statusUpdates": {
@@ -5680,9 +5682,6 @@
                 },
                 "type": "array"
               },
-              "prompt": {
-                "type": "string"
-              },
               "skills": {
                 "items": {
                   "additionalProperties": false,
@@ -9789,6 +9788,7 @@
             "$ref": "#/components/schemas/OutputContract"
           },
           "prompt": {
+            "maxLength": 200000,
             "nullable": true,
             "type": "string"
           },
@@ -10904,6 +10904,7 @@
             "$ref": "#/components/schemas/OutputContract"
           },
           "prompt": {
+            "maxLength": 200000,
             "nullable": true,
             "type": "string"
           },
