@@ -17,10 +17,10 @@ import {
   evaluatePassCriteria,
   generateId,
   getDatasetById,
+  getDatasetRunConversationRelations,
   getEvaluatorsByIds,
   getFeedbackByIds,
   getInProcessFetch,
-  getMessagesByConversation,
   getProjectMainResolvedRef,
   ImprovementBranchParamsSchema,
   ImprovementConversationResponseSchema,
@@ -35,6 +35,7 @@ import {
   ImprovementTriggerResponseSchema,
   listCoPilotRuns,
   listCoPilotRunsByBranchName,
+  listDatasetItems,
   listDatasetRuns,
   listEvaluationResultsByRun,
   listEvaluationRunsByJobConfigId,
@@ -467,13 +468,20 @@ app.openapi(
           toRevision: sourceFullName,
           tableName: rawTableName,
         });
-        tables[s.tableName] = rows;
+        const meaningful = rows.filter((row) => !isDiffRowTimestampOnly(row));
+        if (meaningful.length > 0) {
+          tables[s.tableName] = meaningful;
+        }
       } catch (err) {
         logger.warn({ tableName: s.tableName, rawTableName, err }, 'Failed to get diff for table');
       }
     }
 
-    const changedTables = new Set(summary.map((s) => s.tableName.replace(/^public\./, '')));
+    const filteredSummary = summary.filter(
+      (s) => !s.dataChange || tables[s.tableName] !== undefined
+    );
+
+    const changedTables = new Set(filteredSummary.map((s) => s.tableName.replace(/^public\./, '')));
     const relevantFkLinks = manageFkColumnLinks.filter(
       (link) => changedTables.has(link.childTable) || changedTables.has(link.parentTable)
     );
@@ -485,7 +493,7 @@ app.openapi(
       targetHash: preview.data.targetHash,
       hasConflicts: conflicts.length > 0,
       conflicts,
-      summary,
+      summary: filteredSummary,
       tables,
       fkLinks: relevantFkLinks,
       pkMap: Object.fromEntries(
@@ -999,43 +1007,57 @@ app.openapi(
         const inputMap = new Map<string, string>();
 
         if (run.evaluationJobConfigId) {
-          const jobRuns = await listEvaluationRunsByJobConfigId(runDbClient)({
-            scopes: { tenantId, projectId },
-            evaluationJobConfigId: run.evaluationJobConfigId,
-          });
+          try {
+            const [jobRuns, runConvRelations, datasetItems] = await Promise.all([
+              listEvaluationRunsByJobConfigId(runDbClient)({
+                scopes: { tenantId, projectId },
+                evaluationJobConfigId: run.evaluationJobConfigId,
+              }),
+              getDatasetRunConversationRelations(runDbClient)({
+                scopes: { tenantId, projectId, datasetRunId: run.id },
+              }),
+              listDatasetItems(db)({
+                scopes: { tenantId, projectId, datasetId: run.datasetId },
+              }),
+            ]);
 
-          allResults = (
-            await Promise.all(
-              jobRuns.map((jr) =>
-                listEvaluationResultsByRun(runDbClient)({
-                  scopes: { tenantId, projectId, evaluationRunId: jr.id },
-                })
+            allResults = (
+              await Promise.all(
+                jobRuns.map((jr) =>
+                  listEvaluationResultsByRun(runDbClient)({
+                    scopes: { tenantId, projectId, evaluationRunId: jr.id },
+                  })
+                )
               )
-            )
-          ).flat();
+            ).flat();
 
-          const uniqueConvIds = [...new Set(allResults.map((r) => r.conversationId))];
-          await Promise.all(
-            uniqueConvIds.map(async (conversationId) => {
-              try {
-                const messages = await getMessagesByConversation(runDbClient)({
-                  scopes: { tenantId, projectId },
-                  conversationId,
-                  pagination: { page: 1, limit: 10 },
-                });
-                const firstUser = [...messages].reverse().find((m) => m.role === 'user');
-                if (firstUser?.content) {
-                  const text =
-                    typeof firstUser.content === 'string'
-                      ? firstUser.content
-                      : (firstUser.content as { text?: string }).text || '';
-                  if (text) inputMap.set(conversationId, text);
-                }
-              } catch {
-                // ignore
+            const itemById = new Map(datasetItems.map((item) => [item.id, item]));
+            for (const rel of runConvRelations) {
+              const item = itemById.get(rel.datasetItemId);
+              if (!item?.input) continue;
+              const input = item.input as Record<string, unknown>;
+              const messages = input.messages as
+                | Array<{ role: string; content: unknown }>
+                | undefined;
+              const firstUserMsg = messages?.find((m) => m.role === 'user');
+              if (firstUserMsg) {
+                const rawContent = firstUserMsg.content;
+                const text =
+                  typeof rawContent === 'string'
+                    ? rawContent
+                    : typeof rawContent === 'object' && rawContent !== null
+                      ? (((rawContent as Record<string, unknown>).text as string) ??
+                        JSON.stringify(rawContent))
+                      : JSON.stringify(input);
+                if (text) inputMap.set(rel.conversationId, text);
               }
-            })
-          );
+            }
+          } catch (err) {
+            logger.warn(
+              { err, runId: run.id, tenantId, projectId },
+              'Failed to fetch evaluation data for dataset run'
+            );
+          }
         }
 
         return { run, dataset, statusCounts, allResults, inputMap };
@@ -1125,6 +1147,19 @@ app.openapi(
 );
 
 const TIMESTAMP_COLUMNS = new Set(['created_at', 'updated_at']);
+
+function isDiffRowTimestampOnly(row: Record<string, unknown>): boolean {
+  if (row.diff_type !== 'modified') return false;
+  for (const key of Object.keys(row)) {
+    if (!key.startsWith('from_') || key === 'from_commit' || key === 'from_commit_date') continue;
+    const field = key.slice(5);
+    if (TIMESTAMP_COLUMNS.has(field)) continue;
+    const fromVal = row[key];
+    const toVal = row[`to_${field}`];
+    if (String(fromVal ?? '') !== String(toVal ?? '')) return false;
+  }
+  return true;
+}
 
 function extractPrefixedValues(
   row: Record<string, unknown>,

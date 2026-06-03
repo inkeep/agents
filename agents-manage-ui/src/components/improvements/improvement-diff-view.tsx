@@ -1,5 +1,6 @@
 'use client';
 
+import { diffLines, diffWordsWithSpace } from 'diff';
 import { ChevronDown, ChevronRight, Link2 } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -231,6 +232,125 @@ function DiffValue({ value, variant }: { value: unknown; variant: 'from' | 'to' 
   );
 }
 
+function WordDiff({ from, to }: { from: string; to: string }) {
+  const changes = diffWordsWithSpace(from, to);
+
+  return (
+    <pre className="text-xs font-mono p-2 rounded border border-border whitespace-pre-wrap break-all max-h-96 overflow-auto">
+      {changes.map((part, i) => {
+        if (part.added) {
+          return (
+            <span
+              key={i}
+              className="bg-green-200 dark:bg-green-900/60 text-green-900 dark:text-green-100 rounded-sm px-0.5"
+            >
+              {part.value}
+            </span>
+          );
+        }
+        if (part.removed) {
+          return (
+            <span
+              key={i}
+              className="bg-red-200 dark:bg-red-900/60 text-red-900 dark:text-red-100 line-through rounded-sm px-0.5"
+            >
+              {part.value}
+            </span>
+          );
+        }
+        return <span key={i}>{part.value}</span>;
+      })}
+    </pre>
+  );
+}
+
+function LineDiff({ from, to }: { from: string; to: string }) {
+  const changes = diffLines(from, to);
+
+  return (
+    <pre className="text-xs font-mono rounded border border-border whitespace-pre-wrap break-all max-h-96 overflow-auto">
+      {changes.map((part, i) => {
+        if (part.added) {
+          return (
+            <span
+              key={i}
+              className="bg-green-100 dark:bg-green-950/50 text-green-900 dark:text-green-200 block"
+            >
+              {part.value
+                .split('\n')
+                .filter((l, li, arr) => li < arr.length - 1 || l !== '')
+                .map((line, li) => (
+                  <span key={li} className="block pl-4 -indent-4">
+                    <span className="text-green-600 dark:text-green-400 select-none">+ </span>
+                    {line}
+                  </span>
+                ))}
+            </span>
+          );
+        }
+        if (part.removed) {
+          return (
+            <span
+              key={i}
+              className="bg-red-100 dark:bg-red-950/50 text-red-900 dark:text-red-200 block"
+            >
+              {part.value
+                .split('\n')
+                .filter((l, li, arr) => li < arr.length - 1 || l !== '')
+                .map((line, li) => (
+                  <span key={li} className="block pl-4 -indent-4">
+                    <span className="text-red-600 dark:text-red-400 select-none">- </span>
+                    {line}
+                  </span>
+                ))}
+            </span>
+          );
+        }
+        const lines = part.value
+          .split('\n')
+          .filter((l, li, arr) => li < arr.length - 1 || l !== '');
+        if (lines.length <= 6) {
+          return (
+            <span key={i} className="text-muted-foreground block">
+              {lines.map((line, li) => (
+                <span key={li} className="block pl-4 -indent-4">
+                  <span className="select-none">{'  '}</span>
+                  {line}
+                </span>
+              ))}
+            </span>
+          );
+        }
+        return (
+          <span key={i} className="text-muted-foreground block">
+            {lines.slice(0, 3).map((line, li) => (
+              <span key={li} className="block pl-4 -indent-4">
+                <span className="select-none">{'  '}</span>
+                {line}
+              </span>
+            ))}
+            <span className="block text-center text-muted-foreground/60 py-0.5 bg-muted/30">
+              ··· {lines.length - 6} unchanged lines ···
+            </span>
+            {lines.slice(-3).map((line, li) => (
+              <span key={li} className="block pl-4 -indent-4">
+                <span className="select-none">{'  '}</span>
+                {line}
+              </span>
+            ))}
+          </span>
+        );
+      })}
+    </pre>
+  );
+}
+
+function InlineDiff({ from, to }: { from: string; to: string }) {
+  const hasMultipleLines = from.includes('\n') || to.includes('\n');
+  if (hasMultipleLines) return <LineDiff from={from} to={to} />;
+  return <WordDiff from={from} to={to} />;
+}
+
 function RowDiffCard({
   tableName,
   row,
@@ -279,28 +399,47 @@ function RowDiffCard({
       </div>
       {changedFields.length > 0 ? (
         <div className="space-y-2">
-          {changedFields.map((cf) => (
-            <div
-              key={cf.field}
-              className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1 items-start text-xs"
-            >
-              <span className="font-mono font-medium text-muted-foreground pt-0.5">{cf.field}</span>
-              <div className="space-y-1">
-                {cf.diffType !== 'added' && (
-                  <div className="flex items-start gap-1">
-                    <span className="text-red-600 dark:text-red-400 font-mono shrink-0">−</span>
-                    <DiffValue value={cf.from} variant="from" />
-                  </div>
-                )}
-                {cf.diffType !== 'removed' && (
-                  <div className="flex items-start gap-1">
-                    <span className="text-green-600 dark:text-green-400 font-mono shrink-0">+</span>
-                    <DiffValue value={cf.to} variant="to" />
+          {changedFields.map((cf) => {
+            const fromStr = stringify(cf.from);
+            const toStr = stringify(cf.to);
+            const isMultiline =
+              cf.diffType === 'modified' &&
+              (fromStr.includes('\n') ||
+                toStr.includes('\n') ||
+                fromStr.length > 120 ||
+                toStr.length > 120);
+
+            return (
+              <div
+                key={cf.field}
+                className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1 items-start text-xs"
+              >
+                <span className="font-mono font-medium text-muted-foreground pt-0.5">
+                  {cf.field}
+                </span>
+                {isMultiline ? (
+                  <InlineDiff from={fromStr} to={toStr} />
+                ) : (
+                  <div className="space-y-1">
+                    {cf.diffType !== 'added' && (
+                      <div className="flex items-start gap-1">
+                        <span className="text-red-600 dark:text-red-400 font-mono shrink-0">−</span>
+                        <DiffValue value={cf.from} variant="from" />
+                      </div>
+                    )}
+                    {cf.diffType !== 'removed' && (
+                      <div className="flex items-start gap-1">
+                        <span className="text-green-600 dark:text-green-400 font-mono shrink-0">
+                          +
+                        </span>
+                        <DiffValue value={cf.to} variant="to" />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <p className="text-xs text-muted-foreground">No field-level changes detected</p>
