@@ -102,14 +102,17 @@ export const listWebhookDestinationsPaginated =
     return { data, pagination: { page, limit, total, pages } };
   };
 
-export const listWebhookDestinationsForEvent =
+export type WebhookDestinationWithAgents = WebhookDestinationSelect & {
+  agentIds: string[];
+};
+
+export const listEnabledWebhookDestinations =
   (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
-    eventType: string;
     agentId: string;
-  }): Promise<WebhookDestinationSelect[]> => {
-    const { scopes, eventType, agentId } = params;
+  }): Promise<WebhookDestinationWithAgents[]> => {
+    const { scopes, agentId } = params;
 
     const rows = await db
       .select({
@@ -129,34 +132,24 @@ export const listWebhookDestinationsForEvent =
         and(projectScopedWhere(webhookDestinations, scopes), eq(webhookDestinations.enabled, true))
       );
 
-    const filtered = rows.filter((row) => {
-      const types = row.dest.eventTypes;
-      return Array.isArray(types) && types.includes(eventType);
-    });
+    if (rows.length === 0) return [];
 
-    if (filtered.length === 0) return [];
-
-    const destMap = new Map<string, { dest: WebhookDestinationSelect; agents: string[] }>();
-    for (const row of filtered) {
+    const destMap = new Map<string, { dest: WebhookDestinationSelect; agentIds: string[] }>();
+    for (const row of rows) {
       const existing = destMap.get(row.dest.id);
       if (existing) {
-        if (row.scopedAgentId) existing.agents.push(row.scopedAgentId);
+        if (row.scopedAgentId) existing.agentIds.push(row.scopedAgentId);
       } else {
         destMap.set(row.dest.id, {
           dest: row.dest as WebhookDestinationSelect,
-          agents: row.scopedAgentId ? [row.scopedAgentId] : [],
+          agentIds: row.scopedAgentId ? [row.scopedAgentId] : [],
         });
       }
     }
 
-    const results: WebhookDestinationSelect[] = [];
-    for (const { dest, agents } of destMap.values()) {
-      if (agents.length === 0 || agents.includes(agentId)) {
-        results.push(dest);
-      }
-    }
-
-    return results;
+    return Array.from(destMap.values())
+      .filter(({ agentIds }) => agentIds.length === 0 || agentIds.includes(agentId))
+      .map(({ dest, agentIds }) => ({ ...dest, agentIds }));
   };
 
 export const createWebhookDestination =

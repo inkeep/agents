@@ -261,6 +261,9 @@ export function resolveTextResponseAndWarn({
 function emitGenerationError(ctx: AgentRunContext, reason: string): void {
   const { resolvedRef } = ctx.executionContext;
   if (resolvedRef && ctx.conversationId) {
+    const prefetchedDestinations = ctx.streamRequestId
+      ? agentSessionManager.getPrefetchedDestinations(ctx.streamRequestId)
+      : undefined;
     emitWebhookEventFireAndForget(
       {
         tenantId: ctx.executionContext.tenantId,
@@ -269,6 +272,7 @@ function emitGenerationError(ctx: AgentRunContext, reason: string): void {
         resolvedRef,
         eventType: 'conversation.generation.error',
         data: { conversation: { id: ctx.conversationId }, reason },
+        prefetchedDestinations,
       },
       'generation-error'
     );

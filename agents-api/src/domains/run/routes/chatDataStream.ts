@@ -42,7 +42,10 @@ import {
   buildPersistedMessageContent,
   inlineExternalPdfUrlParts,
 } from '../services/blob-storage/file-upload-helpers';
-import { emitConversationWebhook } from '../services/WebhookDeliveryService';
+import {
+  emitConversationWebhook,
+  prefetchWebhookDestinations,
+} from '../services/WebhookDeliveryService';
 import { pendingToolApprovalManager } from '../session/PendingToolApprovalManager';
 import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
 import { streamBufferRegistry } from '../stream/stream-buffer-registry';
@@ -402,11 +405,21 @@ app.openapi(chatDataStreamRoute, async (c) => {
       const credentialStores = c.get('credentialStores');
 
       // Context resolution with intelligent conversation state detection
+      const prefetchedDestinations = executionContext.resolvedRef
+        ? await prefetchWebhookDestinations({
+            tenantId,
+            projectId,
+            agentId,
+            resolvedRef: executionContext.resolvedRef,
+          })
+        : undefined;
+
       await handleContextResolution({
         executionContext,
         conversationId,
         headers: validatedContext,
         credentialStores,
+        prefetchedDestinations,
       });
 
       // Store last user message
@@ -517,6 +530,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
           conversationId,
           resolvedRef: executionContext.resolvedRef,
           eventType: activeAgent ? 'conversation.updated' : 'conversation.created',
+          prefetchedDestinations,
         });
       }
 
@@ -596,6 +610,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
           emitOperations,
           forwardedHeaders,
           responseMessageId,
+          prefetchedDestinations,
         });
 
         const captured = bufferingHelper.getCapturedResponse();
@@ -711,6 +726,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
               datasetRunId: datasetRunId || undefined,
               forwardedHeaders,
               responseMessageId,
+              prefetchedDestinations,
             });
 
             if (!result.success) {

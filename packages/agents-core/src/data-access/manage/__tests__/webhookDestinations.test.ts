@@ -7,7 +7,7 @@ import {
   deleteWebhookDestination,
   getWebhookDestinationAgentIds,
   getWebhookDestinationById,
-  listWebhookDestinationsForEvent,
+  listEnabledWebhookDestinations,
   listWebhookDestinationsPaginated,
   setWebhookDestinationAgentIds,
   updateWebhookDestination,
@@ -154,24 +154,24 @@ describe('webhookDestinations DAL', () => {
     });
   });
 
-  describe('listWebhookDestinationsForEvent', () => {
-    it('returns destinations subscribed to the event type', async () => {
+  describe('listEnabledWebhookDestinations', () => {
+    it('returns all enabled destinations for a project', async () => {
       await insertWebhookDestination('wh-event-1', {
         eventTypes: ['conversation.created'],
       });
       await insertWebhookDestination('wh-event-2', {
-        eventTypes: ['conversation.created'],
+        eventTypes: ['conversation.updated'],
       });
 
-      const dests = await listWebhookDestinationsForEvent(testManageDbClient)({
+      const dests = await listEnabledWebhookDestinations(testManageDbClient)({
         scopes: { tenantId, projectId },
-        eventType: 'conversation.created',
         agentId: 'agent-1',
       });
 
-      expect(dests).toHaveLength(2);
-      const ids = dests.map((d) => d.id).sort();
-      expect(ids).toEqual(['wh-event-1', 'wh-event-2']);
+      expect(dests.length).toBeGreaterThanOrEqual(2);
+      const ids = dests.map((d) => d.id);
+      expect(ids).toContain('wh-event-1');
+      expect(ids).toContain('wh-event-2');
     });
 
     it('excludes disabled destinations', async () => {
@@ -184,66 +184,80 @@ describe('webhookDestinations DAL', () => {
         enabled: true,
       });
 
-      const dests = await listWebhookDestinationsForEvent(testManageDbClient)({
+      const dests = await listEnabledWebhookDestinations(testManageDbClient)({
         scopes: { tenantId, projectId },
-        eventType: 'conversation.updated',
         agentId: 'agent-1',
       });
 
-      expect(dests).toHaveLength(1);
-      expect(dests[0].id).toBe('wh-enabled-1');
+      const ids = dests.map((d) => d.id);
+      expect(ids).not.toContain('wh-disabled-1');
+      expect(ids).toContain('wh-enabled-1');
     });
 
-    it('returns empty array when no destinations exist', async () => {
-      const dests = await listWebhookDestinationsForEvent(testManageDbClient)({
-        scopes: { tenantId, projectId },
-        eventType: 'conversation.created',
+    it('returns empty array when no enabled destinations exist', async () => {
+      await ensureProject('tenant-no-enabled', 'project-no-enabled');
+      const dests = await listEnabledWebhookDestinations(testManageDbClient)({
+        scopes: { tenantId: 'tenant-no-enabled', projectId: 'project-no-enabled' },
         agentId: 'agent-1',
       });
 
       expect(dests).toHaveLength(0);
     });
 
-    it('returns destinations subscribed to conversation.created only', async () => {
-      await insertWebhookDestination('wh-created-only', {
+    it('returns destinations with their agentIds', async () => {
+      await insertWebhookDestination('wh-with-agents', {
+        eventTypes: ['conversation.created'],
+      });
+      await ensureAgent('agent-a');
+      await ensureAgent('agent-b');
+      await setWebhookDestinationAgentIds(testManageDbClient)({
+        scopes: { tenantId, projectId },
+        webhookDestinationId: 'wh-with-agents',
+        agentIds: ['agent-a', 'agent-b'],
+      });
+
+      const dests = await listEnabledWebhookDestinations(testManageDbClient)({
+        scopes: { tenantId, projectId },
+        agentId: 'agent-a',
+      });
+
+      const dest = dests.find((d) => d.id === 'wh-with-agents');
+      expect(dest).toBeDefined();
+      expect(dest?.agentIds.sort()).toEqual(['agent-a', 'agent-b']);
+    });
+
+    it('returns empty agentIds for unscoped destinations', async () => {
+      await insertWebhookDestination('wh-unscoped', {
         eventTypes: ['conversation.created'],
       });
 
-      const createdDests = await listWebhookDestinationsForEvent(testManageDbClient)({
+      const dests = await listEnabledWebhookDestinations(testManageDbClient)({
         scopes: { tenantId, projectId },
-        eventType: 'conversation.created',
-        agentId: 'agent-1',
+        agentId: 'any-agent',
       });
-      expect(createdDests).toHaveLength(1);
-      expect(createdDests[0].id).toBe('wh-created-only');
 
-      const updatedDests = await listWebhookDestinationsForEvent(testManageDbClient)({
-        scopes: { tenantId, projectId },
-        eventType: 'conversation.updated',
-        agentId: 'agent-1',
-      });
-      expect(updatedDests).toHaveLength(0);
+      const dest = dests.find((d) => d.id === 'wh-unscoped');
+      expect(dest).toBeDefined();
+      expect(dest?.agentIds).toEqual([]);
     });
 
-    it('filters destinations by event type when destination subscribes to multiple event types', async () => {
+    it('preserves eventTypes on returned destinations', async () => {
       await insertWebhookDestination('wh-multi-events', {
         eventTypes: ['conversation.created', 'feedback.created', 'event.created'],
       });
 
-      const feedbackDests = await listWebhookDestinationsForEvent(testManageDbClient)({
+      const dests = await listEnabledWebhookDestinations(testManageDbClient)({
         scopes: { tenantId, projectId },
-        eventType: 'feedback.created',
         agentId: 'agent-1',
       });
-      expect(feedbackDests).toHaveLength(1);
-      expect(feedbackDests[0].id).toBe('wh-multi-events');
 
-      const evalDests = await listWebhookDestinationsForEvent(testManageDbClient)({
-        scopes: { tenantId, projectId },
-        eventType: 'evaluation.failed',
-        agentId: 'agent-1',
-      });
-      expect(evalDests).toHaveLength(0);
+      const dest = dests.find((d) => d.id === 'wh-multi-events');
+      expect(dest).toBeDefined();
+      expect(dest?.eventTypes).toEqual([
+        'conversation.created',
+        'feedback.created',
+        'event.created',
+      ]);
     });
   });
 
@@ -342,22 +356,22 @@ describe('webhookDestinations DAL', () => {
   });
 
   describe('webhook destination agent scoping', () => {
-    it('returns destination for any agent when no agent filter is set', async () => {
+    it('returns all destinations regardless of agent scoping', async () => {
       await insertWebhookDestination('wh-all-agents', {
         eventTypes: ['conversation.created'],
       });
 
-      const dests = await listWebhookDestinationsForEvent(testManageDbClient)({
+      const dests = await listEnabledWebhookDestinations(testManageDbClient)({
         scopes: { tenantId, projectId },
-        eventType: 'conversation.created',
         agentId: 'any-agent-id',
       });
 
-      expect(dests).toHaveLength(1);
-      expect(dests[0].id).toBe('wh-all-agents');
+      const dest = dests.find((d) => d.id === 'wh-all-agents');
+      expect(dest).toBeDefined();
+      expect(dest?.agentIds).toEqual([]);
     });
 
-    it('filters destinations by agent when agent filter is set', async () => {
+    it('includes agentIds on scoped destinations for caller-side filtering', async () => {
       await insertWebhookDestination('wh-scoped', {
         eventTypes: ['conversation.created'],
       });
@@ -370,19 +384,17 @@ describe('webhookDestinations DAL', () => {
         agentIds: ['agent-a', 'agent-b'],
       });
 
-      const matchedDests = await listWebhookDestinationsForEvent(testManageDbClient)({
+      const matchedDests = await listEnabledWebhookDestinations(testManageDbClient)({
         scopes: { tenantId, projectId },
-        eventType: 'conversation.created',
         agentId: 'agent-a',
       });
-      expect(matchedDests).toHaveLength(1);
+      expect(matchedDests.find((d) => d.id === 'wh-scoped')).toBeDefined();
 
-      const unmatchedDests = await listWebhookDestinationsForEvent(testManageDbClient)({
+      const unmatchedDests = await listEnabledWebhookDestinations(testManageDbClient)({
         scopes: { tenantId, projectId },
-        eventType: 'conversation.created',
         agentId: 'agent-c',
       });
-      expect(unmatchedDests).toHaveLength(0);
+      expect(unmatchedDests.find((d) => d.id === 'wh-scoped')).toBeUndefined();
     });
 
     it('get and set agent ids round-trip', async () => {

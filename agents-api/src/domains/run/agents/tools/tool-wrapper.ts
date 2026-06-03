@@ -442,6 +442,9 @@ export function wrapToolWithStreaming(
         if (!hideToolFromTraceEvents) {
           const { resolvedRef } = ctx.executionContext;
           if (resolvedRef && ctx.conversationId) {
+            const prefetchedDestinations = ctx.streamRequestId
+              ? agentSessionManager.getPrefetchedDestinations(ctx.streamRequestId)
+              : undefined;
             emitWebhookEventFireAndForget(
               {
                 tenantId: ctx.executionContext.tenantId,
@@ -457,6 +460,7 @@ export function wrapToolWithStreaming(
                     : undefined,
                   reason: errorMessage,
                 },
+                prefetchedDestinations,
               },
               'tool-error'
             );

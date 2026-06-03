@@ -17,7 +17,7 @@ vi.mock('@inkeep/agents-core', async () => {
         pendingDeferred.push(p);
       })
     ),
-    listWebhookDestinationsForEvent: vi.fn(),
+    listEnabledWebhookDestinations: vi.fn(),
     withRef: vi.fn(),
   };
 });
@@ -45,7 +45,7 @@ import {
   getConversationHistory,
   getEvaluationRunById,
   getProjectMainResolvedRef,
-  listWebhookDestinationsForEvent,
+  listEnabledWebhookDestinations,
   withRef,
 } from '@inkeep/agents-core';
 import { start } from 'workflow/api';
@@ -60,10 +60,11 @@ import {
   emitFeedbackWebhook,
   emitWebhookEvent,
   emitWebhookEventFireAndForget,
+  prefetchWebhookDestinations,
 } from '../WebhookDeliveryService';
 
 const mockWithRef = withRef as ReturnType<typeof vi.fn>;
-const mockListForEvent = listWebhookDestinationsForEvent as ReturnType<typeof vi.fn>;
+const mockListEnabled = listEnabledWebhookDestinations as ReturnType<typeof vi.fn>;
 const mockStart = start as ReturnType<typeof vi.fn>;
 const mockGetConversation = getConversation as ReturnType<typeof vi.fn>;
 const mockGetConversationHistory = getConversationHistory as ReturnType<typeof vi.fn>;
@@ -90,7 +91,7 @@ describe('WebhookDeliveryService', () => {
       mockWithRef.mockImplementation(async (_pool: any, _ref: any, fn: any) => {
         return fn('mock-db');
       });
-      mockListForEvent.mockReturnValue(() => Promise.resolve([]));
+      mockListEnabled.mockReturnValue(() => Promise.resolve([]));
 
       await emitWebhookEvent(baseParams);
 
@@ -99,14 +100,26 @@ describe('WebhookDeliveryService', () => {
 
     it('starts a workflow for each matching destination', async () => {
       const destinations = [
-        { id: 'dest-1', url: 'https://hook1.example.com', headers: null },
-        { id: 'dest-2', url: 'https://hook2.example.com', headers: null },
+        {
+          id: 'dest-1',
+          url: 'https://hook1.example.com',
+          headers: null,
+          eventTypes: ['conversation.created'],
+          agentIds: [],
+        },
+        {
+          id: 'dest-2',
+          url: 'https://hook2.example.com',
+          headers: null,
+          eventTypes: ['conversation.created'],
+          agentIds: [],
+        },
       ];
 
       mockWithRef.mockImplementation(async (_pool: any, _ref: any, fn: any) => {
         return fn('mock-db');
       });
-      mockListForEvent.mockReturnValue(() => Promise.resolve(destinations));
+      mockListEnabled.mockReturnValue(() => Promise.resolve(destinations));
 
       await emitWebhookEvent(baseParams);
 
@@ -136,13 +149,15 @@ describe('WebhookDeliveryService', () => {
           id: 'dest-with-headers',
           url: 'https://hook.example.com',
           headers: { 'X-Api-Key': 'secret', Authorization: 'Bearer tok' },
+          eventTypes: ['conversation.created'],
+          agentIds: [],
         },
       ];
 
       mockWithRef.mockImplementation(async (_pool: any, _ref: any, fn: any) => {
         return fn('mock-db');
       });
-      mockListForEvent.mockReturnValue(() => Promise.resolve(destinations));
+      mockListEnabled.mockReturnValue(() => Promise.resolve(destinations));
 
       await emitWebhookEvent(baseParams);
 
@@ -156,13 +171,19 @@ describe('WebhookDeliveryService', () => {
 
     it('passes null headers when destination has no custom headers', async () => {
       const destinations = [
-        { id: 'dest-no-headers', url: 'https://hook.example.com', headers: null },
+        {
+          id: 'dest-no-headers',
+          url: 'https://hook.example.com',
+          headers: null,
+          eventTypes: ['conversation.created'],
+          agentIds: [],
+        },
       ];
 
       mockWithRef.mockImplementation(async (_pool: any, _ref: any, fn: any) => {
         return fn('mock-db');
       });
-      mockListForEvent.mockReturnValue(() => Promise.resolve(destinations));
+      mockListEnabled.mockReturnValue(() => Promise.resolve(destinations));
 
       await emitWebhookEvent(baseParams);
 
@@ -176,14 +197,24 @@ describe('WebhookDeliveryService', () => {
 
     it('continues dispatching when one workflow start fails', async () => {
       const destinations = [
-        { id: 'dest-ok', url: 'https://ok.com' },
-        { id: 'dest-fail', url: 'https://fail.com' },
+        {
+          id: 'dest-ok',
+          url: 'https://ok.com',
+          eventTypes: ['conversation.created'],
+          agentIds: [],
+        },
+        {
+          id: 'dest-fail',
+          url: 'https://fail.com',
+          eventTypes: ['conversation.created'],
+          agentIds: [],
+        },
       ];
 
       mockWithRef.mockImplementation(async (_pool: any, _ref: any, fn: any) => {
         return fn('mock-db');
       });
-      mockListForEvent.mockReturnValue(() => Promise.resolve(destinations));
+      mockListEnabled.mockReturnValue(() => Promise.resolve(destinations));
 
       mockStart
         .mockResolvedValueOnce(undefined)
@@ -206,7 +237,7 @@ describe('WebhookDeliveryService', () => {
       mockWithRef.mockImplementation(async (_pool: any, _ref: any, fn: any) => {
         return fn('mock-db');
       });
-      mockListForEvent.mockReturnValue(() => Promise.resolve([]));
+      mockListEnabled.mockReturnValue(() => Promise.resolve([]));
 
       await emitWebhookEvent(baseParams);
 
@@ -215,6 +246,117 @@ describe('WebhookDeliveryService', () => {
         baseParams.resolvedRef,
         expect.any(Function)
       );
+    });
+  });
+
+  describe('prefetchWebhookDestinations', () => {
+    it('returns destinations from DB', async () => {
+      const destinations = [
+        {
+          id: 'dest-1',
+          url: 'https://hook.example.com',
+          eventTypes: ['conversation.created'],
+          agentIds: [],
+        },
+      ];
+      mockWithRef.mockImplementation(async (_pool: any, _ref: any, fn: any) => fn('mock-db'));
+      mockListEnabled.mockReturnValue(() => Promise.resolve(destinations));
+
+      const result = await prefetchWebhookDestinations({
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        agentId: 'agent-1',
+        resolvedRef: baseParams.resolvedRef,
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result?.[0].id).toBe('dest-1');
+    });
+
+    it('returns undefined on DB failure', async () => {
+      mockWithRef.mockRejectedValue(new Error('DB down'));
+
+      const result = await prefetchWebhookDestinations({
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        agentId: 'agent-1',
+        resolvedRef: baseParams.resolvedRef,
+      });
+
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('emitWebhookEvent with prefetchedDestinations', () => {
+    it('skips DB lookup when prefetchedDestinations is provided', async () => {
+      const prefetchedDestinations = [
+        {
+          id: 'dest-1',
+          url: 'https://hook.example.com',
+          headers: null,
+          eventTypes: ['conversation.created'],
+        },
+      ] as any[];
+
+      await emitWebhookEvent({ ...baseParams, prefetchedDestinations });
+
+      expect(mockWithRef).not.toHaveBeenCalled();
+      expect(mockListEnabled).not.toHaveBeenCalled();
+      expect(mockStart).toHaveBeenCalledTimes(1);
+    });
+
+    it('filters by eventType from prefetched list', async () => {
+      const prefetchedDestinations = [
+        {
+          id: 'dest-1',
+          url: 'https://hook1.example.com',
+          headers: null,
+          eventTypes: ['conversation.created'],
+        },
+        {
+          id: 'dest-2',
+          url: 'https://hook2.example.com',
+          headers: null,
+          eventTypes: ['conversation.updated'],
+        },
+      ] as any[];
+
+      await emitWebhookEvent({
+        ...baseParams,
+        eventType: 'conversation.created',
+        prefetchedDestinations,
+      });
+
+      expect(mockStart).toHaveBeenCalledTimes(1);
+      expect(mockStart).toHaveBeenCalledWith(expect.anything(), [
+        expect.objectContaining({ webhookDestinationId: 'dest-1' }),
+      ]);
+    });
+
+    it('dispatches nothing when no prefetched destinations match eventType', async () => {
+      const prefetchedDestinations = [
+        {
+          id: 'dest-1',
+          url: 'https://hook.example.com',
+          headers: null,
+          eventTypes: ['feedback.created'],
+        },
+      ] as any[];
+
+      await emitWebhookEvent({
+        ...baseParams,
+        eventType: 'conversation.created',
+        prefetchedDestinations,
+      });
+
+      expect(mockStart).not.toHaveBeenCalled();
+    });
+
+    it('dispatches nothing when prefetchedDestinations is empty', async () => {
+      await emitWebhookEvent({ ...baseParams, prefetchedDestinations: [] });
+
+      expect(mockWithRef).not.toHaveBeenCalled();
+      expect(mockStart).not.toHaveBeenCalled();
     });
   });
 
@@ -265,8 +407,15 @@ describe('WebhookDeliveryService', () => {
       mockGetConversation.mockReturnValue(() => Promise.resolve(conversation));
       mockGetConversationHistory.mockReturnValue(() => Promise.resolve([message]));
       mockWithRef.mockImplementation(async (_pool: any, _ref: any, fn: any) => fn('mock-db'));
-      mockListForEvent.mockReturnValue(() =>
-        Promise.resolve([{ id: 'dest-1', url: 'https://hook.example.com' }])
+      mockListEnabled.mockReturnValue(() =>
+        Promise.resolve([
+          {
+            id: 'dest-1',
+            url: 'https://hook.example.com',
+            eventTypes: ['conversation.created', 'conversation.updated'],
+            agentIds: [],
+          },
+        ])
       );
     });
 
@@ -335,6 +484,28 @@ describe('WebhookDeliveryService', () => {
       await expect(emitConversationWebhook(params)).resolves.toBeUndefined();
       await expect(flushDeferred()).resolves.toBeUndefined();
     });
+
+    it('uses prefetchedDestinations and skips DB destination lookup', async () => {
+      mockWithRef.mockClear();
+
+      const prefetchedDestinations = [
+        {
+          id: 'dest-1',
+          url: 'https://hook.example.com',
+          headers: null,
+          eventTypes: ['conversation.created'],
+        },
+      ] as any[];
+
+      await emitConversationWebhook({ ...params, prefetchedDestinations });
+      await flushDeferred();
+
+      expect(mockWithRef).not.toHaveBeenCalled();
+      expect(mockStart).toHaveBeenCalledTimes(1);
+      expect(mockStart).toHaveBeenCalledWith(expect.anything(), [
+        expect.objectContaining({ webhookDestinationId: 'dest-1' }),
+      ]);
+    });
   });
 
   describe('emitFeedbackWebhook', () => {
@@ -373,8 +544,15 @@ describe('WebhookDeliveryService', () => {
         Promise.resolve({ type: 'branch', name: 'tenant-1_project-1_main', hash: 'abc' })
       );
       mockWithRef.mockImplementation(async (_pool: any, _ref: any, fn: any) => fn('mock-db'));
-      mockListForEvent.mockReturnValue(() =>
-        Promise.resolve([{ id: 'dest-1', url: 'https://hook.example.com' }])
+      mockListEnabled.mockReturnValue(() =>
+        Promise.resolve([
+          {
+            id: 'dest-1',
+            url: 'https://hook.example.com',
+            eventTypes: ['feedback.created'],
+            agentIds: [],
+          },
+        ])
       );
     });
 
@@ -507,8 +685,15 @@ describe('WebhookDeliveryService', () => {
     beforeEach(() => {
       pendingDeferred.length = 0;
       mockWithRef.mockImplementation(async (_pool: any, _ref: any, fn: any) => fn('mock-db'));
-      mockListForEvent.mockReturnValue(() =>
-        Promise.resolve([{ id: 'dest-1', url: 'https://hooks.slack.com/services/T/B/x' }])
+      mockListEnabled.mockReturnValue(() =>
+        Promise.resolve([
+          {
+            id: 'dest-1',
+            url: 'https://hooks.slack.com/services/T/B/x',
+            eventTypes: ['evaluation.failed'],
+            agentIds: [],
+          },
+        ])
       );
       mockGetEvaluationRunById.mockReturnValue(() => Promise.resolve(null));
     });
@@ -613,8 +798,16 @@ describe('WebhookDeliveryService', () => {
     });
 
     it('sends structured data without text/blocks to non-Slack destinations', async () => {
-      mockListForEvent.mockReturnValue(() =>
-        Promise.resolve([{ id: 'dest-1', url: 'https://hook.example.com', headers: null }])
+      mockListEnabled.mockReturnValue(() =>
+        Promise.resolve([
+          {
+            id: 'dest-1',
+            url: 'https://hook.example.com',
+            headers: null,
+            eventTypes: ['evaluation.failed'],
+            agentIds: [],
+          },
+        ])
       );
 
       await emitEvaluationFailedWebhook({
@@ -656,7 +849,7 @@ describe('WebhookDeliveryService', () => {
     });
 
     it('skips dispatch when no destinations match', async () => {
-      mockListForEvent.mockReturnValue(() => Promise.resolve([]));
+      mockListEnabled.mockReturnValue(() => Promise.resolve([]));
 
       await emitEvaluationFailedWebhook({
         ...baseEvalParams,
@@ -999,9 +1192,15 @@ describe('WebhookDeliveryService', () => {
     });
 
     it('sends Block Kit payload to Slack URLs', async () => {
-      mockListForEvent.mockReturnValue(() =>
+      mockListEnabled.mockReturnValue(() =>
         Promise.resolve([
-          { id: 'dest-1', url: 'https://hooks.slack.com/services/T/B/x', headers: null },
+          {
+            id: 'dest-1',
+            url: 'https://hooks.slack.com/services/T/B/x',
+            headers: null,
+            eventTypes: ['conversation.created'],
+            agentIds: [],
+          },
         ])
       );
 
@@ -1019,8 +1218,16 @@ describe('WebhookDeliveryService', () => {
     });
 
     it('sends envelope to non-Slack URLs', async () => {
-      mockListForEvent.mockReturnValue(() =>
-        Promise.resolve([{ id: 'dest-1', url: 'https://hook.example.com', headers: null }])
+      mockListEnabled.mockReturnValue(() =>
+        Promise.resolve([
+          {
+            id: 'dest-1',
+            url: 'https://hook.example.com',
+            headers: null,
+            eventTypes: ['conversation.created'],
+            agentIds: [],
+          },
+        ])
       );
 
       await emitWebhookEvent({
@@ -1039,8 +1246,21 @@ describe('WebhookDeliveryService', () => {
   describe('emitWebhookEventFireAndForget', () => {
     beforeEach(() => {
       mockWithRef.mockImplementation(async (_pool: any, _ref: any, fn: any) => fn('mock-db'));
-      mockListForEvent.mockReturnValue(() =>
-        Promise.resolve([{ id: 'dest-1', url: 'https://hook.example.com', headers: null }])
+      mockListEnabled.mockReturnValue(() =>
+        Promise.resolve([
+          {
+            id: 'dest-1',
+            url: 'https://hook.example.com',
+            headers: null,
+            eventTypes: [
+              'conversation.created',
+              'conversation.updated',
+              'conversation.execution.error',
+              'conversation.tool.error',
+            ],
+            agentIds: [],
+          },
+        ])
       );
     });
 
