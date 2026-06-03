@@ -144,7 +144,7 @@ The runtime configuration is organized into functional categories:
 - **Agent Execution Transfer Count**: Limits transfers between sub-agents in a turn
 - **Sub-Agent Turn Generation Steps**: LLM generation steps within a single sub-agent activation
 - **Status Update Thresholds**: Event and time-based triggers for status updates
-- **Prompt Validation**: Character limits for agent and sub-agent system prompts
+- **Prompt Validation**: Character limits for agent and sub-agent system prompts (default: 100,000 characters each, overridable via `AGENTS_VALIDATION_AGENT_PROMPT_MAX_CHARS`)
 - **Context Fetchers**: HTTP timeouts for external data fetching (CRM lookups, API calls)
 
 **Runtime Execution Constants - Shared** (infrastructure-level limits):
