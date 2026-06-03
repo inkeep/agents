@@ -8,10 +8,11 @@ import {
   getEvaluationRunById,
   getProjectMainResolvedRef,
   getWaitUntil,
-  listWebhookDestinationsForEvent,
+  listEnabledWebhookDestinations,
   type ResolvedRef,
   type WebhookDestinationEventTypeEnum,
   type WebhookDestinationSelect,
+  type WebhookDestinationWithAgents,
   type WebhookEventEnvelopeSchema,
   withRef,
 } from '@inkeep/agents-core';
@@ -37,6 +38,38 @@ const logger = getLogger('WebhookDeliveryService');
 const useQueue = !!process.env.VERCEL;
 export type WebhookEventType = z.infer<typeof WebhookDestinationEventTypeEnum>;
 export type WebhookEventEnvelope = z.infer<typeof WebhookEventEnvelopeSchema>;
+export async function prefetchWebhookDestinations(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  resolvedRef: ResolvedRef;
+}): Promise<WebhookDestinationSelect[] | undefined> {
+  try {
+    let destinations: WebhookDestinationWithAgents[] = [];
+    await withRef(manageDbPool, params.resolvedRef, async (db) => {
+      destinations = await listEnabledWebhookDestinations(db)({
+        scopes: { tenantId: params.tenantId, projectId: params.projectId },
+        agentId: params.agentId,
+      });
+    });
+    logger.info(
+      { tenantId: params.tenantId, projectId: params.projectId, count: destinations.length },
+      'Pre-fetched webhook destinations for turn'
+    );
+    return destinations.map(({ agentIds: _, ...dest }) => dest);
+  } catch (err) {
+    logger.error(
+      {
+        tenantId: params.tenantId,
+        projectId: params.projectId,
+        agentId: params.agentId,
+        error: err instanceof Error ? err.message : String(err),
+      },
+      'Failed to pre-fetch webhook destinations, will fall back to per-emit DB lookup'
+    );
+    return undefined;
+  }
+}
 
 export interface WebhookSlackMeta {
   evaluationRunConfigId?: string | null;
@@ -51,6 +84,7 @@ export interface EmitWebhookEventParams {
   eventType: WebhookEventType;
   data: Record<string, unknown>;
   slackMeta?: WebhookSlackMeta;
+  prefetchedDestinations?: WebhookDestinationSelect[];
 }
 
 async function lookupWebhookDestinations(params: {
@@ -59,15 +93,21 @@ async function lookupWebhookDestinations(params: {
   agentId: string;
   resolvedRef: ResolvedRef;
   eventType: WebhookEventType;
+  prefetchedDestinations?: WebhookDestinationSelect[];
 }): Promise<WebhookDestinationSelect[]> {
-  const { tenantId, projectId, agentId, resolvedRef, eventType } = params;
-  let destinations: WebhookDestinationSelect[] = [];
+  const { tenantId, projectId, agentId, resolvedRef, eventType, prefetchedDestinations } = params;
 
+  if (prefetchedDestinations) {
+    return prefetchedDestinations.filter(
+      (dest) => Array.isArray(dest.eventTypes) && dest.eventTypes.includes(eventType)
+    );
+  }
+
+  let destinations: WebhookDestinationWithAgents[] = [];
   try {
     await withRef(manageDbPool, resolvedRef, async (db) => {
-      destinations = await listWebhookDestinationsForEvent(db)({
+      destinations = await listEnabledWebhookDestinations(db)({
         scopes: { tenantId, projectId },
-        eventType,
         agentId,
       });
     });
@@ -82,9 +122,12 @@ async function lookupWebhookDestinations(params: {
       },
       'Failed to query webhook destinations'
     );
+    return [];
   }
 
-  return destinations;
+  return destinations.filter(
+    (dest) => Array.isArray(dest.eventTypes) && dest.eventTypes.includes(eventType)
+  );
 }
 
 interface DispatchToDestinationsParams {
@@ -184,7 +227,16 @@ async function dispatchToDestinations(params: DispatchToDestinationsParams): Pro
 }
 
 export async function emitWebhookEvent(params: EmitWebhookEventParams): Promise<void> {
-  const { tenantId, projectId, agentId, resolvedRef, eventType, data, slackMeta } = params;
+  const {
+    tenantId,
+    projectId,
+    agentId,
+    resolvedRef,
+    eventType,
+    data,
+    slackMeta,
+    prefetchedDestinations,
+  } = params;
 
   const destinations = await lookupWebhookDestinations({
     tenantId,
@@ -192,6 +244,7 @@ export async function emitWebhookEvent(params: EmitWebhookEventParams): Promise<
     agentId,
     resolvedRef,
     eventType,
+    prefetchedDestinations,
   });
 
   if (destinations.length === 0) {
@@ -239,6 +292,7 @@ export interface EmitConversationWebhookParams {
   conversationId: string;
   resolvedRef: ResolvedRef;
   eventType: WebhookEventType;
+  prefetchedDestinations?: WebhookDestinationSelect[];
 }
 
 export async function emitConversationWebhook(
@@ -261,6 +315,7 @@ export async function emitConversationWebhook(
     agentId,
     resolvedRef,
     eventType,
+    prefetchedDestinations: params.prefetchedDestinations,
   })
     .then(async (destinations) => {
       if (destinations.length === 0) return;

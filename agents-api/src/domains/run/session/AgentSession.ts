@@ -8,6 +8,7 @@ import type {
   StatusUpdateSettings,
   SummaryEvent,
   TransferData,
+  WebhookDestinationSelect,
 } from '@inkeep/agents-core';
 import {
   CONVERSATION_HISTORY_DEFAULT_LIMIT,
@@ -231,6 +232,7 @@ export class AgentSession {
   private artifactService?: any; // Session-scoped ArtifactService instance
   private artifactParser?: any; // Session-scoped ArtifactParser instance
   private isEmitOperations: boolean = false; // Whether to send data operations
+  private _prefetchedDestinations?: WebhookDestinationSelect[];
   private logger: ReturnType<typeof getLogger>;
 
   constructor(
@@ -276,6 +278,14 @@ export class AgentSession {
   enableEmitOperations(): void {
     this.isEmitOperations = true;
     this.logger.info('DEBUG: Emit operations enabled for AgentSession');
+  }
+
+  setPrefetchedDestinations(destinations: WebhookDestinationSelect[]): void {
+    this._prefetchedDestinations = destinations;
+  }
+
+  getPrefetchedDestinations(): WebhookDestinationSelect[] | undefined {
+    return this._prefetchedDestinations;
   }
 
   /**
@@ -2017,6 +2027,17 @@ export class AgentSessionManager {
    */
   getSession(sessionId: string): AgentSession | null {
     return this.sessions.get(sessionId) || null;
+  }
+
+  setPrefetchedDestinations(sessionId: string, destinations: WebhookDestinationSelect[]): void {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      session.setPrefetchedDestinations(destinations);
+    }
+  }
+
+  getPrefetchedDestinations(sessionId: string): WebhookDestinationSelect[] | undefined {
+    return this.sessions.get(sessionId)?.getPrefetchedDestinations();
   }
 
   /**

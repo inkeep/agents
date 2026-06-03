@@ -16,6 +16,7 @@ import {
   setSpanWithError,
   unwrapError,
   updateTask,
+  type WebhookDestinationSelect,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../data/db/runDbClient.js';
 import { flushBatchProcessor } from '../../../instrumentation.js';
@@ -62,6 +63,8 @@ export interface ExecutionHandlerParams {
   durableWorkflowRunId?: string;
   /** Pre-approved tool decisions keyed by toolCallId — accumulated across approval loops */
   approvedToolCalls?: Record<string, { approved: boolean; reason?: string }>;
+  /** Pre-fetched webhook destinations */
+  prefetchedDestinations?: WebhookDestinationSelect[];
 }
 
 interface ExecutionResult {
@@ -100,6 +103,7 @@ export class ExecutionHandler {
       sseHelper,
       emitOperations,
       forwardedHeaders,
+      prefetchedDestinations,
     } = params;
 
     const { tenantId, projectId, project, agentId, baseUrl, resolvedRef } = executionContext;
@@ -114,6 +118,7 @@ export class ExecutionHandler {
             resolvedRef,
             eventType: 'conversation.execution.error',
             data: { conversation: { id: conversationId }, reason },
+            prefetchedDestinations,
           },
           'execution-handler'
         );
@@ -124,6 +129,10 @@ export class ExecutionHandler {
       registerStreamHelper(requestId, sseHelper);
 
       agentSessionManager.createSession(requestId, executionContext, conversationId);
+
+      if (prefetchedDestinations) {
+        agentSessionManager.setPrefetchedDestinations(requestId, prefetchedDestinations);
+      }
 
       if (emitOperations) {
         agentSessionManager.enableEmitOperations(requestId);
@@ -614,6 +623,7 @@ export class ExecutionHandler {
                     conversationId,
                     resolvedRef,
                     eventType: 'conversation.updated',
+                    prefetchedDestinations,
                   });
                 }
 

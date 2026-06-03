@@ -35,7 +35,10 @@ import {
   buildPersistedMessageContent,
   inlineExternalPdfUrlParts,
 } from '../services/blob-storage/file-upload-helpers';
-import { emitConversationWebhook } from '../services/WebhookDeliveryService';
+import {
+  emitConversationWebhook,
+  prefetchWebhookDestinations,
+} from '../services/WebhookDeliveryService';
 import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
 import { createSSEStreamHelper } from '../stream/stream-helpers';
 import type { Message } from '../types/chat';
@@ -339,11 +342,21 @@ app.openapi(chatCompletionsRoute, async (c) => {
 
       const credentialStores = c.get('credentialStores');
 
+      const prefetchedDestinations = executionContext.resolvedRef
+        ? await prefetchWebhookDestinations({
+            tenantId,
+            projectId,
+            agentId,
+            resolvedRef: executionContext.resolvedRef,
+          })
+        : undefined;
+
       await handleContextResolution({
         executionContext,
         conversationId,
         headers: validatedContext,
         credentialStores,
+        prefetchedDestinations,
       });
 
       logger.info(
@@ -482,6 +495,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
           conversationId,
           resolvedRef: executionContext.resolvedRef,
           eventType: isNewConversation ? 'conversation.created' : 'conversation.updated',
+          prefetchedDestinations,
         });
       }
 
@@ -649,6 +663,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
             sseHelper,
             emitOperations,
             forwardedHeaders,
+            prefetchedDestinations,
           });
 
           logger.info(

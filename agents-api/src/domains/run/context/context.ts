@@ -6,6 +6,7 @@ import {
   getTracer,
   setSpanWithError,
   updateConversation,
+  type WebhookDestinationSelect,
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import runDbClient from '../../../data/db/runDbClient';
@@ -64,11 +65,13 @@ async function handleContextResolution({
   conversationId,
   headers,
   credentialStores,
+  prefetchedDestinations,
 }: {
   executionContext: FullExecutionContext;
   conversationId: string;
   headers: Record<string, unknown>;
   credentialStores?: CredentialStoreRegistry;
+  prefetchedDestinations?: WebhookDestinationSelect[];
 }): Promise<ResolvedContext | null> {
   return tracer.startActiveSpan(
     'context.handle_context_resolution',
@@ -144,6 +147,7 @@ async function handleContextResolution({
                     contextDefinition: err.definitionId ? { id: err.definitionId } : undefined,
                     reason: err.error,
                   },
+                  prefetchedDestinations,
                 },
                 'context-resolution-error'
               );
