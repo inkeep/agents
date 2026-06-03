@@ -1,7 +1,7 @@
 import { type Artifact, addLedgerArtifacts, type Part } from '@inkeep/agents-core';
+import { isTextDocumentMimeType } from '@inkeep/agents-core/text-attachments';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
-import { isTextDocumentMimeType } from '../../utils/text-document-attachments';
 import type { MessageAttachmentArtifactSource, PersistedMessageUploadContext } from './file-upload';
 import { isBlobUri } from './index';
 

@@ -1,10 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  downloadExternalFile,
-  forwardLookupResult,
-} from '../blob-storage/external-file-downloader';
-import { MAX_EXTERNAL_REDIRECTS, MAX_FILE_BYTES } from '../blob-storage/file-security-constants';
-import { BlockedConnectionToPrivateIpError } from '../blob-storage/file-security-errors';
+import { downloadExternalFile, forwardLookupResult } from '../external-file-downloader';
+import { MAX_EXTERNAL_REDIRECTS, MAX_FILE_BYTES } from '../file-security-constants';
+import { BlockedConnectionToPrivateIpError } from '../file-security-errors';
 
 const VALID_PNG_BYTES = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7+2wAAAABJRU5ErkJggg==',
@@ -341,6 +338,60 @@ describe('external-file-downloader', () => {
       /Failed to download file/
     );
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('propagates abort from caller signal as TimedOutDownloadingError', async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    vi.mocked(globalThis.fetch).mockImplementation((_url, init) => {
+      const signal = (init as RequestInit)?.signal;
+      if (signal?.aborted) {
+        const err = new Error('aborted');
+        err.name = 'AbortError';
+        return Promise.reject(err);
+      }
+      return Promise.resolve(
+        new Response(VALID_PNG_BYTES, {
+          status: 200,
+          headers: {
+            'content-type': 'image/png',
+            'content-length': String(VALID_PNG_BYTES.length),
+          },
+        })
+      );
+    });
+
+    await expect(
+      downloadExternalFile('https://example.com/image.png', { signal: controller.signal })
+    ).rejects.toThrow(/Timed out downloading file/);
+  });
+
+  it('aborts mid-download when caller signal fires', async () => {
+    const controller = new AbortController();
+
+    vi.mocked(globalThis.fetch).mockImplementation((_url, init) => {
+      const signal = (init as RequestInit)?.signal;
+      return new Promise((_resolve, reject) => {
+        const onAbort = () => {
+          const err = new Error('aborted');
+          err.name = 'AbortError';
+          reject(err);
+        };
+        if (signal?.aborted) {
+          onAbort();
+          return;
+        }
+        signal?.addEventListener('abort', onAbort);
+      });
+    });
+
+    const promise = downloadExternalFile('https://example.com/image.png', {
+      signal: controller.signal,
+    });
+    setTimeout(() => controller.abort(), 10);
+
+    await expect(promise).rejects.toThrow(/Timed out downloading file/);
   });
 
   it('returns the full address list to the lookup callback when all records are requested', () => {

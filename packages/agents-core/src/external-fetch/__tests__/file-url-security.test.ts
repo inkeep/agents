@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isBlockedIpAddress, makeSanitizedSourceUrl } from '../blob-storage/file-url-security';
+import { isBlockedIpAddress, makeSanitizedSourceUrl } from '../file-url-security';
 
 describe('file-url-security', () => {
   it('strips query and hash for metadata source URLs', () => {

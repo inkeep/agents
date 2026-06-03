@@ -1,7 +1,7 @@
+import { PdfUrlIngestionError } from '@inkeep/agents-core/external-fetch';
 import { HTTPException } from 'hono/http-exception';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as execModule from '../../../domains/run/handlers/executionHandler';
-import { PdfUrlIngestionError } from '../../../domains/run/services/blob-storage/file-security-errors';
 import { makeRequest } from '../../utils/testRequest';
 
 const buildDataUri = (mimeType: string, bytes: Buffer): string => {

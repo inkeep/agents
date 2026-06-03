@@ -1,6 +1,6 @@
 import type { FilePart } from '@inkeep/agents-core';
+import { UnsupportedTextAttachmentSourceError } from '@inkeep/agents-core/external-fetch';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { UnsupportedTextAttachmentSourceError } from '../blob-storage/file-security-errors';
 import { getBlobStorageProvider } from '../blob-storage/index';
 import { resolveTextAttachmentBlock } from '../blob-storage/text-attachment-resolver';
 

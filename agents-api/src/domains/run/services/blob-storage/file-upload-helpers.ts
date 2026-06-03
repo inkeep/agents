@@ -1,17 +1,21 @@
 import type { MessageContent, Part } from '@inkeep/agents-core';
 import { normalizeMimeType } from '@inkeep/agents-core/constants/allowed-file-formats';
+import {
+  downloadExternalFile,
+  FileSecurityError,
+  isTransientDownloadError,
+  makeSanitizedSourceUrl,
+  PdfUrlIngestionError,
+} from '@inkeep/agents-core/external-fetch';
+import { isTextDocumentMimeType } from '@inkeep/agents-core/text-attachments';
 import { getLogger } from '../../../../logger';
-import { isTextDocumentMimeType } from '../../utils/text-document-attachments';
 import { type AttachmentArtifactRef, createAttachmentArtifacts } from './attachment-artifacts';
-import { downloadExternalFile } from './external-file-downloader';
-import { FileSecurityError, PdfUrlIngestionError } from './file-security-errors';
 import {
   hasFileParts,
   makeMessageContentParts,
   type PersistedMessageUploadContext,
   uploadPartsFiles,
 } from './file-upload';
-import { makeSanitizedSourceUrl } from './file-url-security';
 import { resolveTextAttachmentBlock } from './text-attachment-resolver';
 
 const logger = getLogger('file-upload-helpers');
@@ -163,7 +167,7 @@ export async function buildPersistedMessageContent(
 
     return { text, parts: persistedParts };
   } catch (error) {
-    if (error instanceof FileSecurityError) {
+    if (error instanceof FileSecurityError && !isTransientDownloadError(error)) {
       throw error;
     }
     logger.error(

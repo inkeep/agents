@@ -1,5 +1,9 @@
 import { z } from '@hono/zod-openapi';
 import { LOAD_SKILL_TOOL } from '@inkeep/agents-core';
+import {
+  buildDecodedTextAttachmentBlock,
+  isTextDocumentMimeType,
+} from '@inkeep/agents-core/text-attachments';
 import { type Tool, type ToolSet, tool } from 'ai';
 import { getLogger } from '../../../../logger';
 import type { ArtifactFullData } from '../../artifacts/ArtifactService';
@@ -8,10 +12,6 @@ import { getModelAwareCompressionConfig } from '../../compression/BaseCompressor
 import { SENTINEL_KEY } from '../../constants/artifact-syntax';
 import { fromBlobUri, getBlobStorageProvider, isBlobUri } from '../../services/blob-storage';
 import { agentSessionManager } from '../../session/AgentSession';
-import {
-  buildDecodedTextAttachmentBlock,
-  isTextDocumentMimeType,
-} from '../../utils/text-document-attachments';
 import type { AgentRunContext } from '../agent-types';
 import { wrapToolWithStreaming } from './tool-wrapper';
 

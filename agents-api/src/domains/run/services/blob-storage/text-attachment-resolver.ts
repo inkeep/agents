@@ -1,12 +1,14 @@
 import type { FilePart } from '@inkeep/agents-core';
 import { normalizeMimeType } from '@inkeep/agents-core/constants/allowed-file-formats';
-import { getLogger } from '../../../../logger';
+import {
+  normalizeInlineFileBytes,
+  UnsupportedTextAttachmentSourceError,
+} from '@inkeep/agents-core/external-fetch';
 import {
   buildDecodedTextAttachmentBlock,
   buildUnavailableTextAttachmentBlock,
-} from '../../utils/text-document-attachments';
-import { normalizeInlineFileBytes } from './file-content-security';
-import { UnsupportedTextAttachmentSourceError } from './file-security-errors';
+} from '@inkeep/agents-core/text-attachments';
+import { getLogger } from '../../../../logger';
 import { fromBlobUri, getBlobStorageProvider, isBlobUri } from './index';
 import type { BlobStorageDownloadResult } from './types';
 

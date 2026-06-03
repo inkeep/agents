@@ -1,4 +1,6 @@
-export const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
+const ALLOWED_IMAGE_MIME_TYPES_LIST = ['image/png', 'image/jpeg', 'image/webp'] as const;
+export type AllowedImageMimeType = (typeof ALLOWED_IMAGE_MIME_TYPES_LIST)[number];
+export const ALLOWED_IMAGE_MIME_TYPES = new Set<string>(ALLOWED_IMAGE_MIME_TYPES_LIST);
 const TEXT_DOCUMENT_MIME_TYPE_TO_EXTENSION: Record<string, string> = {
   'text/plain': 'txt',
   'text/markdown': 'md',

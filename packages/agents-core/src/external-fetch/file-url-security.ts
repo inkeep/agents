@@ -1,7 +1,7 @@
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import ipaddr from 'ipaddr.js';
-import { getLogger } from '../../../../logger';
+import { getLogger } from '../utils/logger';
 import { ALLOWED_HTTP_PORTS } from './file-security-constants';
 import {
   BlockedDisallowedPortError,

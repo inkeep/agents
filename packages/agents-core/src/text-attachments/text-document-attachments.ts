@@ -3,11 +3,11 @@ import {
   canonicalizeMimeType,
   getExtensionFromMimeType,
   normalizeMimeType,
-} from '@inkeep/agents-core/constants/allowed-file-formats';
+} from '../constants/allowed-file-formats';
 import {
   InvalidUtf8TextDocumentError,
   TextDocumentControlCharacterError,
-} from '../services/blob-storage/file-security-errors';
+} from '../external-fetch/file-security-errors';
 
 function isDisallowedTextControlCharacter(codePoint: number): boolean {
   return (

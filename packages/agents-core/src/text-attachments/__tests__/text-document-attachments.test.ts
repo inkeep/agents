@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   InvalidUtf8TextDocumentError,
   TextDocumentControlCharacterError,
-} from '../../services/blob-storage/file-security-errors';
+} from '../../external-fetch/file-security-errors';
 import {
   buildAttachedFileMarker,
   buildDecodedTextAttachmentBlock,

@@ -165,3 +165,27 @@ export class PdfUrlIngestionError extends FileSecurityError {
     this.sourceUrl = sourceUrl;
   }
 }
+
+/**
+ * Transient / content-format errors that occur on the *external-fetch* path:
+ * the server told us "no" (404/5xx/timeout/DNS), we couldn't ingest the
+ * response (empty body), or the auto-fetched file's MIME type isn't one the
+ * platform handles (gif, svg, bmp, etc.). Callers may drop the affected file
+ * and continue rather than failing the whole request — the user didn't
+ * directly upload it, the producer auto-extracted a URL on their behalf.
+ *
+ * Inline (user-uploaded) byte rejections like `BlockedInlineUnsupportedFileBytesError`
+ * remain FATAL: when a user explicitly pastes an unsupported file we should
+ * surface that to them, not silently drop. Real security guards (private-IP/SSRF,
+ * embedded credentials, disallowed schemes and ports) likewise remain fatal.
+ */
+export function isTransientDownloadError(error: unknown): boolean {
+  return (
+    error instanceof FailedToDownloadError ||
+    error instanceof TimedOutDownloadingError ||
+    error instanceof UnableToResolveHostError ||
+    error instanceof NoIpResolvedError ||
+    error instanceof ExternalFileResponseBodyEmptyError ||
+    error instanceof BlockedExternalUnsupportedBytesError
+  );
+}

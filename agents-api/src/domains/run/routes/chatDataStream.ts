@@ -22,6 +22,7 @@ import {
   setActiveAgentForConversation,
   TOOL_APPROVAL_HOOK_PREFIX,
 } from '@inkeep/agents-core';
+import { FileSecurityError, PdfUrlIngestionError } from '@inkeep/agents-core/external-fetch';
 import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { createUIMessageStream, JsonToSseTransformStream } from 'ai';
@@ -34,10 +35,6 @@ import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { buildMessageAttachmentToolCallId } from '../services/blob-storage/attachment-artifacts';
-import {
-  FileSecurityError,
-  PdfUrlIngestionError,
-} from '../services/blob-storage/file-security-errors';
 import {
   buildPersistedMessageContent,
   inlineExternalPdfUrlParts,

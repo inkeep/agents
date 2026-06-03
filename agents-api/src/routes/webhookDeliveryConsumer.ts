@@ -1,5 +1,5 @@
+import { FileSecurityError } from '@inkeep/agents-core/external-fetch';
 import { handleCallback } from '@vercel/queue';
-import { FileSecurityError } from '../domains/run/services/blob-storage/file-security-errors';
 import {
   type WebhookDeliveryPayload,
   WebhookDeliveryPayloadSchema,

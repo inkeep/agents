@@ -8,6 +8,7 @@ import {
   isOfficeDocumentMimeType,
   normalizeMimeType,
 } from '@inkeep/agents-core/constants/allowed-file-formats';
+import { isTextDocumentMimeType } from '@inkeep/agents-core/text-attachments';
 import { getLogger } from '../../../../logger';
 import {
   createDefaultConversationHistoryConfig,
@@ -15,7 +16,6 @@ import {
   getConversationHistoryWithCompression,
 } from '../../data/conversations';
 import { resolveTextAttachmentBlock } from '../../services/blob-storage/text-attachment-resolver';
-import { isTextDocumentMimeType } from '../../utils/text-document-attachments';
 import type { AgentRunContext, AiSdkContentPart } from '../agent-types';
 import { getPrimaryModel, getSummarizerModel } from './model-config';
 

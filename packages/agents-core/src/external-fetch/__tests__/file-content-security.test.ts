@@ -3,12 +3,12 @@ import {
   normalizeInlineFileBytes,
   normalizeInlineImageBytes,
   resolveDownloadedFileMimeType,
-} from '../blob-storage/file-content-security';
-import { MAX_FILE_BYTES, TEXT_DOCUMENT_MAX_BYTES } from '../blob-storage/file-security-constants';
+} from '../file-content-security';
+import { MAX_FILE_BYTES, TEXT_DOCUMENT_MAX_BYTES } from '../file-security-constants';
 import {
   BlockedInlineFileExceedingError,
   BlockedInlineUnsupportedFileBytesError,
-} from '../blob-storage/file-security-errors';
+} from '../file-security-errors';
 
 const VALID_PNG_BYTES = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7+2wAAAABJRU5ErkJggg==',
