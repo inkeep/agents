@@ -1,4 +1,9 @@
-import { ALLOWED_IMAGE_MIME_TYPES } from '@inkeep/agents-core/constants/allowed-file-formats';
+import {
+  ALLOWED_IMAGE_MIME_TYPES,
+  type AllowedImageMimeType,
+} from '../constants/allowed-file-formats';
+
+export type AllowedExternalImageMimeType = AllowedImageMimeType;
 
 export const MAX_FILE_BYTES = 10 * 1024 * 1024;
 export const TEXT_DOCUMENT_MAX_BYTES = 256 * 1024;

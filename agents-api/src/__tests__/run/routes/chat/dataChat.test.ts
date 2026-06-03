@@ -1,6 +1,6 @@
+import { PdfUrlIngestionError } from '@inkeep/agents-core/external-fetch';
 import { describe, expect, it, vi } from 'vitest';
 import type { ExecutionHandlerParams } from '../../../../domains/run/handlers/executionHandler';
-import { PdfUrlIngestionError } from '../../../../domains/run/services/blob-storage/file-security-errors';
 import { pendingToolApprovalManager } from '../../../../domains/run/session/PendingToolApprovalManager';
 import { toolApprovalUiBus } from '../../../../domains/run/session/ToolApprovalUiBus';
 

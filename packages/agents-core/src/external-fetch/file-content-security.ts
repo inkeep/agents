@@ -1,9 +1,9 @@
-import { isOfficeDocumentMimeType } from '@inkeep/agents-core/constants/allowed-file-formats';
 import { fileTypeFromBuffer } from 'file-type';
+import { isOfficeDocumentMimeType } from '../constants/allowed-file-formats';
 import {
   decodeTextDocumentBytes,
   isTextDocumentMimeType,
-} from '../../utils/text-document-attachments';
+} from '../text-attachments/text-document-attachments';
 import {
   ALLOWED_EXTERNAL_IMAGE_MIME_TYPES,
   MAX_FILE_BYTES,

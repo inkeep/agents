@@ -19,6 +19,7 @@ import {
   WebhookDestinationListResponse,
   WebhookDestinationResponse,
 } from '@inkeep/agents-core';
+import { FileSecurityError } from '@inkeep/agents-core/external-fetch';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
@@ -30,7 +31,6 @@ import {
   validateWebhookUrl,
   WebhookUrlSecurityError,
 } from '../../../utils/webhook-url-security';
-import { FileSecurityError } from '../../run/services/blob-storage/file-security-errors';
 import {
   buildTestSlackPayload,
   isSlackIncomingWebhookUrl,

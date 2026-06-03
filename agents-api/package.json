@@ -85,15 +85,12 @@
     "cron-parser": "^5.5.0",
     "drizzle-orm": "^0.44.4",
     "fetch-to-node": "^2.1.0",
-    "file-type": "^21.3.1",
     "hono": "^4.12.7",
     "hono-pino": "^0.10.1",
-    "ipaddr.js": "^2.3.0",
     "jmespath": "^0.16.0",
     "jose": "^6.1.0",
     "llm-info": "^1.0.69",
     "pg": "^8.16.3",
-    "undici": "^7.25.0",
     "workflow": "4.2.0-beta.67"
   },
   "peerDependencies": {

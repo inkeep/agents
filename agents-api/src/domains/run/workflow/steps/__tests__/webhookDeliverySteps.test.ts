@@ -11,7 +11,7 @@ vi.mock('../../../../../utils/webhook-url-security', () => ({
   },
 }));
 
-vi.mock('../../../../run/services/blob-storage/file-security-errors', () => ({
+vi.mock('@inkeep/agents-core/external-fetch', () => ({
   FileSecurityError: class FileSecurityError extends Error {
     constructor(message: string) {
       super(message);
@@ -22,11 +22,11 @@ vi.mock('../../../../run/services/blob-storage/file-security-errors', () => ({
 
 vi.mock('../../../../../logger', () => createMockLoggerModule().module);
 
+import { FileSecurityError } from '@inkeep/agents-core/external-fetch';
 import {
   fetchWithSsrfProtection,
   WebhookUrlSecurityError,
 } from '../../../../../utils/webhook-url-security';
-import { FileSecurityError } from '../../../../run/services/blob-storage/file-security-errors';
 import { deliverWebhookStep } from '../webhookDeliverySteps';
 
 const mockFetchWithSsrf = fetchWithSsrfProtection as ReturnType<typeof vi.fn>;

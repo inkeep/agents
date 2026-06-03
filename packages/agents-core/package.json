@@ -66,6 +66,14 @@
       "types": "./dist/constants/allowed-file-formats.d.ts",
       "import": "./dist/constants/allowed-file-formats.js"
     },
+    "./external-fetch": {
+      "types": "./dist/external-fetch/index.d.ts",
+      "import": "./dist/external-fetch/index.js"
+    },
+    "./text-attachments": {
+      "types": "./dist/text-attachments/index.d.ts",
+      "import": "./dist/text-attachments/index.js"
+    },
     "./credential-stores": {
       "types": "./dist/credential-stores/index.d.ts",
       "import": "./dist/credential-stores/index.js"
@@ -212,8 +220,10 @@
     "drizzle-orm": "^0.44.4",
     "drizzle-zod": "^0.8.2",
     "exit-hook": "^4.0.0",
+    "file-type": "^21.3.1",
     "find-up": "^7.0.0",
     "hono": "^4.12.7",
+    "ipaddr.js": "^2.3.0",
     "iwanthue": "^2.0.0",
     "jmespath": "^0.16.0",
     "jose": "^6.1.0",
@@ -224,6 +234,7 @@
     "postgres": "^3.4.8",
     "traverse": "^0.6.10",
     "ts-pattern": "^5.7.1",
+    "undici": "^7.25.0",
     "yaml": "^2.8.2"
   },
   "peerDependencies": {

@@ -1,9 +1,9 @@
+import { FileSecurityError } from '@inkeep/agents-core/external-fetch';
 import { getLogger } from '../../../../logger';
 import {
   fetchWithSsrfProtection,
   WebhookUrlSecurityError,
 } from '../../../../utils/webhook-url-security';
-import { FileSecurityError } from '../../../run/services/blob-storage/file-security-errors';
 
 const logger = getLogger('workflow-webhook-delivery-steps');
 

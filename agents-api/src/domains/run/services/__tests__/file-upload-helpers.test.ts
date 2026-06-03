@@ -1,10 +1,10 @@
 import type { FilePart, Part, TextPart } from '@inkeep/agents-core';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { downloadExternalFile } from '../blob-storage/external-file-downloader';
 import {
   BlockedInlineFileExceedingError,
+  downloadExternalFile,
   PdfUrlIngestionError,
-} from '../blob-storage/file-security-errors';
+} from '@inkeep/agents-core/external-fetch';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   hasFileParts,
   makeMessageContentParts,
@@ -28,9 +28,15 @@ vi.mock('../blob-storage/file-upload', () => ({
   makeMessageContentParts: vi.fn(),
 }));
 
-vi.mock('../blob-storage/external-file-downloader', () => ({
-  downloadExternalFile: vi.fn(),
-}));
+vi.mock('@inkeep/agents-core/external-fetch', async () => {
+  const actual = await vi.importActual<typeof import('@inkeep/agents-core/external-fetch')>(
+    '@inkeep/agents-core/external-fetch'
+  );
+  return {
+    ...actual,
+    downloadExternalFile: vi.fn(),
+  };
+});
 
 vi.mock('../blob-storage/index', async () => {
   const actual =

@@ -1,7 +1,7 @@
 import type { LookupAddress } from 'node:dns';
 import { lookup as dnsLookup } from 'node:dns';
-import { retryWithBackoff } from '@inkeep/agents-core';
 import { Agent } from 'undici';
+import { retryWithBackoff } from '../utils/retry';
 import { resolveDownloadedFileMimeType } from './file-content-security';
 import {
   EXTERNAL_FETCH_TIMEOUT_MS,
@@ -83,13 +83,13 @@ export function forwardLookupResult(
 
 export async function downloadExternalFile(
   url: string,
-  options?: { expectedMimeType?: string }
+  options?: { expectedMimeType?: string; signal?: AbortSignal }
 ): Promise<{ data: Uint8Array; mimeType: string }> {
   let currentUrl = validateExternalFileUrl(url);
   await validateUrlResolvesToPublicIp(currentUrl);
 
   for (let redirectCount = 0; redirectCount <= MAX_EXTERNAL_REDIRECTS; redirectCount++) {
-    const response = await fetchWithRetry(currentUrl);
+    const response = await fetchWithRetry(currentUrl, options?.signal);
 
     if (isRedirectStatus(response.status)) {
       const location = response.headers.get('location');
@@ -139,12 +139,12 @@ export async function downloadExternalFile(
   throw new UnexpectedRedirectStateError(toSanitizedUrl(url));
 }
 
-async function fetchWithRetry(url: URL): Promise<Response> {
+async function fetchWithRetry(url: URL, signal?: AbortSignal): Promise<Response> {
   return retryWithBackoff(
     async () => {
       let response: Response;
       try {
-        response = await fetchWithConnectionIpValidation(url);
+        response = await fetchWithConnectionIpValidation(url, signal);
       } catch (error) {
         if (error instanceof TimedOutDownloadingError || error instanceof FailedToDownloadError) {
           (error as unknown as { status: number }).status = 502;
@@ -218,11 +218,16 @@ async function readResponseBytesWithLimit(
   return merged;
 }
 
-async function fetchWithConnectionIpValidation(url: URL): Promise<Response> {
+async function fetchWithConnectionIpValidation(
+  url: URL,
+  callerSignal?: AbortSignal
+): Promise<Response> {
+  const timeoutSignal = AbortSignal.timeout(EXTERNAL_FETCH_TIMEOUT_MS);
+  const signal = callerSignal ? AbortSignal.any([timeoutSignal, callerSignal]) : timeoutSignal;
   try {
     return await fetch(url.toString(), {
       redirect: 'manual',
-      signal: AbortSignal.timeout(EXTERNAL_FETCH_TIMEOUT_MS),
+      signal,
       dispatcher: externalImageDispatcher,
     } as RequestInit & { dispatcher: Agent });
   } catch (error) {

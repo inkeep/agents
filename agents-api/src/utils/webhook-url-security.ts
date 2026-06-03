@@ -1,4 +1,4 @@
-import { validateUrlResolvesToPublicIp } from '../domains/run/services/blob-storage/file-url-security';
+import { validateUrlResolvesToPublicIp } from '@inkeep/agents-core/external-fetch';
 import { env } from '../env';
 
 export class WebhookUrlSecurityError extends Error {

@@ -1,14 +1,14 @@
 import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../domains/run/services/blob-storage/file-url-security', () => ({
+vi.mock('@inkeep/agents-core/external-fetch', () => ({
   isBlockedIpAddress: vi.fn(),
   validateUrlResolvesToPublicIp: vi.fn(),
 }));
 
 vi.mock('../../logger', () => createMockLoggerModule().module);
 
-import { validateUrlResolvesToPublicIp } from '../../domains/run/services/blob-storage/file-url-security';
+import { validateUrlResolvesToPublicIp } from '@inkeep/agents-core/external-fetch';
 import {
   fetchWithSsrfProtection,
   validateWebhookUrl,

@@ -9,7 +9,7 @@ import {
   normalizeMimeType,
   ZIP_DOCUMENT_EXTENSIONS_LABEL,
 } from '@inkeep/agents-core/constants/allowed-file-formats';
-import { isTextDocumentMimeType } from '../utils/text-document-attachments';
+import { isTextDocumentMimeType } from '@inkeep/agents-core/text-attachments';
 
 const rewriteDataUriMimeType = (dataUri: string, mimeType: string): string =>
   dataUri.replace(/^(data:)[^;,]*/i, `$1${mimeType}`);

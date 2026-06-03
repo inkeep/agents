@@ -12,6 +12,10 @@ import {
   type ResolvedRef,
 } from '@inkeep/agents-core';
 import { normalizeMimeType } from '@inkeep/agents-core/constants/allowed-file-formats';
+import {
+  buildAttachedFileMarker,
+  isTextDocumentMimeType,
+} from '@inkeep/agents-core/text-attachments';
 import { trace } from '@opentelemetry/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
@@ -20,10 +24,6 @@ import {
   CONVERSATION_ARTIFACTS_LIMIT,
   CONVERSATION_HISTORY_DEFAULT_LIMIT,
 } from '../constants/execution-limits';
-import {
-  buildAttachedFileMarker,
-  isTextDocumentMimeType,
-} from '../utils/text-document-attachments';
 
 const logger = getLogger('conversations');
 
