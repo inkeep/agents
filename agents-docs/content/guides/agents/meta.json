@@ -3,6 +3,7 @@
   "pages": [
     "customer-assistant",
     "ticket-workflows",
+    "content-writer",
     "support-copilot",
     "meeting-prep-assistant",
     "in-product-copilot",

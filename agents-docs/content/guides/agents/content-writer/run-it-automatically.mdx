@@ -1,0 +1,39 @@
+---
+title: Run it automatically on solved tickets
+sidebarTitle: Run automatically
+description: Wire your Content Writer to solved tickets and merged PRs so every resolution becomes a draft — no one has to remember to ask.
+icon: LuPlay
+---
+
+## Overview
+
+The Content Writer earns its keep when nobody has to trigger it. Once it's wired to your support tool and repo, **every solved ticket and merged PR becomes a draft automatically** — the moment someone resolves something new, it's already being written up.
+
+## Prerequisites
+
+- Access to Inkeep Enterprise with your **Content Writer** agent provisioned — [schedule a demo](https://inkeep.com/schedule-demo) if you don't have it yet
+
+## Wire the triggers
+
+The trigger wiring touches your Zendesk and GitHub accounts, so it's set up once in the enterprise setup guide:
+
+- **Zendesk** — a webhook fires the Content Writer when a ticket is **solved** and carries the `inkeep_content_writer` tag. See [enterprise setup → Zendesk integration](/deployment/inkeep-enterprise/content-writer#zendesk-integration).
+- **GitHub** — a workflow fires it on a merged pull request (or an `@inkeep` PR comment). See [enterprise setup → GitHub integration](/deployment/inkeep-enterprise/content-writer#github-integration).
+
+Once those are in place, resolving a tagged ticket or merging a PR drafts documentation on its own.
+
+<Tip>
+The `inkeep_content_writer` tag is the gate: only solved tickets carrying it run the Content Writer. That's how you choose exactly which resolutions become drafts — add the tag as part of resolving, or have an upstream rule add it.
+</Tip>
+
+## Other ways to feed it
+
+- **Slack** — mention the Content Writer in a thread to hand it knowledge directly: *"we changed the webhook retry behavior — here's the changelog."* It drafts from what you tell it.
+
+## Where it reports
+
+As it works, the Content Writer posts progress and the final draft link to **Slack**. Connect the [Slack work app](/talk-to-your-agents/slack/installation) to your project, then invite it to the channel your docs team watches — type `/invite @Inkeep` in that channel — and that's where it reports.
+
+## Next steps
+
+- **[Review and publish](/guides/agents/content-writer/review-and-publish)** — every draft waits for a human; review it, then publish or reject.
