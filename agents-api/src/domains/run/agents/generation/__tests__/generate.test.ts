@@ -1,15 +1,25 @@
 import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ResolvedGenerationResponse } from '../../agent-types';
+import type {
+  AgentRunContext,
+  DeferredToolError,
+  ResolvedGenerationResponse,
+} from '../../agent-types';
 import {
   buildStructuredSuccessText,
   computeGenerationType,
+  flushDeferredToolErrors,
   mapPartsToEventParts,
   resolveTextResponseAndWarn,
   selectStructuredFallbackText,
 } from '../generate';
 
 vi.mock('../../../../logger', () => createMockLoggerModule().module);
+
+const mockEmitFireAndForget = vi.fn();
+vi.mock('../../../services/WebhookDeliveryService', () => ({
+  emitWebhookEventFireAndForget: (...args: any[]) => mockEmitFireAndForget(...args),
+}));
 
 function makeResponse(
   overrides: Partial<ResolvedGenerationResponse> = {}
@@ -358,5 +368,149 @@ describe('resolveTextResponseAndWarn', () => {
     });
     expect(result).toBe('');
     expect(log.warn).not.toHaveBeenCalled();
+  });
+});
+
+function makeCtx(overrides: Partial<AgentRunContext> = {}): AgentRunContext {
+  return {
+    config: { agentId: 'agent-1' },
+    executionContext: {
+      tenantId: 'tenant-1',
+      projectId: 'project-1',
+      resolvedRef: { ref: 'main', commitHash: 'abc' },
+    },
+    conversationId: 'conv-1',
+    deferredToolErrors: [],
+    mcpServerSuccesses: new Set(),
+    ...overrides,
+  } as unknown as AgentRunContext;
+}
+
+function makeError(overrides: Partial<DeferredToolError> = {}): DeferredToolError {
+  return {
+    toolName: 'search',
+    relationshipId: 'rel-1',
+    mcpServerName: 'docs-server',
+    mcpServerId: 'mcp-1',
+    reason: 'Connection refused',
+    ...overrides,
+  };
+}
+
+describe('flushDeferredToolErrors', () => {
+  beforeEach(() => {
+    mockEmitFireAndForget.mockClear();
+  });
+
+  it('does nothing when there are no deferred errors', () => {
+    const ctx = makeCtx();
+    flushDeferredToolErrors(ctx);
+    expect(mockEmitFireAndForget).not.toHaveBeenCalled();
+  });
+
+  it('emits webhook when all tool calls to an MCP server failed', () => {
+    const ctx = makeCtx({
+      deferredToolErrors: [makeError()],
+      mcpServerSuccesses: new Set(),
+    });
+
+    flushDeferredToolErrors(ctx);
+
+    expect(mockEmitFireAndForget).toHaveBeenCalledOnce();
+    const [params, context] = mockEmitFireAndForget.mock.calls[0];
+    expect(params.eventType).toBe('conversation.tool.error');
+    expect(params.data.tool.name).toBe('search');
+    expect(params.data.mcpServer.name).toBe('docs-server');
+    expect(params.data.reason).toBe('Connection refused');
+    expect(context).toBe('tool-error');
+  });
+
+  it('suppresses webhook when the same MCP server also had successful calls', () => {
+    const ctx = makeCtx({
+      deferredToolErrors: [makeError({ mcpServerId: 'mcp-1' })],
+      mcpServerSuccesses: new Set(['mcp-1']),
+    });
+
+    flushDeferredToolErrors(ctx);
+
+    expect(mockEmitFireAndForget).not.toHaveBeenCalled();
+  });
+
+  it('emits for servers with all failures and suppresses for servers with mixed results', () => {
+    const ctx = makeCtx({
+      deferredToolErrors: [
+        makeError({
+          toolName: 'search',
+          mcpServerId: 'mcp-1',
+          mcpServerName: 'docs-server',
+          reason: 'timeout',
+        }),
+        makeError({
+          toolName: 'query',
+          mcpServerId: 'mcp-2',
+          mcpServerName: 'db-server',
+          reason: 'auth failed',
+        }),
+      ],
+      mcpServerSuccesses: new Set(['mcp-1']),
+    });
+
+    flushDeferredToolErrors(ctx);
+
+    expect(mockEmitFireAndForget).toHaveBeenCalledOnce();
+    expect(mockEmitFireAndForget.mock.calls[0][0].data.tool.name).toBe('query');
+    expect(mockEmitFireAndForget.mock.calls[0][0].data.mcpServer.name).toBe('db-server');
+  });
+
+  it('always emits for tool errors without an MCP server ID', () => {
+    const ctx = makeCtx({
+      deferredToolErrors: [
+        makeError({ toolName: 'custom-fn', mcpServerName: undefined, mcpServerId: undefined }),
+      ],
+      mcpServerSuccesses: new Set(['mcp-99']),
+    });
+
+    flushDeferredToolErrors(ctx);
+
+    expect(mockEmitFireAndForget).toHaveBeenCalledOnce();
+    expect(mockEmitFireAndForget.mock.calls[0][0].data.mcpServer).toBeUndefined();
+  });
+
+  it('resets deferred state after flushing', () => {
+    const ctx = makeCtx({
+      deferredToolErrors: [makeError()],
+      mcpServerSuccesses: new Set(['mcp-99']),
+    });
+
+    flushDeferredToolErrors(ctx);
+
+    expect(ctx.deferredToolErrors).toEqual([]);
+    expect(ctx.mcpServerSuccesses.size).toBe(0);
+  });
+
+  it('resets deferred state even when no resolvedRef is available', () => {
+    const ctx = makeCtx({
+      executionContext: { tenantId: 't', projectId: 'p', resolvedRef: undefined } as any,
+      deferredToolErrors: [makeError()],
+    });
+
+    flushDeferredToolErrors(ctx);
+
+    expect(mockEmitFireAndForget).not.toHaveBeenCalled();
+    expect(ctx.deferredToolErrors).toEqual([]);
+  });
+
+  it('emits multiple errors when multiple MCP servers all-failed', () => {
+    const ctx = makeCtx({
+      deferredToolErrors: [
+        makeError({ toolName: 'tool-a', mcpServerName: 'server-a', reason: 'err-a' }),
+        makeError({ toolName: 'tool-b', mcpServerName: 'server-b', reason: 'err-b' }),
+      ],
+      mcpServerSuccesses: new Set(),
+    });
+
+    flushDeferredToolErrors(ctx);
+
+    expect(mockEmitFireAndForget).toHaveBeenCalledTimes(2);
   });
 });

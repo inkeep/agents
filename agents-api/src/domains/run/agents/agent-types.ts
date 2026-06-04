@@ -12,6 +12,7 @@ import type {
   OutputContract,
   ResolvedRef,
   SubAgentStopWhen,
+  WebhookDestinationSelect,
 } from '@inkeep/agents-core';
 import { DELEGATE_TOOL_PREFIX, TRANSFER_TOOL_PREFIX } from '@inkeep/agents-core';
 import type { FinishReason, StepResult, ToolSet } from 'ai';
@@ -373,6 +374,15 @@ export type AiSdkToolDefinition = {
   execute?: (args: unknown, context?: unknown) => Promise<unknown>;
 };
 
+export interface DeferredToolError {
+  toolName: string;
+  relationshipId?: string;
+  mcpServerName?: string;
+  mcpServerId?: string;
+  reason: string;
+  prefetchedDestinations?: WebhookDestinationSelect[];
+}
+
 export interface AgentRunContext {
   config: AgentConfig;
   executionContext: FullExecutionContext;
@@ -400,4 +410,6 @@ export interface AgentRunContext {
     approved: boolean;
     reason?: string;
   };
+  deferredToolErrors: DeferredToolError[];
+  mcpServerSuccesses: Set<string>;
 }

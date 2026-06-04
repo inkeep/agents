@@ -17,7 +17,6 @@ import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import { SENTINEL_KEY } from '../../constants/artifact-syntax';
 import { stripBinaryDataForObservability } from '../../services/blob-storage/artifact-binary-sanitizer';
-import { emitWebhookEventFireAndForget } from '../../services/WebhookDeliveryService';
 import { agentSessionManager, type ToolCallData } from '../../session/AgentSession';
 import { generateToolId } from '../../utils/agent-operations';
 import { stripInternalFields } from '../../utils/select-filter';
@@ -404,6 +403,10 @@ export function wrapToolWithStreaming(
           }
         }
 
+        if (!isDeniedResult && options?.mcpServerId) {
+          ctx.mcpServerSuccesses.add(options.mcpServerId);
+        }
+
         if (isDeniedResult) {
           return result.reason ?? 'Tool call was denied by the user.';
         }
@@ -439,32 +442,18 @@ export function wrapToolWithStreaming(
           });
         }
 
-        if (!hideToolFromTraceEvents) {
-          const { resolvedRef } = ctx.executionContext;
-          if (resolvedRef && ctx.conversationId) {
-            const prefetchedDestinations = ctx.streamRequestId
-              ? agentSessionManager.getPrefetchedDestinations(ctx.streamRequestId)
-              : undefined;
-            emitWebhookEventFireAndForget(
-              {
-                tenantId: ctx.executionContext.tenantId,
-                projectId: ctx.executionContext.projectId,
-                agentId: ctx.config.agentId,
-                resolvedRef,
-                eventType: 'conversation.tool.error',
-                data: {
-                  conversation: { id: ctx.conversationId },
-                  tool: { id: relationshipId, name: toolName },
-                  mcpServer: options?.mcpServerName
-                    ? { id: options.mcpServerId, name: options.mcpServerName }
-                    : undefined,
-                  reason: errorMessage,
-                },
-                prefetchedDestinations,
-              },
-              'tool-error'
-            );
-          }
+        if (!hideToolFromTraceEvents && ctx.executionContext.resolvedRef && ctx.conversationId) {
+          const prefetchedDestinations = ctx.streamRequestId
+            ? agentSessionManager.getPrefetchedDestinations(ctx.streamRequestId)
+            : undefined;
+          ctx.deferredToolErrors.push({
+            toolName,
+            relationshipId,
+            mcpServerName: options?.mcpServerName,
+            mcpServerId: options?.mcpServerId,
+            reason: errorMessage,
+            prefetchedDestinations,
+          });
         }
 
         throw rootCause;
