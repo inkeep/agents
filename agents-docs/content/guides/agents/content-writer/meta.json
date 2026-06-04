@@ -1,0 +1,12 @@
+{
+  "title": "Content Writer",
+  "icon": "LuPencilLine",
+  "pages": [
+    "overview",
+    "publish-to-help-center",
+    "draft-into-notion",
+    "route-drafts-to-the-right-surface",
+    "run-it-automatically",
+    "review-and-publish"
+  ]
+}
