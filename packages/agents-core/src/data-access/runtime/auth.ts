@@ -34,6 +34,17 @@ export const querySsoProviderIssuers =
     return db.select({ issuer: authSchema.ssoProvider.issuer }).from(authSchema.ssoProvider);
   };
 
+export const querySsoProviderById =
+  (db: AgentsRunDatabaseClient) =>
+  async (providerId: string): Promise<{ issuer: string } | undefined> => {
+    const [row] = await db
+      .select({ issuer: authSchema.ssoProvider.issuer })
+      .from(authSchema.ssoProvider)
+      .where(eq(authSchema.ssoProvider.providerId, providerId))
+      .limit(1);
+    return row;
+  };
+
 export const querySsoProviderIds = (db: AgentsRunDatabaseClient) => async (): Promise<string[]> => {
   const rows = await db
     .select({ providerId: authSchema.ssoProvider.providerId })

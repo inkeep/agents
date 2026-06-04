@@ -32,6 +32,7 @@ import { checkPasswordPolicy } from './password-policy';
 import { setPasswordResetLink } from './password-reset-link-store';
 import { ac, adminRole, memberRole, ownerRole } from './permissions';
 import { logSessionDeletion } from './session-hooks';
+import { maybeRediscoverSsoIssuer } from './sso-issuer-discovery';
 
 // Must stay in sync with better-auth's captcha plugin defaultEndpoints
 // (better-auth/plugins/captcha/constants — not exported publicly). The captcha
@@ -248,6 +249,10 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
         await checkPasswordPolicy(ctx);
+        const ssoRediscovery = await maybeRediscoverSsoIssuer(ctx, config.dbClient);
+        if (ssoRediscovery) {
+          return ssoRediscovery;
+        }
         if (
           config.recaptcha &&
           CAPTCHA_GUARDED_PATHS.includes(ctx.path) &&
