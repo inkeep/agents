@@ -259,7 +259,7 @@ export function resolveTextResponseAndWarn({
 }
 
 function emitGenerationError(ctx: AgentRunContext, reason: string): void {
-  const { resolvedRef } = ctx.executionContext;
+  const resolvedRef = ctx.executionContext?.resolvedRef;
   if (resolvedRef && ctx.conversationId) {
     const prefetchedDestinations = ctx.streamRequestId
       ? agentSessionManager.getPrefetchedDestinations(ctx.streamRequestId)
@@ -277,6 +277,62 @@ function emitGenerationError(ctx: AgentRunContext, reason: string): void {
       'generation-error'
     );
   }
+}
+
+export function flushDeferredToolErrors(ctx: AgentRunContext): void {
+  const deferredToolErrors = ctx.deferredToolErrors;
+  const mcpServerSuccesses = ctx.mcpServerSuccesses;
+  if (!deferredToolErrors || deferredToolErrors.length === 0) return;
+
+  const resolvedRef = ctx.executionContext?.resolvedRef;
+  if (!resolvedRef || !ctx.conversationId) {
+    ctx.deferredToolErrors = [];
+    ctx.mcpServerSuccesses = new Set();
+    return;
+  }
+
+  const errorsToEmit = deferredToolErrors.filter((err) => {
+    if (!err.mcpServerId) return true;
+    return !mcpServerSuccesses.has(err.mcpServerId);
+  });
+
+  const suppressedCount = deferredToolErrors.length - errorsToEmit.length;
+  if (suppressedCount > 0) {
+    logger.info(
+      {
+        conversationId: ctx.conversationId,
+        suppressedCount,
+        emittedCount: errorsToEmit.length,
+        serversWithSuccess: [...mcpServerSuccesses],
+      },
+      'Suppressed tool error webhooks for MCP servers that also had successful calls'
+    );
+  }
+
+  for (const err of errorsToEmit) {
+    emitWebhookEventFireAndForget(
+      {
+        tenantId: ctx.executionContext.tenantId,
+        projectId: ctx.executionContext.projectId,
+        agentId: ctx.config.agentId,
+        resolvedRef,
+        eventType: 'conversation.tool.error',
+        data: {
+          conversation: { id: ctx.conversationId },
+          tool: { id: err.relationshipId, name: err.toolName },
+          mcpServer: err.mcpServerName
+            ? { id: err.mcpServerId, name: err.mcpServerName }
+            : undefined,
+          reason: err.reason,
+        },
+        prefetchedDestinations: err.prefetchedDestinations,
+      },
+      'tool-error'
+    );
+  }
+
+  ctx.deferredToolErrors = [];
+  ctx.mcpServerSuccesses = new Set();
 }
 
 export function handleGenerationError(ctx: AgentRunContext, error: unknown, span: Span): never {
@@ -298,6 +354,7 @@ export function handleGenerationError(ctx: AgentRunContext, error: unknown, span
   span.end();
 
   emitGenerationError(ctx, errorToThrow.message);
+  flushDeferredToolErrors(ctx);
 
   throw errorToThrow;
 }
@@ -701,6 +758,8 @@ export async function runGenerate(
           compressor.fullCleanup();
         }
         ctx.currentCompressor = null;
+
+        flushDeferredToolErrors(ctx);
 
         return formattedResponse;
       } catch (error) {

@@ -20,7 +20,8 @@ const ERROR_EVENT_TYPES = [
   {
     value: 'conversation.tool.error',
     label: 'Tool Error',
-    description: 'A tool call returns an error',
+    description:
+      'A tool call fails. For MCP tools, only fires when all calls to the server fail in a generation',
   },
   {
     value: 'conversation.context.error',

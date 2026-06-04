@@ -113,6 +113,8 @@ export class Agent {
       currentCompressor: null,
       functionToolRelationshipIdByName,
       taskDenialRedirects: [],
+      deferredToolErrors: [],
+      mcpServerSuccesses: new Set(),
     };
 
     ctx.mcpManager = new AgentMcpManager(

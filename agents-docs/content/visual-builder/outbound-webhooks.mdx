@@ -58,7 +58,7 @@ Each webhook destination subscribes to one or more event types. Your endpoint re
 | `evaluation.failed` | An evaluation result does not meet its pass criteria |
 | `conversation.execution.error` | Conversation reaches terminal failure |
 | `conversation.generation.error` | An LLM call fails to produce a response |
-| `conversation.tool.error` | A tool call returns an error |
+| `conversation.tool.error` | A tool call fails. For MCP tools, only fires when all calls to the server fail in a generation |
 | `conversation.context.error` | Context resolution encounters fetch failures |
 
 ### Agent scoping
@@ -300,7 +300,7 @@ Subscribe to error events to get notified when agent conversations encounter fai
 | --- | --- |
 | `conversation.execution.error` | Conversation reaches terminal failure (max consecutive errors, max transfers exhausted, or uncaught exception) |
 | `conversation.generation.error` | An LLM call fails to produce a response |
-| `conversation.tool.error` | A tool call returns an error |
+| `conversation.tool.error` | A tool call fails. For MCP tools, only fires when all calls to the server fail in a generation |
 | `conversation.context.error` | Context resolution encounters fetch failures |
 
 ### Subscribing
@@ -342,6 +342,9 @@ Each error event type is independently subscribable via the `eventTypes` array â
 ```
 
 **conversation.tool.error**
+
+For MCP tools, this event only fires when **all** calls to the same server fail during a generation. If at least one call to the server succeeds, the failures are treated as warnings and no webhook is sent.
+
 ```json
 {
   "type": "conversation.tool.error",
