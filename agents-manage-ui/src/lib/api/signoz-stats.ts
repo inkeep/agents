@@ -559,22 +559,93 @@ class SigNozStatsAPI {
     return { totalToolCalls, totalTransfers, totalDelegations };
   }
 
-  private async fetchOriginScopedAggregates(
+  private async fetchGlobalAggregates(
     startTime: number,
     endTime: number,
     projectId: string | undefined,
     agentId: string | undefined,
-    origin: string
+    hasErrors?: boolean
   ): Promise<Omit<AggregateStats, 'totalConversations'>> {
-    const payload = this.buildOriginScopedAggregatePayload(
-      startTime,
-      endTime,
-      projectId,
-      agentId,
-      origin
-    );
+    const aggBaseItems: FilterItem[] = [
+      { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' },
+    ];
+    if (agentId && agentId !== 'all') {
+      aggBaseItems.push({ key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EQUALS, value: agentId });
+    }
+    if (projectId) {
+      aggBaseItems.push({ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId });
+    }
+    if (hasErrors) {
+      aggBaseItems.push(
+        { key: SPAN_KEYS.HAS_ERROR, op: OPERATORS.EQUALS, value: true },
+        { key: SPAN_KEYS.NAME, op: OPERATORS.IN, value: CRITICAL_ERROR_SPAN_NAMES }
+      );
+    }
 
-    const resp = await this.makeRequest(payload).catch(() => undefined);
+    const payload = {
+      start: startTime,
+      end: endTime,
+      requestType: REQUEST_TYPES.SCALAR,
+      compositeQuery: {
+        queries: [
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: QUERY_EXPRESSIONS.AGG_TOOL_CALLS_BY_TYPE,
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: 'count()' }],
+              filter: {
+                expression: buildFilterExpression([
+                  ...aggBaseItems,
+                  { key: SPAN_KEYS.NAME, op: OPERATORS.EQUALS, value: SPAN_NAMES.AI_TOOL_CALL },
+                ]),
+              },
+              groupBy: [
+                {
+                  name: SPAN_KEYS.AI_TOOL_TYPE,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+              ],
+              order: [],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
+            },
+          },
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: QUERY_EXPRESSIONS.AGG_AI_CALLS,
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: 'count()' }],
+              filter: {
+                expression: buildFilterExpression([
+                  ...aggBaseItems,
+                  {
+                    key: SPAN_KEYS.AI_OPERATION_ID,
+                    op: OPERATORS.IN,
+                    value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+                  },
+                ]),
+              },
+              groupBy: [],
+              order: [],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
+            },
+          },
+        ],
+      },
+      variables: {},
+      projectId,
+    };
+
+    const resp = await this.makeRequest(payload).catch((e) => {
+      console.warn('[SigNozStatsAPI] Failed to fetch global aggregates:', e);
+      return undefined;
+    });
 
     const zeroSeries = { values: [{ value: '0' }] } as Series;
     const toolAggs = resp
@@ -585,6 +656,115 @@ class SigNozStatsAPI {
       : 0;
 
     return { ...toolAggs, totalAICalls };
+  }
+
+  private async fetchOriginScopedAggregates(
+    startTime: number,
+    endTime: number,
+    projectId: string | undefined,
+    agentId: string | undefined,
+    origin: string
+  ): Promise<Omit<AggregateStats, 'totalConversations'>> {
+    const zeroResult = {
+      totalToolCalls: 0,
+      totalTransfers: 0,
+      totalDelegations: 0,
+      totalAICalls: 0,
+    };
+
+    const convIds = await this.getConversationIdsForOrigin(
+      startTime,
+      endTime,
+      origin,
+      projectId,
+      agentId
+    ).catch((e) => {
+      console.warn('[SigNozStatsAPI] Failed to fetch conversation IDs for origin:', e);
+      return [];
+    });
+
+    if (convIds.length === 0) return zeroResult;
+
+    const aggPayload = this.buildOriginScopedAggregatePayload(
+      startTime,
+      endTime,
+      projectId,
+      agentId,
+      convIds
+    );
+
+    const resp = await this.makeRequest(aggPayload).catch((e) => {
+      console.warn('[SigNozStatsAPI] Failed to fetch origin-scoped aggregates:', e);
+      return undefined;
+    });
+
+    const zeroSeries = { values: [{ value: '0' }] } as Series;
+    const toolAggs = resp
+      ? this.extractToolCallAggregates(resp)
+      : { totalToolCalls: 0, totalTransfers: 0, totalDelegations: 0 };
+    const totalAICalls = resp
+      ? countFromSeries(this.extractSeries(resp, QUERY_EXPRESSIONS.AGG_AI_CALLS)[0] || zeroSeries)
+      : 0;
+
+    return { ...toolAggs, totalAICalls };
+  }
+
+  private async getConversationIdsForOrigin(
+    startTime: number,
+    endTime: number,
+    origin: string,
+    projectId?: string,
+    agentId?: string
+  ): Promise<string[]> {
+    const filterItems: FilterItem[] = [
+      { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' },
+      { key: SPAN_KEYS.INVOCATION_TYPE, op: OPERATORS.EQUALS, value: origin },
+      { key: SPAN_KEYS.PARENT_SPAN_ID_V5, op: OPERATORS.EQUALS, value: '' },
+    ];
+    if (projectId) {
+      filterItems.push({ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId });
+    }
+    if (agentId && agentId !== 'all') {
+      filterItems.push({ key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EQUALS, value: agentId });
+    }
+
+    const payload = {
+      start: startTime,
+      end: endTime,
+      requestType: REQUEST_TYPES.SCALAR,
+      compositeQuery: {
+        queries: [
+          {
+            type: QUERY_TYPES.BUILDER_QUERY,
+            spec: {
+              name: 'originConversationIds',
+              signal: SIGNALS.TRACES,
+              aggregations: [{ expression: 'count()' }],
+              filter: { expression: buildFilterExpression(filterItems) },
+              groupBy: [
+                {
+                  name: SPAN_KEYS.CONVERSATION_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+              ],
+              order: [],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              disabled: QUERY_DEFAULTS.DISABLED,
+            },
+          },
+        ],
+      },
+      variables: {},
+      projectId,
+    };
+
+    const resp = await this.makeRequest(payload);
+    const series = this.extractSeries(resp, 'originConversationIds');
+    return series
+      .map((s) => s.labels?.[SPAN_KEYS.CONVERSATION_ID])
+      .filter((id): id is string => Boolean(id));
   }
 
   // ---------- Public methods (unchanged signatures)
@@ -633,69 +813,155 @@ class SigNozStatsAPI {
   private parseDetailResponse(
     resp: any,
     conversationIds: string[],
-    firstSeen: Map<string, number>,
-    costByConversation?: Map<string, number>
+    firstSeen: Map<string, number>
   ): { orderedStats: ConversationStats[] } {
-    const toolsSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.TOOLS);
-    const metadataSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.CONVERSATION_METADATA);
-    const spansWithErrorsSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.SPANS_WITH_ERRORS);
-    const userMessagesSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.USER_MESSAGES);
+    const rows = this.extractRawRows(resp, 'allSpans');
 
-    // metadata map
-    const metaByConv = new Map<string, { tenantId: string; agentId: string; agentName: string }>();
-    for (const s of metadataSeries) {
-      const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
-      if (!id) continue;
-      metaByConv.set(id, {
-        tenantId: s.labels?.[SPAN_KEYS.TENANT_ID] ?? UNKNOWN_VALUE,
-        agentId: s.labels?.[SPAN_KEYS.AGENT_ID] ?? UNKNOWN_VALUE,
-        agentName: s.labels?.[SPAN_KEYS.AGENT_NAME] ?? UNKNOWN_VALUE,
+    const nonEvalTypes = new Set<string>(NON_EVAL_USAGE_GENERATION_TYPES);
+    const llmOps = new Set<string>([AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT]);
+
+    type ConvAcc = {
+      tenantId: string;
+      agentId: string;
+      agentName: string;
+      totalToolCalls: number;
+      toolsUsed: Map<string, { name: string; calls: number; description: string }>;
+      totalErrors: number;
+      totalEstimatedCostUsd: number;
+      firstMsg?: { content: string; timestamp: number };
+    };
+
+    const byConv = new Map<string, ConvAcc>();
+    const ensure = (id: string): ConvAcc => {
+      const cur = byConv.get(id);
+      if (cur) return cur;
+      const blank: ConvAcc = {
+        tenantId: UNKNOWN_VALUE,
+        agentId: UNKNOWN_VALUE,
+        agentName: UNKNOWN_VALUE,
+        totalToolCalls: 0,
+        toolsUsed: new Map(),
+        totalErrors: 0,
+        totalEstimatedCostUsd: 0,
+      };
+      byConv.set(id, blank);
+      return blank;
+    };
+
+    for (const row of rows) {
+      const convId = row[SPAN_KEYS.CONVERSATION_ID];
+      if (!convId || typeof convId !== 'string') continue;
+      const acc = ensure(convId);
+
+      const spanName = row[SPAN_KEYS.NAME];
+      const agentId = row[SPAN_KEYS.AGENT_ID];
+      const agentName = row[SPAN_KEYS.AGENT_NAME];
+      const tenantId = row[SPAN_KEYS.TENANT_ID];
+
+      if (agentId && typeof agentId === 'string' && acc.agentId === UNKNOWN_VALUE) {
+        acc.agentId = agentId;
+      }
+      if (agentName && typeof agentName === 'string' && acc.agentName === UNKNOWN_VALUE) {
+        acc.agentName = agentName;
+      }
+      if (tenantId && typeof tenantId === 'string' && acc.tenantId === UNKNOWN_VALUE) {
+        acc.tenantId = tenantId;
+      }
+
+      if (
+        spanName === SPAN_NAMES.AI_TOOL_CALL &&
+        row[SPAN_KEYS.AI_TOOL_TYPE] === AI_TOOL_TYPES.MCP
+      ) {
+        const toolName = row[SPAN_KEYS.AI_TOOL_CALL_NAME];
+        if (toolName && typeof toolName === 'string') {
+          acc.totalToolCalls += 1;
+          const t = acc.toolsUsed.get(toolName) || {
+            name: toolName,
+            calls: 0,
+            description: (row[SPAN_KEYS.MCP_TOOL_DESCRIPTION] as string) || '',
+          };
+          t.calls += 1;
+          acc.toolsUsed.set(toolName, t);
+        }
+      }
+
+      const hasError = row[SPAN_KEYS.HAS_ERROR];
+      if (
+        (hasError === true || hasError === 'true') &&
+        typeof spanName === 'string' &&
+        CRITICAL_ERROR_SPAN_NAMES.includes(spanName)
+      ) {
+        acc.totalErrors += 1;
+      }
+
+      const msgContent = row[SPAN_KEYS.MESSAGE_CONTENT];
+      if (msgContent && typeof msgContent === 'string' && !acc.firstMsg) {
+        const ts = timestampMsFromValue(row[SPAN_KEYS.TIMESTAMP]);
+        const content = msgContent.length > 100 ? `${msgContent.slice(0, 100)}...` : msgContent;
+        acc.firstMsg = { content, timestamp: ts };
+      }
+
+      const opId = row[SPAN_KEYS.AI_OPERATION_ID];
+      const genType = row[SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE];
+      if (
+        typeof opId === 'string' &&
+        llmOps.has(opId) &&
+        typeof genType === 'string' &&
+        nonEvalTypes.has(genType)
+      ) {
+        const cost = Number(row[SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD]);
+        if (cost > 0) acc.totalEstimatedCostUsd += cost;
+      }
+    }
+
+    const stats: ConversationStats[] = [];
+    for (const id of conversationIds) {
+      const acc = byConv.get(id);
+      if (!acc) continue;
+      stats.push({
+        conversationId: id,
+        tenantId: acc.tenantId,
+        agentId: acc.agentId,
+        agentName: acc.agentName,
+        totalToolCalls: acc.totalToolCalls,
+        toolsUsed: [...acc.toolsUsed.values()],
+        totalErrors: acc.totalErrors,
+        hasErrors: acc.totalErrors > 0,
+        firstUserMessage: acc.firstMsg?.content,
+        startTime: acc.firstMsg?.timestamp,
+        totalEstimatedCostUsd: acc.totalEstimatedCostUsd || undefined,
       });
     }
 
-    // first user message per conversation
-    const firstMsgByConv = new Map<string, { content: string; timestamp: number }>();
-    const msgsByConv = new Map<string, Array<{ t: number; c: string }>>();
-    for (const s of userMessagesSeries) {
-      const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
-      const content = s.labels?.[SPAN_KEYS.MESSAGE_CONTENT];
-      const t = timestampMsFromSeries(s);
-      if (!id || !content) continue;
-      (msgsByConv.get(id) ?? msgsByConv.set(id, []).get(id))?.push({ t, c: content });
-    }
-    for (const [id, arr] of msgsByConv) {
-      arr.sort((a, b) => a.t - b.t);
-      const first = arr[0];
-      if (first) {
-        const content = first.c.length > 100 ? `${first.c.slice(0, 100)}...` : first.c;
-        firstMsgByConv.set(id, { content, timestamp: first.t });
-      }
-    }
-
-    const stats = this.toConversationStats(
-      toolsSeries,
-      metaByConv,
-      spansWithErrorsSeries,
-      firstMsgByConv
-    );
-
-    if (costByConversation) {
-      for (const s of stats) {
-        const cost = costByConversation.get(s.conversationId);
-        if (cost !== undefined) s.totalEstimatedCostUsd = cost;
-      }
-    }
-
-    const statsMap = new Map(stats.map((s) => [s.conversationId, s]));
-    const orderedStats = conversationIds
-      .map((id) => statsMap.get(id))
-      .filter((s): s is ConversationStats => s !== undefined);
-
-    orderedStats.sort((a, b) =>
+    stats.sort((a, b) =>
       byFirstActivity(firstSeen.get(a.conversationId), firstSeen.get(b.conversationId))
     );
 
-    return { orderedStats };
+    return { orderedStats: stats };
+  }
+
+  private extractRawRows(resp: any, queryName: string): Array<Record<string, unknown>> {
+    const results = resp?.data?.data?.results ?? resp?.data?.results ?? resp?.results;
+    if (!Array.isArray(results)) return [];
+
+    const result = results.find((r: any) => r?.queryName === queryName);
+    if (!result) return [];
+
+    if (Array.isArray(result.rows)) {
+      return result.rows.map((row: any) => row?.data ?? row);
+    }
+
+    const columns: Array<{ name: string }> = result.columns ?? [];
+    const data: unknown[][] = result.data ?? [];
+    if (columns.length === 0) return [];
+
+    return data.map((row) => {
+      const obj: Record<string, unknown> = {};
+      for (let i = 0; i < columns.length; i++) {
+        obj[columns[i].name] = row[i];
+      }
+      return obj;
+    });
   }
 
   private async getConversationStatsPaginated(
@@ -726,7 +992,6 @@ class SigNozStatsAPI {
     // Search queries are now filtered server-side via OR in filter.expression,
     // so only span filters force the slow path.
     if (useServerSidePagination) {
-      const includeAggsInPagination = !origin;
       const paginationPayload = this.buildFilteredConversationIdsPayload(
         startTime,
         endTime,
@@ -737,7 +1002,7 @@ class SigNozStatsAPI {
         pagination,
         hasErrors,
         origin,
-        includeAggsInPagination
+        false
       );
 
       const sanitizedAgentId = agentId && agentId !== 'all' ? agentId : undefined;
@@ -756,28 +1021,27 @@ class SigNozStatsAPI {
         signal
       );
 
-      const originAggPromise = origin
+      const aggPromise = origin
         ? this.fetchOriginScopedAggregates(startTime, endTime, projectId, agentId, origin)
-        : Promise.resolve(undefined);
+        : this.fetchGlobalAggregates(startTime, endTime, projectId, agentId, hasErrors);
 
-      const [{ paginationResponse, detailResponse }, originAggs] = await Promise.all([
+      const [{ paginationResponse, detailResponse }, aggs] = await Promise.all([
         pipelinePromise,
-        originAggPromise.catch(() => undefined),
+        aggPromise.catch((e) => {
+          console.warn('[SigNozStatsAPI] Failed to fetch aggregates:', e);
+          return undefined;
+        }),
       ]);
 
       const zeroSeries = { values: [{ value: '0' }] } as Series;
 
-      const aggregateStats: AggregateStats = originAggs
-        ? {
-            ...originAggs,
-            totalConversations: 0,
-          }
+      const aggregateStats: AggregateStats = aggs
+        ? { ...aggs, totalConversations: 0 }
         : {
-            ...this.extractToolCallAggregates(paginationResponse),
-            totalAICalls: countFromSeries(
-              this.extractSeries(paginationResponse, QUERY_EXPRESSIONS.AGG_AI_CALLS)[0] ||
-                zeroSeries
-            ),
+            totalToolCalls: 0,
+            totalTransfers: 0,
+            totalDelegations: 0,
+            totalAICalls: 0,
             totalConversations: 0,
           };
 
@@ -814,22 +1078,7 @@ class SigNozStatsAPI {
         };
       }
 
-      const costByConversation = await this.fetchCostByConversationIds(
-        startTime,
-        endTime,
-        conversationIds,
-        projectId
-      ).catch((e) => {
-        console.warn('[SigNozStatsAPI] Failed to fetch cost by conversation:', e);
-        return undefined;
-      });
-
-      const { orderedStats } = this.parseDetailResponse(
-        detailResponse,
-        conversationIds,
-        firstSeen,
-        costByConversation
-      );
+      const { orderedStats } = this.parseDetailResponse(detailResponse, conversationIds, firstSeen);
 
       return {
         data: orderedStats,
@@ -852,19 +1101,27 @@ class SigNozStatsAPI {
       signal
     );
 
-    const originAggPromise = origin
+    const aggPromise = origin
       ? this.fetchOriginScopedAggregates(startTime, endTime, projectId, agentId, origin)
-      : Promise.resolve(undefined);
+      : this.fetchGlobalAggregates(startTime, endTime, projectId, agentId, hasErrors);
 
-    const [{ conversationIds, total, aggregateStats, firstSeen: slowPathFirstSeen }, originAggs] =
-      await Promise.all([paginatedPromise, originAggPromise.catch(() => undefined)]);
+    const [{ conversationIds, total, firstSeen: slowPathFirstSeen }, aggs] = await Promise.all([
+      paginatedPromise,
+      aggPromise.catch((e) => {
+        console.warn('[SigNozStatsAPI] Failed to fetch aggregates:', e);
+        return undefined;
+      }),
+    ]);
 
-    if (originAggs) {
-      aggregateStats.totalToolCalls = originAggs.totalToolCalls;
-      aggregateStats.totalTransfers = originAggs.totalTransfers;
-      aggregateStats.totalDelegations = originAggs.totalDelegations;
-      aggregateStats.totalAICalls = originAggs.totalAICalls;
-    }
+    const aggregateStats: AggregateStats = aggs
+      ? { ...aggs, totalConversations: total }
+      : {
+          totalToolCalls: 0,
+          totalTransfers: 0,
+          totalDelegations: 0,
+          totalAICalls: 0,
+          totalConversations: total,
+        };
 
     if (conversationIds.length === 0) {
       return {
@@ -883,18 +1140,11 @@ class SigNozStatsAPI {
       conversationIds
     );
 
-    const [detailResp, slowCostByConv] = await Promise.all([
-      this.makeRequest(detailPayload, undefined, signal),
-      this.fetchCostByConversationIds(startTime, endTime, conversationIds, projectId).catch((e) => {
-        console.warn('[SigNozStatsAPI] Failed to fetch cost by conversation:', e);
-        return undefined;
-      }),
-    ]);
+    const detailResp = await this.makeRequest(detailPayload, undefined, signal);
     const { orderedStats } = this.parseDetailResponse(
       detailResp,
       conversationIds,
-      slowPathFirstSeen,
-      slowCostByConv
+      slowPathFirstSeen
     );
 
     return {
@@ -924,11 +1174,8 @@ class SigNozStatsAPI {
   ): Promise<{
     conversationIds: string[];
     total: number;
-    aggregateStats: AggregateStats;
     firstSeen: Map<string, number>;
   }> {
-    const includeAggs = !origin;
-
     const payload = this.buildFilteredConversationIdsPayload(
       startTime,
       endTime,
@@ -939,7 +1186,7 @@ class SigNozStatsAPI {
       pagination,
       hasErrors,
       origin,
-      includeAggs
+      false
     );
 
     const resp = await this.makeRequest(payload, undefined, signal);
@@ -960,26 +1207,9 @@ class SigNozStatsAPI {
     const pageStart = (pagination.page - 1) * pagination.limit;
     const paginatedIds = allConversationIds.slice(pageStart, pageStart + pagination.limit);
 
-    const aggregateStats: AggregateStats = includeAggs
-      ? {
-          ...this.extractToolCallAggregates(resp),
-          totalAICalls: countFromSeries(
-            this.extractSeries(resp, QUERY_EXPRESSIONS.AGG_AI_CALLS)[0] || zeroSeries
-          ),
-          totalConversations: total,
-        }
-      : {
-          totalToolCalls: 0,
-          totalTransfers: 0,
-          totalDelegations: 0,
-          totalAICalls: 0,
-          totalConversations: total,
-        };
-
     return {
       conversationIds: paginatedIds,
       total,
-      aggregateStats,
       firstSeen: activityMap,
     };
   }
@@ -1339,16 +1569,7 @@ class SigNozStatsAPI {
         undefined,
         signal
       );
-      const activitySeries = this.extractSeries(activityResp, 'lastActivity');
-
-      const buckets = new Map<string, number>();
-      for (const s of activitySeries) {
-        const tsMs = timestampMsFromSeries(s);
-        if (!tsMs) continue;
-        const d = new Date(tsMs);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        buckets.set(key, (buckets.get(key) || 0) + 1);
-      }
+      const buckets = extractTimeSeriesBuckets(activityResp, QUERY_EXPRESSIONS.LAST_ACTIVITY);
 
       return datesRange(startTime, endTime).map((date) => ({
         date,
@@ -1416,153 +1637,6 @@ class SigNozStatsAPI {
       console.error('getAvailableSpanNames error:', e);
       return [];
     }
-  }
-
-  // ---------- Private: transform + filter
-
-  private async fetchCostByConversationIds(
-    startTime: number,
-    endTime: number,
-    conversationIds: string[],
-    projectId?: string
-  ): Promise<Map<string, number>> {
-    if (conversationIds.length === 0) return new Map();
-
-    const filterItems: Array<{ key: string; op: string; value: unknown }> = [
-      {
-        key: SPAN_KEYS.AI_OPERATION_ID,
-        op: OPERATORS.IN,
-        value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
-      },
-      {
-        key: SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE,
-        op: OPERATORS.IN,
-        value: [...NON_EVAL_USAGE_GENERATION_TYPES],
-      },
-      { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.IN, value: conversationIds },
-      ...(projectId ? [{ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId }] : []),
-    ];
-
-    const payload = {
-      start: startTime,
-      end: endTime,
-      requestType: REQUEST_TYPES.SCALAR,
-      ...(projectId && { projectId }),
-      compositeQuery: {
-        queries: [
-          {
-            type: QUERY_TYPES.BUILDER_QUERY,
-            spec: {
-              name: usageCostQueryName('conversation'),
-              signal: SIGNALS.TRACES,
-              aggregations: USAGE_COST_AGGREGATIONS.map((expression) => ({ expression })),
-              filter: { expression: buildFilterExpression(filterItems) },
-              groupBy: [
-                {
-                  name: usageCostGroupByKey('conversation'),
-                  fieldDataType: FIELD_DATA_TYPES.STRING,
-                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
-                },
-              ],
-              order: [],
-              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-              disabled: QUERY_DEFAULTS.DISABLED,
-            },
-          },
-        ],
-      },
-    };
-
-    const resp = await this.makeRequest(payload, projectId);
-    const rows = extractUsageCostSummaryRows(
-      resp,
-      usageCostQueryName('conversation'),
-      usageCostGroupByKey('conversation')
-    );
-    const map = new Map<string, number>();
-    for (const row of rows) {
-      map.set(row.groupKey, row.totalEstimatedCostUsd);
-    }
-    return map;
-  }
-
-  private toConversationStats(
-    toolCallsSeries: Series[],
-    metaByConv: Map<string, { tenantId: string; agentId: string; agentName: string }>,
-    spansWithErrorsSeries: Series[],
-    firstMsgByConv: Map<string, { content: string; timestamp: number }>
-  ): ConversationStats[] {
-    type Acc = {
-      totalToolCalls: number;
-      toolsUsed: Map<string, { name: string; calls: number; description: string }>;
-      totalErrors: number;
-    };
-
-    const byConv = new Map<string, Acc>();
-
-    const ensure = (id: string) => {
-      const cur = byConv.get(id);
-      if (cur) return cur;
-      const blank: Acc = {
-        totalToolCalls: 0,
-        toolsUsed: new Map(),
-        totalErrors: 0,
-      };
-      byConv.set(id, blank);
-      return blank;
-    };
-
-    for (const s of toolCallsSeries) {
-      const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
-      if (!id) continue;
-      const name = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_NAME];
-      if (!name) continue;
-      const calls = countFromSeries(s);
-      if (!calls) continue;
-      const desc = s.labels?.[SPAN_KEYS.MCP_TOOL_DESCRIPTION] || '';
-      const acc = ensure(id);
-      acc.totalToolCalls += calls;
-      const t = acc.toolsUsed.get(name) || {
-        name,
-        calls: 0,
-        description: desc,
-      };
-      t.calls += calls;
-      acc.toolsUsed.set(name, t);
-    }
-
-    for (const s of spansWithErrorsSeries) {
-      const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
-      if (!id) continue;
-      const count = countFromSeries(s);
-      if (!count) continue;
-      ensure(id).totalErrors += count;
-    }
-
-    const out: ConversationStats[] = [];
-    const allConvIds = new Set<string>([...byConv.keys(), ...metaByConv.keys()]);
-    for (const id of allConvIds) {
-      const acc = byConv.get(id) || ensure(id);
-      const meta = metaByConv.get(id) || {
-        tenantId: UNKNOWN_VALUE,
-        agentId: UNKNOWN_VALUE,
-        agentName: UNKNOWN_VALUE,
-      };
-      out.push({
-        conversationId: id,
-        tenantId: meta.tenantId,
-        agentId: meta.agentId,
-        agentName: meta.agentName || '',
-        totalToolCalls: acc.totalToolCalls,
-        toolsUsed: [...acc.toolsUsed.values()],
-        totalErrors: acc.totalErrors,
-        hasErrors: acc.totalErrors > 0,
-        firstUserMessage: firstMsgByConv.get(id)?.content,
-        startTime: firstMsgByConv.get(id)?.timestamp,
-      });
-    }
-    return out;
   }
 
   // ---------- Payload builders (unchanged behavior, less repetition)
@@ -1692,7 +1766,7 @@ class SigNozStatsAPI {
     return {
       start,
       end,
-      requestType: REQUEST_TYPES.SCALAR,
+      requestType: REQUEST_TYPES.TIME_SERIES,
       compositeQuery: {
         queries: [
           {
@@ -1700,19 +1774,11 @@ class SigNozStatsAPI {
             spec: {
               name: QUERY_EXPRESSIONS.LAST_ACTIVITY,
               signal: SIGNALS.TRACES,
-              aggregations: [{ expression: `min(${SPAN_KEYS.TIMESTAMP})` }],
+              aggregations: [{ expression: `countDistinct(${SPAN_KEYS.CONVERSATION_ID})` }],
               filter: { expression: buildFilterExpression(filterItems) },
-              groupBy: [
-                {
-                  name: SPAN_KEYS.CONVERSATION_ID,
-                  fieldDataType: FIELD_DATA_TYPES.STRING,
-                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
-                },
-              ],
-              order: [
-                { key: { name: `min(${SPAN_KEYS.TIMESTAMP})` }, direction: ORDER_DIRECTIONS.DESC },
-              ],
-              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              groupBy: [],
+              order: [],
+              stepInterval: DAY_IN_SECONDS,
               limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
               disabled: QUERY_DEFAULTS.DISABLED,
             },
@@ -2044,47 +2110,31 @@ class SigNozStatsAPI {
     end: number,
     projectId: string | undefined,
     agentId: string | undefined,
-    origin: string
+    conversationIds: string[]
   ) {
-    const originFilterItems: Array<{ key: string; op: string; value: unknown }> = [
-      { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' },
-      { key: SPAN_KEYS.INVOCATION_TYPE, op: OPERATORS.EQUALS, value: origin },
-      { key: SPAN_KEYS.PARENT_SPAN_ID_V5, op: OPERATORS.EQUALS, value: '' },
+    const scopeItems: FilterItem[] = [
+      { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.IN, value: conversationIds },
     ];
     if (projectId) {
-      originFilterItems.push({ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId });
+      scopeItems.push({ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId });
     }
     if (agentId && agentId !== 'all') {
-      originFilterItems.push({ key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EQUALS, value: agentId });
+      scopeItems.push({ key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EQUALS, value: agentId });
     }
 
-    const originFilterExpr = buildFilterExpression(originFilterItems);
-
-    const baseToolItems: Array<{ key: string; op: string; value: unknown }> = [
-      { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' },
+    const toolItems: FilterItem[] = [
+      ...scopeItems,
       { key: SPAN_KEYS.NAME, op: OPERATORS.EQUALS, value: SPAN_NAMES.AI_TOOL_CALL },
     ];
-    if (projectId) {
-      baseToolItems.push({ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId });
-    }
-    if (agentId && agentId !== 'all') {
-      baseToolItems.push({ key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EQUALS, value: agentId });
-    }
 
-    const baseAIItems: Array<{ key: string; op: string; value: unknown }> = [
-      { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' },
+    const aiItems: FilterItem[] = [
+      ...scopeItems,
       {
         key: SPAN_KEYS.AI_OPERATION_ID,
         op: OPERATORS.IN,
         value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
       },
     ];
-    if (projectId) {
-      baseAIItems.push({ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId });
-    }
-    if (agentId && agentId !== 'all') {
-      baseAIItems.push({ key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EQUALS, value: agentId });
-    }
 
     return {
       start,
@@ -2095,58 +2145,10 @@ class SigNozStatsAPI {
           {
             type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
-              name: 'originRoots',
-              signal: SIGNALS.TRACES,
-              aggregations: [{ expression: 'count()' }],
-              filter: { expression: originFilterExpr },
-              groupBy: [],
-              order: [],
-              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-              disabled: QUERY_DEFAULTS.DISABLED,
-            },
-          },
-          {
-            type: QUERY_TYPES.BUILDER_QUERY,
-            spec: {
-              name: 'toolCallSpans',
-              signal: SIGNALS.TRACES,
-              aggregations: [{ expression: 'count()' }],
-              filter: { expression: buildFilterExpression(baseToolItems) },
-              groupBy: [
-                {
-                  name: SPAN_KEYS.AI_TOOL_TYPE,
-                  fieldDataType: FIELD_DATA_TYPES.STRING,
-                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
-                },
-              ],
-              order: [],
-              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-              disabled: QUERY_DEFAULTS.DISABLED,
-            },
-          },
-          {
-            type: QUERY_TYPES.BUILDER_QUERY,
-            spec: {
-              name: 'aiCallSpans',
-              signal: SIGNALS.TRACES,
-              aggregations: [{ expression: 'count()' }],
-              filter: { expression: buildFilterExpression(baseAIItems) },
-              groupBy: [],
-              order: [],
-              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-              disabled: QUERY_DEFAULTS.DISABLED,
-            },
-          },
-          {
-            type: QUERY_TYPES.BUILDER_TRACE_OPERATOR,
-            spec: {
               name: QUERY_EXPRESSIONS.AGG_TOOL_CALLS_BY_TYPE,
-              expression: 'toolCallSpans && originRoots',
+              signal: SIGNALS.TRACES,
               aggregations: [{ expression: 'count()' }],
-              filter: { expression: '' },
+              filter: { expression: buildFilterExpression(toolItems) },
               groupBy: [
                 {
                   name: SPAN_KEYS.AI_TOOL_TYPE,
@@ -2161,12 +2163,12 @@ class SigNozStatsAPI {
             },
           },
           {
-            type: QUERY_TYPES.BUILDER_TRACE_OPERATOR,
+            type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
               name: QUERY_EXPRESSIONS.AGG_AI_CALLS,
-              expression: 'aiCallSpans && originRoots',
+              signal: SIGNALS.TRACES,
               aggregations: [{ expression: 'count()' }],
-              filter: { expression: '' },
+              filter: { expression: buildFilterExpression(aiItems) },
               groupBy: [],
               order: [],
               stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
@@ -2189,152 +2191,73 @@ class SigNozStatsAPI {
     agentId?: string,
     conversationIds?: string[]
   ) {
-    const withContext = (
-      base: Array<{ key: string; op: string; value: unknown }>
-    ): Array<{ key: string; op: string; value: unknown }> => {
-      const items = [...base];
-      if (projectId)
-        items.push({ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId });
-      if (agentId) items.push({ key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EQUALS, value: agentId });
-      if (conversationIds && conversationIds.length > 0) {
-        items.push({ key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.IN, value: conversationIds });
-      } else {
-        items.push({ key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' });
-      }
-      return items;
-    };
+    const scopeItems: FilterItem[] = [];
+    if (projectId)
+      scopeItems.push({ key: SPAN_KEYS.PROJECT_ID, op: OPERATORS.EQUALS, value: projectId });
+    if (agentId) scopeItems.push({ key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EQUALS, value: agentId });
+    if (conversationIds && conversationIds.length > 0) {
+      scopeItems.push({ key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.IN, value: conversationIds });
+    } else {
+      scopeItems.push({ key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' });
+    }
+
+    const relevantSpanFilter = buildOrExpression([
+      { key: SPAN_KEYS.NAME, op: OPERATORS.EQUALS, value: SPAN_NAMES.AI_TOOL_CALL },
+      { key: SPAN_KEYS.NAME, op: OPERATORS.IN, value: CRITICAL_ERROR_SPAN_NAMES },
+      { key: SPAN_KEYS.MESSAGE_CONTENT, op: OPERATORS.EXISTS, value: '' },
+      {
+        key: SPAN_KEYS.AI_OPERATION_ID,
+        op: OPERATORS.IN,
+        value: [AI_OPERATIONS.GENERATE_TEXT, AI_OPERATIONS.STREAM_TEXT],
+      },
+    ]);
+
+    const filterExpr = `${buildFilterExpression(scopeItems)} AND ${relevantSpanFilter}`;
+
+    const attrCtx = FIELD_CONTEXTS.ATTRIBUTE;
+    const spanCtx = FIELD_CONTEXTS.SPAN;
+    const str = FIELD_DATA_TYPES.STRING;
+    const bool = FIELD_DATA_TYPES.BOOL;
 
     return {
       start,
       end,
-      requestType: REQUEST_TYPES.SCALAR,
+      requestType: REQUEST_TYPES.RAW,
       compositeQuery: {
         queries: [
           {
             type: QUERY_TYPES.BUILDER_QUERY,
             spec: {
-              name: QUERY_EXPRESSIONS.TOOLS,
+              name: 'allSpans',
               signal: SIGNALS.TRACES,
-              aggregations: [{ expression: 'count()' }],
-              filter: {
-                expression: buildFilterExpression(
-                  withContext([
-                    { key: SPAN_KEYS.NAME, op: OPERATORS.EQUALS, value: SPAN_NAMES.AI_TOOL_CALL },
-                    { key: SPAN_KEYS.AI_TOOL_TYPE, op: OPERATORS.EQUALS, value: AI_TOOL_TYPES.MCP },
-                  ])
-                ),
-              },
-              groupBy: [
+              filter: { expression: filterExpr },
+              selectFields: [
+                { name: SPAN_KEYS.CONVERSATION_ID, fieldDataType: str, fieldContext: attrCtx },
+                { name: SPAN_KEYS.NAME, fieldDataType: str, fieldContext: spanCtx },
+                { name: SPAN_KEYS.TENANT_ID, fieldDataType: str, fieldContext: attrCtx },
+                { name: SPAN_KEYS.AGENT_ID, fieldDataType: str, fieldContext: attrCtx },
+                { name: SPAN_KEYS.AGENT_NAME, fieldDataType: str, fieldContext: attrCtx },
+                { name: SPAN_KEYS.AI_TOOL_CALL_NAME, fieldDataType: str, fieldContext: attrCtx },
+                { name: SPAN_KEYS.AI_TOOL_TYPE, fieldDataType: str, fieldContext: attrCtx },
+                { name: SPAN_KEYS.MCP_TOOL_DESCRIPTION, fieldDataType: str, fieldContext: attrCtx },
+                { name: SPAN_KEYS.HAS_ERROR, fieldDataType: bool, fieldContext: spanCtx },
+                { name: SPAN_KEYS.MESSAGE_CONTENT, fieldDataType: str, fieldContext: attrCtx },
+                { name: SPAN_KEYS.TIMESTAMP, fieldDataType: str, fieldContext: spanCtx },
+                { name: SPAN_KEYS.AI_OPERATION_ID, fieldDataType: str, fieldContext: attrCtx },
                 {
-                  name: SPAN_KEYS.CONVERSATION_ID,
-                  fieldDataType: FIELD_DATA_TYPES.STRING,
-                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                  name: SPAN_KEYS.AI_TELEMETRY_GENERATION_TYPE,
+                  fieldDataType: str,
+                  fieldContext: attrCtx,
                 },
                 {
-                  name: SPAN_KEYS.AI_TOOL_CALL_NAME,
-                  fieldDataType: FIELD_DATA_TYPES.STRING,
-                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                  name: SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD,
+                  fieldDataType: FIELD_DATA_TYPES.FLOAT64,
+                  fieldContext: attrCtx,
                 },
               ],
-              order: [],
-              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-              disabled: QUERY_DEFAULTS.DISABLED,
-            },
-          },
-          {
-            type: QUERY_TYPES.BUILDER_QUERY,
-            spec: {
-              name: QUERY_EXPRESSIONS.CONVERSATION_METADATA,
-              signal: SIGNALS.TRACES,
-              aggregations: [{ expression: 'count()' }],
-              filter: {
-                expression: buildFilterExpression(
-                  withContext([
-                    { key: SPAN_KEYS.TENANT_ID, op: OPERATORS.EXISTS, value: '' },
-                    { key: SPAN_KEYS.AGENT_ID, op: OPERATORS.EXISTS, value: '' },
-                  ])
-                ),
-              },
-              groupBy: [
-                {
-                  name: SPAN_KEYS.CONVERSATION_ID,
-                  fieldDataType: FIELD_DATA_TYPES.STRING,
-                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
-                },
-                {
-                  name: SPAN_KEYS.TENANT_ID,
-                  fieldDataType: FIELD_DATA_TYPES.STRING,
-                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
-                },
-                {
-                  name: SPAN_KEYS.AGENT_ID,
-                  fieldDataType: FIELD_DATA_TYPES.STRING,
-                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
-                },
-                {
-                  name: SPAN_KEYS.AGENT_NAME,
-                  fieldDataType: FIELD_DATA_TYPES.STRING,
-                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
-                },
-              ],
-              order: [],
-              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-              disabled: QUERY_DEFAULTS.DISABLED,
-            },
-          },
-          {
-            type: QUERY_TYPES.BUILDER_QUERY,
-            spec: {
-              name: QUERY_EXPRESSIONS.SPANS_WITH_ERRORS,
-              signal: SIGNALS.TRACES,
-              aggregations: [{ expression: 'count()' }],
-              filter: {
-                expression: buildFilterExpression(
-                  withContext([
-                    { key: SPAN_KEYS.HAS_ERROR, op: OPERATORS.EQUALS, value: true },
-                    { key: SPAN_KEYS.NAME, op: OPERATORS.IN, value: CRITICAL_ERROR_SPAN_NAMES },
-                  ])
-                ),
-              },
-              groupBy: [
-                {
-                  name: SPAN_KEYS.CONVERSATION_ID,
-                  fieldDataType: FIELD_DATA_TYPES.STRING,
-                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
-                },
-              ],
-              order: [],
-              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
-              disabled: QUERY_DEFAULTS.DISABLED,
-            },
-          },
-          {
-            type: QUERY_TYPES.BUILDER_QUERY,
-            spec: {
-              name: QUERY_EXPRESSIONS.USER_MESSAGES,
-              signal: SIGNALS.TRACES,
-              aggregations: [{ expression: `min(${SPAN_KEYS.TIMESTAMP})` }],
-              filter: {
-                expression: buildFilterExpression(
-                  withContext([{ key: SPAN_KEYS.MESSAGE_CONTENT, op: OPERATORS.EXISTS, value: '' }])
-                ),
-              },
-              groupBy: [
-                {
-                  name: SPAN_KEYS.CONVERSATION_ID,
-                  fieldDataType: FIELD_DATA_TYPES.STRING,
-                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
-                },
-                {
-                  name: SPAN_KEYS.MESSAGE_CONTENT,
-                  fieldDataType: FIELD_DATA_TYPES.STRING,
-                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
-                },
-              ],
-              order: [],
+              aggregations: [],
+              groupBy: [],
+              order: [{ key: { name: SPAN_KEYS.TIMESTAMP }, direction: ORDER_DIRECTIONS.ASC }],
               stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
               limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
               disabled: QUERY_DEFAULTS.DISABLED,
@@ -2685,16 +2608,7 @@ class SigNozStatsAPI {
         this.buildProjectConversationActivityPayload(startTime, endTime, projectIds),
         singleProjectId
       );
-      const activitySeries = this.extractSeries(activityResp, 'lastActivity');
-
-      const buckets = new Map<string, number>();
-      for (const s of activitySeries) {
-        const tsMs = timestampMsFromSeries(s);
-        if (!tsMs) continue;
-        const d = new Date(tsMs);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        buckets.set(key, (buckets.get(key) || 0) + 1);
-      }
+      const buckets = extractTimeSeriesBuckets(activityResp, QUERY_EXPRESSIONS.LAST_ACTIVITY);
 
       return datesRange(startTime, endTime).map((date) => ({
         date,
@@ -2935,7 +2849,7 @@ class SigNozStatsAPI {
     return {
       start,
       end,
-      requestType: REQUEST_TYPES.SCALAR,
+      requestType: REQUEST_TYPES.TIME_SERIES,
       compositeQuery: {
         queries: [
           {
@@ -2943,19 +2857,11 @@ class SigNozStatsAPI {
             spec: {
               name: QUERY_EXPRESSIONS.LAST_ACTIVITY,
               signal: SIGNALS.TRACES,
-              aggregations: [{ expression: `min(${SPAN_KEYS.TIMESTAMP})` }],
+              aggregations: [{ expression: `countDistinct(${SPAN_KEYS.CONVERSATION_ID})` }],
               filter: { expression: buildFilterExpression(filterItems) },
-              groupBy: [
-                {
-                  name: SPAN_KEYS.CONVERSATION_ID,
-                  fieldDataType: FIELD_DATA_TYPES.STRING,
-                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
-                },
-              ],
-              order: [
-                { key: { name: `min(${SPAN_KEYS.TIMESTAMP})` }, direction: ORDER_DIRECTIONS.DESC },
-              ],
-              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              groupBy: [],
+              order: [],
+              stepInterval: DAY_IN_SECONDS,
               limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
               disabled: QUERY_DEFAULTS.DISABLED,
             },
