@@ -1,15 +1,15 @@
 ---
 title: Prompt Caching
-description: How Inkeep caches Anthropic prompt prefixes by default, how to observe cache behavior, and how to control it
+description: How Inkeep caches Anthropic prompt prefixes by default — within a conversation and across conversations sharing the same agent config — how to observe cache behavior, and how to control it
 sidebarTitle: Prompt Caching
 icon: LuDatabaseZap
-keywords: prompt caching, cache, cache hit, cache read, cost, Anthropic, observability, INKEEP_PROMPT_CACHING_ENABLED
+keywords: prompt caching, cache, cache hit, cache read, cost, Anthropic, observability, INKEEP_PROMPT_CACHING_ENABLED, cross-conversation, CACHE_BOUNDARY
 ---
 
-Inkeep enables Anthropic prompt caching by default for the main agent generation call. Caching lets the provider reuse a previously sent prompt prefix (the tool definitions plus the system prompt) instead of reprocessing it on every turn, so repeated input tokens are billed at the provider's reduced cache-read rate. No configuration is required — caching is on out of the box, and its effect is visible on the conversation trace timeline and the cost dashboard.
+Inkeep enables Anthropic prompt caching by default for the main agent generation call. Caching lets the provider reuse a previously sent prompt prefix instead of reprocessing it on every request, so repeated input tokens are billed at the provider's reduced cache-read rate. This works both **within a conversation** (across turns) and **across different conversations** that share the same agent configuration. No configuration is required — caching is on out of the box, and its effect is visible on the conversation trace timeline and the cost dashboard.
 
 <Note>
-Inkeep currently attaches caching only to the **main agent generation** call. Other call sites (status updates, distillation, artifact metadata) get whatever automatic caching the provider already offers. Savings depend on workload: prefixes that stay stable across turns within the cache window are reused, while per-turn unique content (such as retrieval payloads) is never cacheable.
+Inkeep currently attaches caching only to the **main agent generation** call. Other call sites (status updates, distillation, artifact metadata) get whatever automatic caching the provider already offers. Savings depend on workload: the byte-stable portion of the system prompt (agent configuration, tool definitions) is reusable across conversations, while per-conversation content (such as conversation history and retrieval payloads) is never cacheable across conversations.
 </Note>
 
 ## How it works
@@ -17,9 +17,20 @@ Inkeep currently attaches caching only to the **main agent generation** call. Ot
 Caching attaches at the model call based on how the agent routes to Anthropic:
 
 - **Gateway mode** (routing through the Vercel AI Gateway): Inkeep sets `providerOptions.gateway.caching: 'auto'`. The gateway places a single cache marker covering the `tools` + `system` wire prefix.
-- **Direct mode** (routing directly to Anthropic): Inkeep sets `providerOptions.anthropic.cacheControl: { type: 'ephemeral' }` on the **system message**, which caches the same `tools` + `system` prefix.
+- **Direct mode** (routing directly to Anthropic): Inkeep sets `providerOptions.anthropic.cacheControl: { type: 'ephemeral' }` on the **first system message**, which caches the `tools` + stable system prefix.
 
-Both modes use Anthropic's default 5-minute ephemeral cache. The first turn writes the prefix to the cache (a cache-creation cost), and subsequent turns within the window read it back at the reduced rate.
+Both modes use Anthropic's default 5-minute ephemeral cache. The first request writes the prefix to the cache (a cache-creation cost), and subsequent requests within the window read it back at the reduced rate.
+
+### Cross-conversation caching
+
+In direct mode, the v1 system prompt template contains a `<!--CACHE_BOUNDARY-->` sentinel that splits the prompt into two regions:
+
+1. **Stable prefix** (before the sentinel) — contains agent configuration and tool definitions that are identical across every conversation using the same agent. This is emitted as the **first** `role: 'system'` message and receives the `cache_control` marker.
+2. **Per-conversation tail** (after the sentinel) — contains conversation-specific content such as context and history instructions. This is emitted as a **second** consecutive `role: 'system'` message **without** a cache marker.
+
+Because Anthropic keys the cache on the exact byte prefix, the stable first message can match cache entries written by a completely different conversation that shares the same agent configuration. This means the cache-creation cost is paid once per agent config (within the cache window), not once per conversation.
+
+When the sentinel is absent, duplicated, or produces an empty stable half, the system falls back to emitting a single system message — the same within-conversation caching behavior as before.
 
 <Note>
 Caching only applies above the provider's minimum cacheable prefix size (1,024 tokens for Claude Sonnet 4.5/4.6; 4,096 tokens for Claude Haiku 4.5 and Opus 4.5+). Calls below that floor are simply not cached — eligibility is delegated to the provider, not enforced by Inkeep.
@@ -81,8 +92,8 @@ There is no clean per-agent **off** switch today, in either gateway or direct mo
 
 ## Scope and limitations
 
-- **In scope:** default-on caching at the main agent generation call (gateway and direct mode), provider-aware cache telemetry, and the Manage UI surfaces above.
-- **Not in scope yet:** a per-agent or per-tenant caching configuration UI, a customer-facing cost estimator, and explicit Gemini context caching. These are planned for a future release.
+- **In scope:** default-on caching at the main agent generation call (gateway and direct mode), cross-conversation caching of the byte-stable system prefix in direct mode, provider-aware cache telemetry, and the Manage UI surfaces above.
+- **Not in scope yet:** cross-conversation caching in gateway mode, a per-agent or per-tenant caching configuration UI, a customer-facing cost estimator, artifact byte-stable schema caching, and explicit Gemini context caching. These are planned for future releases.
 
 ## Related
 
