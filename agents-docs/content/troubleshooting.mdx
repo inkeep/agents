@@ -206,3 +206,10 @@ These transient network issues are also automatically retried:
 - `ECONNREFUSED` — Connection refused (network level)
 - `ENOTFOUND` — DNS lookup failures
 - Fetch/request failures
+
+### AbortSignal support
+
+The retry utility respects an optional `AbortSignal`. When a timeout or cancellation fires during a retry backoff delay, the operation aborts immediately instead of waiting for the full backoff period to elapse. This prevents budget overruns in scenarios where a caller-supplied signal (such as a request timeout) triggers mid-retry.
+
+- If the signal is already aborted before a retry attempt begins, the operation throws immediately without making another call.
+- If the signal fires during a backoff sleep, the sleep is interrupted and the operation aborts at once rather than burning through the remaining delay.
