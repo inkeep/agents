@@ -3,10 +3,10 @@ title: Prompt Caching
 description: How Inkeep caches Anthropic prompt prefixes by default, how to observe cache behavior, and how to control it
 sidebarTitle: Prompt Caching
 icon: LuDatabaseZap
-keywords: prompt caching, cache, cache hit, cache read, cost, Anthropic, observability, INKEEP_PROMPT_CACHING_ENABLED
+keywords: prompt caching, cache, cache hit, cache read, cost, Anthropic, observability, INKEEP_PROMPT_CACHING_ENABLED, cross-conversation
 ---
 
-Inkeep enables Anthropic prompt caching by default for the main agent generation call. Caching lets the provider reuse a previously sent prompt prefix (the tool definitions plus the system prompt) instead of reprocessing it on every turn, so repeated input tokens are billed at the provider's reduced cache-read rate. No configuration is required — caching is on out of the box, and its effect is visible on the conversation trace timeline and the cost dashboard.
+Inkeep enables Anthropic prompt caching by default for the main agent generation call. Caching lets the provider reuse a previously sent prompt prefix (the tool definitions plus the system prompt) instead of reprocessing it on every turn, so repeated input tokens are billed at the provider's reduced cache-read rate. The cached prefix is shared both across turns within a conversation and across separate conversations that use the same agent configuration. No configuration is required — caching is on out of the box, and its effect is visible on the conversation trace timeline and the cost dashboard.
 
 <Note>
 Inkeep currently attaches caching only to the **main agent generation** call. Other call sites (status updates, distillation, artifact metadata) get whatever automatic caching the provider already offers. Savings depend on workload: prefixes that stay stable across turns within the cache window are reused, while per-turn unique content (such as retrieval payloads) is never cacheable.
@@ -20,6 +20,17 @@ Caching attaches at the model call based on how the agent routes to Anthropic:
 - **Direct mode** (routing directly to Anthropic): Inkeep sets `providerOptions.anthropic.cacheControl: { type: 'ephemeral' }` on the **system message**, which caches the same `tools` + `system` prefix.
 
 Both modes use Anthropic's default 5-minute ephemeral cache. The first turn writes the prefix to the cache (a cache-creation cost), and subsequent turns within the window read it back at the reduced rate.
+
+### Cross-conversation caching
+
+In addition to caching the prefix across turns within a single conversation, Inkeep caches it across separate conversations that share the same agent configuration. The system prompt template is split at an internal boundary into two regions:
+
+- **Byte-stable prefix** — static framework scaffolding that is identical for every conversation using the agent: identity, skills, tools, data-components, and the output contract. This portion is emitted as the first system message and receives the `cache_control` marker.
+- **Per-conversation suffix** — dynamic content that changes per conversation, such as the current time, agent context, app context, core instructions, and artifacts. This portion is emitted as a second system message and is intentionally left unmarked.
+
+Because the byte-stable prefix is identical across conversations with the same agent config, Anthropic's cache can serve it from a prior conversation's write — even on the first turn of a brand-new conversation — as long as the cache window has not expired. This reduces first-turn latency and cost for high-traffic agents.
+
+When the internal boundary is absent (for example, in a custom system-prompt template), the system falls back to emitting a single system message with within-conversation caching only.
 
 <Note>
 Caching only applies above the provider's minimum cacheable prefix size (1,024 tokens for Claude Sonnet 4.5/4.6; 4,096 tokens for Claude Haiku 4.5 and Opus 4.5+). Calls below that floor are simply not cached — eligibility is delegated to the provider, not enforced by Inkeep.
