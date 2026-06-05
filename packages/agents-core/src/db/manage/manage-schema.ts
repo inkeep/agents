@@ -4,6 +4,8 @@ import {
   doublePrecision,
   foreignKey,
   index,
+  integer,
+  jsonb,
   numeric,
   pgTable,
   primaryKey,
@@ -31,11 +33,11 @@ import type { JsonSchemaForLlmSchemaType } from '../../validation/json-schemas';
 import type {
   AgentStopWhen,
   ModelSettings,
+  OutputContract,
   SignatureVerificationConfig,
   StopWhen,
   SubAgentStopWhen,
 } from '../../validation/schemas';
-import { jsonb } from './dolt-safe-jsonb';
 
 const tenantScoped = {
   tenantId: varchar('tenant_id', { length: 256 }).notNull(),
@@ -148,6 +150,7 @@ export const triggers = pgTable(
       .$type<SignatureVerificationConfig | null>()
       .default(null),
     runAsUserId: varchar('run_as_user_id', { length: 256 }),
+    dispatchDelayMs: integer('dispatch_delay_ms'),
     createdBy: varchar('created_by', { length: 256 }),
     ...timestamps,
   },
@@ -163,6 +166,117 @@ export const triggers = pgTable(
       foreignColumns: [credentialReferences.id],
       name: 'triggers_credential_reference_fk',
     }).onDelete('set null'),
+  ]
+);
+
+export const webhookDestinations = pgTable(
+  'webhook_destinations',
+  {
+    ...projectScoped,
+    ...uiProperties,
+    enabled: boolean('enabled').notNull().default(true),
+    url: text('url').notNull(),
+    eventTypes: jsonb('event_types').$type<string[]>().notNull(),
+    headers: jsonb('headers').$type<Record<string, string> | null>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'webhook_destinations_project_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+export const webhookDestinationAgents = pgTable(
+  'webhook_destination_agents',
+  {
+    ...projectScoped,
+    webhookDestinationId: varchar('webhook_destination_id', { length: 256 }).notNull(),
+    agentId: varchar('agent_id', { length: 256 }).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.webhookDestinationId],
+      foreignColumns: [
+        webhookDestinations.tenantId,
+        webhookDestinations.projectId,
+        webhookDestinations.id,
+      ],
+      name: 'webhook_destination_agents_destination_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'webhook_destination_agents_agent_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+export const webhookDestinationsRelations = relations(webhookDestinations, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [webhookDestinations.tenantId, webhookDestinations.projectId],
+    references: [projects.tenantId, projects.id],
+  }),
+  webhookDestinationAgents: many(webhookDestinationAgents),
+}));
+
+export const webhookDestinationAgentsRelations = relations(webhookDestinationAgents, ({ one }) => ({
+  webhookDestination: one(webhookDestinations, {
+    fields: [
+      webhookDestinationAgents.tenantId,
+      webhookDestinationAgents.projectId,
+      webhookDestinationAgents.webhookDestinationId,
+    ],
+    references: [
+      webhookDestinations.tenantId,
+      webhookDestinations.projectId,
+      webhookDestinations.id,
+    ],
+  }),
+  agent: one(agents, {
+    fields: [
+      webhookDestinationAgents.tenantId,
+      webhookDestinationAgents.projectId,
+      webhookDestinationAgents.agentId,
+    ],
+    references: [agents.tenantId, agents.projectId, agents.id],
+  }),
+}));
+
+export const triggerUsers = pgTable(
+  'trigger_users',
+  {
+    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
+    projectId: varchar('project_id', { length: 256 }).notNull(),
+    agentId: varchar('agent_id', { length: 256 }).notNull(),
+    triggerId: varchar('trigger_id', { length: 256 }).notNull(),
+    userId: varchar('user_id', { length: 256 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({
+      name: 'trigger_users_pk',
+      columns: [table.tenantId, table.projectId, table.agentId, table.triggerId, table.userId],
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId, table.triggerId],
+      foreignColumns: [triggers.tenantId, triggers.projectId, triggers.agentId, triggers.id],
+      name: 'trigger_users_trigger_fk',
+    }).onDelete('cascade'),
+    index('trigger_users_user_idx').on(table.userId),
+    index('trigger_users_trigger_idx').on(
+      table.tenantId,
+      table.projectId,
+      table.agentId,
+      table.triggerId
+    ),
   ]
 );
 
@@ -183,6 +297,7 @@ export const subAgents = pgTable(
       }),
     models: jsonb('models').$type<Models>(),
     stopWhen: jsonb('stop_when').$type<SubAgentStopWhen>(),
+    outputContract: jsonb('output_contract').$type<OutputContract>(),
     ...timestamps,
   },
   (table) => [

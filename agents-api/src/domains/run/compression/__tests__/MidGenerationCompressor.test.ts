@@ -71,7 +71,10 @@ describe('MidGenerationCompressor', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    mockSession = { recordEvent: vi.fn() };
+    mockSession = {
+      recordEvent: vi.fn(),
+      waitForPendingArtifacts: vi.fn().mockResolvedValue(undefined),
+    };
     vi.mocked(agentSessionManager.getSession).mockReturnValue(mockSession);
 
     const { getLedgerArtifacts } = await import('@inkeep/agents-core');

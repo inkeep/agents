@@ -165,7 +165,7 @@ export function generateAppCredential(): AppCredentialResult {
 export function sanitizeAppConfig<T>(app: T): T {
   if (!app || typeof app !== 'object') return app;
 
-  const { tenantId, projectId, ...rest } = app as Record<string, unknown>;
+  const { tenantId, ...rest } = app as Record<string, unknown>;
 
   return rest as T;
 }

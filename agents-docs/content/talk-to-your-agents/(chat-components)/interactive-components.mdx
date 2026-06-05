@@ -1,0 +1,530 @@
+---
+title: Interactive Components
+description: Render clickable components inside AI responses that programmatically send follow-up messages on the user's behalf.
+icon: LuMousePointerClick
+---
+
+Custom components let your agent render rich, interactive UI inside chat responses. Combined with `chatFunctionsRef` (React) or the widget instance (JavaScript), those components can programmatically submit follow-up messages when a user clicks them, creating guided, conversational workflows without the user needing to type.
+
+## How it works
+
+1. Your agent calls a tool that emits a **component data part** with a `type`, `name`, and `props`
+2. The chat widget matches the component name to a render function you provide via the `components` prop
+3. Your render function builds the UI and calls `submitMessage()` to send a message on the user's behalf
+
+## Setup
+
+The pattern requires two things in your `aiChatSettings`:
+
+- `components` - a map of component names to render functions
+- A way to call chat methods like `submitMessage` from inside those render functions. In React, use a `chatFunctionsRef`. In JavaScript, use the widget instance returned by `Inkeep.EmbeddedChat()`.
+
+<CodeGroup>
+```tsx title="React"
+import { useRef } from 'react'
+import { InkeepEmbeddedChat } from '@inkeep/agents-ui-cloud'
+import type {
+  AIChatFunctions,
+  InkeepAIChatSettings,
+  ComponentsConfig,
+} from '@inkeep/agents-ui-cloud/types'
+
+export default function Chat() {
+  const chatFunctionsRef = useRef<AIChatFunctions | null>(null)
+
+  const components: ComponentsConfig<{
+    QuickActions: { actions: { label: string; message: string }[] }
+  }> = {
+    QuickActions: (props) => (
+      <div className="flex gap-2 flex-wrap my-2">
+        {props.actions.map((action) => (
+          <button
+            key={action.label}
+            className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm cursor-pointer hover:border-indigo-500 transition-colors"
+            onClick={() => chatFunctionsRef.current?.submitMessage(action.message)}
+          >
+            {action.label}
+          </button>
+        ))}
+      </div>
+    ),
+  }
+
+  const aiChatSettings: InkeepAIChatSettings = {
+    appId: process.env.REACT_APP_INKEEP_APP_ID,
+    chatFunctionsRef,
+    components,
+  }
+
+  return <InkeepEmbeddedChat aiChatSettings={aiChatSettings} />
+}
+```
+
+```js title="JavaScript"
+const widget = Inkeep.EmbeddedChat("#ikp-embedded-chat-target", {
+  aiChatSettings: {
+    appId: "YOUR_APP_ID",
+    components: {
+      QuickActions: (props, target) => {
+        const container = document.createElement("div");
+        container.className = "flex gap-2 flex-wrap my-2";
+
+        for (const action of props.actions) {
+          const btn = document.createElement("button");
+          btn.textContent = action.label;
+          btn.className =
+            "px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm cursor-pointer hover:border-indigo-500 transition-colors";
+          btn.addEventListener("click", () => {
+            widget.submitMessage(action.message);
+          });
+          container.appendChild(btn);
+        }
+
+        target.appendChild(container);
+      },
+    },
+  },
+});
+```
+</CodeGroup>
+
+When the agent emits a `QuickActions` component with an array of label/message pairs, the user sees clickable buttons. Clicking one sends that message as if the user typed it.
+
+## Example: clickable product cards
+
+A more realistic example renders product or plan cards that let users drill into details with a single click.
+
+<CodeGroup>
+```tsx title="React"
+import { useRef } from 'react'
+import { InkeepEmbeddedChat } from '@inkeep/agents-ui-cloud'
+import type {
+  AIChatFunctions,
+  InkeepAIChatSettings,
+  ComponentsConfig,
+} from '@inkeep/agents-ui-cloud/types'
+
+interface Plan {
+  name: string
+  price: string
+  features: string[]
+}
+
+export default function PricingChat() {
+  const chatFunctionsRef = useRef<AIChatFunctions | null>(null)
+
+  const components: ComponentsConfig<{
+    PlanCard: Plan
+  }> = {
+    PlanCard: (props) => (
+      <div
+        className="border border-gray-200 rounded-xl p-4 min-w-[200px] cursor-pointer hover:border-indigo-500 transition-colors"
+        onClick={() =>
+          chatFunctionsRef.current?.submitMessage(
+            'Tell me more about the ' + props.name + ' plan. What is included and are there any limits?'
+          )
+        }
+      >
+        <div className="font-semibold text-base">{props.name}</div>
+        <div className="text-xl font-bold my-2">{props.price}</div>
+        <ul className="pl-4 m-0 text-sm text-gray-600">
+          {props.features.map((f) => (
+            <li key={f}>{f}</li>
+          ))}
+        </ul>
+      </div>
+    ),
+  }
+
+  const aiChatSettings: InkeepAIChatSettings = {
+    appId: process.env.REACT_APP_INKEEP_APP_ID,
+    chatFunctionsRef,
+    components,
+  }
+
+  return <InkeepEmbeddedChat aiChatSettings={aiChatSettings} />
+}
+```
+
+```js title="JavaScript"
+const widget = Inkeep.EmbeddedChat("#ikp-embedded-chat-target", {
+  aiChatSettings: {
+    appId: "YOUR_APP_ID",
+    components: {
+      PlanCard: (props, target) => {
+        const card = document.createElement("div");
+        card.className =
+          "border border-gray-200 rounded-xl p-4 min-w-[200px] cursor-pointer hover:border-indigo-500 transition-colors";
+
+        const title = document.createElement("div");
+        title.textContent = props.name;
+        title.className = "font-semibold text-base";
+
+        const price = document.createElement("div");
+        price.textContent = props.price;
+        price.className = "text-xl font-bold my-2";
+
+        const list = document.createElement("ul");
+        list.className = "pl-4 m-0 text-sm text-gray-600";
+        for (const feature of props.features) {
+          const li = document.createElement("li");
+          li.textContent = feature;
+          list.appendChild(li);
+        }
+
+        card.append(title, price, list);
+        card.addEventListener("click", () => {
+          widget.submitMessage(
+            "Tell me more about the " + props.name + " plan. What is included and are there any limits?"
+          );
+        });
+
+        target.appendChild(card);
+      },
+    },
+  },
+});
+```
+</CodeGroup>
+
+When a user asks "What plans do you offer?", the agent calls its tool to emit `PlanCard` components. The user sees styled cards and can click any card to ask a targeted follow-up, creating a natural conversational flow.
+
+## Pre-filling the input
+
+Instead of sending immediately, you can use `updateInputMessage` to pre-fill the input and let the user edit before sending. See the full list of available methods in the [AIChatFunctions reference](#aichatfunctions-reference) below.
+
+<CodeGroup>
+```tsx title="React"
+PlanCard: (props) => (
+  <div
+    className="border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-indigo-500 transition-colors"
+    onClick={() => {
+      chatFunctionsRef.current?.updateInputMessage(
+        'I would like to learn more about ' + props.name
+      )
+      chatFunctionsRef.current?.focusInput()
+    }}
+  >
+    <div className="font-semibold">{props.name}</div>
+    <div className="text-xl font-bold my-2">{props.price}</div>
+  </div>
+),
+```
+
+```js title="JavaScript"
+PlanCard: (props, target) => {
+  const card = document.createElement("div");
+  card.className =
+    "border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-indigo-500 transition-colors";
+
+  const title = document.createElement("div");
+  title.textContent = props.name;
+  title.className = "font-semibold";
+
+  const price = document.createElement("div");
+  price.textContent = props.price;
+  price.className = "text-xl font-bold my-2";
+
+  card.append(title, price);
+  card.addEventListener("click", () => {
+    widget.updateInputMessage("I would like to learn more about " + props.name);
+    widget.focusInput();
+  });
+
+  target.appendChild(card);
+},
+```
+</CodeGroup>
+
+## Agent-side setup
+
+For the agent to render these components, create **data components** in the Visual Builder. Each data component needs a name (matching the key in your `components` config) and a JSON schema defining its props.
+
+<Steps>
+  <Step>
+    ### Create the data components
+
+    Go to the **Data Components** tab in the left sidebar, then select **New data component**.
+
+    For the `QuickActions` component, use the following schema:
+
+    ```json title="QuickActions schema"
+    {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "description": "List of quick action buttons to display",
+          "items": {
+            "type": "object",
+            "description": "A single quick action button",
+            "properties": {
+              "label": {
+                "type": "string",
+                "description": "Button label shown to the user"
+              },
+              "message": {
+                "type": "string",
+                "description": "Message to submit when clicked"
+              }
+            },
+            "required": ["label", "message"]
+          }
+        }
+      },
+      "required": ["actions"]
+    }
+    ```
+
+    For the `PlanCard` component:
+
+    ```json title="PlanCard schema"
+    {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Plan name, e.g. Starter, Pro, Enterprise"
+        },
+        "price": {
+          "type": "string",
+          "description": "Formatted price, e.g. $29/mo"
+        },
+        "features": {
+          "type": "array",
+          "description": "List of plan features",
+          "items": {
+            "type": "string",
+            "description": "A single plan feature, e.g. Unlimited projects"
+          }
+        }
+      },
+      "required": ["name", "price", "features"]
+    }
+    ```
+
+  </Step>
+  <Step>
+    ### Add the data components to your sub agent
+
+    Open your agent's **Sub Agent** settings and add both data components. The agent will automatically use them when the conversation calls for it.
+
+    See [Sub Agents](/visual-builder/sub-agents#adding-data-components) for details on adding data components.
+  </Step>
+  <Step>
+    ### Register the components in your chat widget
+
+    Use the same component names as keys in your `components` config, as shown in the [setup](#setup) section above. The names must match exactly.
+  </Step>
+</Steps>
+
+For more on data components, see [Custom UI Blocks](/visual-builder/structured-outputs/data-components).
+
+## Custom tool approval UI
+
+When an agent tool requires human approval before executing, the widget shows a default approval card. You can replace this with your own UI by registering an `IkpTool` component.
+
+`IkpTool` receives three props:
+
+- `tool` - the tool invocation state (`ToolUIPart`). `tool.type` is the tool name as provided by the widget, prefixed with `tool-` (e.g. `tool-get_weather`). Also includes `tool.state`, `tool.input`, `tool.output`, and `tool.approval`.
+- `approve` - a function to approve or deny the tool call. Call `approve(true)` to approve, `approve(false)` to deny.
+- `renderMarkdown` - a helper to render markdown strings. In React, returns a React element. In JavaScript, returns a React node (use plain text rendering instead for vanilla JS).
+
+### Tool states
+
+| State | Meaning |
+|-------|---------|
+| `input-streaming` | Tool input is being streamed |
+| `input-available` | Tool input is ready, execution pending |
+| `approval-requested` | Waiting for user to approve or deny |
+| `approval-responded` | User has responded, execution proceeding |
+| `output-available` | Tool has completed successfully |
+| `output-error` | Tool execution failed |
+| `output-denied` | User denied the tool call |
+
+### Example
+
+<CodeGroup>
+```tsx title="React"
+import { useRef } from 'react'
+import { InkeepEmbeddedChat } from '@inkeep/agents-ui-cloud'
+import type {
+  AIChatFunctions,
+  InkeepAIChatSettings,
+  ComponentsConfig,
+} from '@inkeep/agents-ui-cloud/types'
+
+export default function ChatWithToolApproval() {
+  const chatFunctionsRef = useRef<AIChatFunctions | null>(null)
+
+  const components: ComponentsConfig<{}> = {
+    IkpTool: (props) => {
+      const { tool, approve, renderMarkdown } = props
+      const toolName = tool.type.replace(/^tool-/, '')
+      const awaitingApproval = tool.state === 'approval-requested'
+
+      return (
+        <div className="border rounded-lg p-4 my-2">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="font-medium text-sm">{toolName}</span>
+            <span className="text-xs text-gray-500 capitalize">{tool.state}</span>
+          </div>
+
+          {tool.input != null && (
+            <pre className="text-xs bg-gray-50 rounded p-2 mb-3 overflow-auto">
+              {JSON.stringify(tool.input, null, 2)}
+            </pre>
+          )}
+
+          {awaitingApproval && (
+            <div className="flex gap-2 justify-end">
+              <button
+                className="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-50"
+                onClick={() => approve(false)}
+              >
+                Deny
+              </button>
+              <button
+                className="px-3 py-1 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700"
+                onClick={() => approve(true)}
+              >
+                Approve
+              </button>
+            </div>
+          )}
+
+          {tool.state === 'output-available' && tool.output != null && (
+            <div className="text-sm text-green-700 mt-2">
+              {renderMarkdown(String(tool.output))}
+            </div>
+          )}
+
+          {tool.state === 'output-denied' && (
+            <div className="text-sm text-red-600 mt-2">Tool call denied</div>
+          )}
+
+          {tool.state === 'output-error' && (
+            <div className="text-sm text-red-600 mt-2">{tool.errorText}</div>
+          )}
+        </div>
+      )
+    },
+  }
+
+  const aiChatSettings: InkeepAIChatSettings = {
+    appId: process.env.REACT_APP_INKEEP_APP_ID,
+    chatFunctionsRef,
+    components,
+  }
+
+  return <InkeepEmbeddedChat aiChatSettings={aiChatSettings} />
+}
+```
+
+```js title="JavaScript"
+const widget = Inkeep.EmbeddedChat("#ikp-embedded-chat-target", {
+  aiChatSettings: {
+    appId: "YOUR_APP_ID",
+    components: {
+      IkpTool: (props, target) => {
+        const { tool, approve, renderMarkdown } = props;
+        const toolName = tool.type.replace(/^tool-/, "");
+
+        const card = document.createElement("div");
+        card.className = "border rounded-lg p-4 my-2";
+
+        // Header
+        const header = document.createElement("div");
+        header.className = "flex items-center gap-2 mb-2";
+
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "font-medium text-sm";
+        nameSpan.textContent = toolName;
+
+        const stateSpan = document.createElement("span");
+        stateSpan.className = "text-xs text-gray-500 capitalize";
+        stateSpan.textContent = tool.state;
+
+        header.append(nameSpan, stateSpan);
+        card.appendChild(header);
+
+        // Tool input
+        if (tool.input != null) {
+          const pre = document.createElement("pre");
+          pre.className = "text-xs bg-gray-50 rounded p-2 mb-3 overflow-auto";
+          pre.textContent = JSON.stringify(tool.input, null, 2);
+          card.appendChild(pre);
+        }
+
+        // Approval buttons
+        if (tool.state === "approval-requested") {
+          const actions = document.createElement("div");
+          actions.className = "flex gap-2 justify-end";
+
+          const denyBtn = document.createElement("button");
+          denyBtn.textContent = "Deny";
+          denyBtn.className = "px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-50";
+          denyBtn.addEventListener("click", () => approve(false));
+
+          const approveBtn = document.createElement("button");
+          approveBtn.textContent = "Approve";
+          approveBtn.className = "px-3 py-1 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700";
+          approveBtn.addEventListener("click", () => approve(true));
+
+          actions.append(denyBtn, approveBtn);
+          card.appendChild(actions);
+        }
+
+        // Output states
+        if (tool.state === "output-available" && tool.output != null) {
+          const msg = document.createElement("div");
+          msg.className = "text-sm text-green-700 mt-2";
+          msg.textContent = String(tool.output);
+          card.appendChild(msg);
+        }
+
+        if (tool.state === "output-denied") {
+          const msg = document.createElement("div");
+          msg.className = "text-sm text-red-600 mt-2";
+          msg.textContent = "Tool call denied";
+          card.appendChild(msg);
+        }
+
+        if (tool.state === "output-error") {
+          const msg = document.createElement("div");
+          msg.className = "text-sm text-red-600 mt-2";
+          msg.textContent = tool.errorText;
+          card.appendChild(msg);
+        }
+
+        target.appendChild(card);
+      },
+    },
+  },
+});
+```
+</CodeGroup>
+
+`IkpTool` applies globally to all tool calls. To render different UI per tool, branch on `tool.type`:
+
+```tsx title="per-tool-ui.tsx"
+IkpTool: (props) => {
+  const { tool, approve } = props
+  const toolName = tool.type.replace(/^tool-/, '')
+
+  if (toolName === 'database-query') {
+    return <DatabaseQueryApproval tool={tool} approve={approve} />
+  }
+
+  if (toolName === 'send-email') {
+    return <EmailApproval tool={tool} approve={approve} />
+  }
+
+  // Fall back to a generic card for other tools
+  return <GenericToolCard tool={tool} approve={approve} />
+},
+```
+
+## AIChatFunctions reference
+
+<AutoTypeTable name="default" type="export { AIChatFunctions as default } from '@inkeep/agents-ui/types'" />

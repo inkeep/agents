@@ -1,18 +1,23 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  BulkFeedbackResponseSchema,
   commonCreateErrorResponses,
   commonDeleteErrorResponses,
   commonGetErrorResponses,
   commonUpdateErrorResponses,
   createApiError,
   createFeedback,
+  createFeedbackBulk,
   deleteFeedback,
   FeedbackApiInsertSchema,
+  type FeedbackApiSelectSchema,
   FeedbackApiUpdateSchema,
   FeedbackListResponse,
   FeedbackResponse,
   generateId,
   getFeedbackById,
+  isForeignKeyViolation,
+  isUniqueConstraintError,
   listFeedback,
   PaginationQueryParamsSchema,
   TenantProjectIdParamsSchema,
@@ -21,7 +26,11 @@ import {
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
+import { emitFeedbackWebhook } from '../../../domains/run/services/WebhookDeliveryService';
+import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
+
+const logger = getLogger('manage-feedback');
 
 const app = new OpenAPIHono();
 
@@ -185,7 +194,89 @@ app.openapi(
       projectId,
     });
 
+    emitFeedbackWebhook({
+      runDbClient,
+      tenantId,
+      projectId,
+      feedback: created,
+    });
+
     return c.json({ data: created }, 201);
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'post',
+    path: '/bulk',
+    summary: 'Create Multiple Feedback',
+    description:
+      'Create multiple feedback entries. Items with invalid conversation or message IDs are skipped and returned in the errors array.',
+    operationId: 'create-feedback-bulk',
+    tags: ['Feedback'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: TenantProjectParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: z.array(FeedbackApiInsertSchema).min(1).max(1000),
+          },
+        },
+      },
+    },
+    responses: {
+      201: {
+        description: 'Feedback items created (partial success possible)',
+        content: {
+          'application/json': {
+            schema: BulkFeedbackResponseSchema,
+          },
+        },
+      },
+      ...commonCreateErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId } = c.req.valid('param');
+    const itemsData = c.req.valid('json');
+
+    const insertRows = itemsData.map((item) => ({
+      ...item,
+      id: item.id || generateId(),
+      tenantId,
+      projectId,
+    }));
+
+    try {
+      const bulkResult = await createFeedbackBulk(runDbClient)(insertRows);
+      return c.json({ data: bulkResult, errors: [] }, 201);
+    } catch (bulkError) {
+      logger.warn({ err: bulkError }, 'Bulk insert failed, falling back to per-row insertion');
+    }
+
+    const created: z.infer<typeof FeedbackApiSelectSchema>[] = [];
+    const errors: { index: number; conversationId: string; message: string }[] = [];
+
+    for (let i = 0; i < insertRows.length; i++) {
+      const row = insertRows[i];
+      try {
+        const result = await createFeedback(runDbClient)(row);
+        created.push(result);
+      } catch (error: unknown) {
+        let message: string;
+        if (isForeignKeyViolation(error)) {
+          message = `Conversation '${row.conversationId}' not found${row.messageId ? ` or message '${row.messageId}' does not exist` : ''}`;
+        } else if (isUniqueConstraintError(error)) {
+          message = 'Duplicate feedback entry';
+        } else {
+          message = `Failed to create feedback for conversation '${row.conversationId}'`;
+        }
+        errors.push({ index: i, conversationId: row.conversationId, message });
+      }
+    }
+
+    return c.json({ data: created, errors }, 201);
   }
 );
 

@@ -5,6 +5,8 @@ import { cookies } from 'next/headers';
 
 import { DEFAULT_INKEEP_AGENTS_API_URL } from '../runtime-config/defaults';
 
+const COPILOT_JWT_AUDIENCE = 'inkeep-copilot';
+
 type ActionResult<T = void> =
   | {
       success: true;
@@ -97,7 +99,11 @@ export async function getCopilotTokenAction(): Promise<ActionResult<CopilotToken
     const exp = now + 3600;
     const expiresAt = new Date(exp * 1000).toISOString();
 
-    const token = signJwt({ sub: userId, iat: now, exp }, privateKeyPem, kid);
+    const token = signJwt(
+      { sub: userId, aud: COPILOT_JWT_AUDIENCE, iat: now, exp },
+      privateKeyPem,
+      kid
+    );
 
     return {
       success: true,

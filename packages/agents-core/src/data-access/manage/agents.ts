@@ -46,7 +46,7 @@ import { getAgentRelations, getAgentRelationsByAgent } from './subAgentRelations
 import { getSubAgentById } from './subAgents';
 import { getSubAgentTeamAgentRelationsByAgent } from './subAgentTeamAgentRelations';
 import { listTools } from './tools';
-import { listTriggers } from './triggers';
+import { getTriggerUsersBatch, listTriggers } from './triggers';
 
 export const getAgentById =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
@@ -126,24 +126,34 @@ export async function listAgentsAcrossProjectMainBranches(
   params: { tenantId: string; projectIds: string[] }
 ): Promise<AvailableAgentInfo[]> {
   const { tenantId, projectIds } = params;
-  const allAgents: AvailableAgentInfo[] = [];
 
-  for (const projectId of projectIds) {
-    try {
+  const results = await Promise.allSettled(
+    projectIds.map(async (projectId) => {
       const branchName = getProjectMainBranchName(tenantId, projectId);
 
       const result = await db.execute(
         sql`
           SELECT id as "agentId", name as "agentName", project_id as "projectId"
-          FROM agent AS OF ${branchName}
+          FROM ${sql.raw(`agent AS OF '${branchName}'`)}
           WHERE tenant_id = ${tenantId} AND project_id = ${projectId}
           ORDER BY name
         `
       );
 
-      allAgents.push(...(result.rows as AvailableAgentInfo[]));
-    } catch (error) {
-      agentsLogger.warn({ error, projectId }, 'Failed to fetch agents for project, skipping');
+      return result.rows as AvailableAgentInfo[];
+    })
+  );
+
+  const allAgents: AvailableAgentInfo[] = [];
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
+    if (result.status === 'fulfilled') {
+      allAgents.push(...result.value);
+    } else {
+      agentsLogger.warn(
+        { error: result.reason, projectId: projectIds[i] },
+        'Failed to fetch agents for project, skipping'
+      );
     }
   }
 
@@ -585,6 +595,7 @@ const getFullAgentDefinitionInternal =
           conversationHistoryConfig: agent.conversationHistoryConfig,
           models: agent.models,
           stopWhen: agent.stopWhen,
+          outputContract: agent.outputContract,
           canTransferTo,
           canDelegateTo,
           skills: skillsBySubAgent[agent.id] || [],
@@ -919,6 +930,12 @@ const getFullAgentDefinitionInternal =
       agentsLogger.debug({ agentId, count: triggersList.length }, 'Fetched triggers for agent');
 
       if (triggersList.length > 0) {
+        const triggerIds = triggersList.map((t) => t.id);
+        const usersByTrigger = await getTriggerUsersBatch(db)({
+          scopes: { tenantId, projectId, agentId },
+          triggerIds,
+        });
+
         const triggersObject: Record<string, any> = {};
         for (const trigger of triggersList) {
           triggersObject[trigger.id] = {
@@ -932,7 +949,9 @@ const getFullAgentDefinitionInternal =
             authentication: trigger.authentication,
             signingSecretCredentialReferenceId: trigger.signingSecretCredentialReferenceId,
             signatureVerification: trigger.signatureVerification,
+            dispatchDelayMs: trigger.dispatchDelayMs,
             runAsUserId: trigger.runAsUserId,
+            runAsUserIds: usersByTrigger.get(trigger.id) ?? [],
             createdBy: trigger.createdBy,
           };
         }

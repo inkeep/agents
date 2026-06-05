@@ -3,6 +3,12 @@ import * as schema from '../db/manage/manage-schema';
 
 export type FkDeps = Record<string, string[]>;
 
+export interface FkColumnLink {
+  childTable: string;
+  parentTable: string;
+  columns: { child: string; parent: string }[];
+}
+
 function buildFkDepsFromSchema(): FkDeps {
   const deps: FkDeps = {};
 
@@ -41,3 +47,48 @@ function buildFkDepsFromSchema(): FkDeps {
 }
 
 export const manageFkDeps: FkDeps = buildFkDepsFromSchema();
+
+function buildFkColumnLinksFromSchema(): FkColumnLink[] {
+  const links: FkColumnLink[] = [];
+
+  for (const value of Object.values(schema)) {
+    if (value == null || typeof value !== 'object') continue;
+
+    let config: ReturnType<typeof getTableConfig>;
+    try {
+      config = getTableConfig(value as any);
+    } catch {
+      continue;
+    }
+
+    if (!config?.name) continue;
+
+    for (const fk of config.foreignKeys ?? []) {
+      const ref = fk.reference();
+      let parentName: string | undefined;
+      try {
+        parentName = getTableConfig(ref.foreignTable as any).name;
+      } catch {
+        continue;
+      }
+      if (!parentName || parentName === config.name) continue;
+
+      const childCols = ref.columns.map((c: any) => c.name as string);
+      const parentCols = ref.foreignColumns.map((c: any) => c.name as string);
+      if (childCols.length !== parentCols.length || childCols.length === 0) continue;
+
+      links.push({
+        childTable: config.name,
+        parentTable: parentName,
+        columns: childCols.map((child: string, i: number) => ({
+          child,
+          parent: parentCols[i],
+        })),
+      });
+    }
+  }
+
+  return links;
+}
+
+export const manageFkColumnLinks: FkColumnLink[] = buildFkColumnLinksFromSchema();

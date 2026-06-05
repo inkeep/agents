@@ -8,6 +8,7 @@ import {
   saveCredentials,
 } from '../utils/credentials';
 import { ProfileManager } from '../utils/profiles';
+import { USER_AGENT } from '../utils/version-check';
 
 export interface LoginOptions {
   profile?: string;
@@ -47,7 +48,7 @@ async function pollForToken(
 
     const response = await fetch(`${cloudUrl}/api/auth/device/token`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'User-Agent': USER_AGENT },
       body: JSON.stringify({
         grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
         device_code: deviceCode,
@@ -98,6 +99,7 @@ async function fetchUserInfo(
   const sessionResponse = await fetch(`${cloudUrl}/api/auth/get-session`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
+      'User-Agent': USER_AGENT,
     },
   });
 
@@ -116,6 +118,7 @@ async function fetchUserInfo(
   const orgResponse = await fetch(`${cloudUrl}/manage/api/cli/me`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
+      'User-Agent': USER_AGENT,
     },
   });
 
@@ -213,7 +216,7 @@ export async function loginCommand(options: LoginOptions = {}): Promise<void> {
 
     const deviceCodeResponse = await fetch(`${manageApiUrl}/api/auth/device/code`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'User-Agent': USER_AGENT },
       body: JSON.stringify({ client_id: 'inkeep-cli' }),
     });
 

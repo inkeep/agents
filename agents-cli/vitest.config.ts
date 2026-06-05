@@ -12,19 +12,13 @@ export default defineProject({
       INKEEP_AGENTS_API_URL: 'http://localhost:3002',
     },
     exclude: ['node_modules', 'dist', '**/integration/**'],
-    testTimeout: 120000, // 120 second timeout for CLI tests
-    hookTimeout: 30000, // 30 second timeout for setup/teardown hooks
-    // Use thread pool to prevent worker timeout issues
+    testTimeout: 30000,
+    hookTimeout: 15000,
     pool: 'threads',
     poolOptions: {
       threads: {
-        singleThread: true, // Run tests sequentially to avoid race conditions
-        isolate: true, // Isolate each test file
+        isolate: true,
       },
     },
-    // Increase maxConcurrency for CI environments
-    maxConcurrency: 1,
-    // Disable file parallelism to avoid timeouts
-    fileParallelism: false,
   },
 });

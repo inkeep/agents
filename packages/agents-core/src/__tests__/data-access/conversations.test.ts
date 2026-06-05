@@ -319,11 +319,13 @@ describe('Conversations Data Access', () => {
   });
 
   describe('deleteConversation', () => {
-    it('should delete a conversation and its messages', async () => {
+    it('should delete a conversation along with its events and messages', async () => {
       const conversationId = 'conv-1';
 
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue(undefined),
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([]),
+        }),
       });
 
       const mockDb = {
@@ -336,7 +338,7 @@ describe('Conversations Data Access', () => {
         conversationId,
       });
 
-      expect(mockDelete).toHaveBeenCalledTimes(2); // Once for messages, once for conversation
+      expect(mockDelete).toHaveBeenCalledTimes(3); // events, messages, conversation
       expect(result).toBe(true);
     });
 
@@ -344,7 +346,9 @@ describe('Conversations Data Access', () => {
       const conversationId = 'conv-1';
 
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockRejectedValue(new Error('Database error')),
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockRejectedValue(new Error('Database error')),
+        }),
       });
 
       const mockDb = {
@@ -352,18 +356,12 @@ describe('Conversations Data Access', () => {
         delete: mockDelete,
       } as any;
 
-      // Mock console.error to avoid test output
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
       const result = await deleteConversation(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
         conversationId,
       });
 
       expect(result).toBe(false);
-      expect(consoleSpy).toHaveBeenCalled();
-
-      consoleSpy.mockRestore();
     });
   });
 
@@ -921,7 +919,9 @@ describe('Conversations Data Access', () => {
 
     it('should handle database errors during conversation deletion', async () => {
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockRejectedValue(new Error('Delete failed')),
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockRejectedValue(new Error('Delete failed')),
+        }),
       });
 
       const mockDb = {

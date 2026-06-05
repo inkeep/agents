@@ -4,12 +4,31 @@ import { generateId } from '../../src/lib/utils/id-utils';
 
 function dragNode(selector: string) {
   const dataTransfer = new DataTransfer();
-  cy.get(selector).trigger('dragstart', { dataTransfer });
 
-  cy.get('.react-flow__node-agent')
-    .eq(0)
-    .trigger('dragover', { dataTransfer })
-    .trigger('drop', { dataTransfer });
+  cy.get(selector)
+    .invoke('attr', 'data-node-type')
+    .then((nodeType) => {
+      if (nodeType) {
+        dataTransfer.setData('application/reactflow', JSON.stringify({ type: nodeType }));
+      }
+      dataTransfer.effectAllowed = 'move';
+
+      cy.get(selector).should('be.visible').trigger('dragstart', { dataTransfer, force: true });
+
+      // New nodes are created by ReactFlow's canvas-level onDrop handler on the pane,
+      // not by dropping onto an existing node element. Drop into a known-empty region
+      // of the pane instead of the pane center, which can already be occupied and flaky.
+      cy.get('.react-flow__pane').then(($pane) => {
+        const rect = $pane[0].getBoundingClientRect();
+        const clientX = Math.min(rect.left + 240, rect.right - 80);
+        const clientY = Math.min(rect.top + 200, rect.bottom - 80);
+
+        cy.wrap($pane)
+          .trigger('dragenter', { dataTransfer, clientX, clientY, force: true })
+          .trigger('dragover', { dataTransfer, clientX, clientY, force: true })
+          .trigger('drop', { dataTransfer, clientX, clientY, force: true });
+      });
+    });
 }
 function connectEdge(selector: string) {
   // React flow doesn't use onDragStart

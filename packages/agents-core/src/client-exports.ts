@@ -64,11 +64,19 @@ export {
   QUOTA_RESOURCE_TYPES,
   SEAT_RESOURCE_TYPES,
 } from './auth/entitlement-constants';
+export {
+  SUPPORT_COPILOT_PLATFORM_SLUGS,
+  SUPPORT_COPILOT_PLATFORMS,
+  type SupportCopilotPageMatcher,
+  type SupportCopilotPlatformEntry,
+  type SupportCopilotPlatformSlug,
+} from './auth/support-copilot-platforms';
 export * from './constants/context-breakdown';
 export { GATEWAY_ROUTABLE_PROVIDERS_SET } from './constants/models';
 export * from './constants/otel-attributes';
 export * from './constants/signoz-queries';
 export { CredentialStoreType, MCPTransportType } from './types';
 export { detectAuthenticationRequired } from './utils/auth-detection';
+export * from './utils/cache-state';
 export * from './utils/skill-files';
 export * from './validation/extend-schemas';

@@ -1,10 +1,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { downloadMock, loggerErrorMock } = vi.hoisted(() => ({
-  downloadMock: vi.fn(),
-  loggerErrorMock: vi.fn(),
-}));
+const downloadMock = vi.fn();
 
 vi.mock('../../../domains/run/services/blob-storage', () => ({
   getBlobStorageProvider: () => ({
@@ -12,14 +9,13 @@ vi.mock('../../../domains/run/services/blob-storage', () => ({
   }),
 }));
 
-vi.mock('../../../logger', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: loggerErrorMock,
-  }),
-}));
+const refs = vi.hoisted(() => ({ mockLogger: null as any }));
+vi.mock('../../../logger', async () => {
+  const { createMockLoggerModule } = await import('@inkeep/agents-core/test-utils');
+  const result = createMockLoggerModule();
+  refs.mockLogger = result.mockLogger;
+  return result.module;
+});
 
 vi.mock('../../../middleware/projectAccess', () => ({
   requireProjectPermission: () => async (_c: { json: unknown }, next: () => Promise<void>) => {
@@ -214,11 +210,9 @@ describe('Conversation media route', () => {
 
     expect(response.status).toBe(502);
     await expect(response.json()).resolves.toEqual({ error: 'Failed to retrieve media' });
-    expect(loggerErrorMock).toHaveBeenCalledWith(
+    expect(refs.mockLogger.error).toHaveBeenCalledWith(
       expect.objectContaining({
         requestId: 'req-test-1',
-        tenantId: 'default',
-        projectId: 'test-project',
         conversationId: 'conv-1',
       }),
       'Failed to serve media'

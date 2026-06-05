@@ -13,6 +13,7 @@ import type {
   PublicKeyConfigSchema,
   StatusComponentSchema,
   StatusUpdateSchema,
+  SupportCopilotConfigSchema,
   WebClientConfigSchema,
   WorkAppGitHubAccountTypeSchema,
   WorkAppGitHubInstallationStatusSchema,
@@ -326,7 +327,8 @@ export interface BaseExecutionContext {
     authMethod?:
       | 'app_credential_web_client'
       | 'app_credential_api'
-      | 'app_credential_web_client_authenticated';
+      | 'app_credential_web_client_authenticated'
+      | 'app_credential_support_copilot';
     appId?: string;
     appPrompt?: string;
   };
@@ -443,12 +445,14 @@ export type WorkAppGitHubAccountType = z.infer<typeof WorkAppGitHubAccountTypeSc
 export type ChannelAccessMode = z.infer<typeof ChannelAccessModeSchema>;
 export type ChannelIds = z.infer<typeof ChannelIdsSchema>;
 
-export type AppType = 'web_client' | 'api';
+export type AppType = 'web_client' | 'api' | 'support_copilot';
 
 export type PublicKeyAlgorithm = z.infer<typeof PublicKeyAlgorithmSchema>;
 export type PublicKeyConfig = z.infer<typeof PublicKeyConfigSchema>;
 export type WebClientConfig = z.infer<typeof WebClientConfigSchema>;
 
 export type ApiConfig = z.infer<typeof ApiConfigSchema>;
+
+export type SupportCopilotConfig = z.infer<typeof SupportCopilotConfigSchema>;
 
 export type AppConfig = z.infer<typeof AppConfigSchema>;

@@ -7,6 +7,7 @@ import {
 } from '../../constants/execution-limits';
 import type { AgentConfig, AgentRunContext } from '../agent-types';
 import { validateModel } from '../agent-types';
+import { deriveContractEnforcement } from '../output-contract';
 
 const logger = getLogger('Agent');
 
@@ -82,15 +83,33 @@ export function getSummarizerModel(config: AgentConfig): ModelSettings {
   };
 }
 
+/**
+ * G1 predicate: structured generation runs when data components are declared OR
+ * (resolvedAllowText === false AND artifact components exist) — FR13/D-L. Shared by
+ * configureModelSettings and the system-prompt builder so the prompt's artifact
+ * representation can't diverge from the generation mode.
+ */
+export function computeHasStructuredOutput(ctx: AgentRunContext): boolean {
+  return Boolean(
+    (ctx.config.dataComponents && ctx.config.dataComponents.length > 0) ||
+      (ctx.resolvedAllowText === false && ctx.artifactComponents.length > 0)
+  );
+}
+
 export function configureModelSettings(ctx: AgentRunContext): {
   primaryModelSettings: ModelSettings;
   modelSettings: any;
   hasStructuredOutput: boolean;
+  hasContractEnforcement: boolean;
   timeoutMs: number;
 } {
-  const hasStructuredOutput = Boolean(
-    ctx.config.dataComponents && ctx.config.dataComponents.length > 0
-  );
+  const hasStructuredOutput = computeHasStructuredOutput(ctx);
+
+  const hasContractEnforcement = deriveContractEnforcement({
+    outputContract: ctx.config.outputContract,
+    resolvedAllowText: ctx.resolvedAllowText,
+    hasStructuredOutput,
+  });
 
   const primaryModelSettings = hasStructuredOutput
     ? getStructuredOutputModel(ctx.config)
@@ -121,6 +140,7 @@ export function configureModelSettings(ctx: AgentRunContext): {
     primaryModelSettings,
     modelSettings: { ...modelSettings, maxDuration: timeoutMs / 1000 },
     hasStructuredOutput,
+    hasContractEnforcement,
     timeoutMs,
   };
 }

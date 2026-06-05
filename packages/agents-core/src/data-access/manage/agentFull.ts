@@ -10,7 +10,9 @@ import {
 import type { FullAgentDefinition, FullAgentSelectWithRelationIds } from '../../types/entities';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/utility';
 import { deriveRelationId, generateId } from '../../utils/conversations';
+import { getLogger } from '../../utils/logger';
 import { validateAgentStructure, validateAndTypeAgentData } from '../../validation/agentFull';
+import type { OutputContract } from '../../validation/schemas';
 import {
   deleteAgent,
   getAgentById,
@@ -22,12 +24,14 @@ import {
 import {
   associateArtifactComponentWithAgent,
   deleteAgentArtifactComponentRelationByAgent,
+  listArtifactComponents,
   upsertAgentArtifactComponentRelation,
 } from './artifactComponents';
 import { upsertContextConfig } from './contextConfigs';
 import {
   associateDataComponentWithAgent,
   deleteAgentDataComponentRelationByAgent,
+  listDataComponents,
   upsertAgentDataComponentRelation,
 } from './dataComponents';
 import { upsertFunction } from './functions';
@@ -57,23 +61,14 @@ import {
   upsertSubAgentTeamAgentRelation,
 } from './subAgentTeamAgentRelations';
 import { upsertSubAgentToolRelation } from './tools';
-import { deleteTrigger, listTriggers, upsertTrigger } from './triggers';
+import { deleteTrigger, listTriggers, setTriggerUsers, upsertTrigger } from './triggers';
 
-export interface AgentLogger {
-  info(obj: Record<string, any>, msg?: string): void;
-  error(obj: Record<string, any>, msg?: string): void;
-}
-
-const defaultLogger: AgentLogger = {
-  info: () => {},
-  error: () => {},
-};
+const logger = getLogger('agentFull');
 
 async function syncSubAgentSkills(
   db: AgentsManageDatabaseClient,
   scopes: AgentScopeConfig,
-  subAgentsMap: FullAgentDefinition['subAgents'],
-  logger: AgentLogger
+  subAgentsMap: FullAgentDefinition['subAgents']
 ) {
   await db.delete(subAgentSkills).where(agentScopedWhere(subAgentSkills, scopes));
 
@@ -108,7 +103,6 @@ async function syncSubAgentSkills(
  */
 async function applyExecutionLimitsInheritance(
   db: AgentsManageDatabaseClient,
-  logger: AgentLogger,
   scopes: ProjectScopeConfig,
   agentData: FullAgentDefinition
 ): Promise<void> {
@@ -201,12 +195,75 @@ async function applyExecutionLimitsInheritance(
   }
 }
 
+async function loadComponentNameMaps(
+  db: AgentsManageDatabaseClient,
+  scopes: ProjectScopeConfig,
+  subAgentsMap: FullAgentDefinition['subAgents']
+): Promise<{ componentNameById: Map<string, string>; artifactNameById: Map<string, string> }> {
+  // reconcileOutputContract early-returns null when a sub-agent has no contract,
+  // so the maps are only read when at least one sub-agent has one.
+  const anyContracted = Object.values(subAgentsMap).some((s) => s?.outputContract != null);
+  if (!anyContracted) {
+    return { componentNameById: new Map(), artifactNameById: new Map() };
+  }
+  const [dataComps, artifactComps] = await Promise.all([
+    listDataComponents(db)({ scopes }),
+    listArtifactComponents(db)({ scopes }),
+  ]);
+  return {
+    componentNameById: new Map(dataComps.map((c) => [c.id, c.name] as const)),
+    artifactNameById: new Map(artifactComps.map((c) => [c.id, c.name] as const)),
+  };
+}
+
 /**
- * Server-side implementation of createFullAgent that performs actual database operations.
- * This function creates a complete agent with all agents, tools, and relationships.
+ * Drop require* entries that name a component/artifact the sub-agent no longer
+ * declares — a requirement must never outlive the component it points at, or it
+ * becomes an unsatisfiable contract. Returns null when no contract is set.
  */
+export function reconcileOutputContract(
+  subAgent: {
+    dataComponents?: string[];
+    artifactComponents?: string[];
+    outputContract?: OutputContract | null;
+  },
+  componentNameById: Map<string, string>,
+  artifactNameById: Map<string, string>
+): OutputContract | null {
+  const contract = subAgent.outputContract;
+  if (!contract) {
+    return null;
+  }
+  const declaredComponents = new Set(
+    (subAgent.dataComponents ?? [])
+      .map((id) => componentNameById.get(id))
+      .filter((name): name is string => Boolean(name))
+  );
+  const declaredArtifacts = new Set(
+    (subAgent.artifactComponents ?? [])
+      .map((id) => artifactNameById.get(id))
+      .filter((name): name is string => Boolean(name))
+  );
+  const reconciled: OutputContract = { ...contract };
+  const requireComponent = contract.requireComponent?.filter((name) =>
+    declaredComponents.has(name)
+  );
+  if (requireComponent && requireComponent.length > 0) {
+    reconciled.requireComponent = requireComponent;
+  } else {
+    delete reconciled.requireComponent;
+  }
+  const requireArtifact = contract.requireArtifact?.filter((name) => declaredArtifacts.has(name));
+  if (requireArtifact && requireArtifact.length > 0) {
+    reconciled.requireArtifact = requireArtifact;
+  } else {
+    delete reconciled.requireArtifact;
+  }
+  return reconciled;
+}
+
 export const createFullAgentServerSide =
-  (db: AgentsManageDatabaseClient, logger: AgentLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient) =>
   async (
     scopes: ProjectScopeConfig,
     agentData: FullAgentDefinition
@@ -217,15 +274,20 @@ export const createFullAgentServerSide =
 
     validateAgentStructure(typed);
 
-    await applyExecutionLimitsInheritance(db, logger, { tenantId, projectId }, typed);
+    await applyExecutionLimitsInheritance(db, { tenantId, projectId }, typed);
+
+    const { componentNameById, artifactNameById } = await loadComponentNameMaps(
+      db,
+      { tenantId, projectId },
+      typed.subAgents
+    );
 
     try {
       logger.info(
-        {},
         'CredentialReferences are project-scoped - skipping credential reference creation in agent'
       );
 
-      logger.info({}, 'MCP Tools are project-scoped - skipping tool creation in agent');
+      logger.info('MCP Tools are project-scoped - skipping tool creation in agent');
 
       let finalAgentId: string;
       try {
@@ -315,13 +377,9 @@ export const createFullAgentServerSide =
         }
       }
 
-      logger.info(
-        {},
-        'DataComponents are project-scoped - skipping dataComponent creation in agent'
-      );
+      logger.info('DataComponents are project-scoped - skipping dataComponent creation in agent');
 
       logger.info(
-        {},
         'ArtifactComponents are project-scoped - skipping artifactComponent creation in agent'
       );
 
@@ -427,16 +485,26 @@ export const createFullAgentServerSide =
           async ([triggerId, triggerData]) => {
             try {
               logger.info({ agentId: finalAgentId, triggerId }, 'Creating trigger in agent');
+              const { runAsUserIds, ...triggerInsertData } = triggerData as typeof triggerData & {
+                runAsUserIds?: string[];
+              };
               await upsertTrigger(db)({
                 scopes: { tenantId, projectId, agentId: finalAgentId },
                 data: {
-                  ...triggerData,
+                  ...triggerInsertData,
                   id: triggerId,
                   tenantId,
                   projectId,
                   agentId: finalAgentId,
                 },
               });
+              if (runAsUserIds && runAsUserIds.length > 0) {
+                await setTriggerUsers(db)({
+                  scopes: { tenantId, projectId, agentId: finalAgentId },
+                  triggerId,
+                  userIds: runAsUserIds,
+                });
+              }
               logger.info({ agentId: finalAgentId, triggerId }, 'Trigger created successfully');
             } catch (error) {
               logger.error(
@@ -475,6 +543,14 @@ export const createFullAgentServerSide =
                 conversationHistoryConfig: subAgent.conversationHistoryConfig,
                 models: subAgent.models,
                 stopWhen: subAgent.stopWhen,
+                // Reconcile drops require* entries for components/artifacts the
+                // sub-agent no longer declares, and returns null for an absent
+                // contract so a cleared contract writes NULL.
+                outputContract: reconcileOutputContract(
+                  subAgent,
+                  componentNameById,
+                  artifactNameById
+                ),
               },
             });
             logger.info({ subAgentId }, 'Sub-agent processed successfully');
@@ -490,7 +566,7 @@ export const createFullAgentServerSide =
       logger.info({ subAgentCount }, 'All sub-agents created/updated successfully');
 
       // External agents are project-scoped and managed at the project level.
-      logger.info({}, 'External agents are project-scoped and managed at the project level.');
+      logger.info('External agents are project-scoped and managed at the project level.');
 
       const agentToolPromises: Promise<void>[] = [];
 
@@ -600,7 +676,7 @@ export const createFullAgentServerSide =
       }
 
       await Promise.all(agentDataComponentPromises);
-      logger.info({}, 'All agent-data component relations created');
+      logger.info('All agent-data component relations created');
 
       const agentArtifactComponentPromises: Promise<void>[] = [];
 
@@ -635,7 +711,7 @@ export const createFullAgentServerSide =
       }
 
       await Promise.all(agentArtifactComponentPromises);
-      logger.info({}, 'All agent-artifact component relations created');
+      logger.info('All agent-artifact component relations created');
 
       const subAgentRelationPromises: Promise<void>[] = [];
       const subAgentExternalAgentRelationPromises: Promise<void>[] = [];
@@ -799,12 +875,7 @@ export const createFullAgentServerSide =
       await Promise.all(subAgentRelationPromises);
       await Promise.all(subAgentExternalAgentRelationPromises);
       await Promise.all(subAgentTeamAgentRelationPromises);
-      await syncSubAgentSkills(
-        db,
-        { tenantId, projectId, agentId: finalAgentId },
-        typed.subAgents,
-        logger
-      );
+      await syncSubAgentSkills(db, { tenantId, projectId, agentId: finalAgentId }, typed.subAgents);
       logger.info(
         { subAgentRelationCount: subAgentRelationPromises.length },
         'All sub-agent relations created'
@@ -840,7 +911,7 @@ export const createFullAgentServerSide =
  * This function updates a complete agent with all agents, tools, and relationships.
  */
 export const updateFullAgentServerSide =
-  (db: AgentsManageDatabaseClient, logger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient) =>
   async (
     scopes: ProjectScopeConfig,
     agentData: FullAgentDefinition
@@ -853,6 +924,12 @@ export const updateFullAgentServerSide =
       throw new Error('Agent ID is required');
     }
 
+    const { componentNameById, artifactNameById } = await loadComponentNameMaps(
+      db,
+      { tenantId, projectId },
+      typedAgentDefinition.subAgents
+    );
+
     logger.info(
       {
         tenantId,
@@ -864,12 +941,7 @@ export const updateFullAgentServerSide =
 
     validateAgentStructure(typedAgentDefinition);
 
-    await applyExecutionLimitsInheritance(
-      db,
-      logger,
-      { tenantId, projectId },
-      typedAgentDefinition
-    );
+    await applyExecutionLimitsInheritance(db, { tenantId, projectId }, typedAgentDefinition);
 
     try {
       const existingAgent = await getAgentById(db)({
@@ -881,17 +953,16 @@ export const updateFullAgentServerSide =
           { agentId: typedAgentDefinition.id },
           'Agent does not exist, creating new agent'
         );
-        return createFullAgentServerSide(db, logger)(scopes, agentData);
+        return createFullAgentServerSide(db)(scopes, agentData);
       }
 
       const existingAgentModels = existingAgent.models;
 
       logger.info(
-        {},
         'CredentialReferences are project-scoped - skipping credential reference update in agent'
       );
 
-      logger.info({}, 'MCP Tools are project-scoped - skipping tool creation in agent update');
+      logger.info('MCP Tools are project-scoped - skipping tool creation in agent update');
 
       let finalAgentId: string;
       try {
@@ -989,9 +1060,8 @@ export const updateFullAgentServerSide =
         }
       }
 
-      logger.info({}, 'DataComponents are project-scoped - skipping dataComponent update in agent');
+      logger.info('DataComponents are project-scoped - skipping dataComponent update in agent');
       logger.info(
-        {},
         'ArtifactComponents are project-scoped - skipping artifactComponent update in agent'
       );
 
@@ -1136,16 +1206,26 @@ export const updateFullAgentServerSide =
           async ([triggerId, triggerData]) => {
             try {
               logger.info({ agentId: finalAgentId, triggerId }, 'Updating trigger in agent');
+              const { runAsUserIds, ...triggerInsertData } = triggerData as typeof triggerData & {
+                runAsUserIds?: string[];
+              };
               await upsertTrigger(db)({
                 scopes: { tenantId, projectId, agentId: finalAgentId },
                 data: {
-                  ...triggerData,
+                  ...triggerInsertData,
                   id: triggerId,
                   tenantId,
                   projectId,
                   agentId: finalAgentId,
                 },
               });
+              if (runAsUserIds !== undefined) {
+                await setTriggerUsers(db)({
+                  scopes: { tenantId, projectId, agentId: finalAgentId },
+                  triggerId,
+                  userIds: runAsUserIds,
+                });
+              }
               logger.info({ agentId: finalAgentId, triggerId }, 'Trigger updated successfully');
             } catch (error) {
               logger.error(
@@ -1264,6 +1344,14 @@ export const updateFullAgentServerSide =
                 conversationHistoryConfig: subAgent.conversationHistoryConfig,
                 models: finalModelSettings,
                 stopWhen: subAgent.stopWhen,
+                // Reconcile drops require* entries for components/artifacts the
+                // sub-agent no longer declares, and returns null for an absent
+                // contract so a cleared contract writes NULL.
+                outputContract: reconcileOutputContract(
+                  subAgent,
+                  componentNameById,
+                  artifactNameById
+                ),
               },
             });
             logger.info({ subAgentId }, 'Sub-agent processed successfully');
@@ -1338,7 +1426,7 @@ export const updateFullAgentServerSide =
       }
 
       // External agents are project-scoped and managed at the project level.
-      logger.info({}, 'External agents are project-scoped and managed at the project level.');
+      logger.info('External agents are project-scoped and managed at the project level.');
 
       const incomingSubAgentIds = new Set(Object.keys(typedAgentDefinition.subAgents));
 
@@ -1915,8 +2003,7 @@ export const updateFullAgentServerSide =
       await syncSubAgentSkills(
         db,
         { tenantId, projectId, agentId: typedAgentDefinition.id },
-        typedAgentDefinition.subAgents,
-        logger
+        typedAgentDefinition.subAgents
       );
 
       // Retrieve and return the updated agent
@@ -1941,7 +2028,7 @@ export const updateFullAgentServerSide =
  * Get a complete agent definition by ID
  */
 export const getFullAgent =
-  (db: AgentsManageDatabaseClient, logger: AgentLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig }): Promise<FullAgentDefinition | null> => {
     const { scopes } = params;
     const { tenantId, projectId } = scopes;
@@ -1982,7 +2069,7 @@ export const getFullAgent =
   };
 
 export const getFullAgentWithRelationIds =
-  (db: AgentsManageDatabaseClient, logger: AgentLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig }): Promise<FullAgentSelectWithRelationIds | null> => {
     const { scopes } = params;
     const { tenantId, projectId } = scopes;
@@ -2029,7 +2116,7 @@ export const getFullAgentWithRelationIds =
  * Delete a complete agent and cascade to all related entities
  */
 export const deleteFullAgent =
-  (db: AgentsManageDatabaseClient, logger: AgentLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig }): Promise<boolean> => {
     const { tenantId, projectId, agentId } = params.scopes;
 

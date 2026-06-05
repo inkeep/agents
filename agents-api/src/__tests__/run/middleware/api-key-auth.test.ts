@@ -46,6 +46,7 @@ vi.mock('@inkeep/agents-core', () => ({
   getAppById: vi.fn(() => vi.fn().mockResolvedValue(null)),
   validateOrigin: vi.fn().mockReturnValue(false),
   updateAppLastUsed: vi.fn(() => vi.fn().mockResolvedValue(undefined)),
+  getInProcessFetch: () => vi.fn(),
   getLogger: () => ({
     debug: vi.fn(),
     error: vi.fn(),
@@ -56,6 +57,8 @@ vi.mock('@inkeep/agents-core', () => ({
 
 vi.mock('jose', () => ({
   jwtVerify: vi.fn().mockRejectedValue(new Error('not mocked')),
+  createRemoteJWKSet: vi.fn(() => vi.fn()),
+  customFetch: Symbol('customFetch'),
 }));
 
 vi.mock('../../../domains/run/routes/auth', () => ({
@@ -71,6 +74,10 @@ import {
 } from '../../../middleware/runAuth';
 
 vi.mock('../../../data/db/runDbClient', () => ({
+  default: {},
+}));
+
+vi.mock('../../../data/db/manageDbClient', () => ({
   default: {},
 }));
 

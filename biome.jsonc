@@ -20,7 +20,22 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!packages/agents-mcp", "!**/__snapshots__/*.json"]
+    "includes": [
+      "**",
+      "!packages/agents-mcp",
+      "!**/__snapshots__/*.json",
+      // The .agents/skills and .codex/skills entries under
+      // public/agents/ are real directories of per-skill symlinks back into
+      // the repo-root canonical at ../../../.agents/skills/<skill>. Without
+      // these excludes, biome traverses through the symlinks and reformats
+      // files at REPO ROOT (outside public/agents/'s scope) — including
+      // team-skills sources (e.g. .agents/skills/brand/scripts/generate-manifest.js)
+      // whose syntax is owned by upstream, not this repo. Skills are
+      // internal-only and their formatting is owned by the
+      // cross-harness-skills-sync workflow, not by biome.
+      "!.agents/skills",
+      "!.codex/skills"
+    ]
   },
   "linter": {
     "enabled": true,

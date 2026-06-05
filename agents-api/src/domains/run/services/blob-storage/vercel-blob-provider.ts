@@ -16,7 +16,7 @@ export class VercelBlobStorageProvider implements BlobStorageProvider {
 
   constructor() {
     this.token = env.BLOB_READ_WRITE_TOKEN?.trim() || undefined;
-    logger.info({}, 'Initializing Vercel Blob storage provider');
+    logger.info('Initializing Vercel Blob storage provider');
   }
 
   async upload(params: BlobStorageUploadParams): Promise<void> {

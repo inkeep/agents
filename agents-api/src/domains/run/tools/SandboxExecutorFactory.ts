@@ -16,7 +16,7 @@ export class SandboxExecutorFactory {
   private vercelExecutors: Map<string, VercelSandboxExecutor> = new Map();
 
   public constructor() {
-    logger.info({}, 'SandboxExecutorFactory initialized');
+    logger.info('SandboxExecutorFactory initialized');
   }
 
   /**
@@ -86,7 +86,7 @@ export class SandboxExecutorFactory {
   ): Promise<unknown> {
     if (!this.nativeExecutor) {
       this.nativeExecutor = new NativeSandboxExecutor();
-      logger.info({}, 'Native sandbox executor created');
+      logger.info('Native sandbox executor created');
     }
 
     return this.nativeExecutor.executeFunctionTool(functionId, args, config);
@@ -136,7 +136,7 @@ export class SandboxExecutorFactory {
    * Clean up all sandbox executors
    */
   public async cleanup(): Promise<void> {
-    logger.info({}, 'Cleaning up sandbox executors');
+    logger.info('Cleaning up sandbox executors');
 
     if (this.nativeExecutor) {
       await this.nativeExecutor.cleanup();
@@ -148,6 +148,6 @@ export class SandboxExecutorFactory {
       this.vercelExecutors.delete(key);
     }
 
-    logger.info({}, 'Sandbox executor cleanup completed');
+    logger.info('Sandbox executor cleanup completed');
   }
 }

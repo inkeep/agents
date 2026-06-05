@@ -10,6 +10,8 @@ export const SpiceDbResourceTypes = {
   USER: 'user',
   ORGANIZATION: 'organization',
   PROJECT: 'project',
+  APP: 'app',
+  CREDENTIAL_REFERENCE: 'credential_reference',
 } as const;
 
 /**
@@ -28,6 +30,8 @@ export const SpiceDbRelations = {
   PROJECT_ADMIN: 'project_admin', // Full access: view + use + edit + manage members
   PROJECT_MEMBER: 'project_member', // Operator: view + use (invoke agents, create API keys)
   PROJECT_VIEWER: 'project_viewer', // Read-only: view only
+  // Credential reference relations
+  APP_READER: 'app_reader',
 } as const;
 
 /**
@@ -61,6 +65,13 @@ export const SpiceDbProjectPermissions = {
 
 export type SpiceDbProjectPermission =
   (typeof SpiceDbProjectPermissions)[keyof typeof SpiceDbProjectPermissions];
+
+export const SpiceDbCredentialReferencePermissions = {
+  READ: 'read',
+} as const;
+
+export type SpiceDbCredentialReferencePermission =
+  (typeof SpiceDbCredentialReferencePermissions)[keyof typeof SpiceDbCredentialReferencePermissions];
 
 /**
  * Permission levels for project access checks.

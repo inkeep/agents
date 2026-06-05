@@ -195,6 +195,9 @@ export async function streamAgentResponse(params: {
         body: JSON.stringify({
           messages: [{ role: 'user', content: question }],
           stream: true,
+          ...(env.INKEEP_SLACK_DISABLE_DURABLE_EXECUTION
+            ? {}
+            : { executionMode: 'durable' as const }),
           ...(conversationId && { conversationId }),
         }),
         signal: abortController.signal,

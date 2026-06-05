@@ -1,4 +1,4 @@
-import { and, count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { apps } from '../../db/runtime/runtime-schema';
 import type { AppInsert, AppSelect, AppUpdate } from '../../types/entities';
@@ -45,7 +45,7 @@ export const getAppByIdForProject =
 export const listAppsPaginated =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
-    scopes: TenantScopeConfig & { projectId?: string };
+    scopes: TenantScopeConfig & { projectIds?: string[] };
     pagination?: PaginationConfig;
     type?: AppType;
   }): Promise<{
@@ -57,8 +57,8 @@ export const listAppsPaginated =
     const offset = (page - 1) * limit;
 
     const conditions = [tenantScopedWhere(apps, params.scopes)];
-    if (params.scopes.projectId) {
-      conditions.push(eq(apps.projectId, params.scopes.projectId));
+    if (params.scopes.projectIds && params.scopes.projectIds.length > 0) {
+      conditions.push(inArray(apps.projectId, params.scopes.projectIds));
     }
     if (params.type) {
       conditions.push(eq(apps.type, params.type));

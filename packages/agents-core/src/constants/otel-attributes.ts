@@ -92,6 +92,14 @@ export const SPAN_KEYS = {
   GEN_AI_USAGE_OUTPUT_TOKENS: 'gen_ai.usage.output_tokens',
   GEN_AI_COST_ESTIMATED_USD: 'gen_ai.cost.estimated_usd',
 
+  // Cache outcome (OTel-GenAI semconv v1.41.1 aligned)
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS: 'gen_ai.usage.cache_read.input_tokens',
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS: 'gen_ai.usage.cache_creation.input_tokens',
+
+  // Cache intent (Inkeep namespace)
+  CACHE_INTENT_MARKER_COUNT: 'cache.intent.marker_count',
+  CACHE_INTENT_PREFIX_SIGNATURE: 'cache.intent.prefix_signature',
+
   // Provider routing
   GEN_AI_REQUEST_PROVIDER: 'gen_ai.request.provider',
   GEN_AI_RESPONSE_PROVIDER: 'gen_ai.response.provider',
@@ -125,6 +133,7 @@ export const SPAN_KEYS = {
   // Core attributes
   NAME: 'name',
   PARENT_SPAN_ID: 'parentSpanID',
+  PARENT_SPAN_ID_V5: 'parent_span_id',
   CONVERSATION_ID: 'conversation.id',
 
   // Trigger/Invocation attributes
@@ -132,6 +141,8 @@ export const SPAN_KEYS = {
   INVOCATION_ENTRY_POINT: 'invocation.entryPoint',
   TRIGGER_ID: 'trigger.id',
   TRIGGER_INVOCATION_ID: 'trigger.invocation.id',
+  TRIGGER_RUN_AS_USER_ID: 'trigger.run_as_user_id',
+  TRIGGER_BATCH_ID: 'trigger.batch_id',
 
   // Artifact processing attributes
   ARTIFACT_ID: 'artifact.id',
@@ -234,13 +245,23 @@ export const GENERATION_TYPES = {
   MID_GENERATION_COMPRESSION: 'mid_generation_compression',
   ARTIFACT_METADATA: 'artifact_metadata',
   STATUS_UPDATE: 'status_update',
-  EVAL_SIMULATION: 'eval_simulation',
   EVAL_SCORING: 'eval_scoring',
   COMPONENT_RENDER: 'component_render',
 } as const;
 
 /** Valid generation types for usage tracking */
 export const USAGE_GENERATION_TYPES = Object.values(GENERATION_TYPES);
+
+export const EVAL_GENERATION_TYPES = [GENERATION_TYPES.EVAL_SCORING] as const;
+
+const EVAL_GENERATION_TYPE_SET = new Set<string>(EVAL_GENERATION_TYPES);
+
+export const isEvalGenerationType = (generationType: string): boolean =>
+  EVAL_GENERATION_TYPE_SET.has(generationType);
+
+export const NON_EVAL_USAGE_GENERATION_TYPES = USAGE_GENERATION_TYPES.filter(
+  (generationType) => !isEvalGenerationType(generationType)
+);
 
 /** Agent IDs */
 export const AGENT_IDS = {

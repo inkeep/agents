@@ -16,6 +16,7 @@ export * from './manage/evalConfig';
 export * from './manage/externalAgents';
 export * from './manage/functions';
 export * from './manage/functionTools';
+export * from './manage/improvementRowRevert';
 export * from './manage/projectFull';
 export * from './manage/projectLifecycle';
 export * from './manage/projects';
@@ -26,6 +27,7 @@ export * from './manage/subAgents';
 export * from './manage/subAgentTeamAgentRelations';
 export * from './manage/tools';
 export * from './manage/triggers';
+export * from './manage/webhookDestinations';
 
 // Runtime data access (Postgres - not versioned)
 export * from './runtime/apiKeys';
@@ -36,8 +38,11 @@ export * from './runtime/contextCache';
 export * from './runtime/conversations';
 export * from './runtime/entitlements';
 export * from './runtime/evalRuns';
+export * from './runtime/events';
 export * from './runtime/feedback';
 export * from './runtime/github-work-app-installations';
+export * from './runtime/improvementRuns';
+export * from './runtime/invitationProjectAssignments';
 export * from './runtime/ledgerArtifacts';
 export * from './runtime/messages';
 export * from './runtime/organizations';

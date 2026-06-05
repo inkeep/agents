@@ -30,6 +30,8 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
   }
 
   redirect(buildSkillFileViewHref(tenantId, projectId, files[0].skillId, files[0].filePath));
+  // Return null to avoid `Rendered more hooks than during the previous render` error
+  return null;
 };
 
 export default SkillsPage;

@@ -16,7 +16,7 @@ const customerSupportProject = project({
   models: {
     base: { model: OPENAI_MODELS.GPT_5_2 },
     structuredOutput: { model: OPENAI_MODELS.GPT_4_1_MINI },
-    summarizer: { model: OPENAI_MODELS.GPT_4_1_NANO },
+    summarizer: { model: OPENAI_MODELS.GPT_5_4_NANO },
   },
 
   // Project-level execution limits

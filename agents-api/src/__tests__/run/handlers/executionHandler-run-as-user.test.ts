@@ -1,3 +1,4 @@
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { a2aClientConstructorMock, initializeStatusUpdatesMock, mockSendMessage } = vi.hoisted(
@@ -26,6 +27,7 @@ vi.mock('@inkeep/agents-core', () => ({
   setSpanWithError: vi.fn(),
   unwrapError: (e: unknown) => (e instanceof Error ? e : new Error(String(e))),
   getInProcessFetch: () => vi.fn().mockResolvedValue(new Response('ok')),
+  getWaitUntil: vi.fn(() => Promise.resolve(vi.fn())),
   getLogger: () => ({
     debug: vi.fn(),
     error: vi.fn(),
@@ -42,9 +44,7 @@ vi.mock('../../../domains/run/a2a/client.js', () => ({
 }));
 
 vi.mock('../../../data/db/runDbClient.js', () => ({ default: {} }));
-vi.mock('../../../logger.js', () => ({
-  getLogger: () => ({ debug: vi.fn(), error: vi.fn(), info: vi.fn(), warn: vi.fn() }),
-}));
+vi.mock('../../../logger.js', () => createMockLoggerModule().module);
 vi.mock('../../../instrumentation.js', () => ({
   flushBatchProcessor: vi.fn().mockResolvedValue(undefined),
 }));

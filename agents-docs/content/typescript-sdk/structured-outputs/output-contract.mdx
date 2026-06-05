@@ -1,0 +1,72 @@
+---
+title: Output Contract
+description: Constrain a sub-agent to emit structured output only, instead of free-text narration
+icon: LuFileCheck
+---
+
+## Overview
+
+A sub-agent's `outputContract` lets you declare — and have the framework enforce — that the sub-agent emits **structured output only**, rather than relying on prompt discipline.
+
+This is most useful for multi-stage pipelines (for example `query → select → respond`) where the intermediate stages should not narrate to the user. By default the framework always offers the model a "write prose" option, so a stage will narrate regardless of its prompt. The output contract removes that option.
+
+The contract is **opt-in**: a sub-agent without an `outputContract` behaves exactly as before.
+
+<Note>
+Using the Visual Builder? The same contract is configured visually in a sub agent's [Guardrails](/visual-builder/structured-outputs/output-contract) section.
+</Note>
+
+## The contract
+
+```ts
+import { subAgent } from '@inkeep/agents-sdk';
+
+const query = subAgent({
+  id: 'query',
+  name: 'Query',
+  description: 'Searches and returns structured results',
+  prompt: 'Search the knowledge base and return results.',
+  dataComponents: () => [searchResults],
+  outputContract: {
+    allowText: false,
+    requireComponent: ['SearchResults'],
+    onViolation: 'reject',
+  },
+});
+```
+
+| Field | Type | Meaning |
+|---|---|---|
+| `allowText` | `boolean` | Whether the sub-agent may emit free text. Defaults to `true`. Set to `false` to forbid prose. |
+| `requireComponent` | `string[]` | The response must include **every** listed [data component](/typescript-sdk/structured-outputs/data-components) (require-all). |
+| `requireArtifact` | `string[]` | The response must create or reference **every** listed [artifact component](/typescript-sdk/structured-outputs/artifact-components) (require-all). |
+| `requireTransfer` | `boolean` | When `true`, the response must [transfer](/typescript-sdk/agent-relationships) to another sub-agent. `canTransferTo()` constrains where. Mutually exclusive with `requireComponent` and `requireArtifact` — a turn ends one way. |
+| `onViolation` | `'reject' \| 'warn'` | What happens when the contract is violated. Defaults to `reject`. |
+
+`allowText` and the `require*` fields are independent. `{ allowText: true, requireComponent: ['X'] }` means narration is permitted, but component `X` must also appear. `{ allowText: false, requireComponent: ['X'] }` means component `X` must appear and prose is forbidden.
+
+## On violation
+
+When a contract is violated:
+
+- **`reject`** (default) — the run fails with a structured contract-violation error.
+- **`warn`** — the violation is logged and the response is surfaced as it is today (observe-only).
+
+### Handling a rejection
+
+A `reject` surfaces as a structured signal you can branch on, not a raw stack trace:
+
+- The run's task fails with a `contract_violation` error type.
+- Streamed runs emit an error operation with `code: 'CONTRACT_VIOLATION'`.
+
+The error message names the sub-agent, the applied policy, and the specific rule that was violated (for example "requireComponent — must emit SearchResults but emitted Other"), so a consumer (chat widget, SDK caller, playground) can distinguish a contract rejection from an ordinary execution failure and surface a useful message.
+
+## Validation
+
+Every entry of `requireComponent` and `requireArtifact` must name a data component or artifact component the sub-agent declares. `requireTransfer: true` requires the sub-agent to declare at least one `canTransferTo()` target. Mismatches are caught at registration time with a clear error.
+
+## Notes
+
+- `requireArtifact` is satisfied either by **creating** the named artifact on the turn, or by **referencing** an existing artifact of that type.
+- Delegates and tool calls are still allowed under `allowText: false` — they're how a sub-agent does its work — but cannot be the subject of a `require*` field.
+- `requireTransfer: true` cannot be combined with `requireComponent` or `requireArtifact`. A turn ends one way: a transfer or a structured component/artifact, not both. The combination is rejected at registration time.

@@ -1,4 +1,5 @@
 import { createHmac } from 'node:crypto';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -10,15 +11,7 @@ vi.mock('../../../env', () => ({
   env: mockEnv,
 }));
 
-vi.mock('../../../logger', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    child: vi.fn().mockReturnThis(),
-  }),
-}));
+vi.mock('../../../logger', () => createMockLoggerModule().module);
 
 // Mock data access functions
 const mockGetInstallationByGitHubId = vi.fn();

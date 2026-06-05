@@ -1,10 +1,11 @@
+import type { APPROVAL_NEEDED_EVENT, APPROVAL_RESOLVED_EVENT } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
 
 const logger = getLogger('ToolApprovalUiBus');
 
 export type ToolApprovalUiEvent =
   | {
-      type: 'approval-needed';
+      type: typeof APPROVAL_NEEDED_EVENT;
       toolCallId: string;
       toolName: string;
       input: any;
@@ -12,7 +13,7 @@ export type ToolApprovalUiEvent =
       approvalId: string;
     }
   | {
-      type: 'approval-resolved';
+      type: typeof APPROVAL_RESOLVED_EVENT;
       toolCallId: string;
       approved: boolean;
       reason?: string;

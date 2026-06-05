@@ -10,6 +10,7 @@ import {
   addConversationIdToInvocation,
   createDatasetRunConversationRelation,
   createEvaluationResult,
+  evaluatePassCriteria,
   generateId,
   getAgentIdsForEvaluators,
   getConversation,
@@ -29,6 +30,7 @@ import manageDbPool from '../../../../data/db/manageDbPool';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import { executeAgentAsync } from '../../../run/services/TriggerService';
+import { emitEvaluationFailedWebhook } from '../../../run/services/WebhookDeliveryService';
 import { EvaluationService } from '../../services/EvaluationService';
 
 const logger = getLogger('workflow-run-dataset-item');
@@ -161,7 +163,7 @@ async function recordConversationStep(params: {
   } catch (error) {
     if (isForeignKeyViolation(error)) {
       logger.warn(
-        { tenantId, projectId, datasetItemId, datasetRunId, conversationId },
+        { datasetItemId, datasetRunId, conversationId },
         'Conversation does not exist, skipping relation creation'
       );
     } else {
@@ -333,15 +335,68 @@ async function executeEvaluatorStep(
       expectedOutput,
     });
 
+    const outputData = (output as { output?: Record<string, unknown> })?.output ?? {};
+    const passCriteriaResult = evaluatePassCriteria(evaluator.passCriteria ?? null, outputData);
+    const verdict = passCriteriaResult.status;
+
+    if (passCriteriaResult.configurationErrors?.length) {
+      logger.error(
+        {
+          evaluatorId: evaluator.id,
+          configurationErrors: passCriteriaResult.configurationErrors,
+          availableOutputFields: Object.keys(outputData),
+        },
+        'Evaluator pass criteria misconfigured'
+      );
+    }
+
     await updateEvaluationResult(runDbClient)({
       scopes: { tenantId, projectId, evaluationResultId: evalResult.id },
       data: { output: output as any },
     });
 
     logger.info(
-      { conversationId, evaluatorId: evaluator.id, resultId: evalResult.id },
+      { conversationId, evaluatorId: evaluator.id, resultId: evalResult.id, verdict },
       'Evaluation completed'
     );
+
+    try {
+      const failedConditions = (passCriteriaResult.failedConditions ?? []).map((c) => {
+        const val = outputData[c.field];
+        return {
+          field: c.field,
+          operator: c.operator,
+          value: c.value,
+          actual: typeof val === 'number' ? val : 0,
+        };
+      });
+
+      await emitEvaluationFailedWebhook({
+        runDbClient,
+        tenantId,
+        projectId,
+        agentId: conversation.agentId ?? '',
+        verdict,
+        failedConditions,
+        evaluationResult: {
+          id: evalResult.id,
+          evaluatorId: evaluator.id,
+          conversationId,
+          evaluationRunId,
+        },
+        evaluator: { id: evaluator.id, name: evaluator.name },
+        resolvedRef,
+      });
+    } catch (emitErr) {
+      logger.warn(
+        {
+          error: emitErr instanceof Error ? emitErr.message : String(emitErr),
+          evaluatorId: evaluator.id,
+          resultId: evalResult.id,
+        },
+        'Failed to emit evaluation.failed webhook'
+      );
+    }
 
     return evalResult.id;
   } catch (error) {
@@ -386,7 +441,7 @@ async function filterEvaluatorsByAgentStep(params: {
 
   if (!resolvedRef) {
     logger.warn(
-      { tenantId, projectId, agentId, ref: params.ref },
+      { ref: params.ref },
       'Failed to resolve ref for evaluator agent scoping — skipping all evaluators'
     );
     return [];

@@ -1,0 +1,90 @@
+---
+title: Prompt Caching
+description: How Inkeep caches Anthropic prompt prefixes by default, how to observe cache behavior, and how to control it
+sidebarTitle: Prompt Caching
+icon: LuDatabaseZap
+keywords: prompt caching, cache, cache hit, cache read, cost, Anthropic, observability, INKEEP_PROMPT_CACHING_ENABLED
+---
+
+Inkeep enables Anthropic prompt caching by default for the main agent generation call. Caching lets the provider reuse a previously sent prompt prefix (the tool definitions plus the system prompt) instead of reprocessing it on every turn, so repeated input tokens are billed at the provider's reduced cache-read rate. No configuration is required — caching is on out of the box, and its effect is visible on the conversation trace timeline and the cost dashboard.
+
+<Note>
+Inkeep currently attaches caching only to the **main agent generation** call. Other call sites (status updates, distillation, artifact metadata) get whatever automatic caching the provider already offers. Savings depend on workload: prefixes that stay stable across turns within the cache window are reused, while per-turn unique content (such as retrieval payloads) is never cacheable.
+</Note>
+
+## How it works
+
+Caching attaches at the model call based on how the agent routes to Anthropic:
+
+- **Gateway mode** (routing through the Vercel AI Gateway): Inkeep sets `providerOptions.gateway.caching: 'auto'`. The gateway places a single cache marker covering the `tools` + `system` wire prefix.
+- **Direct mode** (routing directly to Anthropic): Inkeep sets `providerOptions.anthropic.cacheControl: { type: 'ephemeral' }` on the **system message**, which caches the same `tools` + `system` prefix.
+
+Both modes use Anthropic's default 5-minute ephemeral cache. The first turn writes the prefix to the cache (a cache-creation cost), and subsequent turns within the window read it back at the reduced rate.
+
+<Note>
+Caching only applies above the provider's minimum cacheable prefix size (1,024 tokens for Claude Sonnet 4.5/4.6; 4,096 tokens for Claude Haiku 4.5 and Opus 4.5+). Calls below that floor are simply not cached — eligibility is delegated to the provider, not enforced by Inkeep.
+</Note>
+
+## Cache states
+
+Every LLM generation span carries cache telemetry, from which Inkeep derives one of five cache states per call:
+
+| State | Meaning |
+|-------|---------|
+| **HIT** | Caching was attempted and the provider served tokens from cache — the win condition. |
+| **MISS-expected** | Caching was attempted but the prompt prefix changed since the last call, so no cache read happened. Normal on the first turn or after a prefix change. |
+| **MISS-regression** | Caching was attempted and the prefix was unchanged, yet nothing was read from cache. The actionable alarm state — something broke cross-turn caching. |
+| **NOT-ATTEMPTED** | No cache markers were attached (for example, the prefix was below the provider floor, or caching is disabled). |
+| **NOT-SUPPORTED-BY-PROVIDER** | The routed provider does not support marker-based caching. |
+
+## Observe cache behavior
+
+### Conversation trace timeline
+
+In the Manage UI, open a conversation's trace timeline. Each LLM call row shows a cache-state badge next to its per-call cost. The badge encodes state through an icon, a label, and a color variant (not color alone):
+
+- **HIT** renders as a success badge
+- **MISS-regression** renders as an error badge — the one state worth investigating
+- **MISS-expected** renders as a warning badge
+- **NOT-ATTEMPTED** and **NOT-SUPPORTED-BY-PROVIDER** share a neutral badge, distinguished by label and tooltip
+
+### Cost dashboard
+
+The cost dashboard includes a **Cost by Cache Participation** breakdown table alongside the existing Cost by Model, Agent, Provider, and Generation Type tables. It groups spend into cached, cache-write, and uncached buckets so you can see how much of your input cost benefited from caching. A **Cache-read Tokens** stat card summarizes cache-read volume across the selected time range.
+
+## Control caching
+
+### Disable globally with an environment variable
+
+Set `INKEEP_PROMPT_CACHING_ENABLED` to turn Inkeep-attached caching off across the deployment — useful for A/B testing caching versus no caching, or for self-hosters who want to opt out.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `INKEEP_PROMPT_CACHING_ENABLED` | `true` | Set to `false` to stop Inkeep from attaching any caching options. Customer-provided `providerOptions` still pass through to the model SDK unchanged. |
+
+```dotenv title=".env"
+# Disable Inkeep-attached prompt caching for the whole deployment
+INKEEP_PROMPT_CACHING_ENABLED=false
+```
+
+<Note>
+This variable is parsed as a boolean (Zod's `stringbool`). Caching is **disabled** by any case-insensitive falsy value: `false`, `0`, `no`, `off`, `n`, or `disabled`. Truthy values (`true`, `1`, `yes`, `on`, `y`, `enabled`) or leaving it unset keep caching **enabled**, and any other value is rejected at startup.
+</Note>
+
+### Override per agent with providerOptions
+
+Inkeep attaches its caching default only when an agent has not set one itself: `providerOptions.gateway.caching` in gateway mode, or per-message `providerOptions.anthropic.cacheControl` on system messages in direct (Anthropic) mode. If an agent supplies its own non-null value, Inkeep preserves it instead of overriding it.
+
+<Warning>
+There is no clean per-agent **off** switch today, in either gateway or direct mode. In direct mode, setting `cacheControl: null` in an agent's model config does not disable caching: Inkeep attaches `cacheControl` to system messages, and a null value falls back to the default regardless. The gateway's `caching` option likewise has no per-agent off value. To disable Inkeep-attached caching, use the `INKEEP_PROMPT_CACHING_ENABLED` deployment kill switch. A productized per-agent caching control is planned for a future release.
+</Warning>
+
+## Scope and limitations
+
+- **In scope:** default-on caching at the main agent generation call (gateway and direct mode), provider-aware cache telemetry, and the Manage UI surfaces above.
+- **Not in scope yet:** a per-agent or per-tenant caching configuration UI, a customer-facing cost estimator, and explicit Gemini context caching. These are planned for a future release.
+
+## Related
+
+- [Using SigNoz for Observability](/guides/observability/signoz-usage)
+- [Model Configuration](/typescript-sdk/models)

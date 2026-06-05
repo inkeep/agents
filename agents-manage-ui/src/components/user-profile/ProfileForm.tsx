@@ -14,7 +14,9 @@ interface ProfileFormProps {
 
 export function ProfileForm({ userId, initialTimezone }: ProfileFormProps) {
   const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const [timezone, setTimezone] = useState(initialTimezone ?? browserTimezone);
+  const initial = initialTimezone ?? browserTimezone;
+  const [timezone, setTimezone] = useState(initial);
+  const [savedTimezone, setSavedTimezone] = useState(initial);
   const [isSaving, setIsSaving] = useState(false);
 
   const timezoneOptions = Intl.supportedValuesOf('timeZone').map((tz) => ({
@@ -23,14 +25,19 @@ export function ProfileForm({ userId, initialTimezone }: ProfileFormProps) {
   }));
 
   useEffect(() => {
-    setTimezone(initialTimezone ?? browserTimezone);
+    const next = initialTimezone ?? browserTimezone;
+    setTimezone(next);
+    setSavedTimezone(next);
   }, [initialTimezone, browserTimezone]);
+
+  const isDirty = timezone !== savedTimezone;
 
   const handleSave = async () => {
     setIsSaving(true);
 
     try {
       await updateUserProfileTimezone(userId, timezone);
+      setSavedTimezone(timezone);
       toast.success('Timezone saved');
     } catch {
       toast.error('Failed to save timezone. Please try again.');
@@ -39,25 +46,25 @@ export function ProfileForm({ userId, initialTimezone }: ProfileFormProps) {
   };
 
   return (
-    <div className="space-y-4 max-w-sm">
-      <div className="space-y-2">
-        <FieldLabel
-          label="Timezone"
-          tooltip="Agents use this to know your local time when responding."
-        />
+    <div className="space-y-2 max-w-sm">
+      <FieldLabel
+        label="Timezone"
+        tooltip="Agents use this to know your local time when responding."
+      />
+      <div className="flex items-center gap-2">
         <Combobox
           options={timezoneOptions}
           onSelect={setTimezone}
           defaultValue={timezone}
           searchPlaceholder="Search timezones..."
           placeholder="Select a timezone"
-          className="w-full"
+          className="flex-1"
           triggerClassName="w-full"
         />
+        <Button onClick={handleSave} disabled={!isDirty || isSaving} className="shrink-0">
+          {isSaving ? 'Saving...' : 'Save'}
+        </Button>
       </div>
-      <Button onClick={handleSave} disabled={isSaving}>
-        {isSaving ? 'Saving...' : 'Save'}
-      </Button>
     </div>
   );
 }

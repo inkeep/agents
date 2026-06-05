@@ -11,7 +11,6 @@ const {
   verifyTempTokenMock,
   canUseProjectStrictMock,
   validateTargetAgentMock,
-  verifyPoWMock,
 } = vi.hoisted(() => ({
   validateAndGetApiKeyMock: vi.fn(),
   getAppByIdMock: vi.fn(() => vi.fn()),
@@ -23,7 +22,6 @@ const {
   verifyTempTokenMock: vi.fn(),
   canUseProjectStrictMock: vi.fn(),
   validateTargetAgentMock: vi.fn(),
-  verifyPoWMock: vi.fn().mockResolvedValue({ ok: true }),
 }));
 
 const { jwtVerifyMock } = vi.hoisted(() => ({
@@ -36,6 +34,7 @@ const { getAnonJwtSecretMock } = vi.hoisted(() => ({
 
 vi.mock('@inkeep/agents-core', () => ({
   validateAndGetApiKey: validateAndGetApiKeyMock,
+  getAgentById: vi.fn(() => vi.fn().mockResolvedValue({ id: 'agent-1' })),
   getAppById: getAppByIdMock,
   validateOrigin: validateOriginMock,
   updateAppLastUsed: updateAppLastUsedMock,
@@ -45,15 +44,7 @@ vi.mock('@inkeep/agents-core', () => ({
   verifyTempToken: verifyTempTokenMock,
   canUseProjectStrict: canUseProjectStrictMock,
   validateTargetAgent: validateTargetAgentMock,
-  verifyPoW: verifyPoWMock,
-  getPoWErrorMessage: (error: string) => {
-    const messages: Record<string, string> = {
-      pow_expired: 'Proof-of-work challenge has expired.',
-      pow_required: 'Proof-of-work challenge solution is required.',
-      pow_invalid: 'Proof-of-work challenge solution is invalid.',
-    };
-    return messages[error] ?? 'Unknown PoW error';
-  },
+  getInProcessFetch: () => vi.fn(),
   getLogger: () => ({
     debug: vi.fn(),
     error: vi.fn(),
@@ -64,6 +55,8 @@ vi.mock('@inkeep/agents-core', () => ({
 
 vi.mock('jose', () => ({
   jwtVerify: jwtVerifyMock,
+  createRemoteJWKSet: vi.fn(() => vi.fn()),
+  customFetch: Symbol('customFetch'),
   errors: {
     JWTExpired: class JWTExpired extends Error {},
     JWSSignatureVerificationFailed: class JWSSignatureVerificationFailed extends Error {},
@@ -75,6 +68,10 @@ vi.mock('../../../domains/run/routes/auth', () => ({
 }));
 
 vi.mock('../../../data/db/runDbClient', () => ({
+  default: {},
+}));
+
+vi.mock('../../../data/db/manageDbClient', () => ({
   default: {},
 }));
 
@@ -133,7 +130,6 @@ describe('app prompt resolution via appId', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     verifyServiceTokenMock.mockResolvedValue({ valid: false, error: 'Invalid token' });
-    verifyPoWMock.mockResolvedValue({ ok: true });
     app = new Hono();
     app.use('*', async (c, next) => {
       c.set('db' as never, {});

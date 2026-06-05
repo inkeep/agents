@@ -1,7 +1,7 @@
 'use client';
 
 import type { ColumnDef } from '@tanstack/react-table';
-import { ChevronRight, Plus } from 'lucide-react';
+import { ChevronRight, Loader2, Plus, RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useRerunDatasetRun } from '@/hooks/use-rerun-dataset-run';
 import type { DatasetRun } from '@/lib/api/dataset-runs';
 import { fetchDatasetRuns } from '@/lib/api/dataset-runs';
 import { formatDateAgo } from '@/lib/utils/format-date';
@@ -53,6 +54,16 @@ export function DatasetRunsList({
     setLoading(false);
   }
 
+  const { rerun, isRerunning, canRerun } = useRerunDatasetRun({
+    tenantId,
+    projectId,
+    datasetId,
+    onSuccess: async () => {
+      await loadRuns();
+      router.refresh();
+    },
+  });
+
   useEffect(() => {
     void refreshKey;
     loadRuns();
@@ -82,6 +93,42 @@ export function DatasetRunsList({
       cell: ({ row }) => (
         <span className="text-muted-foreground">{formatDateAgo(row.original.createdAt)}</span>
       ),
+    },
+    {
+      id: 'rerun',
+      header: '',
+      enableSorting: false,
+      meta: { className: 'w-12' },
+      cell: ({ row }) => {
+        const run = row.original;
+        const target = { runId: run.id, datasetRunConfigId: run.datasetRunConfigId };
+        const rerunning = isRerunning(run.id);
+        const eligible = canRerun(target);
+        return (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2"
+            disabled={!eligible || rerunning}
+            title={
+              eligible
+                ? 'Rerun using current dataset items'
+                : 'This run was not created from a run config and cannot be rerun'
+            }
+            onClick={(e) => {
+              e.stopPropagation();
+              void rerun(target);
+            }}
+          >
+            {rerunning ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3.5 w-3.5" />
+            )}
+            <span className="ml-1 text-xs">Rerun</span>
+          </Button>
+        );
+      },
     },
     {
       id: 'chevron',

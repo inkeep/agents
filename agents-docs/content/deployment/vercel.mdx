@@ -98,6 +98,9 @@ NANGO_SECRET_KEY=
 NANGO_SERVER_URL=https://api.nango.dev
 
 INKEEP_AGENTS_JWT_SIGNING_SECRET=
+
+# Optional: set to 'false' to disable Inkeep-attached Anthropic prompt caching
+# INKEEP_PROMPT_CACHING_ENABLED=false
 ```
 
 | Environment Variable                  | Value                                                                                                                                                                                                                                      |
@@ -114,6 +117,7 @@ INKEEP_AGENTS_JWT_SIGNING_SECRET=
 | `OTEL_EXPORTER_OTLP_TRACES_HEADERS`   | `signoz-ingestion-key=<your-ingestion-key>`. Use the instructions from [SigNoz Cloud Setup](/get-started/traces#option-1-signoz-cloud-setup) to configure your ingestion key. Note: Local SigNoz setup won't work with Vercel deployments. |
 | `NANGO_SERVER_URL`                    | `https://api.nango.dev`                                                                                                                                                                                                                    |
 | `INKEEP_AGENTS_JWT_SIGNING_SECRET`    | Run `openssl rand -hex 32` in your terminal to generate this value. Save this value for `INKEEP_AGENTS_JWT_SIGNING_SECRET` in Step 7.                                                                                                      |
+| `INKEEP_PROMPT_CACHING_ENABLED`       | (Optional) Set to `false` to disable Inkeep-attached Anthropic prompt caching globally. Defaults to `true`. See [Prompt Caching](/guides/observability/prompt-caching) for details.                                                        |
 
 ### Step 8: Create a Vercel project for Manage UI
 

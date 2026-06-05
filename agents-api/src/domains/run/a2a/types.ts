@@ -25,7 +25,7 @@ export interface A2ATask {
   };
 }
 
-export type A2ATaskErrorType = 'connection_refused' | 'unknown';
+export type A2ATaskErrorType = 'connection_refused' | 'contract_violation' | 'unknown';
 
 export interface A2ATaskResult {
   status: {

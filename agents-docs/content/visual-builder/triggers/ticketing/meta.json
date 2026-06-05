@@ -1,0 +1,5 @@
+{
+  "title": "Ticketing Platforms",
+  "icon": "LuTicket",
+  "pages": ["zendesk"]
+}

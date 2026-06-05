@@ -1,51 +1,14 @@
 import { getLogger } from '@inkeep/agents-core';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import manageDbClient from '../data/db/manageDbClient';
 import runDbClient from '../data/db/runDbClient';
 
-// Mock the local logger module globally - this will be hoisted automatically by Vitest
-vi.mock('../logger.js', () => {
-  const mockLogger = {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    child: vi.fn().mockReturnThis(),
-    getPinoInstance: vi.fn().mockReturnValue({
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-      debug: vi.fn(),
-      child: vi.fn().mockReturnThis(),
-    }),
-  };
-  return {
-    getLogger: vi.fn(() => mockLogger),
-    withRequestContext: vi.fn(async (_id, fn) => await fn()),
-  };
-});
-
-vi.mock('../logger', () => {
-  const mockLogger = {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    child: vi.fn().mockReturnThis(),
-    getPinoInstance: vi.fn().mockReturnValue({
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-      debug: vi.fn(),
-      child: vi.fn().mockReturnThis(),
-    }),
-  };
-  return {
-    getLogger: vi.fn(() => mockLogger),
-    withRequestContext: vi.fn(async (_id, fn) => await fn()),
-  };
-});
+// Mock the local logger module globally — single instance shared across both path variants
+const loggerMock = createMockLoggerModule().module;
+vi.mock('../logger.js', () => loggerMock);
+vi.mock('../logger', () => loggerMock);
 
 // Mock only the manageDbPool module to avoid creating a real PostgreSQL pool during tests
 // This is necessary because manageDbPool.ts calls createAgentsManageDatabasePool at import time

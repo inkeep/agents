@@ -43,6 +43,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
           const isValid =
             validVariables.has(variableName) ||
             variableName.startsWith('$env.') ||
+            variableName.startsWith('$conversation.') ||
             // Exclude arrays from linting, as they are indicated with [*] in the suggestions
             variableName.includes('[') ||
             // JMESPath expressions

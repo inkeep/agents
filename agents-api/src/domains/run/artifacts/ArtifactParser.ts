@@ -1,18 +1,20 @@
 import type { ArtifactComponentApiInsert, FullExecutionContext } from '@inkeep/agents-core';
 import { getLogger } from '../../../logger';
-import { SENTINEL_KEY } from '../constants/artifact-syntax';
+import { REFS_KEY, SENTINEL_KEY } from '../constants/artifact-syntax';
 import {
   buildSchemaShape,
   type ExtendedJsonSchema,
   extractFullFields,
   extractPreviewFields,
 } from '../utils/schema-validation';
+import { applySelector } from '../utils/select-filter';
 import {
   type ArtifactCreateRequest,
   ArtifactService,
   type ArtifactServiceContext,
   type ArtifactSummaryData,
 } from './ArtifactService';
+import { ARTIFACT_CREATE_PREFIX } from './artifact-component-schema';
 
 const logger = getLogger('ArtifactParser');
 
@@ -222,49 +224,92 @@ export class ArtifactParser {
   }
 
   /**
-   * Resolve artifact refs embedded in tool call arguments.
-   * Recursively walks the args object/array; any object of the shape
-   * { $artifact: "artifact-id", $tool: "tool-call-id" } is replaced with
-   * the full artifact data so the tool receives the real content.
+   * Resolve a single reference object (artifact or tool result).
+   */
+  private async resolveRef(ref: any): Promise<any> {
+    if (
+      typeof ref[SENTINEL_KEY.ARTIFACT] === 'string' &&
+      typeof ref[SENTINEL_KEY.TOOL] === 'string'
+    ) {
+      const fullData = await this.artifactService.getArtifactFull(
+        ref[SENTINEL_KEY.ARTIFACT],
+        ref[SENTINEL_KEY.TOOL]
+      );
+      if (fullData?.data) {
+        logger.debug(
+          { artifactId: ref[SENTINEL_KEY.ARTIFACT], toolCallId: ref[SENTINEL_KEY.TOOL] },
+          'Resolved artifact ref'
+        );
+        let data = fullData.data;
+        if (typeof ref[SENTINEL_KEY.SELECT] === 'string') {
+          data = applySelector(data, ref[SENTINEL_KEY.SELECT], ref[SENTINEL_KEY.TOOL]);
+        }
+        return data;
+      }
+      throw new ToolChainResolutionError(
+        ref[SENTINEL_KEY.TOOL],
+        `Artifact '${ref[SENTINEL_KEY.ARTIFACT]}' from tool call '${ref[SENTINEL_KEY.TOOL]}' could not be resolved`
+      );
+    }
+
+    if (typeof ref[SENTINEL_KEY.TOOL] === 'string') {
+      const hasSelect = typeof ref[SENTINEL_KEY.SELECT] === 'string';
+      const raw = hasSelect
+        ? this.artifactService.getToolResultFull(ref[SENTINEL_KEY.TOOL])
+        : this.artifactService.getToolResultRaw(ref[SENTINEL_KEY.TOOL]);
+      if (raw !== undefined) {
+        logger.debug({ toolCallId: ref[SENTINEL_KEY.TOOL] }, 'Resolved ephemeral tool result ref');
+        let data: unknown = raw;
+        if (hasSelect) {
+          data = applySelector(data, ref[SENTINEL_KEY.SELECT], ref[SENTINEL_KEY.TOOL]);
+        }
+        return data;
+      }
+      throw new ToolChainResolutionError(
+        ref[SENTINEL_KEY.TOOL],
+        `Tool result for call '${ref[SENTINEL_KEY.TOOL]}' not found or failed`
+      );
+    }
+
+    return ref;
+  }
+
+  /**
+   * Resolve artifact/tool-result refs embedded in tool call arguments.
+   * Handles the `SENTINEL_KEY.REFS` map format (preferred) and legacy per-property refs.
    */
   async resolveArgs(args: any): Promise<any> {
     if (args !== null && typeof args === 'object' && !Array.isArray(args)) {
+      // Handle SENTINEL_KEY.REFS map: resolve each entry and merge into args
+      if (args[REFS_KEY] && typeof args[REFS_KEY] === 'object') {
+        const refs = args[REFS_KEY] as Record<string, any>;
+        const result: Record<string, any> = {};
+        for (const [key, value] of Object.entries(args)) {
+          if (key !== REFS_KEY) {
+            result[key] = await this.resolveArgs(value);
+          }
+        }
+        for (const [paramName, ref] of Object.entries(refs)) {
+          result[paramName] = await this.resolveRef(ref);
+          logger.debug({ paramName }, `Resolved ${REFS_KEY} entry`);
+        }
+        return result;
+      }
+
+      // Legacy: top-level artifact ref
       if (
         typeof args[SENTINEL_KEY.ARTIFACT] === 'string' &&
         typeof args[SENTINEL_KEY.TOOL] === 'string'
       ) {
-        const fullData = await this.artifactService.getArtifactFull(
-          args[SENTINEL_KEY.ARTIFACT],
-          args[SENTINEL_KEY.TOOL]
-        );
-        if (fullData?.data) {
-          logger.debug(
-            { artifactId: args[SENTINEL_KEY.ARTIFACT], toolCallId: args[SENTINEL_KEY.TOOL] },
-            'Resolved artifact ref in tool arg'
-          );
-          return fullData.data;
-        }
-        throw new ToolChainResolutionError(
-          args[SENTINEL_KEY.TOOL],
-          `Artifact '${args[SENTINEL_KEY.ARTIFACT]}' from tool call '${args[SENTINEL_KEY.TOOL]}' could not be resolved`
-        );
+        return this.resolveRef(args);
       }
 
+      // Legacy: top-level tool result ref
       if (typeof args[SENTINEL_KEY.TOOL] === 'string' && !(SENTINEL_KEY.ARTIFACT in args)) {
-        const raw = this.artifactService.getToolResultRaw(args[SENTINEL_KEY.TOOL]);
-        if (raw !== undefined) {
-          logger.debug(
-            { toolCallId: args[SENTINEL_KEY.TOOL] },
-            'Resolved ephemeral tool result ref in tool arg'
-          );
-          return raw;
-        }
-        throw new ToolChainResolutionError(
-          args[SENTINEL_KEY.TOOL],
-          `Tool result for call '${args[SENTINEL_KEY.TOOL]}' not found or failed`
-        );
+        return this.resolveRef(args);
       }
 
+      // Recursively resolve nested args (legacy per-property refs)
       const result: Record<string, any> = {};
       for (const [key, value] of Object.entries(args)) {
         result[key] = await this.resolveArgs(value);
@@ -283,10 +328,8 @@ export class ArtifactParser {
     return args;
   }
 
-  /**
-   * Parse attributes from the artifact:create tag
-   */
-  private parseCreateAttributes(attrString: string): ArtifactCreateAnnotation | null {
+  /** Parse an artifact-tag attribute string into a plain key→value record. */
+  private static parseAttrs(attrString: string): Record<string, any> {
     const attrs: Record<string, any> = {};
     let match: RegExpExecArray | null = null;
 
@@ -304,6 +347,15 @@ export class ArtifactParser {
       attrs[key] = value;
     }
 
+    return attrs;
+  }
+
+  /**
+   * Parse attributes from the artifact:create tag
+   */
+  private static parseCreateAttributes(attrString: string): ArtifactCreateAnnotation | null {
+    const attrs = ArtifactParser.parseAttrs(attrString);
+
     if (!attrs.id || !attrs.tool || !attrs.type || !attrs.base) {
       logger.warn({ attrs, attrString }, 'Missing required attributes in artifact annotation');
       return null;
@@ -319,9 +371,11 @@ export class ArtifactParser {
   }
 
   /**
-   * Parse artifact creation annotations from text
+   * Parse artifact:create annotations from text. Static so output-contract
+   * enforcement can detect marker-created artifacts without re-implementing the
+   * parse — see getContractViolation.
    */
-  private parseCreateAnnotations(text: string): ArtifactCreateAnnotation[] {
+  static parseCreateAnnotations(text: string): ArtifactCreateAnnotation[] {
     const annotations: ArtifactCreateAnnotation[] = [];
 
     const createRegex =
@@ -331,7 +385,7 @@ export class ArtifactParser {
 
     for (const match of matches) {
       const [fullMatch, attributes] = match;
-      const annotation = this.parseCreateAttributes(attributes);
+      const annotation = ArtifactParser.parseCreateAttributes(attributes);
       if (annotation) {
         annotation.raw = fullMatch;
         annotations.push(annotation);
@@ -339,6 +393,23 @@ export class ArtifactParser {
     }
 
     return annotations;
+  }
+
+  /**
+   * Extract the artifact ids from `<artifact:ref>` markers in text. Static so
+   * output-contract enforcement can detect referenced artifacts (D-K) without
+   * re-implementing the marker parse.
+   */
+  static parseRefIds(text: string): string[] {
+    const ids: string[] = [];
+    const refRegex = /<artifact:ref\s+((?:"[^"]*"|'[^']*'|[^>])+?)(?:\s*\/)?>/g;
+    for (const match of text.matchAll(refRegex)) {
+      const attrs = ArtifactParser.parseAttrs(match[1] ?? '');
+      if (typeof attrs.id === 'string') {
+        ids.push(attrs.id);
+      }
+    }
+    return ids;
   }
 
   /**
@@ -370,7 +441,7 @@ export class ArtifactParser {
     subAgentId?: string
   ): Promise<StreamPart[]> {
     let processedText = text;
-    const createAnnotations = this.parseCreateAnnotations(text);
+    const createAnnotations = ArtifactParser.parseCreateAnnotations(text);
 
     const createdArtifactData = new Map<string, ArtifactSummaryData>();
     const failedAnnotations: string[] = [];
@@ -538,7 +609,11 @@ export class ArtifactParser {
    * Check if object is an artifact create component
    */
   private isArtifactCreateComponent(obj: any): boolean {
-    return obj?.name?.startsWith('ArtifactCreate_') && obj?.props?.id && obj?.props?.tool_call_id;
+    return (
+      obj?.name?.startsWith(ARTIFACT_CREATE_PREFIX) &&
+      obj?.props?.artifact_id &&
+      obj?.props?.tool_call_id
+    );
   }
 
   /**
@@ -554,9 +629,9 @@ export class ArtifactParser {
     }
 
     const annotation: ArtifactCreateAnnotation = {
-      artifactId: props.id,
+      artifactId: props.artifact_id,
       toolCallId: props.tool_call_id,
-      type: props.type,
+      type: component.name.slice(ARTIFACT_CREATE_PREFIX.length),
       baseSelector: props.base_selector,
       detailsSelector: props.details_selector || {},
     };

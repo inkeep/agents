@@ -1,11 +1,14 @@
 import type { MethodOption } from '@inkeep/agents-core/auth/auth-types';
 import { Globe, Loader2 } from 'lucide-react';
 import { GoogleColorIcon } from '@/components/icons/google';
+import { MicrosoftColorIcon } from '@/components/icons/microsoft';
 import { Button } from '@/components/ui/button';
 
 interface ExternalAuthButtonsProps {
   hasGoogle: boolean;
   googleClientId: string | undefined;
+  hasMicrosoft: boolean;
+  microsoftClientId: string | undefined;
   ssoMethods: MethodOption[];
   isSubmitting: boolean;
   onExternalSignIn: (method: 'social' | 'sso', identifier: string, fallbackError: string) => void;
@@ -14,6 +17,8 @@ interface ExternalAuthButtonsProps {
 export function ExternalAuthButtons({
   hasGoogle,
   googleClientId,
+  hasMicrosoft,
+  microsoftClientId,
   ssoMethods,
   isSubmitting,
   onExternalSignIn,
@@ -36,6 +41,27 @@ export function ExternalAuthButtons({
             <>
               <GoogleColorIcon aria-hidden />
               Continue with Google
+            </>
+          )}
+        </Button>
+      )}
+
+      {hasMicrosoft && microsoftClientId && (
+        <Button
+          variant="gray-outline"
+          onClick={() => onExternalSignIn('social', 'microsoft', 'Microsoft sign in failed')}
+          disabled={isSubmitting}
+          className="w-full"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" />
+              Redirecting...
+            </>
+          ) : (
+            <>
+              <MicrosoftColorIcon aria-hidden />
+              Continue with Microsoft
             </>
           )}
         </Button>

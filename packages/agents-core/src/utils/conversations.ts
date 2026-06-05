@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { customAlphabet } from 'nanoid';
+import type { ConversationSelect, MessageSelect } from '../types/entities';
 import type { BaseExecutionContext, ConversationMetadata } from '../types/utility';
 
 // This ensures IDs are always lowercase and never start with a hyphen
@@ -34,22 +35,51 @@ export function getConversationId(): string {
 
 export function buildConversationMetadata(
   executionContext: BaseExecutionContext,
-  userProperties?: Record<string, unknown>
+  _userProperties?: Record<string, unknown>
 ): ConversationMetadata | undefined {
   const meta = executionContext.metadata;
   const isAuthenticated = meta?.authMethod === 'app_credential_web_client_authenticated';
 
   const result: ConversationMetadata = {};
 
-  if (userProperties) {
-    result.userContext = userProperties;
-  }
   if (meta?.verifiedClaims) {
     result.verifiedClaims = meta.verifiedClaims;
   }
   if (isAuthenticated && meta?.endUserId) {
     result.externalUserId = meta.endUserId;
   }
+  if (meta?.initiatedBy) {
+    result.initiatedBy = meta.initiatedBy;
+  }
 
   return Object.keys(result).length > 0 ? result : undefined;
+}
+
+export function getConversationUserProperties(
+  c: Pick<ConversationSelect, 'userProperties'>
+): Record<string, unknown> | null {
+  return c.userProperties ?? null;
+}
+
+export function getConversationProperties(
+  c: Pick<ConversationSelect, 'properties'>
+): Record<string, unknown> | null {
+  return c.properties ?? null;
+}
+
+export function getMessageUserProperties(
+  m: Pick<MessageSelect, 'userProperties'>,
+  c?: Pick<ConversationSelect, 'userProperties'>
+): Record<string, unknown> | null {
+  if (m.userProperties != null) {
+    return m.userProperties;
+  }
+  return c ? getConversationUserProperties(c) : null;
+}
+
+export function buildConversationUserProperties(
+  _executionContext: BaseExecutionContext,
+  userProperties?: Record<string, unknown>
+): Record<string, unknown> | undefined {
+  return userProperties ?? undefined;
 }

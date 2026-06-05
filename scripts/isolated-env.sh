@@ -318,20 +318,41 @@ cmd_status() {
     return
   fi
 
-  printf "%-20s %-25s %-10s %-10s %-10s %-10s %-10s\n" "NAME" "PROJECT" "DOLTGRES" "POSTGRES" "SPICEDB" "API" "UI"
-  printf "%-20s %-25s %-10s %-10s %-10s %-10s %-10s\n" "----" "-------" "--------" "--------" "-------" "---" "--"
+  python3 - "$STATE_DIR" <<'PYEOF'
+import json, sys, glob, os
 
-  for state_file in "$STATE_DIR"/*.json; do
-    [ -f "$state_file" ] || continue
-    python3 - "$state_file" <<'PYEOF'
-import json, sys
-d = json.load(open(sys.argv[1]))
-p = d['ports']
-api = p.get('agents_api', '-')
-ui = p.get('manage_ui', '-')
-print(f"{d['name']:20s} {d['project']:25s} {p['doltgres']:<10} {p['postgres']:<10} {p['spicedb_grpc']:<10} {api:<10} {ui:<10}")
+headers = ["NAME", "PROJECT", "DOLTGRES", "POSTGRES", "SPICEDB-PG", "MAILPIT", "API", "UI"]
+rows = []
+for path in sorted(glob.glob(os.path.join(sys.argv[1], "*.json"))):
+    with open(path) as f:
+        d = json.load(f)
+    p = d['ports']
+    rows.append([
+        d['name'],
+        d['project'],
+        str(p.get('doltgres', '-')),
+        str(p.get('postgres', '-')),
+        str(p.get('spicedb_pg', '-')),
+        str(p.get('mailpit_web', '-')),
+        str(p.get('agents_api', '-')),
+        str(p.get('manage_ui', '-')),
+    ])
+
+widths = [max(len(h), *(len(r[i]) for r in rows)) for i, h in enumerate(headers)]
+
+def border(left, mid, right, fill='─'):
+    return left + mid.join(fill * (w + 2) for w in widths) + right
+
+def row(cells):
+    return '│ ' + ' │ '.join(c.ljust(w) for c, w in zip(cells, widths)) + ' │'
+
+print(border('┌', '┬', '┐'))
+print(row(headers))
+print(border('├', '┼', '┤'))
+for r in rows:
+    print(row(r))
+print(border('└', '┴', '┘'))
 PYEOF
-  done
 }
 
 cmd_env() {
@@ -361,6 +382,9 @@ print(f"export MANAGE_UI_PORT='{ui}'")
 print(f"export INKEEP_AGENTS_API_URL='http://localhost:{api}'")
 print(f"export PUBLIC_INKEEP_AGENTS_API_URL='http://localhost:{api}'")
 print(f"export NEXT_PUBLIC_INKEEP_AGENTS_API_URL='http://localhost:{api}'")
+print(f"export INKEEP_AGENTS_MANAGE_UI_URL='http://localhost:{ui}'")
+print(f"export NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_UI_URL='http://localhost:{ui}'")
+print(f"export TRUSTED_ORIGIN='http://localhost:{ui}'")
 PYEOF
 }
 

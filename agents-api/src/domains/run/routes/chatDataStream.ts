@@ -1,21 +1,28 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  APPROVAL_NEEDED_EVENT,
+  APPROVAL_RESOLVED_EVENT,
   buildConversationMetadata,
   type CredentialStoreRegistry,
   commonGetErrorResponses,
   createApiError,
   createMessage,
+  createOrGetConversation,
+  errorSchemaFactory,
   type FullExecutionContext,
   generateId,
   getActiveAgentForConversation,
   getConversation,
   getConversationId,
   getWorkflowExecutionByConversation,
+  isUniqueConstraintError,
   loggerFactory,
   type Part,
   PartSchema,
   setActiveAgentForConversation,
+  TOOL_APPROVAL_HOOK_PREFIX,
 } from '@inkeep/agents-core';
+import { FileSecurityError, PdfUrlIngestionError } from '@inkeep/agents-core/external-fetch';
 import { createProtectedRoute, inheritedRunApiKeyAuth } from '@inkeep/agents-core/middleware';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { createUIMessageStream, JsonToSseTransformStream } from 'ai';
@@ -27,22 +34,28 @@ import { flushBatchProcessor } from '../../../instrumentation';
 import { getLogger } from '../../../logger';
 import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { ExecutionHandler } from '../handlers/executionHandler';
-import {
-  FileSecurityError,
-  PdfUrlIngestionError,
-} from '../services/blob-storage/file-security-errors';
+import { buildMessageAttachmentToolCallId } from '../services/blob-storage/attachment-artifacts';
 import {
   buildPersistedMessageContent,
   inlineExternalPdfUrlParts,
 } from '../services/blob-storage/file-upload-helpers';
+import {
+  emitConversationWebhook,
+  prefetchWebhookDestinations,
+} from '../services/WebhookDeliveryService';
 import { pendingToolApprovalManager } from '../session/PendingToolApprovalManager';
 import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
 import { streamBufferRegistry } from '../stream/stream-buffer-registry';
 import { createBufferingStreamHelper, createVercelStreamHelper } from '../stream/stream-helpers';
-import { VercelMessageSchema } from '../types/chat';
+import { MessageIdSchema, VercelMessageSchema } from '../types/chat';
 import { getUserIdFromContext } from '../types/executionContext';
 import { errorOp } from '../utils/agent-operations';
 import { extractTextFromParts, getMessagePartsFromVercelContent } from '../utils/message-parts';
+import {
+  isAutoMintIdentity,
+  parseInkeepJsonHeader,
+  stripIdentificationType,
+} from '../utils/user-properties';
 import { agentExecutionWorkflow, toolApprovalHook } from '../workflow/functions/agentExecution';
 
 type AppVariables = {
@@ -71,6 +84,9 @@ const chatDataStreamRoute = createProtectedRoute({
             messages: z.array(VercelMessageSchema),
             id: z.string().optional(),
             conversationId: z.string().optional(),
+            messageId: MessageIdSchema.optional().describe(
+              'Client-supplied user message id. Optional; server generates one if omitted. Persisted as messages.id so events keyed to this id can join back to the message row. Constrained to the server id alphabet ([A-Za-z0-9_-]).'
+            ),
             stream: z.boolean().optional().describe('Whether to stream the response').default(true),
             max_tokens: z.number().optional().describe('Maximum tokens to generate'),
             headers: z
@@ -88,6 +104,10 @@ const chatDataStreamRoute = createProtectedRoute({
               .record(z.string(), z.unknown())
               .optional()
               .describe('User properties to associate with the conversation'),
+            properties: z
+              .record(z.string(), z.unknown())
+              .optional()
+              .describe('Per-turn properties (page url, referrer, etc.) for the conversation'),
           }),
         },
       },
@@ -102,6 +122,7 @@ const chatDataStreamRoute = createProtectedRoute({
       }),
     },
     ...commonGetErrorResponses,
+    409: errorSchemaFactory('conflict', 'Message with the supplied id already exists'),
   },
 });
 // Apply context validation middleware
@@ -165,7 +186,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
             const toolCallId = approvalPart.toolCallId as string;
             const approved = !!approvalPart.approval?.approved;
             const reason = approvalPart.approval?.reason as string | undefined;
-            const token = `tool-approval:${conversationId}:${durableExecution.id}:${toolCallId}`;
+            const token = `${TOOL_APPROVAL_HOOK_PREFIX}${conversationId}:${durableExecution.id}:${toolCallId}`;
             try {
               await toolApprovalHook.resume(token, {
                 approved,
@@ -324,8 +345,35 @@ app.openapi(chatDataStreamRoute, async (c) => {
         scopes: { tenantId, projectId },
         conversationId,
       });
+      const resolvedUserPropertiesRaw =
+        body.userProperties ??
+        parseInkeepJsonHeader(c.req.header('x-inkeep-user-properties'), {
+          headerName: 'x-inkeep-user-properties',
+          logger,
+        });
+      const resolvedUserProperties = isAutoMintIdentity(resolvedUserPropertiesRaw)
+        ? undefined
+        : stripIdentificationType(resolvedUserPropertiesRaw);
+      const resolvedProperties =
+        body.properties ??
+        parseInkeepJsonHeader(c.req.header('x-inkeep-properties'), {
+          headerName: 'x-inkeep-properties',
+          logger,
+        });
+      const conversationMeta = buildConversationMetadata(executionContext);
+      await createOrGetConversation(runDbClient)({
+        tenantId,
+        projectId,
+        id: conversationId,
+        agentId: agentId,
+        activeSubAgentId: activeAgent?.activeSubAgentId ?? defaultSubAgentId,
+        ref: executionContext.resolvedRef,
+        userId: executionContext.metadata?.endUserId,
+        ...(conversationMeta ? { metadata: conversationMeta } : {}),
+        ...(resolvedUserProperties !== undefined ? { userProperties: resolvedUserProperties } : {}),
+        ...(resolvedProperties !== undefined ? { properties: resolvedProperties } : {}),
+      });
       if (!activeAgent) {
-        const conversationMeta = buildConversationMetadata(executionContext, body.userProperties);
         await setActiveAgentForConversation(runDbClient)({
           scopes: { tenantId, projectId },
           conversationId,
@@ -354,11 +402,21 @@ app.openapi(chatDataStreamRoute, async (c) => {
       const credentialStores = c.get('credentialStores');
 
       // Context resolution with intelligent conversation state detection
+      const prefetchedDestinations = executionContext.resolvedRef
+        ? await prefetchWebhookDestinations({
+            tenantId,
+            projectId,
+            agentId,
+            resolvedRef: executionContext.resolvedRef,
+          })
+        : undefined;
+
       await handleContextResolution({
         executionContext,
         conversationId,
         headers: validatedContext,
         credentialStores,
+        prefetchedDestinations,
       });
 
       // Store last user message
@@ -396,7 +454,14 @@ app.openapi(chatDataStreamRoute, async (c) => {
           messageSpan.setAttribute('user.id', executionContext.metadata.initiatedBy.id);
         }
       }
-      const userMessageId = generateId();
+      // Honor a client-supplied user-message id so events fired client-side
+      // (before this row lands) join back to messages.id. Read off the same
+      // message we extract content from (lastUserMessage) so the id matches
+      // the content for multi-turn callers that send full history.
+      // body.messageId remains a fallback for direct API consumers.
+      const userMessageId = lastUserMessage?.id ?? body.messageId ?? generateId();
+      const hasAttachedFiles = messageParts.some((part) => part.kind === 'file');
+      const attachmentTaskId = hasAttachedFiles ? `message_${userMessageId}` : undefined;
 
       if (messageSpan) {
         messageSpan.setAttribute('message.id', userMessageId);
@@ -407,23 +472,62 @@ app.openapi(chatDataStreamRoute, async (c) => {
         projectId,
         conversationId,
         messageId: userMessageId,
+        taskId: `message_${userMessageId}`,
+        toolCallId: buildMessageAttachmentToolCallId(userMessageId),
+        source: 'user-message',
       });
 
-      await createMessage(runDbClient)({
-        scopes: { tenantId, projectId },
-        data: {
-          id: userMessageId,
-          conversationId,
-          role: 'user',
-          content: messageContent,
-          visibility: 'user-facing',
-          messageType: 'chat',
-        },
-      });
+      try {
+        await createMessage(runDbClient)({
+          scopes: { tenantId, projectId },
+          data: {
+            id: userMessageId,
+            conversationId,
+            role: 'user',
+            content: messageContent,
+            visibility: 'user-facing',
+            messageType: 'chat',
+            ...(attachmentTaskId ? { taskId: attachmentTaskId } : {}),
+            ...(resolvedUserProperties !== undefined
+              ? { userProperties: resolvedUserProperties }
+              : {}),
+          },
+        });
+      } catch (err) {
+        // unique_violation on (tenantId, projectId, id) — a client retried or
+        // replayed a request with an id that's already persisted in this
+        // (tenant, project). Surface a 409 instead of an unhandled 500 so
+        // callers can recover. Drizzle wraps the underlying pg/Doltgres error;
+        // isUniqueConstraintError() handles both shapes via err.cause.
+        if (isUniqueConstraintError(err)) {
+          logger.info(
+            { userMessageId, tenantId, projectId, conversationId },
+            'createMessage conflict — returning 409'
+          );
+          throw createApiError({
+            code: 'conflict',
+            message: `Message with id '${userMessageId}' already exists in this project`,
+          });
+        }
+        throw err;
+      }
       if (messageSpan) {
         messageSpan.addEvent('user.message.stored', {
           'message.id': userMessageId,
           'database.operation': 'insert',
+        });
+      }
+
+      if (executionContext.resolvedRef) {
+        emitConversationWebhook({
+          runDbClient,
+          tenantId,
+          projectId,
+          agentId,
+          conversationId,
+          resolvedRef: executionContext.resolvedRef,
+          eventType: activeAgent ? 'conversation.updated' : 'conversation.created',
+          prefetchedDestinations,
         });
       }
 
@@ -503,6 +607,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
           emitOperations,
           forwardedHeaders,
           responseMessageId,
+          prefetchedDestinations,
         });
 
         const captured = bufferingHelper.getCapturedResponse();
@@ -561,7 +666,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
             const seenOutputs = new Set<string>();
 
             unsubscribe = toolApprovalUiBus.subscribe(requestId, async (event) => {
-              if (event.type === 'approval-needed') {
+              if (event.type === APPROVAL_NEEDED_EVENT) {
                 if (seenToolCalls.has(event.toolCallId)) return;
                 seenToolCalls.add(event.toolCallId);
 
@@ -591,7 +696,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
                   toolName: event.toolName,
                   input: event.input as Record<string, unknown>,
                 });
-              } else if (event.type === 'approval-resolved') {
+              } else if (event.type === APPROVAL_RESOLVED_EVENT) {
                 if (seenOutputs.has(event.toolCallId)) return;
                 seenOutputs.add(event.toolCallId);
 
@@ -618,6 +723,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
               datasetRunId: datasetRunId || undefined,
               forwardedHeaders,
               responseMessageId,
+              prefetchedDestinations,
             });
 
             if (!result.success) {

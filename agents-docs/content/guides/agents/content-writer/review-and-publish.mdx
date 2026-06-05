@@ -1,0 +1,41 @@
+---
+title: Review, approve, and publish
+sidebarTitle: Review & publish
+description: Every draft waits for a human. Review it where it already lives — a GitHub PR or a Zendesk draft — then publish, automatically if you want.
+icon: LuCheckCheck
+---
+
+## Overview
+
+Nothing the Content Writer makes goes live on its own. A code change becomes an **open pull request**; a customer answer becomes an **unpublished draft**. Both wait for you. The agent does the audit and the first draft; your team does the judgment — and that approval step is the whole point.
+
+## Review where the draft already lives
+
+You don't learn a new tool. Drafts show up where your team already reviews work, linked from Slack:
+
+- **Developer docs → a pull request.** Read the summary, review the diff, leave comments (the agent can revise on a follow-up). **Merge** to publish through your normal docs pipeline, or **close** to reject.
+- **Help Center or Notion → a draft** from the **KB Article Agent** or **Page Drafter**. Open it, edit anything directly, check the sources. **Publish** to go live, or leave it / delete it to reject.
+
+## Publish on approval
+
+Once you trust a surface, drop the last manual step:
+
+- **Pull requests** — your repo already governs this. Merging publishes through your existing CI/CD; keep the gate exactly where you want it with branch protection and required reviews.
+- **Help Center** — a Zendesk automation can publish (or ping the team) when a reviewer adds an `approved` tag to the draft. A human still decides; you just skip the busywork.
+
+Start with publish-on-click, and automate only the surfaces you've watched long enough to trust.
+
+## Prove it's working
+
+Track three numbers to show the program's impact to leadership:
+
+- **Approval rate** — the share of drafts published vs rejected. A healthy rate means useful drafts; a falling one is an early signal to revisit your routing or sources.
+- **Draft volume by source** — tickets vs PRs vs Slack. Shows where your missing-content signal is loudest.
+- **Freshness lag** — time from ticket solved / PR merged to the published update. The number that says *"docs keep up with the product."*
+
+You compile these from where the drafts live — published vs. rejected articles in Zendesk, merged vs. closed PRs in GitHub, draft statuses in Notion — rather than from a single built-in dashboard.
+
+## Next steps
+
+- **[Tune cost and models](/guides/agent-engineering/tuning-agents)** — adjust the agent's cost/quality balance.
+- **[Customize further](/deployment/inkeep-enterprise/content-writer#customizing-the-content-writer)** — skills, prompts, tools, and triggers on your provisioned agent.

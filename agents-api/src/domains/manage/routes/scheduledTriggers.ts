@@ -241,7 +241,7 @@ app.openapi(
     const { page, limit, includeRunning } = c.req.valid('query');
 
     logger.info(
-      { tenantId, projectId, agentId, includeRunning, page, limit },
+      { includeRunning, page, limit },
       'Listing upcoming scheduled runs across all triggers'
     );
 
@@ -252,7 +252,7 @@ app.openapi(
     });
 
     logger.info(
-      { count: result.data.length, total: result.pagination.total, tenantId, projectId, agentId },
+      { count: result.data.length, total: result.pagination.total },
       'Upcoming runs query result'
     );
 
@@ -394,7 +394,7 @@ app.openapi(
     }
 
     logger.debug(
-      { tenantId, projectId, agentId, scheduledTriggerId: id, runAsUserId, runAsUserIds },
+      { scheduledTriggerId: id, runAsUserId, runAsUserIds },
       'Creating scheduled trigger'
     );
 
@@ -550,7 +550,7 @@ app.openapi(
     }
 
     logger.debug(
-      { tenantId, projectId, agentId, scheduledTriggerId: id, runAsUserId, runAsUserIds },
+      { scheduledTriggerId: id, runAsUserId, runAsUserIds },
       'Updating scheduled trigger'
     );
 
@@ -675,7 +675,7 @@ app.openapi(
       });
     } catch (err) {
       logger.error(
-        { err, tenantId, projectId, agentId, scheduledTriggerId: id },
+        { err, scheduledTriggerId: id },
         'Failed to update workflow for scheduled trigger'
       );
     }
@@ -725,10 +725,7 @@ app.openapi(
       });
     }
 
-    logger.debug(
-      { tenantId, projectId, agentId, scheduledTriggerId: id },
-      'Deleting scheduled trigger'
-    );
+    logger.debug({ scheduledTriggerId: id }, 'Deleting scheduled trigger');
 
     const existing = await getScheduledTriggerById(runDbClient)({
       scopes: { tenantId, projectId, agentId },
@@ -752,7 +749,7 @@ app.openapi(
 
     if (cancelledCount > 0) {
       logger.info(
-        { tenantId, projectId, agentId, scheduledTriggerId: id, cancelledCount },
+        { scheduledTriggerId: id, cancelledCount },
         'Cancelled pending invocations before deleting scheduled trigger'
       );
     }
@@ -1075,10 +1072,7 @@ app.openapi(
     const { tenantId, projectId, agentId, id: scheduledTriggerId } = c.req.valid('param');
     const { page, limit, status, from, to } = c.req.valid('query');
 
-    logger.debug(
-      { tenantId, projectId, agentId, scheduledTriggerId, status, from, to },
-      'Listing scheduled trigger invocations'
-    );
+    logger.debug({ scheduledTriggerId, status, from, to }, 'Listing scheduled trigger invocations');
 
     const { data, pagination } = await listScheduledTriggerInvocationsPaginated(runDbClient)({
       scopes: { tenantId, projectId, agentId },
@@ -1140,10 +1134,7 @@ app.openapi(
       invocationId,
     } = c.req.valid('param');
 
-    logger.debug(
-      { tenantId, projectId, agentId, scheduledTriggerId, invocationId },
-      'Getting scheduled trigger invocation'
-    );
+    logger.debug({ scheduledTriggerId, invocationId }, 'Getting scheduled trigger invocation');
 
     const invocation = await getScheduledTriggerInvocationById(runDbClient)({
       scopes: { tenantId, projectId, agentId },
@@ -1212,10 +1203,7 @@ app.openapi(
       invocationId,
     } = c.req.valid('param');
 
-    logger.debug(
-      { tenantId, projectId, agentId, scheduledTriggerId, invocationId },
-      'Cancelling scheduled trigger invocation'
-    );
+    logger.debug({ scheduledTriggerId, invocationId }, 'Cancelling scheduled trigger invocation');
 
     // Get the invocation
     const invocation = await getScheduledTriggerInvocationById(runDbClient)({
@@ -1257,7 +1245,7 @@ app.openapi(
     });
 
     logger.info(
-      { tenantId, projectId, agentId, scheduledTriggerId, invocationId, previousStatus },
+      { scheduledTriggerId, invocationId, previousStatus },
       'Scheduled trigger invocation cancelled'
     );
 
@@ -1319,10 +1307,7 @@ app.openapi(
       });
     }
 
-    logger.debug(
-      { tenantId, projectId, agentId, scheduledTriggerId, invocationId },
-      'Rerunning scheduled trigger invocation'
-    );
+    logger.debug({ scheduledTriggerId, invocationId }, 'Rerunning scheduled trigger invocation');
 
     // Get the original invocation to verify it exists
     const originalInvocation = await getScheduledTriggerInvocationById(runDbClient)({
@@ -1403,9 +1388,6 @@ app.openapi(
 
     logger.info(
       {
-        tenantId,
-        projectId,
-        agentId,
         scheduledTriggerId,
         originalInvocationId: invocationId,
         newInvocationId,
@@ -1675,10 +1657,7 @@ app.openapi(
       });
     }
 
-    logger.debug(
-      { tenantId, projectId, agentId, scheduledTriggerId, targetUserId },
-      'Running scheduled trigger now'
-    );
+    logger.debug({ scheduledTriggerId, targetUserId }, 'Running scheduled trigger now');
 
     const trigger = await getScheduledTriggerById(runDbClient)({
       scopes: { tenantId, projectId, agentId },
@@ -1770,16 +1749,7 @@ app.openapi(
       });
 
       logger.info(
-        {
-          tenantId,
-          projectId,
-          agentId,
-          scheduledTriggerId,
-          invocationId,
-          maxRetries,
-          retryDelaySeconds,
-          runAsUserId,
-        },
+        { scheduledTriggerId, invocationId, maxRetries, retryDelaySeconds, runAsUserId },
         'Created new invocation for manual run'
       );
 

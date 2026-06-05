@@ -33,12 +33,12 @@ export function buildDataComponentsSchema(ctx: AgentRunContext): z.ZodType<any> 
   let dataComponentsSchema: z.ZodType<any>;
   if (componentSchemas.length === 1) {
     dataComponentsSchema = componentSchemas[0];
-    logger.info({ agentId: ctx.config.id }, 'Using single schema (no union needed)');
+    logger.info('Using single schema (no union needed)');
   } else {
     dataComponentsSchema = z.union(
       componentSchemas as [z.ZodType<any>, z.ZodType<any>, ...z.ZodType<any>[]]
     );
-    logger.info({ agentId: ctx.config.id }, 'Created union schema');
+    logger.info('Created union schema');
   }
 
   return dataComponentsSchema;

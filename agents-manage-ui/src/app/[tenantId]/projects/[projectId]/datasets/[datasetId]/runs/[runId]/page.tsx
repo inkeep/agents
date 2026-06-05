@@ -1,7 +1,17 @@
 'use client';
 
-import { ArrowLeft, ChevronRight, Clock, ExternalLink, Loader2, Sparkles } from 'lucide-react';
+import {
+  ArrowLeft,
+  ChevronRight,
+  Clock,
+  Download,
+  ExternalLink,
+  Loader2,
+  RefreshCw,
+  Sparkles,
+} from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
 import { DatasetItemViewDialog } from '@/components/dataset-items/dataset-item-view-dialog';
 import {
@@ -20,21 +30,47 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useRerunDatasetRun } from '@/hooks/use-rerun-dataset-run';
 import type { DatasetRunInvocation, DatasetRunWithConversations } from '@/lib/api/dataset-runs';
 import { fetchDatasetRun, fetchDatasetRunItems } from '@/lib/api/dataset-runs';
 import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
+import { downloadCsv } from '@/lib/csv/export-csv';
 import { formatDateAgo, formatDateTime } from '@/lib/utils/format-date';
+
+function extractInputText(
+  input: { messages: Array<{ role: string; content: unknown }> } | null | undefined
+): string {
+  if (!input || !('messages' in input)) return '';
+  const messages = input.messages;
+  if (!Array.isArray(messages) || messages.length === 0) return '';
+  const content = messages[0]?.content;
+  if (typeof content === 'string') return content;
+  if (typeof content === 'object' && content !== null && 'text' in content) {
+    const text = (content as { text?: unknown }).text;
+    if (typeof text === 'string') return text;
+  }
+  return '';
+}
 
 export default function Page({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/datasets/[datasetId]/runs/[runId]'>) {
   const { tenantId, projectId, datasetId, runId } = use(params);
+  const router = useRouter();
   const [run, setRun] = useState<DatasetRunWithConversations | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [filters, setFilters] = useState<TestCaseFiltersType>({});
   const [invocations, setInvocations] = useState<DatasetRunInvocation[]>([]);
+  const { rerun, isRerunning, canRerun } = useRerunDatasetRun({
+    tenantId,
+    projectId,
+    datasetId,
+    onSuccess: ({ datasetRunId }) => {
+      router.push(`/${tenantId}/projects/${projectId}/datasets/${datasetId}/runs/${datasetRunId}`);
+    },
+  });
   const [evaluationProgress, setEvaluationProgress] = useState<{
     total: number;
     completed: number;
@@ -146,33 +182,7 @@ export default function Page({
   const filteredItems =
     run?.items
       .map((item) => {
-        const getInputText = (): string => {
-          const input = item.input;
-          if (!input) return '';
-
-          if (typeof input === 'object' && 'messages' in input) {
-            const messages = input.messages;
-            if (Array.isArray(messages) && messages.length > 0) {
-              const firstMessage = messages[0];
-              if (firstMessage?.content) {
-                const content = firstMessage.content;
-                if (typeof content === 'string') {
-                  return content;
-                }
-                if (typeof content === 'object' && content !== null && 'text' in content) {
-                  const text = (content as { text?: unknown }).text;
-                  if (typeof text === 'string') {
-                    return text;
-                  }
-                }
-              }
-            }
-          }
-
-          return '';
-        };
-
-        const inputText = getInputText().toLowerCase();
+        const inputText = extractInputText(item.input).toLowerCase();
 
         if (filters.searchInput && !inputText.includes(filters.searchInput.toLowerCase())) {
           return null;
@@ -203,6 +213,39 @@ export default function Page({
       })
       .filter((item) => item !== null) ?? [];
 
+  function handleExportCsv() {
+    const rows = filteredItems.flatMap((item) => {
+      const inputText = extractInputText(item.input);
+      const conversations = item.conversations || [];
+
+      if (conversations.length === 0) {
+        const inv = invocationByItemId.get(item.id);
+        return [
+          {
+            input: inputText || 'No input',
+            agent: '',
+            output:
+              inv?.status === 'failed' || inv?.status === 'cancelled' ? 'Failed' : 'No output',
+            run_at: formatDateTime(inv?.createdAt ?? run?.createdAt ?? '', { local: true }),
+            conversation_id: '',
+            status: inv?.status || '',
+          },
+        ];
+      }
+
+      return conversations.map((conversation) => ({
+        input: inputText || 'No input',
+        agent: conversation.agentId || '',
+        output: conversation.output || 'No output',
+        run_at: formatDateTime(conversation.createdAt, { local: true }),
+        conversation_id: conversation.conversationId,
+        status: 'completed',
+      }));
+    });
+
+    downloadCsv(rows, `test-suite-run-${runId.slice(0, 8)}.csv`);
+  }
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -230,13 +273,38 @@ export default function Page({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between gap-4">
         <Link href={`/${tenantId}/projects/${projectId}/datasets/${datasetId}?tab=runs`}>
           <Button variant="ghost" size="sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to test suite
           </Button>
         </Link>
+        {(() => {
+          const target = { runId, datasetRunConfigId: run.datasetRunConfigId };
+          const rerunning = isRerunning(runId);
+          const eligible = canRerun(target);
+          return (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!eligible || rerunning}
+              title={
+                eligible
+                  ? 'Rerun using current dataset items'
+                  : 'This run was not created from a run config and cannot be rerun'
+              }
+              onClick={() => void rerun(target)}
+            >
+              {rerunning ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-4 w-4" />
+              )}
+              Rerun
+            </Button>
+          );
+        })()}
       </div>
 
       <Card>
@@ -330,18 +398,29 @@ export default function Page({
 
       <Card>
         <CardHeader>
-          <CardTitle>
-            Test Cases (
-            {filteredItems.reduce((acc, item) => acc + (item.conversations?.length || 0), 0)}{' '}
-            {filteredItems.length !== (run.items?.length || 0) && (
-              <span className="text-muted-foreground">
-                of{' '}
-                {run.items?.reduce((acc, item) => acc + (item.conversations?.length || 0), 0) || 0}
-              </span>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>
+                Test Cases (
+                {filteredItems.reduce((acc, item) => acc + (item.conversations?.length || 0), 0)}{' '}
+                {filteredItems.length !== (run.items?.length || 0) && (
+                  <span className="text-muted-foreground">
+                    of{' '}
+                    {run.items?.reduce((acc, item) => acc + (item.conversations?.length || 0), 0) ||
+                      0}
+                  </span>
+                )}
+                )
+              </CardTitle>
+              <CardDescription>Test cases executed in this test suite run</CardDescription>
+            </div>
+            {filteredItems.length > 0 && (
+              <Button variant="outline" size="sm" onClick={handleExportCsv}>
+                <Download className="mr-2 h-4 w-4" />
+                Export CSV
+              </Button>
             )}
-            )
-          </CardTitle>
-          <CardDescription>Test cases executed in this test suite run</CardDescription>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <TestCaseFilters filters={filters} onFiltersChange={setFilters} agents={uniqueAgents} />
@@ -364,40 +443,12 @@ export default function Page({
               </TableHeader>
               <TableBody>
                 {filteredItems.flatMap((item) => {
-                  // Extract input text from the item
-                  const getInputPreview = (): string => {
-                    const input = item.input;
-                    if (!input) return 'No input';
-
-                    // Handle object input with messages
-                    if (typeof input === 'object' && 'messages' in input) {
-                      const messages = input.messages;
-                      if (Array.isArray(messages) && messages.length > 0) {
-                        const firstMessage = messages[0];
-                        if (firstMessage?.content) {
-                          const content = firstMessage.content;
-                          if (typeof content === 'string') {
-                            return content.length > 100 ? `${content.slice(0, 100)}...` : content;
-                          }
-                          if (
-                            typeof content === 'object' &&
-                            content !== null &&
-                            'text' in content
-                          ) {
-                            const text = (content as { text?: unknown }).text;
-                            if (typeof text === 'string') {
-                              return text.length > 100 ? `${text.slice(0, 100)}...` : text;
-                            }
-                            return String(text || 'No input');
-                          }
-                        }
-                      }
-                    }
-
-                    return 'No input';
-                  };
-
-                  const inputPreview = getInputPreview();
+                  const rawText = extractInputText(item.input);
+                  const inputPreview = rawText
+                    ? rawText.length > 100
+                      ? `${rawText.slice(0, 100)}...`
+                      : rawText
+                    : 'No input';
 
                   // Show all conversations for this item (one row per agent run)
                   const conversations = item.conversations || [];

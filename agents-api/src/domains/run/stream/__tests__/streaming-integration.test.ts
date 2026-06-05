@@ -1,3 +1,4 @@
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ArtifactParser } from '../../artifacts/ArtifactParser';
 import { IncrementalStreamParser } from '../IncrementalStreamParser';
@@ -7,17 +8,10 @@ import type { StreamHelper } from '../stream-helpers';
 vi.mock('../../artifacts/ArtifactParser');
 vi.mock('../../session/AgentSession', () => ({
   agentSessionManager: {
-    getArtifactParser: vi.fn().mockReturnValue(null), // Return null to force fallback to new parser
+    getArtifactParser: vi.fn().mockReturnValue(null),
   },
 }));
-vi.mock('../../../../logger', () => ({
-  getLogger: () => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
+vi.mock('../../../../logger', () => createMockLoggerModule().module);
 
 describe('Streaming Integration Tests', () => {
   let parser: IncrementalStreamParser;
@@ -178,18 +172,18 @@ describe('Streaming Integration Tests', () => {
       }
 
       // Should stream incremental text changes character by character
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('H', 50);
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('e', 50);
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('l', 50);
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('l', 50);
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('o', 50);
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith(' ', 50); // Space should now be preserved!
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('w', 50);
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('o', 50);
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('r', 50);
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('l', 50);
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('d', 50);
-      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('!', 50);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('H', 0);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('e', 0);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('l', 0);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('l', 0);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('o', 0);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith(' ', 0); // Space should now be preserved!
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('w', 0);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('o', 0);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('r', 0);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('l', 0);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('d', 0);
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('!', 0);
 
       // Should stream every character change
       expect(mockStreamHelper.streamText).toHaveBeenCalledTimes(textUpdates.length);

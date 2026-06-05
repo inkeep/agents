@@ -7,6 +7,7 @@ import type {
   FullAgentDefinition,
   McpTransportConfig,
   ModelSettings,
+  OutputContract,
   SkillApiInsertSchema,
   StatusUpdateSettings,
   SubAgentApiInsert,
@@ -105,7 +106,11 @@ export type AllDelegateOutputInterface =
 
 export type SubAgentCanUseType = Tool | SubAgentMcpConfig | FunctionTool;
 
-export interface SubAgentConfig extends Omit<SubAgentApiInsert, 'projectId'> {
+// OutputContract is defined once, as the Zod-inferred type in agents-core.
+// Re-exported here so SDK consumers keep importing it from `@inkeep/agents-sdk`.
+export type { OutputContract };
+
+export interface SubAgentConfig extends Omit<SubAgentApiInsert, 'projectId' | 'outputContract'> {
   type?: 'internal'; // Discriminator for internal agents
   canUse?: () => SubAgentCanUseType[];
   canTransferTo?: () => SubAgentInterface[];
@@ -114,6 +119,7 @@ export interface SubAgentConfig extends Omit<SubAgentApiInsert, 'projectId'> {
   dataComponents?: () => (DataComponentApiInsert | DataComponentInterface)[];
   artifactComponents?: () => (ArtifactComponentApiInsert | ArtifactComponentInterface)[];
   conversationHistoryConfig?: AgentConversationHistoryConfig;
+  outputContract?: OutputContract;
 }
 
 export interface ToolConfig extends ToolInsert {
@@ -256,6 +262,7 @@ export interface AgentConfig {
   };
   statusUpdates?: StatusUpdateSettings;
   triggers?: () => TriggerInterface[];
+  executionMode?: 'classic' | 'durable';
 }
 
 export class AgentError extends Error {

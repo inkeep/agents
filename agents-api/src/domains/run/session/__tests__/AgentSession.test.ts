@@ -202,6 +202,58 @@ describe('AgentSession', () => {
       });
     });
 
+    it('should record agent_generate events with mixed_generation type', () => {
+      session.recordEvent('agent_generate', 'test-agent', {
+        parts: [
+          { type: 'text', content: 'Let me search our knowledge base...' },
+          {
+            type: 'tool_result',
+            toolName: 'search',
+            result: { hits: ['article-1', 'article-2'] },
+          },
+        ],
+        generationType: 'mixed_generation',
+      });
+
+      expect(session.getEvents()).toHaveLength(1);
+      expect(session.getEvents()[0]).toMatchObject({
+        eventType: 'agent_generate',
+        subAgentId: 'test-agent',
+        data: {
+          parts: expect.arrayContaining([
+            { type: 'text', content: 'Let me search our knowledge base...' },
+          ]),
+          generationType: 'mixed_generation',
+        },
+      });
+    });
+
+    it('should accept data_component and data_artifact part types without error', () => {
+      session.recordEvent('agent_generate', 'test-agent', {
+        parts: [
+          { type: 'text', content: 'Here are the results:' },
+          { type: 'data_component', data: { id: 'card-1', name: 'Card', props: { title: 'Hi' } } },
+          {
+            type: 'data_artifact',
+            data: { artifactId: 'art-1', toolCallId: 'tc-1', name: 'MyArtifact' },
+          },
+        ],
+        generationType: 'mixed_generation',
+      });
+
+      expect(session.getEvents()).toHaveLength(1);
+      expect(session.getEvents()[0]).toMatchObject({
+        eventType: 'agent_generate',
+        data: {
+          generationType: 'mixed_generation',
+        },
+      });
+      const recordedParts = (session.getEvents()[0].data as any).parts;
+      expect(recordedParts).toHaveLength(3);
+      expect(recordedParts[1].type).toBe('data_component');
+      expect(recordedParts[2].type).toBe('data_artifact');
+    });
+
     it('should record transfer events', () => {
       session.recordEvent('transfer', 'router-agent', {
         fromSubAgent: 'router-agent',
@@ -566,6 +618,64 @@ describe('AgentSession', () => {
         toolCallId: 'test-call-id',
       });
       expect(session.getEvents()).toHaveLength(0);
+    });
+  });
+
+  describe('Artifact processing retry', () => {
+    const artifactSavedData = {
+      artifactId: 'art-1',
+      taskId: 'task-1',
+      artifactType: 'chart',
+      pendingGeneration: true,
+      tenantId: 'tenant-1',
+      projectId: 'project-1',
+      contextId: 'context-1',
+      data: { value: 42 },
+    };
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('removes artifact from pending set after successful processing', async () => {
+      vi.spyOn(session as any, 'processArtifact').mockResolvedValue(undefined);
+
+      session.recordEvent('artifact_saved', 'agent-1', artifactSavedData);
+
+      await vi.runAllTimersAsync();
+
+      expect(await session.waitForPendingArtifacts()).toBeUndefined();
+    });
+
+    it('retries once after a transient failure then succeeds', async () => {
+      const processArtifact = vi
+        .spyOn(session as any, 'processArtifact')
+        .mockRejectedValueOnce(new Error('storage unavailable'))
+        .mockResolvedValueOnce(undefined);
+
+      session.recordEvent('artifact_saved', 'agent-1', artifactSavedData);
+
+      await vi.runAllTimersAsync();
+
+      expect(processArtifact).toHaveBeenCalledTimes(2);
+      await session.waitForPendingArtifacts();
+    });
+
+    it('gives up and removes artifact from pending after retry also fails', async () => {
+      const processArtifact = vi
+        .spyOn(session as any, 'processArtifact')
+        .mockRejectedValue(new Error('storage unavailable'));
+
+      session.recordEvent('artifact_saved', 'agent-1', artifactSavedData);
+
+      await vi.runAllTimersAsync();
+
+      expect(processArtifact).toHaveBeenCalledTimes(2);
+      await expect(session.waitForPendingArtifacts()).resolves.toBeUndefined();
     });
   });
 

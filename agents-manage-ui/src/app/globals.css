@@ -344,3 +344,13 @@ li[data-sonner-toast][data-type="error"] {
 .inkeep-aria-invalid {
   @apply aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40;
 }
+
+/* Hide Google reCAPTCHA v3 badge. Per D7 in the login-captcha spec, Inkeep
+   uses the "privacy-policy text route" instead of the visible badge. Required
+   disclosure text (linking to Google Privacy Policy + Terms) must appear in
+   Inkeep's privacy policy. The reCAPTCHA script only loads on auth routes
+   (per CaptchaProviderGate / D6), so this rule has no effect on non-auth
+   pages — but is safe to apply globally for defensiveness. */
+.grecaptcha-badge {
+  visibility: hidden;
+}

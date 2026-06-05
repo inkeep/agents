@@ -18,4 +18,5 @@ export function estimateTokens(text: string | undefined | null): number {
 export interface AssembleResult {
   prompt: string;
   breakdown: ContextBreakdown;
+  artifactsMessage: string | null;
 }

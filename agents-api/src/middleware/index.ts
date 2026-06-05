@@ -1,5 +1,7 @@
 export {
   authCorsConfig,
+  credentialGatewayCatalogCorsConfig,
+  credentialGatewayCorsConfig,
   defaultCorsConfig,
   getBaseDomain,
   isOriginAllowed,

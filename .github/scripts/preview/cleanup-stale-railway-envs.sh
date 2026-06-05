@@ -63,15 +63,17 @@ delete_env_and_verify() {
 }
 
 ENVIRONMENTS_JSON="$(railway_project_environments_json "${RAILWAY_PROJECT_ID}")"
-PR_ENVIRONMENTS_JSON="$(jq -c '[.[] | select(.name | test("^pr-[0-9]+$"))]' <<< "${ENVIRONMENTS_JSON}")"
-PR_ENVIRONMENT_COUNT="$(jq 'length' <<< "${PR_ENVIRONMENTS_JSON}")"
+PREVIEW_ENVIRONMENTS_JSON="$(
+  jq -c '[.[] | select(.name | test("^(pr-[0-9]+|backup-pr-[0-9]+-.+)$"))]' <<< "${ENVIRONMENTS_JSON}"
+)"
+PREVIEW_ENVIRONMENT_COUNT="$(jq 'length' <<< "${PREVIEW_ENVIRONMENTS_JSON}")"
 
-if [ "${PR_ENVIRONMENT_COUNT}" = "0" ]; then
-  preview_log "No Railway PR environments found in project ${RAILWAY_PROJECT_ID}."
+if [ "${PREVIEW_ENVIRONMENT_COUNT}" = "0" ]; then
+  preview_log "No Railway preview environments found in project ${RAILWAY_PROJECT_ID}."
   exit 0
 fi
 
-preview_log "Evaluating ${PR_ENVIRONMENT_COUNT} Railway PR environment(s) for stale state."
+preview_log "Evaluating ${PREVIEW_ENVIRONMENT_COUNT} Railway preview environment(s) for stale state."
 
 deleted=0
 kept=0
@@ -88,7 +90,19 @@ while IFS= read -r row; do
 
   env_id="$(jq -r '.id' <<< "${row}")"
   env_name="$(jq -r '.name' <<< "${row}")"
-  pr_number="${env_name#pr-}"
+  primary_env_name=""
+
+  if [[ "${env_name}" =~ ^pr-([0-9]+)$ ]]; then
+    pr_number="${BASH_REMATCH[1]}"
+    primary_env_name="${env_name}"
+  elif [[ "${env_name}" =~ ^backup-pr-([0-9]+)-.+$ ]]; then
+    pr_number="${BASH_REMATCH[1]}"
+    primary_env_name="pr-${pr_number}"
+  else
+    echo "Unexpected preview environment name: ${env_name}" >&2
+    errors=$((errors + 1))
+    continue
+  fi
 
   pr_state="$(github_pr_state "${pr_number}")" || {
     errors=$((errors + 1))
@@ -97,7 +111,26 @@ while IFS= read -r row; do
 
   case "${pr_state}" in
     open)
-      kept=$((kept + 1))
+      if [[ "${env_name}" =~ ^backup-pr- ]]; then
+        if [ -n "$(railway_environment_id "${RAILWAY_PROJECT_ID}" "${primary_env_name}")" ]; then
+          stale_targets=$((stale_targets + 1))
+          if [ "${DRY_RUN}" = "true" ]; then
+            preview_log "[dry-run] Would delete stale Railway recreate backup ${env_name} because ${primary_env_name} exists."
+          else
+            if ! delete_env_and_verify "${env_id}" "${env_name}"; then
+              deletion_failures=$((deletion_failures + 1))
+            else
+              deleted=$((deleted + 1))
+              deleted_names+=("${env_name}")
+            fi
+          fi
+        else
+          kept=$((kept + 1))
+          preview_log "Leaving Railway recreate backup ${env_name} in place because ${primary_env_name} does not exist."
+        fi
+      else
+        kept=$((kept + 1))
+      fi
       ;;
     closed)
       stale_targets=$((stale_targets + 1))
@@ -137,16 +170,16 @@ while IFS= read -r row; do
       errors=$((errors + 1))
       ;;
   esac
-done < <(jq -rc '.[]' <<< "${PR_ENVIRONMENTS_JSON}")
+done < <(jq -rc '.[]' <<< "${PREVIEW_ENVIRONMENTS_JSON}")
 
 if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
   {
     echo "## Railway Preview Janitor"
     echo "- Dry run: \`${DRY_RUN}\`"
-    echo "- Evaluated PR envs: \`${PR_ENVIRONMENT_COUNT}\`"
-    echo "- Open PR envs kept: \`${kept}\`"
-    echo "- Closed/orphaned PR envs targeted: \`${stale_targets}\`"
-    echo "- Railway envs deleted: \`${deleted}\`"
+    echo "- Evaluated preview envs: \`${PREVIEW_ENVIRONMENT_COUNT}\`"
+    echo "- Open preview envs kept: \`${kept}\`"
+    echo "- Closed/orphaned/stale backup envs targeted: \`${stale_targets}\`"
+    echo "- Railway preview envs deleted: \`${deleted}\`"
     echo "- Railway deletion failures: \`${deletion_failures}\`"
     echo "- Unknown PR envs seen: \`${unknown_seen}\`"
     echo "- Unknown PR envs left in place: \`${unknown_skipped}\`"

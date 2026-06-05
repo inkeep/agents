@@ -229,17 +229,6 @@ describe('Push Command - Project Validation', () => {
     expect(mockProject.setCredentials).toHaveBeenCalledWith(mockCredentials);
   });
 
-  it.skip('should override API URL from command line', async () => {
-    // NOTE: This test is skipped because we removed CLI args for API URLs in favor of config-file-only approach.
-    // API URLs now must be specified in inkeep.config.ts, not via CLI flags.
-  });
-
-  it.skip('should handle missing configuration', async () => {
-    // NOTE: This test is skipped because initializeCommand handles the error case by calling process.exit(1),
-    // which makes it difficult to test in unit tests. The actual error handling behavior is covered by
-    // integration tests and the config validation tests.
-  });
-
   it.skip('should handle JSON output mode', async () => {
     // Clear all mocks before starting
     vi.clearAllMocks();

@@ -1,0 +1,138 @@
+---
+title: Build an internal-note draft agent for Zendesk
+sidebarTitle: Internal-note draft
+description: Draft a KB-grounded reply as a private comment on every new Zendesk ticket — the human rep reviews and sends.
+icon: LuMessageSquareDot
+---
+
+## Overview
+
+In this tutorial, you'll build a Reply Drafter agent in the Inkeep Visual Builder. When a new ticket lands in Zendesk, the agent will:
+
+1. Read the customer's question
+2. Search your knowledge base for relevant docs
+3. Post a draft reply as a **private (internal) comment** on the ticket, with sources cited
+
+The rep opens the ticket and the draft is already there — they review, tweak, and send. The work shifts from *writing* to *reviewing*.
+
+## Prerequisites
+
+- Access to Inkeep Enterprise — [schedule a demo](https://inkeep.com/schedule-demo) if you don't have it yet
+- A Zendesk org where the agent can post internal (private) comments on tickets
+- A **Zendesk MCP server** registered in your project, with a tool that posts an internal comment on a ticket. If you don't have one yet, see [Build Custom MCP Servers](/guides/mcp-servers/custom-mcp-servers).
+- An **Inkeep Unified Search MCP** connected to your knowledge base, with a search tool exposed. If you haven't set this up, follow the [Customer Assistant setup](/guides/agents/customer-assistant/setup) — the credential + MCP registration steps there are the same here.
+
+## Create the Reply Drafter agent
+
+<Steps>
+  <Step>
+    In the Visual Builder, go to the **Agents** tab in the left sidebar and click **Create agent**.
+  </Step>
+  <Step>
+    Click the **Default Sub Agent** on the canvas to configure it. Fill in:
+
+    - **Name**: `Reply Drafter`
+    - **Description**: `Reads a Zendesk ticket, searches the knowledge base, and posts a draft reply as an internal comment.`
+    - **Prompt**: Paste the prompt below
+  </Step>
+</Steps>
+
+**Prompt:**
+
+```text
+# Your job
+
+For every incoming Zendesk ticket, search your knowledge base for relevant docs and post a draft reply as a **private (internal) comment** on the ticket. Never reply publicly — the comment is for a human rep to review and send.
+
+# How to draft
+
+1. Read the customer's question from the trigger message
+2. Call **search-knowledge-base** to find relevant docs
+3. Write a clear, 2-3 paragraph draft reply grounded in what the docs say
+4. If the docs don't cover the question, say so plainly in the draft — don't invent facts
+
+# Post the comment
+
+Call **add_internal_ticket_comment** exactly once with:
+
+- `ticket_id` — from the trigger message
+- `body` — the draft, formatted like this:
+
+✍️ Draft reply
+
+[Your drafted answer here, 2-3 paragraphs]
+
+Sources:
+- [URL 1]
+- [URL 2]
+
+— Drafted by AI. Review before sending.
+```
+
+<Tip>
+Tool names to verify before you save:
+
+- `search-knowledge-base` is the example name for the Inkeep Unified Search tool. Your MCP may name it differently — swap it in the prompt to match.
+- `add_internal_ticket_comment` is the example name for the Zendesk internal-comment tool. Same — swap if your MCP names it differently.
+</Tip>
+
+## Connect the MCPs
+
+<Steps>
+  <Step>
+    On the agent canvas, drag and drop an **MCP** block from the top left toolbar. Select your **Inkeep Unified Search MCP** and connect it to the **Reply Drafter** sub agent.
+  </Step>
+  <Step>
+    Click the MCP block and restrict **Active Tools** to only the knowledge-base search tool — the agent doesn't need anything else from this MCP.
+  </Step>
+  <Step>
+    Drag a second **MCP** block onto the canvas. Select your **Zendesk MCP** and connect it to the **Reply Drafter** sub agent.
+  </Step>
+  <Step>
+    Click the Zendesk MCP block and restrict **Active Tools** to only the tool that posts an internal/private comment — this agent only writes internal comments, so leaving other tools enabled invites mistakes.
+  </Step>
+  <Step>
+    Click **Save Changes** in the top right corner.
+  </Step>
+</Steps>
+
+## Create the webhook trigger
+
+The trigger is the door Zendesk knocks on to wake the agent up.
+
+<Steps>
+  <Step>
+    Go to **Triggers** in the left sidebar and click **New Webhook Trigger**.
+  </Step>
+  <Step>
+    Select the **Reply Drafter** agent you just built as the agent this trigger will invoke, then click **Continue**.
+  </Step>
+  <Step>
+    Fill in:
+
+    - **Name**: e.g. `Zendesk new-ticket trigger (drafter)`
+    - **Authentication**: `None` — the URL itself is the secret
+  </Step>
+  <Step>
+    Click **Create Trigger**. Copy the webhook URL that appears — you'll need it in the next section.
+  </Step>
+</Steps>
+
+## Wire Zendesk to fire the trigger
+
+Now set up Zendesk so every new ticket POSTs to the trigger URL you just copied.
+
+See [Trigger Inkeep agents from Zendesk tickets](/visual-builder/triggers/ticketing/zendesk) — paste your trigger URL into the Zendesk webhook's **Endpoint URL**. Come back here when you're done.
+
+## Test the agent
+
+<Steps>
+  <Step>
+    From an outside email address, send a test ticket to your Zendesk support address with a question your knowledge base should be able to answer (e.g., *"How do I get started with [product]?"*).
+  </Step>
+  <Step>
+    Switch to the Zendesk tab, find the new ticket, and refresh.
+  </Step>
+</Steps>
+
+Within about 15 seconds, an internal comment appears on the ticket containing the AI's draft reply and the docs it cited. The customer sees nothing yet — the draft is for the rep, not the customer.

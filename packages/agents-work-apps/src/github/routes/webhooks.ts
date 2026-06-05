@@ -62,7 +62,7 @@ const app = new Hono();
 
 app.post('/', async (c) => {
   if (!isWebhookConfigured()) {
-    logger.error({}, 'GitHub webhook secret not configured');
+    logger.error('GitHub webhook secret not configured');
     return c.json(
       {
         error: 'GitHub webhook secret not configured',

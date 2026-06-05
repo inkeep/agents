@@ -1,3 +1,7 @@
+import {
+  oauthProviderAuthServerMetadata,
+  oauthProviderOpenIdConfigMetadata,
+} from '@better-auth/oauth-provider';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { getInProcessFetch, getWaitUntil, registerAppFetch } from '@inkeep/agents-core';
 import { githubRoutes } from '@inkeep/agents-work-apps/github';
@@ -5,17 +9,21 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { requestId } from 'hono/request-id';
 import { pinoLogger } from 'hono-pino';
+import { credentialGatewayRoutes } from './domains/credential-gateway/routes';
 import { evalRoutes } from './domains/evals';
 import { workflowRoutes } from './domains/evals/workflow/routes';
 import { manageRoutes } from './domains/manage';
 import mcpRoutes from './domains/mcp/routes/mcp';
 import { runRoutes } from './domains/run';
+import { WEBHOOK_DELIVERY_TOPIC } from './domains/run/services/webhookQueueDispatcher';
 import { workAppsRoutes } from './domains/work-apps';
 import { env } from './env';
 import { flushBatchProcessor } from './instrumentation';
-import { getLogger } from './logger';
+import { getLogger, runWithLogContext } from './logger';
 import {
   authCorsConfig,
+  credentialGatewayCatalogCorsConfig,
+  credentialGatewayCorsConfig,
   defaultCorsConfig,
   errorHandler,
   manageBearerOrSessionAuth,
@@ -29,6 +37,7 @@ import {
   workAppsCorsConfig,
 } from './middleware';
 import { branchScopedDbMiddleware } from './middleware/branchScopedDb';
+import { isManageRouteExemptFromBranchScopedDb } from './middleware/manageBranchScopedDbExemptions';
 import { projectConfigMiddleware, projectConfigMiddlewareExcept } from './middleware/projectConfig';
 import { manageRefMiddleware, runRefMiddleware, writeProtectionMiddleware } from './middleware/ref';
 import { sessionContext } from './middleware/sessionAuth';
@@ -37,6 +46,7 @@ import { setupOpenAPIRoutes } from './openapi';
 import { cleanupStreamChunksHandler } from './routes/cleanupStreamChunks';
 import { healthChecksHandler } from './routes/healthChecks';
 import { restartWorkflowHandler } from './routes/restartScheduler';
+import { POST as handleWebhookDeliveryQueue } from './routes/webhookDeliveryConsumer';
 import type { AppConfig, AppVariables } from './types';
 
 const logger = getLogger('agents-api');
@@ -124,6 +134,17 @@ function createAgentsHono(config: AppConfig) {
     app.on(['POST', 'GET'], '/api/auth/*', (c) => {
       return auth.handler(c.req.raw);
     });
+
+    // OIDC / OAuth 2.1 discovery endpoints
+    const openIdConfigHandler = oauthProviderOpenIdConfigMetadata(auth);
+    const authServerMetadataHandler = oauthProviderAuthServerMetadata(auth);
+
+    app.get('/.well-known/openid-configuration', (c) => {
+      return openIdConfigHandler(c.req.raw);
+    });
+    app.get('/.well-known/oauth-authorization-server/*', (c) => {
+      return authServerMetadataHandler(c.req.raw);
+    });
   }
   // Run routes - permissive CORS (origin: '*')
   app.use('/run/*', cors(runCorsConfig));
@@ -135,6 +156,9 @@ function createAgentsHono(config: AppConfig) {
 
   // Work Apps routes - specific CORS config for dashboard integration
   app.use('/work-apps/*', cors(workAppsCorsConfig));
+
+  app.use('/credential-gateway/.well-known/platforms', cors(credentialGatewayCatalogCorsConfig));
+  app.use('/credential-gateway/*', cors(credentialGatewayCorsConfig));
 
   // Global CORS middleware - handles all other routes
   app.use('*', async (c, next) => {
@@ -152,6 +176,9 @@ function createAgentsHono(config: AppConfig) {
       return next();
     }
     if (c.req.path.includes('/signoz/')) {
+      return next();
+    }
+    if (c.req.path.startsWith('/credential-gateway/')) {
       return next();
     }
 
@@ -244,10 +271,22 @@ function createAgentsHono(config: AppConfig) {
   app.use('/run/v1/*', runApiKeyAuth());
   app.use('/run/api/*', runApiKeyAuth());
 
-  // Ref versioning middleware for all tenant routes - MUST be before route mounting
-  app.use('/manage/tenants/*', async (c, next) => manageRefMiddleware(c, next));
-  app.use('/manage/tenants/*', (c, next) => writeProtectionMiddleware(c, next));
-  app.use('/manage/tenants/*', async (c, next) => branchScopedDbMiddleware(c, next));
+  // Ref versioning middleware for all tenant routes - MUST be before route mounting.
+  // Routes that never touch the manage Doltgres DB are exempted so they don't
+  // resolve a ref or pin a branch-scoped connection (see
+  // manageBranchScopedDbExemptions). Tenant/session auth above this still applies.
+  app.use('/manage/tenants/*', async (c, next) => {
+    if (isManageRouteExemptFromBranchScopedDb(c.req.path)) return next();
+    return manageRefMiddleware(c, next);
+  });
+  app.use('/manage/tenants/*', (c, next) => {
+    if (isManageRouteExemptFromBranchScopedDb(c.req.path)) return next();
+    return writeProtectionMiddleware(c, next);
+  });
+  app.use('/manage/tenants/*', async (c, next) => {
+    if (isManageRouteExemptFromBranchScopedDb(c.req.path)) return next();
+    return branchScopedDbMiddleware(c, next);
+  });
 
   // Apply ref middleware to all execution routes (skip public auth endpoints)
   app.use('/run/*', async (c, next) => {
@@ -269,6 +308,30 @@ function createAgentsHono(config: AppConfig) {
     return executionBaggageMiddleware()(c, next);
   });
 
+  // Logger ALS context for run routes
+  app.use('/run/*', async (c, next) => {
+    const ctx = c.get('executionContext' as keyof typeof c.var) as
+      | { tenantId: string; projectId: string; agentId: string }
+      | undefined;
+    if (ctx) {
+      return runWithLogContext(
+        { tenantId: ctx.tenantId, projectId: ctx.projectId, agentId: ctx.agentId },
+        () => next()
+      );
+    }
+    return next();
+  });
+
+  // Logger ALS context for manage routes
+  app.use('/manage/tenants/*', async (c, next) => {
+    const tenantId = c.get('tenantId');
+    if (tenantId) {
+      const projectId = c.req.param('projectId');
+      return runWithLogContext({ tenantId, ...(projectId && { projectId }) }, () => next());
+    }
+    return next();
+  });
+
   // management routes
   app.route('/manage', manageRoutes);
 
@@ -282,15 +345,18 @@ function createAgentsHono(config: AppConfig) {
   app.route('/.well-known', workflowRoutes);
 
   // Handle /index POST - Vercel Queue delivers CloudEvents here
-  // Forward to the workflow flow handler - the dispatchFlowOrStep in routes.ts
-  // handles the actual flow/step routing based on x-vqs-queue-name header
+  // Routes webhook-delivery topic to the queue consumer, everything else to the
+  // workflow flow handler
   app.post('/index', async (c) => {
-    const originalUrl = new URL(c.req.url);
+    const ceSource = c.req.header('ce-source') ?? '';
+
+    if (ceSource.includes(`/topic/${WEBHOOK_DELIVERY_TOPIC}/`)) {
+      return handleWebhookDeliveryQueue(c.req.raw);
+    }
+
     const bodyBuffer = await c.req.arrayBuffer();
-
-    // Always forward to /flow - the dispatcher in routes.ts handles flow/step routing
+    const originalUrl = new URL(c.req.url);
     const targetUrl = new URL('/.well-known/workflow/v1/flow', originalUrl.origin);
-
     const forwardedRequest = new Request(targetUrl.toString(), {
       method: 'POST',
       headers: new Headers(c.req.raw.headers),
@@ -314,6 +380,9 @@ function createAgentsHono(config: AppConfig) {
 
   // Mount MCP routes at top level
   app.route('/mcp', mcpRoutes);
+
+  // Mount Credential Gateway (server-to-server token exchange)
+  app.route('/credential-gateway', credentialGatewayRoutes);
 
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);

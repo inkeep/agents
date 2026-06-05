@@ -4,24 +4,35 @@ import {
   type FilePart,
   GENERATION_TYPES,
   type Part,
+  SESSION_EVENT_AGENT_GENERATE,
   SPAN_KEYS,
+  TRANSFER_TOOL_PREFIX,
 } from '@inkeep/agents-core';
 import type { Span } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
-import type { ToolSet } from 'ai';
+import type { StepResult, ToolSet } from 'ai';
 import { generateText, Output, streamText } from 'ai';
 import { getLogger } from '../../../../logger';
+import type { StreamPart } from '../../artifacts/ArtifactParser';
+import { isInternalToolResultArtifactData } from '../../artifacts/internal-artifacts';
 import type { MidGenerationCompressor } from '../../compression/MidGenerationCompressor';
+import { emitWebhookEventFireAndForget } from '../../services/WebhookDeliveryService';
 import { agentSessionManager } from '../../session/AgentSession';
 import { getStreamHelper } from '../../stream/stream-registry';
 import { withJsonPostProcessing } from '../../utils/json-postprocessor';
 import { extractTextFromParts } from '../../utils/message-parts';
+import {
+  buildStrippedPartsNote,
+  stripIncompatibleOfficeParts,
+} from '../../utils/model-file-support';
 import { setSpanWithError, tracer } from '../../utils/tracer';
 import type { AgentRunContext, ResolvedGenerationResponse } from '../agent-types';
 import { hasToolCallWithPrefix, resolveGenerationResponse } from '../agent-types';
+import { enforceOutputContract, resolveContractToolChoice } from '../output-contract';
 import { handleStreamGeneration } from '../streaming/stream-handler';
 import { V1_BREAKDOWN_SCHEMA } from '../versions/v1/PromptConfig';
 import { handlePrepareStepCompression, handleStopWhenConditions } from './ai-sdk-callbacks';
+import { attachPromptCaching } from './caching-actuator';
 import { setupCompression } from './compression';
 import { buildConversationHistory, buildInitialMessages } from './conversation-history';
 import { configureModelSettings } from './model-config';
@@ -121,6 +132,209 @@ export function buildTelemetryConfig(ctx: AgentRunContext, phase?: string): obje
   };
 }
 
+export function computeGenerationType(
+  parts: Array<{ kind?: string }> | undefined | null,
+  hasObject: boolean
+): 'text_generation' | 'object_generation' | 'mixed_generation' {
+  const hasText = (parts || []).some((p) => p?.kind === 'text');
+  if (hasText && hasObject) return 'mixed_generation';
+  if (hasObject) return 'object_generation';
+  return 'text_generation';
+}
+
+export function buildStructuredSuccessText(response: ResolvedGenerationResponse): string {
+  const prelude = response.text?.trim();
+  const json = JSON.stringify(response.output, null, 2);
+  if (!prelude) return json;
+  if (preludeEqualsOutput(prelude, response.output)) return json;
+  return `${prelude}\n\n${json}`;
+}
+
+function preludeEqualsOutput(prelude: string, output: unknown): boolean {
+  try {
+    const parsed = JSON.parse(prelude);
+    // Canonicalise key order before comparing — two objects with identical content but different
+    // key order (possible when the model's prelude text and the SDK's parsed output take
+    // different serialization paths) would otherwise compare unequal and produce a duplicated
+    // prelude in the rendered response.
+    return canonicalJsonString(parsed) === canonicalJsonString(output);
+  } catch {
+    return false;
+  }
+}
+
+function canonicalJsonString(value: unknown): string {
+  return JSON.stringify(sortObjectKeysDeep(value));
+}
+
+function sortObjectKeysDeep(value: unknown): unknown {
+  if (value === null || typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.map(sortObjectKeysDeep);
+  return Object.keys(value as Record<string, unknown>)
+    .sort()
+    .reduce<Record<string, unknown>>((acc, key) => {
+      acc[key] = sortObjectKeysDeep((value as Record<string, unknown>)[key]);
+      return acc;
+    }, {});
+}
+
+export function selectStructuredFallbackText(response: ResolvedGenerationResponse): string {
+  if (response.text) return response.text;
+  const stepText = response.steps
+    ?.map((s: StepResult<ToolSet> | undefined) => s?.text)
+    .filter((t): t is string => Boolean(t))
+    .join('\n\n');
+  return stepText || '';
+}
+
+type EventPart = {
+  type: 'text' | 'data_component' | 'data_artifact';
+  content?: string;
+  data?: unknown;
+};
+
+export function mapPartsToEventParts(
+  parts: Array<{ kind?: string; text?: string; data?: unknown } | StreamPart> | undefined | null
+): Array<EventPart> {
+  return (parts || []).flatMap((part): EventPart[] => {
+    if (part.kind === 'text') {
+      return [{ type: 'text' as const, content: (part as StreamPart).text ?? '' }];
+    }
+    if (part.kind === 'data') {
+      const data = (part as StreamPart).data as
+        | { artifactId?: unknown; toolCallId?: unknown }
+        | undefined;
+      // Internal tool_result artifacts are model-facing only — strip from the
+      // end-user event stream. They remain in the ledger and model history.
+      // See SPEC 2026-05-30-internal-compressed-artifact-suppression (D1–D3).
+      if (isInternalToolResultArtifactData(data)) {
+        logger.debug(
+          { artifactId: data?.artifactId, op: 'mapPartsToEventParts' },
+          'Suppressed internal tool_result artifact from end-user event stream'
+        );
+        return [];
+      }
+      const isArtifact = Boolean(data?.artifactId && data?.toolCallId);
+      return [
+        {
+          type: isArtifact ? ('data_artifact' as const) : ('data_component' as const),
+          data: (part as StreamPart).data,
+        },
+      ];
+    }
+    logger.warn(
+      { kind: part.kind, op: 'mapPartsToEventParts' },
+      'unknown part kind — mapping to empty text part'
+    );
+    return [{ type: 'text' as const, content: '' }];
+  });
+}
+
+export function resolveTextResponseAndWarn({
+  response,
+  hasStructuredOutput,
+  hasTransferToolCall,
+  logger: log,
+  warnContext,
+}: {
+  response: ResolvedGenerationResponse;
+  hasStructuredOutput: boolean;
+  hasTransferToolCall: boolean;
+  logger: {
+    warn: (obj: Record<string, unknown>, msg: string) => void;
+  };
+  warnContext: Record<string, unknown>;
+}): string {
+  if (hasStructuredOutput && response.output) {
+    return buildStructuredSuccessText(response);
+  }
+  if (hasTransferToolCall) {
+    return response.steps?.[response.steps.length - 1]?.text || '';
+  }
+  if (hasStructuredOutput) {
+    log.warn(warnContext, 'Structured output expected but not produced; surfacing fallback text');
+    return selectStructuredFallbackText(response);
+  }
+  return response.text || '';
+}
+
+function emitGenerationError(ctx: AgentRunContext, reason: string): void {
+  const resolvedRef = ctx.executionContext?.resolvedRef;
+  if (resolvedRef && ctx.conversationId) {
+    const prefetchedDestinations = ctx.streamRequestId
+      ? agentSessionManager.getPrefetchedDestinations(ctx.streamRequestId)
+      : undefined;
+    emitWebhookEventFireAndForget(
+      {
+        tenantId: ctx.executionContext.tenantId,
+        projectId: ctx.executionContext.projectId,
+        agentId: ctx.config.agentId,
+        resolvedRef,
+        eventType: 'conversation.generation.error',
+        data: { conversation: { id: ctx.conversationId }, reason },
+        prefetchedDestinations,
+      },
+      'generation-error'
+    );
+  }
+}
+
+export function flushDeferredToolErrors(ctx: AgentRunContext): void {
+  const deferredToolErrors = ctx.deferredToolErrors;
+  const mcpServerSuccesses = ctx.mcpServerSuccesses;
+  if (!deferredToolErrors || deferredToolErrors.length === 0) return;
+
+  const resolvedRef = ctx.executionContext?.resolvedRef;
+  if (!resolvedRef || !ctx.conversationId) {
+    ctx.deferredToolErrors = [];
+    ctx.mcpServerSuccesses = new Set();
+    return;
+  }
+
+  const errorsToEmit = deferredToolErrors.filter((err) => {
+    if (!err.mcpServerId) return true;
+    return !mcpServerSuccesses.has(err.mcpServerId);
+  });
+
+  const suppressedCount = deferredToolErrors.length - errorsToEmit.length;
+  if (suppressedCount > 0) {
+    logger.info(
+      {
+        conversationId: ctx.conversationId,
+        suppressedCount,
+        emittedCount: errorsToEmit.length,
+        serversWithSuccess: [...mcpServerSuccesses],
+      },
+      'Suppressed tool error webhooks for MCP servers that also had successful calls'
+    );
+  }
+
+  for (const err of errorsToEmit) {
+    emitWebhookEventFireAndForget(
+      {
+        tenantId: ctx.executionContext.tenantId,
+        projectId: ctx.executionContext.projectId,
+        agentId: ctx.config.agentId,
+        resolvedRef,
+        eventType: 'conversation.tool.error',
+        data: {
+          conversation: { id: ctx.conversationId },
+          tool: { id: err.relationshipId, name: err.toolName },
+          mcpServer: err.mcpServerName
+            ? { id: err.mcpServerId, name: err.mcpServerName }
+            : undefined,
+          reason: err.reason,
+        },
+        prefetchedDestinations: err.prefetchedDestinations,
+      },
+      'tool-error'
+    );
+  }
+
+  ctx.deferredToolErrors = [];
+  ctx.mcpServerSuccesses = new Set();
+}
+
 export function handleGenerationError(ctx: AgentRunContext, error: unknown, span: Span): never {
   if (ctx.currentCompressor) {
     ctx.currentCompressor.fullCleanup();
@@ -130,7 +344,6 @@ export function handleGenerationError(ctx: AgentRunContext, error: unknown, span
   const errorToThrow = error instanceof Error ? error : new Error(String(error));
   logger.error(
     {
-      agentId: ctx.config.id,
       errorMessage: errorToThrow.message,
       errorStack: errorToThrow.stack,
       errorName: errorToThrow.name,
@@ -139,6 +352,10 @@ export function handleGenerationError(ctx: AgentRunContext, error: unknown, span
   );
   setSpanWithError(span, errorToThrow);
   span.end();
+
+  emitGenerationError(ctx, errorToThrow.message);
+  flushDeferredToolErrors(ctx);
+
   throw errorToThrow;
 }
 
@@ -199,6 +416,7 @@ export async function runGenerate(
           systemPrompt,
           sanitizedTools,
           contextBreakdown: initialContextBreakdown,
+          artifactsMessage,
         } = await loadToolsAndPrompts(ctx, sessionId, streamRequestId || undefined, runtimeContext);
 
         const { conversationHistory, contextBreakdown } = await buildConversationHistory(
@@ -218,17 +436,49 @@ export async function runGenerate(
         breakdownAttributes['context.breakdown.total_tokens'] = contextBreakdown.total;
         span.setAttributes(breakdownAttributes);
 
-        const { primaryModelSettings, modelSettings, hasStructuredOutput, timeoutMs } =
-          configureModelSettings(ctx);
-        const inlinePdfFileCount = fileParts.filter(
+        const {
+          primaryModelSettings,
+          modelSettings,
+          hasStructuredOutput,
+          hasContractEnforcement,
+          timeoutMs,
+        } = configureModelSettings(ctx);
+
+        const contractToolChoice = resolveContractToolChoice({
+          resolvedAllowText: ctx.resolvedAllowText,
+          hasStructuredOutput,
+          hasArtifactComponents: Boolean(ctx.config.artifactComponents?.length),
+        });
+
+        const resolvedModelId = primaryModelSettings.model ?? '';
+        const { compatible: compatibleFileParts, stripped } = stripIncompatibleOfficeParts(
+          fileParts,
+          resolvedModelId
+        );
+
+        let effectiveUserMessage = userMessage;
+        if (stripped.length > 0) {
+          const note = buildStrippedPartsNote(stripped);
+          effectiveUserMessage = `${userMessage}\n\n${note}`;
+          logger.warn(
+            {
+              agentId: ctx.config.agentId,
+              modelId: primaryModelSettings.model,
+              strippedParts: stripped,
+            },
+            'Stripped incompatible office document parts before generation'
+          );
+          span.setAttribute('input.stripped_file_count', stripped.length);
+        }
+
+        const inlinePdfFileCount = compatibleFileParts.filter(
           (part) => part.file.mimeType?.toLowerCase().startsWith('application/pdf') === true
         ).length;
         span.setAttributes({
-          'input.file_count': fileParts.length,
+          'input.file_count': compatibleFileParts.length,
           'input.pdf_file_count': inlinePdfFileCount,
         });
         let response: ResolvedGenerationResponse;
-        let textResponse: string;
 
         const toolsForLlm = options?.schemaOnlyTools
           ? Object.fromEntries(
@@ -239,8 +489,9 @@ export async function runGenerate(
         const messages = await buildInitialMessages(
           systemPrompt,
           conversationHistory,
-          userMessage,
-          fileParts
+          effectiveUserMessage,
+          compatibleFileParts,
+          artifactsMessage
         );
 
         const { originalMessageCount, compressor } = setupCompression(
@@ -253,7 +504,7 @@ export async function runGenerate(
 
         const streamConfig = {
           ...modelSettings,
-          toolChoice: 'auto' as const,
+          toolChoice: contractToolChoice,
         };
 
         const shouldStream = ctx.isDelegatedAgent ? undefined : ctx.streamHelper;
@@ -264,7 +515,7 @@ export async function runGenerate(
             dataComponentsSchema = buildDataComponentsSchema(ctx);
           } catch (err) {
             logger.error(
-              { agentId: ctx.config.id, err },
+              { err },
               'Failed to build data components schema — continuing without structured output'
             );
           }
@@ -278,7 +529,7 @@ export async function runGenerate(
           compressor,
           originalMessageCount,
           timeoutMs,
-          'auto',
+          contractToolChoice,
           dataComponentsSchema ? 'structured_generation' : undefined
         );
 
@@ -290,14 +541,92 @@ export async function runGenerate(
                   dataComponents: z.array(dataComponentsSchema),
                 }),
               }),
+              // ---------------------------------------------------------------------------
+              // Anthropic: force synthetic-tool path for token-level structured-output streaming
+              // ---------------------------------------------------------------------------
+              //
+              // Default behaviour ('auto' / 'outputFormat') on Claude Sonnet 4.5 / Opus 4.5 /
+              // Opus 4.1 routes through Anthropic's native structured-outputs beta
+              // (`output_format: { type: "json_schema" }`, beta header
+              // `structured-outputs-2025-11-13`). In streaming mode that path has a
+              // client-visible failure: the final structured JSON arrives as ONE giant
+              // text-delta event after 20+ seconds of silence post-tool-result, instead of
+              // token-by-token. We measured a single 3197-char text-delta in diagnostics.
+              //
+              // Root cause is in the Vercel AI SDK's `createOutputTransformStream`
+              // (ai/dist/index.mjs): the transform only publishes a text chunk when
+              // `parsePartialOutput` produces a new parseable result. For deeply nested
+              // schemas like `{ dataComponents: [...] }`, `parsePartialJson` can't produce a
+              // valid partial until the full JSON closes, so every intermediate text-delta is
+              // swallowed and the whole buffer is dumped at `finish-step`. Anthropic's HTTP
+              // API itself streams `text_delta` events fine — confirmed by Anthropic's own
+              // docs and Vercel's AI Gateway examples. Upgrading `ai` (6.0.14 → 6.0.168) and
+              // `@ai-sdk/anthropic` (3.0.7 → 3.0.71) does NOT fix this — the transform-gate
+              // has not changed upstream. Community tracking: vercel/ai#3422, #12427, #12298,
+              // #7220, #9351 (all open or recent, multiple reporters, no upstream fix).
+              //
+              // `structuredOutputMode: 'jsonTool'` forces the Anthropic provider's
+              // synthetic-tool fallback: instead of `output_format`, it injects a synthetic
+              // tool named "json" with `tool_choice: required` and streams tokens as
+              // `input_json_delta` → `text-delta` events. That path bypasses
+              // `createOutputTransformStream` entirely and gives us smooth token-level
+              // streaming of the final structured output.
+              //
+              // Known tradeoff: `tool_choice: required` prefills the assistant turn, so
+              // Claude does NOT emit pre-tool-call reasoning text ("Let me search..."). This
+              // is documented API behaviour in Anthropic's tool-use docs:
+              // "the API prefills the assistant message to force a tool to be used... models
+              //  will not emit a natural language response or explanation before tool_use
+              //  content blocks, even if explicitly asked to do so."
+              // We accept this loss because our existing data-operation wire events (tool_call,
+              // tool_result) still surface tool activity to the UI, and immediate streaming of
+              // the final answer is better UX than a long silent window.
+              //
+              // The alternative escape hatches all have significant cost:
+              //   - Keep `auto` and accept the 20s burst — worst UX overall.
+              //   - Drop `Output.object()` and parse JSON ourselves — loses API-enforced
+              //     schema validation (model could emit malformed JSON or wrong shape).
+              //   - Two-call architecture (streamText without `output` for reasoning + tool
+              //     calls, then generateObject/streamText with `output` for the structured
+              //     answer) — doubles API round-trips and complicates state management.
+              //
+              // Namespaced under `anthropic`, so other providers (OpenAI, Google, Bedrock)
+              // ignore this option completely. If those providers show similar structured-
+              // output buffering in the future, a sibling `providerOptions.<provider>` entry
+              // can be added without touching this one.
+              //
+              // References:
+              //   - @ai-sdk/anthropic@3.0.7 dist/index.js:744-750 (structuredOutputMode schema)
+              //   - @ai-sdk/anthropic@3.0.7 dist/index.js:2413-2477 (mode routing)
+              //   - @ai-sdk/anthropic@3.0.7 dist/index.js:2644 (tool_choice: required)
+              //   - ai@6.0.14 dist/index.mjs:5698-5758 (createOutputTransformStream gate)
+              //   - Anthropic docs: https://platform.claude.com/docs/en/build-with-claude/structured-outputs
+              //   - Anthropic tool_choice: https://docs.anthropic.com/en/docs/build-with-claude/tool-use
+              //   - vercel/ai#12427 (open, most recent reproduction)
+              //   - vercel/ai#9351 (community middleware workaround)
+              providerOptions: {
+                ...(baseConfig as { providerOptions?: Record<string, unknown> }).providerOptions,
+                anthropic: {
+                  ...((
+                    baseConfig as {
+                      providerOptions?: { anthropic?: Record<string, unknown> };
+                    }
+                  ).providerOptions?.anthropic ?? {}),
+                  structuredOutputMode: 'jsonTool',
+                },
+              },
             }
           : baseConfig;
 
-        const nonStreamingConfig = withJsonPostProcessing(generationConfig);
+        const cachedGenerationConfig = attachPromptCaching(
+          generationConfig as Record<string, unknown>,
+          primaryModelSettings
+        );
+
+        const nonStreamingConfig = withJsonPostProcessing(cachedGenerationConfig);
 
         logger.info(
           {
-            agentId: ctx.config.id,
             hasStructuredOutput,
             shouldStream,
           },
@@ -306,7 +635,9 @@ export async function runGenerate(
 
         let rawResponse: Record<string, unknown> | ResolvedGenerationResponse;
         if (shouldStream) {
-          const streamResult = streamText(generationConfig as Parameters<typeof streamText>[0]);
+          const streamResult = streamText(
+            cachedGenerationConfig as Parameters<typeof streamText>[0]
+          );
           rawResponse = await handleStreamGeneration(
             ctx,
             streamResult,
@@ -322,7 +653,6 @@ export async function runGenerate(
 
         logger.info(
           {
-            agentId: ctx.config.id,
             hasOutput: !!rawResponse.output,
             dataComponentsCount:
               (rawResponse.output as { dataComponents?: unknown[] } | undefined)?.dataComponents
@@ -339,18 +669,35 @@ export async function runGenerate(
 
           logger.info(
             {
-              agentId: ctx.config.id,
               dataComponentsCount: response.output?.dataComponents?.length || 0,
               dataComponentNames: response.output?.dataComponents?.map((dc: any) => dc.name) || [],
             },
             'Processing response with data components'
           );
-          textResponse = JSON.stringify(response.output, null, 2);
-        } else if (hasToolCallWithPrefix('transfer_to_')(response)) {
-          textResponse = response.steps[response.steps.length - 1].text || '';
-        } else {
-          textResponse = response.text || '';
         }
+
+        const hasTransferToolCall = hasToolCallWithPrefix(TRANSFER_TOOL_PREFIX)(response);
+        const textResponse = resolveTextResponseAndWarn({
+          response,
+          hasStructuredOutput,
+          hasTransferToolCall,
+          logger,
+          warnContext: {
+            agentId: ctx.config.agentId,
+            conversationId: conversationIdForSpan,
+            finishReason: response.finishReason,
+          },
+        });
+
+        enforceOutputContract({
+          ctx,
+          response,
+          hasStructuredOutput,
+          hasContractEnforcement,
+          textResponse,
+          span,
+          logger,
+        });
 
         const actualInputTokens = response.totalUsage?.inputTokens ?? response.usage?.inputTokens;
         if (actualInputTokens != null) {
@@ -364,7 +711,6 @@ export async function runGenerate(
 
           logger.warn(
             {
-              agentId: ctx.config.id,
               finishReason: response.finishReason,
               conversationId: conversationIdForSpan,
             },
@@ -375,6 +721,8 @@ export async function runGenerate(
             [SPAN_KEYS.GENERATION_TIMEOUT_MS]: timeoutMs,
           });
           setSpanWithError(span, timeoutError);
+
+          emitGenerationError(ctx, 'Generation terminated by timeout/abort signal');
         } else {
           span.setStatus({ code: SpanStatusCode.OK });
         }
@@ -390,26 +738,28 @@ export async function runGenerate(
         );
 
         if (streamRequestId) {
-          const generationType = response.object ? 'object_generation' : 'text_generation';
+          const generationType = computeGenerationType(
+            formattedResponse.formattedContent?.parts,
+            !!response.object
+          );
 
-          agentSessionManager.recordEvent(streamRequestId, 'agent_generate', ctx.config.id, {
-            parts: (formattedResponse.formattedContent?.parts || []).map((part: any) => ({
-              type:
-                part.kind === 'text'
-                  ? ('text' as const)
-                  : part.kind === 'data'
-                    ? ('tool_result' as const)
-                    : ('text' as const),
-              content: part.text || JSON.stringify(part.data),
-            })),
-            generationType,
-          });
+          agentSessionManager.recordEvent(
+            streamRequestId,
+            SESSION_EVENT_AGENT_GENERATE,
+            ctx.config.id,
+            {
+              parts: mapPartsToEventParts(formattedResponse.formattedContent?.parts),
+              generationType,
+            }
+          );
         }
 
         if (compressor) {
           compressor.fullCleanup();
         }
         ctx.currentCompressor = null;
+
+        flushDeferredToolErrors(ctx);
 
         return formattedResponse;
       } catch (error) {

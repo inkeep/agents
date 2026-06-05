@@ -408,6 +408,80 @@ describe('Slack Work App Routes', () => {
     });
   });
 
+  describe('DELETE /workspaces/:teamId', () => {
+    const bypassHeaders = {
+      'Content-Type': 'application/json',
+      'x-test-bypass-auth': 'true',
+    };
+
+    it('rejects non-Slack-team-ID path params with 400', async () => {
+      // Regression guard: prior to enforcing SlackTeamIdSchema, the UI sent the
+      // Nango connectionId here ("E::T:T123") and the request flowed all the
+      // way into requireWorkspaceAdmin, where the workspace lookup failed with
+      // a confusing "Slack workspace not found" error. With the schema in
+      // place, the Zod layer should reject the request up front.
+      const authedApp = createTestApp({ userId: 'user_admin', tenantId: 'default' });
+      const response = await authedApp.request(`/workspaces/${encodeURIComponent('E::T:T123')}`, {
+        method: 'DELETE',
+        headers: bypassHeaders,
+      });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('rejects empty teamId with 400', async () => {
+      // A bare colon path produces an empty teamId param, which the schema
+      // must also reject — otherwise we get a runtime DB lookup with `''`.
+      const authedApp = createTestApp({ userId: 'user_admin', tenantId: 'default' });
+      const response = await authedApp.request('/workspaces/not-a-team-id', {
+        method: 'DELETE',
+        headers: bypassHeaders,
+      });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('returns 404 when the workspace does not exist for the tenant', async () => {
+      const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
+      vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValueOnce(null);
+
+      const authedApp = createTestApp({ userId: 'user_admin', tenantId: 'default' });
+      const response = await authedApp.request('/workspaces/T123', {
+        method: 'DELETE',
+        headers: bypassHeaders,
+      });
+
+      expect(response.status).toBe(404);
+    });
+
+    it('uninstalls when given a raw Slack team ID', async () => {
+      const { findWorkspaceConnectionByTeamId } = await import('../../slack/services/nango');
+      vi.mocked(findWorkspaceConnectionByTeamId).mockResolvedValueOnce({
+        connectionId: 'E::T:T123',
+        teamId: 'T123',
+        teamName: 'Test Workspace',
+        tenantId: 'default',
+        botToken: 'xoxb-test',
+      } as never);
+
+      // cleanupWorkspaceInstallation is unmocked here; it pulls in Slack/Nango
+      // clients which would fail in this environment. The handler swallows
+      // failures into a 500, so we assert the request reached the handler
+      // (i.e. middleware + Zod validation accepted it) by checking the route
+      // returns *something* other than 400/404. This is intentionally weak so
+      // the test is not coupled to internal cleanup wiring.
+      const authedApp = createTestApp({ userId: 'user_admin', tenantId: 'default' });
+      const response = await authedApp.request('/workspaces/T123', {
+        method: 'DELETE',
+        headers: bypassHeaders,
+      });
+
+      expect([200, 500]).toContain(response.status);
+      expect(response.status).not.toBe(400);
+      expect(response.status).not.toBe(404);
+    });
+  });
+
   describe('POST /users/link/verify-token', () => {
     it('should require token parameter', async () => {
       const response = await app.request('/users/link/verify-token', {

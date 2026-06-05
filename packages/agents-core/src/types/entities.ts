@@ -122,6 +122,10 @@ import type {
   EvaluatorInsertSchema,
   EvaluatorSelectSchema,
   EvaluatorUpdateSchema,
+  EventApiInsertSchema,
+  EventApiSelectSchema,
+  EventInsertSchema,
+  EventSelectSchema,
   ExternalAgentApiInsertSchema,
   ExternalAgentApiSelectSchema,
   ExternalAgentApiUpdateSchema,
@@ -289,6 +293,13 @@ import type {
   UserProfileInsertSchema,
   UserProfileSelectSchema,
   UserProfileUpdateSchema,
+  WebhookDestinationApiInsertSchema,
+  WebhookDestinationApiSelectSchema,
+  WebhookDestinationApiUpdateSchema,
+  WebhookDestinationEventTypeEnum,
+  WebhookDestinationInsertSchema,
+  WebhookDestinationSelectSchema,
+  WebhookDestinationUpdateSchema,
   WorkAppGitHubInstallationInsertSchema,
   WorkAppGitHubInstallationSelectSchema,
   WorkAppGitHubMcpToolRepositoryAccessSelectSchema,
@@ -303,6 +314,11 @@ import type {
 export type FeedbackSelect = z.infer<typeof FeedbackSelectSchema>;
 export type FeedbackInsert = z.infer<typeof FeedbackInsertSchema>;
 export type FeedbackUpdate = z.infer<typeof FeedbackUpdateSchema>;
+
+export type EventSelect = z.infer<typeof EventSelectSchema>;
+export type EventInsert = z.infer<typeof EventInsertSchema>;
+export type EventApiSelect = z.infer<typeof EventApiSelectSchema>;
+export type EventApiInsert = z.infer<typeof EventApiInsertSchema>;
 
 export type DatasetRunSelect = z.infer<typeof DatasetRunSelectSchema>;
 export type DatasetRunInsert = z.infer<typeof DatasetRunInsertSchema>;
@@ -461,6 +477,14 @@ export type TriggerInvocationUpdate = z.infer<typeof TriggerInvocationUpdateSche
 export type TriggerInvocationApiSelect = z.infer<typeof TriggerInvocationApiSelectSchema>;
 export type TriggerInvocationApiInsert = z.infer<typeof TriggerInvocationApiInsertSchema>;
 export type TriggerInvocationApiUpdate = z.infer<typeof TriggerInvocationApiUpdateSchema>;
+
+export type WebhookDestinationEventType = z.infer<typeof WebhookDestinationEventTypeEnum>;
+export type WebhookDestinationSelect = z.infer<typeof WebhookDestinationSelectSchema>;
+export type WebhookDestinationInsert = z.infer<typeof WebhookDestinationInsertSchema>;
+export type WebhookDestinationUpdate = z.infer<typeof WebhookDestinationUpdateSchema>;
+export type WebhookDestinationApiSelect = z.infer<typeof WebhookDestinationApiSelectSchema>;
+export type WebhookDestinationApiInsert = z.infer<typeof WebhookDestinationApiInsertSchema>;
+export type WebhookDestinationApiUpdate = z.infer<typeof WebhookDestinationApiUpdateSchema>;
 
 export type ScheduledTrigger = z.infer<typeof ScheduledTriggerSelectSchema>;
 export type ScheduledTriggerInsert = z.infer<typeof ScheduledTriggerInsertSchema>;

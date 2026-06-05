@@ -25,7 +25,7 @@ import {
 } from '@inkeep/agents-core';
 import { manageDbClient } from '../../../../data/db';
 import runDbClient from '../../../../data/db/runDbClient';
-import { getLogger } from '../../../../logger';
+import { getLogger, runWithLogContext } from '../../../../logger';
 import { buildTimezoneHeaders, executeAgentAsync } from '../../services/TriggerService';
 
 const logger = getLogger('workflow-scheduled-trigger-steps');
@@ -114,10 +114,7 @@ export async function createInvocationIdempotentStep(params: {
   const resolvedRef = await resolveRef(manageDbClient)(projectScopedRef);
 
   if (!resolvedRef) {
-    logger.warn(
-      { tenantId: params.tenantId, projectId: params.projectId },
-      'Failed to resolve ref for project, run will not be associated with a branch'
-    );
+    logger.warn('Failed to resolve ref for project, run will not be associated with a branch');
   }
 
   const invocationId = generateId();
@@ -139,8 +136,6 @@ export async function createInvocationIdempotentStep(params: {
 
   logger.info(
     {
-      tenantId: params.tenantId,
-      projectId: params.projectId,
       scheduledTriggerId: params.scheduledTriggerId,
       invocationId,
       scheduledFor: params.scheduledFor,
@@ -428,121 +423,114 @@ export async function executeScheduledTriggerStep(params: {
     ref: triggerRef,
   } = params;
 
-  if (runAsUserId) {
-    try {
-      const canUse = await canUseProjectStrict({
-        userId: runAsUserId,
-        tenantId,
-        projectId,
-      });
+  return runWithLogContext({ scheduledTriggerId, invocationId }, async () => {
+    if (runAsUserId) {
+      try {
+        const canUse = await canUseProjectStrict({
+          userId: runAsUserId,
+          tenantId,
+          projectId,
+        });
 
-      if (!canUse) {
-        logger.warn(
-          { scheduledTriggerId, invocationId, runAsUserId, projectId },
-          'User no longer has access to project, failing invocation'
-        );
+        if (!canUse) {
+          logger.warn({ runAsUserId }, 'User no longer has access to project, failing invocation');
+          return {
+            success: false,
+            error: `User ${runAsUserId} no longer has 'use' permission on project ${projectId}. An org admin should update or remove the runAsUserId on this trigger.`,
+          };
+        }
+      } catch (err) {
+        logger.error({ runAsUserId, error: err }, 'Failed to check user project access');
         return {
           success: false,
-          error: `User ${runAsUserId} no longer has 'use' permission on project ${projectId}. An org admin should update or remove the runAsUserId on this trigger.`,
+          error: `Permission check failed for user ${runAsUserId}: ${err instanceof Error ? err.message : String(err)}`,
         };
       }
-    } catch (err) {
-      logger.error(
-        { scheduledTriggerId, invocationId, runAsUserId, projectId, error: err },
-        'Failed to check user project access'
-      );
-      return {
-        success: false,
-        error: `Permission check failed for user ${runAsUserId}: ${err instanceof Error ? err.message : String(err)}`,
-      };
     }
-  }
-
-  logger.info(
-    { scheduledTriggerId, invocationId, runAsUserId, ref: triggerRef },
-    'Executing scheduled trigger via executeAgentAsync'
-  );
-  // Generate conversation ID upfront so we can return it even on failure
-  const conversationId = generateId();
-
-  try {
-    const refString = getProjectScopedRef(tenantId, projectId, triggerRef);
-    const resolvedRef = await resolveRef(manageDbClient)(refString);
-
-    if (!resolvedRef) {
-      return {
-        success: false,
-        conversationId,
-        error: `Failed to resolve ref '${triggerRef}' for project ${projectId}`,
-      };
-    }
-
-    // Build user message from template
-    const effectivePayload = payload ?? {};
-    let userMessage: string;
-    if (messageTemplate) {
-      userMessage = interpolateTemplate(messageTemplate, effectivePayload);
-    } else {
-      userMessage = JSON.stringify(effectivePayload);
-    }
-
-    // Create message parts
-    const messageParts: Part[] = [];
-    if (messageTemplate) {
-      messageParts.push({ kind: 'text', text: userMessage });
-    }
-    messageParts.push({
-      kind: 'data',
-      data: effectivePayload,
-      metadata: { source: 'scheduled-trigger', triggerId: scheduledTriggerId },
-    });
-
-    // Execute with timeout
-    const timeoutMs = timeoutSeconds * 1000;
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(
-        () => reject(new Error(`Execution timed out after ${timeoutSeconds}s`)),
-        timeoutMs
-      );
-    });
-
-    await Promise.race([
-      executeAgentAsync({
-        tenantId,
-        projectId,
-        agentId,
-        triggerId: scheduledTriggerId,
-        invocationId,
-        conversationId,
-        userMessage,
-        messageParts,
-        resolvedRef,
-        runAsUserId: runAsUserId ?? undefined,
-        forwardedHeaders: buildTimezoneHeaders(cronTimezone),
-        invocationType: 'scheduled_trigger',
-      }),
-      timeoutPromise,
-    ]);
 
     logger.info(
-      { scheduledTriggerId, invocationId, conversationId },
-      'Scheduled trigger execution completed'
+      { runAsUserId, ref: triggerRef },
+      'Executing scheduled trigger via executeAgentAsync'
     );
+    // Generate conversation ID upfront so we can return it even on failure
+    const conversationId = generateId();
 
-    return {
-      success: true,
-      conversationId,
-    };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(
-      { scheduledTriggerId, invocationId, conversationId, error: errorMessage },
-      'Execute scheduled trigger step failed'
-    );
-    return {
-      success: false,
-      conversationId,
-      error: errorMessage,
-    };
-  }
+    try {
+      const refString = getProjectScopedRef(tenantId, projectId, triggerRef);
+      const resolvedRef = await resolveRef(manageDbClient)(refString);
+
+      if (!resolvedRef) {
+        return {
+          success: false,
+          conversationId,
+          error: `Failed to resolve ref '${triggerRef}' for project ${projectId}`,
+        };
+      }
+
+      // Build user message from template
+      const effectivePayload = payload ?? {};
+      let userMessage: string;
+      if (messageTemplate) {
+        userMessage = interpolateTemplate(messageTemplate, effectivePayload);
+      } else {
+        userMessage = JSON.stringify(effectivePayload);
+      }
+
+      // Create message parts
+      const messageParts: Part[] = [];
+      if (messageTemplate) {
+        messageParts.push({ kind: 'text', text: userMessage });
+      }
+      messageParts.push({
+        kind: 'data',
+        data: effectivePayload,
+        metadata: { source: 'scheduled-trigger', triggerId: scheduledTriggerId },
+      });
+
+      // Execute with timeout
+      const timeoutMs = timeoutSeconds * 1000;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(
+          () => reject(new Error(`Execution timed out after ${timeoutSeconds}s`)),
+          timeoutMs
+        );
+      });
+
+      await Promise.race([
+        executeAgentAsync({
+          tenantId,
+          projectId,
+          agentId,
+          triggerId: scheduledTriggerId,
+          invocationId,
+          conversationId,
+          userMessage,
+          messageParts,
+          resolvedRef,
+          runAsUserId: runAsUserId ?? undefined,
+          forwardedHeaders: buildTimezoneHeaders(cronTimezone),
+          invocationType: 'scheduled_trigger',
+        }),
+        timeoutPromise,
+      ]);
+
+      logger.info({ conversationId }, 'Scheduled trigger execution completed');
+
+      return {
+        success: true,
+        conversationId,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(
+        { conversationId, error: errorMessage },
+        'Execute scheduled trigger step failed'
+      );
+      return {
+        success: false,
+        conversationId,
+        error: errorMessage,
+      };
+    }
+  });
 }

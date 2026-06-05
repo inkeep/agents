@@ -158,10 +158,7 @@ app.openapi(
             createdBy: userId,
           });
 
-          logger.info(
-            { tenantId, projectId: validatedProjectData.id },
-            'Created project with branch, now populating config'
-          );
+          logger.info('Created project with branch, now populating config');
 
           // Checkout the project main branch
           const projectMainBranch = getProjectMainBranchName(tenantId, validatedProjectData.id);
@@ -196,10 +193,7 @@ app.openapi(
               creatorUserId: userId,
             });
           } else {
-            logger.warn(
-              { tenantId, projectId: validatedProjectData.id },
-              'Skipping SpiceDB sync — no userId available'
-            );
+            logger.warn('Skipping SpiceDB sync — no userId available');
           }
           return project;
         });
@@ -216,12 +210,7 @@ app.openapi(
       const mentionsSpiceDb = error?.message?.includes('SpiceDB');
       if (mentionsSpiceDb || isGrpcError) {
         logger.error(
-          {
-            error,
-            tenantId,
-            projectId: validatedProjectData.id,
-            userId,
-          },
+          { error, userId },
           'Failed to sync project to SpiceDB — database transactions rolled back'
         );
         throw createApiError({
@@ -497,7 +486,7 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
                   createdBy: userId,
                 });
 
-                logger.info({ tenantId, projectId }, 'Created project with branch (upsert)');
+                logger.info('Created project with branch (upsert)');
 
                 const projectMainBranch = getProjectMainBranchName(tenantId, projectId);
                 await checkoutBranch(configTx)({
@@ -517,10 +506,7 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
                     creatorUserId: userId,
                   });
                 } else {
-                  logger.warn(
-                    { tenantId, projectId },
-                    'Skipping SpiceDB sync — no userId available'
-                  );
+                  logger.warn('Skipping SpiceDB sync — no userId available');
                 }
 
                 return project;
@@ -553,12 +539,7 @@ const updateFullProjectHandler: ManageRouteHandler<typeof updateFullProjectRoute
       const mentionsSpiceDb = error?.message?.includes('SpiceDB');
       if (mentionsSpiceDb || isGrpcError) {
         logger.error(
-          {
-            error,
-            tenantId,
-            projectId,
-            userId,
-          },
+          { error, userId },
           'Failed to sync project to SpiceDB — database transactions rolled back'
         );
         throw createApiError({
@@ -657,16 +638,12 @@ app.openapi(
           tenantId,
           projectId,
         });
-        logger.info({ tenantId, projectId }, 'Removed project from SpiceDB');
+        logger.info('Removed project from SpiceDB');
       } catch (error) {
         // Log but don't fail - the project data is already deleted
         // This could leave orphaned auth relationships, but won't affect functionality
         logger.warn(
-          {
-            error,
-            tenantId,
-            projectId,
-          },
+          { error },
           'Failed to remove project from SpiceDB - orphaned auth relationships may remain'
         );
       }

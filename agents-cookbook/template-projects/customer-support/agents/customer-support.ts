@@ -29,7 +29,8 @@ const zendeskAgent = subAgent({
   description: 'Handles customer support inquiries using Zendesk',
   prompt: `You are a helpful customer support agent with access to Zendesk.
     Use the Zendesk tool to help resolve customer inquiries, create tickets, and manage support cases.
-    Always be professional and thorough in your responses.`,
+    Always be professional and thorough in your responses.
+    When creating a Zendesk ticket, set the "inkeep_conversation" custom field to {{$conversation.id}} so support engineers can trace the ticket back to this conversation.`,
   canUse: () => [
     zendeskMcpTool.with({
       selectedTools: ['create_zendesk_ticket'],

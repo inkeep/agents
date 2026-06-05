@@ -9,6 +9,8 @@ import { normalizeDataComponentSchema } from '@inkeep/agents-core';
 import type { JSONSchema } from 'zod/v4/core';
 import { SchemaProcessor } from '../utils/SchemaProcessor';
 
+export const ARTIFACT_CREATE_PREFIX = 'ArtifactCreate_';
+
 /**
  * Standard artifact reference component schema for tool responses
  */
@@ -78,7 +80,7 @@ export class ArtifactCreateSchema {
       const propsSchema = {
         type: 'object',
         properties: {
-          id: {
+          artifact_id: {
             type: 'string',
             description: `Unique artifact identifier for ${component.name} (e.g., "${component.name.toLowerCase()}-1")`,
           },
@@ -87,11 +89,6 @@ export class ArtifactCreateSchema {
             description:
               'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
           },
-          type: {
-            type: 'string',
-            enum: [component.name],
-            description: `Artifact type - must be "${component.name}"`,
-          },
           base_selector: {
             type: 'string',
             description:
@@ -99,7 +96,7 @@ export class ArtifactCreateSchema {
           },
           details_selector: enhancedSchema,
         },
-        required: ['id', 'tool_call_id', 'type', 'base_selector'],
+        required: ['artifact_id', 'tool_call_id', 'base_selector'],
       } satisfies JSONSchema.BaseSchema;
 
       // Normalize schema for cross-provider compatibility
@@ -107,7 +104,7 @@ export class ArtifactCreateSchema {
 
       return z.object({
         id: z.string(),
-        name: z.literal(`ArtifactCreate_${component.name}`),
+        name: z.literal(`${ARTIFACT_CREATE_PREFIX}${component.name}`),
         props: z.fromJSONSchema(normalizedPropsSchema),
       });
     });
@@ -132,7 +129,7 @@ export class ArtifactCreateSchema {
       const propsSchema: JSONSchema.BaseSchema = {
         type: 'object',
         properties: {
-          id: {
+          artifact_id: {
             type: 'string',
             description: `Unique artifact identifier for ${component.name} (e.g., "${component.name.toLowerCase()}-1")`,
           },
@@ -141,11 +138,6 @@ export class ArtifactCreateSchema {
             description:
               'The EXACT tool_call_id from tool execution (call_xyz789 or toolu_abc123). NEVER invent or make up IDs.',
           },
-          type: {
-            type: 'string',
-            enum: [component.name],
-            description: `Artifact type - must be "${component.name}"`,
-          },
           base_selector: {
             type: 'string',
             description:
@@ -153,7 +145,7 @@ export class ArtifactCreateSchema {
           },
           details_selector: enhancedSchema,
         },
-        required: ['id', 'tool_call_id', 'type', 'base_selector'],
+        required: ['artifact_id', 'tool_call_id', 'base_selector'],
       };
 
       // Normalize schema for cross-provider compatibility
@@ -163,7 +155,7 @@ export class ArtifactCreateSchema {
         id: `artifact-create-${component.name.toLowerCase().replace(/\s+/g, '-')}`,
         tenantId: tenantId,
         projectId: projectId,
-        name: `ArtifactCreate_${component.name}`,
+        name: `${ARTIFACT_CREATE_PREFIX}${component.name}`,
         description: `Create ${component.name} artifacts from tool results by extracting structured data using selectors.`,
         props: normalizedPropsSchema as JsonSchemaForLlmSchemaType,
       };

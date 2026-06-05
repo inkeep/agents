@@ -34,7 +34,7 @@ export default function Page() {
     transport: new DefaultChatTransport({
       api: "${apiUrl}",
       headers: {
-        Authorization: "Bearer INKEEP_APP_SECRET",
+        Authorization: "Bearer INKEEP_API_KEY",
       },
     }),
   });

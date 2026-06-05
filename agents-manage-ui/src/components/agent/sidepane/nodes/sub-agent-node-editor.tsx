@@ -1,6 +1,5 @@
 import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
-import { useParams } from 'next/navigation';
 import type { FC } from 'react';
 import { useWatch } from 'react-hook-form';
 import { FullAgentSubAgentSchema } from '@/components/agent/form/validation';
@@ -27,13 +26,11 @@ import { Separator } from '@/components/ui/separator';
 import { useFullAgentFormContext } from '@/contexts/full-agent-form';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { useDeleteNode } from '@/hooks/use-delete-node';
-import { useArtifactComponentsQuery } from '@/lib/query/artifact-components';
-import { useDataComponentsQuery } from '@/lib/query/data-components';
 import { useProjectPermissionsQuery, useProjectQuery } from '@/lib/query/projects';
-import { createLookup, isRequired } from '@/lib/utils';
+import { isRequired } from '@/lib/utils';
 import type { AgentNodeData } from '../../configuration/node-types';
 import { SectionHeader } from '../section';
-import { ComponentSelector } from './component-selector/component-selector';
+import { GuardrailsSection } from './guardrails-section';
 import { ModelSection } from './model-section';
 
 const executionLimitInheritanceInfo = (
@@ -65,13 +62,10 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
     control: form.control,
     name: [`subAgents.${nodeId}`, 'models', 'defaultSubAgentNodeId'],
   });
-  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const {
     data: { canEdit },
   } = useProjectPermissionsQuery();
   const { data: project } = useProjectQuery();
-  const { data: artifactComponents } = useArtifactComponentsQuery();
-  const { data: dataComponents } = useDataComponentsQuery();
   const path = <K extends string>(key: K) => `subAgents.${nodeId}.${key}` as const;
   const { deleteNode } = useDeleteNode(nodeId);
   const isPersistedSubAgent =
@@ -90,8 +84,6 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
     return null;
   }
 
-  const artifactComponentsById = createLookup(artifactComponents);
-  const dataComponentsById = createLookup(dataComponents);
   const isDefault = nodeId === defaultSubAgentNodeId;
 
   return (
@@ -225,58 +217,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({ selectedNode }
         />
       </div>
       <Separator />
-      <FormField
-        control={form.control}
-        name={path('dataComponents')}
-        render={({ field }) => {
-          const value = field.value ?? [];
-          return (
-            <FormItem>
-              <div className="flex gap-1">
-                <FormLabel>Components</FormLabel>
-                <Badge variant="count">{value.length}</Badge>
-              </div>
-              <ComponentSelector
-                componentLookup={dataComponentsById}
-                selectedComponents={value}
-                onSelectionChange={field.onChange}
-                emptyStateMessage="No components found."
-                emptyStateActionText="Create component"
-                emptyStateActionHref={`/${tenantId}/projects/${projectId}/components/new`}
-                placeholder="Select components..."
-              />
-              <FormMessage />
-            </FormItem>
-          );
-        }}
-      />
-
-      <FormField
-        control={form.control}
-        name={path('artifactComponents')}
-        render={({ field }) => {
-          const value = field.value ?? [];
-          return (
-            <FormItem>
-              <div className="flex gap-1">
-                <FormLabel>Artifacts</FormLabel>
-                <Badge variant="count">{value.length}</Badge>
-              </div>
-              <ComponentSelector
-                componentLookup={artifactComponentsById}
-                selectedComponents={value}
-                onSelectionChange={field.onChange}
-                emptyStateMessage="No artifacts found."
-                emptyStateActionText="Create artifact"
-                emptyStateActionHref={`/${tenantId}/projects/${projectId}/artifacts/new`}
-                placeholder="Select artifacts..."
-                commandInputPlaceholder="Search artifacts..."
-              />
-              <FormMessage />
-            </FormItem>
-          );
-        }}
-      />
+      <GuardrailsSection nodeId={nodeId} />
       {!isDefault && canEdit && (
         <>
           <Separator />

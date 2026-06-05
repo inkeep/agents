@@ -1,18 +1,13 @@
 import type { BaseExecutionContext } from '@inkeep/agents-core';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { Hono } from 'hono';
 import { exportSPKI, generateKeyPair, SignJWT } from 'jose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../data/db/runDbClient.js', () => ({ default: {} }));
+vi.mock('../../data/db/manageDbClient.js', () => ({ default: {} }));
 
-vi.mock('../../logger.js', () => ({
-  getLogger: () => ({
-    debug: vi.fn(),
-    error: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-  }),
-}));
+vi.mock('../../logger.js', () => createMockLoggerModule().module);
 
 vi.mock('../../env.js', () => ({
   env: {
@@ -20,7 +15,9 @@ vi.mock('../../env.js', () => ({
     INKEEP_AGENTS_API_URL: 'http://localhost:3000',
     INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY: undefined,
     INKEEP_AGENTS_RUN_API_BYPASS_SECRET: undefined,
-    INKEEP_POW_HMAC_SECRET: undefined,
+    INKEEP_SENTINEL_API_KEY_ID: 'test-sentinel-key-id',
+    INKEEP_SENTINEL_API_KEY_SECRET: 'test-sentinel-secret',
+    INKEEP_SENTINEL_BASE_URL: 'https://test-sentinel.example.com',
   },
 }));
 
@@ -28,14 +25,26 @@ vi.mock('../../domains/run/routes/auth.js', () => ({
   getAnonJwtSecret: vi.fn(() => new TextEncoder().encode('test-anon-secret-for-jwt-signing-1234')),
 }));
 
-const { mockGetAppById, mockValidateOrigin, mockVerifyPoW, mockCanUseProjectStrict } = vi.hoisted(
-  () => ({
-    mockGetAppById: vi.fn(() => vi.fn().mockResolvedValue(null)),
-    mockValidateOrigin: vi.fn().mockReturnValue(true),
-    mockVerifyPoW: vi.fn().mockResolvedValue({ ok: true }),
-    mockCanUseProjectStrict: vi.fn().mockResolvedValue(true),
-  })
-);
+const {
+  mockGetAppById,
+  mockGetAgentById,
+  mockValidateOrigin,
+  mockCanUseProjectStrict,
+  mockVerifySentinelPayload,
+  mockIsSentinelEnabled,
+} = vi.hoisted(() => ({
+  mockGetAppById: vi.fn(() => vi.fn().mockResolvedValue(null)),
+  mockGetAgentById: vi.fn(() => vi.fn().mockResolvedValue({ id: 'agent-1' })),
+  mockValidateOrigin: vi.fn().mockReturnValue(true),
+  mockCanUseProjectStrict: vi.fn().mockResolvedValue(true),
+  mockVerifySentinelPayload: vi.fn().mockResolvedValue({
+    ok: true,
+    classification: 'good',
+    score: 0.99,
+    verificationId: 'test-verification-id',
+  }),
+  mockIsSentinelEnabled: vi.fn().mockReturnValue(true),
+}));
 
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
@@ -43,13 +52,14 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     ...actual,
     validateAndGetApiKey: vi.fn().mockResolvedValue(null),
     canUseProjectStrict: mockCanUseProjectStrict,
+    getAgentById: mockGetAgentById,
     getAppById: mockGetAppById,
     updateAppLastUsed: vi.fn(() => vi.fn().mockResolvedValue(undefined)),
     validateOrigin: mockValidateOrigin,
-    verifyPoW: mockVerifyPoW,
-    getPoWErrorMessage: vi.fn().mockReturnValue('PoW failed'),
     isSlackUserToken: vi.fn().mockReturnValue(false),
     verifySlackUserToken: vi.fn().mockResolvedValue({ valid: false }),
+    verifySentinelPayload: mockVerifySentinelPayload,
+    isSentinelEnabled: mockIsSentinelEnabled,
   };
 });
 
@@ -138,8 +148,14 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     mockValidateOrigin.mockReturnValue(true);
-    mockVerifyPoW.mockResolvedValue({ ok: true });
     mockCanUseProjectStrict.mockResolvedValue(true);
+    mockIsSentinelEnabled.mockReturnValue(true);
+    mockVerifySentinelPayload.mockResolvedValue({
+      ok: true,
+      classification: 'good',
+      score: 0.99,
+      verificationId: 'test-verification-id',
+    });
 
     const rsaPair = await generateKeyPair('RS256', { extractable: true });
     rsaPublicKeyPem = await exportSPKI(rsaPair.publicKey);
@@ -570,7 +586,7 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
           },
         ],
         undefined,
-        { tenantId: null, projectId: null }
+        { tenantId: null, projectId: null, defaultAgentId: 'agent-g' }
       );
       mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(app));
       mockCanUseProjectStrict.mockResolvedValue(true);
@@ -871,6 +887,173 @@ describe('runAuth middleware - app credential asymmetric JWT auth', () => {
       expect(res.status).toBe(401);
       const body = await res.json();
       expect(body.error?.code).toBe('unauthorized');
+    });
+  });
+
+  describe('enforceAppDefaultAgent', () => {
+    async function makeAnonToken() {
+      const { getAnonJwtSecret } = await import('../../domains/run/routes/auth');
+      const secret = (getAnonJwtSecret as ReturnType<typeof vi.fn>)();
+      const now = Math.floor(Date.now() / 1000);
+      return new SignJWT({ app: 'app_test123', type: 'anonymous' })
+        .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+        .setSubject('anon_user_1')
+        .setIssuer('inkeep')
+        .setIssuedAt(now)
+        .setExpirationTime(now + 3600)
+        .sign(secret);
+    }
+
+    it('should return 500 when tenant-scoped app has no defaultAgentId', async () => {
+      const appRecord = makeAppRecord({ defaultAgentId: null });
+      mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
+      const token = await makeAnonToken();
+
+      const { app: testApp } = createTestApp();
+      const res = await testApp.request('/test', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(500);
+    });
+
+    it('should use defaultAgentId when no agent is requested', async () => {
+      const appRecord = makeAppRecord({ defaultAgentId: 'default-agent' });
+      mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
+      const token = await makeAnonToken();
+
+      const { app: testApp, getContext } = createTestApp();
+      const res = await testApp.request('/test', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(getContext()?.agentId).toBe('default-agent');
+    });
+
+    it('should succeed when requested agent matches defaultAgentId', async () => {
+      const appRecord = makeAppRecord({ defaultAgentId: 'agent-1' });
+      mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
+      const token = await makeAnonToken();
+
+      const { app: testApp, getContext } = createTestApp();
+      const res = await testApp.request('/test', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          'x-inkeep-agent-id': 'agent-1',
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(getContext()?.agentId).toBe('agent-1');
+    });
+
+    it('should return 403 when requested agent does not match defaultAgentId', async () => {
+      const appRecord = makeAppRecord({ defaultAgentId: 'agent-1' });
+      mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(appRecord));
+      const token = await makeAnonToken();
+
+      const { app: testApp } = createTestApp();
+      const res = await testApp.request('/test', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          'x-inkeep-agent-id': 'wrong-agent',
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(403);
+      const body = await res.json();
+      expect(body.detail).toContain('not authorized for this app');
+    });
+  });
+
+  describe('bot protection is not applied on authenticated requests', () => {
+    async function makeAuthenticatedAppAndToken() {
+      const app = makeAppWithAuth([
+        {
+          kid: 'sentinel-test-key',
+          publicKey: rsaPublicKeyPem,
+          algorithm: 'RS256',
+          addedAt: new Date().toISOString(),
+        },
+      ]);
+      mockGetAppById.mockReturnValue(vi.fn().mockResolvedValue(app));
+      const token = await signJwt(
+        rsaPrivateKey,
+        'RS256',
+        {},
+        { kid: 'sentinel-test-key', sub: 'user_authed' }
+      );
+      return { app, token };
+    }
+
+    // Bot protection gates anonymous-session creation only; authenticated requests carry an
+    // app-signed JWT and are never bot-scored. The x-inkeep-challenge-solution header is ignored
+    // regardless of shape — a valid v2 envelope, a legacy v1-shaped ALTCHA solution, junk, or
+    // absent all behave identically: the request proceeds and Sentinel is never invoked.
+    const v2Header = btoa(JSON.stringify({ payload: 'test-sentinel-payload' }));
+    const v1Header = btoa(
+      JSON.stringify({
+        number: 3639,
+        algorithm: 'SHA-256',
+        challenge: 'e3e77d6d5950bca6c5bf623dfb0aebb151e44a9d5a7f4c92876e7606edd2a823',
+        maxnumber: 50000,
+        salt: 'f61d4b5f112b63fcf01c14e0?id=abc&expires=1780415322&',
+        signature: '9cba48bae2128a5482ec202d4765ead360736933eb4415f3dbd73e4513c20b00',
+        expiresAt: 1780415322000,
+      })
+    );
+
+    it.each([
+      ['a valid v2 Sentinel envelope', v2Header],
+      ['a legacy v1-shaped ALTCHA envelope (older widget build)', v1Header],
+      ['an undecodable junk header', 'not-base64-json'],
+    ])('allows an authenticated POST carrying %s without bot-scoring it', async (_label, header) => {
+      const { token } = await makeAuthenticatedAppAndToken();
+
+      const { app: testApp, getContext } = createTestApp();
+      const res = await testApp.request('/test', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          'x-inkeep-challenge-solution': header,
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockVerifySentinelPayload).not.toHaveBeenCalled();
+      expect(getContext()?.metadata?.authMethod).toBe('app_credential_web_client_authenticated');
+    });
+
+    it('allows an authenticated POST with no challenge header', async () => {
+      const { token } = await makeAuthenticatedAppAndToken();
+
+      const { app: testApp } = createTestApp();
+      const res = await testApp.request('/test', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-inkeep-app-id': 'app_test123',
+          Origin: 'https://example.com',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(mockVerifySentinelPayload).not.toHaveBeenCalled();
     });
   });
 });

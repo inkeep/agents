@@ -1,0 +1,145 @@
+---
+title: Add human escalation to your customer assistant
+sidebarTitle: Escalation
+description: Teach your assistant when to hand off to a human — and wire it up to your ticketing system so the support team gets the question with full conversation context already attached.
+icon: LuTicket
+---
+
+## Overview
+
+Add **human escalation** to the customer assistant you built in [Setup](/guides/agents/customer-assistant/setup). The agent recognizes when it can't help and creates a support ticket with the full conversation as context. A safety-net button at the end lets customers reach a human at any time.
+
+## Prerequisites
+
+- You completed the [Customer Assistant setup](/guides/agents/customer-assistant/setup) tutorial — a working sub agent connected to Inkeep Unified Search.
+- Your ticketing system is connected as an MCP server, exposing a `create_support_ticket` tool. We'll treat the MCP as a black box in this guide — only the tool's input shape matters.
+
+## Why escalation works this way
+
+### Why intent-driven is the primary path
+
+A static "Contact support" form makes the customer leave the chat and re-explain their issue from scratch. The agent already knows the question, what it tried, and where it got stuck — so it can create the ticket with all that context already attached. The support rep opens the ticket and sees the full story.
+
+## What your ticketing MCP needs to expose
+
+Throughout this guide, we'll assume your ticketing MCP exposes a tool with this shape:
+
+**Tool name:** `create_support_ticket`
+
+**Inputs:**
+
+```json
+{
+  "subject": "Short, 1-sentence issue summary",
+  "description": "Full conversation context: what the customer asked, what the agent tried, what's still blocking. Quoted user messages where useful.",
+  "customer_email": "where the support team should follow up"
+}
+```
+
+**Output:**
+
+```json
+{
+  "ticket_id": "TCK-12345",
+  "status": "new",
+  "requester_email": "customer@example.com"
+}
+```
+
+If your real MCP has different field names, adjust the prompt and tool call accordingly. The pattern is the same.
+
+## Attach your ticketing MCP to the agent
+
+<Steps>
+  <Step>
+    Make sure your ticketing MCP is registered in **MCP Servers** with valid credentials (same flow as Inkeep Unified Search in [Setup](/guides/agents/customer-assistant/setup)).
+  </Step>
+  <Step>
+    Go to your agent canvas: **Agents → Customer assistant**.
+  </Step>
+  <Step>
+    Drag and drop an **MCP** block from the top left toolbar onto the canvas. Select your ticketing MCP and connect it to your sub agent.
+  </Step>
+  <Step>
+    Click **Save Changes** in the top right corner.
+  </Step>
+</Steps>
+
+## Update the prompt to escalate with intent
+
+The agent now *has* the ability to create tickets, but it needs to be told *when* to escalate and *what* to put in the ticket. Without explicit instructions, the agent will either escalate too eagerly or not at all.
+
+**Add these sections to your existing sub agent prompt:**
+
+```text
+When to escalate (call `create_support_ticket`):
+- The user explicitly asks for a human: "talk to a human", "speak to support", "I need help"
+- You searched the knowledge base and found nothing relevant
+- The user repeats the same question after you've already answered
+- The user expresses frustration or sounds stuck
+
+How to escalate:
+1. If you don't have the user's email (no `x-user-email` header), ask once:
+   "I'll get this to our support team — what email should they follow up on?"
+   Wait for the user's reply before continuing.
+2. Once you have the email, call `create_support_ticket` with:
+   - `subject`: 1-sentence summary
+   - `description`: full conversation context. Quote the user's question; note what you searched, what you found, what's still blocking.
+   - `customer_email`: the email you collected (or from `x-user-email`)
+3. After the tool returns, confirm:
+   "I've opened a support ticket — our team will follow up shortly."
+```
+
+<Tip>
+The bullet about the user repeating the same question after you've already answered matters. Without it, the agent keeps re-phrasing the same answer instead of recognizing the loop and escalating.
+</Tip>
+
+Click **Save Changes** in the top right corner.
+
+## Test the intent flow
+
+<Steps>
+  <Step>
+    Click **Try it** in the top right corner to open the chat interface.
+  </Step>
+  <Step>
+    Try each escalation trigger to confirm the agent handles them:
+
+    - **Explicit ask:** *"I need to talk to a human."*
+    - **No docs match:** Ask something your knowledge base wouldn't cover (e.g., *"Can you refund my purchase from last March?"*).
+    - **Repeat question:** Ask a real product question, then ask the same thing again after the answer.
+  </Step>
+  <Step>
+    In each case, the agent should ask for your email (if not present), then call `create_support_ticket`, then confirm with the follow-up message.
+  </Step>
+</Steps>
+
+## Add the always-on escalation button
+
+The intent flow handles most cases, but the customer should always be able to reach a human in one click. The Inkeep widget supports custom triggers — you can add a button anywhere in your UI that submits a pre-defined message to the agent.
+
+The pattern, in pseudo-code:
+
+```tsx
+// Inside your chat component
+const chatRef = useRef<AIChatFunctions | null>(null);
+
+<>
+  <InkeepEmbeddedChat
+    aiChatSettings={{
+      baseUrl: "...",
+      appId: "...",
+      chatFunctionsRef: chatRef,
+    }}
+  />
+  <button onClick={() => chatRef.current?.submitMessage("I need to talk to a human")}>
+    Talk to support
+  </button>
+</>
+```
+
+When the button is clicked, the agent receives "I need to talk to a human" — which is one of the explicit asks in the prompt — and runs the same escalation flow. No separate ticketing path needed.
+
+<Note>
+The exact API depends on which Inkeep widget you're using (Embedded Chat, Chat Button, Side Bar Chat). See the [Chat Components Overview](/talk-to-your-agents) for the full reference.
+</Note>

@@ -9,12 +9,13 @@ import {
   Wrench,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 import { AreaChartCard } from '@/components/traces/charts/area-chart-card';
 import { StatCard } from '@/components/traces/charts/stat-card';
 import { ConversationStatsCard } from '@/components/traces/conversation-stats/conversation-stats-card';
 import { AgentFilter } from '@/components/traces/filters/agent-filter';
 import { CUSTOM, DatePickerWithPresets } from '@/components/traces/filters/date-picker';
+import { OriginFilter } from '@/components/traces/filters/origin-filter';
 import { SpanFilters } from '@/components/traces/filters/span-filters';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -47,12 +48,14 @@ export default function TracesOverview({
     customEndDate,
     agentId: selectedAgent,
     hasErrors,
+    origin: selectedOrigin,
     spanName,
     spanAttributes: attributes,
     setTimeRange: setSelectedTimeRange,
     setCustomDateRange,
     setAgentFilter: setSelectedAgent,
     setHasErrorsFilter,
+    setOriginFilter: setSelectedOrigin,
     setSpanFilter,
   } = useTracesQueryState();
 
@@ -62,6 +65,7 @@ export default function TracesOverview({
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [activityData, setActivityData] = useState<{ date: string; count: number }[]>([]);
   const [activityLoading, setActivityLoading] = useState(true);
+  const activityAbortRef = useRef<AbortController | null>(null);
 
   // Calculate time range based on selection
   const { startTime, endTime } = (() => {
@@ -129,6 +133,7 @@ export default function TracesOverview({
     pagination: { pageSize: 10 },
     agentId: selectedAgent,
     hasErrors: hasErrors || undefined,
+    origin: selectedOrigin,
   });
 
   const aggregateLoading = loading;
@@ -138,23 +143,37 @@ export default function TracesOverview({
 
   // Fetch conversations per day activity
   useEffect(() => {
+    activityAbortRef.current?.abort();
+    const controller = new AbortController();
+    activityAbortRef.current = controller;
+
     const fetchActivity = async () => {
       try {
         setActivityLoading(true);
         const client = getSigNozStatsClient(tenantId);
         const agentId = selectedAgent ? selectedAgent : undefined;
-        const data = await client.getConversationsPerDay(startTime, endTime, agentId, projectId);
+        const data = await client.getConversationsPerDay(
+          startTime,
+          endTime,
+          agentId,
+          projectId,
+          selectedOrigin,
+          controller.signal
+        );
+        if (controller.signal.aborted) return;
         setActivityData(data);
       } catch (e) {
+        if (controller.signal.aborted) return;
         console.error('Failed to fetch conversation activity:', e);
         setActivityData([]);
       }
-      setActivityLoading(false);
+      if (!controller.signal.aborted) setActivityLoading(false);
     };
     if (startTime && endTime && tenantId) {
       fetchActivity();
     }
-  }, [startTime, endTime, selectedAgent, projectId, tenantId]);
+    return () => controller.abort();
+  }, [startTime, endTime, selectedAgent, selectedOrigin, projectId, tenantId]);
 
   // Filter stats based on selected agent (for aggregate calculations)
   // Server-side pagination and filtering is now handled by the hooks
@@ -234,6 +253,7 @@ export default function TracesOverview({
       <div className="flex items-center gap-4">
         {/* Agent Filter */}
         <AgentFilter onSelect={setSelectedAgent} selectedValue={selectedAgent} />
+        <OriginFilter onSelect={setSelectedOrigin} selectedValue={selectedOrigin} />
         {/* Error Filter */}
         <Button
           variant="gray-outline"

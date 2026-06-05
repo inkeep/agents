@@ -1,22 +1,18 @@
 import type { FilePart, Part, TextPart } from '@inkeep/agents-core';
+import {
+  BlockedInlineFileExceedingError,
+  BlockedUrlResolvingToPrivateIpError,
+  downloadExternalFile,
+  FailedToDownloadError,
+  normalizeInlineFileBytes,
+} from '@inkeep/agents-core/external-fetch';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { downloadExternalFile } from '../blob-storage/external-file-downloader';
-import { normalizeInlineFileBytes } from '../blob-storage/file-content-security';
-import { BlockedInlineFileExceedingError } from '../blob-storage/file-security-errors';
 import { makeMessageContentParts, uploadPartsFiles } from '../blob-storage/file-upload';
-
-const logger = vi.hoisted(() => ({
-  debug: vi.fn(),
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-}));
 
 const mockUpload = vi.fn();
 
-vi.mock('../../../../logger', () => ({
-  getLogger: () => logger,
-}));
+vi.mock('../../../../logger', () => createMockLoggerModule().module);
 
 vi.mock('../blob-storage/index', () => ({
   getBlobStorageProvider: () => ({
@@ -25,13 +21,16 @@ vi.mock('../blob-storage/index', () => ({
   toBlobUri: (key: string) => `blob://${key}`,
 }));
 
-vi.mock('../blob-storage/external-file-downloader', () => ({
-  downloadExternalFile: vi.fn(),
-}));
-
-vi.mock('../blob-storage/file-content-security', () => ({
-  normalizeInlineFileBytes: vi.fn(),
-}));
+vi.mock('@inkeep/agents-core/external-fetch', async () => {
+  const actual = await vi.importActual<typeof import('@inkeep/agents-core/external-fetch')>(
+    '@inkeep/agents-core/external-fetch'
+  );
+  return {
+    ...actual,
+    downloadExternalFile: vi.fn(),
+    normalizeInlineFileBytes: vi.fn(),
+  };
+});
 
 const PNG_BYTES = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7+2wAAAABJRU5ErkJggg==',
@@ -229,6 +228,47 @@ describe('uploadPartsFiles', () => {
     });
   });
 
+  it('uploads inline YAML file parts and rewrites to blob URI', async () => {
+    const yamlBytes = Buffer.from('name: alpha\ncount: 1\n', 'utf8');
+    vi.mocked(normalizeInlineFileBytes).mockResolvedValueOnce({
+      data: Uint8Array.from(yamlBytes),
+      mimeType: 'application/yaml',
+    });
+    const parts: Part[] = [
+      {
+        kind: 'file',
+        file: {
+          bytes: yamlBytes.toString('base64'),
+          mimeType: 'application/yaml',
+        },
+        metadata: { filename: 'config.yml' },
+      },
+    ];
+
+    const uploaded = await uploadPartsFiles(parts, uploadContext);
+
+    expect(normalizeInlineFileBytes).toHaveBeenCalledWith({
+      bytes: yamlBytes.toString('base64'),
+      mimeType: 'application/yaml',
+    });
+    expect(mockUpload).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: expect.stringMatching(/\.yaml$/),
+        contentType: 'application/yaml',
+      })
+    );
+    expect(uploaded[0]).toMatchObject({
+      kind: 'file',
+      file: {
+        uri: expect.stringContaining('blob://v1/t_tenant/media/p_project/conv/c_conversation'),
+        mimeType: 'application/yaml',
+      },
+      metadata: {
+        filename: 'config.yml',
+      },
+    });
+  });
+
   it('preserves non-file parts and metadata while uploading files', async () => {
     const textPart: TextPart = { kind: 'text', text: 'hello' };
     const filePart: FilePart = {
@@ -254,14 +294,27 @@ describe('uploadPartsFiles', () => {
     });
   });
 
-  it('drops URI file part when downloadExternalFile throws', async () => {
-    vi.mocked(downloadExternalFile).mockRejectedValueOnce(new Error('blocked external file'));
+  it('drops URI file part when downloadExternalFile throws a transient error', async () => {
+    vi.mocked(downloadExternalFile).mockRejectedValueOnce(
+      new FailedToDownloadError('https://example.com/missing.jpg', '404')
+    );
 
-    const parts: Part[] = [{ kind: 'file', file: { uri: 'https://example.com/blocked.jpg' } }];
+    const parts: Part[] = [{ kind: 'file', file: { uri: 'https://example.com/missing.jpg' } }];
     const uploaded = await uploadPartsFiles(parts, uploadContext);
 
     expect(mockUpload).not.toHaveBeenCalled();
     expect(uploaded).toEqual([]);
+  });
+
+  it('throws when downloadExternalFile hits a non-transient security error', async () => {
+    vi.mocked(downloadExternalFile).mockRejectedValueOnce(
+      new BlockedUrlResolvingToPrivateIpError('127.0.0.1')
+    );
+
+    const parts: Part[] = [{ kind: 'file', file: { uri: 'https://example.com/ssrf.jpg' } }];
+    await expect(uploadPartsFiles(parts, uploadContext)).rejects.toThrow(
+      BlockedUrlResolvingToPrivateIpError
+    );
   });
 
   it('uploads external PDF URLs and preserves sanitized source URL metadata', async () => {

@@ -1,3 +1,4 @@
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockSignSlackUserToken = vi.fn().mockResolvedValue('mock-jwt-token');
@@ -50,14 +51,7 @@ vi.mock('../../env', () => ({
   },
 }));
 
-vi.mock('../../logger', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
+vi.mock('../../logger', () => createMockLoggerModule().module);
 
 vi.mock('../../slack/i18n', () => ({
   SlackStrings: {

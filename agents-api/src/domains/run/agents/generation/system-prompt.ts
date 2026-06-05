@@ -1,5 +1,10 @@
 import type { Artifact, ArtifactComponentApiInsert, AssembleResult } from '@inkeep/agents-core';
-import { TemplateEngine } from '@inkeep/agents-core';
+import {
+  DELEGATE_TOOL_PREFIX,
+  LOAD_SKILL_TOOL,
+  TemplateEngine,
+  TRANSFER_TOOL_PREFIX,
+} from '@inkeep/agents-core';
 import type { ToolSet } from 'ai';
 import { getLogger } from '../../../../logger';
 import { getModelAwareCompressionConfig } from '../../compression/BaseCompressor';
@@ -10,6 +15,7 @@ import {
 import type { AgentRunContext, AiSdkToolDefinition } from '../agent-types';
 import { agentHasArtifactComponents, createLoadSkillTool } from '../tools/default-tools';
 import type { SystemPromptV1 } from '../types';
+import { computeHasStructuredOutput } from './model-config';
 
 const logger = getLogger('Agent');
 
@@ -22,7 +28,7 @@ export async function getResolvedContext(
     const project = ctx.executionContext.project;
 
     if (!ctx.config.contextConfigId) {
-      logger.debug({ agentId: ctx.config.agentId }, 'No context config found for agent');
+      logger.debug('No context config found for agent');
       return null;
     }
 
@@ -92,7 +98,6 @@ export async function getPrompt(ctx: AgentRunContext): Promise<string | undefine
   } catch (error) {
     logger.warn(
       {
-        agentId: ctx.config.agentId,
         error: error instanceof Error ? error.message : 'Unknown error',
       },
       'Failed to get agent prompt'
@@ -160,6 +165,7 @@ export function getClientCurrentTime(ctx: AgentRunContext): string | undefined {
       day: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
+      second: '2-digit',
       timeZoneName: 'short',
     });
   } catch (error) {
@@ -179,6 +185,7 @@ export async function buildSystemPrompt(
         metadata: {
           conversationId: string;
           threadId: string;
+          taskId: string;
           streamRequestId?: string;
           streamBaseUrl?: string;
         };
@@ -193,26 +200,58 @@ export async function buildSystemPrompt(
 ): Promise<AssembleResult> {
   const conversationId = runtimeContext?.metadata?.conversationId || runtimeContext?.contextId;
 
-  const resolvedContext = conversationId ? await getResolvedContext(ctx, conversationId) : null;
+  const resolvedContext = conversationId
+    ? await getResolvedContext(ctx, conversationId, ctx.config.forwardedHeaders)
+    : null;
+
+  const runtimeBuiltins =
+    conversationId && conversationId !== 'default'
+      ? { $conversation: { id: conversationId } }
+      : { $conversation: { id: '' } };
 
   // ctx.config.prompt is the SUB-AGENT's own instructions (becomes corePrompt / <core_instructions>).
   // This is distinct from the overarching agent system's prompt fetched via getPrompt() below — not a duplicate.
   let processedPrompt = ctx.config.prompt || '';
-  if (resolvedContext && ctx.config.prompt) {
-    try {
-      processedPrompt = TemplateEngine.render(ctx.config.prompt, resolvedContext, {
-        strict: false,
-        preserveUnresolved: false,
-      });
-    } catch (error) {
-      logger.error(
-        {
-          conversationId,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-        'Failed to process agent prompt with context, using original'
-      );
-      processedPrompt = ctx.config.prompt;
+  if (ctx.config.prompt) {
+    const hasConversationVariable = ctx.config.prompt.includes('{{$conversation.');
+    if (resolvedContext) {
+      try {
+        processedPrompt = TemplateEngine.renderPrompt(ctx.config.prompt, resolvedContext, {
+          strict: false,
+          preserveUnresolved: false,
+          runtimeBuiltins,
+        });
+      } catch (error) {
+        logger.error(
+          {
+            conversationId,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          },
+          'Failed to process agent prompt with context, using original'
+        );
+        processedPrompt = ctx.config.prompt;
+      }
+    } else if (hasConversationVariable) {
+      try {
+        processedPrompt = TemplateEngine.renderPrompt(
+          ctx.config.prompt,
+          {},
+          {
+            strict: false,
+            preserveUnresolved: true,
+            runtimeBuiltins,
+          }
+        );
+      } catch (error) {
+        logger.error(
+          {
+            conversationId,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          },
+          'Failed to process agent prompt with runtime builtins, using original'
+        );
+        processedPrompt = ctx.config.prompt;
+      }
     }
   }
 
@@ -220,7 +259,7 @@ export async function buildSystemPrompt(
   const functionTools = preLoadedTools.functionTools;
   const relationTools = preLoadedTools.relationTools;
   const hasOnDemandSkills = ctx.config.skills?.some((skill) => !skill.alwaysLoaded);
-  const skillTools = hasOnDemandSkills ? { load_skill: createLoadSkillTool(ctx) } : {};
+  const skillTools = hasOnDemandSkills ? { [LOAD_SKILL_TOOL]: createLoadSkillTool(ctx) } : {};
   const allTools = { ...mcpTools, ...functionTools, ...relationTools, ...skillTools } as Record<
     string,
     AiSdkToolDefinition
@@ -252,10 +291,10 @@ export async function buildSystemPrompt(
       description: tool.description || '',
       inputSchema: (tool.inputSchema ?? tool.parameters ?? {}) as Record<string, unknown>,
       usageGuidelines:
-        name === 'load_skill'
+        name === LOAD_SKILL_TOOL
           ? 'Use this tool to load the full content and attached files of an on-demand skill by name.'
-          : name.startsWith('transfer_to_') || name.startsWith('delegate_to_')
-            ? `Use this tool to ${name.startsWith('transfer_to_') ? 'transfer' : 'delegate'} to another agent when appropriate.`
+          : name.startsWith(TRANSFER_TOOL_PREFIX) || name.startsWith(DELEGATE_TOOL_PREFIX)
+            ? `Use this tool to ${name.startsWith(TRANSFER_TOOL_PREFIX) ? 'transfer' : 'delegate'} to another agent when appropriate.`
             : 'Use this tool when appropriate for the task at hand.',
     }));
 
@@ -289,20 +328,44 @@ export async function buildSystemPrompt(
   // own instructions; this prompt is the agent system's broader context rendered into <agent_context>.
   let prompt = await getPrompt(ctx);
 
-  if (prompt && resolvedContext) {
-    try {
-      prompt = TemplateEngine.render(prompt, resolvedContext, {
-        strict: false,
-        preserveUnresolved: false,
-      });
-    } catch (error) {
-      logger.error(
-        {
-          conversationId,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-        'Failed to process agent prompt with context, using original'
-      );
+  if (prompt) {
+    const hasConversationVariable = prompt.includes('{{$conversation.');
+    if (resolvedContext) {
+      try {
+        prompt = TemplateEngine.renderPrompt(prompt, resolvedContext, {
+          strict: false,
+          preserveUnresolved: false,
+          runtimeBuiltins,
+        });
+      } catch (error) {
+        logger.error(
+          {
+            conversationId,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          },
+          'Failed to process agent prompt with context, using original'
+        );
+      }
+    } else if (hasConversationVariable) {
+      try {
+        prompt = TemplateEngine.renderPrompt(
+          prompt,
+          {},
+          {
+            strict: false,
+            preserveUnresolved: true,
+            runtimeBuiltins,
+          }
+        );
+      } catch (error) {
+        logger.error(
+          {
+            conversationId,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          },
+          'Failed to process agent prompt with runtime builtins, using original'
+        );
+      }
     }
   }
 
@@ -311,14 +374,13 @@ export async function buildSystemPrompt(
   const compressionConfig = getModelAwareCompressionConfig();
   const agentHasArtifacts = (await agentHasArtifactComponents(ctx)) || compressionConfig.enabled;
 
-  const hasStructuredOutput = Boolean(
-    ctx.config.dataComponents && ctx.config.dataComponents.length > 0
-  );
+  // includeDataComponents can be true with an empty dataComponents array (allowText:false
+  // artifact-only case, where G1 is true) — generateDataComponentsSection no-ops on empty.
+  const hasStructuredOutput = computeHasStructuredOutput(ctx);
   const includeDataComponents = hasStructuredOutput && !excludeDataComponents;
 
   logger.info(
     {
-      agentId: ctx.config.id,
       hasStructuredOutput,
       excludeDataComponents,
       includeDataComponents,
@@ -345,7 +407,10 @@ export async function buildSystemPrompt(
     hasTransferRelations: (ctx.config.transferRelations?.length ?? 0) > 0,
     hasDelegateRelations: (ctx.config.delegateRelations?.length ?? 0) > 0,
     includeDataComponents,
+    hasStructuredOutput,
     clientCurrentTime,
+    outputContract: ctx.config.outputContract,
+    resolvedAllowText: ctx.resolvedAllowText,
   };
   return ctx.systemPromptBuilder.buildSystemPrompt(config);
 }

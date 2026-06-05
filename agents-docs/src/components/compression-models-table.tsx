@@ -10,7 +10,7 @@ import { extractModelIdForLlmInfo } from '../../../agents-api/src/domains/run/ut
 const FEATURED_MODELS = [
   OPENAI_MODELS.GPT_5_2,
   ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
-  GOOGLE_MODELS.GEMINI_3_PRO_PREVIEW,
+  GOOGLE_MODELS.GEMINI_3_1_PRO_PREVIEW,
 ] as const;
 
 // Same compression logic as the runtime

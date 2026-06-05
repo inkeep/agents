@@ -74,6 +74,26 @@ export async function createDatasetItem(
 }
 
 /**
+ * Create multiple dataset items in a single request.
+ */
+export async function createDatasetItemsBulk(
+  tenantId: string,
+  projectId: string,
+  datasetId: string,
+  items: DatasetItemInsert[]
+): Promise<DatasetItem[]> {
+  const response = await makeManagementApiRequest<ListResponse<DatasetItem>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/dataset-items/${datasetId}/items/bulk`,
+    {
+      method: 'POST',
+      body: JSON.stringify(items),
+    }
+  );
+
+  return response.data;
+}
+
+/**
  * Update an existing dataset item
  */
 export async function updateDatasetItem(

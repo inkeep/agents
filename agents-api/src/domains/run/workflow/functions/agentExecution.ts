@@ -30,7 +30,7 @@ export type AgentExecutionPayload = {
 
 /**
  * Hook for tool approval: external systems resume this to approve/deny a tool call.
- * Token format: `tool-approval:${conversationId}:${workflowRunId}:${toolCallId}`
+ * Token format: `${TOOL_APPROVAL_HOOK_PREFIX}${conversationId}:${workflowRunId}:${toolCallId}`
  */
 export const toolApprovalHook = defineHook<
   { approved: boolean; reason?: string },
@@ -77,14 +77,20 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
       if (llmResult.type === 'tool_calls') {
         for (const toolCall of llmResult.toolCalls) {
           const continuationNs = `r${approvalRound + 1}`;
+          const hookToolCallId = llmResult.delegatedApproval?.toolCallId ?? toolCall.toolCallId;
           await markWorkflowSuspendedStep({
             tenantId: payload.tenantId,
             projectId: payload.projectId,
             workflowRunId,
             continuationStreamNamespace: continuationNs,
+            pendingToolApproval: {
+              toolCallId: hookToolCallId,
+              toolName: toolCall.toolName,
+              args: toolCall.args,
+              isDelegated: !!llmResult.delegatedApproval,
+            },
           });
 
-          const hookToolCallId = llmResult.delegatedApproval?.toolCallId ?? toolCall.toolCallId;
           const token = `tool-approval:${payload.conversationId}:${workflowRunId}:${hookToolCallId}`;
 
           console.info('[agentExecution] Creating tool approval hook', {
@@ -145,6 +151,7 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
       tenantId: payload.tenantId,
       projectId: payload.projectId,
       workflowRunId,
+      conversationId: payload.conversationId,
     });
 
     return { success: true };
@@ -154,6 +161,7 @@ async function _agentExecutionWorkflow(payload: AgentExecutionPayload) {
       tenantId: payload.tenantId,
       projectId: payload.projectId,
       workflowRunId,
+      conversationId: payload.conversationId,
       error: message,
     });
     throw error;

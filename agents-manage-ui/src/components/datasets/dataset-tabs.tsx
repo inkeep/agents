@@ -1,8 +1,9 @@
 'use client';
 
-import { Plus } from 'lucide-react';
+import { FileUp, Plus } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { CsvUploadDialog } from '@/components/dataset-items/csv-upload-dialog';
 import { DatasetItemFormDialog } from '@/components/dataset-items/dataset-item-form-dialog';
 import { DatasetItemsTable } from '@/components/dataset-items/dataset-items-table';
 import { Button } from '@/components/ui/button';
@@ -62,7 +63,21 @@ export function DatasetTabs({
           </TabsTrigger>
         </TabsList>
         {activeTab === 'items' && (
-          <div className="flex items-center h-10 px-4">
+          <div className="flex items-center h-10 px-4 gap-1">
+            <CsvUploadDialog
+              tenantId={tenantId}
+              projectId={projectId}
+              datasetId={datasetId}
+              onSuccess={() => {
+                router.refresh();
+              }}
+              trigger={
+                <Button variant="ghost" size="sm" className="h-8">
+                  <FileUp />
+                  Upload CSV
+                </Button>
+              }
+            />
             <DatasetItemFormDialog
               tenantId={tenantId}
               projectId={projectId}

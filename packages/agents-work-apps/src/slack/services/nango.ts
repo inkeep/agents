@@ -86,7 +86,7 @@ export async function createConnectSession(params: {
   tenantId: string;
 }): Promise<{ sessionToken: string } | null> {
   if (isSlackDevMode()) {
-    logger.debug({}, 'Skipping Nango connect session in dev mode');
+    logger.debug('Skipping Nango connect session in dev mode');
     return null;
   }
 
@@ -466,7 +466,7 @@ export async function storeWorkspaceInstallation(
     const secretKey = env.NANGO_SLACK_SECRET_KEY || env.NANGO_SECRET_KEY;
 
     if (!secretKey) {
-      logger.error({}, 'No Nango secret key available');
+      logger.error('No Nango secret key available');
       return { connectionId, success: false };
     }
 

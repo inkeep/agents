@@ -4,6 +4,7 @@
     "overview",
     "mcp-server",
     "chat-api",
+    "events",
     "triggers",
     "(chat-components)",
     "vercel-ai-sdk",

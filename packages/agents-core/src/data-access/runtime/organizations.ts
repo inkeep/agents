@@ -339,6 +339,8 @@ export function allowedMethodsToMethodOptions(
       options.push({ method: 'email-password' });
     } else if (m.method === 'google') {
       options.push({ method: 'google' });
+    } else if (m.method === 'microsoft') {
+      options.push({ method: 'microsoft' });
     } else if (m.method === 'sso') {
       if (!m.enabled) continue;
       const provider = ssoProviders.find((p) => p.providerId === m.providerId);

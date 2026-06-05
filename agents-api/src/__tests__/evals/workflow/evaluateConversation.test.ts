@@ -1,3 +1,4 @@
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Hoist the mock functions
@@ -49,14 +50,7 @@ vi.mock('../../../env.js', () => ({
   },
 }));
 
-vi.mock('../../../logger.js', () => ({
-  getLogger: vi.fn(() => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  })),
-}));
+vi.mock('../../../logger.js', () => createMockLoggerModule().module);
 
 vi.mock('../../../domains/evals/services/EvaluationService.js', () => ({
   EvaluationService: vi.fn().mockImplementation(() => ({

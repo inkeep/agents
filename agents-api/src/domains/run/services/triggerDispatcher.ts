@@ -47,9 +47,6 @@ export async function dispatchDueTriggers(): Promise<DispatchResult> {
         {
           error: result.reason,
           scheduledTriggerId: trigger.id,
-          tenantId: trigger.tenantId,
-          projectId: trigger.projectId,
-          agentId: trigger.agentId,
         },
         'Dispatch failed unexpectedly'
       );

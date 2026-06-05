@@ -263,7 +263,7 @@ app.openapi(
         throw new Error(`Tool ${toolId} not found`);
       }
 
-      logger.info({ toolId, tenantId, projectId }, 'Processing OAuth callback');
+      logger.info({ toolId }, 'Processing OAuth callback');
 
       // Exchange authorization code for access token using OAuth service
       logger.info({ toolId }, 'Exchanging authorization code for access token');

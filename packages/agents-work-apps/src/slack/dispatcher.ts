@@ -1,6 +1,10 @@
 import { flushTraces } from '@inkeep/agents-core';
 import { getLogger } from '../logger';
-import { findWorkspaceConnectionByTeamId, getSlackClient } from './services';
+import {
+  cleanupWorkspaceInstallation,
+  findWorkspaceConnectionByTeamId,
+  getSlackClient,
+} from './services';
 import {
   handleAppMention,
   handleDirectMessage,
@@ -182,6 +186,66 @@ export async function dispatchSlackEvent(
         })
         .finally(() => flushTraces());
       registerBackgroundWork(dmWork);
+    } else if (innerEventType === 'app_uninstalled' && teamId) {
+      outcome = 'handled';
+      span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+      span.updateName('slack.webhook app_uninstalled');
+      logger.info({ teamId }, 'Handling event: app_uninstalled');
+
+      const uninstallWork = cleanupWorkspaceInstallation({
+        teamId,
+        skipTokenRevocation: true,
+      })
+        .then((result) => {
+          logger.info(
+            { teamId, success: result.success, dbCleaned: result.dbCleaned },
+            'app_uninstalled cleanup completed'
+          );
+        })
+        .catch((err: unknown) => {
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          logger.error({ errorMessage, teamId }, 'Failed to handle app_uninstalled');
+        })
+        .finally(() => flushTraces());
+      registerBackgroundWork(uninstallWork);
+    } else if (innerEventType === 'tokens_revoked' && teamId) {
+      outcome = 'handled';
+      span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);
+      span.updateName('slack.webhook tokens_revoked');
+
+      const tokensEvent = payload.event as
+        | { tokens?: { oauth?: string[]; bot?: string[] } }
+        | undefined;
+      const revokedBotTokens = tokensEvent?.tokens?.bot ?? [];
+      const revokedOauthTokens = tokensEvent?.tokens?.oauth ?? [];
+
+      logger.info(
+        {
+          teamId,
+          revokedBotCount: revokedBotTokens.length,
+          revokedOauthCount: revokedOauthTokens.length,
+        },
+        'Handling event: tokens_revoked'
+      );
+
+      if (revokedBotTokens.length > 0) {
+        const revokeWork = cleanupWorkspaceInstallation({
+          teamId,
+          skipTokenRevocation: true,
+        })
+          .then((result) => {
+            logger.info(
+              { teamId, success: result.success, dbCleaned: result.dbCleaned },
+              'tokens_revoked (bot) cleanup completed'
+            );
+          })
+          .catch((err: unknown) => {
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            logger.error({ errorMessage, teamId }, 'Failed to handle tokens_revoked (bot)');
+          })
+          .finally(() => flushTraces());
+        registerBackgroundWork(revokeWork);
+      }
     } else {
       outcome = 'ignored_unknown_event';
       span.setAttribute(SLACK_SPAN_KEYS.OUTCOME, outcome);

@@ -4,6 +4,7 @@ import type { JSX, ReactNode } from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { FormControl } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { FormFieldWrapper } from './form-field-wrapper';
 
 interface GenericInputProps<FV extends FieldValues, TV = FieldValues> {
@@ -18,6 +19,7 @@ interface GenericInputProps<FV extends FieldValues, TV = FieldValues> {
   description?: ReactNode;
   isRequired?: boolean;
   tooltip?: string;
+  transformValue?: (value: string) => string | number | null;
 }
 
 export function GenericInput<
@@ -35,7 +37,15 @@ export function GenericInput<
   description,
   isRequired = false,
   tooltip,
+  transformValue,
 }: GenericInputProps<TFieldValues, TTransformedValues>) {
+  const transform =
+    transformValue ??
+    (type === 'number'
+      ? // For number inputs, convert empty string to null, otherwise parse as number
+        (value) => (value === '' ? null : Number(value))
+      : (value) => value);
+
   return (
     <FormFieldWrapper
       control={control}
@@ -47,24 +57,30 @@ export function GenericInput<
     >
       {(field) => (
         <FormControl>
-          <Input
-            type={type}
-            placeholder={placeholder}
-            min={min}
-            max={max}
-            disabled={disabled}
-            {...field}
-            value={field.value ?? ''}
-            onChange={(e) => {
-              const { value } = e.target;
-              if (type === 'number') {
-                // For number inputs, convert empty string to null, otherwise parse as number
-                field.onChange(value === '' ? null : Number(value));
-              } else {
-                field.onChange(value);
-              }
-            }}
-          />
+          {type === 'password' ? (
+            <PasswordInput
+              placeholder={placeholder}
+              disabled={disabled}
+              {...field}
+              value={field.value ?? ''}
+              onChange={(e) => {
+                field.onChange(transform(e.target.value));
+              }}
+            />
+          ) : (
+            <Input
+              type={type}
+              placeholder={placeholder}
+              min={min}
+              max={max}
+              disabled={disabled}
+              {...field}
+              value={field.value ?? ''}
+              onChange={(e) => {
+                field.onChange(transform(e.target.value));
+              }}
+            />
+          )}
         </FormControl>
       )}
     </FormFieldWrapper>

@@ -59,6 +59,7 @@ export class Agent implements AgentInterface {
   private stopWhen?: AgentStopWhen;
   private triggers: TriggerInterface[] = [];
   private triggerMap: Map<string, Trigger> = new Map();
+  private executionMode?: 'classic' | 'durable';
 
   constructor(config: AgentConfig) {
     this.defaultSubAgent = config.defaultSubAgent;
@@ -75,6 +76,7 @@ export class Agent implements AgentInterface {
 
     this.statusUpdateSettings = config.statusUpdates;
     this.prompt = config.prompt;
+    this.executionMode = config.executionMode;
     // Set stopWhen - preserve original config or set default during inheritance
     this.stopWhen = config.stopWhen
       ? {
@@ -422,6 +424,7 @@ export class Agent implements AgentInterface {
       stopWhen: this.stopWhen,
       statusUpdates: processedStatusUpdates,
       prompt: this.prompt,
+      executionMode: this.executionMode,
     };
   }
 

@@ -84,9 +84,11 @@ export const requireWorkspaceAdmin = <
       return;
     }
 
-    // Resolve tenant context from teamId if tenantId or tenantRole is missing
-    // workAppsAuth sets tenantId from session but not tenantRole — we need both
-    const teamId = c.req.param('teamId') || c.req.param('workspaceId');
+    // Resolve tenant context from teamId if tenantRole is missing.
+    // workAppsAuth sets tenantId from session but not tenantRole — we need both.
+    // The teamId path parameter is constrained to raw Slack team IDs by the
+    // shared SlackTeamIdSchema in routes/workspaces.ts
+    const teamId = c.req.param('teamId');
     if (teamId && !c.get('tenantRole')) {
       await resolveWorkAppTenantContext(c, teamId, userId);
     }

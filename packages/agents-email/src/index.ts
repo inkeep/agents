@@ -39,7 +39,7 @@ export function createEmailService(options?: CreateEmailServiceOptions): EmailSe
       return sendEmail({
         transporter,
         from,
-        replyTo,
+        ...(replyTo !== undefined ? { replyTo } : {}),
         to: data.to,
         subject: `${data.inviterName} invited you to Inkeep`,
         react: createElement(InvitationEmail, { data }),
@@ -53,7 +53,7 @@ export function createEmailService(options?: CreateEmailServiceOptions): EmailSe
       return sendEmail({
         transporter,
         from,
-        replyTo,
+        ...(replyTo !== undefined ? { replyTo } : {}),
         to: data.to,
         subject: 'Reset your Inkeep password',
         react: createElement(PasswordResetEmail, { data }),

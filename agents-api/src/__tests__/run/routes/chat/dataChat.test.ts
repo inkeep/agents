@@ -1,6 +1,6 @@
+import { PdfUrlIngestionError } from '@inkeep/agents-core/external-fetch';
 import { describe, expect, it, vi } from 'vitest';
 import type { ExecutionHandlerParams } from '../../../../domains/run/handlers/executionHandler';
-import { PdfUrlIngestionError } from '../../../../domains/run/services/blob-storage/file-security-errors';
 import { pendingToolApprovalManager } from '../../../../domains/run/session/PendingToolApprovalManager';
 import { toolApprovalUiBus } from '../../../../domains/run/session/ToolApprovalUiBus';
 
@@ -409,6 +409,62 @@ describe('Chat Data Stream Route', () => {
               url: 'data:application/json;base64,eyJuYW1lIjoiYWxwaGEiLCJjb3VudCI6MX0=',
               mediaType: 'application/json',
               filename: 'data.json',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
+  it('should accept inline JavaScript file part in Vercel messages format', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Summarize this JavaScript file',
+          parts: [
+            { type: 'text', text: 'Summarize this JavaScript file' },
+            {
+              type: 'file',
+              url: 'data:application/javascript;base64,ZXhwb3J0IGNvbnN0IGFuc3dlciA9IDQyOwo=',
+              mediaType: 'application/javascript',
+              filename: 'answer.js',
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/run/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+  });
+
+  it('should accept inline YAML file part in Vercel messages format', async () => {
+    const body = {
+      messages: [
+        {
+          role: 'user',
+          content: 'Summarize this YAML file',
+          parts: [
+            { type: 'text', text: 'Summarize this YAML file' },
+            {
+              type: 'file',
+              url: 'data:application/yaml;base64,bmFtZTogYWxwaGEKY291bnQ6IDEK',
+              mediaType: 'application/yaml',
+              filename: 'config.yml',
             },
           ],
         },

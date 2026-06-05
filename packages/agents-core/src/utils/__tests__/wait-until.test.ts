@@ -1,20 +1,14 @@
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockWaitUntil = vi.fn();
-const mockLogger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-  debug: vi.fn(),
-};
+const { mockLogger, module: loggerModule } = createMockLoggerModule();
 
 vi.mock('@vercel/functions', () => ({
   waitUntil: mockWaitUntil,
 }));
 
-vi.mock('../logger', () => ({
-  getLogger: () => mockLogger,
-}));
+vi.mock('../logger', () => loggerModule);
 
 describe('getWaitUntil', () => {
   let originalVercel: string | undefined;

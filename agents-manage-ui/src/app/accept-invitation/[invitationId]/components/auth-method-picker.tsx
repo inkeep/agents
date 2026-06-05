@@ -8,6 +8,7 @@ interface AuthMethodPickerProps {
   invitationVerification: InvitationVerification;
   email: string;
   googleClientId: string | undefined;
+  microsoftClientId: string | undefined;
   isSmtpConfigured: boolean;
   isSubmitting: boolean;
   error: string | null;
@@ -20,6 +21,7 @@ export function AuthMethodPicker({
   invitationVerification,
   email,
   googleClientId,
+  microsoftClientId,
   isSmtpConfigured,
   isSubmitting,
   error,
@@ -30,10 +32,11 @@ export function AuthMethodPicker({
   const orgName = invitationVerification.organizationName;
   const allowedMethods = invitationVerification.allowedAuthMethods ?? [];
   const hasGoogle = allowedMethods.some((m) => m.method === 'google');
+  const hasMicrosoft = allowedMethods.some((m) => m.method === 'microsoft');
   const ssoMethods = allowedMethods.filter((m) => m.method === 'sso');
   const hasEmailPassword = allowedMethods.some((m) => m.method === 'email-password');
-  const hasExternalMethods = hasGoogle || ssoMethods.length > 0;
-  const hasNoMethods = !hasGoogle && ssoMethods.length === 0 && !hasEmailPassword;
+  const hasExternalMethods = hasGoogle || hasMicrosoft || ssoMethods.length > 0;
+  const hasNoMethods = !hasGoogle && !hasMicrosoft && ssoMethods.length === 0 && !hasEmailPassword;
 
   const description = hasNoMethods ? (
     <>
@@ -63,6 +66,8 @@ export function AuthMethodPicker({
       <ExternalAuthButtons
         hasGoogle={hasGoogle}
         googleClientId={googleClientId}
+        hasMicrosoft={hasMicrosoft}
+        microsoftClientId={microsoftClientId}
         ssoMethods={ssoMethods}
         isSubmitting={isSubmitting}
         onExternalSignIn={onExternalSignIn}

@@ -21,6 +21,10 @@ interface ComponentSelectorProps<T extends ComponentItem>
   label?: string;
   componentLookup: Record<string, T>;
   onSelectionChange: (newSelection: string[]) => void;
+  /** Ids whose chip renders highlighted (e.g. "required"). Opt-in. */
+  requiredComponents?: string[];
+  /** When provided, a selected chip's body becomes clickable. Opt-in. */
+  onComponentClick?: (componentId: string) => void;
 }
 
 export function ComponentSelector<T extends ComponentItem>({
@@ -28,6 +32,8 @@ export function ComponentSelector<T extends ComponentItem>({
   componentLookup,
   selectedComponents,
   onSelectionChange,
+  requiredComponents,
+  onComponentClick,
   ...props
 }: ComponentSelectorProps<T>) {
   const handleToggle = (componentId: string) => {
@@ -46,6 +52,8 @@ export function ComponentSelector<T extends ComponentItem>({
             selectedComponents={selectedComponents}
             componentLookup={componentLookup}
             handleToggle={handleToggle}
+            {...(requiredComponents ? { requiredComponents } : {})}
+            {...(onComponentClick ? { onComponentClick } : {})}
           />
         )}
       </div>

@@ -19,19 +19,23 @@ vi.mock('../../runtime/scheduledTriggers', () => ({
 
 vi.mock('../triggers', () => ({
   deleteTriggersByRunAsUserId: vi.fn(),
+  removeUserFromProjectTriggerUsers: vi.fn(),
 }));
 
 const { listProjectsMetadata } = await import('../../runtime/projects');
 const { resolveProjectMainRefs } = await import('../../../dolt/ref-helpers');
 const { withRef } = await import('../../../dolt/ref-scope');
 const { deleteScheduledTriggersByRunAsUserId } = await import('../../runtime/scheduledTriggers');
-const { deleteTriggersByRunAsUserId } = await import('../triggers');
+const { deleteTriggersByRunAsUserId, removeUserFromProjectTriggerUsers } = await import(
+  '../triggers'
+);
 
 const listProjectsMetadataMock = vi.mocked(listProjectsMetadata);
 const resolveProjectMainRefsMock = vi.mocked(resolveProjectMainRefs);
 const withRefMock = vi.mocked(withRef);
 const deleteScheduledByUserMock = vi.mocked(deleteScheduledTriggersByRunAsUserId);
 const deleteWebhookByUserMock = vi.mocked(deleteTriggersByRunAsUserId);
+const removeTriggerUsersByUserMock = vi.mocked(removeUserFromProjectTriggerUsers);
 
 describe('cleanupUserTriggers', () => {
   const mockRunDb = {} as any;
@@ -47,6 +51,7 @@ describe('cleanupUserTriggers', () => {
     mockPool.connect.mockResolvedValue(mockConnection);
     deleteScheduledByUserMock.mockReturnValue(vi.fn().mockResolvedValue(undefined));
     deleteWebhookByUserMock.mockReturnValue(vi.fn().mockResolvedValue(undefined));
+    removeTriggerUsersByUserMock.mockReturnValue(vi.fn().mockResolvedValue(undefined));
   });
 
   it('should be a no-op when tenant has no projects', async () => {
@@ -96,6 +101,7 @@ describe('cleanupUserTriggers', () => {
 
     expect(deleteScheduledByUserMock).toHaveBeenCalledWith(mockRunDb);
     expect(scheduledDeleteFn).toHaveBeenCalledTimes(2);
+    expect(removeTriggerUsersByUserMock).toHaveBeenCalledTimes(2);
 
     expect(withRefMock).toHaveBeenCalledTimes(2);
     expect(withRefMock).toHaveBeenCalledWith(mockPool, ref1, expect.any(Function), {

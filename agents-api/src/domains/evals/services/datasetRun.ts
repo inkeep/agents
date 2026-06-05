@@ -50,7 +50,7 @@ export async function queueDatasetRunItems(params: {
   await Promise.all(
     failures.map(({ item, reason }) => {
       logger.error(
-        { err: reason, datasetItemId: item.id, agentId: item.agentId },
+        { err: reason, datasetItemId: item.id },
         'Failed to queue dataset item workflow'
       );
       return markScheduledTriggerInvocationFailed(runDbClient)({

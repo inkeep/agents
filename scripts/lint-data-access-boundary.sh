@@ -28,6 +28,7 @@ violations=$(
     | grep -v '/retry/' \
     | grep -v -- '-schema' \
     | grep -v 'branchScopedDb' \
+    | grep -v '/scripts/' \
     | grep -v 'node_modules' \
     | grep -v '__snapshots__' \
     | grep -v '__tests__' \

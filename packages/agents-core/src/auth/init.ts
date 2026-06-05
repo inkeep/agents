@@ -11,17 +11,22 @@
  * - INKEEP_AGENTS_RUN_DATABASE_URL: PostgreSQL connection string
  * - TENANT_ID: Organization/tenant ID (defaults to 'default') - this becomes the org ID
  * - INKEEP_AGENTS_MANAGE_UI_USERNAME: Admin email address
- * - INKEEP_AGENTS_MANAGE_UI_PASSWORD: Admin password (min 8 chars)
+ * - INKEEP_AGENTS_MANAGE_UI_PASSWORD: Admin password (min 15 chars, see password policy)
  * - BETTER_AUTH_SECRET: Secret for Better Auth
  *
  * Optional environment variables:
  * - INKEEP_AGENTS_API_URL: API URL for Better Auth (defaults to http://localhost:3002)
+ * - INKEEP_AUTH_INIT_FORCE_PASSWORD_RESET: When 'true' and the admin user
+ *   already exists, re-sync the user's credential-account password from
+ *   INKEEP_AGENTS_MANAGE_UI_PASSWORD. Intended for ephemeral CI envs where
+ *   the secret may have rotated. Default-off so prod re-runs are safe.
  */
 
 import { loadEnvironmentFiles } from '../env';
 
 loadEnvironmentFiles();
 
+import { hashPassword } from 'better-auth/crypto';
 import { createApp, getAppById } from '../data-access/runtime/apps';
 import { addUserToOrganization, upsertOrganization } from '../data-access/runtime/organizations';
 import { getUserByEmail } from '../data-access/runtime/users';
@@ -30,6 +35,7 @@ import type { AppConfig, PublicKeyConfig } from '../types/utility';
 import { createAuth } from './auth';
 import { syncOrgMemberToSpiceDb } from './authz';
 import { OrgRoles } from './authz/types';
+import { validatePasswordPolicy } from './password-policy';
 import { writeSpiceDbSchema } from './spicedb-schema';
 
 const TENANT_ID = process.env.TENANT_ID || 'default';
@@ -69,6 +75,15 @@ async function init() {
     process.exit(1);
   }
 
+  const passwordViolations = validatePasswordPolicy(password, { userEmail: username });
+  if (passwordViolations.length > 0) {
+    console.error('❌ INKEEP_AGENTS_MANAGE_UI_PASSWORD does not meet the password policy:');
+    for (const v of passwordViolations) {
+      console.error(`   - ${v.message}`);
+    }
+    process.exit(1);
+  }
+
   // 2. Create the auth instance
   const apiUrl = process.env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
   const auth = createAuth({
@@ -98,15 +113,30 @@ async function init() {
   let user = await getUserByEmail(dbClient)(username);
 
   if (user) {
-    console.log(`   ℹ️  User already exists: ${username}`);
-    try {
-      const ctx = await auth.$context;
-      const hashedPassword = await ctx.password.hash(password);
-      await ctx.internalAdapter.updatePassword(user.id, hashedPassword);
-      console.log('   ✅ Password synced from .env');
-    } catch (error) {
-      console.error('   ❌ Failed to sync password from .env:', error);
-      process.exit(1);
+    if (process.env.INKEEP_AUTH_INIT_FORCE_PASSWORD_RESET === 'true') {
+      // Re-sync the credential-account password from the env value. Used by
+      // ephemeral CI envs (e.g. per-PR Railway preview) where the env is
+      // reused across runs but the secret may have rotated since the user
+      // was first created. Default-off so production / self-hosted re-runs
+      // of `pnpm db:auth:init` don't silently rotate the admin's password.
+      //
+      // Uses Better Auth's lower-level `hashPassword` directly rather than
+      // `auth.$context.password.hash`, because the HIBP plugin wraps the
+      // context-level hash to make a network call inside an endpoint
+      // context — calling it from a script without an active endpoint
+      // throws "No auth context found". The pre-flight policy gate above
+      // (length/strength via validatePasswordPolicy) already runs.
+      try {
+        const ctx = await auth.$context;
+        const hashedPassword = await hashPassword(password);
+        await ctx.internalAdapter.updatePassword(user.id, hashedPassword);
+        console.log(`   ✅ User exists; password re-synced from env`);
+      } catch (error) {
+        console.error(`   ❌ Failed to re-sync password for user ${user.id}:`, error);
+        throw error;
+      }
+    } else {
+      console.log(`   ℹ️  User already exists: ${username} — skipping creation and password update`);
     }
   } else {
     // Create user via Better Auth
@@ -130,6 +160,13 @@ async function init() {
     if (!user) {
       console.error('   ❌ User was created but could not be retrieved from database');
       process.exit(1);
+    }
+
+    // signUpEmail's autoSignIn issued a session no client holds; sign it out via Better Auth.
+    if (result.token) {
+      await auth.api.signOut({
+        headers: new Headers({ authorization: `Bearer ${result.token}` }),
+      });
     }
 
     console.log(`   ✅ User created: ${user.email}`);
@@ -156,6 +193,7 @@ async function init() {
     console.log('   ✅ Synced to SpiceDB');
   } catch (error) {
     console.error('❌ SpiceDB sync failed:', error);
+    throw error;
   }
 
   // 7. Create global playground app (if configured)

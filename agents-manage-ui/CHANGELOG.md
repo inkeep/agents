@@ -1,5 +1,421 @@
 # @inkeep/agents-manage-ui
 
+## 0.75.4
+
+### Patch Changes
+
+- @inkeep/agents-core@0.75.4
+
+## 0.75.3
+
+### Patch Changes
+
+- 68e8093: Consolidate conversation trace queries into single SigNoz query
+- Updated dependencies [c9072d5]
+  - @inkeep/agents-core@0.75.3
+
+## 0.75.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.75.2
+
+## 0.75.1
+
+### Patch Changes
+
+- 2042ce9: Exclude evaluation LLM calls from per-conversation and cost-page spend figures so cost is consistent across the conversation list, conversation detail, and cost dashboard.
+- Updated dependencies [d7a6762]
+- Updated dependencies [2042ce9]
+  - @inkeep/agents-core@0.75.1
+
+## 0.75.0
+
+### Patch Changes
+
+- dcb6914: Cost page improvements to show per conversation costs
+- Updated dependencies [db2be2f]
+  - @inkeep/agents-core@0.75.0
+
+## 0.74.4
+
+### Patch Changes
+
+- 1521dcc: Add Claude Opus 4.8 to model constants, the manage UI model picker, and the CLI model picker.
+- Updated dependencies [1521dcc]
+  - @inkeep/agents-core@0.74.4
+
+## 0.74.3
+
+### Patch Changes
+
+- 87e4bf1: Refresh model lineup against current vendor status:
+  - Gemini: add `GEMINI_3_1_FLASH_LITE` (GA) and `GEMINI_3_5_FLASH` (GA); drop `Gemini 3 Flash` (does not exist in Google's API) and `Gemini 3 Pro Preview` (shut down 2026-03-09) from the manage-UI and CLI pickers; swap `Gemini 3.1 Flash Lite Preview` for the GA in pickers.
+  - Anthropic: add `CLAUDE_OPUS_4_7` (current Opus flagship); drop `Claude Opus 4` and `Claude Sonnet 4` (deprecated 2026-04-14, retire 2026-06-15) from pickers.
+  - OpenAI: migrate the OpenAI summarizer default from `GPT_4_1_NANO` (retires 2026-10-23) to `GPT_5_4_NANO` across the manage-UI, CLI, agents-sdk example, and create-agents template; drop `GPT-4.1 Nano` from pickers.
+
+  Constants for sunset/preview model IDs are retained so existing SDK consumers continue to compile.
+
+- d6c3176: Surface prompt-cache behavior in the Manage UI: a per-call cache-state badge on the conversation trace timeline (with cache read/write token counts in its tooltip), per-call cache read/write detail in the conversation Usage & Cost summary, a Cache-read Tokens stat plus a Cost by Cache Participation breakdown and per-event Cache read/write columns on the cost dashboard, and cache fields included in copied (summarized and full) traces. Also routes the conversation trace API's base filter through the shared single-quote-escaping helper instead of raw string interpolation, closing a latent SigNoz filter-injection vector.
+- Updated dependencies [87e4bf1]
+- Updated dependencies [d6c3176]
+  - @inkeep/agents-core@0.74.3
+
+## 0.74.2
+
+### Patch Changes
+
+- 3adbaa4: Add conversation error webhook event types
+- ba25590: UI improvements to the traces costs page and add include=agents query param to list-projects endpoint for faster cost dashboard loading
+- Updated dependencies [3adbaa4]
+- Updated dependencies [ba25590]
+  - @inkeep/agents-core@0.74.2
+
+## 0.74.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.74.1
+
+## 0.74.0
+
+### Minor Changes
+
+- fbb4048: Add a Guardrails section to the sub-agent editor: a modal for declaring what a sub agent can emit (data components, artifacts) and the contract its responses must satisfy (structured-only emission, requireComponent / requireArtifact / requireTransfer, onViolation).
+
+### Patch Changes
+
+- 12a8478: Distinguish between same agent name in cost page
+- 02ef183: Properly characterize when to use App Credentials and API keys
+- 9b519e3: Change BaseSkillSchema to use z.object() instead of z.strictObject()
+- bb0aba5: Evaluation failure event added
+- ab6276d: Cost events have agent name linked
+- 7c5a341: Point Zendesk Marketplace link to specific Inkeep app listing
+- 6168e1b: Add collapsible toggle to the four summary cards in the conversations details page
+- 1af568e: Cost events displayed with agent name
+- Updated dependencies [bb0aba5]
+- Updated dependencies [ab6276d]
+- Updated dependencies [be4d081]
+- Updated dependencies [fbb4048]
+- Updated dependencies [1af568e]
+  - @inkeep/agents-core@0.74.0
+
+## 0.73.5
+
+### Patch Changes
+
+- cbc947d: Add Slack webhook integration with per-event Block Kit formatting
+  - @inkeep/agents-core@0.73.5
+
+## 0.73.4
+
+### Patch Changes
+
+- 867384b: Add GPT-5.5 and GPT-5.5 Pro to OpenAI model options
+- 0089acf: Automatically refresh graph after copilot runs
+- Updated dependencies [867384b]
+- Updated dependencies [4f7c661]
+  - @inkeep/agents-core@0.73.4
+
+## 0.73.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.73.3
+
+## 0.73.2
+
+### Patch Changes
+
+- 1613bbf: Fix reCAPTCHA token generation in production by calling grecaptcha.execute directly. react-google-recaptcha-v3's first-mount initialization fails silently in production builds (no React Strict Mode double-mount safety net), leaving useGoogleReCaptcha's executeRecaptcha stuck at undefined. Removed the library entirely; the reCAPTCHA script is now injected via next/script and the executor calls window.grecaptcha.execute directly via grecaptcha.ready.
+- bf4f397: Add userProperties and analyticsProperties to playground and copilot widgets
+  - @inkeep/agents-core@0.73.2
+
+## 0.73.1
+
+### Patch Changes
+
+- f069c82: Wire reCAPTCHA v3 captcha header on login, forgot-password, and accept-invitation pages; CSP allowlist for Google reCAPTCHA domains
+- Updated dependencies [f069c82]
+  - @inkeep/agents-core@0.73.1
+
+## 0.73.0
+
+### Minor Changes
+
+- ed76d93: Add custom HTTP headers for outbound webhooks; tighten header validation (RFC 7230 name charset, length limits) across all user-configurable header fields
+
+### Patch Changes
+
+- 78b6b83: Add password reveal toggle to password and credential API key inputs
+- 902d800: Add edit links to configured skills
+- Updated dependencies [ed76d93]
+  - @inkeep/agents-core@0.73.0
+
+## 0.72.2
+
+### Patch Changes
+
+- 65d7e73: Update agents-ui package to 0.16.2
+  - @inkeep/agents-core@0.72.2
+
+## 0.72.1
+
+### Patch Changes
+
+- Updated dependencies [52e099d]
+  - @inkeep/agents-core@0.72.1
+
+## 0.72.0
+
+### Patch Changes
+
+- 4a0d963: Phase 2 of the events API: chat-handler propagation, dispatch wiring, and webhook UI.
+  - Chat handlers (`/run/api/chat`, `/run/v1/chat/completions`, `/run/api/chat-data-stream`) now write `body.userProperties` and the new `body.properties` to top-level `conversations.userProperties` and `conversations.properties` columns (D36 — and stop writing `userProperties` into `metadata.userContext`). User-message inserts snapshot `userProperties` to `messages.userProperties` per D37.
+  - `conversationFormatter.formatConversationDetail` now reads `userProperties` and `properties` from the new top-level columns. The webhook payload wire shape is unchanged.
+  - `POST /run/v1/events` now resolves `userProperties` and `properties` via the D38 chain (caller → message → conversation → endUserId → null) and dispatches to webhook destinations subscribed to the new `event.created` family (fire-and-forget, errors logged without blocking the response).
+  - The webhook destination create/edit form in `agents-manage-ui` exposes a `Event Created` checkbox alongside the existing event-type options.
+
+- b639f7f: slow-path server-side pagination for span-filtered conversations
+- Updated dependencies [4a0d963]
+- Updated dependencies [4a0d963]
+  - @inkeep/agents-core@0.72.0
+
+## 0.71.0
+
+### Minor Changes
+
+- 2e2d3aa: Add outbound webhooks: configure per-project HTTP destinations and receive `conversation.created`, `conversation.updated`, and `feedback.created` events with full conversation context. Webhook payloads mirror the canonical `ConversationDetail` shape now also returned by `GET /conversations/{id}`, so receivers can reuse one TypeScript type for both.
+
+### Patch Changes
+
+- 0532008: Hide New App, Edit, and Delete buttons on the apps page for non-admins
+- c3cbdbf: optimizations for querying traces
+- e9092d0: Add Support Copilot install dialog with Chrome Web Store instructions, apps-list install button, post-create install flow, and member-count admin note
+- Updated dependencies [e348e84]
+- Updated dependencies [648957c]
+- Updated dependencies [2e2d3aa]
+- Updated dependencies [c3cbdbf]
+  - @inkeep/agents-core@0.71.0
+
+## 0.70.8
+
+### Patch Changes
+
+- @inkeep/agents-core@0.70.8
+
+## 0.70.7
+
+### Patch Changes
+
+- 2e5c421: Render inkeep-cli sessions as 'Inkeep CLI <version>' in the active sessions list
+- 2e5c421: Add active sessions view to profile page with per-session and bulk revoke
+- a03d008: CSV functionality for feedback and exporting
+- bd0a8b1: fixing origin selector for slack in traces
+- Updated dependencies [a03d008]
+- Updated dependencies [2e5c421]
+  - @inkeep/agents-core@0.70.7
+
+## 0.70.6
+
+### Patch Changes
+
+- af1a34a: Fix model configuration JSON template to use `maxOutputTokens` instead of `maxTokens` so the placeholder example and "Template" button insert keys the runtime actually honors
+  - @inkeep/agents-core@0.70.6
+
+## 0.70.5
+
+### Patch Changes
+
+- 40e6354: Fix Cost page: repair the cost summaries parser to correctly merge multi-aggregation grouped scalar responses from SigNoz v5 (top stat cards and Cost by Model/Agent/Provider/Generation Type tiles now show real data instead of $0/no data). Also render the chart and events sections independently of the summaries query so one slow or failed query doesn't block the others, and surface query errors in the UI instead of silently returning empty.
+- 26cc75a: Enforce 15-character password policy with HaveIBeenPwned check; add password requirements UI on signup, reset, and change-password
+- ee7bcea: improve performance for traces
+- Updated dependencies [26cc75a]
+- Updated dependencies [903b1ef]
+  - @inkeep/agents-core@0.70.5
+
+## 0.70.4
+
+### Patch Changes
+
+- 5bd4911: First class support for origin filtering in traces
+- 4ecbba7: performance improvements for traces page
+- d96e872: Fix Slack workspace uninstall failing with "Slack workspace not found or not associated with a tenant"
+
+  The manage UI was passing the Nango `connectionId` (e.g. `E::T:T012AB3C4`) to `DELETE /work-apps/slack/workspaces/{teamId}`, but `requireWorkspaceAdmin` middleware uses that path parameter directly to look up the workspace by raw Slack team ID. The lookup never matched and uninstall failed with a 404.
+
+  The route now enforces a single contract: `:teamId` must be a raw Slack team ID (`T...`). A shared `SlackTeamIdSchema` Zod regex rejects connection IDs and other malformed values at the request boundary with 400 (instead of leaking into a confusing 404 from the middleware). The DELETE handler's dual `connectionId`-or-`teamId` parsing is removed, and the manage UI now sends `workspace.teamId` for uninstall.
+
+- 5a2dd89: Centralize auth guards for manage UI API routes into a shared module
+- Updated dependencies [5bd4911]
+- Updated dependencies [4ecbba7]
+  - @inkeep/agents-core@0.70.4
+
+## 0.70.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.70.3
+
+## 0.70.2
+
+### Patch Changes
+
+- a4d2360: improvement agent
+- Updated dependencies [a4d2360]
+  - @inkeep/agents-core@0.70.2
+
+## 0.70.1
+
+### Patch Changes
+
+- fbfeb6d: Import CSV functionality for datasets and rerun test suite runs
+  - @inkeep/agents-core@0.70.1
+
+## 0.70.0
+
+### Patch Changes
+
+- Updated dependencies [60a0c60]
+- Updated dependencies [1570c2a]
+  - @inkeep/agents-core@0.70.0
+
+## 0.69.1
+
+### Patch Changes
+
+- 41e04cf: drop bypass secret injection for signoz
+- a6bd5ec: cost usage events window for signoz fixed
+- Updated dependencies [a6bd5ec]
+  - @inkeep/agents-core@0.69.1
+
+## 0.69.0
+
+### Minor Changes
+
+- 52d0831: Recognize `{{$conversation.id}}` in the Monaco prompt editor. Lint no longer marks it as "Unknown variable" and autocomplete surfaces `$conversation.id` when the author types `{{$`. Gated on no config — works in any agent prompt.
+
+### Patch Changes
+
+- 06479a2: fix the overflowing code in dataset ui
+- Improve performance of datasets and evaluation results loading
+- 32bce4f: Add quickActions support to support_copilot app config (schema, persistence, editor UI)
+- Updated dependencies [52d0831]
+- Updated dependencies [c63567e]
+- Updated dependencies [32bce4f]
+  - @inkeep/agents-core@0.69.0
+
+## 0.68.4
+
+### Patch Changes
+
+- @inkeep/agents-core@0.68.4
+
+## 0.68.3
+
+### Patch Changes
+
+- e8776f5: Add Microsoft as a social sign-in provider
+- Updated dependencies [e8776f5]
+  - @inkeep/agents-core@0.68.3
+
+## 0.68.2
+
+### Patch Changes
+
+- 557f700: Add support_copilot app type with OAuth 2.1 JWT auth, tenant-level app discovery endpoint, and apps UI for configuring support copilot apps with credentials
+- Updated dependencies [557f700]
+- Updated dependencies [4e0fd65]
+  - @inkeep/agents-core@0.68.2
+
+## 0.68.1
+
+### Patch Changes
+
+- 7b3b8b6: Fix cost page timeout by aggregating cost queries at the database level
+  - @inkeep/agents-core@0.68.1
+
+## 0.68.0
+
+### Patch Changes
+
+- Updated dependencies [d1e18a8]
+  - @inkeep/agents-core@0.68.0
+
+## 0.67.4
+
+### Patch Changes
+
+- b2c15cd: Fix DynamicComponentRenderer not rendering in production by allowing unsafe-eval in CSP
+  - @inkeep/agents-core@0.67.4
+
+## 0.67.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.67.3
+
+## 0.67.2
+
+### Patch Changes
+
+- cad720b: improve UnsavedChangesDialog typings to fix `Type error: Type 'Control<{ tools: Record...>' is not assignable to type 'Control<any>'`
+  - @inkeep/agents-core@0.67.2
+
+## 0.67.1
+
+### Patch Changes
+
+- 284864a: Fix Cost Over Time chart showing a single dot by querying per-trace aggregates instead of deriving from a 200-event sample
+  - @inkeep/agents-core@0.67.1
+
+## 0.67.0
+
+### Minor Changes
+
+- 757ac77: Add multi-user webhook triggers with per-user dispatch delay and invocation tracking.
+
+### Patch Changes
+
+- Updated dependencies [757ac77]
+  - @inkeep/agents-core@0.67.0
+
+## 0.66.1
+
+### Patch Changes
+
+- e6f0111: Fix authentication return URL validation to reject backslash-based redirect bypasses that could send users off-site after login.
+- 7383bf1: logging for traces
+  - @inkeep/agents-core@0.66.1
+
+## 0.66.0
+
+### Patch Changes
+
+- 98399ec: Add Improve with AI dialog to playground for copilot-assisted agent iteration
+  Tweak styling on feedback page
+  Bump agents-ui packages
+  Remove custom feedback on playground widget since latest version has feedback built in
+  Remove redundant feedback type in form
+- Updated dependencies [5596ecb]
+- Updated dependencies [63a1358]
+- Updated dependencies [01a960d]
+- Updated dependencies [4d0169b]
+  - @inkeep/agents-core@0.66.0
+
+## 0.65.2
+
+### Patch Changes
+
+- 259797c: Fix `useFormState` reactivity under React Compiler by isolating proxy-backed error reads
+- ebdd24f: fix timezone calculation for datasets and evaluators
+- 1f1b4b9: Auto-replace spaces with dashes in skill name input
+- 1a504c7: Add nested folder documentation and info tooltip for skill file paths
+- Updated dependencies [fa18f84]
+- Updated dependencies [34e1d67]
+- Updated dependencies [93eb31e]
+  - @inkeep/agents-core@0.65.2
+
 ## 0.65.1
 
 ### Patch Changes
@@ -198,31 +614,26 @@
 - 1e4f05d: Refactor agent graph editor to use deterministic graph keys and single source of truth for form state
 
   ### Graph identity system
-
   - Add deterministic graph key derivation for all node types (`getSubAgentGraphKey`, `getMcpGraphKey`, `getFunctionToolGraphKey`, `getExternalAgentGraphKey`, `getTeamAgentGraphKey`) via new `graph-keys.ts`, `graph-identity.ts`, `sub-agent-identity.ts`, and `function-tool-identity.ts` modules
   - Replace unstable `generateId()` UUIDs with stable, domain-meaningful identifiers derived from persisted IDs (relation IDs, tool IDs, agent IDs)
   - URL-based sidepane selection now uses graph keys instead of raw React Flow IDs, so deep-links survive re-renders and saves
 
   ### RHF as single source of truth
-
   - Strip `node.data` down to a thin identity envelope (`nodeKey` + minimal refs like `toolId`) — all business fields (name, description, prompt, models, code, etc.) are read exclusively from React Hook Form state
   - Remove `hydrateNodesWithFormData()` entirely; `editorToPayload()` now reads all business data directly from a `SerializeAgentFormState` bundle with `requireFormValue()` fail-fast guards
   - Rename `FullAgentUpdateSchema` → `FullAgentFormSchema`, remove `.transform()` from schema (resolution now happens at serialize-time), split types into `FullAgentFormValues` / `FullAgentFormInputValues`
 
   ### Connection state consolidation
-
   - Collapse scattered `tempSelectedTools`/`tempHeaders`/`tempToolPolicies` on node data into `mcpRelations` and `functionToolRelations` RHF record maps with factory helpers (`createMcpRelationFormInput`, `createFunctionToolRelationFormInput`)
   - Edge removal triggers synchronous `form.unregister()` instead of deferred `requestAnimationFrame` — only `relationshipId` is unregistered for MCP relations to avoid a race condition where headers would be set to empty string on removal
   - Remove `subAgentId` manipulation from Zustand store's `onEdgesChange`
 
   ### Save-cycle reconciliation
-
   - Expand `syncSavedAgentGraph` to reconcile three categories of server-assigned IDs: tool `canUse` relations, external agent delegate relations, and team agent delegate relations
   - Rename MCP node IDs to deterministic graph keys post-save; preserve URL selection state via `findNodeByGraphKey`/`findEdgeByGraphKey`
   - Collapse redundant double `isNodeType` patterns into single guards
 
   ### Bug fixes
-
   - Fix function tool "requires approval" flag not persisting across save/reload by hydrating `needsApproval` tool policies from `canUse` relations back into form state during `apiToFormValues()`
   - Fix model inheritance display: use `getModelInheritanceStatus()` instead of bare `!subAgent.models` check to correctly show "(inherited)" label
   - Fix MCP node editor crash on deep-link/reload: consolidate null guards for `toolData`, `tool`, and `mcpRelation` with proper JSX fallback UI
@@ -230,18 +641,15 @@
   - Fix race condition when MCP relation is removed but component is still mounted
 
   ### Performance
-
   - Replace `useWatch({ name: 'functionTools' })` with targeted `useWatch({ name: 'functionTools.${id}.functionId' })` to eliminate O(N²) re-renders across function tool nodes
   - Remove `getFunctionIdForTool` helper that iterated the entire `functionTools` map
 
   ### Schema changes
-
   - Rename form field `defaultSubAgentId` → `defaultSubAgentNodeId` to clarify it holds a node key; translation to persisted ID happens at serialization time
   - Add `FunctionToolRelationSchema` and `functionToolRelations` record field to form schema
   - OpenAPI: `defaultSubAgentId` uses `$ref` to `ResourceId`, `maxTransferCount` type corrected to `integer`, function tool `dependencies` simplified to `StringRecord`
 
   ### Test coverage
-
   - Add 7 new test files covering graph identity, function tool identity, form-state defaults, and sync-saved-agent-graph scenarios
   - Expand serialize and deserialize test suites with new architecture patterns
   - Add roundtrip test for approval policy hydration
@@ -864,11 +1272,9 @@
   Skills are reusable instruction blocks that can be attached to sub-agents to govern behavior, reasoning, and tool usage.
 
   ### Features
-
   - **Visual Builder**: Create, edit, and delete skills from the new Skills page. Attach skills to sub-agents via the sidepane picker with drag-to-reorder support.
 
   - **TypeScript SDK**:
-
     - New `SkillDefinition` and `SkillReference` types
     - `loadSkills(directoryPath)` helper to load skills from `SKILL.md` files
     - `skills` config option on `SubAgent` and `Project`
@@ -878,7 +1284,6 @@
   - **CLI**: `inkeep pull` now generates skill files in the `skills/` directory
 
   ### Loading Modes
-
   - **Always loaded**: Skill content is included in every prompt
   - **On-demand**: Skill appears as an outline in the system prompt and can be loaded via the built-in `load_skill` tool when needed
 
@@ -905,7 +1310,6 @@
 - 5d3f136: Add `GenericJsonEditor` and `GenericPromptEditor` components with react-hook-form integration
 - 5b0b1f1: fix max height for card content on traces conversation page
 - 228d4e2: Fix nested error message display in form validation
-
   - Add `firstNestedMessage` helper to recursively extract error messages from nested Zod validation objects
   - Display error path location (e.g., `→ at ["foo", "bar"]`) for deeply nested validation errors
   - Refactor `createCustomHeadersSchema` to use Zod `.pipe()` for cleaner error path propagation
@@ -1081,7 +1485,6 @@
   Added comprehensive UI for configuring webhook signature verification with support for GitHub, Slack, Stripe, Zendesk, and custom webhook providers.
 
   **New Features:**
-
   - Replaced plaintext signing secret input with credential reference selector
   - Added algorithm selector (sha256, sha512, sha384, sha1, md5) with deprecation warnings
   - Added encoding selector (hex, base64)
@@ -1094,7 +1497,6 @@
   - All new fields integrate with existing trigger form validation and submission
 
   **UI Improvements:**
-
   - Collapsible "Advanced Validation Options" section reduces visual clutter
   - Provider preset buttons enable one-click configuration for common webhooks
   - Dynamic field labels and placeholders based on selected options
@@ -1567,9 +1969,7 @@
 
 ### Minor Changes
 
-- 7f0f13a: 1. Add persistence in localStorage for the sidebar open state.
-
-  2. Make the `project switcher`, `Next.js DevTools logo`, and `breadcrumbs` elements to not trigger sidebar expansion.
+- 7f0f13a: 1. Add persistence in localStorage for the sidebar open state. 2. Make the `project switcher`, `Next.js DevTools logo`, and `breadcrumbs` elements to not trigger sidebar expansion.
 
 ### Patch Changes
 
@@ -1859,7 +2259,6 @@
 ### Patch Changes
 
 - 185db71: fix validation errors of form fields for:
-
   - `subAgent.id`
   - `subAgent.prompt`
   - `agent.name`
@@ -2040,7 +2439,6 @@
 - 9ca1b6c: fix `ProjectSelector` make items active if their names and descriptions are identical
 - dba5a31: Update quickstart port check
 - b0817aa: Fix CLI bugs
-
   - Quickstart inkeep.config.ts indents and types
   - inkeep init run API and manage API urls
 
@@ -3267,12 +3665,10 @@
   ## Migration Guide
 
   Update all API calls by removing `/crud/` from endpoint paths:
-
   - **Before**: `/tenants/{tenantId}/crud/projects/{projectId}/...`
   - **After**: `/tenants/{tenantId}/projects/{projectId}/...`
 
   ## Changes
-
   - Removed `/crud/` segment from all manage-api route definitions
   - Updated all API client code in manage-ui, cli, and SDK packages
   - Cleaned up OpenAPI tags to remove "CRUD" prefix

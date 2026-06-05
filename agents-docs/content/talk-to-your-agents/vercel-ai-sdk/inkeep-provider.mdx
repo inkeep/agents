@@ -18,6 +18,10 @@ npm install @inkeep/ai-sdk-provider ai
 
 ## Basic Usage
 
+<Tip>
+If connecting to Inkeep Enterprise, use `https://api.agents.inkeep.com/run/api/chat` as your `INKEEP_AGENTS_API_URL`.
+</Tip>
+
 ### Text Generation
 
 ```typescript
@@ -27,11 +31,11 @@ import { createInkeep } from '@inkeep/ai-sdk-provider';
 const inkeep = createInkeep({
   baseURL: process.env.INKEEP_AGENTS_API_URL, // Required, for local development this is typically http://localhost:3002
   apiKey: '<your-agent-api-key>', // Created in the Agents Dashboard
-  headers: { // Optional if you are developing locally and don't want to use an api key
-    'x-inkeep-agent-id': 'your-agent-id',
-    'x-inkeep-tenant-id': 'your-tenant-id',
-    'x-inkeep-project-id': 'your-project-id',
-  },
+  // headers: { // Optional if you are developing locally and don't want to use an api key
+  //   'x-inkeep-agent-id': 'your-agent-id',
+  //   'x-inkeep-tenant-id': 'your-tenant-id',
+  //   'x-inkeep-project-id': 'your-project-id',
+  // },
 });
 
 const { text } = await generateText({

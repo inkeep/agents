@@ -1,18 +1,13 @@
 import type { BaseExecutionContext } from '@inkeep/agents-core';
 import { generateServiceToken, verifyServiceToken } from '@inkeep/agents-core';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { Hono } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../data/db/runDbClient.js', () => ({ default: {} }));
+vi.mock('../../data/db/manageDbClient.js', () => ({ default: {} }));
 
-vi.mock('../../logger.js', () => ({
-  getLogger: () => ({
-    debug: vi.fn(),
-    error: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-  }),
-}));
+vi.mock('../../logger.js', () => createMockLoggerModule().module);
 
 vi.mock('../../env.js', () => ({
   env: {
@@ -20,7 +15,6 @@ vi.mock('../../env.js', () => ({
     INKEEP_AGENTS_API_URL: 'http://localhost:3000',
     INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY: undefined,
     INKEEP_AGENTS_RUN_API_BYPASS_SECRET: undefined,
-    INKEEP_POW_HMAC_SECRET: undefined,
   },
 }));
 
@@ -34,11 +28,10 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     ...actual,
     validateAndGetApiKey: vi.fn().mockResolvedValue(null),
     canUseProjectStrict: vi.fn().mockResolvedValue(false),
+    getAgentById: vi.fn(() => vi.fn().mockResolvedValue({ id: 'agent-1' })),
     getAppById: vi.fn(() => vi.fn().mockResolvedValue(null)),
     updateAppLastUsed: vi.fn(() => vi.fn().mockResolvedValue(undefined)),
     validateOrigin: vi.fn().mockReturnValue(false),
-    verifyPoW: vi.fn().mockResolvedValue({ ok: false }),
-    getPoWErrorMessage: vi.fn().mockReturnValue('PoW failed'),
     isSlackUserToken: vi.fn().mockReturnValue(false),
     verifySlackUserToken: vi.fn().mockResolvedValue({ valid: false }),
   };

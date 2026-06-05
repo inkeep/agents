@@ -4,17 +4,24 @@ import { EmailLayout } from '../components/email-layout.js';
 import type { InvitationEmailData } from '../types.js';
 
 function isSSOMethod(authMethod?: string): boolean {
-  return !!authMethod && authMethod !== 'email-password' && authMethod !== 'google';
+  return (
+    !!authMethod &&
+    authMethod !== 'email-password' &&
+    authMethod !== 'google' &&
+    authMethod !== 'microsoft'
+  );
 }
 
 function getCtaText(authMethod?: string): string {
   if (authMethod === 'google') return 'Sign in with Google';
+  if (authMethod === 'microsoft') return 'Sign in with Microsoft';
   if (isSSOMethod(authMethod)) return 'Sign in with SSO';
   return 'Accept Invitation';
 }
 
 function getInstructions(authMethod?: string): string {
   if (authMethod === 'google') return 'Sign in with your Google account to get started.';
+  if (authMethod === 'microsoft') return 'Sign in with your Microsoft account to get started.';
   if (isSSOMethod(authMethod)) return "Sign in with your organization's SSO to get started.";
   return 'Click the button below to accept the invitation and set up your account.';
 }

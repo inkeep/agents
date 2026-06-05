@@ -6,6 +6,7 @@
  * Usage:
  *   pnpm setup-dev                       - Run full setup with local Docker databases
  *   pnpm setup-dev --skip-push           - Run setup without pushing a project
+ *   pnpm setup-dev --skip-docker         - Run setup against already-running databases
  *   pnpm setup-dev --isolated <name>     - Run setup with an isolated parallel environment
  *
  * The --isolated flag creates a separate Docker environment with dynamic port
@@ -23,6 +24,70 @@ import { createHash, generateKeyPairSync } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { styleText } from 'node:util';
 import { runSetup } from '../packages/agents-core/dist/setup/index.js';
+
+/**
+ * Pre-flight validation of critical env vars. Runs before any expensive step
+ * (Docker, migrations, installs) so a missing key fails in seconds instead of
+ * after 8+ minutes of setup work. Only flags strictly-required vars.
+ */
+function validateEnvironmentEarly() {
+  const parseEnvFile = (path) => {
+    const vars = {};
+    if (!existsSync(path)) return vars;
+    let content;
+    try {
+      content = readFileSync(path, 'utf-8');
+    } catch {
+      // Permission denied / corrupted file - degrade gracefully and rely on process.env.
+      return vars;
+    }
+    for (const raw of content.split('\n')) {
+      const line = raw.trim();
+      if (!line || line.startsWith('#')) continue;
+      const eq = line.indexOf('=');
+      if (eq === -1) continue;
+      const key = line.slice(0, eq).trim();
+      let value = line.slice(eq + 1).trim();
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+      vars[key] = value;
+    }
+    return vars;
+  };
+
+  const fromDotEnv = parseEnvFile('.env');
+  const fromDotEnvLocal = parseEnvFile('.env.local');
+  const resolve = (name) => process.env[name] ?? fromDotEnvLocal[name] ?? fromDotEnv[name] ?? '';
+
+  const required = [
+    {
+      name: 'ANTHROPIC_API_KEY',
+      hint: 'Get one at https://console.anthropic.com/',
+    },
+  ];
+
+  const missing = required.filter(({ name }) => !resolve(name) || resolve(name).trim() === '');
+
+  if (missing.length > 0) {
+    console.log(styleText('red', '\n✗ Pre-flight check failed: missing required env vars\n'));
+    for (const { name, hint } of missing) {
+      console.log(`  ${styleText('red', '•')} ${styleText('bold', name)} — ${hint}`);
+    }
+    console.log(
+      `\n${styleText('yellow', '→')} Copy ${styleText('cyan', '.env.example')} to ${styleText('cyan', '.env')} and fill in the values above, then re-run ${styleText('cyan', 'pnpm setup-dev')}.`
+    );
+    console.log(
+      `  ${styleText('dim', 'Stopping now so you do not wait 8+ minutes for setup to fail at the end.')}\n`
+    );
+    process.exit(1);
+  }
+
+  console.log(styleText('green', '✓') + ' Pre-flight env check passed');
+}
 
 /**
  * Generate copilot JWT keypair and write to .env if not already configured.
@@ -186,6 +251,7 @@ async function ensureCopilotApp(apiUrl) {
 }
 
 const skipPush = process.argv.includes('--skip-push');
+const skipDocker = process.argv.includes('--skip-docker');
 const isolatedIdx = process.argv.indexOf('--isolated');
 const isolatedName = isolatedIdx !== -1 ? process.argv[isolatedIdx + 1] : null;
 
@@ -200,6 +266,8 @@ if (isolatedName && !/^[a-z0-9][a-z0-9_-]{0,62}$/.test(isolatedName)) {
   );
   process.exit(1);
 }
+
+validateEnvironmentEarly();
 
 if (isolatedName) {
   // Isolated mode: delegate Docker + migrations + auth to isolated-env.sh,
@@ -285,6 +353,7 @@ if (isolatedName) {
     devApiCommand: 'pnpm turbo dev --filter @inkeep/agents-api',
     apiHealthUrl: `${apiUrl}/health`,
     isCloud: false,
+    skipDocker: true,
     skipPush,
   });
 
@@ -318,6 +387,7 @@ if (isolatedName) {
     devApiCommand: 'pnpm turbo dev --filter @inkeep/agents-api',
     apiHealthUrl: 'http://localhost:3002/health',
     isCloud: false,
+    skipDocker,
     skipPush,
   });
 }

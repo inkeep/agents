@@ -1,7 +1,7 @@
+import { PdfUrlIngestionError } from '@inkeep/agents-core/external-fetch';
 import { HTTPException } from 'hono/http-exception';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as execModule from '../../../domains/run/handlers/executionHandler';
-import { PdfUrlIngestionError } from '../../../domains/run/services/blob-storage/file-security-errors';
 import { makeRequest } from '../../utils/testRequest';
 
 const buildDataUri = (mimeType: string, bytes: Buffer): string => {
@@ -460,6 +460,63 @@ describe('Chat Routes', () => {
                   file: {
                     file_data: 'data:application/json;base64,eyJoZWxsbyI6IndvcmxkIn0=',
                     filename: 'payload.json',
+                  },
+                },
+              ],
+            },
+          ],
+          conversationId: 'conv-123',
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toBe('text/event-stream');
+    });
+
+    it('should accept inline JavaScript content item in OpenAI-style messages', async () => {
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Summarize this JavaScript file' },
+                {
+                  type: 'file',
+                  file: {
+                    file_data:
+                      'data:application/javascript;base64,ZXhwb3J0IGNvbnN0IGFuc3dlciA9IDQyOwo=',
+                    filename: 'answer.js',
+                  },
+                },
+              ],
+            },
+          ],
+          conversationId: 'conv-123',
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toBe('text/event-stream');
+    });
+
+    it('should accept inline YAML content item in OpenAI-style messages', async () => {
+      const response = await makeRequest('/run/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: 'claude-3-sonnet',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Summarize this YAML file' },
+                {
+                  type: 'file',
+                  file: {
+                    file_data: 'data:application/yaml;base64,bmFtZTogYWxwaGEKY291bnQ6IDEK',
+                    filename: 'config.yml',
                   },
                 },
               ],

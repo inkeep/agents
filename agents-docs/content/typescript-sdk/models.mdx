@@ -66,10 +66,10 @@ const mySubAgent = subAgent({
 
 | Provider | Example Models | API Key |
 |----------|----------------|---------|
-| **Anthropic** | `anthropic/claude-sonnet-4-6`<br/>`anthropic/claude-sonnet-4-5`<br/>`anthropic/claude-haiku-4-5`<br/>`anthropic/claude-opus-4-6` | `ANTHROPIC_API_KEY` |
-| **OpenAI** | `openai/gpt-5.4-pro`<br/>`openai/gpt-5.4`<br/>`openai/gpt-5.4-mini`<br/>`openai/gpt-5.4-nano`<br/>`openai/gpt-5.2`<br/>`openai/gpt-5.1`<br/>`openai/gpt-4.1`<br/>`openai/gpt-4.1-mini`<br/>`openai/gpt-4.1-nano`<br/>`openai/gpt-5`* | `OPENAI_API_KEY` |
+| **Anthropic** | `anthropic/claude-opus-4-8`<br/>`anthropic/claude-opus-4-7`<br/>`anthropic/claude-opus-4-6`<br/>`anthropic/claude-sonnet-4-6`<br/>`anthropic/claude-sonnet-4-5`<br/>`anthropic/claude-haiku-4-5` | `ANTHROPIC_API_KEY` |
+| **OpenAI** | `openai/gpt-5.5-pro`<br/>`openai/gpt-5.5`<br/>`openai/gpt-5.4-pro`<br/>`openai/gpt-5.4`<br/>`openai/gpt-5.4-mini`<br/>`openai/gpt-5.4-nano`<br/>`openai/gpt-5.2`<br/>`openai/gpt-5.1`<br/>`openai/gpt-4.1`<br/>`openai/gpt-4.1-mini`<br/>`openai/gpt-5`* | `OPENAI_API_KEY` |
 | **Azure OpenAI** | `azure/my-gpt4-deployment`<br/>`azure/my-gpt35-deployment` | `AZURE_API_KEY` |
-| **Google** | `google/gemini-3.1-pro-preview`<br/>`google/gemini-2.5-flash`<br/>`google/gemini-2.5-flash-lite` | `GOOGLE_GENERATIVE_AI_API_KEY` |
+| **Google** | `google/gemini-3.1-pro-preview`<br/>`google/gemini-3.5-flash`<br/>`google/gemini-3.1-flash-lite`<br/>`google/gemini-2.5-pro`<br/>`google/gemini-2.5-flash`<br/>`google/gemini-2.5-flash-lite` | `GOOGLE_GENERATIVE_AI_API_KEY` |
 | **OpenRouter** | `openrouter/anthropic/claude-sonnet-4-0`<br/>`openrouter/meta-llama/llama-3.1-405b` | `OPENROUTER_API_KEY` |
 | **Gateway** | `gateway/openai/gpt-4.1-mini` | `AI_GATEWAY_API_KEY` |
 | **NVIDIA NIM** | `nim/nvidia/llama-3.3-nemotron-super-49b-v1.5`<br/>`nim/nvidia/nemotron-4-340b-instruct` | `NIM_API_KEY` |
@@ -260,6 +260,16 @@ models: {
 ```
 </Tab>
 </Tabs>
+
+**Controlling reasoning:**
+
+Each provider exposes reasoning through `providerOptions` (see the examples above):
+
+- **Anthropic** — `anthropic.thinking`
+- **OpenAI** — `openai.reasoningEffort`
+- **Google** — `google.thinkingConfig.thinkingBudget`
+
+Whether a model reasons **by default** varies by provider and changes as models are updated — check the provider's own reference: [Anthropic extended thinking](https://platform.claude.com/docs/en/build-with-claude/extended-thinking), [OpenAI reasoning](https://developers.openai.com/api/docs/guides/reasoning), and [Google thinking](https://ai.google.dev/gemini-api/docs/thinking). As a rule of thumb, Anthropic and OpenAI models start with reasoning off (opt-in), while many Google models have it on by default (opt-out). For guidance on *when* to disable reasoning, see [Tuning Agents](/guides/agent-engineering/tuning-agents#control-reasoning).
 
 **Vercel AI Gateway:**
 
@@ -456,7 +466,11 @@ models: {
 
 ### Advanced: Manual Gateway Provider Options
 
-You can also configure gateway routing directly via `providerOptions` for access to the full [gateway provider options](https://ai-sdk.dev/providers/ai-sdk-providers/ai-gateway#gateway-provider-options) (`order`, `only`, `models`, `byok`, `providerTimeouts`, `tags`, `zeroDataRetention`):
+You can also configure gateway routing directly via `providerOptions` for access to the full [gateway provider options](https://ai-sdk.dev/providers/ai-sdk-providers/ai-gateway#gateway-provider-options) (`order`, `only`, `models`, `byok`, `providerTimeouts`, `tags`, `zeroDataRetention`).
+
+<Note>
+`providerOptions.gateway.caching` and `providerOptions.anthropic.cacheControl` interact with Inkeep's default-on [prompt caching](/guides/observability/prompt-caching). Inkeep applies its caching default only when you haven't set a value — if you set `providerOptions.gateway.caching` or `providerOptions.anthropic.cacheControl` explicitly, your value is preserved.
+</Note>
 
 ```typescript
 models: {
@@ -482,5 +496,5 @@ When using `inkeep init`, defaults are set based on your chosen provider:
 | Provider | Base | Structured Output | Summarizer |
 |----------|------|-------------------|------------|
 | **Anthropic** | `claude-sonnet-4-5` | `claude-sonnet-4-5` | `claude-sonnet-4-5` |
-| **OpenAI** | `gpt-4.1` | `gpt-4.1-mini` | `gpt-4.1-nano` |
+| **OpenAI** | `gpt-5.2` | `gpt-4.1-mini` | `gpt-5.4-nano` |
 | **Google** | `gemini-2.5-flash` | `gemini-2.5-flash-lite` | `gemini-2.5-flash-lite` |

@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import dotenv from 'dotenv';
+import { generateCompliantPassword } from '../auth/password-policy.js';
 import { loadEnvironmentFiles } from '../env.js';
 
 const colors = {
@@ -253,6 +254,7 @@ export interface SetupConfig {
   uiHealthUrl?: string;
 
   isCloud?: boolean;
+  skipDocker?: boolean;
   skipPush?: boolean;
 
   /** Runs after project push while the API server is still up */
@@ -350,16 +352,11 @@ async function generateSecrets() {
     },
     {
       varName: 'INKEEP_AGENTS_MANAGE_UI_PASSWORD',
-      placeholders: ['adminADMIN!@12'],
-      generate: () => randomBytes(6).toString('base64url'),
+      placeholders: ['change-me-Pass!@1234'],
+      generate: () => generateCompliantPassword(),
     },
     {
       varName: 'INKEEP_ANON_JWT_SECRET',
-      placeholders: [],
-      generate: () => randomBytes(32).toString('hex'),
-    },
-    {
-      varName: 'INKEEP_POW_HMAC_SECRET',
       placeholders: [],
       generate: () => randomBytes(32).toString('hex'),
     },
@@ -771,6 +768,9 @@ export async function runSetup(config: SetupConfig) {
   // Step 3: Start databases
   if (config.isCloud) {
     logStep(3, 'Cloud setup: Skipping Docker database startup');
+  } else if (config.skipDocker) {
+    logStep(3, 'Skipping Docker database startup');
+    logInfo('Using externally managed databases from configured URLs.');
   } else {
     logStep(3, 'Starting databases with Docker');
 

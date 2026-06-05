@@ -1,10 +1,10 @@
 /**
  * Minimal type declarations for @vercel/functions.
- * The actual package is a dependency of agents-api; agents-core uses
- * dynamic `import('@vercel/functions')` that resolves at runtime from
- * the host application's node_modules.
+ * agents-core uses dynamic `import('@vercel/functions')` so Vercel
+ * runtime helpers are loaded lazily only in Vercel environments.
  */
 
 declare module '@vercel/functions' {
   export function waitUntil(promise: Promise<unknown>): void;
+  export function attachDatabasePool(dbPool: unknown): void;
 }

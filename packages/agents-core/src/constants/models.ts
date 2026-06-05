@@ -3,6 +3,8 @@
  */
 
 export const ANTHROPIC_MODELS = {
+  CLAUDE_OPUS_4_8: 'anthropic/claude-opus-4-8',
+  CLAUDE_OPUS_4_7: 'anthropic/claude-opus-4-7',
   CLAUDE_OPUS_4_6: 'anthropic/claude-opus-4-6',
   CLAUDE_OPUS_4_6_20260205: 'anthropic/claude-opus-4-6-20260205',
   CLAUDE_OPUS_4_5: 'anthropic/claude-opus-4-5',
@@ -28,6 +30,9 @@ export const ANTHROPIC_MODELS = {
 } as const;
 
 export const OPENAI_MODELS = {
+  GPT_5_5_PRO: 'openai/gpt-5.5-pro',
+  GPT_5_5: 'openai/gpt-5.5',
+  GPT_5_5_20260423: 'openai/gpt-5.5-2026-04-23',
   GPT_5_4_PRO: 'openai/gpt-5.4-pro',
   GPT_5_4: 'openai/gpt-5.4',
   GPT_5_4_MINI: 'openai/gpt-5.4-mini',
@@ -70,8 +75,10 @@ export const OPENAI_MODELS = {
 } as const;
 
 export const GOOGLE_MODELS = {
+  GEMINI_3_1_FLASH_LITE: 'google/gemini-3.1-flash-lite',
   GEMINI_3_1_FLASH_LITE_PREVIEW: 'google/gemini-3.1-flash-lite-preview',
   GEMINI_3_1_PRO_PREVIEW: 'google/gemini-3.1-pro-preview',
+  GEMINI_3_5_FLASH: 'google/gemini-3.5-flash',
   GEMINI_3_FLASH: 'google/gemini-3-flash',
   GEMINI_3_PRO_PREVIEW: 'google/gemini-3-pro-preview',
   GEMINI_3_FLASH_PREVIEW: 'google/gemini-3-flash-preview',

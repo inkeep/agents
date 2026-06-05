@@ -32,7 +32,7 @@ export function EmailLayout({
         >
           <Preview>{previewText}</Preview>
           <Container className="bg-email-card rounded-[8px] mx-auto my-[40px] p-[32px] max-w-[600px]">
-            <EmailHeader title={title} description={description} />
+            <EmailHeader title={title} {...(description !== undefined ? { description } : {})} />
             {children}
             <EmailFooter securityText={securityText} />
           </Container>

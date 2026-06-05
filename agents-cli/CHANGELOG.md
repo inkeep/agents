@@ -1,5 +1,469 @@
 # @inkeep/agents-cli
 
+## 0.75.4
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.75.4
+- @inkeep/agents-core@0.75.4
+- @inkeep/agents-sdk@0.75.4
+
+## 0.75.3
+
+### Patch Changes
+
+- Updated dependencies [c9072d5]
+- Updated dependencies [68e8093]
+  - @inkeep/agents-core@0.75.3
+  - @inkeep/agents-manage-ui@0.75.3
+  - @inkeep/agents-sdk@0.75.3
+
+## 0.75.2
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.75.2
+- @inkeep/agents-core@0.75.2
+- @inkeep/agents-sdk@0.75.2
+
+## 0.75.1
+
+### Patch Changes
+
+- Updated dependencies [d7a6762]
+- Updated dependencies [2042ce9]
+  - @inkeep/agents-core@0.75.1
+  - @inkeep/agents-manage-ui@0.75.1
+  - @inkeep/agents-sdk@0.75.1
+
+## 0.75.0
+
+### Patch Changes
+
+- Updated dependencies [dcb6914]
+- Updated dependencies [db2be2f]
+  - @inkeep/agents-manage-ui@0.75.0
+  - @inkeep/agents-core@0.75.0
+  - @inkeep/agents-sdk@0.75.0
+
+## 0.74.4
+
+### Patch Changes
+
+- 1521dcc: Add Claude Opus 4.8 to model constants, the manage UI model picker, and the CLI model picker.
+- Updated dependencies [1521dcc]
+  - @inkeep/agents-core@0.74.4
+  - @inkeep/agents-manage-ui@0.74.4
+  - @inkeep/agents-sdk@0.74.4
+
+## 0.74.3
+
+### Patch Changes
+
+- 87e4bf1: Refresh model lineup against current vendor status:
+  - Gemini: add `GEMINI_3_1_FLASH_LITE` (GA) and `GEMINI_3_5_FLASH` (GA); drop `Gemini 3 Flash` (does not exist in Google's API) and `Gemini 3 Pro Preview` (shut down 2026-03-09) from the manage-UI and CLI pickers; swap `Gemini 3.1 Flash Lite Preview` for the GA in pickers.
+  - Anthropic: add `CLAUDE_OPUS_4_7` (current Opus flagship); drop `Claude Opus 4` and `Claude Sonnet 4` (deprecated 2026-04-14, retire 2026-06-15) from pickers.
+  - OpenAI: migrate the OpenAI summarizer default from `GPT_4_1_NANO` (retires 2026-10-23) to `GPT_5_4_NANO` across the manage-UI, CLI, agents-sdk example, and create-agents template; drop `GPT-4.1 Nano` from pickers.
+
+  Constants for sunset/preview model IDs are retained so existing SDK consumers continue to compile.
+
+- Updated dependencies [87e4bf1]
+- Updated dependencies [d6c3176]
+- Updated dependencies [d6c3176]
+  - @inkeep/agents-core@0.74.3
+  - @inkeep/agents-manage-ui@0.74.3
+  - @inkeep/agents-sdk@0.74.3
+
+## 0.74.2
+
+### Patch Changes
+
+- Updated dependencies [3adbaa4]
+- Updated dependencies [ba25590]
+  - @inkeep/agents-core@0.74.2
+  - @inkeep/agents-manage-ui@0.74.2
+  - @inkeep/agents-sdk@0.74.2
+
+## 0.74.1
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.74.1
+- @inkeep/agents-core@0.74.1
+- @inkeep/agents-sdk@0.74.1
+
+## 0.74.0
+
+### Patch Changes
+
+- Updated dependencies [12a8478]
+- Updated dependencies [02ef183]
+- Updated dependencies [fbb4048]
+- Updated dependencies [9b519e3]
+- Updated dependencies [bb0aba5]
+- Updated dependencies [ab6276d]
+- Updated dependencies [be4d081]
+- Updated dependencies [7c5a341]
+- Updated dependencies [fbb4048]
+- Updated dependencies [6168e1b]
+- Updated dependencies [1af568e]
+  - @inkeep/agents-manage-ui@0.74.0
+  - @inkeep/agents-core@0.74.0
+  - @inkeep/agents-sdk@0.74.0
+
+## 0.73.5
+
+### Patch Changes
+
+- Updated dependencies [cbc947d]
+  - @inkeep/agents-manage-ui@0.73.5
+  - @inkeep/agents-core@0.73.5
+  - @inkeep/agents-sdk@0.73.5
+
+## 0.73.4
+
+### Patch Changes
+
+- 867384b: Add GPT-5.5 and GPT-5.5 Pro to OpenAI model options
+- Updated dependencies [867384b]
+- Updated dependencies [4f7c661]
+- Updated dependencies [0089acf]
+  - @inkeep/agents-core@0.73.4
+  - @inkeep/agents-manage-ui@0.73.4
+  - @inkeep/agents-sdk@0.73.4
+
+## 0.73.3
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.73.3
+- @inkeep/agents-core@0.73.3
+- @inkeep/agents-sdk@0.73.3
+
+## 0.73.2
+
+### Patch Changes
+
+- Updated dependencies [1613bbf]
+- Updated dependencies [bf4f397]
+  - @inkeep/agents-manage-ui@0.73.2
+  - @inkeep/agents-core@0.73.2
+  - @inkeep/agents-sdk@0.73.2
+
+## 0.73.1
+
+### Patch Changes
+
+- Updated dependencies [f069c82]
+- Updated dependencies [f069c82]
+  - @inkeep/agents-core@0.73.1
+  - @inkeep/agents-manage-ui@0.73.1
+  - @inkeep/agents-sdk@0.73.1
+
+## 0.73.0
+
+### Patch Changes
+
+- Updated dependencies [78b6b83]
+- Updated dependencies [902d800]
+- Updated dependencies [ed76d93]
+  - @inkeep/agents-manage-ui@0.73.0
+  - @inkeep/agents-core@0.73.0
+  - @inkeep/agents-sdk@0.73.0
+
+## 0.72.2
+
+### Patch Changes
+
+- Updated dependencies [65d7e73]
+  - @inkeep/agents-manage-ui@0.72.2
+  - @inkeep/agents-core@0.72.2
+  - @inkeep/agents-sdk@0.72.2
+
+## 0.72.1
+
+### Patch Changes
+
+- Updated dependencies [52e099d]
+  - @inkeep/agents-core@0.72.1
+  - @inkeep/agents-manage-ui@0.72.1
+  - @inkeep/agents-sdk@0.72.1
+
+## 0.72.0
+
+### Patch Changes
+
+- Updated dependencies [4a0d963]
+- Updated dependencies [4a0d963]
+- Updated dependencies [4a0d963]
+- Updated dependencies [b639f7f]
+  - @inkeep/agents-manage-ui@0.72.0
+  - @inkeep/agents-core@0.72.0
+  - @inkeep/agents-sdk@0.72.0
+
+## 0.71.0
+
+### Patch Changes
+
+- Updated dependencies [0532008]
+- Updated dependencies [e348e84]
+- Updated dependencies [648957c]
+- Updated dependencies [2e2d3aa]
+- Updated dependencies [c3cbdbf]
+- Updated dependencies [e9092d0]
+  - @inkeep/agents-manage-ui@0.71.0
+  - @inkeep/agents-core@0.71.0
+  - @inkeep/agents-sdk@0.71.0
+
+## 0.70.8
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.70.8
+- @inkeep/agents-core@0.70.8
+- @inkeep/agents-sdk@0.70.8
+
+## 0.70.7
+
+### Patch Changes
+
+- 2e5c421: Identify CLI device-flow sessions with a recognizable User-Agent header on auth requests and revoke the server session on logout via /api/auth/sign-out
+- Updated dependencies [2e5c421]
+- Updated dependencies [2e5c421]
+- Updated dependencies [a03d008]
+- Updated dependencies [2e5c421]
+- Updated dependencies [bd0a8b1]
+  - @inkeep/agents-manage-ui@0.70.7
+  - @inkeep/agents-core@0.70.7
+  - @inkeep/agents-sdk@0.70.7
+
+## 0.70.6
+
+### Patch Changes
+
+- Updated dependencies [af1a34a]
+  - @inkeep/agents-manage-ui@0.70.6
+  - @inkeep/agents-core@0.70.6
+  - @inkeep/agents-sdk@0.70.6
+
+## 0.70.5
+
+### Patch Changes
+
+- Updated dependencies [40e6354]
+- Updated dependencies [26cc75a]
+- Updated dependencies [903b1ef]
+- Updated dependencies [ee7bcea]
+  - @inkeep/agents-manage-ui@0.70.5
+  - @inkeep/agents-core@0.70.5
+  - @inkeep/agents-sdk@0.70.5
+
+## 0.70.4
+
+### Patch Changes
+
+- Updated dependencies [5bd4911]
+- Updated dependencies [4ecbba7]
+- Updated dependencies [d96e872]
+- Updated dependencies [5a2dd89]
+  - @inkeep/agents-core@0.70.4
+  - @inkeep/agents-manage-ui@0.70.4
+  - @inkeep/agents-sdk@0.70.4
+
+## 0.70.3
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.70.3
+- @inkeep/agents-core@0.70.3
+- @inkeep/agents-sdk@0.70.3
+
+## 0.70.2
+
+### Patch Changes
+
+- Updated dependencies [a4d2360]
+  - @inkeep/agents-core@0.70.2
+  - @inkeep/agents-sdk@0.70.2
+  - @inkeep/agents-manage-ui@0.70.2
+
+## 0.70.1
+
+### Patch Changes
+
+- Updated dependencies [fbfeb6d]
+  - @inkeep/agents-manage-ui@0.70.1
+  - @inkeep/agents-core@0.70.1
+  - @inkeep/agents-sdk@0.70.1
+
+## 0.70.0
+
+### Patch Changes
+
+- Updated dependencies [60a0c60]
+- Updated dependencies [1570c2a]
+  - @inkeep/agents-core@0.70.0
+  - @inkeep/agents-manage-ui@0.70.0
+  - @inkeep/agents-sdk@0.70.0
+
+## 0.69.1
+
+### Patch Changes
+
+- Updated dependencies [41e04cf]
+- Updated dependencies [a6bd5ec]
+  - @inkeep/agents-manage-ui@0.69.1
+  - @inkeep/agents-core@0.69.1
+  - @inkeep/agents-sdk@0.69.1
+
+## 0.69.0
+
+### Minor Changes
+
+- 52d0831: Preserve `$`-prefixed template variables (`$conversation.*`, `$env.*`) through `pull-v4` round-trip. Previously, any variable other than `headers.*` fell through to `contextReference.toTemplate()` in `templates.ts`, silently rewriting `$`-prefixed variables on pull. Now `$`-prefixed variables pass through verbatim on pull → edit → push.
+
+  This also fixes a latent preservation bug for the existing `{{$env.*}}` variable.
+
+### Patch Changes
+
+- Updated dependencies [06479a2]
+- Updated dependencies [52d0831]
+- Updated dependencies [52d0831]
+- Updated dependencies [c63567e]
+- Updated dependencies
+- Updated dependencies [32bce4f]
+  - @inkeep/agents-manage-ui@0.69.0
+  - @inkeep/agents-core@0.69.0
+  - @inkeep/agents-sdk@0.69.0
+
+## 0.68.4
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.68.4
+- @inkeep/agents-core@0.68.4
+- @inkeep/agents-sdk@0.68.4
+
+## 0.68.3
+
+### Patch Changes
+
+- Updated dependencies [e8776f5]
+  - @inkeep/agents-core@0.68.3
+  - @inkeep/agents-manage-ui@0.68.3
+  - @inkeep/agents-sdk@0.68.3
+
+## 0.68.2
+
+### Patch Changes
+
+- Updated dependencies [557f700]
+- Updated dependencies [4e0fd65]
+  - @inkeep/agents-core@0.68.2
+  - @inkeep/agents-manage-ui@0.68.2
+  - @inkeep/agents-sdk@0.68.2
+
+## 0.68.1
+
+### Patch Changes
+
+- Updated dependencies [7b3b8b6]
+- Updated dependencies [22d6068]
+  - @inkeep/agents-manage-ui@0.68.1
+  - @inkeep/agents-sdk@0.68.1
+  - @inkeep/agents-core@0.68.1
+
+## 0.68.0
+
+### Patch Changes
+
+- Updated dependencies [d1e18a8]
+  - @inkeep/agents-core@0.68.0
+  - @inkeep/agents-manage-ui@0.68.0
+  - @inkeep/agents-sdk@0.68.0
+
+## 0.67.4
+
+### Patch Changes
+
+- Updated dependencies [b2c15cd]
+  - @inkeep/agents-manage-ui@0.67.4
+  - @inkeep/agents-core@0.67.4
+  - @inkeep/agents-sdk@0.67.4
+
+## 0.67.3
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.67.3
+- @inkeep/agents-core@0.67.3
+- @inkeep/agents-sdk@0.67.3
+
+## 0.67.2
+
+### Patch Changes
+
+- Updated dependencies [cad720b]
+  - @inkeep/agents-manage-ui@0.67.2
+  - @inkeep/agents-core@0.67.2
+  - @inkeep/agents-sdk@0.67.2
+
+## 0.67.1
+
+### Patch Changes
+
+- Updated dependencies [284864a]
+  - @inkeep/agents-manage-ui@0.67.1
+  - @inkeep/agents-core@0.67.1
+  - @inkeep/agents-sdk@0.67.1
+
+## 0.67.0
+
+### Patch Changes
+
+- Updated dependencies [757ac77]
+  - @inkeep/agents-core@0.67.0
+  - @inkeep/agents-manage-ui@0.67.0
+  - @inkeep/agents-sdk@0.67.0
+
+## 0.66.1
+
+### Patch Changes
+
+- Updated dependencies [e6f0111]
+- Updated dependencies [7383bf1]
+  - @inkeep/agents-manage-ui@0.66.1
+  - @inkeep/agents-core@0.66.1
+  - @inkeep/agents-sdk@0.66.1
+
+## 0.66.0
+
+### Patch Changes
+
+- Updated dependencies [5596ecb]
+- Updated dependencies [63a1358]
+- Updated dependencies [98399ec]
+- Updated dependencies [01a960d]
+- Updated dependencies [4d0169b]
+  - @inkeep/agents-core@0.66.0
+  - @inkeep/agents-sdk@0.66.0
+  - @inkeep/agents-manage-ui@0.66.0
+
+## 0.65.2
+
+### Patch Changes
+
+- Updated dependencies [fa18f84]
+- Updated dependencies [259797c]
+- Updated dependencies [ebdd24f]
+- Updated dependencies [34e1d67]
+- Updated dependencies [1f1b4b9]
+- Updated dependencies [93eb31e]
+- Updated dependencies [1a504c7]
+  - @inkeep/agents-core@0.65.2
+  - @inkeep/agents-manage-ui@0.65.2
+  - @inkeep/agents-sdk@0.65.2
+
 ## 0.65.1
 
 ### Patch Changes
@@ -237,31 +701,26 @@
 - 1e4f05d: Refactor agent graph editor to use deterministic graph keys and single source of truth for form state
 
   ### Graph identity system
-
   - Add deterministic graph key derivation for all node types (`getSubAgentGraphKey`, `getMcpGraphKey`, `getFunctionToolGraphKey`, `getExternalAgentGraphKey`, `getTeamAgentGraphKey`) via new `graph-keys.ts`, `graph-identity.ts`, `sub-agent-identity.ts`, and `function-tool-identity.ts` modules
   - Replace unstable `generateId()` UUIDs with stable, domain-meaningful identifiers derived from persisted IDs (relation IDs, tool IDs, agent IDs)
   - URL-based sidepane selection now uses graph keys instead of raw React Flow IDs, so deep-links survive re-renders and saves
 
   ### RHF as single source of truth
-
   - Strip `node.data` down to a thin identity envelope (`nodeKey` + minimal refs like `toolId`) — all business fields (name, description, prompt, models, code, etc.) are read exclusively from React Hook Form state
   - Remove `hydrateNodesWithFormData()` entirely; `editorToPayload()` now reads all business data directly from a `SerializeAgentFormState` bundle with `requireFormValue()` fail-fast guards
   - Rename `FullAgentUpdateSchema` → `FullAgentFormSchema`, remove `.transform()` from schema (resolution now happens at serialize-time), split types into `FullAgentFormValues` / `FullAgentFormInputValues`
 
   ### Connection state consolidation
-
   - Collapse scattered `tempSelectedTools`/`tempHeaders`/`tempToolPolicies` on node data into `mcpRelations` and `functionToolRelations` RHF record maps with factory helpers (`createMcpRelationFormInput`, `createFunctionToolRelationFormInput`)
   - Edge removal triggers synchronous `form.unregister()` instead of deferred `requestAnimationFrame` — only `relationshipId` is unregistered for MCP relations to avoid a race condition where headers would be set to empty string on removal
   - Remove `subAgentId` manipulation from Zustand store's `onEdgesChange`
 
   ### Save-cycle reconciliation
-
   - Expand `syncSavedAgentGraph` to reconcile three categories of server-assigned IDs: tool `canUse` relations, external agent delegate relations, and team agent delegate relations
   - Rename MCP node IDs to deterministic graph keys post-save; preserve URL selection state via `findNodeByGraphKey`/`findEdgeByGraphKey`
   - Collapse redundant double `isNodeType` patterns into single guards
 
   ### Bug fixes
-
   - Fix function tool "requires approval" flag not persisting across save/reload by hydrating `needsApproval` tool policies from `canUse` relations back into form state during `apiToFormValues()`
   - Fix model inheritance display: use `getModelInheritanceStatus()` instead of bare `!subAgent.models` check to correctly show "(inherited)" label
   - Fix MCP node editor crash on deep-link/reload: consolidate null guards for `toolData`, `tool`, and `mcpRelation` with proper JSX fallback UI
@@ -269,18 +728,15 @@
   - Fix race condition when MCP relation is removed but component is still mounted
 
   ### Performance
-
   - Replace `useWatch({ name: 'functionTools' })` with targeted `useWatch({ name: 'functionTools.${id}.functionId' })` to eliminate O(N²) re-renders across function tool nodes
   - Remove `getFunctionIdForTool` helper that iterated the entire `functionTools` map
 
   ### Schema changes
-
   - Rename form field `defaultSubAgentId` → `defaultSubAgentNodeId` to clarify it holds a node key; translation to persisted ID happens at serialization time
   - Add `FunctionToolRelationSchema` and `functionToolRelations` record field to form schema
   - OpenAPI: `defaultSubAgentId` uses `$ref` to `ResourceId`, `maxTransferCount` type corrected to `integer`, function tool `dependencies` simplified to `StringRecord`
 
   ### Test coverage
-
   - Add 7 new test files covering graph identity, function tool identity, form-state defaults, and sync-saved-agent-graph scenarios
   - Expand serialize and deserialize test suites with new architecture patterns
   - Add roundtrip test for approval policy hydration
@@ -855,7 +1311,6 @@
 ### Minor Changes
 
 - 886b2da: Refactor pull command to use ts-morph for improved code generation and smart merging
-
   - Migrates from string-based code generation to AST-based manipulation using ts-morph
   - Adds intelligent merge mode that preserves user customizations when pulling updates
   - Improves handling of imports, comments, and custom code during regeneration
@@ -1039,11 +1494,9 @@
   Skills are reusable instruction blocks that can be attached to sub-agents to govern behavior, reasoning, and tool usage.
 
   ### Features
-
   - **Visual Builder**: Create, edit, and delete skills from the new Skills page. Attach skills to sub-agents via the sidepane picker with drag-to-reorder support.
 
   - **TypeScript SDK**:
-
     - New `SkillDefinition` and `SkillReference` types
     - `loadSkills(directoryPath)` helper to load skills from `SKILL.md` files
     - `skills` config option on `SubAgent` and `Project`
@@ -1053,7 +1506,6 @@
   - **CLI**: `inkeep pull` now generates skill files in the `skills/` directory
 
   ### Loading Modes
-
   - **Always loaded**: Skill content is included in every prompt
   - **On-demand**: Skill appears as an outline in the system prompt and can be loaded via the built-in `load_skill` tool when needed
 
@@ -2161,7 +2613,6 @@
 
 - dba5a31: Update quickstart port check
 - b0817aa: Fix CLI bugs
-
   - Quickstart inkeep.config.ts indents and types
   - inkeep init run API and manage API urls
 
@@ -3306,12 +3757,10 @@
   ## Migration Guide
 
   Update all API calls by removing `/crud/` from endpoint paths:
-
   - **Before**: `/tenants/{tenantId}/crud/projects/{projectId}/...`
   - **After**: `/tenants/{tenantId}/projects/{projectId}/...`
 
   ## Changes
-
   - Removed `/crud/` segment from all manage-api route definitions
   - Updated all API client code in manage-ui, cli, and SDK packages
   - Cleaned up OpenAPI tags to remove "CRUD" prefix

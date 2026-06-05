@@ -127,6 +127,34 @@
       "when": 1774971562824,
       "tag": "0017_brief_doctor_strange",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1775500609155,
+      "tag": "0018_gorgeous_captain_america",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1777510684277,
+      "tag": "0019_hesitant_runaways",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1778524405577,
+      "tag": "0020_typical_mandrill",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1779381052900,
+      "tag": "0021_furry_warlock",
+      "breakpoints": true
     }
   ]
 }

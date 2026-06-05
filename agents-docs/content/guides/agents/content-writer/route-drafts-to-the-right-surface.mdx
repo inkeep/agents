@@ -1,0 +1,51 @@
+---
+title: Send each draft to the right place
+sidebarTitle: Route drafts
+description: One agent, two destinations. Tag a ticket and your Content Writer drafts a docs PR or a Help Center article — exactly where you want it.
+icon: LuSplit
+---
+
+## Overview
+
+The same resolved ticket can belong in two very different places. A bug fix in the CLI belongs in your **developer docs**. A *"how do I invite a teammate?"* belongs in your **Help Center**. Your Content Writer drafts to both — and you decide which one each draft lands in.
+
+This page is about **routing** — choosing which surface each draft goes to.
+
+## Prerequisites
+
+- Access to Inkeep Enterprise with your **Content Writer** agent provisioned — [schedule a demo](https://inkeep.com/schedule-demo) if you don't have it yet
+- At least one destination connected: [Help Center](/guides/agents/content-writer/publish-to-help-center) or [Notion](/guides/agents/content-writer/draft-into-notion)
+
+## Route with a tag
+
+The fastest, most predictable control is a **tag on the ticket**. Tag it, and the draft goes exactly where you said — an explicit tag always wins.
+
+| Add this tag in Zendesk | Your Content Writer drafts… |
+| --- | --- |
+| `docs-writer` | a **pull request** in your docs repo |
+| `kb-writer` | a **draft article** in your Help Center |
+
+**Try it:** resolve a ticket about inviting a teammate, add the `kb-writer` tag, and mark it **Solved**. Within about 30 seconds a draft Help Center article appears, written from the resolution — and the agent drops the link in your team's Slack channel.
+
+These tag names aren't magic — the **Router Agent** is simply instructed to honor them, so they're yours to rename or extend in its instructions.
+
+## Route by content
+
+Leave a ticket **untagged** and your Content Writer's **Router Agent** decides, from what the resolution is actually about:
+
+- code, API, SDK, config, or release detail → a **docs PR**
+- a customer how-to, "how do I…", or troubleshooting answer → a **Help Center article**
+
+That default is good out of the box. To bend it to *your* product, open the **Router Agent** and add your own rules to its routing instructions — plain English, no code:
+
+```text
+- Anything about billing, invoices, or refunds → Help Center article
+- Anything that names a CLI command or an SDK method → docs PR
+- When a ticket fits both, prefer the Help Center (a customer asked it)
+```
+
+Now *"my invoice shows the wrong tax"* routes to your Help Center even though no one tagged it — because you taught the agent what your customers ask about.
+
+---
+
+Drafts land on the destinations you've connected — set those up in [Publish to your Help Center](/guides/agents/content-writer/publish-to-help-center) or [Draft into Notion](/guides/agents/content-writer/draft-into-notion). Then [review and publish](/guides/agents/content-writer/review-and-publish) what your routing produces.

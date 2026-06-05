@@ -280,7 +280,7 @@ describe('resolveGenerationResponse', () => {
       expect(resolved.output?.dataComponents).toHaveLength(1);
     });
 
-    it('should throw a descriptive error when a getter rejects', async () => {
+    it('should throw with field name and original error when a non-output getter rejects', async () => {
       class MockRejectingGetter {
         get steps() {
           return Promise.reject(new Error('Stream terminated unexpectedly'));
@@ -301,8 +301,191 @@ describe('resolveGenerationResponse', () => {
 
       const result = new MockRejectingGetter();
       await expect(resolveGenerationResponse(result as any)).rejects.toThrow(
-        'Failed to resolve generation response: Stream terminated unexpectedly'
+        /field=steps.*cause=Error: Stream terminated unexpectedly/
       );
+    });
+
+    it('tolerates NoObjectGeneratedError when the model transferred', async () => {
+      class NoObjectGeneratedError extends Error {
+        constructor() {
+          super('could not parse the response.');
+          this.name = 'AI_NoObjectGeneratedError';
+        }
+      }
+      const result = {
+        steps: [{ toolCalls: [{ toolName: 'transfer_to_qa' }] }],
+        text: '',
+        finishReason: 'tool-calls' as const,
+        output: Promise.reject(new NoObjectGeneratedError()),
+        usage: {},
+        totalUsage: {},
+        response: {},
+      };
+
+      const resolved = await resolveGenerationResponse(result as any);
+      expect(resolved.output).toBeUndefined();
+      expect(resolved.finishReason).toBe('tool-calls');
+    });
+
+    it('tolerates NoObjectGeneratedError when the model delegated', async () => {
+      class NoObjectGeneratedError extends Error {
+        constructor() {
+          super('could not parse the response.');
+          this.name = 'AI_NoObjectGeneratedError';
+        }
+      }
+      const result = {
+        steps: [{ toolCalls: [{ toolName: 'delegate_to_research' }] }],
+        text: '',
+        finishReason: 'tool-calls' as const,
+        output: Promise.reject(new NoObjectGeneratedError()),
+        usage: {},
+        totalUsage: {},
+        response: {},
+      };
+
+      const resolved = await resolveGenerationResponse(result as any);
+      expect(resolved.output).toBeUndefined();
+    });
+
+    it('still throws on NoObjectGeneratedError when no transfer/delegate occurred, with a debug hint', async () => {
+      class NoObjectGeneratedError extends Error {
+        constructor() {
+          super('could not parse the response.');
+          this.name = 'AI_NoObjectGeneratedError';
+        }
+      }
+      const original = new NoObjectGeneratedError();
+      const result = {
+        steps: [{ toolCalls: [] }],
+        text: 'The weather is sunny today.',
+        finishReason: 'stop' as const,
+        output: Promise.reject(original),
+        usage: {},
+        totalUsage: {},
+        response: {},
+      };
+
+      try {
+        await resolveGenerationResponse(result as any);
+        expect.fail('expected resolveGenerationResponse to throw');
+      } catch (err) {
+        expect(err).toBeInstanceOf(Error);
+        const wrapped = err as Error & { cause?: unknown };
+        expect(wrapped.name).toBe('GenerationResponseError');
+        // Hint should call out the model ignored the JSON instruction.
+        expect(wrapped.message).toContain('no structured output');
+        expect(wrapped.message).toContain('outputContract.requireComponent');
+        // Diagnostic suffix.
+        expect(wrapped.message).toContain('field=output');
+        expect(wrapped.message).toContain('finishReason=stop');
+        expect(wrapped.message).toContain('toolCalls=[]');
+        expect(wrapped.cause).toBe(original);
+      }
+    });
+
+    it('hints about non-routing tools when the model called a tool but emitted no object', async () => {
+      class NoObjectGeneratedError extends Error {
+        constructor() {
+          super('could not parse the response.');
+          this.name = 'AI_NoObjectGeneratedError';
+        }
+      }
+      const result = {
+        steps: [{ toolCalls: [{ toolName: 'search_database' }] }],
+        text: '',
+        finishReason: 'tool-calls' as const,
+        output: Promise.reject(new NoObjectGeneratedError()),
+        usage: {},
+        totalUsage: {},
+        response: {},
+      };
+
+      try {
+        await resolveGenerationResponse(result as any);
+        expect.fail('expected resolveGenerationResponse to throw');
+      } catch (err) {
+        const wrapped = err as Error;
+        expect(wrapped.message).toContain('search_database');
+        expect(wrapped.message).toContain('transfer/delegate');
+        expect(wrapped.message).toContain('toolCalls=[search_database]');
+      }
+    });
+
+    it('routes parse/validation errors to the schema-mismatch hint', async () => {
+      class TypeValidationError extends Error {
+        constructor() {
+          super('Expected number, got string at dataComponents[0].props.count');
+          this.name = 'AI_TypeValidationError';
+        }
+      }
+      const result = {
+        steps: [{ toolCalls: [] }],
+        text: '',
+        finishReason: 'stop' as const,
+        output: Promise.reject(new TypeValidationError()),
+        usage: {},
+        totalUsage: {},
+        response: {},
+      };
+
+      try {
+        await resolveGenerationResponse(result as any);
+        expect.fail('expected resolveGenerationResponse to throw');
+      } catch (err) {
+        const wrapped = err as Error;
+        expect(wrapped.message).toContain('did not match the expected Output.object() schema');
+        expect(wrapped.message).toContain('AI_TypeValidationError');
+      }
+    });
+
+    it('routes unrecognized output errors to the generic fallback hint', async () => {
+      class NetworkTimeoutError extends Error {
+        constructor() {
+          super('timeout while reading model stream');
+          this.name = 'NetworkTimeoutError';
+        }
+      }
+      const result = {
+        steps: [{ toolCalls: [] }],
+        text: '',
+        finishReason: 'stop' as const,
+        output: Promise.reject(new NetworkTimeoutError()),
+        usage: {},
+        totalUsage: {},
+        response: {},
+      };
+
+      try {
+        await resolveGenerationResponse(result as any);
+        expect.fail('expected resolveGenerationResponse to throw');
+      } catch (err) {
+        const wrapped = err as Error;
+        expect(wrapped.name).toBe('GenerationResponseError');
+        expect(wrapped.message).toContain('NetworkTimeoutError');
+        expect(wrapped.message).toContain('See the cause for details');
+      }
+    });
+
+    it('tolerates the bare NoObjectGeneratedError name (no AI_ prefix) when transfer happened', async () => {
+      class NoObjectGeneratedError extends Error {
+        constructor() {
+          super('could not parse the response.');
+          this.name = 'NoObjectGeneratedError';
+        }
+      }
+      const result = {
+        steps: [{ toolCalls: [{ toolName: 'transfer_to_qa' }] }],
+        text: '',
+        finishReason: 'tool-calls' as const,
+        output: Promise.reject(new NoObjectGeneratedError()),
+        usage: {},
+        totalUsage: {},
+        response: {},
+      };
+
+      const resolved = await resolveGenerationResponse(result as any);
+      expect(resolved.output).toBeUndefined();
     });
 
     it('should not lose text when it is an empty string', async () => {

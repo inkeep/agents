@@ -1,0 +1,48 @@
+---
+title: Publish drafts to your Zendesk Help Center
+sidebarTitle: Help Center
+description: Connect your Zendesk Help Center so the Content Writer files customer-facing articles — as staff-only drafts your team reviews before they go live.
+icon: LuBookOpen
+---
+
+## Overview
+
+Connect your Zendesk Help Center and the Content Writer gains a place to write for customers: every customer-facing answer becomes a **draft article**, filed in the right section, waiting for a human to publish. A *"how do I add a teammate?"* resolution turns into a Help Center draft in about 30 seconds — no one writes it from scratch.
+
+## Prerequisites
+
+- Access to Inkeep Enterprise with your **Content Writer** agent provisioned — [schedule a demo](https://inkeep.com/schedule-demo) if you don't have it yet
+- A Zendesk org where you're an admin
+
+## Connect the Zendesk MCP
+
+<Steps>
+  <Step>
+    Connect your Zendesk workspace to the **Zendesk MCP server** in your project. The service account, API token, and required headers are covered in [Content Writer enterprise setup → Zendesk integration](/deployment/inkeep-enterprise/content-writer#zendesk-integration).
+  </Step>
+  <Step>
+    Open the server's page and confirm **Active Tools** lists the four tools the Content Writer uses:
+
+    - `list_sections` — find the section a new article belongs in
+    - `list_permission_groups` — keep the draft staff-only
+    - `create_article` — create the draft article
+    - `get_article` — read an existing article when proposing an update
+
+    If **Active Tools** reads `0 tools`, the connection isn't authenticated yet — finish the connector setup before going further.
+  </Step>
+  <Step>
+    On your Content Writer's canvas, connect the Zendesk MCP to the **KB Article Agent** — the sub agent that writes Help Center articles. (The other sub agents don't need Zendesk access.)
+  </Step>
+</Steps>
+
+That's it — your Content Writer can now draft into your Help Center.
+
+## What lands
+
+When a ticket is solved, the Content Writer reads the resolution, calls `list_sections` to find the section that best fits the topic, and writes a complete, publish-ready article in valid Help Center HTML. It files that as:
+
+- **A real, customer-ready article** — a how-to or troubleshooting answer written for the reader, not a "gaps for the docs team" summary.
+- **An unpublished, staff-only draft** — created with `draft` status and a staff permission group, so it's invisible to customers until a human publishes.
+- **A link in Slack** — the agent posts the draft article's URL to your team channel with a one-line summary of what it covers.
+
+From there, [review and publish](/guides/agents/content-writer/review-and-publish).

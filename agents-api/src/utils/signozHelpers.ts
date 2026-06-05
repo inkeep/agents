@@ -1,7 +1,7 @@
 import { QUERY_TYPES, SPAN_KEYS } from '@inkeep/agents-core';
 
 const SERVICE_NAME_FILTER =
-  "serviceName IN ('inkeep-agents-api', 'inkeep-agents-run-api', 'inkeep-agents')";
+  "service.name IN ('inkeep-agents-api', 'inkeep-agents-run-api', 'inkeep-agents')";
 const SPAN_LOOKUP_TABLE = 'distributed_signoz_index_v3';
 
 function buildSecurityExpression(tenantId: string, projectId?: string): string {
@@ -9,6 +9,11 @@ function buildSecurityExpression(tenantId: string, projectId?: string): string {
   if (projectId) expr += ` AND ${SPAN_KEYS.PROJECT_ID} = '${projectId}'`;
   return expr;
 }
+
+const ALLOWED_QUERY_TYPES = new Set([
+  QUERY_TYPES.BUILDER_QUERY,
+  QUERY_TYPES.BUILDER_TRACE_OPERATOR,
+]);
 
 /**
  * Enforces server-side filters on SigNoz v5 builder queries.
@@ -19,14 +24,17 @@ export function enforceSecurityFilters(payload: any, tenantId: string, projectId
   const queries: any[] = payload.compositeQuery?.queries ?? [];
 
   for (const query of queries) {
-    if (query.type !== QUERY_TYPES.BUILDER_QUERY) {
+    if (!ALLOWED_QUERY_TYPES.has(query.type)) {
       throw new Error(`Unsupported query type: ${query.type}. Only builder queries are allowed.`);
     }
   }
 
   const securityExpr = buildSecurityExpression(tenantId, projectId);
   for (const { spec } of queries) {
-    spec.filter = { expression: `(${spec.filter.expression}) AND ${securityExpr}` };
+    const existing = spec.filter?.expression;
+    spec.filter = {
+      expression: existing ? `(${existing}) AND ${securityExpr}` : securityExpr,
+    };
   }
 }
 

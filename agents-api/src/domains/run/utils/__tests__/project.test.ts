@@ -1,3 +1,4 @@
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildRelationsForDescription,
@@ -16,15 +17,7 @@ import {
   parseDelegateRelations,
 } from '../project';
 
-// Mock the logger
-vi.mock('../../logger', () => ({
-  getLogger: () => ({
-    warn: vi.fn(),
-    info: vi.fn(),
-    debug: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
+vi.mock('../../logger', () => createMockLoggerModule().module);
 
 // Mock generateDescriptionWithRelationData
 const mockGenerateDescriptionWithRelationData = vi

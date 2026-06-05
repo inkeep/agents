@@ -9,6 +9,14 @@ import {
 // Define the time range options as a const assertion for type safety
 const timeRanges = ['24h', '7d', '15d', '30d', 'custom'] as const;
 export type TimeRange = (typeof timeRanges)[number];
+const originTypes = ['slack', 'trigger', 'scheduled_trigger'] as const;
+export type TraceOrigin = (typeof originTypes)[number];
+
+export const ORIGIN_LABELS: Record<TraceOrigin, string> = {
+  slack: 'Slack',
+  trigger: 'Webhook',
+  scheduled_trigger: 'Trigger',
+};
 
 // Type for span attributes
 export interface SpanAttribute {
@@ -53,6 +61,8 @@ export function useTracesQueryState() {
     // Agent filtering
     agentId: parseAsString.withDefault(''),
 
+    origin: parseAsStringLiteral(originTypes),
+
     // Error filtering
     hasErrors: parseAsBoolean.withDefault(false),
 
@@ -77,6 +87,7 @@ export function useTracesQueryState() {
     customStartDate: queryState.customStartDate,
     customEndDate: queryState.customEndDate,
     agentId: queryState.agentId || undefined,
+    origin: queryState.origin ?? undefined,
     hasErrors: queryState.hasErrors,
     spanName: queryState.spanName,
     spanAttributes: queryState.spanAttributes,
@@ -89,12 +100,14 @@ export function useTracesQueryState() {
     setCustomDateRange: (start: string, end: string) =>
       setQueryState({ customStartDate: start, customEndDate: end }),
     setAgentFilter: (agentId?: string) => setQueryState({ agentId: agentId ?? '' }),
+    setOriginFilter: (origin?: TraceOrigin) => setQueryState({ origin: origin ?? null }),
     setHasErrorsFilter: (hasErrors: boolean) => setQueryState({ hasErrors }),
     setSpanFilter: (name: string, attributes: SpanAttribute[] = []) =>
       setQueryState({ spanName: name, spanAttributes: attributes }),
     clearFilters: () =>
       setQueryState({
         agentId: '',
+        origin: null,
         hasErrors: false,
         spanName: '',
         spanAttributes: [],

@@ -11,6 +11,11 @@ import {
   type MessageSelect,
   type ResolvedRef,
 } from '@inkeep/agents-core';
+import { normalizeMimeType } from '@inkeep/agents-core/constants/allowed-file-formats';
+import {
+  buildAttachedFileMarker,
+  isTextDocumentMimeType,
+} from '@inkeep/agents-core/text-attachments';
 import { trace } from '@opentelemetry/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
@@ -299,7 +304,7 @@ export async function getFullConversationContext(
   tenantId: string,
   projectId: string,
   conversationId: string,
-  maxTokens?: number
+  maxOutputTokens?: number
 ): Promise<any[]> {
   const defaultConfig = createDefaultConversationHistoryConfig();
   return await getConversationHistory(runDbClient)({
@@ -309,7 +314,7 @@ export async function getFullConversationContext(
       ...defaultConfig,
       limit: 100,
       includeInternal: true,
-      maxOutputTokens: maxTokens,
+      maxOutputTokens,
     },
   });
 }
@@ -865,6 +870,14 @@ function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): st
   return parts.join('\n');
 }
 
+function readStringProp(obj: unknown, key: string): string | undefined {
+  if (obj && typeof obj === 'object' && key in obj) {
+    const value = (obj as Record<string, unknown>)[key];
+    if (typeof value === 'string') return value;
+  }
+  return undefined;
+}
+
 /**
  * Reconstruct message text from multi-part content, converting artifact data parts to `<artifact:ref>` tags.
  * Falls back to `content.text` when there are no parts or when parts yield no reconstructable text.
@@ -894,6 +907,22 @@ export function reconstructMessageText(msg: Pick<MessageSelect, 'content'>): str
         } catch {
           // ignore unparseable data parts
         }
+      }
+      if (partKind === 'file') {
+        const metadata = part?.metadata;
+        const rawMimeType = readStringProp(metadata, 'mimeType') ?? '';
+        const mimeType = rawMimeType ? normalizeMimeType(rawMimeType) : '';
+        // Text-mime file parts have their decoded content emitted as a sibling `kind:'text'` part
+        // at persistence time; skip the marker here to avoid redundant framing.
+        if (mimeType && isTextDocumentMimeType(mimeType)) {
+          return '';
+        }
+        return buildAttachedFileMarker({
+          mimeType,
+          filename: readStringProp(metadata, 'filename'),
+          artifactId: readStringProp(metadata, 'artifactId'),
+          toolCallId: readStringProp(metadata, 'toolCallId'),
+        });
       }
       return '';
     })

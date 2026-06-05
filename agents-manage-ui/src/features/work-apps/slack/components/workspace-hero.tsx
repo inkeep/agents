@@ -172,10 +172,10 @@ export function WorkspaceHero() {
   };
 
   const handleUninstall = async () => {
-    if (!workspace?.connectionId) return;
+    if (!workspace?.teamId) return;
 
     setUninstalling(true);
-    await uninstallWorkspace(workspace.connectionId);
+    await uninstallWorkspace(workspace.teamId);
     setShowUninstallDialog(false);
     setUninstalling(false);
   };

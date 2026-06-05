@@ -14,7 +14,7 @@ import {
   uniqueIndex,
   varchar,
 } from 'drizzle-orm/pg-core';
-import { organization, user } from '../../auth/auth-schema';
+import { invitation, organization, user } from '../../auth/auth-schema';
 import type { Part } from '../../types/a2a';
 import type {
   AppConfig,
@@ -35,7 +35,12 @@ export {
   account,
   deviceCode,
   invitation,
+  jwks,
   member,
+  oauthAccessToken,
+  oauthClient,
+  oauthConsent,
+  oauthRefreshToken,
   organization,
   session,
   ssoProvider,
@@ -118,6 +123,8 @@ export const conversations = pgTable(
     title: text('title'),
     lastContextResolution: timestamp('last_context_resolution', { mode: 'string' }),
     metadata: jsonb('metadata').$type<ConversationMetadata>(),
+    userProperties: jsonb('user_properties').$type<Record<string, unknown> | null>(),
+    properties: jsonb('properties').$type<Record<string, unknown> | null>(),
     ...timestamps,
   },
   (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
@@ -240,6 +247,8 @@ export const triggerInvocations = pgTable(
     ...agentScoped,
     triggerId: varchar('trigger_id', { length: 256 }).notNull(),
     conversationId: varchar('conversation_id', { length: 256 }),
+    runAsUserId: varchar('run_as_user_id', { length: 256 }),
+    batchId: varchar('batch_id', { length: 256 }),
     ref: jsonb('ref').$type<ResolvedRef>(),
     status: varchar('status', { length: 20 }).notNull().default('pending'),
     requestPayload: jsonb('request_payload').notNull(),
@@ -251,6 +260,7 @@ export const triggerInvocations = pgTable(
     primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
     index('trigger_invocations_trigger_idx').on(table.triggerId, table.createdAt),
     index('trigger_invocations_status_idx').on(table.triggerId, table.status),
+    index('trigger_invocations_batch_idx').on(table.triggerId, table.batchId),
     // Optional FK to conversations - only if conversationId is set
     // Note: Using a separate constraint to allow NULL conversationId
   ]
@@ -529,6 +539,8 @@ export const messages = pgTable(
     a2aTaskId: varchar('a2a_task_id', { length: 256 }),
     a2aSessionId: varchar('a2a_session_id', { length: 256 }),
     metadata: jsonb('metadata').$type<MessageMetadata>(),
+    userProperties: jsonb('user_properties').$type<Record<string, unknown> | null>(),
+    properties: jsonb('properties').$type<Record<string, unknown> | null>(),
     ...timestamps,
   },
   (table) => [
@@ -570,6 +582,60 @@ export const feedback = pgTable(
       foreignColumns: [messages.tenantId, messages.projectId, messages.id],
       name: 'feedback_message_fk',
     }).onDelete('cascade'),
+  ]
+);
+
+// Intentionally no FK on conversation_id or message_id (cf. sibling tables
+// feedback / messages / contextCache which DO use FK cascade). Events are an
+// analytics-stream surface with forward-anchored writes — clients mint
+// conversationId client-side and fire events BEFORE the chat handler creates
+// the row. An FK would reject those legitimate events. Cleanup-on-delete is
+// enforced at the application layer in cascade-delete.ts.
+export const events = pgTable(
+  'events',
+  {
+    ...projectScoped,
+    type: varchar('type', { length: 256 }).notNull(),
+    agentId: varchar('agent_id', { length: 256 }),
+    conversationId: varchar('conversation_id', { length: 256 }),
+    messageId: varchar('message_id', { length: 256 }),
+    properties: jsonb('properties').$type<Record<string, unknown> | null>(),
+    userProperties: jsonb('user_properties').$type<Record<string, unknown> | null>(),
+    metadata: jsonb('metadata').$type<Record<string, unknown> | null>(),
+    serverMetadata: jsonb('server_metadata').$type<{
+      authMethod?: string;
+      [k: string]: unknown;
+    } | null>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    index('events_created_at_idx').on(table.tenantId, table.projectId, table.createdAt.desc()),
+    index('events_conversation_id_idx').on(
+      table.tenantId,
+      table.projectId,
+      table.conversationId,
+      table.createdAt.desc()
+    ),
+  ]
+);
+
+export const coPilotRuns = pgTable(
+  'copilot_runs',
+  {
+    ...projectScoped,
+    ref: jsonb('ref').$type<ResolvedRef>(),
+    conversationId: varchar('conversation_id', { length: 256 }).notNull(),
+    feedbackIds: jsonb('feedback_ids').$type<string[]>(),
+    status: varchar('status', { length: 50 })
+      .$type<'running' | 'suspended' | 'completed' | 'failed'>()
+      .notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    index('copilot_runs_status_idx').on(table.tenantId, table.projectId, table.status),
+    uniqueIndex('copilot_runs_conversation_id_idx').on(table.conversationId),
   ]
 );
 
@@ -1146,6 +1212,29 @@ export const workAppSlackMcpToolAccessConfig = pgTable(
       columns: [table.tenantId],
       foreignColumns: [organization.id],
       name: 'work_app_slack_mcp_tool_access_config_tenant_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+// ============================================================================
+// INVITATION PROJECT ASSIGNMENTS
+// ============================================================================
+
+export const invitationProjectAssignment = pgTable(
+  'invitation_project_assignment',
+  {
+    id: text('id').primaryKey(),
+    invitationId: text('invitation_id').notNull(),
+    projectId: text('project_id').notNull(),
+    projectRole: text('project_role').notNull().default('project_member'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => [
+    index('invitation_project_assignment_invitation_idx').on(table.invitationId),
+    foreignKey({
+      columns: [table.invitationId],
+      foreignColumns: [invitation.id],
+      name: 'invitation_project_assignment_invitation_fk',
     }).onDelete('cascade'),
   ]
 );

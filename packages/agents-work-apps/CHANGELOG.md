@@ -1,5 +1,329 @@
 # @inkeep/agents-work-apps
 
+## 0.75.4
+
+### Patch Changes
+
+- @inkeep/agents-core@0.75.4
+
+## 0.75.3
+
+### Patch Changes
+
+- Updated dependencies [c9072d5]
+  - @inkeep/agents-core@0.75.3
+
+## 0.75.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.75.2
+
+## 0.75.1
+
+### Patch Changes
+
+- Updated dependencies [d7a6762]
+- Updated dependencies [2042ce9]
+  - @inkeep/agents-core@0.75.1
+
+## 0.75.0
+
+### Patch Changes
+
+- Updated dependencies [db2be2f]
+  - @inkeep/agents-core@0.75.0
+
+## 0.74.4
+
+### Patch Changes
+
+- Updated dependencies [1521dcc]
+  - @inkeep/agents-core@0.74.4
+
+## 0.74.3
+
+### Patch Changes
+
+- Updated dependencies [87e4bf1]
+- Updated dependencies [d6c3176]
+  - @inkeep/agents-core@0.74.3
+
+## 0.74.2
+
+### Patch Changes
+
+- Updated dependencies [3adbaa4]
+- Updated dependencies [ba25590]
+  - @inkeep/agents-core@0.74.2
+
+## 0.74.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.74.1
+
+## 0.74.0
+
+### Patch Changes
+
+- Updated dependencies [bb0aba5]
+- Updated dependencies [ab6276d]
+- Updated dependencies [be4d081]
+- Updated dependencies [fbb4048]
+- Updated dependencies [1af568e]
+  - @inkeep/agents-core@0.74.0
+
+## 0.73.5
+
+### Patch Changes
+
+- cbc947d: Add Slack webhook integration with per-event Block Kit formatting
+  - @inkeep/agents-core@0.73.5
+
+## 0.73.4
+
+### Patch Changes
+
+- Updated dependencies [867384b]
+- Updated dependencies [4f7c661]
+  - @inkeep/agents-core@0.73.4
+
+## 0.73.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.73.3
+
+## 0.73.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.73.2
+
+## 0.73.1
+
+### Patch Changes
+
+- Updated dependencies [f069c82]
+  - @inkeep/agents-core@0.73.1
+
+## 0.73.0
+
+### Patch Changes
+
+- Updated dependencies [ed76d93]
+  - @inkeep/agents-core@0.73.0
+
+## 0.72.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.72.2
+
+## 0.72.1
+
+### Patch Changes
+
+- Updated dependencies [52e099d]
+  - @inkeep/agents-core@0.72.1
+
+## 0.72.0
+
+### Patch Changes
+
+- Updated dependencies [4a0d963]
+- Updated dependencies [4a0d963]
+  - @inkeep/agents-core@0.72.0
+
+## 0.71.0
+
+### Patch Changes
+
+- Updated dependencies [e348e84]
+- Updated dependencies [648957c]
+- Updated dependencies [2e2d3aa]
+- Updated dependencies [c3cbdbf]
+  - @inkeep/agents-core@0.71.0
+
+## 0.70.8
+
+### Patch Changes
+
+- 3f9262b: Add `INKEEP_SLACK_DISABLE_DURABLE_EXECUTION` env var to disable the Slack work-app's forced `executionMode: 'durable'` on agent runs. When set to `"true"`, the work-app omits `executionMode` from `/run/api/chat` requests so each agent's own configured mode is used. Workaround for the 2-minute idle stream timeout in older `@workflow/world-vercel` SDK versions where long sub-agent delegations cause empty Slack messages. Default behavior unchanged.
+  - @inkeep/agents-core@0.70.8
+
+## 0.70.7
+
+### Patch Changes
+
+- Updated dependencies [a03d008]
+- Updated dependencies [2e5c421]
+  - @inkeep/agents-core@0.70.7
+
+## 0.70.6
+
+### Patch Changes
+
+- @inkeep/agents-core@0.70.6
+
+## 0.70.5
+
+### Patch Changes
+
+- Updated dependencies [26cc75a]
+- Updated dependencies [903b1ef]
+  - @inkeep/agents-core@0.70.5
+
+## 0.70.4
+
+### Patch Changes
+
+- d96e872: Fix Slack workspace uninstall failing with "Slack workspace not found or not associated with a tenant"
+
+  The manage UI was passing the Nango `connectionId` (e.g. `E::T:T012AB3C4`) to `DELETE /work-apps/slack/workspaces/{teamId}`, but `requireWorkspaceAdmin` middleware uses that path parameter directly to look up the workspace by raw Slack team ID. The lookup never matched and uninstall failed with a 404.
+
+  The route now enforces a single contract: `:teamId` must be a raw Slack team ID (`T...`). A shared `SlackTeamIdSchema` Zod regex rejects connection IDs and other malformed values at the request boundary with 400 (instead of leaking into a confusing 404 from the middleware). The DELETE handler's dual `connectionId`-or-`teamId` parsing is removed, and the manage UI now sends `workspace.teamId` for uninstall.
+
+- Updated dependencies [5bd4911]
+- Updated dependencies [4ecbba7]
+  - @inkeep/agents-core@0.70.4
+
+## 0.70.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.70.3
+
+## 0.70.2
+
+### Patch Changes
+
+- Updated dependencies [a4d2360]
+  - @inkeep/agents-core@0.70.2
+
+## 0.70.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.70.1
+
+## 0.70.0
+
+### Patch Changes
+
+- Updated dependencies [60a0c60]
+- Updated dependencies [1570c2a]
+  - @inkeep/agents-core@0.70.0
+
+## 0.69.1
+
+### Patch Changes
+
+- Updated dependencies [a6bd5ec]
+  - @inkeep/agents-core@0.69.1
+
+## 0.69.0
+
+### Patch Changes
+
+- Updated dependencies [52d0831]
+- Updated dependencies [c63567e]
+- Updated dependencies [32bce4f]
+  - @inkeep/agents-core@0.69.0
+
+## 0.68.4
+
+### Patch Changes
+
+- 7438f76: add thread to resume link message context
+  - @inkeep/agents-core@0.68.4
+
+## 0.68.3
+
+### Patch Changes
+
+- Updated dependencies [e8776f5]
+  - @inkeep/agents-core@0.68.3
+
+## 0.68.2
+
+### Patch Changes
+
+- Updated dependencies [557f700]
+- Updated dependencies [4e0fd65]
+  - @inkeep/agents-core@0.68.2
+
+## 0.68.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.68.1
+
+## 0.68.0
+
+### Patch Changes
+
+- Updated dependencies [d1e18a8]
+  - @inkeep/agents-core@0.68.0
+
+## 0.67.4
+
+### Patch Changes
+
+- @inkeep/agents-core@0.67.4
+
+## 0.67.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.67.3
+
+## 0.67.2
+
+### Patch Changes
+
+- @inkeep/agents-core@0.67.2
+
+## 0.67.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.67.1
+
+## 0.67.0
+
+### Patch Changes
+
+- Updated dependencies [757ac77]
+  - @inkeep/agents-core@0.67.0
+
+## 0.66.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.66.1
+
+## 0.66.0
+
+### Patch Changes
+
+- Updated dependencies [5596ecb]
+- Updated dependencies [63a1358]
+- Updated dependencies [01a960d]
+- Updated dependencies [4d0169b]
+  - @inkeep/agents-core@0.66.0
+
+## 0.65.2
+
+### Patch Changes
+
+- 50f57fa: Remove unused bot scopes (channels:join, search:read.\*) and add app_uninstalled/tokens_revoked event listeners
+- Updated dependencies [fa18f84]
+- Updated dependencies [34e1d67]
+- Updated dependencies [93eb31e]
+  - @inkeep/agents-core@0.65.2
+
 ## 0.65.1
 
 ### Patch Changes

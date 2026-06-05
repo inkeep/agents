@@ -4,4 +4,4 @@
  */
 
 export type { ValidationResult } from './jmespath-utils';
-export { validateJMESPath, validateRegex } from './jmespath-utils';
+export { DANGEROUS_PATTERNS, validateJMESPath, validateRegex } from './jmespath-utils';

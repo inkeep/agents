@@ -10,11 +10,13 @@ interface ApiErrorData {
 export class ApiError extends Error {
   public readonly error: ApiErrorData;
   public readonly status: number;
+  public readonly data: Record<string, unknown> | undefined;
 
-  constructor(error: ApiErrorData, status: number) {
+  constructor(error: ApiErrorData, status: number, data?: Record<string, unknown>) {
     super(error.message);
     this.name = 'ApiError';
     this.error = error;
     this.status = status;
+    this.data = data;
   }
 }

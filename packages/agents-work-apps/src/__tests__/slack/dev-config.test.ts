@@ -1,21 +1,29 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockEnv, mockLogger, mockFs } = vi.hoisted(() => ({
-  mockEnv: {
-    ENVIRONMENT: 'development' as string,
-  },
-  mockLogger: {
+const { mockEnv, mockFs, mockLogger } = vi.hoisted(() => {
+  const mockLogger = {
     info: vi.fn(),
     debug: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  },
-  mockFs: {
-    existsSync: vi.fn<(path: string) => boolean>(),
-    readFileSync: vi.fn<(path: string, encoding: string) => string>(),
-    writeFileSync: vi.fn<(path: string, data: string, encoding: string) => void>(),
-  },
-}));
+    child: vi.fn(),
+    with: vi.fn(),
+    getPinoInstance: vi.fn(),
+  };
+  mockLogger.child.mockReturnValue(mockLogger);
+  mockLogger.with.mockReturnValue(mockLogger);
+  return {
+    mockEnv: {
+      ENVIRONMENT: 'development' as string,
+    },
+    mockFs: {
+      existsSync: vi.fn<(path: string) => boolean>(),
+      readFileSync: vi.fn<(path: string, encoding: string) => string>(),
+      writeFileSync: vi.fn<(path: string, data: string, encoding: string) => void>(),
+    },
+    mockLogger,
+  };
+});
 
 vi.mock('node:fs', () => ({
   existsSync: mockFs.existsSync,
@@ -28,7 +36,8 @@ vi.mock('../../env', () => ({
 }));
 
 vi.mock('../../logger', () => ({
-  getLogger: () => mockLogger,
+  getLogger: vi.fn(() => mockLogger),
+  runWithLogContext: vi.fn((_bindings: any, fn: any) => fn()),
 }));
 
 import type { SlackDevConfig } from '../../slack/services/dev-config';

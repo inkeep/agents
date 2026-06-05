@@ -8,6 +8,7 @@ import type {
   StatusUpdateSettings,
   SummaryEvent,
   TransferData,
+  WebhookDestinationSelect,
 } from '@inkeep/agents-core';
 import {
   CONVERSATION_HISTORY_DEFAULT_LIMIT,
@@ -27,13 +28,15 @@ import { ArtifactService } from '../artifacts/ArtifactService';
 import {
   ARTIFACT_GENERATION_BACKOFF_INITIAL_MS,
   ARTIFACT_GENERATION_BACKOFF_MAX_MS,
-  ARTIFACT_GENERATION_MAX_RETRIES,
+  ARTIFACT_PENDING_MAX_WAIT_MS,
+  ARTIFACT_SAVE_RETRY_DELAY_MS,
   ARTIFACT_SESSION_MAX_PENDING,
   ARTIFACT_SESSION_MAX_PREVIOUS_SUMMARIES,
   STATUS_UPDATE_DEFAULT_INTERVAL_SECONDS,
   STATUS_UPDATE_DEFAULT_NUM_EVENTS,
 } from '../constants/execution-limits';
 import { getFormattedConversationHistory, getScopedHistory } from '../data/conversations';
+import { stripBinaryDataForObservability } from '../services/blob-storage/artifact-binary-sanitizer';
 import { getStreamHelper } from '../stream/stream-registry';
 import { defaultStatusSchemas } from '../utils/default-status-schemas';
 import { getModelContextWindow } from '../utils/model-context-utils';
@@ -102,22 +105,24 @@ type MakeAgentSessionEvent<T extends AgentSessionEventType> = BaseAgentSessionEv
 
 export interface AgentGenerateData {
   parts: Array<{
-    type: 'text' | 'tool_call' | 'tool_result';
+    type: 'text' | 'tool_call' | 'tool_result' | 'data_component' | 'data_artifact';
     content?: string;
     toolName?: string;
     args?: any;
     result?: any;
+    data?: any;
   }>;
-  generationType: 'text_generation' | 'object_generation';
+  generationType: 'text_generation' | 'object_generation' | 'mixed_generation';
 }
 
 export interface AgentReasoningData {
   parts: Array<{
-    type: 'text' | 'tool_call' | 'tool_result';
+    type: 'text' | 'tool_call' | 'tool_result' | 'data_component' | 'data_artifact';
     content?: string;
     toolName?: string;
     args?: any;
     result?: any;
+    data?: any;
   }>;
 }
 
@@ -219,14 +224,16 @@ export class AgentSession {
   private isTextStreaming: boolean = false;
   private isGeneratingUpdate: boolean = false;
   private pendingArtifacts = new Set<string>(); // Track pending artifact processing
-  private artifactProcessingErrors = new Map<string, number>(); // Track errors per artifact
-  private readonly MAX_ARTIFACT_RETRIES = ARTIFACT_GENERATION_MAX_RETRIES;
   private readonly MAX_PENDING_ARTIFACTS = ARTIFACT_SESSION_MAX_PENDING; // Prevent unbounded growth
+  private readonly MAX_ARTIFACT_RETRIES = 1;
+  private artifactProcessingErrors = new Map<string, number>();
   private scheduledTimeouts?: Set<ReturnType<typeof setTimeout>>; // Track scheduled timeouts for cleanup
   private artifactCache = new Map<string, any>(); // Cache artifacts created in this session
   private artifactService?: any; // Session-scoped ArtifactService instance
   private artifactParser?: any; // Session-scoped ArtifactParser instance
   private isEmitOperations: boolean = false; // Whether to send data operations
+  private _prefetchedDestinations?: WebhookDestinationSelect[];
+  private logger: ReturnType<typeof getLogger>;
 
   constructor(
     public readonly sessionId: string,
@@ -234,10 +241,8 @@ export class AgentSession {
     public readonly executionContext: FullExecutionContext,
     public readonly contextId?: string
   ) {
-    logger.debug(
-      { sessionId, messageId, agentId: executionContext.agentId },
-      'AgentSession created'
-    );
+    this.logger = getLogger('AgentSession').with({ sessionId });
+    this.logger.debug({ messageId, agentId: executionContext.agentId }, 'AgentSession created');
 
     if (executionContext.tenantId && executionContext.projectId) {
       toolSessionManager.createSessionWithId(
@@ -272,7 +277,15 @@ export class AgentSession {
    */
   enableEmitOperations(): void {
     this.isEmitOperations = true;
-    logger.info({ sessionId: this.sessionId }, 'DEBUG: Emit operations enabled for AgentSession');
+    this.logger.info('DEBUG: Emit operations enabled for AgentSession');
+  }
+
+  setPrefetchedDestinations(destinations: WebhookDestinationSelect[]): void {
+    this._prefetchedDestinations = destinations;
+  }
+
+  getPrefetchedDestinations(): WebhookDestinationSelect[] | undefined {
+    return this._prefetchedDestinations;
   }
 
   /**
@@ -295,9 +308,8 @@ export class AgentSession {
         await streamHelper.writeOperation(formattedOperation);
       }
     } catch (error) {
-      logger.error(
+      this.logger.error(
         {
-          sessionId: this.sessionId,
           eventType: event.eventType,
           error: error instanceof Error ? error.message : error,
         },
@@ -363,10 +375,7 @@ export class AgentSession {
     if (this.statusUpdateState.config.timeInSeconds) {
       this.statusUpdateTimer = setInterval(async () => {
         if (!this.statusUpdateState || this.isEnded) {
-          logger.debug(
-            { sessionId: this.sessionId },
-            'Timer triggered but session already cleaned up or ended'
-          );
+          this.logger.debug('Timer triggered but session already cleaned up or ended');
           if (this.statusUpdateTimer) {
             clearInterval(this.statusUpdateTimer);
             this.statusUpdateTimer = undefined;
@@ -376,9 +385,8 @@ export class AgentSession {
         await this.checkAndSendTimeBasedUpdate();
       }, this.statusUpdateState.config.timeInSeconds * 1000);
 
-      logger.info(
+      this.logger.info(
         {
-          sessionId: this.sessionId,
           intervalMs: this.statusUpdateState.config.timeInSeconds * 1000,
         },
         'Time-based status update timer started'
@@ -406,9 +414,8 @@ export class AgentSession {
     }
 
     if (this.isEnded) {
-      logger.debug(
+      this.logger.debug(
         {
-          sessionId: this.sessionId,
           eventType,
           subAgentId,
         },
@@ -433,9 +440,8 @@ export class AgentSession {
         const artifactId = artifactData.artifactId;
 
         if (this.pendingArtifacts.size >= this.MAX_PENDING_ARTIFACTS) {
-          logger.warn(
+          this.logger.warn(
             {
-              sessionId: this.sessionId,
               artifactId,
               pendingCount: this.pendingArtifacts.size,
               maxAllowed: this.MAX_PENDING_ARTIFACTS,
@@ -451,18 +457,17 @@ export class AgentSession {
           const artifactDataWithAgent = { ...artifactData, subAgentId };
           this.processArtifact(artifactDataWithAgent)
             .then(() => {
-              this.pendingArtifacts.delete(artifactId);
               this.artifactProcessingErrors.delete(artifactId);
+              this.pendingArtifacts.delete(artifactId);
             })
             .catch((error) => {
               const errorCount = (this.artifactProcessingErrors.get(artifactId) || 0) + 1;
               this.artifactProcessingErrors.set(artifactId, errorCount);
 
-              if (errorCount >= this.MAX_ARTIFACT_RETRIES) {
+              if (errorCount > this.MAX_ARTIFACT_RETRIES) {
                 this.pendingArtifacts.delete(artifactId);
-                logger.error(
+                this.logger.error(
                   {
-                    sessionId: this.sessionId,
                     artifactId,
                     errorCount,
                     maxRetries: this.MAX_ARTIFACT_RETRIES,
@@ -472,15 +477,50 @@ export class AgentSession {
                   'Artifact processing failed after max retries, giving up'
                 );
               } else {
-                logger.warn(
+                this.logger.warn(
                   {
-                    sessionId: this.sessionId,
                     artifactId,
                     errorCount,
                     error: error instanceof Error ? error.message : 'Unknown error',
                   },
-                  'Artifact processing failed, may retry'
+                  'Artifact processing failed, retrying'
                 );
+
+                const retryTimeoutId = setTimeout(() => {
+                  if (this.isEnded) {
+                    this.pendingArtifacts.delete(artifactId);
+                    return;
+                  }
+
+                  this.processArtifact(artifactDataWithAgent)
+                    .then(() => {
+                      this.artifactProcessingErrors.delete(artifactId);
+                      this.pendingArtifacts.delete(artifactId);
+                    })
+                    .catch((retryError) => {
+                      this.artifactProcessingErrors.set(artifactId, errorCount + 1);
+                      this.pendingArtifacts.delete(artifactId);
+                      this.logger.error(
+                        {
+                          artifactId,
+                          errorCount: errorCount + 1,
+                          maxRetries: this.MAX_ARTIFACT_RETRIES,
+                          error: retryError instanceof Error ? retryError.message : 'Unknown error',
+                          stack: retryError instanceof Error ? retryError.stack : undefined,
+                        },
+                        'Artifact processing failed after retry, giving up'
+                      );
+                    });
+                }, ARTIFACT_SAVE_RETRY_DELAY_MS);
+
+                if (!this.scheduledTimeouts) {
+                  this.scheduledTimeouts = new Set();
+                }
+                this.scheduledTimeouts.add(retryTimeoutId);
+
+                setTimeout(() => {
+                  this.scheduledTimeouts?.delete(retryTimeoutId);
+                }, ARTIFACT_SAVE_RETRY_DELAY_MS + 1000);
               }
             });
         });
@@ -497,15 +537,12 @@ export class AgentSession {
    */
   private checkStatusUpdates(): void {
     if (this.isEnded) {
-      logger.debug(
-        { sessionId: this.sessionId },
-        'Session has ended - skipping status update check'
-      );
+      this.logger.debug('Session has ended - skipping status update check');
       return;
     }
 
     if (!this.statusUpdateState) {
-      logger.debug({ sessionId: this.sessionId }, 'No status update state - skipping check');
+      this.logger.debug('No status update state - skipping check');
       return;
     }
 
@@ -525,15 +562,12 @@ export class AgentSession {
    */
   private async checkAndSendTimeBasedUpdate(): Promise<void> {
     if (this.isEnded) {
-      logger.debug({ sessionId: this.sessionId }, 'Session has ended - skipping time-based update');
+      this.logger.debug('Session has ended - skipping time-based update');
       return;
     }
 
     if (!this.statusUpdateState) {
-      logger.debug(
-        { sessionId: this.sessionId },
-        'No status updates configured for time-based check'
-      );
+      this.logger.debug('No status updates configured for time-based check');
       return;
     }
 
@@ -552,9 +586,8 @@ export class AgentSession {
       // Always send time-based updates regardless of event count
       await this.generateAndSendUpdate();
     } catch (error) {
-      logger.error(
+      this.logger.error(
         {
-          sessionId: this.sessionId,
           error: error instanceof Error ? error.message : 'Unknown error',
         },
         'Failed to send time-based status update'
@@ -633,6 +666,25 @@ export class AgentSession {
     return this.isTextStreaming;
   }
 
+  async waitForPendingArtifacts(maxWaitTime = ARTIFACT_PENDING_MAX_WAIT_MS): Promise<void> {
+    if (this.pendingArtifacts.size === 0) return;
+
+    const startTime = Date.now();
+    while (this.pendingArtifacts.size > 0 && Date.now() - startTime < maxWaitTime) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    if (this.pendingArtifacts.size > 0) {
+      this.logger.warn(
+        {
+          pendingCount: this.pendingArtifacts.size,
+          pendingIds: Array.from(this.pendingArtifacts),
+        },
+        'Proceeding with pending artifacts still processing'
+      );
+    }
+  }
+
   /**
    * Clean up status update resources when session ends
    */
@@ -647,25 +699,7 @@ export class AgentSession {
     this.statusUpdateState = undefined;
 
     // Wait for pending artifacts to complete before cleaning up artifactService
-    if (this.pendingArtifacts.size > 0) {
-      const maxWaitTime = 10000; // 10 seconds max wait
-      const startTime = Date.now();
-
-      while (this.pendingArtifacts.size > 0 && Date.now() - startTime < maxWaitTime) {
-        await new Promise((resolve) => setTimeout(resolve, 100)); // Wait 100ms between checks
-      }
-
-      if (this.pendingArtifacts.size > 0) {
-        logger.warn(
-          {
-            sessionId: this.sessionId,
-            pendingCount: this.pendingArtifacts.size,
-            pendingIds: Array.from(this.pendingArtifacts),
-          },
-          'Cleanup proceeding with pending artifacts still processing'
-        );
-      }
-    }
+    await this.waitForPendingArtifacts();
 
     // Clean up artifact tracking maps to prevent memory leaks
     this.pendingArtifacts.clear();
@@ -686,10 +720,7 @@ export class AgentSession {
         const { SandboxExecutorFactory } = await import('../tools/SandboxExecutorFactory');
         await SandboxExecutorFactory.cleanupSession(this.sessionId);
       } catch (error) {
-        logger.warn(
-          { sessionId: this.sessionId, error },
-          'Failed to cleanup session-scoped sandbox executors'
-        );
+        this.logger.warn({ error }, 'Failed to cleanup session-scoped sandbox executors');
       }
     }
 
@@ -717,33 +748,27 @@ export class AgentSession {
    */
   private async generateAndSendUpdate(): Promise<void> {
     if (this.isEnded) {
-      logger.debug({ sessionId: this.sessionId }, 'Session has ended - not generating update');
+      this.logger.debug('Session has ended - not generating update');
       return;
     }
 
     if (this.isTextStreaming) {
-      logger.debug(
-        { sessionId: this.sessionId },
-        'Text is currently streaming - skipping status update'
-      );
+      this.logger.debug('Text is currently streaming - skipping status update');
       return;
     }
 
     if (this.isGeneratingUpdate) {
-      logger.debug(
-        { sessionId: this.sessionId },
-        'Update already in progress - skipping duplicate generation'
-      );
+      this.logger.debug('Update already in progress - skipping duplicate generation');
       return;
     }
 
     if (!this.statusUpdateState) {
-      logger.warn({ sessionId: this.sessionId }, 'No status update state - cannot generate update');
+      this.logger.warn('No status update state - cannot generate update');
       return;
     }
 
     if (!this.executionContext.agentId) {
-      logger.warn({ sessionId: this.sessionId }, 'No agent ID - cannot generate update');
+      this.logger.warn('No agent ID - cannot generate update');
       return;
     }
 
@@ -762,10 +787,7 @@ export class AgentSession {
     try {
       const streamHelper = getStreamHelper(this.sessionId);
       if (!streamHelper) {
-        logger.warn(
-          { sessionId: this.sessionId },
-          'No stream helper found - cannot send status update'
-        );
+        this.logger.warn('No stream helper found - cannot send status update');
         this.isGeneratingUpdate = false;
         return;
       }
@@ -800,9 +822,8 @@ export class AgentSession {
             !summary.data.label ||
             Object.keys(summary.data).length === 0
           ) {
-            logger.warn(
+            this.logger.warn(
               {
-                sessionId: this.sessionId,
                 summary: summary,
               },
               'Skipping empty or invalid structured operation'
@@ -847,9 +868,8 @@ export class AgentSession {
         this.statusUpdateState.lastEventCount = this.events.length;
       }
     } catch (error) {
-      logger.error(
+      this.logger.error(
         {
-          sessionId: this.sessionId,
           error: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined,
         },
@@ -894,9 +914,8 @@ export class AgentSession {
           this.releaseUpdateLock();
         }
       } catch (error) {
-        logger.error(
+        this.logger.error(
           {
-            sessionId: this.sessionId,
             error: error instanceof Error ? error.message : 'Unknown error',
           },
           'Failed to check status updates during event recording'
@@ -983,8 +1002,8 @@ export class AgentSession {
                 filters: {},
               });
             } catch (error) {
-              logger.warn(
-                { sessionId: this.sessionId, error },
+              this.logger.warn(
+                { error },
                 'Failed to fetch conversation history for structured status update'
               );
             }
@@ -1152,13 +1171,13 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           );
 
           const result = statusUpdateResult.output as any;
-          logger.info({ result: JSON.stringify(result) }, 'DEBUG: Result');
+          this.logger.info({ result: JSON.stringify(result) }, 'DEBUG: Result');
 
           const summaries = [];
           const updates = result.updates || [];
 
           for (const update of updates) {
-            logger.info({ update: JSON.stringify(update) }, 'DEBUG: Update data');
+            this.logger.info({ update: JSON.stringify(update) }, 'DEBUG: Update data');
             // await new Promise((resolve) => setTimeout(resolve, 100000));
             if (update.type === 'no_relevant_updates') {
               continue;
@@ -1186,7 +1205,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           return { summaries };
         } catch (error) {
           setSpanWithError(span, error instanceof Error ? error : new Error(String(error)));
-          logger.error({ error }, 'Failed to generate structured update, using fallback');
+          this.logger.error({ error }, 'Failed to generate structured update, using fallback');
           return { summaries: [] };
         } finally {
           span.end();
@@ -1376,7 +1395,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           'subAgent.id': artifactData.subAgentId || 'unknown',
           'subAgent.name': artifactData.subAgentName || 'unknown',
           'artifact.tool_call_id': artifactData.metadata?.toolCallId || 'unknown',
-          'artifact.data': JSON.stringify(artifactData.data, null, 2),
+          'artifact.data': JSON.stringify(stripBinaryDataForObservability(artifactData.data)),
           'tenant.id': artifactData.tenantId || 'unknown',
           'project.id': artifactData.projectId || 'unknown',
           'context.id': artifactData.contextId || 'unknown',
@@ -1511,9 +1530,8 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
               existingNames = existingArtifacts.map((a) => a.name).filter(Boolean) as string[];
             }
           } catch (error) {
-            logger.warn(
+            this.logger.warn(
               {
-                sessionId: this.sessionId,
                 artifactId: artifactData.artifactId,
                 error: error instanceof Error ? error.message : 'Unknown error',
               },
@@ -1537,9 +1555,8 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
                   if (agentData && 'models' in agentData && agentData.models?.base?.model) {
                     modelToUse = agentData.models.base;
-                    logger.info(
+                    this.logger.info(
                       {
-                        sessionId: this.sessionId,
                         artifactId: artifactData.artifactId,
                         subAgentId: artifactData.subAgentId,
                         model: modelToUse.model,
@@ -1548,9 +1565,8 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
                     );
                   }
                 } catch (error) {
-                  logger.warn(
+                  this.logger.warn(
                     {
-                      sessionId: this.sessionId,
                       artifactId: artifactData.artifactId,
                       subAgentId: artifactData.subAgentId,
                       error: error instanceof Error ? error.message : 'Unknown error',
@@ -1561,9 +1577,8 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
               }
 
               if (!modelToUse?.model?.trim()) {
-                logger.warn(
+                this.logger.warn(
                   {
-                    sessionId: this.sessionId,
                     artifactId: artifactData.artifactId,
                   },
                   'No model configuration available for artifact name generation, will use fallback names'
@@ -1587,9 +1602,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           } else {
             // Truncate artifact data based on model context limits (use 20% for data preview)
             const fullDataStr = JSON.stringify(
-              artifactData.data || artifactData.summaryData || {},
-              null,
-              2
+              stripBinaryDataForObservability(artifactData.data || artifactData.summaryData || {})
             );
             let truncatedData = fullDataStr;
 
@@ -1608,9 +1621,8 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
                   `\n...\n[Truncated: showing first ~${Math.floor(maxDataTokens / 1000)}K tokens of ~${Math.floor(fullDataTokens / 1000)}K total. Full data saved in artifact.]`;
               }
             } else {
-              logger.warn(
+              this.logger.warn(
                 {
-                  sessionId: this.sessionId,
                   artifactId: artifactData.artifactId,
                   hasValidContextWindow: modelContextInfo.hasValidContextWindow,
                   contextWindow: modelContextInfo.contextWindow,
@@ -1674,9 +1686,7 @@ Make the name extremely specific to what this tool call actually returned, not g
                   'artifact.type': artifactData.artifactType,
                   'artifact.summary': JSON.stringify(artifactData.summaryData, null, 2),
                   'artifact.full': JSON.stringify(
-                    artifactData.data || artifactData.summaryData,
-                    null,
-                    2
+                    stripBinaryDataForObservability(artifactData.data || artifactData.summaryData)
                   ),
                   'prompt.length': prompt.length,
                 },
@@ -1722,9 +1732,9 @@ Make the name extremely specific to what this tool call actually returned, not g
                       'artifact.description': result.output.description,
                       'artifact.summary': JSON.stringify(artifactData.summaryData, null, 2),
                       'artifact.full': JSON.stringify(
-                        artifactData.data || artifactData.summaryData,
-                        null,
-                        2
+                        stripBinaryDataForObservability(
+                          artifactData.data || artifactData.summaryData
+                        )
                       ),
                       'generation.name_length': result.output.name.length,
                       'generation.description_length': result.output.description.length,
@@ -1737,9 +1747,8 @@ Make the name extremely specific to what this tool call actually returned, not g
                   } catch (error) {
                     lastError = error instanceof Error ? error : new Error(String(error));
 
-                    logger.warn(
+                    this.logger.warn(
                       {
-                        sessionId: this.sessionId,
                         artifactId: artifactData.artifactId,
                         attempt,
                         maxRetries,
@@ -1779,9 +1788,8 @@ Make the name extremely specific to what this tool call actually returned, not g
                 ? `${result.name} ${toolCallSuffix}`
                 : `${result.name.substring(0, 50 - toolCallSuffix.length - 1)} ${toolCallSuffix}`;
 
-            logger.info(
+            this.logger.info(
               {
-                sessionId: this.sessionId,
                 artifactId: artifactData.artifactId,
                 originalName,
                 uniqueName: result.name,
@@ -1816,9 +1824,8 @@ Make the name extremely specific to what this tool call actually returned, not g
             });
             span.setStatus({ code: SpanStatusCode.OK });
           } catch (saveError) {
-            logger.error(
+            this.logger.error(
               {
-                sessionId: this.sessionId,
                 artifactId: artifactData.artifactId,
                 error: saveError instanceof Error ? saveError.message : 'Unknown error',
                 errorName: saveError instanceof Error ? saveError.name : undefined,
@@ -1853,9 +1860,8 @@ Make the name extremely specific to what this tool call actually returned, not g
                   toolCallId: artifactData.toolCallId,
                 });
 
-                logger.info(
+                this.logger.info(
                   {
-                    sessionId: this.sessionId,
                     artifactId: artifactData.artifactId,
                   },
                   'Saved artifact with fallback name/description after main save failed'
@@ -1869,9 +1875,8 @@ Make the name extremely specific to what this tool call actually returned, not g
 
               if (isDuplicateError) {
               } else {
-                logger.error(
+                this.logger.error(
                   {
-                    sessionId: this.sessionId,
                     artifactId: artifactData.artifactId,
                     error: fallbackError instanceof Error ? fallbackError.message : 'Unknown error',
                     errorName: fallbackError instanceof Error ? fallbackError.name : undefined,
@@ -1889,9 +1894,8 @@ Make the name extremely specific to what this tool call actually returned, not g
           }
         } catch (error) {
           setSpanWithError(span, error instanceof Error ? error : new Error(String(error)));
-          logger.error(
+          this.logger.error(
             {
-              sessionId: this.sessionId,
               artifactId: artifactData.artifactId,
               error: error instanceof Error ? error.message : 'Unknown error',
             },
@@ -1909,7 +1913,7 @@ Make the name extremely specific to what this tool call actually returned, not g
    */
   setArtifactCache(key: string, artifact: any): void {
     this.artifactCache.set(key, artifact);
-    logger.debug({ sessionId: this.sessionId, key }, 'Artifact cached in session');
+    this.logger.debug({ key }, 'Artifact cached in session');
   }
 
   /**
@@ -1931,7 +1935,7 @@ Make the name extremely specific to what this tool call actually returned, not g
    */
   getArtifactCache(key: string): any | null {
     const artifact = this.artifactCache.get(key);
-    logger.debug({ sessionId: this.sessionId, key, found: !!artifact }, 'Artifact cache lookup');
+    this.logger.debug({ key, found: !!artifact }, 'Artifact cache lookup');
     return artifact || null;
   }
 
@@ -2023,6 +2027,17 @@ export class AgentSessionManager {
    */
   getSession(sessionId: string): AgentSession | null {
     return this.sessions.get(sessionId) || null;
+  }
+
+  setPrefetchedDestinations(sessionId: string, destinations: WebhookDestinationSelect[]): void {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      session.setPrefetchedDestinations(destinations);
+    }
+  }
+
+  getPrefetchedDestinations(sessionId: string): WebhookDestinationSelect[] | undefined {
+    return this.sessions.get(sessionId)?.getPrefetchedDestinations();
   }
 
   /**

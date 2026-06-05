@@ -38,11 +38,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env
-.env.local
-.env.*.local
-.env.docker
-.env.production
-.env.staging
+.env.*
+!.env.example
+!.env.docker.example
 .slack-dev.json
 
 # Keep providers.yaml for Nango integrations
@@ -83,6 +81,7 @@ agents-docs/skills-collections/.generated/
 
 # CI-generated PR context skill (not committed)
 .claude/skills/pr-context/
+.agents/skills/pr-context/
 
 # Ship spec files (local working artifacts)
 .claude/specs/
@@ -126,3 +125,4 @@ progress.txt
 
 packages/agents-ui-local
 .claude/pr-diff/
+.openknowledge/

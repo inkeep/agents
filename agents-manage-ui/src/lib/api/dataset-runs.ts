@@ -94,3 +94,33 @@ export async function fetchDatasetRunItems(
     `tenants/${tenantId}/projects/${projectId}/evals/dataset-runs/${runId}/items`
   );
 }
+
+export interface RerunDatasetRunOptions {
+  branchName?: string;
+  evaluatorIds?: string[];
+}
+
+export interface RerunDatasetRunResponse {
+  datasetRunId: string;
+  status: 'pending';
+  totalItems: number;
+}
+
+/**
+ * Rerun a past dataset run. Creates a new run row using the current dataset items
+ * and the source run's run config + evaluators (unless overridden).
+ */
+export async function rerunDatasetRun(
+  tenantId: string,
+  projectId: string,
+  runId: string,
+  options: RerunDatasetRunOptions = {}
+): Promise<RerunDatasetRunResponse> {
+  return makeManagementApiRequest<RerunDatasetRunResponse>(
+    `tenants/${tenantId}/projects/${projectId}/evals/dataset-runs/${runId}/rerun`,
+    {
+      method: 'POST',
+      body: JSON.stringify(options),
+    }
+  );
+}

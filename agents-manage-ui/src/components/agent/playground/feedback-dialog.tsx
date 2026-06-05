@@ -1,10 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Form, FormControl } from '@/components/ui/form';
+import { Form } from '@/components/ui/form';
 import { createFeedbackAction } from '@/lib/actions/feedback';
 
 interface FeedbackDialogProps {
@@ -104,7 +102,7 @@ export const FeedbackDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl!">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Feedback</DialogTitle>
           <DialogDescription className="sr-only">
@@ -113,53 +111,19 @@ export const FeedbackDialog = ({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <FormFieldWrapper control={form.control} name="type" label="Sentiment">
-              {(field) => (
-                <FormControl>
-                  <div role="group" aria-label="Sentiment" className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant={field.value === 'positive' ? 'default' : 'outline'}
-                      size="sm"
-                      aria-pressed={field.value === 'positive'}
-                      onClick={() => field.onChange('positive')}
-                      className="gap-2"
-                    >
-                      <ThumbsUp className="size-4" />
-                      <span className="sr-only">Thumbs up</span>
-                      Like
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={field.value === 'negative' ? 'default' : 'outline'}
-                      size="sm"
-                      aria-pressed={field.value === 'negative'}
-                      onClick={() => field.onChange('negative')}
-                      className="gap-2"
-                    >
-                      <ThumbsDown className="size-4" />
-                      <span className="sr-only">Thumbs down</span>
-                      Dislike
-                    </Button>
-                  </div>
-                </FormControl>
-              )}
-            </FormFieldWrapper>
-
             <GenericTextarea
               control={form.control}
               name="feedback"
-              label=""
-              placeholder={type === 'positive' ? 'What went well?' : 'What could have been better?'}
+              label={
+                type === 'positive'
+                  ? 'What did you like about this response?'
+                  : 'How can we improve this response?'
+              }
+              placeholder={'Provide additional details'}
               className="min-h-[80px]"
             />
             <div className="flex justify-end gap-2">
               <Button type="submit" disabled={isSubmitting}>
-                {type === 'negative' ? (
-                  <ThumbsDown className="size-4" />
-                ) : (
-                  <ThumbsUp className="size-4" />
-                )}
                 Submit feedback
               </Button>
             </div>

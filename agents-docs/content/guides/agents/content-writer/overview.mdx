@@ -1,0 +1,52 @@
+---
+title: Automate your docs with the Content Writer
+sidebarTitle: Overview
+description: Turn resolved support tickets and product changes into drafted documentation — a developer-docs PR or a customer Help Center article — with a human approving every change.
+icon: LuPencilLine
+---
+
+## Overview
+
+The **Content Writer** is a background agent that turns the work your team already does — resolving support tickets, merging product changes, answering questions in Slack — into drafted documentation, routed to the right surface: a **developer-docs pull request** or a **draft Help Center article**.
+
+Your Content Writer comes with three sub-agents on its Visual Builder canvas — referenced by name throughout these guides:
+
+- **Router Agent** — decides whether each draft becomes a docs PR or a Help Center article
+- **KB Article Agent** — writes the Help Center articles (Zendesk)
+- **Page Drafter** — writes the Notion drafts
+
+## What you get
+
+- **Capture novel resolutions from support** — when a rep solves something that isn't in your docs yet, it becomes a drafted update instead of disappearing when the ticket closes.
+- **Keep docs in sync with the product** — code changes and releases become drafted doc updates, so docs stop trailing the product.
+- **Lift your AI-channel visibility** — more accurate, more complete content is what LLMs and AI search cite back to your users.
+
+## How it ships
+
+The Content Writer is part of **Inkeep Enterprise** — your agent is provisioned for you, already grounded in your knowledge base. [Schedule a demo](https://inkeep.com/schedule-demo) to get access.
+
+<Note>
+The Inkeep team provisions your agent and helps you complete the initial integration setup — GitHub Work App, Zendesk service account, and webhook triggers — in the [Content Writer enterprise setup guide](/deployment/inkeep-enterprise/content-writer). These guides cover how you customize and operate it from there.
+</Note>
+
+These guides cover what you configure on top of the delivered agent:
+
+<Cards>
+  <Card title="Publish to your Help Center" icon="LuBookOpen" href="/guides/agents/content-writer/publish-to-help-center">
+    Connect Zendesk so the agent files customer-facing draft articles.
+  </Card>
+  <Card title="Draft into Notion" icon="LuFileText" href="/guides/agents/content-writer/draft-into-notion">
+    Point it at a Notion database to draft into your internal wiki.
+  </Card>
+  <Card title="Route drafts" icon="LuSplit" href="/guides/agents/content-writer/route-drafts-to-the-right-surface">
+    Tag a ticket or set a rule — send each draft to a docs PR or a Help Center article.
+  </Card>
+  <Card title="Run it automatically" icon="LuPlay" href="/guides/agents/content-writer/run-it-automatically">
+    Wire it to solved tickets and merged PRs so every resolution becomes a draft.
+  </Card>
+  <Card title="Review & publish" icon="LuCheckCheck" href="/guides/agents/content-writer/review-and-publish">
+    The human gate — review, publish, and prove it's working.
+  </Card>
+</Cards>
+
+For cost and model tuning, see [Tuning agents](/guides/agent-engineering/tuning-agents).

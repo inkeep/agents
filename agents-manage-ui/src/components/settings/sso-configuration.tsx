@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { useAuthClient } from '@/contexts/auth-client';
@@ -125,6 +126,7 @@ export function RemoveSSODialog({
       const hasRemainingMethod =
         updated.some((m) => m.method === 'email-password') ||
         updated.some((m) => m.method === 'google') ||
+        updated.some((m) => m.method === 'microsoft') ||
         updated.some((m) => m.method === 'sso' && m.enabled);
 
       if (!hasRemainingMethod) {
@@ -346,9 +348,8 @@ export function RegisterSSOForm({
 
               <div className="grid gap-2">
                 <Label htmlFor="oidc-client-secret">Client Secret</Label>
-                <Input
+                <PasswordInput
                   id="oidc-client-secret"
-                  type="password"
                   placeholder="your-client-secret"
                   value={oidcForm.clientSecret}
                   onChange={(e) => setOidcForm({ ...oidcForm, clientSecret: e.target.value })}
@@ -593,9 +594,8 @@ export function EditSSOForm({
 
               <div className="grid gap-2">
                 <Label htmlFor="edit-oidc-client-secret">Client Secret</Label>
-                <Input
+                <PasswordInput
                   id="edit-oidc-client-secret"
-                  type="password"
                   placeholder="Leave empty to keep current"
                   value={oidcForm.clientSecret}
                   onChange={(e) => setOidcForm({ ...oidcForm, clientSecret: e.target.value })}

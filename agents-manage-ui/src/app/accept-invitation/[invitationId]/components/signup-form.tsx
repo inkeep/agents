@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PasswordInput } from '@/components/ui/password-input';
+import { MIN_PASSWORD_LENGTH, PasswordRequirements } from '@/components/ui/password-requirements';
 
 interface SignupFormProps {
   email: string;
@@ -42,17 +44,16 @@ export function SignupForm({ email, isSubmitting, onSubmit }: SignupFormProps) {
 
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>
-        <Input
+        <PasswordInput
           id="password"
-          type="password"
           placeholder="Create a password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           disabled={isSubmitting}
-          minLength={8}
+          minLength={MIN_PASSWORD_LENGTH}
         />
-        <p className="text-xs text-muted-foreground">Must be at least 8 characters</p>
+        <PasswordRequirements password={password} />
       </div>
 
       <Button type="submit" className="w-full" disabled={isSubmitting || !name || !password}>

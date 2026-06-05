@@ -91,13 +91,13 @@ export class EvaluationService {
         );
       } else {
         logger.warn(
-          { conversationId: conversation.id, agentId: conversation.agentId },
+          { conversationId: conversation.id },
           'AgentId not found, cannot get agent definition'
         );
       }
     } catch (error) {
       logger.warn(
-        { error, conversationId: conversation.id, agentId: conversation.agentId },
+        { error, conversationId: conversation.id },
         'Failed to fetch agent definition for evaluation'
       );
     }
@@ -171,6 +171,7 @@ export class EvaluationService {
       projectId,
       conversationId: conversation.id,
       agentId,
+      agentName: agentDefinition?.name ?? null,
     });
 
     return {
@@ -240,8 +241,10 @@ Return your evaluation as a JSON object matching the schema above.`;
     projectId: string;
     conversationId: string;
     agentId: string | null;
+    agentName: string | null;
   }): Promise<{ result: Record<string, unknown>; metadata: Record<string, unknown> }> {
-    const { prompt, modelConfig, schema, tenantId, projectId, conversationId, agentId } = params;
+    const { prompt, modelConfig, schema, tenantId, projectId, conversationId, agentId, agentName } =
+      params;
 
     const languageModel = ModelFactory.prepareGenerationConfig(modelConfig);
     const providerOptions = modelConfig?.providerOptions || {};
@@ -280,6 +283,7 @@ Return your evaluation as a JSON object matching the schema above.`;
           'project.id': projectId,
           'conversation.id': conversationId,
           ...(agentId ? { 'agent.id': agentId } : {}),
+          ...(agentName ? { 'agent.name': agentName } : {}),
         },
         () =>
           generateText({

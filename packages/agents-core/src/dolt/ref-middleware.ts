@@ -111,7 +111,7 @@ export const createRefMiddleware = (
           logger.debug({ ref }, 'Extracted targetBranch from merge route body as ref');
         }
       } catch {
-        logger.debug({}, 'Could not extract targetBranch from merge route body');
+        logger.debug('Could not extract targetBranch from merge route body');
       }
     }
 
@@ -127,7 +127,7 @@ export const createRefMiddleware = (
           logger.debug({ projectId }, 'Extracted projectId from request body');
         }
       } catch {
-        logger.debug({}, 'Could not extract projectId from body');
+        logger.debug('Could not extract projectId from body');
       }
     }
 

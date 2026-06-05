@@ -1,0 +1,113 @@
+---
+title: Logging events with the Events API
+sidebarTitle: Events API
+description: Log application-level events for the agents framework using the existing run-API auth.
+icon: LuActivity
+keywords: events, analytics, logging, run-api, lifecycle events
+---
+
+## Overview
+
+The Events API is a write-only ingest endpoint for application-level events emitted from any context that already authenticates against the run API: browser widgets, server-side agent code, or external SDK consumers. Events are persisted to the run-database, scoped per project, and serve as the source of truth for downstream analytics and outbound webhook delivery.
+
+## Endpoint
+
+- **Path:** `/run/v1/events`
+- **Method:** `POST`
+- **Auth:** Existing run-API strategies (API key or OAuth bearer token via the support_copilot app credential path).
+- **Content-Type:** `application/json`
+
+<Snippet file="auth/RunApiAuthModes.mdx" />
+
+## Request body
+
+```json
+{
+  "id": "optional-client-supplied-id",
+  "type": "user_message_submitted",
+  "agentId": "support-agent",
+  "conversationId": "conv-abc",
+  "messageId": "msg-xyz",
+  "properties": { "source": "chat-widget" },
+  "userProperties": { "userId": "u_123", "plan": "pro" },
+  "metadata": { "appVersion": "1.4.2" }
+}
+```
+
+| Field | Required | Notes |
+| --- | --- | --- |
+| `type` | yes | Free-form string. Use the well-known lifecycle event names (below) for widget-emitted events; consumers may use any other names. |
+| `id` | no | Client-supplied ID enables idempotency (see Idempotency below). Server generates one if omitted. |
+| `agentId` | no | Server fills from the authenticated execution context if absent. |
+| `conversationId`, `messageId` | no | Anchor the event to a specific conversation or message. Both are independently optional — events can be free-form (no anchor). |
+| `properties` | no | Free-form JSON object describing the event. |
+| `userProperties` | no | Free-form JSON object identifying the end-user. See [User attribution](#user-attribution) for recommended field conventions. |
+| `metadata` | no | Free-form JSON object — the **caller's namespace**. The server never reads or writes to this column. Any keys you put here (including a key called `authMethod`) are stored as-is. Server-controlled debug context lives in a separate `serverMetadata` column on responses (see below). |
+
+## Responses
+
+| Status | Meaning |
+| --- | --- |
+| `201 Created` | A new event row was inserted. |
+| `200 OK` | An event with the supplied `id` already existed for `(tenantId, projectId)`. The persisted row is returned unchanged (idempotent insert). |
+| `400 Bad Request` | The request body failed validation (most commonly: missing `type`). |
+| `401 Unauthorized` | Authentication failed. |
+
+Both `200` and `201` responses share the shape `{ "data": { /* persisted event */ } }`. The persisted row includes a server-controlled `serverMetadata` object alongside the caller-supplied `metadata`. `serverMetadata.authMethod` reflects the authentication strategy that produced the request; this field cannot be set or overridden by the caller (the request schema does not accept `serverMetadata`).
+
+## Idempotency
+
+Pass a stable `id` value on retries. If a row with that `(tenantId, projectId, id)` triple already exists, the server returns `200` with the original row — the original `createdAt` is preserved and the event is not modified. This makes browser-side fire-and-forget calls safe to retry.
+
+## User attribution
+
+`userProperties` is a free-form JSON object — the framework accepts arbitrary keys with arbitrary values and stores the object as-is. The fields below are **recommended conventions** for cross-product consistency, not server-validated shapes:
+
+| Field | Recommended type | Notes |
+| --- | --- | --- |
+| `id` | string \| number | Caller-supplied widget identifier. |
+| `userId` | string \| number | The end-user identifier. |
+| `supportAgentName` | string | If a support agent is acting on behalf of the user. |
+| `userType` | string | Caller-defined user type. |
+| (extras) | any | Any other keys are stored as-is. |
+
+The server does **not** validate field types within `userProperties` — `{ userId: 123 }` and `{ userId: "u_abc" }` are both accepted. Customers should pick a convention and stick to it within their own data.
+
+`userProperties` is **caller-trusted analytics attribution metadata**. Caller-supplied values always win on every authentication path — the server never overrides them. When `userProperties` is absent from the request body, the server resolves it from the message anchor (when `messageId` is supplied), then the conversation anchor (when `conversationId` is supplied or derivable from the message), and finally falls back to `null`. The server does not merge individual fields — `userProperties` is treated as an opaque object — and does not auto-fill from the authenticated execution context. For server-verified user identity, read `conversation.userId` (the cryptographically verified `sub` claim from JWT auth, populated on every chat turn).
+
+The chat-handler write path (the indirect source of conversation/message anchors) drops widget-synthesized auto-mint identities (`identificationType` of `'ANONYMOUS'` or `'COOKIED'`) and strips the `identificationType` marker from anything else. This keeps placeholder anonymous identities from polluting webhook payloads. Direct `POST /run/v1/events` callers receive the same defense — auto-mint shapes in the request body are filtered the same way before persistence.
+
+For server-authoritative auth audit (which authentication strategy was used), see `serverMetadata.authMethod` — that field is server-controlled and immutable to callers.
+
+PII content placed in `userProperties` is the caller's responsibility — the framework does not redact or allowlist field contents.
+
+## Free-form events
+
+The schema accepts events with no anchor (`conversationId`, `messageId`, and `agentId` are all independently optional). Receivers downstream of the events table define their own policy for non-anchored events.
+
+## Forward-anchored events
+
+`conversationId` and `messageId` are not foreign keys — events may reference an anchor ID for a row that does not yet exist in the `conversations` or `messages` table. This is the expected pattern for clients that mint a `conversationId` client-side and fire `user_message_submitted` before the chat handler creates the corresponding conversation row.
+
+Webhook consumers that fetch the conversation on receipt may briefly observe a 404. Treat the event payload as the source of truth and retry the conversation fetch if needed.
+
+Conversation deletion still removes any matching events — the framework cleans events up at the application layer when a conversation is deleted. Events anchored only by `messageId` (with `conversationId` left null) are reclaimed at project deletion rather than at conversation deletion. Events whose `conversationId` is never created (e.g. typos, never-completed flows) also persist until project deletion.
+
+<Note>
+  This API does not validate that `conversationId` or `messageId` reference existing rows. Events with unresolvable anchors are accepted with 201. To catch typos in anchor IDs, validate IDs client-side.
+</Note>
+
+## Event vocabulary
+
+The framework does not ship an event-name registry. The `type` field is a free-form string and consumers define their own vocabulary. Two precedents to follow if you're authoring a consumer:
+
+- **Inkeep widget chat events** are typed by `@inkeep/agents-ui`'s `InkeepEvent` discriminated union (chat, search, and widget event categories). When the widget self-instruments lifecycle events in a future release, those names are the canonical widget vocabulary.
+- **Consumer-specific event names** (action events, generation events, custom product events) live in the consumer's own package as a `const` + derived union pattern. They flow through the API as plain strings.
+
+Webhook destinations subscribe to event families (`conversation events`, `feedback events`, `event.created`), not to specific `type` values. Receivers filter on `type` after delivery — this keeps the framework decoupled from any particular event vocabulary.
+
+## Outbound webhook delivery
+
+After a successful insert, the route dispatches the persisted event to every webhook destination subscribed to the `event.created` family for the project (and matching the resolved agent scope). Delivery is fire-and-forget — the existing webhook delivery infrastructure handles retries, signing, and SSRF protection. Subscribe a destination by checking the **Event Created** option on the webhook destination form.
+
+Webhook dispatch requires both an **agent scope** (`agentId` either supplied in the request body or inferred from the API key's authenticated context) and a **resolved ref** on the request. Free-form events without an `agentId` — or events authenticated without a resolvable agent ref — are still **persisted** to the events table, but no webhook fires for them. Operators can confirm via the `'Skipping event.created webhook dispatch'` debug log on the run-events logger when this code path is taken.

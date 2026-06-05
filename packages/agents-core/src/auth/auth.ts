@@ -1,10 +1,15 @@
 import { dash } from '@better-auth/infra';
+import { oauthProvider } from '@better-auth/oauth-provider';
 import { type SSOOptions, sso } from '@better-auth/sso';
 import { betterAuth, type Session, type User } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { createAuthMiddleware } from 'better-auth/api';
 import {
   bearer,
+  captcha,
   deviceAuthorization,
+  haveIBeenPwned,
+  jwt,
   lastLoginMethod,
   oAuthProxy,
   organization,
@@ -23,8 +28,18 @@ import type { BetterAuthConfig } from './auth-types';
 import { type OrgRole, OrgRoles } from './authz/types';
 import { setEmailSendStatus } from './email-send-status-store';
 import { DEFAULT_MEMBERSHIP_LIMIT } from './entitlement-constants';
+import { checkPasswordPolicy } from './password-policy';
 import { setPasswordResetLink } from './password-reset-link-store';
 import { ac, adminRole, memberRole, ownerRole } from './permissions';
+import { logSessionDeletion } from './session-hooks';
+import { maybeRediscoverSsoIssuer } from './sso-issuer-discovery';
+
+// Must stay in sync with better-auth's captcha plugin defaultEndpoints
+// (better-auth/plugins/captcha/constants — not exported publicly). The captcha
+// plugin runs as onRequest middleware before hooks.before, so by the time this
+// list is consulted captcha verification has already passed; mismatches with
+// the plugin's list would silently mute pass-telemetry on newly-protected paths.
+const CAPTCHA_GUARDED_PATHS = ['/sign-up/email', '/sign-in/email', '/request-password-reset'];
 
 export { extractCookieDomain, hasCredentialAccount } from './auth-config-utils';
 export type {
@@ -56,6 +71,11 @@ function _inferAuthType() {
     plugins: [
       bearer(),
       oAuthProxy(),
+      jwt(),
+      oauthProvider({
+        loginPage: '/login',
+        consentPage: '/consent',
+      }),
       organization({
         schema: {
           invitation: {
@@ -86,13 +106,32 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
     appName: 'Inkeep Agents',
     baseURL: config.baseURL,
     secret: config.secret,
-    database: drizzleAdapter(config.dbClient, {
-      provider: 'pg',
-    }),
+    disabledPaths: ['/token'],
+    // Wrap the drizzle adapter so explicit `id` values on organization creates
+    // are honored. The dash plugin's /dash/organization/create endpoint does
+    // not pass `forceAllowId: true` to adapter.create (vanilla /organization/create
+    // does), so without this wrapper an `id` set in beforeCreateOrganization
+    // gets stripped. Track upstream resolution in @better-auth/infra.
+    database: ((options) => {
+      const adapter = drizzleAdapter(config.dbClient, { provider: 'pg' })(options);
+      return {
+        ...adapter,
+        create: (params: Parameters<typeof adapter.create>[0]) => {
+          if (
+            params.model === 'organization' &&
+            (params.data as { id?: string }).id &&
+            !params.forceAllowId
+          ) {
+            return adapter.create({ ...params, forceAllowId: true });
+          }
+          return adapter.create(params);
+        },
+      };
+    }) as ReturnType<typeof drizzleAdapter>,
     emailAndPassword: {
       enabled: true,
-      minPasswordLength: 8,
-      maxPasswordLength: 128,
+      minPasswordLength: 15,
+      maxPasswordLength: 256,
       requireEmailVerification: false,
       autoSignIn: true,
       resetPasswordTokenExpiresIn: 60 * 30,
@@ -127,7 +166,7 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
       accountLinking: {
         enabled: true,
         trustedProviders: async () => {
-          const base = ['google', 'email-password'];
+          const base = ['google', 'microsoft', 'email-password'];
           try {
             const providerIds = await querySsoProviderIds(config.dbClient)();
             return [...base, ...providerIds];
@@ -152,18 +191,35 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
             };
           },
         },
+        delete: {
+          after: async (session, context) => {
+            await logSessionDeletion(session, context);
+          },
+        },
       },
     },
-    socialProviders: config.socialProviders?.google && {
-      google: {
-        ...config.socialProviders.google,
-        // For local/preview env, redirect to production URL registered in Google Console
-        ...(env.OAUTH_PROXY_PRODUCTION_URL && {
-          redirectURI: `${env.OAUTH_PROXY_PRODUCTION_URL}/api/auth/callback/google`,
-        }),
-      },
+    socialProviders: (config.socialProviders?.google || config.socialProviders?.microsoft) && {
+      ...(config.socialProviders?.google && {
+        google: {
+          ...config.socialProviders.google,
+          // For local/preview env, redirect to production URL registered in Google Console
+          ...(env.OAUTH_PROXY_PRODUCTION_URL && {
+            redirectURI: `${env.OAUTH_PROXY_PRODUCTION_URL}/api/auth/callback/google`,
+          }),
+        },
+      }),
+      ...(config.socialProviders?.microsoft && {
+        microsoft: {
+          ...config.socialProviders.microsoft,
+          // For local/preview env, redirect to production URL registered in Entra app
+          ...(env.OAUTH_PROXY_PRODUCTION_URL && {
+            redirectURI: `${env.OAUTH_PROXY_PRODUCTION_URL}/api/auth/callback/microsoft`,
+          }),
+        },
+      }),
     },
     session: {
+      storeSessionInDatabase: true,
       expiresIn: 60 * 60 * 24 * 7,
       updateAge: 60 * 60 * 24,
       cookieCache: {
@@ -189,10 +245,40 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
       },
       ...config.advanced,
     },
-    trustedOrigins: (request) => getTrustedOrigins(config.dbClient, request),
+    trustedOrigins: (request?: Request) => getTrustedOrigins(config.dbClient, request),
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        await checkPasswordPolicy(ctx);
+        const ssoRediscovery = await maybeRediscoverSsoIssuer(ctx, config.dbClient);
+        if (ssoRediscovery) {
+          return ssoRediscovery;
+        }
+        if (
+          config.recaptcha &&
+          CAPTCHA_GUARDED_PATHS.includes(ctx.path) &&
+          ctx.headers?.get('x-captcha-response')
+        ) {
+          console.log('[captcha] pass', { path: ctx.path });
+        }
+      }),
+    },
     plugins: [
       bearer(),
       dash(),
+      jwt(),
+      oauthProvider({
+        loginPage: `${env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000'}/login`,
+        consentPage: `${env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000'}/consent`,
+        scopes: ['openid', 'profile', 'email', 'offline_access'],
+        customAccessTokenClaims: async ({ user }) => {
+          if (!user) return {};
+          const org = await getInitialOrganization(config.dbClient, user.id);
+          return {
+            'https://inkeep.com/tenantId': org?.id ?? undefined,
+            'https://inkeep.com/email': user.email,
+          };
+        },
+      }),
       lastLoginMethod({
         customResolveMethod(ctx) {
           const path = ctx.path;
@@ -318,6 +404,14 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
           },
         },
         organizationHooks: {
+          beforeCreateOrganization: async ({ organization: org }) => {
+            return {
+              data: {
+                ...org,
+                id: org.slug,
+              },
+            };
+          },
           beforeCreateInvitation: async ({ invitation, organization: org }) => {
             const { enforcePerRoleSeatLimit } = await import('./entitlements');
             await enforcePerRoleSeatLimit(config.dbClient, org.id, invitation.role);
@@ -370,6 +464,39 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
               await createUserProfileIfNotExists(config.dbClient)(user.id);
             } catch (error) {
               console.error('[auth] Failed to create user profile for user', user.id, error);
+            }
+
+            if (invitation.role !== OrgRoles.ADMIN && invitation.role !== OrgRoles.OWNER) {
+              const { getProjectAssignmentsForInvitation, deleteInvitationProjectAssignments } =
+                await import('../data-access/runtime/invitationProjectAssignments');
+              const { grantProjectAccess } = await import('./authz/sync');
+
+              const assignments = await getProjectAssignmentsForInvitation(config.dbClient)(
+                invitation.id
+              );
+
+              if (assignments.length > 0) {
+                const results = await Promise.allSettled(
+                  assignments.map((a) =>
+                    grantProjectAccess({
+                      tenantId: org.id,
+                      projectId: a.projectId,
+                      userId: user.id,
+                      role: a.projectRole,
+                    })
+                  )
+                );
+                results.forEach((result, i) => {
+                  if (result.status === 'rejected') {
+                    console.warn(
+                      `[auth] Failed to grant project access for project ${assignments[i]?.projectId}:`,
+                      result.reason
+                    );
+                  }
+                });
+              }
+
+              await deleteInvitationProjectAssignments(config.dbClient)(invitation.id);
             }
           },
           beforeUpdateMemberRole: async ({ member, organization: org, newRole }) => {
@@ -454,6 +581,18 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
         interval: '5s', // 5 second polling interval
         userCodeLength: 8, // e.g., "ABCD-EFGH"
       }),
+      haveIBeenPwned({
+        customPasswordCompromisedMessage: 'Please choose a more secure password.',
+      }),
+      ...(config.recaptcha
+        ? [
+            captcha({
+              provider: 'google-recaptcha',
+              secretKey: config.recaptcha.secretKey,
+              minScore: config.recaptcha.minScore ?? 0.5,
+            }),
+          ]
+        : []),
     ],
   }) as unknown as AuthInstance;
 

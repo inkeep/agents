@@ -9,7 +9,7 @@ import { z } from 'zod';
 
 const SkillMetadataSchema = SkillInsertSchema.shape.metadata;
 
-export const BaseSkillSchema = z.strictObject({
+export const BaseSkillSchema = z.object({
   ...SkillInsertSchema.shape,
   metadata: z
     .string()

@@ -1,11 +1,12 @@
 'use client';
 
-import { ChevronDown, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Download, ExternalLink, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
+import { ReadOnlyJsonView } from '@/components/editors/read-only-json-view';
 import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
 import { EvaluatorViewDialog } from '@/components/evaluators/evaluator-view-dialog';
+import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -20,8 +21,9 @@ import type { EvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import type { EvaluationResult } from '@/lib/api/evaluation-results';
 import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
 import type { Evaluator } from '@/lib/api/evaluators';
+import { exportEvaluationResultsCsv } from '@/lib/csv/export-csv';
 import { filterEvaluationResults } from '@/lib/evaluation/filter-evaluation-results';
-import { evaluatePassCriteria } from '@/lib/evaluation/pass-criteria-evaluator';
+import { getEvaluationStatus } from '@/lib/evaluation/pass-criteria-evaluator';
 import { formatDateTimeTable } from '@/lib/utils/format-date';
 
 type AnyRecord = Record<string, unknown>;
@@ -147,6 +149,15 @@ export function EvaluationJobResults({
   const keys = results.flatMap((r) => collect(r.output));
   const availableOutputKeys = [...new Set(keys)].filter((key) => key.startsWith('output.')).sort();
 
+  function handleExportCsv() {
+    exportEvaluationResultsCsv({
+      results: filteredResults,
+      getEvaluatorName,
+      getEvaluatorById,
+      filename: `evaluation-job-results-${jobConfig.id.slice(0, 8)}.csv`,
+    });
+  }
+
   return (
     <div className="space-y-6">
       <EvaluationResultsFilters
@@ -180,10 +191,16 @@ export function EvaluationJobResults({
       )}
 
       <div className="rounded-lg border">
-        <div className="p-4 border-b">
+        <div className="p-4 border-b flex items-center justify-between">
           <h3 className="text-sm font-semibold">
             Evaluation Results ({filteredResults.length} of {results.length})
           </h3>
+          {filteredResults.length > 0 && (
+            <Button variant="outline" size="sm" onClick={handleExportCsv}>
+              <Download className="mr-2 h-4 w-4" />
+              Export CSV
+            </Button>
+          )}
         </div>
         {results.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
@@ -252,22 +269,9 @@ export function EvaluationJobResults({
                       </button>
                     </TableCell>
                     <TableCell>
-                      {(() => {
-                        const evaluator = getEvaluatorById(result.evaluatorId);
-                        const resultData =
-                          result.output && typeof result.output === 'object'
-                            ? (result.output as Record<string, unknown>)
-                            : {};
-                        const outputData =
-                          resultData.output && typeof resultData.output === 'object'
-                            ? (resultData.output as Record<string, unknown>)
-                            : resultData;
-                        const evaluation = evaluatePassCriteria(
-                          evaluator?.passCriteria,
-                          outputData
-                        );
-                        return <EvaluationStatusBadge status={evaluation.status} />;
-                      })()}
+                      <EvaluationStatusBadge
+                        status={getEvaluationStatus(result, getEvaluatorById(result.evaluatorId))}
+                      />
                     </TableCell>
                     <TableCell>
                       {result.output ? (
@@ -281,13 +285,8 @@ export function EvaluationJobResults({
 
                             return (
                               <>
-                                <OutputCollapsible
-                                  resultId={result.id}
-                                  output={outputWithoutMetadata}
-                                />
-                                {metadata && (
-                                  <MetadataCollapsible resultId={result.id} metadata={metadata} />
-                                )}
+                                <OutputCollapsible output={outputWithoutMetadata} />
+                                {metadata && <MetadataCollapsible metadata={metadata} />}
                               </>
                             );
                           })()}
@@ -316,7 +315,7 @@ export function EvaluationJobResults({
   );
 }
 
-function OutputCollapsible({ resultId, output }: { resultId: string; output: unknown }) {
+function OutputCollapsible({ output }: { output: unknown }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -326,19 +325,13 @@ function OutputCollapsible({ resultId, output }: { resultId: string; output: unk
         <span>Output</span>
       </CollapsibleTrigger>
       <CollapsibleContent className="pt-2">
-        <ExpandableJsonEditor
-          name={`output-${resultId}`}
-          value={JSON.stringify(output, null, 2)}
-          label=""
-          readOnly
-          defaultOpen
-        />
+        <ReadOnlyJsonView value={JSON.stringify(output, null, 2)} maxHeight="300px" />
       </CollapsibleContent>
     </Collapsible>
   );
 }
 
-function MetadataCollapsible({ resultId, metadata }: { resultId: string; metadata: unknown }) {
+function MetadataCollapsible({ metadata }: { metadata: unknown }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -348,13 +341,7 @@ function MetadataCollapsible({ resultId, metadata }: { resultId: string; metadat
         <span>Metadata</span>
       </CollapsibleTrigger>
       <CollapsibleContent className="pt-2">
-        <ExpandableJsonEditor
-          name={`metadata-${resultId}`}
-          value={JSON.stringify(metadata, null, 2)}
-          label=""
-          readOnly
-          defaultOpen
-        />
+        <ReadOnlyJsonView value={JSON.stringify(metadata, null, 2)} maxHeight="300px" />
       </CollapsibleContent>
     </Collapsible>
   );

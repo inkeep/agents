@@ -226,6 +226,25 @@ railway_environment_delete_by_id() {
   printf '%s' "${response}"
 }
 
+railway_environment_rename_by_id() {
+  local environment_id="$1"
+  local environment_name="$2"
+  local variables_json=""
+  local response=""
+
+  variables_json="$(jq -nc \
+    --arg environment_id "${environment_id}" \
+    --arg environment_name "${environment_name}" \
+    '{id: $environment_id, input: {name: $environment_name}}')"
+
+  response="$(
+    railway_graphql 'mutation($id: String!, $input: EnvironmentRenameInput!) { environmentRename(id: $id, input: $input) { id name } }' "${variables_json}"
+  )"
+  railway_require_graphql_success "${response}" "GraphQL error renaming Railway environment" || return 1
+
+  printf '%s' "${response}"
+}
+
 railway_project_service_id() {
   local project_id="$1"
   local service_ref="$2"
@@ -438,19 +457,42 @@ railway_service_instance_json_by_id() {
   jq -c '.data.serviceInstance // {}' <<< "${response}"
 }
 
+railway_service_instance_redeploy() {
+  local environment_id="$1"
+  local service_id="$2"
+  local variables_json=""
+  local response=""
+
+  variables_json="$(jq -nc \
+    --arg environment_id "${environment_id}" \
+    --arg service_id "${service_id}" \
+    '{environmentId: $environment_id, serviceId: $service_id}')"
+
+  response="$(
+    railway_graphql 'mutation($environmentId: String!, $serviceId: String!) { serviceInstanceRedeploy(environmentId: $environmentId, serviceId: $serviceId) }' "${variables_json}"
+  )"
+  railway_require_graphql_success "${response}" "GraphQL error redeploying Railway service instance" || return 1
+
+  printf '%s' "${response}"
+}
+
 railway_wait_for_service_deployment_ready() {
   local project_id="$1"
   local env_name="$2"
   local service_name="$3"
   local max_attempts="${4:-15}"
   local sleep_seconds="${5:-4}"
-  local attempt=""
+  local max_redeploys="${6:-0}"
+  local redeploy_count="0"
+  local attempt="1"
   local env_id=""
   local service_id=""
   local service_instance_json=""
   local deployment_json=""
   local deployment_id=""
   local deployment_status=""
+  local redeploy_error_file=""
+  local redeploy_error=""
 
   env_id="$(railway_wait_for_environment_id "${project_id}" "${env_name}" 10 2)" || return 1
   service_id="$(railway_project_service_id "${project_id}" "${service_name}")"
@@ -459,7 +501,7 @@ railway_wait_for_service_deployment_ready() {
     return 1
   fi
 
-  for attempt in $(seq 1 "${max_attempts}"); do
+  while [ "${attempt}" -le "${max_attempts}" ]; do
     service_instance_json="$(railway_service_instance_json_by_id "${env_id}" "${service_id}")" || return 1
     deployment_json="$(
       jq -c '
@@ -481,6 +523,22 @@ railway_wait_for_service_deployment_ready() {
         return 0
         ;;
       FAILED|CRASHED|REMOVED)
+        if [ "${max_redeploys}" -gt 0 ] && [ "${redeploy_count}" -lt "${max_redeploys}" ]; then
+          preview_log "Railway deployment for ${service_name} in ${env_name} is ${deployment_status}${deployment_id:+ (${deployment_id})}; attempting auto-redeploy $((redeploy_count + 1))/${max_redeploys}."
+          redeploy_error_file="$(mktemp)"
+          if railway_service_instance_redeploy "${env_id}" "${service_id}" >/dev/null 2>"${redeploy_error_file}"; then
+            redeploy_count=$((redeploy_count + 1))
+            rm -f "${redeploy_error_file}"
+            # A redeploy starts a fresh deployment cycle, so restart the wait budget from attempt 1.
+            preview_log "Redeploy triggered for ${service_name} in ${env_name}; restarting deployment wait loop."
+            attempt="1"
+            sleep_with_jitter "${sleep_seconds}"
+            continue
+          fi
+          redeploy_error="$(cat "${redeploy_error_file}")"
+          rm -f "${redeploy_error_file}"
+          preview_log "Auto-redeploy API call failed for ${service_name} in ${env_name}: ${redeploy_error:-unknown error}"
+        fi
         echo "Railway deployment for ${service_name} in ${env_name} entered terminal status ${deployment_status}${deployment_id:+ (${deployment_id})}." >&2
         return 1
         ;;
@@ -496,6 +554,7 @@ railway_wait_for_service_deployment_ready() {
       fi
       sleep_with_jitter "${sleep_seconds}"
     fi
+    attempt=$((attempt + 1))
   done
 
   echo "Railway deployment for ${service_name} in ${env_name} was not ready after ${max_attempts} attempts. Last observed status: ${deployment_status:-none}${deployment_id:+ (${deployment_id})}." >&2

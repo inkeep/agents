@@ -146,10 +146,29 @@ export const FullAgentTeamAgentSchema = z.object({
 });
 const SubAgentStopWhenSchema = SubAgentSchema.shape.stopWhen.unwrap();
 
+const optionalContractStringArray = z.preprocess(
+  (v) => (v == null ? undefined : v),
+  z.array(z.string()).optional()
+);
+const optionalContractBoolean = z.preprocess((v) => v ?? undefined, z.boolean().optional());
+
+export const OutputContractFormSchema = z.looseObject({
+  allowText: optionalContractBoolean,
+  requireComponent: optionalContractStringArray,
+  requireArtifact: optionalContractStringArray,
+  requireTransfer: optionalContractBoolean,
+  onViolation: z.preprocess(
+    (v) => (v == null || v === '' ? undefined : v),
+    z.enum(['retry', 'reject', 'warn']).optional()
+  ),
+  retryBudget: z.preprocess((v) => v ?? undefined, z.number().int().nonnegative().optional()),
+});
+
 export const FullAgentSubAgentSchema = z.strictObject({
   ...SubAgentSchema.shape,
   type: SubAgentSchema.shape.type.default('internal'),
   models: MyModelsSchema,
+  outputContract: OutputContractFormSchema.nullish(),
   stopWhen: z.strictObject({
     ...SubAgentStopWhenSchema.shape,
     stepCountIs: z
@@ -369,6 +388,14 @@ export function apiToFormValues(data: FullAgentResponse) {
             index: skill.index,
             alwaysLoaded: skill.alwaysLoaded,
           })),
+          outputContract: {
+            allowText: value.outputContract?.allowText ?? null,
+            requireComponent: value.outputContract?.requireComponent ?? null,
+            requireArtifact: value.outputContract?.requireArtifact ?? null,
+            requireTransfer: value.outputContract?.requireTransfer ?? null,
+            onViolation: value.outputContract?.onViolation ?? null,
+            retryBudget: value.outputContract?.retryBudget ?? null,
+          },
         },
       ])
     ),

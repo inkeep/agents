@@ -136,6 +136,32 @@ describe('runSetup', () => {
     expect(dockerCalls).toHaveLength(0);
   });
 
+  it('should skip Docker when skipDocker is true', async () => {
+    const { runSetup } = await import('../setup.js');
+
+    await runSetup(baseConfig({ isCloud: false, skipDocker: true }));
+
+    const dockerCalls = mockExecImpl.mock.calls.filter((c: unknown[]) =>
+      (c[0] as string).includes('docker-compose')
+    );
+    expect(dockerCalls).toHaveLength(0);
+    expect(mockExecImpl).toHaveBeenCalledWith('pnpm db:manage:migrate');
+    expect(mockExecImpl).toHaveBeenCalledWith('pnpm db:run:migrate');
+  });
+
+  it('should prioritize isCloud over skipDocker when both are true', async () => {
+    const { runSetup } = await import('../setup.js');
+
+    await runSetup(baseConfig({ isCloud: true, skipDocker: true }));
+
+    const dockerCalls = mockExecImpl.mock.calls.filter((c: unknown[]) =>
+      (c[0] as string).includes('docker-compose')
+    );
+    expect(dockerCalls).toHaveLength(0);
+    expect(mockExecImpl).toHaveBeenCalledWith('pnpm db:manage:migrate');
+    expect(mockExecImpl).toHaveBeenCalledWith('pnpm db:run:migrate');
+  });
+
   it('should skip project push when pushProject is not configured', async () => {
     const { runSetup } = await import('../setup.js');
 

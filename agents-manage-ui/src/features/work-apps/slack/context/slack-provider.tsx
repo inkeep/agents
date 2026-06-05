@@ -28,7 +28,7 @@ interface SlackContextValue {
 
   actions: {
     handleInstallClick: () => void;
-    uninstallWorkspace: (connectionId: string) => Promise<void>;
+    uninstallWorkspace: (teamId: string) => Promise<void>;
   };
 }
 
@@ -49,9 +49,9 @@ export function SlackProvider({ children, tenantId }: SlackProviderProps) {
     window.location.href = slackApi.getInstallUrl(tenantId);
   }
 
-  async function uninstallWorkspace(connectionId: string) {
+  async function uninstallWorkspace(teamId: string) {
     try {
-      await uninstallMutation.mutateAsync(connectionId);
+      await uninstallMutation.mutateAsync(teamId);
       toast.success('Workspace uninstalled successfully');
     } catch (error) {
       console.error('Failed to uninstall workspace:', error);

@@ -30,7 +30,8 @@ export const doltDiffSummary =
     tableName?: string;
   }): Promise<
     {
-      table_name: string;
+      from_table_name: string | null;
+      to_table_name: string | null;
       diff_type: string;
       data_change: boolean;
       schema_change: boolean;

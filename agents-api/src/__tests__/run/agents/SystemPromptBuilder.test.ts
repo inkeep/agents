@@ -469,10 +469,13 @@ describe('SystemPromptBuilder', () => {
 
       const result = builder.buildSystemPrompt(config);
 
-      expect(result.prompt).toContain('<name>Test Documentation</name>');
-      expect(result.prompt).toContain('<description>Test artifact for documentation</description>');
-      expect(result.prompt).toContain('<name>API Reference</name>');
-      expect(result.prompt).toContain('<description>API documentation</description>');
+      expect(result.prompt).not.toContain('<name>Test Documentation</name>');
+      expect(result.artifactsMessage).toContain('<name>Test Documentation</name>');
+      expect(result.artifactsMessage).toContain(
+        '<description>Test artifact for documentation</description>'
+      );
+      expect(result.artifactsMessage).toContain('<name>API Reference</name>');
+      expect(result.artifactsMessage).toContain('<description>API documentation</description>');
     });
 
     test('should handle empty artifacts array', () => {
@@ -558,8 +561,11 @@ describe('SystemPromptBuilder', () => {
 
       const result = builder.buildSystemPrompt(config);
 
-      expect(result.prompt).toContain('<name>Incomplete Artifact</name>');
-      expect(result.prompt).toContain('<description>Artifact without metadata</description>');
+      expect(result.prompt).not.toContain('<name>Incomplete Artifact</name>');
+      expect(result.artifactsMessage).toContain('<name>Incomplete Artifact</name>');
+      expect(result.artifactsMessage).toContain(
+        '<description>Artifact without metadata</description>'
+      );
     });
   });
 });

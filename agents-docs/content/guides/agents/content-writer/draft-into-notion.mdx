@@ -1,0 +1,62 @@
+---
+title: Draft into a Notion database
+sidebarTitle: Notion
+description: Point the Content Writer at a Notion database so drafts land as rows in your internal wiki — ready to review without leaving Notion.
+icon: LuFileText
+---
+
+## Overview
+
+If your team lives in Notion, the Content Writer can draft there. Each draft becomes a **new row in a Notion database** — title, summary, source, and a link back to the ticket — so your writers triage and edit without leaving the tool they already use.
+
+## Prerequisites
+
+- Access to Inkeep Enterprise with your **Content Writer** agent provisioned — [schedule a demo](https://inkeep.com/schedule-demo) if you don't have it yet
+- A Notion workspace where you can create a database
+
+## Connect Notion
+
+The Notion MCP signs in with a single click — no custom OAuth app to register.
+
+<Steps>
+  <Step>
+    Register the **Notion MCP server** in your project (server URL `https://mcp.notion.com/mcp`).
+  </Step>
+  <Step>
+    Open the server's page and click **Login**. Authorize Inkeep in the Notion popup and choose the workspace to share.
+  </Step>
+  <Step>
+    Back on the server page, confirm **Active Tools** is greater than zero — the Notion tools are now available.
+  </Step>
+  <Step>
+    On the canvas, connect the Notion MCP to the **Page Drafter** — the sub agent that writes Notion drafts.
+  </Step>
+</Steps>
+
+## Create the Drafts database
+
+The agent files each draft as a row, so give it a database with the columns it fills in.
+
+<Steps>
+  <Step>
+    In Notion, create a database (e.g. **Content Writer Drafts**) and share it with your Inkeep connection: open the database → **•••** → **Connections** → add the Inkeep connector.
+  </Step>
+  <Step>
+    Add these properties:
+
+    | Property | Type | What it holds |
+    | --- | --- | --- |
+    | **Name** | Title | The draft's title |
+    | **Type** | Select | `New`, `Update`, or `Revision` |
+    | **Status** | Select | `Draft` — your team moves it from here |
+    | **Source** | Select | `Zendesk` or `Slack` — where the signal came from |
+    | **Summary** | Text | One-line description of what the draft proposes |
+    | **Original URL** | URL | The existing page being updated (blank for new) |
+    | **Ticket Link** | URL | The source ticket (blank if from Slack) |
+  </Step>
+  <Step>
+    Copy the database's link — in Notion, open the database and click **•••** → **Copy link** — and send it to your Inkeep account team. They point the **Page Drafter** at that database, so new drafts file into it.
+  </Step>
+</Steps>
+
+Now every draft lands as a row — full content in the page body, metadata in the columns — ready to [review and publish](/guides/agents/content-writer/review-and-publish).

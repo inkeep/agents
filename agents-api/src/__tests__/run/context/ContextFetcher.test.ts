@@ -227,6 +227,34 @@ describe('ContextFetcher', () => {
         expect.any(Object)
       );
     });
+
+    it('does NOT resolve {{$conversation.id}} (D6 scope invariant — variable is prompt-only)', async () => {
+      const definition: ContextFetchDefinition = {
+        id: 'test-fetch',
+        trigger: 'initialization',
+        fetchConfig: {
+          url: 'https://api.example.com/conv/{{$conversation.id}}/events',
+          method: 'GET',
+        },
+      };
+
+      const context = {
+        $conversation: { id: 'conv_should_not_be_used' },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Map([['content-type', 'application/json']]),
+        json: async () => ({ data: [] }),
+      });
+
+      await fetcher.fetch(definition, context);
+
+      const [calledUrl] = mockFetch.mock.calls[0];
+      expect(calledUrl).toBe('https://api.example.com/conv//events');
+      expect(calledUrl).not.toContain('conv_should_not_be_used');
+    });
   });
 
   describe('HTTP request handling', () => {

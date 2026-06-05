@@ -1,3 +1,4 @@
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@inkeep/agents-core', async () => {
@@ -16,14 +17,7 @@ vi.mock('../../../../data/db/runDbClient', () => ({
   default: 'mock-run-client',
 }));
 
-vi.mock('../../../../logger', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn(),
-    debug: vi.fn(),
-  }),
-}));
+vi.mock('../../../../logger', () => createMockLoggerModule().module);
 
 vi.mock('../../workflow/functions/schedulerWorkflow', () => ({
   schedulerWorkflow: 'mock-scheduler-workflow',

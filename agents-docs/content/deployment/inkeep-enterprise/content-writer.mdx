@@ -1,0 +1,349 @@
+---
+title: Inkeep Content Writer
+sidebarTitle: Content Writer
+description: Configure the Inkeep Content Writer agent and trigger it from GitHub and Zendesk.
+icon: LuPenLine
+---
+
+## Overview
+
+The Inkeep Content Writer ensures that your documentation is comprehensive and up-to-date with the latest production changes.
+
+Given a GitHub pull request or a solved Zendesk support ticket, the Content Writer will analyze your documentation for gaps and generate updates for you to review and publish.
+
+You can also request documentation changes directly from [Slack](/talk-to-your-agents/slack/overview) by mentioning `@inkeep`.
+
+## Customizing the Content Writer
+
+The Inkeep team will deploy and set up the Content Writer in your Inkeep Enterprise tenant. Once set up, you can fully customize the agent to fit your needs.
+
+Customization options include:
+
+- [Skills](/visual-builder/skills): Reusable instructions like style guides and best practices that you can attach to sub-agents.
+- Prompts: Tailored prompts that sub-agents use to coordinate documentation updates.
+- [Tools](/visual-builder/tools/mcp-servers): Tools give the Content Writer access to external systems and services that it can use to research and ground its output.
+- Output CMS: The CMS where the documentation updates will be published, such as GitHub, Zendesk, or Notion.
+- [Triggers](/visual-builder/triggers/webhooks): The events that trigger the Content Writer.
+
+## GitHub integration
+
+Use the GitHub integration to trigger the Content Writer on merged pull requests or when you mention `@inkeep` in a pull request comment or review.
+
+### Required permissions and app installation
+
+To use Content Writer with GitHub, install the GitHub Work App and grant it access to the necessary repositories. You must be a GitHub admin to install the GitHub Work App.
+
+The GitHub App requests the following permissions:
+
+| Permission | Access | Reason |
+| --- | --- | --- |
+| Contents | Read and write | Read repository files and propose documentation changes |
+| Pull requests | Read and write | Read PR context and create new documentation PRs |
+| Metadata | Read | Identify repositories and basic GitHub resources |
+| Members | Read | Resolve organization and repository membership context |
+| Issues | Read | Use issue context when Content Writer is triggered from issue-linked PRs |
+| Discussions | Read | Use discussion context when relevant to a writing request |
+| Checks | Read and write | Report Content Writer status back to GitHub |
+
+Follow the steps below to install and configure the GitHub Work App.
+
+<Steps>
+  <Step>
+    ### Install the Inkeep GitHub app
+
+    From `app.inkeep.com/<your-tenant-id>/work-apps/github`, click **Connect GitHub Organization**.
+
+    <Image
+      src="/images/github-connection-screen.png"
+      alt="GitHub Work App page with connected organizations and Connect GitHub Organization button"
+    />
+  </Step>
+  <Step>
+    ### Add the Content Writer workflow
+
+    Add the following workflow to each repository where you want comment-based or merge-based triggers.
+
+```yaml title=".github/workflows/inkeep-content-writer.yml"
+name: Inkeep Content Writer
+
+on:
+  pull_request:
+    types: [closed]
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+jobs:
+  trigger-agent:
+    if: |
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.user.login != 'inkeep[bot]') ||
+      (
+        (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '@inkeep') &&
+         (github.event.comment.author_association == 'OWNER' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'COLLABORATOR')) ||
+        (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@inkeep') &&
+         (github.event.comment.author_association == 'OWNER' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'COLLABORATOR')) ||
+        (github.event_name == 'pull_request_review' && contains(github.event.review.body || '', '@inkeep') &&
+         (github.event.review.author_association == 'OWNER' || github.event.review.author_association == 'MEMBER' || github.event.review.author_association == 'COLLABORATOR'))
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Inkeep Agent
+        uses: inkeep/inkeep-agents-action@fbbc92842bd025f044cb7e4d827882fd85914f26
+        with:
+          trigger-url: ${{ secrets.INKEEP_CONTENT_WRITER_TRIGGER_URL }}
+          # Filters out PRs that don't match the given regex. Update regex as desired or remove entirely
+          pr-title-regex: '^(feat|fix|docs|chore)(\(.+\))?:'
+```
+  </Step>
+  <Step>
+    ### Store the trigger URL
+
+    Add the Content Writer trigger URL to your repository secrets as `INKEEP_CONTENT_WRITER_TRIGGER_URL`.
+    The trigger URL can be found at `https://app.inkeep.com/<your-tenant-id>/projects/content-writer/triggers?tab=webhooks`.
+  </Step>
+</Steps>
+
+### Triggering the Content Writer from GitHub
+
+The workflow triggers the Content Writer in the following cases:
+
+- **Mention `@inkeep` in a pull request comment, review comment, or review body** to provide feedback to the Content Writer.
+- **Merge a pull request** to trigger post-merge content follow-up.
+
+The Inkeep team can help you customize the GitHub workflow to fit your needs.
+
+## Zendesk integration
+
+Use the Zendesk integration to trigger the Content Writer from support tickets.
+
+### Create a Zendesk role
+
+Create a custom Zendesk role for the service account that the Content Writer will use.
+
+<Steps>
+  <Step>
+    ### Open Roles
+
+    In Zendesk Admin Center, go to **People** → **Roles**.
+  </Step>
+  <Step>
+    ### Create the role
+
+    Click **Create role**.
+  </Step>
+  <Step>
+    ### Select permissions
+
+    Select these Support permissions for the Content Writer service account role:
+
+    | Permission | Setting |
+    | --- | --- |
+    | **Tickets they can access** | Within their groups |
+    | **Groups they can assign tickets to** | Assign tickets to any group |
+    | **Brands they can assign tickets to** | Only assign tickets to brands they belong to |
+    | **Manage suspended tickets** | Not allowed |
+    | **Edit ticket properties** | Disabled |
+    | **Commenting permissions** | Private comments only |
+  </Step>
+</Steps>
+
+### Create a Zendesk service account
+
+Create a Zendesk team member that Content Writer will use to access ticket data.
+
+<Steps>
+  <Step>
+    ### Open Team members
+
+    In Zendesk Admin Center, go to **People** → **Team members**.
+  </Step>
+  <Step>
+    ### Add a team member
+
+    Click **Add team member**.
+  </Step>
+  <Step>
+    ### Create the service account user
+
+    Create a new user with a shared email address, such as `support-bot@yourcompany.com`.
+  </Step>
+  <Step>
+    ### Assign the custom role
+
+    Set the Support role to the custom service account role you created.
+  </Step>
+</Steps>
+
+### Add the service account to groups
+
+Add the Zendesk service account to the groups that contain the tickets Content Writer should be able to read.
+
+<Steps>
+  <Step>
+    ### Open Groups
+
+    In Zendesk Admin Center, go to **People** → **Groups**.
+  </Step>
+  <Step>
+    ### Add the service account
+
+    Add the service account to each group that Content Writer should access.
+  </Step>
+</Steps>
+
+### Create an API token
+
+Create an API token for the Zendesk service account.
+
+<Steps>
+  <Step>
+    ### Open API tokens
+
+    In Zendesk Admin Center, go to **Apps and integrations** → **APIs** → **API tokens**.
+  </Step>
+  <Step>
+    ### Add the token
+
+    Click **Add API token** and name it something like `Inkeep Content Writer Integration`.
+  </Step>
+  <Step>
+    ### Save the token
+
+    Click **Save**, then copy and store the token. Zendesk will not show the full token again after you leave the page.
+  </Step>
+</Steps>
+
+### Connect to the Zendesk MCP
+
+Connect the Zendesk service account token to the Zendesk MCP server in Inkeep.
+
+<Steps>
+  <Step>
+    ### Open your Content Writer project
+
+    Log in to [Inkeep Enterprise](https://app.inkeep.com) and open your Content Writer project.
+  </Step>
+  <Step>
+    ### Create a bearer credential
+
+    In the left-hand menu, click **Credentials** → **New** → **Bearer Authentication**.
+
+    <Image
+      src="/images/new-credential-screen.png"
+      alt="New credential page with Browse providers and Bearer authentication options"
+    />
+  </Step>
+  <Step>
+    ### Fill in credential details
+
+    Use these values:
+
+    | Field | Value |
+    | --- | --- |
+    | **Name** | A credential name, such as `Zendesk Content Writer Integration` |
+    | **API Key** | The API token for the Zendesk service account created previously |
+  </Step>
+  <Step>
+    ### Add Zendesk headers
+
+    Under **Headers**, add:
+
+    | Header | Value |
+    | --- | --- |
+    | `x-zendesk-email` | The service account email address |
+    | `x-zendesk-subdomain` | Your Zendesk subdomain. For `yourcompany.zendesk.com`, use `yourcompany`. |
+  </Step>
+  <Step>
+    ### Link the credential to the MCP server
+
+    Check **Link this credential to an MCP server**, then select the Zendesk MCP server from the dropdown.
+  </Step>
+</Steps>
+
+### Create the Zendesk webhook trigger
+
+Create a Zendesk webhook that sends ticket updates to the Content Writer.
+
+<Steps>
+  <Step>
+    ### Open Webhooks in Zendesk
+
+    In Zendesk Admin Center, go to **Apps and integrations** → **Webhooks**. You can also search for **Webhooks** from Admin Center.
+  </Step>
+  <Step>
+    ### Create a webhook
+
+    Click **Create webhook**. Under **Select a way to connect**, choose **Trigger or automation**.
+  </Step>
+  <Step>
+    ### Configure the webhook
+
+    Use these settings:
+
+    | Field | Value |
+    | --- | --- |
+    | **Endpoint URL** | Your Content Writer webhook URL. Find it at `https://app.inkeep.com/<your-tenant-id>/projects/content-writer/triggers?tab=webhooks`, or contact your Inkeep account team if it has not been provisioned yet. |
+    | **Request method** | `POST` |
+    | **Request format** | `JSON` |
+    | **Authentication** | `None` |
+  </Step>
+  <Step>
+    ### Create the webhook
+
+    Click **Create webhook**.
+  </Step>
+  <Step>
+    ### Share the webhook secret
+
+    Open the new webhook, find **Secret key**, click **Reveal secret**, and send it to the Inkeep team through your shared secure credential store.
+  </Step>
+</Steps>
+
+### Customize the Zendesk trigger
+
+In the following example, the trigger is configured to send solved tickets with the `inkeep_content_writer` tag to the Content Writer. The Inkeep team can help you customize the trigger to fit your needs.
+
+<Steps>
+  <Step>
+    ### Set the category
+
+    Set **Trigger Category** to **Notifications**.
+  </Step>
+  <Step>
+    ### Add conditions
+
+    Under **Conditions**, configure the trigger to meet **ALL** of these conditions:
+
+    - **Ticket** → **Tags** | **Contains at least one of the following** | `inkeep_content_writer`
+    - **Ticket** → **Status category** | **Is** | **Solved**
+
+    This trigger runs when a ticket is solved and the `inkeep_content_writer` tag is present.
+  </Step>
+  <Step>
+    ### Add the webhook action
+
+    Under **Actions**, add **Notify by** → **Active webhook**, then select the webhook you created.
+  </Step>
+  <Step>
+    ### Add the payload
+
+    In the webhook payload body, paste:
+
+```json
+{"ticket_id":"{{ticket.id}}"}
+```
+  </Step>
+  <Step>
+    ### Enable the trigger
+
+    Click **Create** to enable the trigger.
+  </Step>
+</Steps>

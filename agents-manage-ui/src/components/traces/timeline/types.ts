@@ -1,3 +1,5 @@
+import type { CacheState } from '@/constants/signoz';
+
 export type PanelType =
   | ActivityKind
   | 'delegation'
@@ -108,10 +110,7 @@ export interface ActivityItem {
   toolCallArgs?: string;
   toolCallResult?: string;
   toolStatusMessage?: string;
-  aiResponseText?: string;
-  aiResponseToolCalls?: string;
   costUsd?: number;
-  aiPromptMessages?: string;
   traceId?: string;
   // OTEL status fields
   otelStatusCode?: string;
@@ -157,6 +156,11 @@ export interface ActivityItem {
   streamBufferSizeBytes?: number;
   toolCallId?: string;
   toolResponseContent?: string;
+  cacheReadTokens?: number;
+  cacheCreationTokens?: number;
+  cacheMarkerCount?: number;
+  cachePrefixSignature?: string;
+  cacheState?: CacheState;
 }
 
 interface ToolCall {
@@ -234,6 +238,8 @@ export interface ConversationDetail {
   invocationEntryPoint?: string | null;
   triggerId?: string | null;
   triggerInvocationId?: string | null;
+  triggerRunAsUserId?: string | null;
+  triggerBatchId?: string | null;
 }
 
 export const TOOL_TYPES = {

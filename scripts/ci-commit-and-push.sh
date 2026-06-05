@@ -11,6 +11,7 @@ set -euo pipefail
 FILE="$1"
 COMMIT_MSG="$2"
 BRANCH="$3"
+REMOTE_REF="refs/heads/$BRANCH"
 
 if git diff --quiet "$FILE" 2>/dev/null; then
   echo "$FILE is up to date"
@@ -30,7 +31,7 @@ fi
 
 push_succeeded=false
 for i in 1 2 3; do
-  if git push; then
+  if git push origin "HEAD:$REMOTE_REF"; then
     echo "::notice::$FILE was auto-updated and committed."
     push_succeeded=true
     break

@@ -29,7 +29,7 @@ export async function queueEvaluationJobConversations(params: {
   });
 
   if (conversations.length === 0) {
-    logger.warn({ tenantId, projectId, evaluationJobConfigId }, 'No conversations found for job');
+    logger.warn({ evaluationJobConfigId }, 'No conversations found for job');
     return { conversationCount: 0, queued: 0, failed: 0, evaluationRunId: '' };
   }
 

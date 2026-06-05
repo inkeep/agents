@@ -8,6 +8,7 @@
  * - Success: approval message is updated to done state
  */
 
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
@@ -39,14 +40,7 @@ vi.mock('../../env', () => ({
   env: { INKEEP_AGENTS_API_URL: 'http://localhost:3002' },
 }));
 
-vi.mock('../../logger', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
+vi.mock('../../logger', () => createMockLoggerModule().module);
 
 vi.mock('../../slack/services/events/utils', async (importOriginal) => {
   const original = await importOriginal<typeof import('../../slack/services/events/utils')>();

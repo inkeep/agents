@@ -1,6 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" = \"changeset-release/main\" ]; then exit 0; fi; exit 1",
+  "git": {
+    "deploymentEnabled": {
+      "main": false
+    }
+  },
+  "ignoreCommand": "bash ../../../scripts/vercel-skip-unless-changed.sh ..",
   "framework": "hono",
   "installCommand": "pnpm install",
   "buildCommand": "turbo build --filter=@inkeep/agents-api && pnpm --dir ../ prepack",
@@ -18,6 +23,11 @@
         {
           "type": "queue/v1beta",
           "topic": "__wkf_step_*",
+          "consumer": "default"
+        },
+        {
+          "type": "queue/v1beta",
+          "topic": "webhook-delivery",
           "consumer": "default"
         }
       ]

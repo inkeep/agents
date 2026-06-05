@@ -1,5 +1,6 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  ConversationDetailSchema,
   commonGetErrorResponses,
   createApiError,
   formatMessagesForLLMContext,
@@ -12,12 +13,14 @@ import {
 import {
   ALLOWED_IMAGE_MIME_TYPES,
   ALLOWED_TEXT_DOCUMENT_MIME_TYPES,
+  canonicalizeMimeType,
   normalizeMimeType,
 } from '@inkeep/agents-core/constants/allowed-file-formats';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
+import { formatConversationDetail } from '../../../utils/conversationFormatter';
 import { getBlobStorageProvider } from '../../run/services/blob-storage';
 import { resolveMessagesListBlobUris } from '../../run/services/blob-storage/resolve-blob-uris';
 import { buildMediaStorageKeyPrefix } from '../../run/services/blob-storage/storage-keys';
@@ -52,6 +55,7 @@ function getSafeMediaResponseHeaders({
   contentLength: number;
 }): Record<string, string> {
   const normalizedContentType = normalizeMimeType(contentType);
+  const canonicalContentType = canonicalizeMimeType(normalizedContentType);
 
   if (SAFE_IMAGE_PASSTHROUGH_MIME_TYPES.has(normalizedContentType)) {
     return {
@@ -72,7 +76,7 @@ function getSafeMediaResponseHeaders({
     };
   }
 
-  if (TEXT_DOCUMENT_DOWNLOAD_MIME_TYPES.has(normalizedContentType)) {
+  if (TEXT_DOCUMENT_DOWNLOAD_MIME_TYPES.has(canonicalContentType)) {
     return {
       'Content-Type': 'text/plain; charset=utf-8',
       'Content-Disposition': 'attachment',
@@ -185,7 +189,7 @@ const ConversationQueryParamsSchema = z.object({
 const ConversationWithFormattedMessagesResponse = z
   .object({
     data: z.object({
-      messages: z.array(z.any()),
+      conversation: ConversationDetailSchema,
       formatted: z.object({
         llmContext: z.string(),
       }),
@@ -220,17 +224,18 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
     const { limit = 20, includeInternal = true } = c.req.valid('query');
+    const scopes = { tenantId, projectId };
 
-    const messages = await getConversationHistory(runDbClient)({
-      scopes: { tenantId, projectId },
-      conversationId: id,
-      options: {
-        limit,
-        includeInternal,
-      },
-    });
+    const [conversation, messages] = await Promise.all([
+      getConversation(runDbClient)({ scopes, conversationId: id }),
+      getConversationHistory(runDbClient)({
+        scopes,
+        conversationId: id,
+        options: { limit, includeInternal },
+      }),
+    ]);
 
-    if (!messages || messages.length === 0) {
+    if (!conversation || !messages || messages.length === 0) {
       throw createApiError({
         code: 'not_found',
         message: 'Conversation not found',
@@ -238,12 +243,11 @@ app.openapi(
     }
 
     const llmContext = formatMessagesForLLMContext(messages);
-
     const resolvedMessages = await resolveMessagesListBlobUris(messages);
 
     return c.json({
       data: {
-        messages: resolvedMessages,
+        conversation: formatConversationDetail(conversation, resolvedMessages),
         formatted: {
           llmContext,
         },
@@ -378,14 +382,7 @@ app.openapi(
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error(
-        {
-          error: errorMessage,
-          key,
-          requestId: c.get('requestId'),
-          tenantId,
-          projectId,
-          conversationId,
-        },
+        { error: errorMessage, key, requestId: c.get('requestId'), conversationId },
         'Failed to serve media'
       );
       if (isMediaNotFoundError(error)) {

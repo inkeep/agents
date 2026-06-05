@@ -3,10 +3,12 @@
 import type { Part } from '@inkeep/agents-core';
 import { revalidatePath } from 'next/cache';
 import {
+  type CreateTriggerInput,
   createTrigger,
   deleteTrigger,
   rerunTrigger,
   type Trigger,
+  type UpdateTriggerInput,
   updateTrigger,
 } from '../api/triggers';
 import { ApiError } from '../types/errors';
@@ -47,7 +49,7 @@ export async function createTriggerAction(
   tenantId: string,
   projectId: string,
   agentId: string,
-  triggerData: Partial<Trigger>
+  triggerData: CreateTriggerInput
 ): Promise<ActionResult<Trigger>> {
   try {
     const result = await createTrigger(tenantId, projectId, agentId, triggerData);
@@ -78,7 +80,7 @@ export async function updateTriggerAction(
   projectId: string,
   agentId: string,
   triggerId: string,
-  triggerData: Partial<Trigger>
+  triggerData: UpdateTriggerInput
 ): Promise<ActionResult<Trigger>> {
   try {
     const result = await updateTrigger(tenantId, projectId, agentId, triggerId, triggerData);
@@ -112,6 +114,7 @@ export async function rerunTriggerAction(
   params: {
     userMessage: string;
     messageParts?: Part[];
+    runAsUserId?: string;
   }
 ): Promise<ActionResult<{ invocationId: string; conversationId: string }>> {
   try {

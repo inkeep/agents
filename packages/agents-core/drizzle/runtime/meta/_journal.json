@@ -246,6 +246,62 @@
       "when": 1775524239493,
       "tag": "0034_simple_sphinx",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1775524239494,
+      "tag": "0035_many_steel_serpent",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1775838949041,
+      "tag": "0036_swift_hammerhead",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1776112369985,
+      "tag": "0037_mysterious_gargoyle",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1776895249630,
+      "tag": "0038_windy_kinsey_walden",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1778005970411,
+      "tag": "0039_abandoned_old_lace",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1778088346301,
+      "tag": "0040_living_forgotten_one",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1778505331445,
+      "tag": "0041_salty_wilson_fisk",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1778688854560,
+      "tag": "0042_long_magdalene",
+      "breakpoints": true
     }
   ]
 }

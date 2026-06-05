@@ -23,6 +23,7 @@ import {
   type ToolType,
 } from './agent-types';
 import { runGenerate } from './generation/generate';
+import { resolveAllowText } from './output-contract';
 import { SystemPromptBuilder } from './SystemPromptBuilder';
 import { AgentMcpManager } from './services/AgentMcpManager';
 import { getFunctionTools } from './tools/function-tools';
@@ -42,7 +43,9 @@ export class Agent {
 
     let processedDataComponents = config.dataComponents || [];
 
-    if (processedDataComponents.length > 0) {
+    const resolvedAllowText = resolveAllowText(config.outputContract);
+
+    if (processedDataComponents.length > 0 && resolvedAllowText !== false) {
       processedDataComponents.push({
         id: 'text-content',
         name: 'Text',
@@ -105,10 +108,13 @@ export class Agent {
       conversationId: undefined,
       delegationId: undefined,
       isDelegatedAgent: false,
+      resolvedAllowText,
       artifactComponents,
       currentCompressor: null,
       functionToolRelationshipIdByName,
       taskDenialRedirects: [],
+      deferredToolErrors: [],
+      mcpServerSuccesses: new Set(),
     };
 
     ctx.mcpManager = new AgentMcpManager(
@@ -152,9 +158,7 @@ export class Agent {
   }
 
   setApprovedToolCalls(
-    approvedToolCalls:
-      | Record<string, Array<{ approved: boolean; reason?: string; originalToolCallId?: string }>>
-      | undefined
+    approvedToolCalls: Record<string, { approved: boolean; reason?: string }> | undefined
   ) {
     this.ctx.approvedToolCalls = approvedToolCalls;
   }

@@ -23,8 +23,18 @@ Authentication handles user sign-in and organization membership. Authorization a
 |--------|-------------|
 | **Email & Password** | Default sign-in with email and password credentials |
 | **Google** | OAuth sign-in (requires configuration) |
+| **Microsoft** | OAuth sign-in (requires configuration) |
+| **SSO (OIDC)** | Enterprise SSO with your identity provider (Inkeep Cloud only) |
 
-To add Google sign-in, see [Adding OAuth Providers](/deployment/authentication#google-oauth).
+To add Google or Microsoft sign-in for self-hosted deployments, see [Adding OAuth Providers](/deployment/authentication#adding-oauth-providers).
+
+Organization admins can enable or disable sign-in methods from **Settings** → **Authentication Methods**. Toggle the switch next to each method to control which options are available to your team.
+
+<Note>
+  At least one authentication method must remain enabled at all times.
+</Note>
+
+For enterprise SSO with custom OIDC identity providers (Okta, Entra ID, Google Workspace, etc.), see [SSO Configuration](/visual-builder/sso-configuration).
 
 ## Organizations & Team Management
 
@@ -69,6 +79,53 @@ If email is enabled for your tenant, users can reset their password through a se
 The reset link expires after 30 minutes. If you don't receive the email, check your spam folder.
 
 If email is not configured for your tenant, contact your organization administrator to reset your password.
+
+## Active Sessions
+
+View every device currently signed in to your account and revoke any session you no longer recognize.
+
+To open the surface:
+
+1. Click your avatar in the top-right corner
+2. Select **Profile**
+3. Scroll to the **Active sessions** section below your profile details
+
+Each row represents one signed-in device and shows:
+
+| Field | What it shows |
+|-------|---------------|
+| **Device** | Browser and operating system (e.g., "Safari on macOS"). Falls back to "Unknown device" when the user-agent cannot be parsed. |
+| **IP address** | The IP address recorded when the session was created. Displays "—" when unavailable. |
+| **Signed in** | When the session was first established. |
+| **Last active** | The most recent time the session made an authenticated request. |
+| **Expires** | When the session will be automatically terminated. |
+| **This device** | A badge marks the session you are currently using. It is always pinned to the top of the list. |
+
+### Revoking a Single Session
+
+1. Click **Revoke** on any session row
+2. Confirm in the dialog
+3. The row disappears from the list and a confirmation toast appears
+
+Revoking your own current session signs you out of the current device and redirects you to the login page.
+
+### Revoking All Other Sessions
+
+When you suspect a device has been compromised, use the panic button to terminate every other session in one step.
+
+1. Click **Revoke all other sessions** at the top of the section
+2. The confirmation dialog displays how many sessions will be terminated
+3. Confirm to revoke every session except your current one
+
+The button is hidden when only your current session exists.
+
+<Note>
+  A revoked session may continue to work for up to 30 seconds on the revoked device. This is the maximum age of the server-side session cache and the lag cannot be reduced without affecting performance.
+</Note>
+
+<Tip>
+  Every session deletion is recorded in the server logs with the associated user and session identifiers, so administrators can audit revocation events through log search.
+</Tip>
 
 ## Project Roles & Permissions
 

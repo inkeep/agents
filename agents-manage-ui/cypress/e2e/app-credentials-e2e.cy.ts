@@ -1,14 +1,19 @@
 /**
- * E2E: App Credentials + Anonymous Session + PoW + Conversation History
+ * E2E: App Credentials + Anonymous Session + Conversation History
  *
  * Pure API test (no UI) — exercises the full end-user auth flow:
- *   Phase 1 — Security basics (app creation, PoW, anon sessions, origin rejection)
+ *   Phase 1 — Security basics (app creation, anon sessions, origin rejection)
  *   Phase 2 — User A conversations + get conversation by ID (Vercel format)
  *   Phase 3 — User B conversations + cross-user isolation
  *
+ * Bot protection (ALTCHA Sentinel) is intentionally NOT exercised here —
+ * INKEEP_SENTINEL_API_KEY_ID is unset in the Cypress environment, which makes
+ * `isSentinelEnabled()` return false and skips the verify step. Sentinel
+ * proxy/verify behavior is covered by unit/integration tests in agents-api.
+ *
  * Requires:
  *   - API server running on CYPRESS_API_URL (default http://localhost:3002)
- *   - INKEEP_POW_HMAC_SECRET and INKEEP_ANON_JWT_SECRET set in .env
+ *   - INKEEP_ANON_JWT_SECRET set in .env
  *   - A working agent (set CYPRESS_E2E_AGENT_ID, default "friendly-agent")
  *
  * Run headless:
@@ -38,35 +43,22 @@ function manageHeaders(): Record<string, string> {
   return { 'Content-Type': 'application/json', Authorization: `Bearer ${BYPASS_SECRET}` };
 }
 
-function appAuthHeaders(appId: string, token: string, pow: string): Record<string, string> {
+function appAuthHeaders(appId: string, token: string): Record<string, string> {
   return {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${token}`,
     'x-inkeep-app-id': appId,
-    'X-Inkeep-Challenge-Solution': pow,
     Origin: ORIGIN,
   };
 }
 
-/** Fetch a PoW challenge and solve it via the cy.task('solvePow') Node task. */
-function freshPow(): Cypress.Chainable<string> {
-  return cy
-    .request({ url: `${API_URL}/run/auth/pow/challenge`, failOnStatusCode: true })
-    .then((res) => {
-      return cy.task<string>('solvePow', res.body);
-    });
-}
-
 /** Create an anonymous session and return { token, sub }. */
-function createAnonSession(
-  appId: string,
-  pow: string
-): Cypress.Chainable<{ token: string; sub: string }> {
+function createAnonSession(appId: string): Cypress.Chainable<{ token: string; sub: string }> {
   return cy
     .request({
       method: 'POST',
       url: `${API_URL}/run/auth/apps/${appId}/anonymous-session`,
-      headers: { Origin: ORIGIN, 'X-Inkeep-Challenge-Solution': pow },
+      headers: { Origin: ORIGIN },
       failOnStatusCode: true,
     })
     .then((res) => {
@@ -86,7 +78,6 @@ function createAnonSession(
 function chat(
   appId: string,
   token: string,
-  pow: string,
   messages: { role: string; content: string }[],
   conversationId?: string
 ): Cypress.Chainable<{ text: string; conversationId: string }> {
@@ -101,7 +92,7 @@ function chat(
     'chatSSE',
     {
       url: `${API_URL}/run/v1/chat/completions`,
-      headers: appAuthHeaders(appId, token, pow),
+      headers: appAuthHeaders(appId, token),
       body: JSON.stringify(reqBody),
     },
     { timeout: 120_000 }
@@ -112,14 +103,13 @@ function chat(
 function chatDataStream(
   appId: string,
   token: string,
-  pow: string,
   messages: { role: string; content: string }[]
 ): Cypress.Chainable<{ text: string; conversationId: string }> {
   return cy
     .request({
       method: 'POST',
       url: `${API_URL}/run/api/chat`,
-      headers: appAuthHeaders(appId, token, pow),
+      headers: appAuthHeaders(appId, token),
       body: { messages, stream: false },
       failOnStatusCode: true,
       timeout: 120_000,
@@ -136,293 +126,218 @@ function chatDataStream(
 // Tests — sequential, no retries (shared state across tests)
 // ---------------------------------------------------------------------------
 
-describe(
-  'App Credentials + Anonymous Session + PoW E2E',
-  { testIsolation: false, retries: 0 },
-  () => {
-    // Shared state across tests in this sequential suite
-    let appId: string;
-    let userA: { token: string; sub: string };
-    let userB: { token: string; sub: string };
-    let a1ConvId: string;
-    let userAConvIds: string[];
-    let userATotal: number;
+describe('App Credentials + Anonymous Session E2E', { testIsolation: false, retries: 0 }, () => {
+  // Shared state across tests in this sequential suite
+  let appId: string;
+  let userA: { token: string; sub: string };
+  let userB: { token: string; sub: string };
+  let a1ConvId: string;
+  let userAConvIds: string[];
+  let userATotal: number;
 
-    after(() => {
-      if (!appId) return;
-      cy.request({
-        method: 'DELETE',
-        url: manageUrl(`/apps/${appId}`),
-        headers: { Authorization: `Bearer ${BYPASS_SECRET}` },
-        failOnStatusCode: false,
-      });
+  after(() => {
+    if (!appId) return;
+    cy.request({
+      method: 'DELETE',
+      url: manageUrl(`/apps/${appId}`),
+      headers: { Authorization: `Bearer ${BYPASS_SECRET}` },
+      failOnStatusCode: false,
     });
+  });
 
-    // =========================================================================
-    // Phase 1: Security basics
-    // =========================================================================
+  // =========================================================================
+  // Phase 1: Security basics
+  // =========================================================================
 
-    it('should create a web_client app', () => {
-      cy.request({
-        method: 'POST',
-        url: manageUrl('/apps'),
-        headers: manageHeaders(),
-        body: {
-          name: `Cypress E2E App ${Date.now()}`,
+  it('should create a web_client app', () => {
+    cy.request({
+      method: 'POST',
+      url: manageUrl('/apps'),
+      headers: manageHeaders(),
+      body: {
+        name: `Cypress E2E App ${Date.now()}`,
+        type: 'web_client',
+        defaultAgentId: AGENT_ID,
+        config: {
           type: 'web_client',
-          defaultAgentId: AGENT_ID,
-          config: {
-            type: 'web_client',
-            webClient: { allowedDomains: ['*.example.com'], allowAnonymous: true },
-          },
+          webClient: { allowedDomains: ['*.example.com'], allowAnonymous: true },
         },
-      }).then((res) => {
-        expect(res.status).to.equal(201);
-        appId = res.body.data.app.id;
-        expect(appId).to.match(/^app_/);
-      });
+      },
+    }).then((res) => {
+      expect(res.status).to.equal(201);
+      appId = res.body.data.app.id;
+      expect(appId).to.match(/^app_/);
     });
+  });
 
-    it('should fetch and solve a PoW challenge', () => {
-      freshPow().then((pow) => {
-        expect(pow).to.be.a('string');
-        expect(pow.length).to.be.greaterThan(10);
-      });
+  it('should create an anonymous session (User A)', () => {
+    createAnonSession(appId).then((session) => {
+      userA = session;
+      expect(userA.sub).to.match(/^anon_/);
     });
+  });
 
-    it('should create an anonymous session (User A)', () => {
-      freshPow().then((pow) => {
-        createAnonSession(appId, pow).then((session) => {
-          userA = session;
-          expect(userA.sub).to.match(/^anon_/);
-        });
-      });
+  it('should reject disallowed origin', () => {
+    cy.request({
+      method: 'POST',
+      url: `${API_URL}/run/auth/apps/${appId}/anonymous-session`,
+      headers: { Origin: 'https://evil.attacker.com' },
+      failOnStatusCode: false,
+    }).then((res) => {
+      expect(res.status).to.equal(403);
     });
+  });
 
-    it('should reject disallowed origin', () => {
-      freshPow().then((pow) => {
-        cy.request({
-          method: 'POST',
-          url: `${API_URL}/run/auth/apps/${appId}/anonymous-session`,
-          headers: { Origin: 'https://evil.attacker.com', 'X-Inkeep-Challenge-Solution': pow },
-          failOnStatusCode: false,
-        }).then((res) => {
-          expect(res.status).to.equal(403);
-        });
-      });
+  // =========================================================================
+  // Phase 2: User A conversations
+  // =========================================================================
+
+  it('User A: chat message 1 (new conversation via SSE)', () => {
+    chat(appId, userA.token, [
+      { role: 'user', content: 'Say "Alpha one" in exactly those words and nothing else.' },
+    ]).then((result) => {
+      expect(result.text.trim()).to.not.be.empty;
+      expect(result.conversationId).to.not.be.empty;
+      a1ConvId = result.conversationId;
     });
+  });
 
-    it('should reject missing PoW header', () => {
-      cy.request({
-        method: 'POST',
-        url: `${API_URL}/run/auth/apps/${appId}/anonymous-session`,
-        headers: { Origin: ORIGIN },
-        failOnStatusCode: false,
-      }).then((res) => {
-        expect(res.status).to.equal(400);
-        expect(res.body.error.message).to.equal('Proof-of-work challenge solution is required.');
-      });
+  it('User A: chat message 2 (follow-up in same conversation)', () => {
+    chat(
+      appId,
+      userA.token,
+      [
+        { role: 'user', content: 'Say "Alpha one" in exactly those words and nothing else.' },
+        { role: 'assistant', content: 'Alpha one' },
+        {
+          role: 'user',
+          content: 'Now say "Alpha two" in exactly those words and nothing else.',
+        },
+      ],
+      a1ConvId
+    ).then((result) => {
+      expect(result.text.trim()).to.not.be.empty;
+      // The SSE endpoint may assign a new chatcmpl- ID even for follow-ups;
+      // the important thing is that the conversation context is maintained.
+      expect(result.conversationId).to.not.be.empty;
     });
+  });
 
-    it('should reject invalid PoW solution', () => {
-      const garbage = btoa(
-        JSON.stringify({
-          algorithm: 'SHA-256',
-          challenge: 'aaaa',
-          number: 0,
-          salt: 'x',
-          signature: 'x',
-        })
-      );
-      cy.request({
-        method: 'POST',
-        url: `${API_URL}/run/auth/apps/${appId}/anonymous-session`,
-        headers: { Origin: ORIGIN, 'X-Inkeep-Challenge-Solution': garbage },
-        failOnStatusCode: false,
-      }).then((res) => {
-        expect(res.status).to.equal(400);
-        expect(res.body.error.message).to.equal('Proof-of-work challenge solution is invalid.');
-      });
+  it('User A: chat message 3 (new conversation via SSE)', () => {
+    chat(appId, userA.token, [
+      { role: 'user', content: 'Say "Alpha three" in exactly those words and nothing else.' },
+    ]).then((result) => {
+      expect(result.text.trim()).to.not.be.empty;
+      expect(result.conversationId).to.not.equal(a1ConvId);
     });
+  });
 
-    // =========================================================================
-    // Phase 2: User A conversations
-    // =========================================================================
-
-    it('User A: chat message 1 (new conversation via SSE)', () => {
-      freshPow().then((pow) => {
-        chat(appId, userA.token, pow, [
-          { role: 'user', content: 'Say "Alpha one" in exactly those words and nothing else.' },
-        ]).then((result) => {
-          expect(result.text.trim()).to.not.be.empty;
-          expect(result.conversationId).to.not.be.empty;
-          a1ConvId = result.conversationId;
-        });
-      });
+  it('User A: chat via data stream endpoint (new conversation)', () => {
+    chatDataStream(appId, userA.token, [
+      { role: 'user', content: 'Say "Alpha four" in exactly those words and nothing else.' },
+    ]).then((result) => {
+      expect(result.text.trim()).to.not.be.empty;
     });
+  });
 
-    it('User A: chat message 2 (follow-up in same conversation)', () => {
-      freshPow().then((pow) => {
-        chat(
-          appId,
-          userA.token,
-          pow,
-          [
-            { role: 'user', content: 'Say "Alpha one" in exactly those words and nothing else.' },
-            { role: 'assistant', content: 'Alpha one' },
-            {
-              role: 'user',
-              content: 'Now say "Alpha two" in exactly those words and nothing else.',
-            },
-          ],
-          a1ConvId
-        ).then((result) => {
-          expect(result.text.trim()).to.not.be.empty;
-          // The SSE endpoint may assign a new chatcmpl- ID even for follow-ups;
-          // the important thing is that the conversation context is maintained.
-          expect(result.conversationId).to.not.be.empty;
-        });
-      });
+  it('User A: list conversations (expect at least 3)', () => {
+    cy.request({
+      url: `${API_URL}/run/v1/conversations?limit=50`,
+      headers: appAuthHeaders(appId, userA.token),
+      failOnStatusCode: true,
+    }).then((res) => {
+      expect(res.body.pagination.total).to.be.at.least(3);
+      userAConvIds = res.body.data.map((c: { id: string }) => c.id);
+      userATotal = res.body.pagination.total;
     });
+  });
 
-    it('User A: chat message 3 (new conversation via SSE)', () => {
-      freshPow().then((pow) => {
-        chat(appId, userA.token, pow, [
-          { role: 'user', content: 'Say "Alpha three" in exactly those words and nothing else.' },
-        ]).then((result) => {
-          expect(result.text.trim()).to.not.be.empty;
-          expect(result.conversationId).to.not.equal(a1ConvId);
-        });
-      });
+  it('User A: get conversation by ID (Vercel format)', () => {
+    cy.request({
+      url: `${API_URL}/run/v1/conversations/${a1ConvId}?format=vercel`,
+      headers: appAuthHeaders(appId, userA.token),
+      failOnStatusCode: true,
+    }).then((res) => {
+      const { data } = res.body;
+      expect(data.id).to.equal(a1ConvId);
+      expect(data.title).to.be.a('string').and.not.be.empty;
+      expect(data.messages.length).to.be.at.least(2);
+
+      const firstMsg = data.messages[0];
+      expect(firstMsg.content).to.be.a('string');
+      expect(firstMsg.parts).to.be.an('array');
+      expect(firstMsg.parts[0].type).to.equal('text');
     });
+  });
 
-    it('User A: chat via data stream endpoint (new conversation)', () => {
-      freshPow().then((pow) => {
-        chatDataStream(appId, userA.token, pow, [
-          { role: 'user', content: 'Say "Alpha four" in exactly those words and nothing else.' },
-        ]).then((result) => {
-          expect(result.text.trim()).to.not.be.empty;
-        });
-      });
+  it('User A: get conversation by ID (OpenAI format — expect 400)', () => {
+    cy.request({
+      url: `${API_URL}/run/v1/conversations/${a1ConvId}?format=openai`,
+      headers: appAuthHeaders(appId, userA.token),
+      failOnStatusCode: false,
+    }).then((res) => {
+      expect(res.status).to.equal(400);
+      expect(res.body.error.message).to.include('not available yet');
     });
+  });
 
-    it('User A: list conversations (expect at least 3)', () => {
-      freshPow().then((pow) => {
-        cy.request({
-          url: `${API_URL}/run/v1/conversations?limit=50`,
-          headers: appAuthHeaders(appId, userA.token, pow),
-          failOnStatusCode: true,
-        }).then((res) => {
-          expect(res.body.pagination.total).to.be.at.least(3);
-          userAConvIds = res.body.data.map((c: { id: string }) => c.id);
-          userATotal = res.body.pagination.total;
-        });
-      });
+  // =========================================================================
+  // Phase 3: User B + cross-isolation
+  // =========================================================================
+
+  it('should create an anonymous session (User B)', () => {
+    createAnonSession(appId).then((session) => {
+      userB = session;
+      expect(userB.sub).to.not.equal(userA.sub);
     });
+  });
 
-    it('User A: get conversation by ID (Vercel format)', () => {
-      freshPow().then((pow) => {
-        cy.request({
-          url: `${API_URL}/run/v1/conversations/${a1ConvId}?format=vercel`,
-          headers: appAuthHeaders(appId, userA.token, pow),
-          failOnStatusCode: true,
-        }).then((res) => {
-          const { data } = res.body;
-          expect(data.id).to.equal(a1ConvId);
-          expect(data.title).to.be.a('string').and.not.be.empty;
-          expect(data.messages.length).to.be.at.least(2);
-
-          const firstMsg = data.messages[0];
-          expect(firstMsg.content).to.be.a('string');
-          expect(firstMsg.parts).to.be.an('array');
-          expect(firstMsg.parts[0].type).to.equal('text');
-        });
-      });
+  it('User B: chat via SSE (new conversation)', () => {
+    chat(appId, userB.token, [
+      { role: 'user', content: 'Say "Bravo one" in exactly those words and nothing else.' },
+    ]).then((result) => {
+      expect(result.text.trim()).to.not.be.empty;
     });
+  });
 
-    it('User A: get conversation by ID (OpenAI format — expect 400)', () => {
-      freshPow().then((pow) => {
-        cy.request({
-          url: `${API_URL}/run/v1/conversations/${a1ConvId}?format=openai`,
-          headers: appAuthHeaders(appId, userA.token, pow),
-          failOnStatusCode: false,
-        }).then((res) => {
-          expect(res.status).to.equal(400);
-          expect(res.body.error.message).to.include('not available yet');
-        });
-      });
+  it('User B: chat via data stream endpoint', () => {
+    chatDataStream(appId, userB.token, [
+      { role: 'user', content: 'Say "Bravo two" in exactly those words and nothing else.' },
+    ]).then((result) => {
+      expect(result.text.trim()).to.not.be.empty;
     });
+  });
 
-    // =========================================================================
-    // Phase 3: User B + cross-isolation
-    // =========================================================================
-
-    it('should create an anonymous session (User B)', () => {
-      freshPow().then((pow) => {
-        createAnonSession(appId, pow).then((session) => {
-          userB = session;
-          expect(userB.sub).to.not.equal(userA.sub);
-        });
-      });
+  it('User B: list conversations (expect 2, only their own)', () => {
+    cy.request({
+      url: `${API_URL}/run/v1/conversations?limit=50`,
+      headers: appAuthHeaders(appId, userB.token),
+      failOnStatusCode: true,
+    }).then((res) => {
+      expect(res.body.pagination.total).to.be.at.least(2);
+      const userBIds = res.body.data.map((c: { id: string }) => c.id);
+      const leaked = userBIds.filter((id: string) => userAConvIds.includes(id));
+      expect(leaked, 'User B should not see User A conversations').to.have.length(0);
     });
+  });
 
-    it('User B: chat via SSE (new conversation)', () => {
-      freshPow().then((pow) => {
-        chat(appId, userB.token, pow, [
-          { role: 'user', content: 'Say "Bravo one" in exactly those words and nothing else.' },
-        ]).then((result) => {
-          expect(result.text.trim()).to.not.be.empty;
-        });
-      });
+  it('User A: list conversations (still unchanged)', () => {
+    cy.request({
+      url: `${API_URL}/run/v1/conversations?limit=50`,
+      headers: appAuthHeaders(appId, userA.token),
+      failOnStatusCode: true,
+    }).then((res) => {
+      expect(res.body.pagination.total).to.equal(userATotal);
     });
+  });
 
-    it('User B: chat via data stream endpoint', () => {
-      freshPow().then((pow) => {
-        chatDataStream(appId, userB.token, pow, [
-          { role: 'user', content: 'Say "Bravo two" in exactly those words and nothing else.' },
-        ]).then((result) => {
-          expect(result.text.trim()).to.not.be.empty;
-        });
-      });
+  it('Cross-isolation: User B cannot get User A conversation by ID', () => {
+    cy.request({
+      url: `${API_URL}/run/v1/conversations/${a1ConvId}`,
+      headers: appAuthHeaders(appId, userB.token),
+      failOnStatusCode: false,
+    }).then((res) => {
+      expect(res.status).to.equal(404);
     });
-
-    it('User B: list conversations (expect 2, only their own)', () => {
-      freshPow().then((pow) => {
-        cy.request({
-          url: `${API_URL}/run/v1/conversations?limit=50`,
-          headers: appAuthHeaders(appId, userB.token, pow),
-          failOnStatusCode: true,
-        }).then((res) => {
-          expect(res.body.pagination.total).to.be.at.least(2);
-          const userBIds = res.body.data.map((c: { id: string }) => c.id);
-          const leaked = userBIds.filter((id: string) => userAConvIds.includes(id));
-          expect(leaked, 'User B should not see User A conversations').to.have.length(0);
-        });
-      });
-    });
-
-    it('User A: list conversations (still unchanged)', () => {
-      freshPow().then((pow) => {
-        cy.request({
-          url: `${API_URL}/run/v1/conversations?limit=50`,
-          headers: appAuthHeaders(appId, userA.token, pow),
-          failOnStatusCode: true,
-        }).then((res) => {
-          expect(res.body.pagination.total).to.equal(userATotal);
-        });
-      });
-    });
-
-    it('Cross-isolation: User B cannot get User A conversation by ID', () => {
-      freshPow().then((pow) => {
-        cy.request({
-          url: `${API_URL}/run/v1/conversations/${a1ConvId}`,
-          headers: appAuthHeaders(appId, userB.token, pow),
-          failOnStatusCode: false,
-        }).then((res) => {
-          expect(res.status).to.equal(404);
-        });
-      });
-    });
-  }
-);
+  });
+});

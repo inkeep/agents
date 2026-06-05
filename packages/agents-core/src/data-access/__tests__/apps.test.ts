@@ -210,16 +210,30 @@ describe('apps data access', () => {
       expect(result.pagination.page).toBe(1);
     });
 
-    it('should filter by projectId when provided', async () => {
+    it('should filter to a single project via projectIds', async () => {
       await createApp(db)(makeWebClientApp());
       await createApp(db)(makeApiApp({ projectId: 'other-project', id: 'app-api-other' }));
 
       const result = await listAppsPaginated(db)({
-        scopes: { tenantId: TEST_TENANT_ID, projectId: TEST_PROJECT_ID },
+        scopes: { tenantId: TEST_TENANT_ID, projectIds: [TEST_PROJECT_ID] },
       });
 
       expect(result.data).toHaveLength(1);
       expect(result.data[0].id).toBe('app-web-1');
+    });
+
+    it('should filter to multiple projects via projectIds', async () => {
+      await createApp(db)(makeWebClientApp({ projectId: 'proj-a', id: 'app-a' }));
+      await createApp(db)(makeApiApp({ projectId: 'proj-b', id: 'app-b' }));
+      await createApp(db)(makeApiApp({ projectId: 'proj-c', id: 'app-c' }));
+
+      const result = await listAppsPaginated(db)({
+        scopes: { tenantId: TEST_TENANT_ID, projectIds: ['proj-a', 'proj-c'] },
+      });
+
+      const ids = result.data.map((app) => app.id).sort();
+      expect(ids).toEqual(['app-a', 'app-c']);
+      expect(result.pagination.total).toBe(2);
     });
 
     it('should not return apps from other tenants', async () => {

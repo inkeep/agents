@@ -70,7 +70,7 @@ app.openapi(
         },
       }) as any;
     } catch (error) {
-      logger.error({ error, tenantId, projectId }, 'Failed to list datasets');
+      logger.error({ error }, 'Failed to list datasets');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to list datasets' }),
         500
@@ -120,7 +120,7 @@ app.openapi(
 
       return c.json({ data: dataset as any }) as any;
     } catch (error) {
-      logger.error({ error, tenantId, projectId, datasetId }, 'Failed to get dataset');
+      logger.error({ error, datasetId }, 'Failed to get dataset');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to get dataset' }),
         500
@@ -173,10 +173,10 @@ app.openapi(
         projectId,
       } as any);
 
-      logger.info({ tenantId, projectId, datasetId: id }, 'Dataset created');
+      logger.info({ datasetId: id }, 'Dataset created');
       return c.json({ data: created as any }, 201) as any;
     } catch (error) {
-      logger.error({ error, tenantId, projectId, datasetData }, 'Failed to create dataset');
+      logger.error({ error, datasetData }, 'Failed to create dataset');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to create dataset' }),
         500
@@ -233,10 +233,10 @@ app.openapi(
         ) as any;
       }
 
-      logger.info({ tenantId, projectId, datasetId }, 'Dataset updated');
+      logger.info({ datasetId }, 'Dataset updated');
       return c.json({ data: updated as any }) as any;
     } catch (error) {
-      logger.error({ error, tenantId, projectId, datasetId }, 'Failed to update dataset');
+      logger.error({ error, datasetId }, 'Failed to update dataset');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to update dataset' }),
         500
@@ -279,10 +279,10 @@ app.openapi(
         ) as any;
       }
 
-      logger.info({ tenantId, projectId, datasetId }, 'Dataset deleted');
+      logger.info({ datasetId }, 'Dataset deleted');
       return c.body(null, 204) as any;
     } catch (error) {
-      logger.error({ error, tenantId, projectId, datasetId }, 'Failed to delete dataset');
+      logger.error({ error, datasetId }, 'Failed to delete dataset');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to delete dataset' }),
         500

@@ -1,5 +1,252 @@
 # @inkeep/agents-core
 
+## 0.75.4
+
+## 0.75.3
+
+### Patch Changes
+
+- c9072d5: Fix data component partial updates rejecting bodies without name and props (e.g. clearing the component renderer)
+
+## 0.75.2
+
+## 0.75.1
+
+### Patch Changes
+
+- d7a6762: Reduce amount of database reads for outbound webhooks
+- 2042ce9: Exclude evaluation LLM calls from per-conversation and cost-page spend figures so cost is consistent across the conversation list, conversation detail, and cost dashboard.
+
+## 0.75.0
+
+### Minor Changes
+
+- db2be2f: Add ALTCHA Sentinel helpers (verifySentinelPayload, isSentinelEnabled, isSentinelUpstreamUnavailable, SentinelError, SentinelVerifyResult) for typed bot protection results with infrastructure-error discrimination.
+
+## 0.74.4
+
+### Patch Changes
+
+- 1521dcc: Add Claude Opus 4.8 to model constants, the manage UI model picker, and the CLI model picker.
+
+## 0.74.3
+
+### Patch Changes
+
+- 87e4bf1: Refresh model lineup against current vendor status:
+  - Gemini: add `GEMINI_3_1_FLASH_LITE` (GA) and `GEMINI_3_5_FLASH` (GA); drop `Gemini 3 Flash` (does not exist in Google's API) and `Gemini 3 Pro Preview` (shut down 2026-03-09) from the manage-UI and CLI pickers; swap `Gemini 3.1 Flash Lite Preview` for the GA in pickers.
+  - Anthropic: add `CLAUDE_OPUS_4_7` (current Opus flagship); drop `Claude Opus 4` and `Claude Sonnet 4` (deprecated 2026-04-14, retire 2026-06-15) from pickers.
+  - OpenAI: migrate the OpenAI summarizer default from `GPT_4_1_NANO` (retires 2026-10-23) to `GPT_5_4_NANO` across the manage-UI, CLI, agents-sdk example, and create-agents template; drop `GPT-4.1 Nano` from pickers.
+
+  Constants for sunset/preview model IDs are retained so existing SDK consumers continue to compile.
+
+- d6c3176: Emit prompt-cache OpenTelemetry span attributes and provider-aware cache-token telemetry from the gateway cost middleware, and add a shared cache-state derivation helper
+
+## 0.74.2
+
+### Patch Changes
+
+- 3adbaa4: Add conversation error webhook event types
+- ba25590: UI improvements to the traces costs page and add include=agents query param to list-projects endpoint for faster cost dashboard loading
+
+## 0.74.1
+
+## 0.74.0
+
+### Minor Changes
+
+- fbb4048: Add sub-agent output contract. A new outputContract field on SubAgentConfig enforces structured-only emission via allowText, list-valued requireComponent/requireArtifact (every named component/artifact must appear), and a boolean requireTransfer (the response must hand off to another sub-agent), with a configurable onViolation policy. The active contract is also surfaced in the sub-agent's system prompt so the model is steered to comply. Opt-in; agents without a contract are unchanged.
+
+### Patch Changes
+
+- bb0aba5: Evaluation failure event added
+- ab6276d: Cost events have agent name linked
+- be4d081: `pnpm db:auth:init` now respects `INKEEP_AUTH_INIT_FORCE_PASSWORD_RESET=true` to re-sync an existing admin user's credential-account password from `INKEEP_AGENTS_MANAGE_UI_PASSWORD`. Default-off, so production / self-hosted re-runs of the script remain non-destructive — when the flag is unset the existing-user branch still skips the password update, preserving prior behavior.
+
+  The flag is intended for ephemeral CI environments (per-PR Railway preview) where the admin password secret may have rotated since the user was first created, leaving the stored hash mismatched against the current secret and causing sign-in 401s.
+
+- 1af568e: Cost events displayed with agent name
+
+## 0.73.5
+
+## 0.73.4
+
+### Patch Changes
+
+- 867384b: Add GPT-5.5 and GPT-5.5 Pro to OpenAI model options
+- 4f7c661: Attach Postgres connection pools to Vercel Fluid Compute so idle clients can be managed before serverless functions suspend.
+
+  This registers the manage and runtime database pools with `attachDatabasePool`, including the raw manage pool used for branch/ref-scoped Dolt work. The change follows Vercel's recommended pooling pattern for Fluid Compute to improve connection reuse and reduce the risk of leaked idle clients across suspended function instances.
+
+## 0.73.3
+
+## 0.73.2
+
+## 0.73.1
+
+### Patch Changes
+
+- f069c82: Add Better Auth captcha plugin for login endpoints (Google reCAPTCHA v3, cloud-only via INKEEP_RECAPTCHA_SECRET_KEY)
+
+## 0.73.0
+
+### Minor Changes
+
+- ed76d93: Add custom HTTP headers for outbound webhooks; tighten header validation (RFC 7230 name charset, length limits) across all user-configurable header fields
+
+## 0.72.2
+
+## 0.72.1
+
+### Patch Changes
+
+- 52e099d: Drop FK constraints on events.conversation_id and events.message_id so events fired before their anchor rows exist (e.g. first user_message_submitted of a conversation) are not silently dropped. Conversation deletion still removes associated events via explicit app-level cleanup.
+
+## 0.72.0
+
+### Minor Changes
+
+- 4a0d963: Phase 2 of the events API: top-level identity + per-turn context columns.
+  - Add `userProperties` and `properties` jsonb columns to `conversations` and `messages` tables (D36/D37). Migration is purely additive; existing rows start null. `messages.metadata` runtime telemetry stays unchanged; `ConversationMetadata.userContext` remains intact.
+  - Add helpers in `utils/conversations.ts` for top-level access: `getConversationUserProperties`, `getConversationProperties`, `getMessageUserProperties` (with conversation fallback), `buildConversationUserProperties`. `buildConversationMetadata` now skips writing the `userProperties` argument into `metadata.userContext` and additionally populates `initiatedBy` from execution context.
+  - Update `createOrGetConversation` and `setActiveAgentForConversation` data-access helpers so chat handlers can persist `userProperties` + `properties` to the new top-level columns (last-write-wins on existing rows). Chat handlers drop widget-synthesized auto-mint identities (`identificationType` of `'ANONYMOUS'` or `'COOKIED'`) and strip the `identificationType` marker from anything they do persist — only host-supplied / SDK-supplied identities reach the database.
+  - `POST /run/v1/events` resolves event-level `userProperties` from caller body → message anchor → conversation anchor → `null`. There is no auto-fill from the JWT-verified `endUserId`; consumers needing the verified user identity should read `conversation.userId` (the cryptographically verified `sub` claim, populated on every chat turn).
+  - Add `'event.created'` to `WebhookDestinationEventTypeEnum` for the family-level subscription opted into by destinations that want all events fired through `POST /run/v1/events`.
+
+### Patch Changes
+
+- 4a0d963: Add events table, DAL, validation schemas, and lifecycle-event registry
+
+## 0.71.0
+
+### Minor Changes
+
+- 2e2d3aa: Add outbound webhooks: configure per-project HTTP destinations and receive `conversation.created`, `conversation.updated`, and `feedback.created` events with full conversation context. Webhook payloads mirror the canonical `ConversationDetail` shape now also returned by `GET /conversations/{id}`, so receivers can reuse one TypeScript type for both.
+
+### Patch Changes
+
+- e348e84: Return tenant role on apps list response
+- 648957c: Canonicalize attachment MIME types at ingress; alias types (e.g. text/x-golang, text/javascript) rewrite to canonical forms before validation
+- c3cbdbf: optimizations for querying traces
+
+## 0.70.8
+
+## 0.70.7
+
+### Patch Changes
+
+- a03d008: CSV functionality for feedback and exporting
+- 2e5c421: Sign out the autoSignIn orphan session created during `db:auth:init` and log session deletions via Better Auth's `databaseHooks.session.delete.after` hook
+
+## 0.70.6
+
+## 0.70.5
+
+### Patch Changes
+
+- 26cc75a: Enforce 15-character password policy with HaveIBeenPwned check; add password requirements UI on signup, reset, and change-password
+- 903b1ef: Use organization slug as id when creating organizations via better-auth
+
+## 0.70.4
+
+### Patch Changes
+
+- 5bd4911: First class support for origin filtering in traces
+- 4ecbba7: performance improvements for traces page
+
+## 0.70.3
+
+## 0.70.2
+
+### Patch Changes
+
+- a4d2360: improvement agent
+
+## 0.70.1
+
+## 0.70.0
+
+### Patch Changes
+
+- 60a0c60: Expand inline text document attachment support to cover a broad set of text, code, config, and markup formats, including `.yml` as an alias for YAML uploads.
+- 1570c2a: Add ZIP-based document attachment support for .pptx, .odt, .ods, .odp, .pages, .numbers, and .key alongside .docx and .xlsx, with model-aware stripping for providers that do not support these inline document parts
+
+## 0.69.1
+
+### Patch Changes
+
+- a6bd5ec: cost usage events window for signoz fixed
+
+## 0.69.0
+
+### Minor Changes
+
+- 52d0831: Add `TemplateEngine.renderPrompt()` with `PromptRenderOptions` for prompt-time resolution of built-in template variables. The new method accepts a `runtimeBuiltins` option that lets callers inject runtime values (e.g. `{ $conversation: { id } }`) to be resolved inside `{{$...}}` expressions before falling through to the existing `$env.*` handling. Existing `render()` behavior and the three non-prompt callers (delegation headers, context-fetcher URLs, MCP credential templating) are unchanged.
+
+### Patch Changes
+
+- c63567e: Add SpiceDB helpers for app credential access (app_reader relation)
+- 32bce4f: Add quickActions support to support_copilot app config (schema, persistence, editor UI)
+
+## 0.68.4
+
+## 0.68.3
+
+### Patch Changes
+
+- e8776f5: Add Microsoft as a social sign-in provider
+
+## 0.68.2
+
+### Patch Changes
+
+- 557f700: Add support_copilot app type with OAuth 2.1 JWT auth, tenant-level app discovery endpoint, and apps UI for configuring support copilot apps with credentials
+- 4e0fd65: Add invitation project assignments: automatically grant project access when invitation is accepted
+
+## 0.68.1
+
+## 0.68.0
+
+### Minor Changes
+
+- d1e18a8: Add OAuth 2.1 / OIDC provider support via Better Auth oauth-provider plugin
+
+## 0.67.4
+
+## 0.67.3
+
+## 0.67.2
+
+## 0.67.1
+
+## 0.67.0
+
+### Minor Changes
+
+- 757ac77: Add multi-user webhook triggers with per-user dispatch delay and invocation tracking.
+
+## 0.66.1
+
+## 0.66.0
+
+### Minor Changes
+
+- 5596ecb: Remove logger dependency injection from agentFull and projectFull data access functions. Agent CRUD operations now log via module-scope logger instead of silently swallowing logs. Removes exported `AgentLogger` interface and `ProjectLogger` type (zero external consumers).
+
+### Patch Changes
+
+- 63a1358: Migrate logger calls to use scoped context — remove repeated ambient fields, adopt string-only logger calls
+- 01a960d: Extract repeated string literals into shared constant modules for tool names, approval events, workflow tokens, session events, and relation types
+- 4d0169b: Add createMockLoggerModule factory in test-utils export for shared test mocks
+
+## 0.65.2
+
+### Patch Changes
+
+- fa18f84: Return static error message for all 500-level API responses to prevent information leakage
+- 34e1d67: Fix Doltgres error logging to surface root cause details, redact SQL bind params, and re-throw auto-commit failures to prevent silent data loss
+- 93eb31e: Add scoped logger context via AsyncLocalStorage for automatic request-level field propagation
+
 ## 0.65.1
 
 ### Patch Changes
@@ -395,7 +642,6 @@
 ### Patch Changes
 
 - e623802: Add channel-based agent authorization for Slack with configurable `grantAccessToMembers` toggle
-
   - Extend `SlackAccessTokenPayloadSchema` with `authorized`, `authSource`, `channelId`, `authorizedProjectId` claims
   - Add `grantAccessToMembers` column to `work_app_slack_channel_agent_configs` table (default `true`)
   - Extend `BaseExecutionContext` with `metadata.slack` for channel auth context
@@ -468,11 +714,9 @@
   Skills are reusable instruction blocks that can be attached to sub-agents to govern behavior, reasoning, and tool usage.
 
   ### Features
-
   - **Visual Builder**: Create, edit, and delete skills from the new Skills page. Attach skills to sub-agents via the sidepane picker with drag-to-reorder support.
 
   - **TypeScript SDK**:
-
     - New `SkillDefinition` and `SkillReference` types
     - `loadSkills(directoryPath)` helper to load skills from `SKILL.md` files
     - `skills` config option on `SubAgent` and `Project`
@@ -482,7 +726,6 @@
   - **CLI**: `inkeep pull` now generates skill files in the `skills/` directory
 
   ### Loading Modes
-
   - **Always loaded**: Skill content is included in every prompt
   - **On-demand**: Skill appears as an outline in the system prompt and can be loaded via the built-in `load_skill` tool when needed
 
@@ -505,7 +748,6 @@
 - f981006: Unwrap generic Vercel AI SDK errors (e.g., "fetch failed") to surface root cause in logs and traces
 - e11fae9: Fix props field type in data components to be non-null and improve type safety with JsonSchemaForLlmSchemaType
 - 228d4e2: Fix nested error message display in form validation
-
   - Add `firstNestedMessage` helper to recursively extract error messages from nested Zod validation objects
   - Display error path location (e.g., `→ at ["foo", "bar"]`) for deeply nested validation errors
   - Refactor `createCustomHeadersSchema` to use Zod `.pipe()` for cleaner error path propagation
@@ -615,14 +857,12 @@
   This major version removes the legacy `signingSecret` field from triggers and replaces it with a flexible signature verification system that supports GitHub, Slack, Stripe, Zendesk, and other webhook providers.
 
   **Breaking Changes:**
-
   - Removed `signingSecret` column from triggers table (database migration required)
   - Removed `signingSecret` parameter from TriggerInsertSchema, TriggerUpdateSchema, and TriggerApiInsert
   - Removed `verifySigningSecret()` function from trigger-auth.ts
   - Triggers now require `signingSecretCredentialReferenceId` and `signatureVerification` configuration for signature verification
 
   **New Features:**
-
   - Added `SignatureVerificationConfig` type supporting:
     - Multiple HMAC algorithms: sha256, sha512, sha384, sha1, md5
     - Multiple encodings: hex, base64
@@ -1031,7 +1271,6 @@
 ### Patch Changes
 
 - 185db71: fix validation errors of form fields for:
-
   - `subAgent.id`
   - `subAgent.prompt`
   - `agent.name`
@@ -1041,15 +1280,12 @@
 - 8d8b6dd: Fix runtime configuration implementation to properly apply environment variable overrides
 
   This change fixes a critical bug where runtime configuration environment variables were parsed but never actually used by the runtime execution code. The fix includes:
-
   1. **Core Changes (agents-core)**:
-
      - Removed `getEnvNumber()` helper function
      - Bundled all 56 runtime constants into a `runtimeConsts` export object for cleaner imports
      - Constants now use plain default values instead of reading from `process.env` directly
 
   2. **Environment Parsing (manage-api & run-api)**:
-
      - Updated env.ts files to import `runtimeConsts` instead of individual constants
      - Added missing `AGENTS_VALIDATION_PAGINATION_DEFAULT_LIMIT` to manage-api parsing
      - Both APIs now properly parse environment variables and create `runtimeConfig` objects
@@ -1149,7 +1385,6 @@
 
 - dba5a31: Update quickstart port check
 - b0817aa: Fix CLI bugs
-
   - Quickstart inkeep.config.ts indents and types
   - inkeep init run API and manage API urls
 

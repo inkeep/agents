@@ -1,4 +1,5 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
@@ -30,13 +31,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   };
 });
 
-vi.mock('../../../logger', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
-}));
+vi.mock('../../../logger', () => createMockLoggerModule().module);
 
 import projectGitHubAccessRoutes from '../../../domains/manage/routes/projectGithubAccess';
 

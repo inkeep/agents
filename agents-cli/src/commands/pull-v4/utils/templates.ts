@@ -61,6 +61,10 @@ export function formatTemplate(value: string, references: TemplateReplacementRef
         return match;
       }
 
+      if (variableName.startsWith('$')) {
+        return match;
+      }
+
       if (variableName.startsWith('headers.')) {
         const headerPath = variableName.slice('headers.'.length);
         if (!headerPath || !references.headersReference) {

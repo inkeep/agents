@@ -20,8 +20,19 @@ export {
 export {
   fromSpiceDbProjectId,
   getSpiceDbConfig,
+  type SpiceDbCredentialReferenceId,
+  type SpiceDbProjectId,
+  toSpiceDbCredentialReferenceId,
   toSpiceDbProjectId,
 } from './config';
+
+// Credential gateway helpers
+export {
+  canAppReadCredential,
+  grantAppCredentialAccess,
+  revokeAppCredentialAccess,
+  rewriteAppCredentialAccess,
+} from './credential-gateway';
 
 // Permission checks
 export {
@@ -52,6 +63,8 @@ export {
   type ProjectPermissions,
   type ProjectRole,
   ProjectRoles,
+  type SpiceDbCredentialReferencePermission,
+  SpiceDbCredentialReferencePermissions,
   type SpiceDbOrgPermission,
   SpiceDbOrgPermissions,
   type SpiceDbProjectPermission,

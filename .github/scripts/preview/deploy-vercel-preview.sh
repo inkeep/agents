@@ -88,8 +88,8 @@ deploy_and_alias() {
         debug_key "INKEEP_AGENTS_MANAGE_UI_PASSWORD"
         debug_key "INKEEP_ANON_JWT_SECRET"
         debug_key "INKEEP_ANON_SESSION_LIFETIME_SECONDS"
-        debug_key "INKEEP_POW_HMAC_SECRET"
-        debug_key "INKEEP_POW_DIFFICULTY"
+        debug_key "INKEEP_SENTINEL_API_KEY_ID"
+        debug_key "INKEEP_SENTINEL_BASE_URL"
         debug_key "SPICEDB_ENDPOINT"
         debug_key "SPICEDB_PRESHARED_KEY"
         debug_key "SPICEDB_TLS_ENABLED"
@@ -114,6 +114,7 @@ deploy_and_alias() {
   log_file="$(mktemp)"
   vercel deploy \
     --yes \
+    --archive=tgz \
     --token="${VERCEL_TOKEN}" \
     --scope="${VERCEL_ORG_ID}" \
     -m githubDeployment=1 \

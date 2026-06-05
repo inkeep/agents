@@ -1,4 +1,4 @@
-import { createConversation, createMessage } from '@inkeep/agents-core';
+import { addLedgerArtifacts, createConversation, createMessage } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { jwtVerify } from 'jose';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -14,16 +14,19 @@ const createTestWebClientApp = async ({
   tenantId,
   projectId,
   allowedDomains = ['help.customer.com'],
+  defaultAgentId = 'test-agent',
 }: {
   tenantId: string;
   projectId: string;
   allowedDomains?: string[];
+  defaultAgentId?: string;
 }) => {
   const createRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/apps`, {
     method: 'POST',
     body: JSON.stringify({
       name: 'Test Web Client',
       type: 'web_client',
+      defaultAgentId,
       config: {
         type: 'web_client',
         webClient: {
@@ -79,15 +82,23 @@ const createTestConversation = async ({
 };
 
 describe('Run API - End-User Conversation History', () => {
-  let originalPowSecret: string | undefined;
+  let originalSentinelKeyId: string | undefined;
+  let originalSentinelKeySecret: string | undefined;
+  let originalSentinelBaseUrl: string | undefined;
 
   beforeEach(() => {
-    originalPowSecret = env.INKEEP_POW_HMAC_SECRET;
-    (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = undefined;
+    originalSentinelKeyId = env.INKEEP_SENTINEL_API_KEY_ID;
+    originalSentinelKeySecret = env.INKEEP_SENTINEL_API_KEY_SECRET;
+    originalSentinelBaseUrl = env.INKEEP_SENTINEL_BASE_URL;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_API_KEY_ID = undefined;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_API_KEY_SECRET = undefined;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_BASE_URL = undefined;
   });
 
   afterEach(() => {
-    (env as Record<string, unknown>).INKEEP_POW_HMAC_SECRET = originalPowSecret;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_API_KEY_ID = originalSentinelKeyId;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_API_KEY_SECRET = originalSentinelKeySecret;
+    (env as Record<string, unknown>).INKEEP_SENTINEL_BASE_URL = originalSentinelBaseUrl;
   });
 
   describe('GET /run/v1/conversations', () => {
@@ -554,6 +565,26 @@ describe('Run API - End-User Conversation History', () => {
         title: 'Artifact parts conversation',
       });
 
+      const artifactId = 'art-123';
+      const toolCallId = 'call-456';
+      await addLedgerArtifacts(runDbClient)({
+        scopes: { tenantId, projectId },
+        contextId: conv.id,
+        taskId: `task-${crypto.randomUUID()}`,
+        toolCallId,
+        artifacts: [
+          {
+            artifactId,
+            name: 'Code Example',
+            description: 'A code snippet',
+            type: 'code',
+            parts: [{ kind: 'data', data: { summary: { content: 'some artifact content' } } }],
+            metadata: { artifactType: 'code' },
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      });
+
       await createMessage(runDbClient)({
         scopes: { tenantId, projectId },
         data: {
@@ -566,11 +597,7 @@ describe('Run API - End-User Conversation History', () => {
               { kind: 'text', text: 'Here is the artifact' },
               {
                 kind: 'data',
-                data: JSON.stringify({
-                  artifactId: 'art-123',
-                  toolCallId: 'call-456',
-                  content: 'some artifact content',
-                }),
+                data: JSON.stringify({ artifactId, toolCallId }),
               },
             ],
           },
@@ -589,8 +616,212 @@ describe('Run API - End-User Conversation History', () => {
       expect(msg.parts).toHaveLength(2);
       expect(msg.parts[1]).toEqual({
         type: 'data-artifact',
-        data: { artifactId: 'art-123', toolCallId: 'call-456', content: 'some artifact content' },
+        data: {
+          artifactId,
+          toolCallId,
+          name: 'Code Example',
+          description: 'A code snippet',
+          type: 'code',
+          artifactSummary: { content: 'some artifact content' },
+        },
       });
+    });
+
+    it('should strip internal tool_result artifacts but keep user-facing artifacts', async () => {
+      const tenantId = await createTestTenantWithOrg('conv-get-strip-tool-result');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const appRecord = await createTestWebClientApp({ tenantId, projectId });
+      const appId = appRecord.id;
+
+      const token = await getAnonymousSessionToken(appId, 'https://help.customer.com');
+      const secret = getAnonJwtSecret();
+      const { payload } = await jwtVerify(token, secret);
+      const anonUserId = payload.sub as string;
+
+      const conv = await createTestConversation({
+        tenantId,
+        projectId,
+        userId: anonUserId,
+        title: 'Internal artifact conversation',
+      });
+
+      const internalArtifactId = 'compress_tool_call_789';
+      const internalToolCallId = 'call-internal';
+      const userArtifactId = 'art-user-1';
+      const userToolCallId = 'call-user';
+      await addLedgerArtifacts(runDbClient)({
+        scopes: { tenantId, projectId },
+        contextId: conv.id,
+        taskId: `task-${crypto.randomUUID()}`,
+        toolCallId: internalToolCallId,
+        artifacts: [
+          {
+            artifactId: internalArtifactId,
+            name: 'Tool result',
+            description: 'compressed to save context space',
+            type: 'tool_result',
+            parts: [{ kind: 'data', data: { summary: { content: 'internal plumbing' } } }],
+            metadata: { artifactType: 'tool_result' },
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      });
+      await addLedgerArtifacts(runDbClient)({
+        scopes: { tenantId, projectId },
+        contextId: conv.id,
+        taskId: `task-${crypto.randomUUID()}`,
+        toolCallId: userToolCallId,
+        artifacts: [
+          {
+            artifactId: userArtifactId,
+            name: 'Code Example',
+            description: 'A code snippet',
+            type: 'code',
+            parts: [{ kind: 'data', data: { summary: { content: 'visible content' } } }],
+            metadata: { artifactType: 'code' },
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      });
+
+      await createMessage(runDbClient)({
+        scopes: { tenantId, projectId },
+        data: {
+          id: `msg-${crypto.randomUUID()}`,
+          conversationId: conv.id,
+          role: 'agent',
+          content: {
+            text: 'Here is your answer',
+            parts: [
+              { kind: 'text', text: 'Here is your answer' },
+              {
+                kind: 'data',
+                data: JSON.stringify({
+                  artifactId: internalArtifactId,
+                  toolCallId: internalToolCallId,
+                }),
+              },
+              {
+                kind: 'data',
+                data: JSON.stringify({ artifactId: userArtifactId, toolCallId: userToolCallId }),
+              },
+            ],
+          },
+          visibility: 'user-facing',
+          messageType: 'chat',
+        },
+      });
+
+      const res = await app.request(`/run/v1/conversations/${conv.id}`, {
+        headers: makeAuthHeaders(token, appId),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      const msg = body.data.messages[0];
+      // text + the user-facing artifact only; the tool_result artifact is stripped.
+      expect(msg.parts).toHaveLength(2);
+      const artifactParts = msg.parts.filter((p: { type: string }) => p.type === 'data-artifact');
+      expect(artifactParts).toHaveLength(1);
+      expect(artifactParts[0].data.type).toBe('code');
+      expect(
+        msg.parts.some(
+          (p: { type: string; data?: { type?: string } }) =>
+            p.type === 'data-artifact' && p.data?.type === 'tool_result'
+        )
+      ).toBe(false);
+    });
+
+    it('strips internal tool_result artifacts whose type lives only in the ledger column (no metadata.artifactType)', async () => {
+      // Mirrors what the runtime actually persists: BaseCompressor/processArtifact
+      // save the compressed artifact with `type: 'tool_result'` but metadata that
+      // carries only toolCallId/toolName (no artifactType). The type signal must
+      // survive a cold ledger read via the `type` column for suppression to work.
+      const tenantId = await createTestTenantWithOrg('conv-get-strip-tool-result-no-meta');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const appRecord = await createTestWebClientApp({ tenantId, projectId });
+      const appId = appRecord.id;
+
+      const token = await getAnonymousSessionToken(appId, 'https://help.customer.com');
+      const secret = getAnonJwtSecret();
+      const { payload } = await jwtVerify(token, secret);
+      const anonUserId = payload.sub as string;
+
+      const conv = await createTestConversation({
+        tenantId,
+        projectId,
+        userId: anonUserId,
+        title: 'Internal artifact conversation (no metadata.artifactType)',
+      });
+
+      const internalArtifactId = 'compress_search_toolu_realshape';
+      const internalToolCallId = 'call-internal-realshape';
+      await addLedgerArtifacts(runDbClient)({
+        scopes: { tenantId, projectId },
+        contextId: conv.id,
+        taskId: `task-${crypto.randomUUID()}`,
+        toolCallId: internalToolCallId,
+        artifacts: [
+          {
+            artifactId: internalArtifactId,
+            name: 'Tool result',
+            description: 'compressed to save context space',
+            type: 'tool_result',
+            parts: [
+              {
+                kind: 'data',
+                data: {
+                  summary: {
+                    note: 'Tool result from search-inkeep-docs - compressed to save context space',
+                  },
+                },
+              },
+            ],
+            // No `metadata.artifactType` — exactly how the compressor persists it.
+            metadata: { toolCallId: internalToolCallId, toolName: 'search-inkeep-docs' },
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      });
+
+      await createMessage(runDbClient)({
+        scopes: { tenantId, projectId },
+        data: {
+          id: `msg-${crypto.randomUUID()}`,
+          conversationId: conv.id,
+          role: 'agent',
+          content: {
+            text: 'Inkeep was founded in 2023.',
+            parts: [
+              { kind: 'text', text: 'Inkeep was founded in 2023.' },
+              {
+                kind: 'data',
+                data: JSON.stringify({
+                  artifactId: internalArtifactId,
+                  toolCallId: internalToolCallId,
+                }),
+              },
+            ],
+          },
+          visibility: 'user-facing',
+          messageType: 'chat',
+        },
+      });
+
+      const res = await app.request(`/run/v1/conversations/${conv.id}`, {
+        headers: makeAuthHeaders(token, appId),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      const msg = body.data.messages[0];
+      // Only the answer text remains; the compressed tool_result artifact is stripped.
+      expect(msg.parts).toEqual([{ type: 'text', text: 'Inkeep was founded in 2023.' }]);
+      expect(msg.parts.some((p: { type: string }) => p.type === 'data-artifact')).toBe(false);
     });
 
     it('should handle legacy type property for backward compatibility', async () => {

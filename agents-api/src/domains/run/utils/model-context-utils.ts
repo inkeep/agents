@@ -96,7 +96,7 @@ export function getModelContextWindow(modelSettings?: ModelSettings): ModelConte
   }
 
   if (!modelSettings?.model) {
-    logger.debug({}, 'No model settings provided, using fallback');
+    logger.debug('No model settings provided, using fallback');
     return {
       contextWindow: defaultContextWindow,
       hasValidContextWindow: false,

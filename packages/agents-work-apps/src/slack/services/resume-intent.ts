@@ -11,6 +11,7 @@ import {
   formatChannelContext,
   formatSlackQuery,
   generateSlackConversationId,
+  getThreadContext,
   sendResponseUrlMessage,
 } from './events/utils';
 import { findWorkspaceConnectionByTeamId } from './nango';
@@ -155,10 +156,15 @@ async function resumeMention(
     return;
   }
 
-  const [agentConfig, channelInfo, userInfo] = await Promise.all([
+  const isInThread = Boolean(intent.threadTs && intent.threadTs !== intent.messageTs);
+
+  const [agentConfig, channelInfo, userInfo, threadContext] = await Promise.all([
     resolveEffectiveAgent({ tenantId, teamId, channelId: intent.channelId }),
     getSlackChannelInfo(slackClient, intent.channelId),
     getSlackUserInfo(slackClient, slackUserId),
+    isInThread && intent.threadTs
+      ? getThreadContext(slackClient, intent.channelId, intent.threadTs)
+      : Promise.resolve(''),
   ]);
 
   const channelContext = formatChannelContext(channelInfo);
@@ -167,6 +173,7 @@ async function resumeMention(
     text: intent.question,
     channelContext,
     userName,
+    threadContext: threadContext || undefined,
     messageTs: intent.messageTs || replyThreadTs,
     senderTimezone: userInfo?.tz ?? undefined,
   });
@@ -228,12 +235,21 @@ async function resumeDirectMessage(
     return;
   }
 
-  const userInfo = await getSlackUserInfo(slackClient, slackUserId);
+  const isInThread = Boolean(intent.threadTs && intent.threadTs !== intent.messageTs);
+
+  const [userInfo, threadContext] = await Promise.all([
+    getSlackUserInfo(slackClient, slackUserId),
+    isInThread && intent.threadTs
+      ? getThreadContext(slackClient, intent.channelId, intent.threadTs)
+      : Promise.resolve(''),
+  ]);
+
   const userName = userInfo?.displayName || 'User';
   const formattedQuestion = formatSlackQuery({
     text: intent.question,
     channelContext: 'a Slack direct message',
     userName,
+    threadContext: threadContext || undefined,
     messageTs: intent.messageTs || undefined,
     senderTimezone: userInfo?.tz ?? undefined,
   });

@@ -26,7 +26,7 @@ const defaultConfig: ServerConfig = {
 export function createAgentsAuth(
   userAuthConfig?: UserAuthConfig,
   emailService?: EmailServiceConfig
-) {
+): ReturnType<typeof createAuth> {
   return createAuth({
     baseURL: env.INKEEP_AGENTS_API_URL || `http://localhost:3002`,
     secret: env.BETTER_AUTH_SECRET || 'development-secret-change-in-production',
@@ -35,6 +35,12 @@ export function createAgentsAuth(
     ...(env.AUTH_COOKIE_DOMAIN && { cookieDomain: env.AUTH_COOKIE_DOMAIN }),
     ...(userAuthConfig?.socialProviders && { socialProviders: userAuthConfig.socialProviders }),
     ...(emailService && { emailService }),
+    ...(env.INKEEP_RECAPTCHA_SECRET_KEY && {
+      recaptcha: {
+        secretKey: env.INKEEP_RECAPTCHA_SECRET_KEY,
+        minScore: env.INKEEP_RECAPTCHA_MIN_SCORE,
+      },
+    }),
   });
 }
 

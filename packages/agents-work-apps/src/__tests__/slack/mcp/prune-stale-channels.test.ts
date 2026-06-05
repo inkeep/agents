@@ -1,3 +1,4 @@
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const updateSlackMcpToolAccessChannelIdsMock = vi.fn().mockResolvedValue(undefined);
@@ -14,14 +15,7 @@ vi.mock('../../../db/runDbClient', () => ({
   default: {},
 }));
 
-vi.mock('../../../logger', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  }),
-}));
+vi.mock('../../../logger', () => createMockLoggerModule().module);
 
 describe('pruneStaleChannelIds', () => {
   let pruneStaleChannelIds: typeof import('../../../slack/mcp/index').pruneStaleChannelIds;

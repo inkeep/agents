@@ -1,31 +1,15 @@
 import { createHmac } from 'node:crypto';
+import { createMockLoggerModule } from '@inkeep/agents-core/test-utils';
 import type { Context } from 'hono';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock logger
-vi.mock('../../../logger.js', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    child: vi.fn().mockReturnThis(),
-  }),
-}));
-
-vi.mock('../../../logger', () => ({
-  getLogger: () => ({
-    info: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    child: vi.fn().mockReturnThis(),
-  }),
-}));
+vi.mock('../../../logger.js', () => createMockLoggerModule().module);
+vi.mock('../../../logger', () => createMockLoggerModule().module);
 
 // Create hoisted mocks for @inkeep/agents-core
 const {
   getTriggerByIdMock,
+  getTriggerUsersMock,
   createTriggerInvocationMock,
   updateTriggerInvocationStatusMock,
   getFullProjectWithRelationIdsMock,
@@ -41,6 +25,7 @@ const {
   const keychainGetMock = vi.fn();
   return {
     getTriggerByIdMock: vi.fn(),
+    getTriggerUsersMock: vi.fn(),
     createTriggerInvocationMock: vi.fn(),
     updateTriggerInvocationStatusMock: vi.fn(),
     getFullProjectWithRelationIdsMock: vi.fn(),
@@ -66,6 +51,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     ...actual,
     createAgentsManageDatabaseClient: vi.fn(() => ({})),
     getTriggerById: getTriggerByIdMock,
+    getTriggerUsers: getTriggerUsersMock,
     createTriggerInvocation: createTriggerInvocationMock,
     updateTriggerInvocationStatus: updateTriggerInvocationStatusMock,
     getFullProjectWithRelationIds: getFullProjectWithRelationIdsMock,
@@ -251,6 +237,7 @@ describe('Webhook Endpoint Tests', () => {
 
     // Setup default mock implementations
     getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(testTrigger));
+    getTriggerUsersMock.mockReturnValue(vi.fn().mockResolvedValue([]));
     createTriggerInvocationMock.mockReturnValue(vi.fn().mockResolvedValue({}));
     updateTriggerInvocationStatusMock.mockReturnValue(vi.fn().mockResolvedValue({}));
     getFullProjectWithRelationIdsMock.mockReturnValue(vi.fn().mockResolvedValue(testProject));
@@ -279,8 +266,13 @@ describe('Webhook Endpoint Tests', () => {
       const data = await response.json();
       expect(data).toEqual({
         success: true,
-        invocationId: 'test-id-123',
-        conversationId: 'conv-test-123',
+        invocations: [
+          {
+            invocationId: 'test-id-123',
+            conversationId: 'conv-test-123',
+            runAsUserId: null,
+          },
+        ],
       });
 
       // Verify trigger was fetched
@@ -2021,6 +2013,98 @@ describe('Webhook Endpoint Tests', () => {
         expect(createOrGetConversationMock).toHaveBeenCalled();
       });
       expect(canUseProjectStrictMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Multi-user fan-out', () => {
+    it('should fan out to multiple users when trigger has multiple trigger_users', async () => {
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(testTrigger));
+      getTriggerUsersMock.mockReturnValue(
+        vi
+          .fn()
+          .mockResolvedValue([{ userId: 'user-1' }, { userId: 'user-2' }, { userId: 'user-3' }])
+      );
+
+      const createInvocationFn = vi.fn().mockResolvedValue({});
+      createTriggerInvocationMock.mockReturnValue(createInvocationFn);
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: 'hello' }),
+        }
+      );
+
+      expect(response.status).toBe(202);
+      const data = await response.json();
+      expect(data.success).toBe(true);
+      expect(data.invocations).toHaveLength(3);
+      expect(data.invocations.map((i: any) => i.runAsUserId)).toEqual([
+        'user-1',
+        'user-2',
+        'user-3',
+      ]);
+
+      expect(createInvocationFn).toHaveBeenCalledTimes(3);
+    });
+
+    it('should return success with partial invocations when some dispatches fail', async () => {
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(testTrigger));
+      getTriggerUsersMock.mockReturnValue(
+        vi
+          .fn()
+          .mockResolvedValue([{ userId: 'user-1' }, { userId: 'user-2' }, { userId: 'user-3' }])
+      );
+
+      let callCount = 0;
+      const createInvocationFn = vi.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount === 2) {
+          throw new Error('DB connection lost');
+        }
+        return {};
+      });
+      createTriggerInvocationMock.mockReturnValue(createInvocationFn);
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: 'hello' }),
+        }
+      );
+
+      expect(response.status).toBe(202);
+      const data = await response.json();
+      expect(data.success).toBe(true);
+      expect(data.invocations).toHaveLength(2);
+    });
+
+    it('should return 500 when all dispatches fail', async () => {
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(testTrigger));
+      getTriggerUsersMock.mockReturnValue(
+        vi.fn().mockResolvedValue([{ userId: 'user-1' }, { userId: 'user-2' }])
+      );
+
+      createTriggerInvocationMock.mockReturnValue(
+        vi.fn().mockRejectedValue(new Error('DB unavailable'))
+      );
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: 'hello' }),
+        }
+      );
+
+      expect(response.status).toBe(500);
+      const data = await response.json();
+      expect(data.error).toContain('All dispatch executions failed');
     });
   });
 });

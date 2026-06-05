@@ -12,6 +12,7 @@ export const REQUEST_TYPES = {
 
 export const QUERY_TYPES = {
   BUILDER_QUERY: 'builder_query',
+  BUILDER_TRACE_OPERATOR: 'builder_trace_operator',
 } as const;
 
 export const FIELD_CONTEXTS = {
@@ -56,22 +57,31 @@ function quoteValue(value: unknown): string {
   return String(value);
 }
 
+function buildClause({ key, op, value }: { key: string; op: string; value: unknown }): string {
+  const v5op = OP_MAP[op] ?? op;
+  if (v5op === 'EXISTS' || v5op === 'NOT EXISTS') return `${key} ${v5op}`;
+  if (v5op === 'IN' || v5op === 'NOT IN') {
+    const vals = Array.isArray(value) ? value : [value];
+    return `${key} ${v5op} (${vals.map(quoteValue).join(', ')})`;
+  }
+  if (v5op === 'CONTAINS' || v5op === 'NOT CONTAINS') {
+    return `${key} ${v5op} ${quoteValue(value)}`;
+  }
+  return `${key} ${v5op} ${quoteValue(value)}`;
+}
+
 export function buildFilterExpression(
   items: Array<{ key: string; op: string; value: unknown }>
 ): string {
-  const clauses = items.map(({ key, op, value }) => {
-    const v5op = OP_MAP[op] ?? op;
-    if (v5op === 'EXISTS' || v5op === 'NOT EXISTS') return `${key} ${v5op}`;
-    if (v5op === 'IN' || v5op === 'NOT IN') {
-      const vals = Array.isArray(value) ? value : [value];
-      return `${key} ${v5op} (${vals.map(quoteValue).join(', ')})`;
-    }
-    if (v5op === 'CONTAINS' || v5op === 'NOT CONTAINS') {
-      return `${key} ${v5op} ${quoteValue(value)}`;
-    }
-    return `${key} ${v5op} ${quoteValue(value)}`;
-  });
-  return clauses.join(' AND ');
+  return items.map(buildClause).join(' AND ');
+}
+
+export function buildOrExpression(
+  items: Array<{ key: string; op: string; value: unknown }>
+): string {
+  const clauses = items.map(buildClause);
+  if (clauses.length <= 1) return clauses[0] ?? '';
+  return `(${clauses.join(' OR ')})`;
 }
 
 /** Query Operators */
@@ -101,7 +111,6 @@ export const QUERY_EXPRESSIONS = {
   MODEL_CALLS: 'modelCalls',
   LAST_ACTIVITY: 'lastActivity',
   CONVERSATION_METADATA: 'conversationMetadata',
-  FILTERED_CONVERSATIONS: 'filteredConversations',
   PAGE_CONVERSATIONS: 'pageConversations',
   TOTAL_CONVERSATIONS: 'totalConversations',
   TOOLS: 'tools',
@@ -122,6 +131,11 @@ export const QUERY_EXPRESSIONS = {
   MAX_STEPS_REACHED: 'maxStepsReached',
   STREAM_LIFETIME_EXCEEDED: 'streamLifetimeExceeded',
   DURABLE_TOOL_EXECUTIONS: 'durableToolExecutions',
+  USAGE_EVENTS: 'usageEvents',
+  AGG_TOOL_CALLS_BY_TYPE: 'aggToolCallsByType',
+  AGG_AI_CALLS: 'aggAICalls',
+  PAGE_CONVERSATIONS_BASE: 'pageConversationsBase',
+  SPAN_FILTER_BASE: 'spanFilterBase',
 } as const;
 
 /** Query Order Directions */

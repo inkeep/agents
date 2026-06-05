@@ -13,8 +13,12 @@ import type {
   ProjectScopeConfig,
 } from '../../types/index';
 import { getConversationId } from '../../utils/conversations';
+import { getLogger } from '../../utils/logger';
 import type { ResolvedRef } from '../../validation/dolt-schemas';
 import { projectScopedWhere } from '../manage/scope-helpers';
+import { deleteEventsByConversationIds } from './events';
+
+const logger = getLogger('data-access/runtime/conversations');
 
 export const listConversations =
   (db: AgentsRunDatabaseClient) =>
@@ -102,6 +106,11 @@ export const deleteConversation =
   (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; conversationId: string }): Promise<boolean> => {
     try {
+      await deleteEventsByConversationIds(db)({
+        scopes: params.scopes,
+        conversationIds: [params.conversationId],
+      });
+
       await db
         .delete(messages)
         .where(
@@ -122,7 +131,15 @@ export const deleteConversation =
 
       return true;
     } catch (error) {
-      console.error('Error deleting conversation:', error);
+      logger.error(
+        {
+          tenantId: params.scopes.tenantId,
+          projectId: params.scopes.projectId,
+          conversationId: params.conversationId,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        'Failed to delete conversation (events/messages/conversation cleanup chain)'
+      );
       return false;
     }
   };
@@ -165,16 +182,33 @@ export const createOrGetConversation =
       });
 
       if (existing) {
-        if (existing.activeSubAgentId !== input.activeSubAgentId) {
-          await db
-            .update(conversations)
-            .set({
-              activeSubAgentId: input.activeSubAgentId,
-              updatedAt: new Date().toISOString(),
-            })
-            .where(eq(conversations.id, input.id));
+        const updateSet: Partial<ConversationInsert> & { updatedAt: string } = {
+          updatedAt: new Date().toISOString(),
+        };
+        let needsUpdate = false;
 
-          return { ...existing, activeSubAgentId: input.activeSubAgentId };
+        if (existing.activeSubAgentId !== input.activeSubAgentId) {
+          updateSet.activeSubAgentId = input.activeSubAgentId;
+          needsUpdate = true;
+        }
+        if (input.userProperties !== undefined) {
+          updateSet.userProperties = input.userProperties;
+          needsUpdate = true;
+        }
+        if (input.properties !== undefined) {
+          updateSet.properties = input.properties;
+          needsUpdate = true;
+        }
+
+        if (needsUpdate) {
+          await db.update(conversations).set(updateSet).where(eq(conversations.id, input.id));
+
+          return {
+            ...existing,
+            ...(updateSet.activeSubAgentId ? { activeSubAgentId: updateSet.activeSubAgentId } : {}),
+            ...(input.userProperties !== undefined ? { userProperties: input.userProperties } : {}),
+            ...(input.properties !== undefined ? { properties: input.properties } : {}),
+          };
         }
         return existing;
       }
@@ -190,6 +224,8 @@ export const createOrGetConversation =
       title: input.title,
       lastContextResolution: input.lastContextResolution,
       metadata: input.metadata,
+      userProperties: input.userProperties,
+      properties: input.properties,
       ref: input.ref,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -222,21 +258,19 @@ function extractMessageText(content: MessageContent): string {
  */
 function applyContextWindowManagement(
   messageHistory: MessageSelect[],
-  maxTokens: number
+  maxOutputTokens: number
 ): MessageSelect[] {
-  // Simple token estimation: ~4 characters per token
   const estimateTokens = (text: string) => Math.ceil(text.length / 4);
 
   let totalTokens = 0;
   const managedHistory = [];
 
-  // Process messages from most recent backwards
   for (let i = messageHistory.length - 1; i >= 0; i--) {
     const message = messageHistory[i];
     const messageText = extractMessageText(message.content);
     const messageTokens = estimateTokens(messageText);
 
-    if (totalTokens + messageTokens <= maxTokens) {
+    if (totalTokens + messageTokens <= maxOutputTokens) {
       managedHistory.unshift(message);
       totalTokens += messageTokens;
     } else {
@@ -265,6 +299,8 @@ function applyContextWindowManagement(
           a2aTaskId: null,
           a2aSessionId: null,
           metadata: null,
+          userProperties: null,
+          properties: null,
           createdAt: referenceMessage.createdAt,
           updatedAt: referenceMessage.updatedAt,
         };
@@ -356,7 +392,10 @@ export const setActiveAgentForConversation =
     ref: ResolvedRef;
     userId?: string;
     metadata?: ConversationMetadata;
+    userProperties?: Record<string, unknown> | null;
+    properties?: Record<string, unknown> | null;
   }): Promise<void> => {
+    const now = new Date().toISOString();
     await db
       .insert(conversations)
       .values({
@@ -368,14 +407,18 @@ export const setActiveAgentForConversation =
         ref: params.ref,
         userId: params.userId,
         metadata: params.metadata,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        userProperties: params.userProperties,
+        properties: params.properties,
+        createdAt: now,
+        updatedAt: now,
       })
       .onConflictDoUpdate({
         target: [conversations.tenantId, conversations.projectId, conversations.id],
         set: {
           activeSubAgentId: params.subAgentId,
-          updatedAt: new Date().toISOString(),
+          updatedAt: now,
+          ...(params.userProperties !== undefined ? { userProperties: params.userProperties } : {}),
+          ...(params.properties !== undefined ? { properties: params.properties } : {}),
         },
       });
   };

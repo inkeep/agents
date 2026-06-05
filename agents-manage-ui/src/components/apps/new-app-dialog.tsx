@@ -3,6 +3,7 @@
 import { ChevronDown, Plus } from 'lucide-react';
 import { useState } from 'react';
 import type { SelectOption } from '@/components/form/generic-select';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 import type { AppCreateResponse } from '@/lib/api/apps';
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
@@ -15,14 +16,28 @@ import {
 import { AppCredentialDisplay } from './app-credential-display';
 import { AppCreateForm } from './form/app-create-form';
 import { APP_TYPE_OPTIONS } from './form/validation';
+import { SupportCopilotInstallDialog } from './install/support-copilot-install-dialog';
 
 interface NewAppDialogProps {
   agentOptions: SelectOption[];
+  credentialOptions: SelectOption[];
+  hasSupportCopilotEntitlement: boolean;
 }
 
-type AppType = 'web_client' | 'api';
+type AppType = 'web_client' | 'api' | 'support_copilot';
 
-export function NewAppDialog({ agentOptions }: NewAppDialogProps) {
+export function NewAppDialog({
+  agentOptions,
+  credentialOptions,
+  hasSupportCopilotEntitlement,
+}: NewAppDialogProps) {
+  const { PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
+  const isCloudDeployment = PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true';
+  const supportCopilotEnabled = isCloudDeployment && hasSupportCopilotEntitlement;
+  const appTypeOptions = APP_TYPE_OPTIONS.filter(
+    (opt) => opt.value !== 'api' && (opt.value !== 'support_copilot' || supportCopilotEnabled)
+  );
+
   const [isOpen, setIsOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<AppType | null>(null);
   const [createdApp, setCreatedApp] = useState<AppCreateResponse | null>(null);
@@ -33,9 +48,11 @@ export function NewAppDialog({ agentOptions }: NewAppDialogProps) {
     setSelectedType(null);
   };
 
-  const handleCredentialDisplayClosed = () => {
+  const handleCreatedDialogClosed = () => {
     setCreatedApp(null);
   };
+
+  const isSupportCopilotCreated = createdApp?.app.type === 'support_copilot';
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
@@ -58,7 +75,7 @@ export function NewAppDialog({ agentOptions }: NewAppDialogProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          {APP_TYPE_OPTIONS.map((opt) => (
+          {appTypeOptions.map((opt) => (
             <DropdownMenuItem
               key={opt.value}
               className="flex flex-col items-start gap-0.5 py-2"
@@ -84,6 +101,7 @@ export function NewAppDialog({ agentOptions }: NewAppDialogProps) {
               <AppCreateForm
                 appType={selectedType}
                 agentOptions={agentOptions}
+                credentialOptions={credentialOptions}
                 onAppCreated={handleAppCreated}
               />
             )}
@@ -91,11 +109,19 @@ export function NewAppDialog({ agentOptions }: NewAppDialogProps) {
         </DialogContent>
       </Dialog>
 
-      <AppCredentialDisplay
-        appId={createdApp ? createdApp.app.id : ''}
-        open={!!createdApp}
-        onClose={handleCredentialDisplayClosed}
-      />
+      {createdApp && isSupportCopilotCreated ? (
+        <SupportCopilotInstallDialog
+          app={createdApp.app}
+          open={!!createdApp}
+          onClose={handleCreatedDialogClosed}
+        />
+      ) : (
+        <AppCredentialDisplay
+          appId={createdApp ? createdApp.app.id : ''}
+          open={!!createdApp && !isSupportCopilotCreated}
+          onClose={handleCreatedDialogClosed}
+        />
+      )}
     </>
   );
 }

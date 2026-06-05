@@ -1,11 +1,54 @@
 import { z } from '@hono/zod-openapi';
 import {
+  canonicalizeMimeType,
   DATA_URI_IMAGE_BASE64_REGEX,
+  DATA_URI_OFFICE_BASE64_REGEX,
   DATA_URI_PDF_BASE64_REGEX,
   DATA_URI_TEXT_BASE64_REGEX,
+  isOfficeDocumentMimeType,
   normalizeMimeType,
+  ZIP_DOCUMENT_EXTENSIONS_LABEL,
 } from '@inkeep/agents-core/constants/allowed-file-formats';
-import { isTextDocumentMimeType } from '../utils/text-document-attachments';
+import { isTextDocumentMimeType } from '@inkeep/agents-core/text-attachments';
+
+const rewriteDataUriMimeType = (dataUri: string, mimeType: string): string =>
+  dataUri.replace(/^(data:)[^;,]*/i, `$1${mimeType}`);
+
+const extractDataUriMimeType = (dataUri: string): string =>
+  /^data:([^;,]+)/i.exec(dataUri)?.[1] ?? '';
+
+const preprocessFileObject = (val: unknown): unknown => {
+  if (!val || typeof val !== 'object') return val;
+  const obj = val as Record<string, unknown>;
+  if (typeof obj.file_data !== 'string' || !obj.file_data.startsWith('data:')) return val;
+  const filename = typeof obj.filename === 'string' ? obj.filename : undefined;
+  const incoming = extractDataUriMimeType(obj.file_data);
+  const canonical = canonicalizeMimeType(incoming, filename);
+  if (canonical === normalizeMimeType(incoming)) return val;
+  return { ...obj, file_data: rewriteDataUriMimeType(obj.file_data, canonical) };
+};
+
+const preprocessVercelFilePart = (val: unknown): unknown => {
+  if (!val || typeof val !== 'object') return val;
+  const obj = val as Record<string, unknown>;
+  const filename = typeof obj.filename === 'string' ? obj.filename : undefined;
+  const incomingMime = typeof obj.mediaType === 'string' ? obj.mediaType : '';
+  const dataUriMime =
+    typeof obj.url === 'string' && obj.url.startsWith('data:')
+      ? extractDataUriMimeType(obj.url)
+      : '';
+  const normalizedIncomingMime = normalizeMimeType(incomingMime);
+  const canonical = canonicalizeMimeType(incomingMime || dataUriMime, filename);
+  const url =
+    typeof obj.url === 'string' &&
+    obj.url.startsWith('data:') &&
+    canonical.length > 0 &&
+    canonical !== normalizeMimeType(dataUriMime)
+      ? rewriteDataUriMimeType(obj.url, canonical)
+      : obj.url;
+  if (canonical === normalizedIncomingMime && url === obj.url) return val;
+  return { ...obj, mediaType: canonical, url };
+};
 
 const hasValidBase64Payload = (val: string): boolean => {
   const base64Part = val.split(',')[1];
@@ -25,17 +68,85 @@ const PdfDataUriSchema = z
   .regex(DATA_URI_PDF_BASE64_REGEX, 'File must be a PDF data URI')
   .refine(hasValidBase64Payload, 'Invalid base64 data in PDF data URI');
 
-const TextDocumentDataUriSchema = z
-  .string()
-  .regex(
-    DATA_URI_TEXT_BASE64_REGEX,
-    'File must be a text/plain, text/markdown, text/html, text/csv, text/x-log, or application/json data URI'
-  )
-  .refine(hasValidBase64Payload, 'Invalid base64 data in text document data URI');
+const normalizeDataUriMimeType = (val: unknown): unknown => {
+  if (typeof val !== 'string') return val;
+  return val.replace(
+    /^(data:)([^;,]+)/i,
+    (_, prefix, mimeType) => `${prefix}${mimeType.toLowerCase()}`
+  );
+};
+
+const TextDocumentDataUriSchema = z.preprocess(
+  normalizeDataUriMimeType,
+  z
+    .string()
+    .regex(DATA_URI_TEXT_BASE64_REGEX, 'File must be a supported text/code document data URI')
+    .refine(hasValidBase64Payload, 'Invalid base64 data in text document data URI')
+);
 
 export const ImageUrlSchema = z.union([z.httpUrl(), ImageDataUriSchema]);
+
+const OFFICE_DOCUMENT_DATA_URI_MESSAGE = `File must be a supported ZIP-based document data URI (${ZIP_DOCUMENT_EXTENSIONS_LABEL})`;
+const INVALID_OFFICE_DOCUMENT_DATA_URI_BASE64_MESSAGE = `Invalid base64 data in ZIP-based document data URI (${ZIP_DOCUMENT_EXTENSIONS_LABEL})`;
+
+const getDataUriMimeType = (val: string): string | undefined =>
+  normalizeMimeType(/^data:([^;,]+)/i.exec(val)?.[1] ?? '');
+
+const getFirstIssueMessage = (issues: unknown): string | undefined => {
+  if (!Array.isArray(issues)) return undefined;
+
+  for (const issue of issues) {
+    if (
+      issue &&
+      typeof issue === 'object' &&
+      'message' in issue &&
+      typeof issue.message === 'string' &&
+      issue.message !== 'Invalid input'
+    ) {
+      return issue.message;
+    }
+  }
+
+  return undefined;
+};
+
+const getInlineDocumentUnionErrorMessage = (issue: {
+  code?: string;
+  input?: unknown;
+  errors?: unknown;
+}): string | undefined => {
+  if (issue.code !== 'invalid_union' || typeof issue.input !== 'string') {
+    return undefined;
+  }
+
+  const mimeType = getDataUriMimeType(issue.input);
+  if (!mimeType) {
+    return undefined;
+  }
+
+  if (mimeType === 'application/zip' || isOfficeDocumentMimeType(mimeType)) {
+    return (
+      getFirstIssueMessage(Array.isArray(issue.errors) ? issue.errors[2] : undefined) ??
+      OFFICE_DOCUMENT_DATA_URI_MESSAGE
+    );
+  }
+
+  return undefined;
+};
+
+const OfficeDocumentDataUriSchema = z.preprocess(
+  normalizeDataUriMimeType,
+  z
+    .string()
+    .regex(DATA_URI_OFFICE_BASE64_REGEX, OFFICE_DOCUMENT_DATA_URI_MESSAGE)
+    .refine(hasValidBase64Payload, INVALID_OFFICE_DOCUMENT_DATA_URI_BASE64_MESSAGE)
+);
+
 export const PdfDataOrUrlSchema = z.union([PdfDataUriSchema, z.httpUrl()]);
-export const InlineDocumentDataSchema = z.union([PdfDataOrUrlSchema, TextDocumentDataUriSchema]);
+export const InlineDocumentDataSchema = z.union(
+  [PdfDataOrUrlSchema, TextDocumentDataUriSchema, OfficeDocumentDataUriSchema],
+  { error: getInlineDocumentUnionErrorMessage }
+);
 
 /** OpenAI-specific image detail level. Has no effect on other providers. */
 export const ImageDetailEnum = ['auto', 'low', 'high'] as const;
@@ -54,10 +165,13 @@ export type ImageContentItem = z.infer<typeof ImageContentItemSchema>;
 
 export const FileContentItemSchema = z.object({
   type: z.literal('file'),
-  file: z.object({
-    file_data: InlineDocumentDataSchema,
-    filename: z.string().optional(),
-  }),
+  file: z.preprocess(
+    preprocessFileObject,
+    z.object({
+      file_data: InlineDocumentDataSchema,
+      filename: z.string().optional(),
+    })
+  ),
 });
 
 export type FileContentItem = z.infer<typeof FileContentItemSchema>;
@@ -74,24 +188,37 @@ export const VercelImagePartSchema = z.object({
   text: ImageUrlSchema,
 });
 
-export const VercelFilePartSchema = z
-  .object({
-    type: z.literal('file'),
-    url: z.string(),
-    mediaType: z.string(),
-    filename: z.string().optional(),
-  })
-  .superRefine((part, ctx) => {
-    const mimeType = normalizeMimeType(part.mediaType);
+export const VercelFilePartSchema = z.preprocess(
+  preprocessVercelFilePart,
+  z
+    .object({
+      type: z.literal('file'),
+      url: z.string(),
+      mediaType: z.string(),
+      filename: z.string().optional(),
+    })
+    .superRefine((part, ctx) => {
+      const mimeType = normalizeMimeType(part.mediaType);
 
-    if (isTextDocumentMimeType(mimeType) && !DATA_URI_TEXT_BASE64_REGEX.test(part.url)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Text document file parts must use inline base64 data URIs',
-        path: ['url'],
-      });
-    }
-  });
+      const normalizedUrl = normalizeDataUriMimeType(part.url) as string;
+
+      if (isTextDocumentMimeType(mimeType) && !DATA_URI_TEXT_BASE64_REGEX.test(normalizedUrl)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Text document file parts must use inline base64 data URIs',
+          path: ['url'],
+        });
+      }
+
+      if (isOfficeDocumentMimeType(mimeType) && !DATA_URI_OFFICE_BASE64_REGEX.test(normalizedUrl)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `ZIP-based document file parts (${ZIP_DOCUMENT_EXTENSIONS_LABEL}) must use inline base64 data URIs`,
+          path: ['url'],
+        });
+      }
+    })
+);
 
 export const VercelAudioVideoPartSchema = z.object({
   type: z.union([
@@ -129,7 +256,21 @@ export const VercelMessagePartSchema = z.union([
   VercelStepStartPartSchema,
 ]);
 
+// Constrain client-supplied message ids to the server's own id alphabet so
+// values that flow to messages.id (PK), OTel attributes, structured logs,
+// tool-call-id templates, and webhook payloads can't carry control chars,
+// NULs, or newlines. Accepts UUIDs (36 char), nanoids (21 char), and our
+// prefixed forms (conv_<16>) without rejecting any legitimate id format.
+// Shared so the constraint is defined once and stays in lockstep across
+// VercelMessageSchema.id and the body-level messageId on both chat routes.
+export const MessageIdSchema = z
+  .string()
+  .regex(/^[A-Za-z0-9_-]+$/)
+  .min(1)
+  .max(64);
+
 export const VercelMessageSchema = z.object({
+  id: MessageIdSchema.optional(),
   role: z.enum(['system', 'user', 'assistant', 'function', 'tool']),
   content: z.any(),
   parts: z.array(VercelMessagePartSchema).optional(),

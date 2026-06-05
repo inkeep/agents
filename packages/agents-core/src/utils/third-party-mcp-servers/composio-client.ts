@@ -173,7 +173,7 @@ export function extractComposioServerId(mcpUrl: string): string | null {
 export async function deleteComposioConnectedAccount(accountId: string): Promise<boolean> {
   const composioInstance = getComposioInstance();
   if (!composioInstance) {
-    logger.info({}, 'Composio not configured, skipping account deletion');
+    logger.info('Composio not configured, skipping account deletion');
     return false;
   }
 
@@ -195,7 +195,7 @@ async function fetchComposioConnectedAccounts(
 ): Promise<Awaited<ReturnType<Composio['connectedAccounts']['list']>> | null> {
   const composioInstance = getComposioInstance();
   if (!composioInstance) {
-    logger.info({}, 'Composio not configured, skipping connected accounts fetch');
+    logger.info('Composio not configured, skipping connected accounts fetch');
     return null;
   }
 
@@ -232,7 +232,7 @@ export async function isComposioMCPServerAuthenticated(
 ): Promise<ComposioAuthResult> {
   const composioApiKey = process.env.COMPOSIO_API_KEY;
   if (!composioApiKey) {
-    logger.info({}, 'Composio API key not configured, skipping auth check');
+    logger.info('Composio API key not configured, skipping auth check');
     return { authenticated: false };
   }
 
@@ -246,7 +246,7 @@ export async function isComposioMCPServerAuthenticated(
 
   const composioInstance = getComposioInstance();
   if (!composioInstance) {
-    logger.info({}, 'Composio not configured, skipping auth check');
+    logger.info('Composio not configured, skipping auth check');
     return { authenticated: false };
   }
 
@@ -392,7 +392,7 @@ export async function getComposioOAuthRedirectUrl(
 ): Promise<string | null> {
   const composioApiKey = process.env.COMPOSIO_API_KEY;
   if (!composioApiKey) {
-    logger.info({}, 'Composio API key not configured');
+    logger.info('Composio API key not configured');
     return null;
   }
 
@@ -404,7 +404,7 @@ export async function getComposioOAuthRedirectUrl(
 
   const composioInstance = getComposioInstance();
   if (!composioInstance) {
-    logger.info({}, 'Composio not configured');
+    logger.info('Composio not configured');
     return null;
   }
 
@@ -490,13 +490,13 @@ export async function fetchComposioServers(): Promise<PrebuiltMCPServer[]> {
   const composioApiKey = process.env.COMPOSIO_API_KEY;
 
   if (!composioApiKey) {
-    logger.info({}, 'COMPOSIO_API_KEY not configured, skipping Composio servers');
+    logger.info('COMPOSIO_API_KEY not configured, skipping Composio servers');
     return [];
   }
 
   const composioInstance = getComposioInstance();
   if (!composioInstance) {
-    logger.info({}, 'Composio not configured, returning empty list');
+    logger.info('Composio not configured, returning empty list');
     return [];
   }
 
@@ -539,7 +539,7 @@ export async function fetchSingleComposioServer(
   const composioApiKey = process.env.COMPOSIO_API_KEY;
 
   if (!composioApiKey) {
-    logger.debug({}, 'COMPOSIO_API_KEY not configured');
+    logger.debug('COMPOSIO_API_KEY not configured');
     return null;
   }
 
@@ -547,7 +547,7 @@ export async function fetchSingleComposioServer(
 
   const composioInstance = getComposioInstance();
   if (!composioInstance) {
-    logger.info({}, 'Composio not configured, returning null');
+    logger.info('Composio not configured, returning null');
     return null;
   }
 

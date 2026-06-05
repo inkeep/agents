@@ -68,7 +68,7 @@ app.openapi(
 
       return c.json(result) as any;
     } catch (error) {
-      logger.error({ error, tenantId }, 'Failed to list functions');
+      logger.error({ error }, 'Failed to list functions');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to list functions' }),
         500
@@ -120,7 +120,7 @@ app.openapi(
 
       return c.json({ data: functionData as any }) as any;
     } catch (error) {
-      logger.error({ error, tenantId, id }, 'Failed to get function');
+      logger.error({ error, id }, 'Failed to get function');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to get function' }),
         500
@@ -181,11 +181,11 @@ app.openapi(
         scopes: { tenantId, projectId },
       });
 
-      logger.info({ tenantId, functionId: id }, 'Function created');
+      logger.info({ functionId: id }, 'Function created');
 
       return c.json({ data: created as any }, 201) as any;
     } catch (error) {
-      logger.error({ error, tenantId, functionData }, 'Failed to create function');
+      logger.error({ error, functionData }, 'Failed to create function');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to create function' }),
         500
@@ -253,11 +253,11 @@ const updateFunctionHandler: ManageRouteHandler<typeof updateFunctionRouteConfig
       scopes: { tenantId, projectId },
     });
 
-    logger.info({ tenantId, functionId: id }, 'Function updated');
+    logger.info({ functionId: id }, 'Function updated');
 
     return c.json({ data: updated as any }) as any;
   } catch (error) {
-    logger.error({ error, tenantId, id, updateData }, 'Failed to update function');
+    logger.error({ error, id, updateData }, 'Failed to update function');
     return c.json(
       createApiError({ code: 'internal_server_error', message: 'Failed to update function' }),
       500
@@ -308,11 +308,11 @@ app.openapi(
         scopes: { tenantId, projectId },
       });
 
-      logger.info({ tenantId, functionId: id }, 'Function deleted');
+      logger.info({ functionId: id }, 'Function deleted');
 
       return c.body(null, 204) as any;
     } catch (error) {
-      logger.error({ error, tenantId, id }, 'Failed to delete function');
+      logger.error({ error, id }, 'Failed to delete function');
       return c.json(
         createApiError({ code: 'internal_server_error', message: 'Failed to delete function' }),
         500

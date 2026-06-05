@@ -17,11 +17,12 @@ import { UpdateAppDialog } from './update-app-dialog';
 interface AppItemMenuProps {
   app: App;
   agentOptions: SelectOption[];
+  credentialOptions: SelectOption[];
 }
 
 type DialogType = 'delete' | 'update' | null;
 
-export function AppItemMenu({ app, agentOptions }: AppItemMenuProps) {
+export function AppItemMenu({ app, agentOptions, credentialOptions }: AppItemMenuProps) {
   const [openDialog, setOpenDialog] = useState<DialogType>(null);
 
   const handleDialogClose = () => {
@@ -54,7 +55,12 @@ export function AppItemMenu({ app, agentOptions }: AppItemMenuProps) {
       )}
 
       {openDialog === 'update' && (
-        <UpdateAppDialog app={app} agentOptions={agentOptions} setIsOpen={handleDialogClose} />
+        <UpdateAppDialog
+          app={app}
+          agentOptions={agentOptions}
+          credentialOptions={credentialOptions}
+          setIsOpen={handleDialogClose}
+        />
       )}
     </>
   );

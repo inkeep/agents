@@ -4,12 +4,14 @@ import { Loader2, XCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
+import { useCaptchaExecutor } from '@/components/providers/captcha-provider-gate';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuthClient } from '@/contexts/auth-client';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useAuthSession } from '@/hooks/use-auth';
 import { type InvitationVerification, verifyInvitation } from '@/lib/actions/invitations';
 import { updateUserProfileTimezone } from '@/lib/actions/user-profile';
+import { CAPTCHA_ERROR_MESSAGE, getCaptchaErrorMessage } from '@/lib/captcha-errors';
 import { getSafeReturnUrl, isValidReturnUrl } from '@/lib/utils/auth-redirect';
 import { AcceptDecline } from './components/accept-decline';
 import { AuthMethodPicker } from './components/auth-method-picker';
@@ -25,7 +27,9 @@ export default function AcceptInvitationPage({
   const { user, isLoading: isAuthLoading } = useAuthSession();
   const { invitationId } = use(params);
   const authClient = useAuthClient();
-  const { PUBLIC_GOOGLE_CLIENT_ID, PUBLIC_IS_SMTP_CONFIGURED } = useRuntimeConfig();
+  const { PUBLIC_GOOGLE_CLIENT_ID, PUBLIC_MICROSOFT_CLIENT_ID, PUBLIC_IS_SMTP_CONFIGURED } =
+    useRuntimeConfig();
+  const executeRecaptcha = useCaptchaExecutor();
 
   const [invitationVerification, setInvitationVerification] =
     useState<InvitationVerification | null>(null);
@@ -133,14 +137,28 @@ export default function AcceptInvitationPage({
     setIsSubmitting(true);
     setError(null);
 
+    let captchaToken: string | undefined;
+    try {
+      captchaToken = await executeRecaptcha?.('signup');
+    } catch (err) {
+      console.error('[captcha] executeRecaptcha failed on signup:', err);
+      setError(CAPTCHA_ERROR_MESSAGE);
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const signupResult = await authClient.signUp.email({
         email: emailFromUrl,
         password,
         name,
+        ...(captchaToken && {
+          fetchOptions: { headers: { 'x-captcha-response': captchaToken } },
+        }),
       });
       if (signupResult?.error) {
-        setError(signupResult.error.message || 'Failed to create account');
+        const captchaMessage = getCaptchaErrorMessage(signupResult.error.code);
+        setError(captchaMessage ?? signupResult.error.message ?? 'Failed to create account');
         setIsSubmitting(false);
         return;
       }
@@ -167,13 +185,27 @@ export default function AcceptInvitationPage({
     setIsSubmitting(true);
     setError(null);
 
+    let captchaToken: string | undefined;
+    try {
+      captchaToken = await executeRecaptcha?.('login');
+    } catch (err) {
+      console.error('[captcha] executeRecaptcha failed on accept-invitation login:', err);
+      setError(CAPTCHA_ERROR_MESSAGE);
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const signinResult = await authClient.signIn.email({
         email: emailFromUrl,
         password,
+        ...(captchaToken && {
+          fetchOptions: { headers: { 'x-captcha-response': captchaToken } },
+        }),
       });
       if (signinResult?.error) {
-        setError(signinResult.error.message || 'Failed to sign in');
+        const captchaMessage = getCaptchaErrorMessage(signinResult.error.code);
+        setError(captchaMessage ?? signinResult.error.message ?? 'Failed to sign in');
         setIsSubmitting(false);
         return;
       }
@@ -196,7 +228,7 @@ export default function AcceptInvitationPage({
       const result =
         method === 'social'
           ? await authClient.signIn.social({
-              provider: identifier as 'google',
+              provider: identifier as 'google' | 'microsoft',
               callbackURL: getFullCallbackURL(),
               ...(emailFromUrl && { loginHint: emailFromUrl }),
             })
@@ -298,6 +330,7 @@ export default function AcceptInvitationPage({
         invitationVerification={invitationVerification}
         email={emailFromUrl}
         googleClientId={PUBLIC_GOOGLE_CLIENT_ID}
+        microsoftClientId={PUBLIC_MICROSOFT_CLIENT_ID}
         isSmtpConfigured={!!PUBLIC_IS_SMTP_CONFIGURED}
         isSubmitting={isSubmitting}
         error={error}
