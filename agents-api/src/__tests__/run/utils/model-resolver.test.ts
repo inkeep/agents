@@ -614,4 +614,123 @@ describe('resolveModelConfig', () => {
       });
     });
   });
+
+  describe('independent inheritance when a lower level overrides only base (regression)', () => {
+    it('inherits project summarizer and structuredOutput when sub-agent overrides only base', async () => {
+      const subAgent = {
+        ...baseAgent,
+        models: {
+          base: { model: 'sub-agent-base' },
+        },
+      } as any;
+
+      const result = await resolveModelConfig(
+        createExecutionContext({
+          agentId: mockAgentId,
+          agentModels: null,
+          projectModels: {
+            base: { model: 'project-base' },
+            structuredOutput: { model: 'project-structured' },
+            summarizer: { model: 'project-summarizer' },
+          },
+        }),
+        subAgent
+      );
+
+      expect(result).toEqual({
+        base: { model: 'sub-agent-base' },
+        structuredOutput: { model: 'project-structured' },
+        summarizer: { model: 'project-summarizer' },
+      });
+    });
+
+    it('inherits project summarizer and structuredOutput when agent overrides only base', async () => {
+      const subAgent = {
+        ...baseAgent,
+        models: null,
+      } as any;
+
+      const result = await resolveModelConfig(
+        createExecutionContext({
+          agentId: mockAgentId,
+          agentModels: {
+            base: { model: 'agent-base' },
+          },
+          projectModels: {
+            base: { model: 'project-base' },
+            structuredOutput: { model: 'project-structured' },
+            summarizer: { model: 'project-summarizer' },
+          },
+        }),
+        subAgent
+      );
+
+      expect(result).toEqual({
+        base: { model: 'agent-base' },
+        structuredOutput: { model: 'project-structured' },
+        summarizer: { model: 'project-summarizer' },
+      });
+    });
+
+    it('cascades each model type independently across all three levels', async () => {
+      const subAgent = {
+        ...baseAgent,
+        models: {
+          base: { model: 'sub-agent-base' },
+        },
+      } as any;
+
+      const result = await resolveModelConfig(
+        createExecutionContext({
+          agentId: mockAgentId,
+          agentModels: {
+            base: undefined,
+            summarizer: { model: 'agent-summarizer' },
+          } as any,
+          projectModels: {
+            base: { model: 'project-base' },
+            structuredOutput: { model: 'project-structured' },
+          },
+        }),
+        subAgent
+      );
+
+      expect(result).toEqual({
+        base: { model: 'sub-agent-base' },
+        structuredOutput: { model: 'project-structured' }, // inherited from project
+        summarizer: { model: 'agent-summarizer' }, // inherited from agent, not shadowed by sub-agent base
+      });
+    });
+
+    it('tops up gateway fields on an inherited summarizer from the resolved base', async () => {
+      const subAgent = {
+        ...baseAgent,
+        models: {
+          base: {
+            model: 'sub-agent-base',
+            fallbackModels: ['openai/gpt-4.1'],
+            allowedProviders: ['openai'],
+          },
+        },
+      } as any;
+
+      const result = await resolveModelConfig(
+        createExecutionContext({
+          agentId: mockAgentId,
+          agentModels: null,
+          projectModels: {
+            base: { model: 'project-base' },
+            summarizer: { model: 'project-summarizer' },
+          },
+        }),
+        subAgent
+      );
+
+      expect(result.summarizer).toEqual({
+        model: 'project-summarizer',
+        fallbackModels: ['openai/gpt-4.1'],
+        allowedProviders: ['openai'],
+      });
+    });
+  });
 });

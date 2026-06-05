@@ -995,19 +995,16 @@ describe('generateTaskHandler', () => {
         baseUrl: 'https://test.com',
       });
 
+      // Sub-agent overrides only base; structuredOutput and summarizer inherit
+      // independently from the agent level rather than collapsing to the
+      // sub-agent base.
       expect(config.agentSchema.models).toEqual({
         base: {
           model: 'anthropic/claude-sonnet-4-20250514',
           providerOptions: { anthropic: { temperature: 0.8, maxTokens: 2048 } },
         },
-        structuredOutput: {
-          model: 'anthropic/claude-sonnet-4-20250514',
-          providerOptions: { anthropic: { temperature: 0.8, maxTokens: 2048 } },
-        },
-        summarizer: {
-          model: 'anthropic/claude-sonnet-4-20250514',
-          providerOptions: { anthropic: { temperature: 0.8, maxTokens: 2048 } },
-        },
+        structuredOutput: { model: 'openai/gpt-4' },
+        summarizer: { model: 'openai/gpt-3.5-turbo' },
       });
     });
 
@@ -1043,6 +1040,8 @@ describe('generateTaskHandler', () => {
         baseUrl: 'https://test.com',
       });
 
+      // structuredOutput and summarizer inherit independently from the agent
+      // level; only base is overridden on the sub-agent.
       expect(config.agentSchema.models).toEqual({
         base: {
           model: 'openai/gpt-4o',
@@ -1050,18 +1049,8 @@ describe('generateTaskHandler', () => {
             openai: { temperature: 0.3, frequencyPenalty: 0.1, presencePenalty: 0.2 },
           },
         },
-        structuredOutput: {
-          model: 'openai/gpt-4o',
-          providerOptions: {
-            openai: { temperature: 0.3, frequencyPenalty: 0.1, presencePenalty: 0.2 },
-          },
-        },
-        summarizer: {
-          model: 'openai/gpt-4o',
-          providerOptions: {
-            openai: { temperature: 0.3, frequencyPenalty: 0.1, presencePenalty: 0.2 },
-          },
-        },
+        structuredOutput: { model: 'openai/gpt-4' },
+        summarizer: { model: 'openai/gpt-3.5-turbo' },
       });
     });
   });
