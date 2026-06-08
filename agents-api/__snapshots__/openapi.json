@@ -2049,6 +2049,62 @@
         ],
         "type": "object"
       },
+      "ChallengeServiceIsNotEnabledOrAppNotFound": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProblemDetails"
+          },
+          {
+            "properties": {
+              "code": {
+                "description": "A short code indicating the error code returned.",
+                "enum": [
+                  "not_found"
+                ],
+                "example": "not_found",
+                "type": "string"
+              },
+              "detail": {
+                "description": "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong.",
+                "example": "Challenge service is not enabled or app not found",
+                "type": "string"
+              },
+              "error": {
+                "description": "Legacy error format for backward compatibility.",
+                "properties": {
+                  "code": {
+                    "description": "A short code indicating the error code returned.",
+                    "enum": [
+                      "not_found"
+                    ],
+                    "example": "not_found",
+                    "type": "string"
+                  },
+                  "message": {
+                    "description": "A concise error message suitable for display to end users. May be truncated if the full detail is long.",
+                    "example": "Challenge service is not enabled or app not found",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "type": "object"
+              },
+              "title": {
+                "description": "A short, human-readable summary of the problem type.",
+                "example": "Not Found",
+                "type": "string"
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "type": "object"
+          }
+        ]
+      },
       "ChallengeServiceRateLimitExceeded": {
         "allOf": [
           {
@@ -2100,6 +2156,67 @@
               "title": {
                 "description": "A short, human-readable summary of the problem type.",
                 "example": "Too Many Requests",
+                "type": "string"
+              }
+            },
+            "required": [
+              "error"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "ChallengeUpstreamError": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProblemDetails"
+          },
+          {
+            "properties": {
+              "code": {
+                "description": "A short code indicating the error code returned.",
+                "enum": [
+                  "bad_gateway"
+                ],
+                "example": "bad_gateway",
+                "type": "string"
+              },
+              "detail": {
+                "description": "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong.",
+                "example": "Challenge upstream error",
+                "type": "string"
+              },
+              "error": {
+                "description": "Legacy error format for backward compatibility.",
+                "properties": {
+                  "code": {
+                    "description": "A short code indicating the error code returned.",
+                    "enum": [
+                      "bad_gateway"
+                    ],
+                    "example": "bad_gateway",
+                    "type": "string"
+                  },
+                  "message": {
+                    "description": "A concise error message suitable for display to end users. May be truncated if the full detail is long.",
+                    "example": "Challenge upstream error",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "type": "object"
+              },
+              "status": {
+                "description": "The HTTP status code.",
+                "example": 502,
+                "type": "integer"
+              },
+              "title": {
+                "description": "A short, human-readable summary of the problem type.",
+                "example": "Bad Gateway",
                 "type": "string"
               }
             },
@@ -8943,123 +9060,6 @@
           "pagination"
         ],
         "type": "object"
-      },
-      "SentinelIsNotEnabledOrAppNotFound": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/ProblemDetails"
-          },
-          {
-            "properties": {
-              "code": {
-                "description": "A short code indicating the error code returned.",
-                "enum": [
-                  "not_found"
-                ],
-                "example": "not_found",
-                "type": "string"
-              },
-              "detail": {
-                "description": "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong.",
-                "example": "Sentinel is not enabled or app not found",
-                "type": "string"
-              },
-              "error": {
-                "description": "Legacy error format for backward compatibility.",
-                "properties": {
-                  "code": {
-                    "description": "A short code indicating the error code returned.",
-                    "enum": [
-                      "not_found"
-                    ],
-                    "example": "not_found",
-                    "type": "string"
-                  },
-                  "message": {
-                    "description": "A concise error message suitable for display to end users. May be truncated if the full detail is long.",
-                    "example": "Sentinel is not enabled or app not found",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "code",
-                  "message"
-                ],
-                "type": "object"
-              },
-              "title": {
-                "description": "A short, human-readable summary of the problem type.",
-                "example": "Not Found",
-                "type": "string"
-              }
-            },
-            "required": [
-              "error"
-            ],
-            "type": "object"
-          }
-        ]
-      },
-      "SentinelUpstreamError": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/ProblemDetails"
-          },
-          {
-            "properties": {
-              "code": {
-                "description": "A short code indicating the error code returned.",
-                "enum": [
-                  "bad_gateway"
-                ],
-                "example": "bad_gateway",
-                "type": "string"
-              },
-              "detail": {
-                "description": "A detailed explanation specific to this occurrence of the problem, providing context and specifics about what went wrong.",
-                "example": "Sentinel upstream error",
-                "type": "string"
-              },
-              "error": {
-                "description": "Legacy error format for backward compatibility.",
-                "properties": {
-                  "code": {
-                    "description": "A short code indicating the error code returned.",
-                    "enum": [
-                      "bad_gateway"
-                    ],
-                    "example": "bad_gateway",
-                    "type": "string"
-                  },
-                  "message": {
-                    "description": "A concise error message suitable for display to end users. May be truncated if the full detail is long.",
-                    "example": "Sentinel upstream error",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "code",
-                  "message"
-                ],
-                "type": "object"
-              },
-              "status": {
-                "description": "The HTTP status code.",
-                "example": 502,
-                "type": "integer"
-              },
-              "title": {
-                "description": "A short, human-readable summary of the problem type.",
-                "example": "Bad Gateway",
-                "type": "string"
-              }
-            },
-            "required": [
-              "error"
-            ],
-            "type": "object"
-          }
-        ]
       },
       "SetScheduledTriggerUsersRequest": {
         "properties": {
@@ -50678,6 +50678,237 @@
         ]
       }
     },
+    "/run/auth/challenge": {
+      "get": {
+        "description": "Proxy to the challenge service. Returns 404 when the challenge service is not configured.",
+        "operationId": "get-challenge",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "appId",
+            "required": true,
+            "schema": {
+              "example": "app_a1b2c3d4e5f6",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "endpointClass",
+            "required": false,
+            "schema": {
+              "example": "chat",
+              "maxLength": 32,
+              "pattern": "^[a-z0-9-]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": true
+                }
+              }
+            },
+            "description": "Challenge returned"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OriginNotAllowed"
+                }
+              }
+            },
+            "description": "Origin not allowed"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallengeServiceIsNotEnabledOrAppNotFound"
+                }
+              }
+            },
+            "description": "Challenge service is not enabled or app not found"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallengeServiceRateLimitExceeded"
+                }
+              }
+            },
+            "description": "Challenge service rate limit exceeded"
+          },
+          "502": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallengeUpstreamError"
+                }
+              }
+            },
+            "description": "Challenge upstream error"
+          }
+        },
+        "security": [],
+        "summary": "Get Challenge",
+        "tags": [
+          "Auth"
+        ]
+      },
+      "post": {
+        "description": "Proxy POST to the challenge service (interaction data). Returns 404 when the challenge service is not configured.",
+        "operationId": "post-challenge",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "appId",
+            "required": true,
+            "schema": {
+              "example": "app_a1b2c3d4e5f6",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": true
+                }
+              }
+            },
+            "description": "Challenge returned"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OriginNotAllowed"
+                }
+              }
+            },
+            "description": "Origin not allowed"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallengeServiceIsNotEnabledOrAppNotFound"
+                }
+              }
+            },
+            "description": "Challenge service is not enabled or app not found"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallengeServiceRateLimitExceeded"
+                }
+              }
+            },
+            "description": "Challenge service rate limit exceeded"
+          },
+          "502": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallengeUpstreamError"
+                }
+              }
+            },
+            "description": "Challenge upstream error"
+          }
+        },
+        "security": [],
+        "summary": "Post Challenge Interaction Data",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/run/auth/challenge/verify": {
+      "post": {
+        "description": "Proxy to the challenge verification endpoint.",
+        "operationId": "verify-challenge",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "appId",
+            "required": true,
+            "schema": {
+              "example": "app_a1b2c3d4e5f6",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": true
+                }
+              }
+            },
+            "description": "Challenge verification result"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OriginNotAllowed"
+                }
+              }
+            },
+            "description": "Origin not allowed"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallengeServiceIsNotEnabledOrAppNotFound"
+                }
+              }
+            },
+            "description": "Challenge service is not enabled or app not found"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallengeServiceRateLimitExceeded"
+                }
+              }
+            },
+            "description": "Challenge service rate limit exceeded"
+          },
+          "502": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallengeUpstreamError"
+                }
+              }
+            },
+            "description": "Challenge upstream error"
+          }
+        },
+        "security": [],
+        "summary": "Verify Challenge Solution",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
     "/run/auth/pow/challenge": {
       "get": {
         "description": "Compatibility proxy to ALTCHA Sentinel PoW v1 (classic proof-of-work) for embedded widgets predating the Sentinel rename. Returns 404 when Sentinel PoW v1 is not configured.",
@@ -50717,246 +50948,15 @@
             "content": {
               "application/problem+json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SentinelUpstreamError"
+                  "$ref": "#/components/schemas/ChallengeUpstreamError"
                 }
               }
             },
-            "description": "Sentinel upstream error"
+            "description": "Challenge upstream error"
           }
         },
         "security": [],
         "summary": "Get Legacy PoW Challenge",
-        "tags": [
-          "Auth"
-        ]
-      }
-    },
-    "/run/auth/sentinel/challenge": {
-      "get": {
-        "description": "Proxy to ALTCHA Sentinel challenge endpoint. Returns 404 when Sentinel is not configured.",
-        "operationId": "get-sentinel-challenge",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "appId",
-            "required": true,
-            "schema": {
-              "example": "app_a1b2c3d4e5f6",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "endpointClass",
-            "required": false,
-            "schema": {
-              "example": "chat",
-              "maxLength": 32,
-              "pattern": "^[a-z0-9-]+$",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "nullable": true
-                }
-              }
-            },
-            "description": "Sentinel challenge returned"
-          },
-          "403": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OriginNotAllowed"
-                }
-              }
-            },
-            "description": "Origin not allowed"
-          },
-          "404": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SentinelIsNotEnabledOrAppNotFound"
-                }
-              }
-            },
-            "description": "Sentinel is not enabled or app not found"
-          },
-          "429": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ChallengeServiceRateLimitExceeded"
-                }
-              }
-            },
-            "description": "Challenge service rate limit exceeded"
-          },
-          "502": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SentinelUpstreamError"
-                }
-              }
-            },
-            "description": "Sentinel upstream error"
-          }
-        },
-        "security": [],
-        "summary": "Get Sentinel Challenge",
-        "tags": [
-          "Auth"
-        ]
-      },
-      "post": {
-        "description": "Proxy POST to ALTCHA Sentinel challenge endpoint (HIS interaction data). Returns 404 when Sentinel is not configured.",
-        "operationId": "post-sentinel-challenge",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "appId",
-            "required": true,
-            "schema": {
-              "example": "app_a1b2c3d4e5f6",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "nullable": true
-                }
-              }
-            },
-            "description": "Sentinel challenge returned"
-          },
-          "403": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OriginNotAllowed"
-                }
-              }
-            },
-            "description": "Origin not allowed"
-          },
-          "404": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SentinelIsNotEnabledOrAppNotFound"
-                }
-              }
-            },
-            "description": "Sentinel is not enabled or app not found"
-          },
-          "429": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ChallengeServiceRateLimitExceeded"
-                }
-              }
-            },
-            "description": "Challenge service rate limit exceeded"
-          },
-          "502": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SentinelUpstreamError"
-                }
-              }
-            },
-            "description": "Sentinel upstream error"
-          }
-        },
-        "security": [],
-        "summary": "Post Sentinel HIS Challenge",
-        "tags": [
-          "Auth"
-        ]
-      }
-    },
-    "/run/auth/sentinel/verify": {
-      "post": {
-        "description": "Proxy to ALTCHA Sentinel verification endpoint.",
-        "operationId": "verify-sentinel",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "appId",
-            "required": true,
-            "schema": {
-              "example": "app_a1b2c3d4e5f6",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "nullable": true
-                }
-              }
-            },
-            "description": "Sentinel verification result"
-          },
-          "403": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OriginNotAllowed"
-                }
-              }
-            },
-            "description": "Origin not allowed"
-          },
-          "404": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SentinelIsNotEnabledOrAppNotFound"
-                }
-              }
-            },
-            "description": "Sentinel is not enabled or app not found"
-          },
-          "429": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ChallengeServiceRateLimitExceeded"
-                }
-              }
-            },
-            "description": "Challenge service rate limit exceeded"
-          },
-          "502": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SentinelUpstreamError"
-                }
-              }
-            },
-            "description": "Sentinel upstream error"
-          }
-        },
-        "security": [],
-        "summary": "Verify Sentinel Payload",
         "tags": [
           "Auth"
         ]

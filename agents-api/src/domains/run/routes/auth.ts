@@ -86,7 +86,7 @@ function rewriteChallengeUrls(body: unknown, appId: string): void {
     typeof (obj.configuration as Record<string, unknown>).verifyUrl === 'string'
   ) {
     (obj.configuration as Record<string, unknown>).verifyUrl =
-      `/run/auth/sentinel/verify${appIdParam}`;
+      `/run/auth/challenge/verify${appIdParam}`;
   }
 
   if (
@@ -95,7 +95,7 @@ function rewriteChallengeUrls(body: unknown, appId: string): void {
     'url' in obj.his &&
     typeof (obj.his as Record<string, unknown>).url === 'string'
   ) {
-    (obj.his as Record<string, unknown>).url = `/run/auth/sentinel/challenge${appIdParam}`;
+    (obj.his as Record<string, unknown>).url = `/run/auth/challenge${appIdParam}`;
   }
 }
 
@@ -125,7 +125,7 @@ async function validateProxyOrigin(
   if (appRecord.type !== 'web_client') {
     throw createApiError({
       code: 'bad_request',
-      message: 'Sentinel proxy is only available for web_client apps',
+      message: 'Challenge proxy is only available for web_client apps',
     });
   }
   const config = appRecord.config as {
@@ -135,7 +135,7 @@ async function validateProxyOrigin(
   if (!validateOrigin(origin, config.webClient.allowedDomains)) {
     logger.warn(
       { origin, allowedDomains: config.webClient.allowedDomains, appId },
-      'Sentinel proxy: origin not allowed'
+      'Challenge proxy: origin not allowed'
     );
     throw createApiError({ code: 'forbidden', message: 'Origin not allowed' });
   }
@@ -152,14 +152,127 @@ async function validateProxyOrigin(
 // Slowloris risk from the 5s timeout is bounded by Node.js's default HTTP keep-alive
 // limits; if a flood materializes, the next layer of defense is the deployment-level
 // edge (Vercel/Cloudflare/nginx) rate limit, not application middleware.
+
+// Proxy logic shared by the canonical /run/auth/challenge routes and the deprecated
+// /run/auth/sentinel/* aliases below. Each returns the upstream JSON body (rewritten,
+// for the challenge routes) and throws an HTTPException on any failure.
+async function proxyChallengeGet(
+  appId: string,
+  endpointClass: string | undefined,
+  req: Request
+): Promise<unknown> {
+  const apiKeyId = env.INKEEP_SENTINEL_API_KEY_ID;
+  const baseUrl = env.INKEEP_SENTINEL_BASE_URL;
+  if (!isSentinelEnabled(apiKeyId) || !baseUrl) {
+    throw createApiError({ code: 'not_found', message: 'Challenge service is not enabled' });
+  }
+
+  await validateProxyOrigin(appId, req.headers.get('Origin') ?? undefined);
+
+  const upstreamUrl = `${baseUrl}/v1/challenge?apiKey=${encodeURIComponent(apiKeyId)}`;
+  const headers = forwardHeaders(req);
+  if (endpointClass) {
+    headers['x-inkeep-endpoint-class'] = endpointClass;
+  }
+
+  try {
+    const upstream = await fetch(upstreamUrl, { headers, signal: AbortSignal.timeout(5_000) });
+    if (!upstream.ok) {
+      logger.warn({ status: upstream.status, appId }, 'Challenge upstream error');
+      throw createChallengeUpstreamError(upstream.status);
+    }
+    const body = await upstream.json();
+    rewriteChallengeUrls(body, appId);
+    return body;
+  } catch (err) {
+    if (err instanceof HTTPException) throw err;
+    logger.error(
+      { error: err instanceof Error ? err.message : String(err) },
+      'Challenge fetch failed'
+    );
+    throw createApiError({ code: 'bad_gateway', message: 'Challenge service unavailable' });
+  }
+}
+
+async function proxyChallengePost(appId: string, req: Request): Promise<unknown> {
+  const apiKeyId = env.INKEEP_SENTINEL_API_KEY_ID;
+  const baseUrl = env.INKEEP_SENTINEL_BASE_URL;
+  if (!isSentinelEnabled(apiKeyId) || !baseUrl) {
+    throw createApiError({ code: 'not_found', message: 'Challenge service is not enabled' });
+  }
+
+  await validateProxyOrigin(appId, req.headers.get('Origin') ?? undefined);
+
+  const upstreamUrl = `${baseUrl}/v1/challenge?apiKey=${encodeURIComponent(apiKeyId)}`;
+  const headers = forwardHeaders(req);
+  headers['content-type'] = req.headers.get('content-type') ?? 'application/json';
+
+  try {
+    const upstream = await fetch(upstreamUrl, {
+      method: 'POST',
+      headers,
+      body: await req.text(),
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!upstream.ok) {
+      logger.warn({ status: upstream.status, appId }, 'HIS challenge upstream error');
+      throw createChallengeUpstreamError(upstream.status);
+    }
+    const body = await upstream.json();
+    rewriteChallengeUrls(body, appId);
+    return body;
+  } catch (err) {
+    if (err instanceof HTTPException) throw err;
+    logger.error(
+      { error: err instanceof Error ? err.message : String(err) },
+      'HIS challenge fetch failed'
+    );
+    throw createApiError({ code: 'bad_gateway', message: 'Challenge service unavailable' });
+  }
+}
+
+async function proxyVerify(appId: string, req: Request): Promise<unknown> {
+  const apiKeyId = env.INKEEP_SENTINEL_API_KEY_ID;
+  const baseUrl = env.INKEEP_SENTINEL_BASE_URL;
+  if (!isSentinelEnabled(apiKeyId) || !baseUrl) {
+    throw createApiError({ code: 'not_found', message: 'Challenge service is not enabled' });
+  }
+
+  await validateProxyOrigin(appId, req.headers.get('Origin') ?? undefined);
+
+  const upstreamUrl = `${baseUrl}/v1/verify?apiKey=${encodeURIComponent(apiKeyId)}`;
+  const headers = forwardHeaders(req);
+  headers['content-type'] = req.headers.get('content-type') ?? 'application/json';
+
+  try {
+    const upstream = await fetch(upstreamUrl, {
+      method: 'POST',
+      headers,
+      body: await req.text(),
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!upstream.ok) {
+      logger.warn({ status: upstream.status, appId }, 'Verify upstream error');
+      throw createChallengeUpstreamError(upstream.status);
+    }
+    return await upstream.json();
+  } catch (err) {
+    if (err instanceof HTTPException) throw err;
+    logger.error(
+      { error: err instanceof Error ? err.message : String(err) },
+      'Verify fetch failed'
+    );
+    throw createApiError({ code: 'bad_gateway', message: 'Verification service unavailable' });
+  }
+}
 app.openapi(
   createProtectedRoute({
     method: 'get',
-    path: '/sentinel/challenge',
-    summary: 'Get Sentinel Challenge',
+    path: '/challenge',
+    summary: 'Get Challenge',
     description:
-      'Proxy to ALTCHA Sentinel challenge endpoint. Returns 404 when Sentinel is not configured.',
-    operationId: 'get-sentinel-challenge',
+      'Proxy to the challenge service. Returns 404 when the challenge service is not configured.',
+    operationId: 'get-challenge',
     tags: ['Auth'],
     permission: noAuth(),
     security: [],
@@ -176,7 +289,7 @@ app.openapi(
     },
     responses: {
       200: {
-        description: 'Sentinel challenge returned',
+        description: 'Challenge returned',
         content: {
           'application/json': {
             schema: z.any(),
@@ -184,61 +297,26 @@ app.openapi(
         },
       },
       403: errorSchemaFactory('forbidden', 'Origin not allowed'),
-      404: errorSchemaFactory('not_found', 'Sentinel is not enabled or app not found'),
+      404: errorSchemaFactory('not_found', 'Challenge service is not enabled or app not found'),
       429: errorSchemaFactory('too_many_requests', 'Challenge service rate limit exceeded'),
-      502: errorSchemaFactory('bad_gateway', 'Sentinel upstream error'),
+      502: errorSchemaFactory('bad_gateway', 'Challenge upstream error'),
     },
   }),
   async (c) => {
-    const apiKeyId = env.INKEEP_SENTINEL_API_KEY_ID;
-    const baseUrl = env.INKEEP_SENTINEL_BASE_URL;
-    if (!isSentinelEnabled(apiKeyId) || !baseUrl) {
-      throw createApiError({ code: 'not_found', message: 'Sentinel is not enabled' });
-    }
-
     const { appId, endpointClass } = c.req.valid('query');
-    await validateProxyOrigin(appId, c.req.header('Origin'));
-
-    const upstreamUrl = `${baseUrl}/v1/challenge?apiKey=${encodeURIComponent(apiKeyId)}`;
-    const headers = forwardHeaders(c.req.raw);
-    if (endpointClass) {
-      headers['x-inkeep-endpoint-class'] = endpointClass;
-    }
-
-    try {
-      const upstream = await fetch(upstreamUrl, {
-        headers,
-        signal: AbortSignal.timeout(5_000),
-      });
-      if (!upstream.ok) {
-        logger.warn({ status: upstream.status, appId }, 'Sentinel challenge upstream error');
-        throw createChallengeUpstreamError(upstream.status);
-      }
-      const body = await upstream.json();
-      rewriteChallengeUrls(body, appId);
-      return c.json(body, 200);
-    } catch (err) {
-      if (err instanceof HTTPException) throw err;
-      logger.error(
-        { error: err instanceof Error ? err.message : String(err) },
-        'Sentinel challenge fetch failed'
-      );
-      throw createApiError({
-        code: 'bad_gateway',
-        message: 'Challenge service unavailable',
-      });
-    }
+    const body = await proxyChallengeGet(appId, endpointClass, c.req.raw);
+    return c.json(body, 200);
   }
 );
 
 app.openapi(
   createProtectedRoute({
     method: 'post',
-    path: '/sentinel/challenge',
-    summary: 'Post Sentinel HIS Challenge',
+    path: '/challenge',
+    summary: 'Post Challenge Interaction Data',
     description:
-      'Proxy POST to ALTCHA Sentinel challenge endpoint (HIS interaction data). Returns 404 when Sentinel is not configured.',
-    operationId: 'post-sentinel-challenge',
+      'Proxy POST to the challenge service (interaction data). Returns 404 when the challenge service is not configured.',
+    operationId: 'post-challenge',
     tags: ['Auth'],
     permission: noAuth(),
     security: [],
@@ -249,7 +327,7 @@ app.openapi(
     },
     responses: {
       200: {
-        description: 'Sentinel challenge returned',
+        description: 'Challenge returned',
         content: {
           'application/json': {
             schema: z.any(),
@@ -257,60 +335,25 @@ app.openapi(
         },
       },
       403: errorSchemaFactory('forbidden', 'Origin not allowed'),
-      404: errorSchemaFactory('not_found', 'Sentinel is not enabled or app not found'),
+      404: errorSchemaFactory('not_found', 'Challenge service is not enabled or app not found'),
       429: errorSchemaFactory('too_many_requests', 'Challenge service rate limit exceeded'),
-      502: errorSchemaFactory('bad_gateway', 'Sentinel upstream error'),
+      502: errorSchemaFactory('bad_gateway', 'Challenge upstream error'),
     },
   }),
   async (c) => {
-    const apiKeyId = env.INKEEP_SENTINEL_API_KEY_ID;
-    const baseUrl = env.INKEEP_SENTINEL_BASE_URL;
-    if (!isSentinelEnabled(apiKeyId) || !baseUrl) {
-      throw createApiError({ code: 'not_found', message: 'Sentinel is not enabled' });
-    }
-
     const { appId } = c.req.valid('query');
-    await validateProxyOrigin(appId, c.req.header('Origin'));
-
-    const upstreamUrl = `${baseUrl}/v1/challenge?apiKey=${encodeURIComponent(apiKeyId)}`;
-    const headers = forwardHeaders(c.req.raw);
-    headers['content-type'] = c.req.header('content-type') ?? 'application/json';
-
-    try {
-      const upstream = await fetch(upstreamUrl, {
-        method: 'POST',
-        headers,
-        body: await c.req.text(),
-        signal: AbortSignal.timeout(5_000),
-      });
-      if (!upstream.ok) {
-        logger.warn({ status: upstream.status, appId }, 'Sentinel HIS challenge upstream error');
-        throw createChallengeUpstreamError(upstream.status);
-      }
-      const body = await upstream.json();
-      rewriteChallengeUrls(body, appId);
-      return c.json(body, 200);
-    } catch (err) {
-      if (err instanceof HTTPException) throw err;
-      logger.error(
-        { error: err instanceof Error ? err.message : String(err) },
-        'Sentinel HIS challenge fetch failed'
-      );
-      throw createApiError({
-        code: 'bad_gateway',
-        message: 'Challenge service unavailable',
-      });
-    }
+    const body = await proxyChallengePost(appId, c.req.raw);
+    return c.json(body, 200);
   }
 );
 
 app.openapi(
   createProtectedRoute({
     method: 'post',
-    path: '/sentinel/verify',
-    summary: 'Verify Sentinel Payload',
-    description: 'Proxy to ALTCHA Sentinel verification endpoint.',
-    operationId: 'verify-sentinel',
+    path: '/challenge/verify',
+    summary: 'Verify Challenge Solution',
+    description: 'Proxy to the challenge verification endpoint.',
+    operationId: 'verify-challenge',
     tags: ['Auth'],
     permission: noAuth(),
     security: [],
@@ -321,7 +364,7 @@ app.openapi(
     },
     responses: {
       200: {
-        description: 'Sentinel verification result',
+        description: 'Challenge verification result',
         content: {
           'application/json': {
             schema: z.any(),
@@ -329,57 +372,52 @@ app.openapi(
         },
       },
       403: errorSchemaFactory('forbidden', 'Origin not allowed'),
-      404: errorSchemaFactory('not_found', 'Sentinel is not enabled or app not found'),
+      404: errorSchemaFactory('not_found', 'Challenge service is not enabled or app not found'),
       429: errorSchemaFactory('too_many_requests', 'Challenge service rate limit exceeded'),
-      502: errorSchemaFactory('bad_gateway', 'Sentinel upstream error'),
+      502: errorSchemaFactory('bad_gateway', 'Challenge upstream error'),
     },
   }),
   async (c) => {
-    const apiKeyId = env.INKEEP_SENTINEL_API_KEY_ID;
-    const baseUrl = env.INKEEP_SENTINEL_BASE_URL;
-    if (!isSentinelEnabled(apiKeyId) || !baseUrl) {
-      throw createApiError({ code: 'not_found', message: 'Sentinel is not enabled' });
-    }
-
     const { appId } = c.req.valid('query');
-    await validateProxyOrigin(appId, c.req.header('Origin'));
-
-    const upstreamUrl = `${baseUrl}/v1/verify?apiKey=${encodeURIComponent(apiKeyId)}`;
-    const headers = forwardHeaders(c.req.raw);
-    headers['content-type'] = c.req.header('content-type') ?? 'application/json';
-
-    try {
-      const upstream = await fetch(upstreamUrl, {
-        method: 'POST',
-        headers,
-        body: await c.req.text(),
-        signal: AbortSignal.timeout(5_000),
-      });
-      if (!upstream.ok) {
-        logger.warn({ status: upstream.status, appId }, 'Sentinel verify upstream error');
-        throw createChallengeUpstreamError(upstream.status);
-      }
-      const body = await upstream.json();
-      return c.json(body, 200);
-    } catch (err) {
-      if (err instanceof HTTPException) throw err;
-      logger.error(
-        { error: err instanceof Error ? err.message : String(err) },
-        'Sentinel verify fetch failed'
-      );
-      throw createApiError({
-        code: 'bad_gateway',
-        message: 'Verification service unavailable',
-      });
-    }
+    const body = await proxyVerify(appId, c.req.raw);
+    return c.json(body, 200);
   }
 );
+
+// Deprecated path aliases for embedded widgets that predate the vendor-neutral
+// /run/auth/challenge rename (they call /run/auth/sentinel/*). Same handlers, kept off
+// the OpenAPI spec. Challenge responses rewrite verifyUrl/his.url to the canonical
+// /run/auth/challenge paths, so widgets entering here migrate their follow-up calls
+// automatically. Sunset once /sentinel/* traffic drops to ~0.
+const requireAppId = (appId: string | undefined): string => {
+  if (!appId) throw createApiError({ code: 'bad_request', message: 'appId is required' });
+  return appId;
+};
+
+app.get('/sentinel/challenge', async (c) => {
+  const body = await proxyChallengeGet(
+    requireAppId(c.req.query('appId')),
+    c.req.query('endpointClass'),
+    c.req.raw
+  );
+  return c.json(body, 200);
+});
+
+app.post('/sentinel/challenge', async (c) => {
+  const body = await proxyChallengePost(requireAppId(c.req.query('appId')), c.req.raw);
+  return c.json(body, 200);
+});
+
+app.post('/sentinel/verify', async (c) => {
+  const body = await proxyVerify(requireAppId(c.req.query('appId')), c.req.raw);
+  return c.json(body, 200);
+});
 
 // Legacy compatibility: embedded widgets pinned to @inkeep/agents-ui versions that predate the
 // pow→sentinel rename call GET /run/auth/pow/challenge and solve a classic ALTCHA proof-of-work.
 // We back this with a Sentinel PoW v1 (no-HIS) Security Group, so old widgets keep working without
 // a self-hosted PoW secret. Solutions are verified locally in /anonymous-session via verifyPoW
-// using the v1 API secret as the HMAC key. New widgets use /sentinel/* (PoW v2 + HIS).
+// using the v1 API secret as the HMAC key. New widgets use /run/auth/challenge (PoW v2 + HIS).
 // Sunset this route once /pow/challenge traffic from old embeds drops to ~0.
 app.openapi(
   createProtectedRoute({
@@ -403,7 +441,7 @@ app.openapi(
       },
       404: errorSchemaFactory('not_found', 'Legacy PoW is not enabled'),
       429: errorSchemaFactory('too_many_requests', 'Challenge service rate limit exceeded'),
-      502: errorSchemaFactory('bad_gateway', 'Sentinel upstream error'),
+      502: errorSchemaFactory('bad_gateway', 'Challenge upstream error'),
     },
   }),
   async (c) => {
