@@ -1,5 +1,26 @@
 # @inkeep/agents-api
 
+## 0.76.0
+
+### Patch Changes
+
+- b29a931: Make transient external-file download failures and unsupported-MIME errors non-fatal in the chat-message upload pipeline. A single 404, timeout, DNS failure, or `image/gif`-bytes detection on one inline image no longer aborts the entire chat request — the affected file is logged and dropped via the existing worker-drop path; remaining files and the message continue through. Real security guards (private-IP/SSRF, embedded credentials, disallowed schemes/ports) remain fatal. Internal imports updated to consume `downloadExternalFile`, the error taxonomy, and `text-document-attachments` from their new `@inkeep/agents-core/external-fetch` and `@inkeep/agents-core/text-attachments` subpaths.
+- d8fba00: Fix summarizer and structuredOutput models not inheriting from project/agent when a lower level overrides only the base model
+- 8df942e: Improvements to the branch and diff view
+- d0a21b4: Prefetch webhook destinations once per chat turn to eliminate redundant Doltgres branch-checkout queries during conversation execution
+- 22b40c8: Defer webhook emission to the end of the generation, then apply the same classification logic as traces for tool errors
+- 27db1b0: Filter zero-tool MCP servers out of the agent system prompt so an MCP server that exposes no tools no longer renders an empty tool block in the prompt
+- 885d138: Filter end-user conversation lists by app agent
+- 56a6f5a: Include minutes and seconds in injected client time
+- Updated dependencies [b29a931]
+- Updated dependencies [a30cce4]
+- Updated dependencies [d0a21b4]
+- Updated dependencies [7efbf18]
+  - @inkeep/agents-core@0.76.0
+  - @inkeep/agents-work-apps@0.76.0
+  - @inkeep/agents-email@0.76.0
+  - @inkeep/agents-mcp@0.76.0
+
 ## 0.75.4
 
 ### Patch Changes

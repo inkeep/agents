@@ -1,5 +1,20 @@
 # @inkeep/agents-core
 
+## 0.76.0
+
+### Minor Changes
+
+- b29a931: Add `@inkeep/agents-core/external-fetch` and `@inkeep/agents-core/text-attachments` subpath exports. The hardened external-file downloader (SSRF guard, redirect cap, size limit, content-type validation, retry-with-backoff) and the text-document attachment helpers now live in `agents-core` so consumers outside `agents-api` (e.g. copilot-app's HelpScout fetcher) can reuse them without depending on the entire `agents-api` package tree. Public barrel is curated — internal helpers like the undici dispatcher lookup callback are intentionally module-private.
+
+  `downloadExternalFile()` now accepts an optional `signal: AbortSignal` so callers running concurrent fetches under a shared aggregate budget can abort in-flight downloads when the budget expires.
+
+- 7efbf18: Lift and unify the system-prompt character cap. The agent-level prompt limit is raised from 5,000 to 200,000 characters, and the sub-agent prompt (previously uncapped) now shares the same 200,000-character limit. The cap is enforced consistently across both the standalone REST create/update paths and the full-graph write path, and remains overridable via `AGENTS_VALIDATION_AGENT_PROMPT_MAX_CHARS`. This unblocks large grounding/context documents in agent prompts. The status-update custom-prompt limit (2,000) is unchanged.
+
+### Patch Changes
+
+- a30cce4: Fix SSO provider issuer edits not refreshing OIDC discovery and cached endpoints; the update path now re-runs discovery server-side when the issuer changes
+- d0a21b4: Prefetch webhook destinations once per chat turn to eliminate redundant Doltgres branch-checkout queries during conversation execution
+
 ## 0.75.4
 
 ## 0.75.3
