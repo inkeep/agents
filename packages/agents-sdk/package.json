@@ -44,7 +44,7 @@
     "@types/node": "^22.19.3",
     "@types/yarnpkg__lockfile": "^1.1.0",
     "@vitest/coverage-v8": "^3.2.4",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.6"
   },
   "packageManager": "pnpm@10.33.0",
   "engines": {

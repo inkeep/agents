@@ -107,7 +107,7 @@
     "tsx": "^4.21.0",
     "turbo": "^2.7.0",
     "unique-names-generator": "^4.7.1",
-    "vitest": "^3.2.4",
+    "vitest": "^3.2.6",
     "yaml": "^2.8.2"
   },
   "lint-staged": {
