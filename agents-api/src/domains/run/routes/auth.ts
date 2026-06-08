@@ -194,7 +194,13 @@ async function proxyChallengeGet(
   }
 }
 
-async function proxyChallengePost(appId: string, req: Request): Promise<unknown> {
+// `rawBody` is read by the route handler via Hono's cache-safe `c.req.text()` (NOT
+// `c.req.raw.text()`): the body-parsing middleware in createApp.ts (`app.use('/run/*', ...)`,
+// ~line 204) calls `c.req.json()` before these handlers run, consuming the underlying
+// request stream. Reading it again off the raw Request throws
+// "Body is unusable: Body has already been read" → caught → 502. Hono's HonoRequest
+// buffers/re-serializes the body, so the handler reads it safely and passes it in here.
+async function proxyChallengePost(appId: string, req: Request, rawBody: string): Promise<unknown> {
   const apiKeyId = env.INKEEP_SENTINEL_API_KEY_ID;
   const baseUrl = env.INKEEP_SENTINEL_BASE_URL;
   if (!isSentinelEnabled(apiKeyId) || !baseUrl) {
@@ -211,7 +217,7 @@ async function proxyChallengePost(appId: string, req: Request): Promise<unknown>
     const upstream = await fetch(upstreamUrl, {
       method: 'POST',
       headers,
-      body: await req.text(),
+      body: rawBody,
       signal: AbortSignal.timeout(5_000),
     });
     if (!upstream.ok) {
@@ -231,7 +237,8 @@ async function proxyChallengePost(appId: string, req: Request): Promise<unknown>
   }
 }
 
-async function proxyVerify(appId: string, req: Request): Promise<unknown> {
+// See proxyChallengePost above for why `rawBody` is passed in rather than read from `req`.
+async function proxyVerify(appId: string, req: Request, rawBody: string): Promise<unknown> {
   const apiKeyId = env.INKEEP_SENTINEL_API_KEY_ID;
   const baseUrl = env.INKEEP_SENTINEL_BASE_URL;
   if (!isSentinelEnabled(apiKeyId) || !baseUrl) {
@@ -248,7 +255,7 @@ async function proxyVerify(appId: string, req: Request): Promise<unknown> {
     const upstream = await fetch(upstreamUrl, {
       method: 'POST',
       headers,
-      body: await req.text(),
+      body: rawBody,
       signal: AbortSignal.timeout(5_000),
     });
     if (!upstream.ok) {
@@ -342,7 +349,8 @@ app.openapi(
   }),
   async (c) => {
     const { appId } = c.req.valid('query');
-    const body = await proxyChallengePost(appId, c.req.raw);
+    // Read the body via Hono's cache-safe accessor, not c.req.raw.text() (see proxyChallengePost).
+    const body = await proxyChallengePost(appId, c.req.raw, await c.req.text());
     return c.json(body, 200);
   }
 );
@@ -379,7 +387,8 @@ app.openapi(
   }),
   async (c) => {
     const { appId } = c.req.valid('query');
-    const body = await proxyVerify(appId, c.req.raw);
+    // Read the body via Hono's cache-safe accessor, not c.req.raw.text() (see proxyChallengePost).
+    const body = await proxyVerify(appId, c.req.raw, await c.req.text());
     return c.json(body, 200);
   }
 );
@@ -404,12 +413,16 @@ app.get('/sentinel/challenge', async (c) => {
 });
 
 app.post('/sentinel/challenge', async (c) => {
-  const body = await proxyChallengePost(requireAppId(c.req.query('appId')), c.req.raw);
+  const body = await proxyChallengePost(
+    requireAppId(c.req.query('appId')),
+    c.req.raw,
+    await c.req.text()
+  );
   return c.json(body, 200);
 });
 
 app.post('/sentinel/verify', async (c) => {
-  const body = await proxyVerify(requireAppId(c.req.query('appId')), c.req.raw);
+  const body = await proxyVerify(requireAppId(c.req.query('appId')), c.req.raw, await c.req.text());
   return c.json(body, 200);
 });
 
