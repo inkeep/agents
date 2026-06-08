@@ -90,18 +90,18 @@ describe('Sentinel proxy routes', () => {
     mocks.env.INKEEP_SENTINEL_V1_API_KEY_SECRET = undefined;
   });
 
-  describe('GET /run/auth/sentinel/challenge', () => {
+  describe('GET /run/auth/challenge', () => {
     it('should return 404 when Sentinel is not configured', async () => {
       mocks.env.INKEEP_SENTINEL_API_KEY_ID = '' as typeof mocks.env.INKEEP_SENTINEL_API_KEY_ID;
       const app = createApp();
 
-      const res = await app.request(`/run/auth/sentinel/challenge?appId=${PROXY_APP_ID}`, {
+      const res = await app.request(`/run/auth/challenge?appId=${PROXY_APP_ID}`, {
         headers: proxyHeaders,
       });
 
       expect(res.status).toBe(404);
       const body = await res.json();
-      expect(body.detail).toBe('Sentinel is not enabled');
+      expect(body.detail).toBe('Challenge service is not enabled');
     });
 
     it('should proxy challenge request and rewrite verifyUrl', async () => {
@@ -121,14 +121,14 @@ describe('Sentinel proxy routes', () => {
       );
 
       const app = createApp();
-      const res = await app.request(`/run/auth/sentinel/challenge?appId=${PROXY_APP_ID}`, {
+      const res = await app.request(`/run/auth/challenge?appId=${PROXY_APP_ID}`, {
         headers: proxyHeaders,
       });
 
       expect(res.status).toBe(200);
       const body = await res.json();
       // The rewrite preserves the appId so downstream calls can re-validate origin.
-      expect(body.configuration.verifyUrl).toBe(`/run/auth/sentinel/verify?appId=${PROXY_APP_ID}`);
+      expect(body.configuration.verifyUrl).toBe(`/run/auth/challenge/verify?appId=${PROXY_APP_ID}`);
       expect(body.challenge).toBe('abc123');
 
       expect(fetchSpy).toHaveBeenCalledWith(
@@ -143,7 +143,7 @@ describe('Sentinel proxy routes', () => {
       );
 
       const app = createApp();
-      await app.request(`/run/auth/sentinel/challenge?appId=${PROXY_APP_ID}&endpointClass=chat`, {
+      await app.request(`/run/auth/challenge?appId=${PROXY_APP_ID}&endpointClass=chat`, {
         headers: proxyHeaders,
       });
 
@@ -155,7 +155,7 @@ describe('Sentinel proxy routes', () => {
     it('should return 403 when Origin is not in the app allowedDomains', async () => {
       mockValidateOrigin.mockReturnValueOnce(false);
       const app = createApp();
-      const res = await app.request(`/run/auth/sentinel/challenge?appId=${PROXY_APP_ID}`, {
+      const res = await app.request(`/run/auth/challenge?appId=${PROXY_APP_ID}`, {
         headers: { Origin: 'https://evil.attacker.com' },
       });
 
@@ -168,7 +168,7 @@ describe('Sentinel proxy routes', () => {
       fetchSpy.mockResolvedValueOnce(new Response('rate limited', { status: 429 }));
 
       const app = createApp();
-      const res = await app.request(`/run/auth/sentinel/challenge?appId=${PROXY_APP_ID}`, {
+      const res = await app.request(`/run/auth/challenge?appId=${PROXY_APP_ID}`, {
         headers: proxyHeaders,
       });
 
@@ -178,19 +178,19 @@ describe('Sentinel proxy routes', () => {
     });
   });
 
-  describe('POST /run/auth/sentinel/verify', () => {
+  describe('POST /run/auth/challenge/verify', () => {
     it('should return 404 when Sentinel is not configured', async () => {
       mocks.env.INKEEP_SENTINEL_API_KEY_ID = '' as typeof mocks.env.INKEEP_SENTINEL_API_KEY_ID;
       const app = createApp();
 
-      const res = await app.request(`/run/auth/sentinel/verify?appId=${PROXY_APP_ID}`, {
+      const res = await app.request(`/run/auth/challenge/verify?appId=${PROXY_APP_ID}`, {
         method: 'POST',
         headers: proxyHeaders,
       });
 
       expect(res.status).toBe(404);
       const body = await res.json();
-      expect(body.detail).toBe('Sentinel is not enabled');
+      expect(body.detail).toBe('Challenge service is not enabled');
     });
 
     it('should proxy verify request to Sentinel', async () => {
@@ -206,7 +206,7 @@ describe('Sentinel proxy routes', () => {
       );
 
       const app = createApp();
-      const res = await app.request(`/run/auth/sentinel/verify?appId=${PROXY_APP_ID}`, {
+      const res = await app.request(`/run/auth/challenge/verify?appId=${PROXY_APP_ID}`, {
         method: 'POST',
         headers: { ...proxyHeaders, 'content-type': 'application/json' },
         body: JSON.stringify({ payload: 'sentinel-payload-data' }),
@@ -229,7 +229,7 @@ describe('Sentinel proxy routes', () => {
       fetchSpy.mockResolvedValueOnce(new Response('rate limited', { status: 429 }));
 
       const app = createApp();
-      const res = await app.request(`/run/auth/sentinel/verify?appId=${PROXY_APP_ID}`, {
+      const res = await app.request(`/run/auth/challenge/verify?appId=${PROXY_APP_ID}`, {
         method: 'POST',
         headers: { ...proxyHeaders, 'content-type': 'application/json' },
         body: JSON.stringify({ payload: 'sentinel-payload-data' }),
@@ -241,7 +241,7 @@ describe('Sentinel proxy routes', () => {
     });
   });
 
-  describe('POST /run/auth/sentinel/challenge (HIS)', () => {
+  describe('POST /run/auth/challenge (HIS)', () => {
     it('should proxy POST challenge and rewrite verifyUrl', async () => {
       const sentinelResponse = {
         challenge: 'his123',
@@ -258,7 +258,7 @@ describe('Sentinel proxy routes', () => {
       );
 
       const app = createApp();
-      const res = await app.request(`/run/auth/sentinel/challenge?appId=${PROXY_APP_ID}`, {
+      const res = await app.request(`/run/auth/challenge?appId=${PROXY_APP_ID}`, {
         method: 'POST',
         headers: { ...proxyHeaders, 'content-type': 'application/json' },
         body: JSON.stringify({ his: 'interaction-payload' }),
@@ -266,7 +266,7 @@ describe('Sentinel proxy routes', () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.configuration.verifyUrl).toBe(`/run/auth/sentinel/verify?appId=${PROXY_APP_ID}`);
+      expect(body.configuration.verifyUrl).toBe(`/run/auth/challenge/verify?appId=${PROXY_APP_ID}`);
       expect(body.challenge).toBe('his123');
 
       expect(fetchSpy).toHaveBeenCalledWith(
@@ -290,7 +290,7 @@ describe('Sentinel proxy routes', () => {
       );
 
       const app = createApp();
-      const res = await app.request(`/run/auth/sentinel/challenge?appId=${PROXY_APP_ID}`, {
+      const res = await app.request(`/run/auth/challenge?appId=${PROXY_APP_ID}`, {
         method: 'POST',
         headers: { ...proxyHeaders, 'content-type': 'application/json' },
         body: JSON.stringify({ his: 'interaction-payload' }),
@@ -298,29 +298,29 @@ describe('Sentinel proxy routes', () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.his.url).toBe(`/run/auth/sentinel/challenge?appId=${PROXY_APP_ID}`);
-      expect(body.configuration.verifyUrl).toBe(`/run/auth/sentinel/verify?appId=${PROXY_APP_ID}`);
+      expect(body.his.url).toBe(`/run/auth/challenge?appId=${PROXY_APP_ID}`);
+      expect(body.configuration.verifyUrl).toBe(`/run/auth/challenge/verify?appId=${PROXY_APP_ID}`);
     });
 
     it('should return 404 when Sentinel is not configured', async () => {
       mocks.env.INKEEP_SENTINEL_API_KEY_ID = '' as typeof mocks.env.INKEEP_SENTINEL_API_KEY_ID;
       const app = createApp();
 
-      const res = await app.request(`/run/auth/sentinel/challenge?appId=${PROXY_APP_ID}`, {
+      const res = await app.request(`/run/auth/challenge?appId=${PROXY_APP_ID}`, {
         method: 'POST',
         headers: proxyHeaders,
       });
 
       expect(res.status).toBe(404);
       const body = await res.json();
-      expect(body.detail).toBe('Sentinel is not enabled');
+      expect(body.detail).toBe('Challenge service is not enabled');
     });
 
     it('should preserve upstream rate limits as 429', async () => {
       fetchSpy.mockResolvedValueOnce(new Response('rate limited', { status: 429 }));
 
       const app = createApp();
-      const res = await app.request(`/run/auth/sentinel/challenge?appId=${PROXY_APP_ID}`, {
+      const res = await app.request(`/run/auth/challenge?appId=${PROXY_APP_ID}`, {
         method: 'POST',
         headers: { ...proxyHeaders, 'content-type': 'application/json' },
         body: JSON.stringify({ his: 'interaction-payload' }),
@@ -526,6 +526,90 @@ describe('Sentinel proxy routes', () => {
       });
 
       expect(res.status).toBe(403);
+    });
+  });
+
+  // Back-compat: the deprecated /run/auth/sentinel/* aliases still proxy for embedded widgets
+  // that predate the vendor-neutral /run/auth/challenge rename. Challenge responses rewrite
+  // verifyUrl/his.url to the canonical /run/auth/challenge paths so old widgets migrate.
+  describe('deprecated /run/auth/sentinel/* aliases', () => {
+    it('GET /run/auth/sentinel/challenge still proxies and rewrites to canonical paths', async () => {
+      fetchSpy.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            challenge: 'abc',
+            configuration: { verifyUrl: '/v1/verify' },
+            his: { url: 'https://challenges.example.com/v1/challenge' },
+          }),
+          { status: 200 }
+        )
+      );
+
+      const app = createApp();
+      const res = await app.request(`/run/auth/sentinel/challenge?appId=${PROXY_APP_ID}`, {
+        headers: proxyHeaders,
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.configuration.verifyUrl).toBe(`/run/auth/challenge/verify?appId=${PROXY_APP_ID}`);
+      expect(body.his.url).toBe(`/run/auth/challenge?appId=${PROXY_APP_ID}`);
+    });
+
+    it('POST /run/auth/sentinel/challenge still proxies HIS data and rewrites to canonical paths', async () => {
+      fetchSpy.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            challenge: 'his-abc',
+            configuration: { verifyUrl: '/v1/verify' },
+            his: { url: 'https://challenges.example.com/v1/challenge' },
+          }),
+          { status: 200 }
+        )
+      );
+
+      const app = createApp();
+      const res = await app.request(`/run/auth/sentinel/challenge?appId=${PROXY_APP_ID}`, {
+        method: 'POST',
+        headers: { ...proxyHeaders, 'content-type': 'application/json' },
+        body: JSON.stringify({ his: 'interaction-payload' }),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.configuration.verifyUrl).toBe(`/run/auth/challenge/verify?appId=${PROXY_APP_ID}`);
+      expect(body.his.url).toBe(`/run/auth/challenge?appId=${PROXY_APP_ID}`);
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'https://challenges.example.com/v1/challenge?apiKey=key_test123',
+        expect.objectContaining({ method: 'POST' })
+      );
+    });
+
+    it('POST /run/auth/sentinel/verify still proxies to the verification endpoint', async () => {
+      fetchSpy.mockResolvedValueOnce(
+        new Response(JSON.stringify({ verified: true }), { status: 200 })
+      );
+
+      const app = createApp();
+      const res = await app.request(`/run/auth/sentinel/verify?appId=${PROXY_APP_ID}`, {
+        method: 'POST',
+        headers: { ...proxyHeaders, 'content-type': 'application/json' },
+        body: JSON.stringify({ payload: 'p' }),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.verified).toBe(true);
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'https://challenges.example.com/v1/verify?apiKey=key_test123',
+        expect.objectContaining({ method: 'POST' })
+      );
+    });
+
+    it('returns 400 when an alias is called without appId', async () => {
+      const app = createApp();
+      const res = await app.request('/run/auth/sentinel/challenge', { headers: proxyHeaders });
+      expect(res.status).toBe(400);
     });
   });
 
