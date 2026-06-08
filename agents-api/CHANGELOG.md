@@ -1,5 +1,18 @@
 # @inkeep/agents-api
 
+## 0.77.0
+
+### Minor Changes
+
+- c3752d4: Add vendor-neutral /run/auth/challenge proxy endpoints (challenge GET/POST and challenge/verify). The previous /run/auth/sentinel/\* paths keep working as deprecated aliases for embedded widgets that have not upgraded yet; they will be removed once their traffic drops to zero.
+
+### Patch Changes
+
+- @inkeep/agents-core@0.77.0
+- @inkeep/agents-email@0.77.0
+- @inkeep/agents-mcp@0.77.0
+- @inkeep/agents-work-apps@0.77.0
+
 ## 0.76.0
 
 ### Patch Changes
