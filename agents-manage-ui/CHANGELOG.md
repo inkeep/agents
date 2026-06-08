@@ -1,5 +1,19 @@
 # @inkeep/agents-manage-ui
 
+## 0.76.0
+
+### Patch Changes
+
+- 8df942e: Improvements to the branch and diff view
+- bd56aa6: New projects created in the Manage UI now default their summarizer model to `google/gemini-3.1-flash-lite` instead of `anthropic/claude-sonnet-4-5`. Base and structured-output models are unchanged (still `anthropic/claude-sonnet-4-5`). The create-project form's default-model constants are also renamed from provider-scoped (`DEFAULT_ANTHROPIC_*`) to role-scoped (`DEFAULT_BASE_MODEL`, `DEFAULT_STRUCTURED_OUTPUT_MODEL`, `DEFAULT_SUMMARIZER_MODEL`), and the unused per-provider preset constants were removed.
+- a2ac3a6: Bump agents-ui-cloud version in ship example
+- a5deab8: Trace query optimizations
+- Updated dependencies [b29a931]
+- Updated dependencies [a30cce4]
+- Updated dependencies [d0a21b4]
+- Updated dependencies [7efbf18]
+  - @inkeep/agents-core@0.76.0
+
 ## 0.75.4
 
 ### Patch Changes
