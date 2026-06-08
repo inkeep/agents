@@ -1097,7 +1097,8 @@ ${SENTINEL_KEY.SELECT} JMESPATH PATTERNS:
     mcpServerGroups?: McpServerGroupData[]
   ): string {
     const hasRegularTools = tools.length > 0;
-    const hasMcpGroups = mcpServerGroups && mcpServerGroups.length > 0;
+    const nonEmptyMcpGroups = mcpServerGroups?.filter((group) => group.tools.length > 0) ?? [];
+    const hasMcpGroups = nonEmptyMcpGroups.length > 0;
 
     if (!hasRegularTools && !hasMcpGroups) {
       return '<available_tools description="No tools are currently available"></available_tools>';
@@ -1105,7 +1106,7 @@ ${SENTINEL_KEY.SELECT} JMESPATH PATTERNS:
 
     const regularToolsXml = tools.map((tool) => this.generateToolXml(templates, tool)).join('\n  ');
     const mcpGroupsXml = hasMcpGroups
-      ? mcpServerGroups.map((group) => this.generateMcpServerGroupXml(group)).join('\n  ')
+      ? nonEmptyMcpGroups.map((group) => this.generateMcpServerGroupXml(group)).join('\n  ')
       : '';
 
     const parts = [regularToolsXml, mcpGroupsXml].filter(Boolean).join('\n  ');
