@@ -6,6 +6,7 @@ import {
   commonGetErrorResponses,
   countVisibleMessages,
   createApiError,
+  getAppByIdForProject,
   getConversation,
   getVisibleMessages,
   getWorkflowExecutionByConversation,
@@ -220,6 +221,10 @@ function requireEndUserId(executionContext: BaseExecutionContext): string {
   return endUserId;
 }
 
+function getConfiguredAgentIdsForApp(appRecord: { defaultAgentId: string | null }): string[] {
+  return appRecord.defaultAgentId ? [appRecord.defaultAgentId] : [];
+}
+
 // ---------------------------------------------------------------------------
 // Routes
 // ---------------------------------------------------------------------------
@@ -257,12 +262,31 @@ app.openapi(
     const executionContext = c.get('executionContext');
     const { tenantId, projectId } = executionContext;
     const endUserId = requireEndUserId(executionContext);
+    const appId = executionContext.metadata?.appId;
 
     const { page = 1, limit = 20 } = c.req.valid('query');
+
+    let agentIds: string[] | undefined;
+    if (appId) {
+      const appRecord = await getAppByIdForProject(runDbClient)({
+        scopes: { tenantId, projectId },
+        id: appId,
+      });
+
+      if (!appRecord) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'App not found',
+        });
+      }
+
+      agentIds = getConfiguredAgentIdsForApp(appRecord);
+    }
 
     const result = await listConversations(runDbClient)({
       scopes: { tenantId, projectId },
       userId: endUserId,
+      agentIds,
       pagination: { page, limit },
     });
 

@@ -25,9 +25,10 @@ export const listConversations =
   async (params: {
     scopes: ProjectScopeConfig;
     userId?: string;
+    agentIds?: string[];
     pagination?: PaginationConfig;
   }): Promise<{ conversations: ConversationSelect[]; total: number }> => {
-    const { userId, pagination } = params;
+    const { userId, agentIds, pagination } = params;
 
     const page = pagination?.page || 1;
     const limit = Math.min(pagination?.limit || 20, 200);
@@ -37,6 +38,14 @@ export const listConversations =
 
     if (userId) {
       whereConditions.push(eq(conversations.userId, userId));
+    }
+
+    if (agentIds) {
+      if (agentIds.length === 0) {
+        // App-scoped conversations require a configured agent, so no agents means no matches.
+        return { conversations: [], total: 0 };
+      }
+      whereConditions.push(inArray(conversations.agentId, agentIds));
     }
 
     const conversationList = await db
