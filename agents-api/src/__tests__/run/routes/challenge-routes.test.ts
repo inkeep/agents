@@ -332,6 +332,69 @@ describe('Sentinel proxy routes', () => {
     });
   });
 
+  // Regression: PR #1683 refactored the POST proxy handlers to read the request body off
+  // c.req.raw (the underlying stream) instead of Hono's cache-safe c.req.text(). In
+  // production the body-parsing middleware in createApp.ts (app.use('/run/*', ...)) calls
+  // c.req.json() before these handlers run, so the second read threw "Body is unusable:
+  // Body has already been read", which was caught and returned as a 502 — breaking every
+  // HIS challenge/verify round-trip. These tests mount a body-reading middleware ahead of
+  // the routes to exercise the full chain; createApp() above does not, which is why the
+  // original tests passed while production failed.
+  describe('body double-read regression (#1683)', () => {
+    function createAppWithBodyReadingMiddleware() {
+      const app = new OpenAPIHono();
+      app.use('/run/auth/*', async (c, next) => {
+        // Mirror the body-parsing middleware in createApp.ts consuming the body before
+        // the proxy handler runs.
+        if (c.req.method === 'POST') await c.req.json().catch(() => undefined);
+        await next();
+      });
+      app.route('/run/auth', authRoutes);
+      return app;
+    }
+
+    it('forwards the POST /challenge body after middleware already read it', async () => {
+      fetchSpy.mockResolvedValueOnce(
+        new Response(JSON.stringify({ challenge: 'his', algorithm: 'SHA-256', signature: 'sig' }), {
+          status: 200,
+        })
+      );
+
+      const app = createAppWithBodyReadingMiddleware();
+      const requestBody = JSON.stringify({ his: 'interaction-payload' });
+      const res = await app.request(`/run/auth/challenge?appId=${PROXY_APP_ID}`, {
+        method: 'POST',
+        headers: { ...proxyHeaders, 'content-type': 'application/json' },
+        body: requestBody,
+      });
+
+      expect(res.status).toBe(200);
+      // The body must reach the upstream intact, not be lost to the double-read.
+      const callArgs = fetchSpy.mock.calls[0] as [string, RequestInit];
+      expect(callArgs[1].body).toBe(requestBody);
+    });
+
+    it('forwards the POST /challenge/verify body after middleware already read it', async () => {
+      fetchSpy.mockResolvedValueOnce(
+        new Response(JSON.stringify({ verified: true, classification: 'GOOD', score: 0.9 }), {
+          status: 200,
+        })
+      );
+
+      const app = createAppWithBodyReadingMiddleware();
+      const requestBody = JSON.stringify({ payload: 'sentinel-payload-data' });
+      const res = await app.request(`/run/auth/challenge/verify?appId=${PROXY_APP_ID}`, {
+        method: 'POST',
+        headers: { ...proxyHeaders, 'content-type': 'application/json' },
+        body: requestBody,
+      });
+
+      expect(res.status).toBe(200);
+      const callArgs = fetchSpy.mock.calls[0] as [string, RequestInit];
+      expect(callArgs[1].body).toBe(requestBody);
+    });
+  });
+
   describe('POST /run/auth/apps/{appId}/anonymous-session — Sentinel verification', () => {
     const APP_ID = 'app_abcdef123456';
     const ALLOWED_ORIGIN = 'https://help.customer.com';
