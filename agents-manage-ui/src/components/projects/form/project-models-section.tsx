@@ -207,7 +207,7 @@ function SummarizerModelSection({
         control={control}
         name="models.summarizer.model"
         label="Summarizer model"
-        description="Model for summarization tasks (defaults to base model)"
+        description="Lightweight model for summarization tasks"
       >
         {(field) => (
           <ModelConfiguration

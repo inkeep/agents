@@ -115,7 +115,11 @@ describe('Run API - End-User Conversation History', () => {
       const projectId = 'default-project';
       await createTestProject(manageDbClient, tenantId, projectId);
 
-      const appRecord = await createTestWebClientApp({ tenantId, projectId });
+      const appRecord = await createTestWebClientApp({
+        tenantId,
+        projectId,
+        defaultAgentId: 'test-agent',
+      });
       const appId = appRecord.id;
 
       const token = await getAnonymousSessionToken(appId, 'https://help.customer.com');
@@ -142,6 +146,13 @@ describe('Run API - End-User Conversation History', () => {
         userId: 'other-user',
         title: 'Other user conversation',
       });
+      await createTestConversation({
+        tenantId,
+        projectId,
+        userId: anonUserId,
+        title: 'Other app conversation',
+        agentId: 'other-agent',
+      });
 
       const res = await app.request('/run/v1/conversations', {
         headers: {
@@ -157,6 +168,7 @@ describe('Run API - End-User Conversation History', () => {
       expect(body.data).toHaveLength(2);
       expect(body.pagination.total).toBe(2);
       expect(body.data.every((c: any) => c.title !== 'Other user conversation')).toBe(true);
+      expect(body.data.every((c: any) => c.title !== 'Other app conversation')).toBe(true);
     });
 
     it('should support pagination', async () => {
@@ -245,7 +257,6 @@ describe('Run API - End-User Conversation History', () => {
         projectId,
         userId: anonUserId,
         title: 'Detailed conversation',
-        agentId: 'support-agent',
       });
 
       const res = await app.request('/run/v1/conversations', {
@@ -261,7 +272,7 @@ describe('Run API - End-User Conversation History', () => {
       const body = await res.json();
       const conv = body.data[0];
       expect(conv.id).toBeDefined();
-      expect(conv.agentId).toBe('support-agent');
+      expect(conv.agentId).toBe('test-agent');
       expect(conv.title).toBe('Detailed conversation');
       expect(conv.createdAt).toBeDefined();
       expect(conv.updatedAt).toBeDefined();

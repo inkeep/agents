@@ -537,6 +537,61 @@ describe('SystemPromptBuilder', () => {
       expect(result.prompt).toContain('&lt;/instructions&gt;');
     });
 
+    test('should not render an mcp_server block for a server with zero tools', () => {
+      const emptyGroup = createMockMcpServerGroup('us-east-1', []);
+
+      const config: SystemPromptV1 = {
+        corePrompt: 'Test instructions',
+        tools: [],
+        mcpServerGroups: [emptyGroup],
+        dataComponents: [],
+        artifacts: [],
+      };
+
+      const result = builder.buildSystemPrompt(config);
+
+      expect(result.prompt).not.toContain('<mcp_server name="us-east-1">');
+      expect(result.prompt).toContain('No tools are currently available');
+    });
+
+    test('should drop serverInstructions for a server with zero tools', () => {
+      const emptyGroup = createMockMcpServerGroup('us-east-1', []);
+      emptyGroup.serverInstructions = 'Use this for the us-east-1 region.';
+
+      const config: SystemPromptV1 = {
+        corePrompt: 'Test instructions',
+        tools: [],
+        mcpServerGroups: [emptyGroup],
+        dataComponents: [],
+        artifacts: [],
+      };
+
+      const result = builder.buildSystemPrompt(config);
+
+      expect(result.prompt).not.toContain('<mcp_server name="us-east-1">');
+      expect(result.prompt).not.toContain('Use this for the us-east-1 region.');
+    });
+
+    test('should filter empty servers but keep servers that have tools', () => {
+      const factsGroup = createMockMcpServerGroup('facts', [
+        { name: 'search-knowledge-base', description: 'Search the knowledge base' },
+      ]);
+      const emptyGroup = createMockMcpServerGroup('us-east-1', []);
+
+      const config: SystemPromptV1 = {
+        corePrompt: 'Test instructions',
+        tools: [],
+        mcpServerGroups: [factsGroup, emptyGroup],
+        dataComponents: [],
+        artifacts: [],
+      };
+
+      const result = builder.buildSystemPrompt(config);
+
+      expect(result.prompt).toContain('<mcp_server name="facts">');
+      expect(result.prompt).not.toContain('<mcp_server name="us-east-1">');
+    });
+
     test('should handle artifacts with missing metadata gracefully', () => {
       const config: SystemPromptV1 = {
         corePrompt: 'Test instructions',
