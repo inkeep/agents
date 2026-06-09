@@ -11,6 +11,10 @@ export const DEFAULT_SUMMARIZER_MODEL = GOOGLE_MODELS.GEMINI_3_1_FLASH_LITE;
 export const modelOptions = {
   anthropic: [
     {
+      value: ANTHROPIC_MODELS.CLAUDE_FABLE_5,
+      label: 'Claude Fable 5',
+    },
+    {
       value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_8,
       label: 'Claude Opus 4.8',
     },
@@ -114,6 +118,14 @@ export const modelOptions = {
     },
   ],
   google: [
+    {
+      value: GOOGLE_MODELS.GEMMA_4_31B_IT,
+      label: 'Gemma 4 31B',
+    },
+    {
+      value: GOOGLE_MODELS.GEMMA_4_26B_A4B_IT,
+      label: 'Gemma 4 26B A4B',
+    },
     {
       value: GOOGLE_MODELS.GEMINI_3_1_PRO_PREVIEW,
       label: 'Gemini 3.1 Pro Preview',

@@ -3,6 +3,7 @@
  */
 
 export const ANTHROPIC_MODELS = {
+  CLAUDE_FABLE_5: 'anthropic/claude-fable-5',
   CLAUDE_OPUS_4_8: 'anthropic/claude-opus-4-8',
   CLAUDE_OPUS_4_7: 'anthropic/claude-opus-4-7',
   CLAUDE_OPUS_4_6: 'anthropic/claude-opus-4-6',
@@ -75,6 +76,8 @@ export const OPENAI_MODELS = {
 } as const;
 
 export const GOOGLE_MODELS = {
+  GEMMA_4_31B_IT: 'google/gemma-4-31b-it',
+  GEMMA_4_26B_A4B_IT: 'google/gemma-4-26b-a4b-it',
   GEMINI_3_1_FLASH_LITE: 'google/gemini-3.1-flash-lite',
   GEMINI_3_1_FLASH_LITE_PREVIEW: 'google/gemini-3.1-flash-lite-preview',
   GEMINI_3_1_PRO_PREVIEW: 'google/gemini-3.1-pro-preview',
