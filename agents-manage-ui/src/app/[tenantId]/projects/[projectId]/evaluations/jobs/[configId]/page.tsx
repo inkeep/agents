@@ -80,7 +80,7 @@ async function EvaluationJobPage({
           tenantId={tenantId}
           projectId={projectId}
           jobConfig={jobConfig}
-          results={results.data}
+          results={results}
           evaluators={evaluators.data}
         />
       </>

@@ -72,7 +72,7 @@ export function EvaluationRunConfigResults({
   async function refreshResults() {
     try {
       const response = await fetchEvaluationResultsByRunConfig(tenantId, projectId, runConfig.id);
-      setResults(response.data);
+      setResults(response);
     } catch (error) {
       console.error('Error refreshing results:', error);
     }

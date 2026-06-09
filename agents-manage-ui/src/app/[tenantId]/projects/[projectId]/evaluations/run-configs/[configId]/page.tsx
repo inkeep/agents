@@ -62,7 +62,7 @@ async function EvaluationRunConfigPage({
           tenantId={tenantId}
           projectId={projectId}
           runConfig={runConfig}
-          results={results.data}
+          results={results}
           evaluators={evaluators.data}
           suiteConfigs={suiteConfigs.data}
           suiteConfigEvaluators={suiteConfigEvaluators}

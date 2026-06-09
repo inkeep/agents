@@ -98,11 +98,10 @@ export default function Page({
           response.data.evaluationJobConfigId
         );
 
-        const totalEvaluations = evalResults.data?.length || 0;
-        const completedEvaluations =
-          evalResults.data?.filter(
-            (result) => result.output !== null && result.output !== undefined
-          ).length || 0;
+        const totalEvaluations = evalResults.length;
+        const completedEvaluations = evalResults.filter(
+          (result) => result.output !== null && result.output !== undefined
+        ).length;
 
         setEvaluationProgress({
           total: totalEvaluations,
