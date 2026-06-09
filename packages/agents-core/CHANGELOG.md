@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.78.0
+
+### Patch Changes
+
+- 9634a17: Add claude-fable-5, gemma-4-31b-it, and gemma-4-26b-a4b-it to model constants, UI picker, and CLI
+- 252efd9: Add set-based runtime data-access helpers for conversation enrichment — `getConversationsByIds`, `getFirstUserMessageByConversations`, and `getLastAssistantMessageByConversations` — that batch-fetch in a single query instead of per-conversation lookups. Add `listEvaluationRunsByRunConfigId` so callers can filter runs in the database instead of in JS. Export the existing `extractMessageText` helper so callers can extract text from both the `text` and A2A `parts` content formats.
+
 ## 0.77.1
 
 ## 0.77.0
