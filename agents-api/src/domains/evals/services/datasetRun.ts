@@ -6,6 +6,8 @@ import { getLogger } from '../../../logger';
 import { runDatasetItemWorkflow } from '../workflow/functions/runDatasetItem';
 
 export type DatasetRunQueueItem = DatasetRunItem & { scheduledTriggerInvocationId: string };
+// Stagger dataset item execution inside each workflow so large runs don't burst LLM calls at once.
+const DATASET_RUN_WORKFLOW_EXECUTION_DELAY_MS = 120_000;
 
 export async function queueDatasetRunItems(params: {
   tenantId: string;
@@ -20,7 +22,7 @@ export async function queueDatasetRunItems(params: {
   const logger = getLogger('workflow-triggers');
 
   const results = await Promise.allSettled(
-    items.map(async (item) => {
+    items.map(async (item, index) => {
       await start(runDatasetItemWorkflow, [
         {
           tenantId,
@@ -38,6 +40,7 @@ export async function queueDatasetRunItems(params: {
           evaluatorIds,
           evaluationRunId,
           ref,
+          delayBeforeExecutionMs: index * DATASET_RUN_WORKFLOW_EXECUTION_DELAY_MS,
         },
       ]);
     })

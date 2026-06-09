@@ -25,6 +25,7 @@ import {
   updateTriggerInvocationStatus,
   withRef,
 } from '@inkeep/agents-core';
+import { sleep } from 'workflow';
 import { manageDbClient } from '../../../../data/db';
 import manageDbPool from '../../../../data/db/manageDbPool';
 import runDbClient from '../../../../data/db/runDbClient';
@@ -47,6 +48,7 @@ type RunDatasetItemPayload = {
   evaluatorIds?: string[];
   evaluationRunId?: string;
   ref?: string;
+  delayBeforeExecutionMs?: number;
 };
 
 /**
@@ -492,6 +494,7 @@ async function _runDatasetItemWorkflow(payload: RunDatasetItemPayload) {
     scheduledTriggerInvocationId,
     evaluatorIds,
     evaluationRunId,
+    delayBeforeExecutionMs,
   } = payload;
 
   await logStep('Starting dataset item processing', {
@@ -499,7 +502,12 @@ async function _runDatasetItemWorkflow(payload: RunDatasetItemPayload) {
     datasetRunId,
     agentId,
     hasEvaluators: !!(evaluatorIds && evaluatorIds.length > 0),
+    delayBeforeExecutionMs,
   });
+
+  if (delayBeforeExecutionMs && delayBeforeExecutionMs > 0) {
+    await sleep(delayBeforeExecutionMs);
+  }
 
   await markRunningStep({
     tenantId,
