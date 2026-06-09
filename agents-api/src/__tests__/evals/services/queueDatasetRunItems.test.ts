@@ -65,7 +65,23 @@ describe('queueDatasetRunItems', () => {
     expect(startMock).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
-      expect.arrayContaining([expect.objectContaining({ datasetItemId: 'i1' })])
+      expect.arrayContaining([
+        expect.objectContaining({ datasetItemId: 'i1', delayBeforeExecutionMs: 0 }),
+      ])
+    );
+    expect(startMock).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.arrayContaining([
+        expect.objectContaining({ datasetItemId: 'i2', delayBeforeExecutionMs: 120_000 }),
+      ])
+    );
+    expect(startMock).toHaveBeenNthCalledWith(
+      3,
+      expect.anything(),
+      expect.arrayContaining([
+        expect.objectContaining({ datasetItemId: 'i3', delayBeforeExecutionMs: 240_000 }),
+      ])
     );
   });
 });
