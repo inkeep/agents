@@ -3,13 +3,14 @@ import {
   commonGetErrorResponses,
   createApiError,
   DatasetRunApiSelectSchema,
-  getConversation,
+  extractMessageText,
+  getConversationsByIds,
   getDatasetRunById,
   getDatasetRunConfigById,
   getDatasetRunConversationRelations,
   getEvaluationJobConfigEvaluatorRelations,
   getInProcessFetch,
-  getMessagesByConversation,
+  getLastAssistantMessageByConversations,
   ListResponseSchema,
   listDatasetItems,
   listDatasetRuns,
@@ -177,81 +178,51 @@ app.openapi(
         scopes: { tenantId, projectId, datasetId: run.datasetId },
       });
 
-      // Match conversations with dataset items using datasetItemId
-      // This works correctly even with async processing since we store datasetItemId in the relation
-      const itemsWithConversations = await Promise.all(
-        datasetItems.map(async (item) => {
-          // Find conversations for this item using datasetItemId
-          const itemConversations = conversationRelations.filter(
-            (conv) => conv.datasetItemId === item.id
-          );
+      // Enrich every conversation in the run with two set-based queries (agent id + latest
+      // assistant message) instead of a per-conversation fan-out, then group by dataset item.
+      // The per-conversation loop exhausted the runtime DB connection pool on large runs.
+      const allConversationIds = [
+        ...new Set(conversationRelations.map((rel) => rel.conversationId).filter(Boolean)),
+      ] as string[];
 
-          // Fetch output (assistant response) and agentId for each conversation
-          const conversationsWithOutput = await Promise.all(
-            itemConversations.map(async (conv) => {
-              try {
-                // Fetch conversation to get sub-agent ID, then look up parent agent ID
-                const conversation = await getConversation(runDbClient)({
-                  scopes: { tenantId, projectId },
-                  conversationId: conv.conversationId,
-                });
+      const [conversationsForRun, lastAssistantMessages] = await Promise.all([
+        getConversationsByIds(runDbClient)({
+          scopes: { tenantId, projectId },
+          conversationIds: allConversationIds,
+        }),
+        getLastAssistantMessageByConversations(runDbClient)({
+          scopes: { tenantId, projectId },
+          conversationIds: allConversationIds,
+        }),
+      ]);
 
-                const agentId: string | null = conversation?.agentId || null;
-
-                const messages = await getMessagesByConversation(runDbClient)({
-                  scopes: { tenantId, projectId },
-                  conversationId: conv.conversationId,
-                  pagination: { page: 1, limit: 100 },
-                });
-
-                // Find the assistant/agent response (most recent one)
-                const assistantMessage = messages
-                  .filter((msg) => msg.role === 'assistant' || msg.role === 'agent')
-                  .sort(
-                    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-                  )[0];
-
-                let output: string | null = null;
-                if (assistantMessage?.content) {
-                  if (typeof assistantMessage.content === 'string') {
-                    output = assistantMessage.content;
-                  } else if (
-                    typeof assistantMessage.content === 'object' &&
-                    assistantMessage.content !== null &&
-                    'text' in assistantMessage.content
-                  ) {
-                    output =
-                      typeof assistantMessage.content.text === 'string'
-                        ? assistantMessage.content.text
-                        : null;
-                  }
-                }
-
-                return {
-                  ...conv,
-                  output,
-                  agentId,
-                };
-              } catch (error) {
-                logger.warn(
-                  { error, conversationId: conv.conversationId },
-                  'Failed to fetch conversation output'
-                );
-                return {
-                  ...conv,
-                  output: null,
-                  agentId: null,
-                };
-              }
-            })
-          );
-
-          return {
-            ...item,
-            conversations: conversationsWithOutput,
-          };
-        })
+      const agentIdByConversation = new Map(
+        conversationsForRun.map((conversation) => [conversation.id, conversation.agentId ?? null])
       );
+      const outputByConversation = new Map<string, string | null>();
+      for (const message of lastAssistantMessages) {
+        outputByConversation.set(
+          message.conversationId,
+          extractMessageText(message.content) || null
+        );
+      }
+
+      // Match conversations with dataset items using datasetItemId.
+      // This works correctly even with async processing since we store datasetItemId in the relation.
+      const itemsWithConversations = datasetItems.map((item) => {
+        const conversationsWithOutput = conversationRelations
+          .filter((conv) => conv.datasetItemId === item.id)
+          .map((conv) => ({
+            ...conv,
+            output: outputByConversation.get(conv.conversationId) ?? null,
+            agentId: agentIdByConversation.get(conv.conversationId) ?? null,
+          }));
+
+        return {
+          ...item,
+          conversations: conversationsWithOutput,
+        };
+      });
 
       return c.json({
         data: {

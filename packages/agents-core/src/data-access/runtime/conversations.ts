@@ -181,6 +181,34 @@ export const getConversation =
     });
   };
 
+/**
+ * Batch-fetch conversations by id within a project scope.
+ *
+ * Set-based alternative to calling {@link getConversation} once per id, so callers
+ * enriching many results (e.g. evaluation results) issue a single query instead of
+ * fanning out one connection acquisition per conversation.
+ */
+export const getConversationsByIds =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; conversationIds: string[] }) => {
+    if (params.conversationIds.length === 0) {
+      return [];
+    }
+    return await db
+      .select({
+        id: conversations.id,
+        agentId: conversations.agentId,
+        createdAt: conversations.createdAt,
+      })
+      .from(conversations)
+      .where(
+        and(
+          projectScopedWhere(conversations, params.scopes),
+          inArray(conversations.id, params.conversationIds)
+        )
+      );
+  };
+
 export const createOrGetConversation =
   (db: AgentsRunDatabaseClient) => async (input: ConversationInsert) => {
     const conversationId = input.id || getConversationId();
@@ -247,7 +275,7 @@ export const createOrGetConversation =
 /**
  * Extract text content from message content object
  */
-function extractMessageText(content: MessageContent): string {
+export function extractMessageText(content: MessageContent): string {
   if (content.text) {
     return content.text;
   }

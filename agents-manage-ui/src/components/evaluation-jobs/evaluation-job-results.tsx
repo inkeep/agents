@@ -67,11 +67,12 @@ export function EvaluationJobResults({
         projectId,
         jobConfig.id
       );
-      setResults(latestResults.data || []);
+      setResults(latestResults);
 
-      const totalCount = latestResults.data?.length || 0;
-      const completedCount =
-        latestResults.data?.filter((r) => r.output !== null && r.output !== undefined).length || 0;
+      const totalCount = latestResults.length;
+      const completedCount = latestResults.filter(
+        (r) => r.output !== null && r.output !== undefined
+      ).length;
 
       setProgress({
         total: totalCount,

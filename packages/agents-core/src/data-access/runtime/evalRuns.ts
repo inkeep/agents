@@ -264,6 +264,23 @@ export const listEvaluationRunsByJobConfigId =
       );
   };
 
+export const listEvaluationRunsByRunConfigId =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    evaluationRunConfigId: string;
+  }): Promise<EvaluationRunSelect[]> => {
+    return await db
+      .select()
+      .from(evaluationRun)
+      .where(
+        and(
+          projectScopedWhere(evaluationRun, params.scopes),
+          eq(evaluationRun.evaluationRunConfigId, params.evaluationRunConfigId)
+        )
+      );
+  };
+
 export const getEvaluationRunByJobConfigId =
   (db: AgentsRunDatabaseClient) =>
   async (params: {

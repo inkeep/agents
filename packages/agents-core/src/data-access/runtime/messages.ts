@@ -63,6 +63,67 @@ export const getMessagesByConversation =
     return await query;
   };
 
+/**
+ * Batch-fetch the earliest `user` message for each of the given conversations in a single
+ * query (Postgres `DISTINCT ON`), returning one row per conversation.
+ *
+ * Set-based alternative to calling {@link getMessagesByConversation} once per conversation
+ * and reducing in JS, which fanned out two connection acquisitions per conversation and
+ * exhausted the runtime DB pool when enriching large evaluation-result sets.
+ */
+export const getFirstUserMessageByConversations =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; conversationIds: string[] }) => {
+    if (params.conversationIds.length === 0) {
+      return [];
+    }
+
+    return await db
+      .selectDistinctOn([messages.conversationId], {
+        conversationId: messages.conversationId,
+        content: messages.content,
+      })
+      .from(messages)
+      .where(
+        and(
+          projectScopedWhere(messages, params.scopes),
+          inArray(messages.conversationId, params.conversationIds),
+          eq(messages.role, 'user')
+        )
+      )
+      .orderBy(messages.conversationId, asc(messages.createdAt), asc(messages.id));
+  };
+
+/**
+ * Batch-fetch the latest assistant/agent message for each of the given conversations in a
+ * single query (Postgres `DISTINCT ON`), returning one row per conversation.
+ *
+ * Set-based alternative to the per-conversation lookup used when enriching dataset-run items
+ * with their agent output.
+ */
+export const getLastAssistantMessageByConversations =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; conversationIds: string[] }) => {
+    if (params.conversationIds.length === 0) {
+      return [];
+    }
+
+    return await db
+      .selectDistinctOn([messages.conversationId], {
+        conversationId: messages.conversationId,
+        content: messages.content,
+      })
+      .from(messages)
+      .where(
+        and(
+          projectScopedWhere(messages, params.scopes),
+          inArray(messages.conversationId, params.conversationIds),
+          inArray(messages.role, ['assistant', 'agent'])
+        )
+      )
+      .orderBy(messages.conversationId, desc(messages.createdAt), desc(messages.id));
+  };
+
 export const getMessagesByTask =
   (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; taskId: string; pagination: PaginationConfig }) => {
