@@ -13,9 +13,11 @@ import {
   StatusBadge,
 } from '@/components/traces/timeline/blocks';
 import { Bubble, CodeBubble } from '@/components/traces/timeline/bubble';
+import { CacheStateBadge } from '@/components/traces/timeline/cache-state-badge';
 import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
 import {
   ACTIVITY_STATUS,
+  type ActivityItem,
   type ContextBreakdown,
   type ConversationDetail,
   type SelectedPanel,
@@ -23,6 +25,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDateTime } from '@/lib/utils/format-date';
+import { formatCostUsd, resolveCacheUsage, type SpanData } from '@/lib/utils/trace-usage';
 
 function formatJsonSafely(content: string): string {
   try {
@@ -30,6 +33,46 @@ function formatJsonSafely(content: string): string {
   } catch {
     return content;
   }
+}
+
+/**
+ * Token / cost / prompt-cache summary for an LLM call. Delegates the (reliable-raw-preferred)
+ * data resolution and cache-state re-derivation to {@link resolveCacheUsage} so the same logic
+ * is shared with the timeline rows and any other usage surface.
+ */
+function CacheUsageInfo({ a, spanData }: { a: ActivityItem; spanData: SpanData }) {
+  const {
+    inputTokens,
+    outputTokens,
+    costUsd,
+    cacheRead,
+    cacheWrite,
+    markerCount,
+    prefixSignature,
+    cacheState,
+  } = resolveCacheUsage({ item: a, spanData });
+
+  return (
+    <>
+      <Info label="Input tokens" value={(inputTokens ?? 0).toLocaleString()} />
+      <Info label="Output tokens" value={(outputTokens ?? 0).toLocaleString()} />
+      {costUsd != null && <Info label="Estimated cost" value={formatCostUsd(costUsd)} />}
+      <Info
+        label="Prompt cache"
+        value={
+          <CacheStateBadge state={cacheState} readTokens={cacheRead} writeTokens={cacheWrite} />
+        }
+      />
+      {cacheRead != null && <Info label="Cache read tokens" value={cacheRead.toLocaleString()} />}
+      {cacheWrite != null && (
+        <Info label="Cache write tokens" value={cacheWrite.toLocaleString()} />
+      )}
+      {markerCount != null && <Info label="Cache markers" value={markerCount.toLocaleString()} />}
+      {prefixSignature && (
+        <Info label="Prefix signature" value={<Badge variant="code">{prefixSignature}</Badge>} />
+      )}
+    </>
+  );
 }
 
 /** Compact context breakdown for the side panel */
@@ -186,14 +229,7 @@ export function renderPanelContent({
         <>
           <Section>
             <Info label="Model" value={<ModelBadge model={a.aiModel || 'Unknown'} />} />
-            <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
-            <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
-            {a.costUsd != null && (
-              <Info
-                label="Estimated cost"
-                value={a.costUsd < 0.01 ? `$${a.costUsd.toFixed(6)}` : `$${a.costUsd.toFixed(4)}`}
-              />
-            )}
+            <CacheUsageInfo a={a} spanData={span?.data} />
             {a.subAgentName && <Info label="Sub agent" value={a.subAgentName} />}
             {spanLoading && (
               <div className="text-xs text-muted-foreground animate-pulse py-2">
@@ -627,14 +663,7 @@ export function renderPanelContent({
                 value={<Badge variant="code">{a.aiTelemetryFunctionId}</Badge>}
               />
             )}
-            <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
-            <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
-            {a.costUsd != null && (
-              <Info
-                label="Estimated cost"
-                value={a.costUsd < 0.01 ? `$${a.costUsd.toFixed(6)}` : `$${a.costUsd.toFixed(4)}`}
-              />
-            )}
+            <CacheUsageInfo a={a} spanData={span?.data} />
             {structuredContent && (
               <JsonEditorWithCopy
                 value={structuredContent}

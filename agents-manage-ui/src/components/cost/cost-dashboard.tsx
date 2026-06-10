@@ -104,9 +104,8 @@ const EMPTY_EVAL_SUMMARY: EvalSummary = {
 //   Cached    — at least some calls in this generation_type hit the cache (totalCacheReadTokens > 0)
 //   Cache writes — wrote to cache but no reads in window (potential cache regression area)
 //   Uncached  — no cache participation at all (legacy spans / non-eligible types / NOT-SUPPORTED)
-// The full 5-state per-call derivation (HIT / MISS-regression / MISS-expected / NOT-ATTEMPTED /
-// NOT-SUPPORTED-BY-PROVIDER) requires per-call prefix_signature comparison and is reserved for the
-// per-call timeline badge (US-012) + debug CLI (US-014) per D8/D11.
+// The full per-call derivation (HIT / MISS / NOT-ATTEMPTED / NOT-SUPPORTED-BY-PROVIDER) is reserved
+// for the per-call timeline badge (US-012) + debug CLI (US-014) per D8/D11.
 export type CacheParticipationBucket = 'Cached' | 'Cache writes' | 'Uncached';
 
 const CACHE_PARTICIPATION_ORDER: readonly CacheParticipationBucket[] = [

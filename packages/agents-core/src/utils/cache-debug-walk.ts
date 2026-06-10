@@ -3,12 +3,6 @@
  * `buildCacheDebugQuery` into a chronologically ordered list of `CacheDebugCall`
  * records — each carrying the derived `CacheState`.
  *
- * Per-agent priorSignature tracking (mirrors the per-agent walk in
- * agents-manage-ui/.../[conversationId]/route.ts). A single global cursor
- * cross-contaminates `priorSignature` between sub-agents in multi-agent
- * conversations and reports false MISS-expected / MISS-regression states; the
- * Map<subAgentId, signature> keeps each agent's cursor independent.
- *
  * This is the pure, testable core of the `pnpm cache-debug` CLI. The CLI itself
  * remains a thin shell that fetches from SigNoz and prints these records.
  */
@@ -56,25 +50,12 @@ function getNumber(row: CacheDebugSpanRow, key: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-function subAgentKey(row: CacheDebugSpanRow): string {
-  return (
-    getString(row, SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID) ||
-    getString(row, SPAN_KEYS.AGENT_ID) ||
-    '_default'
-  );
-}
-
 /**
- * Walk the LLM-span rows chronologically, deriving each call's cache state with
- * a per-agent prior-signature cursor.
+ * Walk the LLM-span rows chronologically, deriving each call's cache state.
  *
- * The walk:
- *   1. Sorts rows by `SPAN_KEYS.TIMESTAMP` (ascending).
- *   2. For each row, resolves the sub-agent key via fallback chain
- *      `AI_TELEMETRY_SUB_AGENT_ID -> AGENT_ID -> '_default'`.
- *   3. Looks up that agent's prior signature in `priorSignatureByAgent`.
- *   4. Calls `deriveCacheState` and, if the row's `prefix_signature` is non-empty,
- *      updates the agent's cursor.
+ * The walk sorts rows by `SPAN_KEYS.TIMESTAMP` (ascending) and derives each
+ * call's `CacheState` from its own attributes (marker count, cache-read tokens,
+ * provider support).
  */
 export function deriveCacheDebugCalls(rows: CacheDebugSpanRow[]): CacheDebugCall[] {
   const sorted = [...rows].sort((a, b) =>
@@ -82,7 +63,6 @@ export function deriveCacheDebugCalls(rows: CacheDebugSpanRow[]): CacheDebugCall
   );
 
   const calls: CacheDebugCall[] = [];
-  const priorSignatureByAgent = new Map<string, string>();
   for (const row of sorted) {
     const prefixSignature = getString(row, SPAN_KEYS.CACHE_INTENT_PREFIX_SIGNATURE) || null;
     const cacheReadTokens = getNumber(row, SPAN_KEYS.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS);
@@ -90,19 +70,14 @@ export function deriveCacheDebugCalls(rows: CacheDebugSpanRow[]): CacheDebugCall
     const requestProvider = getString(row, SPAN_KEYS.AI_MODEL_PROVIDER);
     const responseProvider = getString(row, SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER);
     const cachingProvider = resolveCachingProvider({ requestProvider, responseProvider });
-    const subAgentId = subAgentKey(row);
 
     const cacheState = deriveCacheState({
       markerCount,
-      prefixSignature,
       cacheRead: cacheReadTokens,
-      priorSignature: priorSignatureByAgent.get(subAgentId) ?? null,
       providerSupportsCaching: cachingProvider
         ? isProviderSupportedForCaching(cachingProvider)
         : true,
     });
-
-    if (prefixSignature) priorSignatureByAgent.set(subAgentId, prefixSignature);
 
     calls.push({
       spanId: getString(row, SPAN_KEYS.SPAN_ID),

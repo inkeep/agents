@@ -32,13 +32,13 @@ describe('formatActivityForSummary — cache fields mirror the visible timeline 
     const summary = formatActivityForSummary(
       baseActivity({
         type: ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT,
-        cacheState: 'MISS-expected',
+        cacheState: 'MISS',
         cacheReadTokens: 0,
         cacheCreationTokens: 15927,
       })
     );
 
-    expect(summary.cacheState).toBe('MISS-expected');
+    expect(summary.cacheState).toBe('MISS');
     expect(summary.cacheCreationTokens).toBe(15927);
   });
 

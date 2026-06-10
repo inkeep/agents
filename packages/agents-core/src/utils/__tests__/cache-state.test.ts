@@ -33,125 +33,34 @@ describe('resolveCachingProvider', () => {
 
 describe('deriveCacheState', () => {
   it('returns HIT when markers present and cache_read > 0', () => {
-    expect(
-      deriveCacheState({
-        markerCount: 1,
-        prefixSignature: 'abc123',
-        cacheRead: 8000,
-        priorSignature: 'abc123',
-      })
-    ).toBe('HIT');
+    expect(deriveCacheState({ markerCount: 1, cacheRead: 8000 })).toBe('HIT');
   });
 
-  it('returns HIT on a cache read regardless of priorSignature (cache_read short-circuits first)', () => {
-    // cache_read > 0 returns HIT before the priorSignature comparison, so a first-turn
-    // hit (priorSignature null) must still classify as HIT, not MISS-expected.
-    expect(
-      deriveCacheState({
-        markerCount: 1,
-        prefixSignature: 'abc123',
-        cacheRead: 8000,
-        priorSignature: null,
-      })
-    ).toBe('HIT');
+  it('returns MISS when markers present and cache_read = 0', () => {
+    expect(deriveCacheState({ markerCount: 1, cacheRead: 0 })).toBe('MISS');
   });
 
-  it('returns MISS-regression when markers present, cache_read=0, and prefix matches prior', () => {
-    expect(
-      deriveCacheState({
-        markerCount: 1,
-        prefixSignature: 'abc123',
-        cacheRead: 0,
-        priorSignature: 'abc123',
-      })
-    ).toBe('MISS-regression');
-  });
-
-  it('returns MISS-expected when markers present, cache_read=0, and prefix differs from prior', () => {
-    expect(
-      deriveCacheState({
-        markerCount: 1,
-        prefixSignature: 'abc123',
-        cacheRead: 0,
-        priorSignature: 'def456',
-      })
-    ).toBe('MISS-expected');
-  });
-
-  it('returns MISS-expected when markers present, cache_read=0, and no prior signature exists', () => {
-    expect(
-      deriveCacheState({
-        markerCount: 1,
-        prefixSignature: 'abc123',
-        cacheRead: 0,
-        priorSignature: null,
-      })
-    ).toBe('MISS-expected');
+  it('returns HIT on a cache read even when marker_count is 0 (read wins — trace store can drop the marker)', () => {
+    expect(deriveCacheState({ markerCount: 0, cacheRead: 8000 })).toBe('HIT');
   });
 
   it('returns NOT-ATTEMPTED when marker_count is 0 and provider supports caching', () => {
-    expect(
-      deriveCacheState({
-        markerCount: 0,
-        prefixSignature: 'abc123',
-        cacheRead: 0,
-        priorSignature: null,
-      })
-    ).toBe('NOT-ATTEMPTED');
+    expect(deriveCacheState({ markerCount: 0, cacheRead: 0 })).toBe('NOT-ATTEMPTED');
   });
 
   it('returns NOT-SUPPORTED-BY-PROVIDER when providerSupportsCaching is false', () => {
-    expect(
-      deriveCacheState({
-        markerCount: 0,
-        prefixSignature: null,
-        cacheRead: 0,
-        priorSignature: null,
-        providerSupportsCaching: false,
-      })
-    ).toBe('NOT-SUPPORTED-BY-PROVIDER');
+    expect(deriveCacheState({ markerCount: 0, cacheRead: 0, providerSupportsCaching: false })).toBe(
+      'NOT-SUPPORTED-BY-PROVIDER'
+    );
   });
 
   it('returns NOT-SUPPORTED-BY-PROVIDER even when markers/cache_read look HIT-like', () => {
     expect(
-      deriveCacheState({
-        markerCount: 1,
-        prefixSignature: 'abc123',
-        cacheRead: 8000,
-        priorSignature: 'abc123',
-        providerSupportsCaching: false,
-      })
+      deriveCacheState({ markerCount: 1, cacheRead: 8000, providerSupportsCaching: false })
     ).toBe('NOT-SUPPORTED-BY-PROVIDER');
   });
 
-  it('defaults priorSignature to null when omitted', () => {
-    expect(
-      deriveCacheState({
-        markerCount: 1,
-        prefixSignature: 'abc123',
-        cacheRead: 0,
-      })
-    ).toBe('MISS-expected');
-  });
-
   it('defaults providerSupportsCaching to true when omitted', () => {
-    expect(
-      deriveCacheState({
-        markerCount: 0,
-        prefixSignature: null,
-        cacheRead: 0,
-      })
-    ).toBe('NOT-ATTEMPTED');
-  });
-
-  it('returns MISS-expected when markers present, cache_read=0, and prefix_signature is empty/null', () => {
-    expect(
-      deriveCacheState({
-        markerCount: 1,
-        prefixSignature: null,
-        cacheRead: 0,
-        priorSignature: 'abc123',
-      })
-    ).toBe('MISS-expected');
+    expect(deriveCacheState({ markerCount: 0, cacheRead: 0 })).toBe('NOT-ATTEMPTED');
   });
 });

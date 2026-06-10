@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCircle, Ban, Check, CircleOff, Minus } from 'lucide-react';
+import { Ban, Check, CircleOff, Minus } from 'lucide-react';
 import type { ComponentType, SVGProps } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -24,19 +24,12 @@ const STATE_CONFIG: Record<CacheState, VariantConfig> = {
     ariaLabel: 'Cache hit',
     tooltip: 'Input tokens served from provider cache',
   },
-  'MISS-regression': {
-    variant: 'error',
-    Icon: AlertCircle,
-    label: 'MISS',
-    ariaLabel: 'Cache miss regression',
-    tooltip: 'Stable prefix did not cache-hit — possible regression',
-  },
-  'MISS-expected': {
+  MISS: {
     variant: 'warning',
     Icon: Minus,
     label: 'MISS',
-    ariaLabel: 'Cache miss expected',
-    tooltip: 'Prefix changed since prior call — miss is expected',
+    ariaLabel: 'Cache miss',
+    tooltip: 'Input tokens were not served from the provider cache',
   },
   'NOT-ATTEMPTED': {
     variant: 'code',

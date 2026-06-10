@@ -24,6 +24,7 @@ import {
   extractFullFields,
   extractPreviewFields,
 } from '../../../utils/schema-validation';
+import { SYSTEM_CACHE_BOUNDARY_SENTINEL } from '../../generation/caching-actuator';
 import type {
   McpServerGroupData,
   SkillData,
@@ -95,9 +96,18 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
         .replace('{{TRANSFER_INSTRUCTIONS}}', '')
         .replace('{{DELEGATION_INSTRUCTIONS}}', '')
         .replace('{{OUTPUT_CONTRACT_SECTION}}', '')
+        .replace('{{SYSTEM_CACHE_BOUNDARY}}', '')
     );
 
     let systemPrompt = systemPromptTemplateContent;
+
+    // R3: mark the per-agent / per-conversation split. buildInitialMessages splits on this sentinel
+    // to emit two consecutive system blocks (per-agent stable, then app context + prompts), so the
+    // stable prefix caches across an agent's conversations. The sentinel never reaches the wire.
+    systemPrompt = systemPrompt.replace(
+      '{{SYSTEM_CACHE_BOUNDARY}}',
+      SYSTEM_CACHE_BOUNDARY_SENTINEL
+    );
 
     // Handle core instructions - omit entire section if empty
     if (config.corePrompt?.trim()) {
@@ -111,8 +121,9 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
       );
     }
 
-    // Handle current time section - include user's current time in their timezone if available
-    const currentTimeSection = this.generateCurrentTimeSection(config.clientCurrentTime);
+    // Static, byte-stable time guidance. The per-request timestamp VALUE is injected into the
+    // current user message (see runGenerate), NOT here, so the system block stays cacheable.
+    const currentTimeSection = this.generateCurrentTimeSection();
     breakdown.components.currentTime = estimateTokens(currentTimeSection);
     systemPrompt = systemPrompt.replace('{{CURRENT_TIME_SECTION}}', currentTimeSection);
 
@@ -266,17 +277,15 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
   </app_context>`;
   }
 
-  private generateCurrentTimeSection(clientCurrentTime?: string): string {
-    if (!clientCurrentTime || clientCurrentTime.trim() === '') {
-      return '';
-    }
-
+  // Byte-stable guidance only — no timestamp value. Always present so the system block is
+  // identical across conversations (does not vary by whether a turn carries client time headers).
+  // The actual timestamp is injected into the current user message at generation time.
+  private generateCurrentTimeSection(): string {
     return `
-  <current_time>
-    The current time for the user is: ${clientCurrentTime}
-    Use this to provide context-aware responses (e.g., greetings appropriate for their time of day, understanding business hours in their timezone, etc.)
-    IMPORTANT: You simply know what time it is for the user - don't mention "the current time" or reference this section in your responses.
-  </current_time>`;
+  <current_time_guidance>
+    If the user's message includes a <current_time> block, use it to provide context-aware responses (e.g., greetings appropriate for their time of day, understanding business hours in their timezone). When it is present, simply act on it - do not mention "the current time" or reference the block explicitly in your responses.
+    If no <current_time> block is present, do not assume or state what time it is.
+  </current_time_guidance>`;
   }
 
   /**
@@ -440,31 +449,31 @@ Creating an artifact IS a citation. Only reference again when citing the SAME ar
 CRITICAL: ALWAYS SELECT SINGLE ITEMS, NEVER ARRAYS
 
 SELECTOR REQUIREMENTS:
-- MUST select ONE specific item, never an array  
-- Use filtering: result.items[?title=='API Guide']
-- Use exact matching: result.documents[?name=='Setup Instructions'] 
-- Target specific fields: result.content[?section=='authentication']
+- MUST select ONE specific item, never an array
+- Use filtering: result.items[?title=='<EXACT_TITLE_FROM_DATA>'] | [0]
+- Use exact matching: result.documents[?name=='<EXACT_NAME_FROM_DATA>'] | [0]
+- Target specific fields: result.content[?section=='authentication'] | [0]
 
 CRITICAL: SELECTOR HIERARCHY
 - base_selector: Points to ONE specific item in the tool result
 - details_selector: Contains JMESPath selectors RELATIVE to the base selector
-- Example: If base="result.documents[?type=='api']" then details_selector uses "title" not "documents[0].title"
+- Example: If base="result.documents[?type=='api'] | [0]" then details_selector uses "title" not "documents[0].title"
 
 COMMON FAILURE POINTS (AVOID THESE):
 1. **Array Selection**: result.items (returns array) ❌
-   → Fix: result.items[?type=='guide'] (returns single item) ✅
+   → Fix: result.items[?type=='guide'] | [0] (returns single item) ✅
 
 2. **Similar Key Names**: "title" vs "name" vs "heading"
    → Always check the actual field names in tool results
 
 3. **Repeated Keys**: Multiple items with same "title" field
-   → Use more specific filters: [?title=='Guide' && section=='setup']
+   → Use more specific filters: [?title=='<EXACT_TITLE_FROM_DATA>' && section=='<EXACT_SECTION_FROM_DATA>']
 
 4. **Case Sensitivity**: 'Guide' vs 'guide'
    → Match exact case from tool results
 
-5. **Missing Nested Levels**: "content.text" when it's "body.content.text"
-   → Include all intermediate levels`;
+5. **Missing Nested Levels / Repeated Names**: "content.text" when it's "body.content.text", or picking the wrong "content" when it appears at several depths
+   → Include all intermediate levels; when a name repeats, copy the exact full path from _structureHints.ambiguousFields, never the bare name`;
   }
 
   private getArtifactReferencingRules(
@@ -554,7 +563,7 @@ THE details PROPERTY IN ${ARTIFACT_TAG.CREATE} MUST CONTAIN JMESPATH SELECTORS T
 ✅ source.content[?contains(text, 'Founder')].text (correct filter usage)
 
 🚨 MANDATORY QUOTE PATTERN — FOLLOW EXACTLY:
-- ALWAYS: base="path[?field=='value']" (double quotes outside, single inside)
+- ALWAYS: base="path[?field=='value'] | [0]" (double quotes outside, single inside; | [0] selects one item)
 - This is the ONLY allowed pattern — any other pattern WILL FAIL
 - NEVER escape quotes, NEVER mix quote types, NEVER use complex quoting
 
@@ -567,32 +576,34 @@ STEP 1: INSPECT THE ACTUAL DATA FIRST
 - Don't assume field names or values based on the user's question
 
 STEP 2: USE STRUCTURE HINTS AS YOUR SELECTOR GUIDE
-- The _structureHints.exampleSelectors show you exactly what selectors work with this data
-- Copy and modify the patterns from exampleSelectors that target your needed data
-- Use the commonFields list to see what field names are available
-- Follow the exact path structure indicated by the hints
+- 🎯 Your base_selector PATH must come from _structureHints. Start with _structureHints.recommendedBaseSelectors — these are ready-to-use single-item base selectors for this exact result; copy one and adapt ONLY the filter value. Otherwise copy a path from exampleSelectors.
+- ❌ NEVER invent a path segment. If the data nests items under "content", do not write ".documents" or ".items" just because the examples below do — those array names are illustrative; the real path is whatever _structureHints shows.
+- 📦 If the result has a "structuredContent" field, prefer selecting from "structuredContent.content[...]" — it is the clean, flat, canonical array. Avoid digging through the nested "content[0].text..." envelope.
+- terminalPaths give the COMPLETE path to every leaf field — copy a full path verbatim instead of reconstructing it.
+- commonFields is a rough vocabulary only: it is a flat, de-duplicated list with NO paths. Never build a nested path from it.
+- If a field name repeats at different depths (e.g. "content" at the root and again at content.text.content), check _structureHints.ambiguousFields — it lists EVERY full path for that name. Copy the exact one; do not collapse intermediate levels or guess the nesting.
 
 STEP 3: MATCH ACTUAL VALUES, NOT ASSUMPTIONS
-- Look for real titles in the data like "Inkeep", "Team", "About Us", "API Guide"
-- Check actual record_type values like "site", "documentation", "blog"
-- Use exact matches from the real data structure, not guessed patterns
-- If looking for team info, it might be in a document titled "Inkeep" with record_type="site"
+- ⚠️ The quoted values in every example below (titles, names, types) are PLACEHOLDERS. NEVER copy them
+  into your selector. Substitute the exact values that actually appear in _structureHints / the result.
+- Read the real titles, record_type, and type values straight from the data before filtering
+- Whatever value you filter on must be one you can SEE in this specific tool result, not a guess
 
 STEP 4: VALIDATE YOUR SELECTORS AGAINST THE DATA
 - Your base selector must match actual documents in the result
 - Test your logic: does result.structuredContent.content contain items with your target values?
-- Use compound conditions when needed: [?title=='Inkeep' && record_type=='site']
+- Use compound conditions when needed: [?title=='<EXACT_TITLE_FROM_DATA>' && record_type=='<EXACT_RECORD_TYPE_FROM_DATA>']
 
 EXAMPLE PATTERNS FOR BASE SELECTORS:
 ❌ WRONG: result.items[?contains(title, "guide")] (assumes field values + wrong quotes)
 ❌ WRONG: result.data[?type=="document"] (double quotes invalid in JMESPath)
 ✅ CORRECT: result.structuredContent.content[0] (select first item)
-✅ CORRECT: result.items[?type=='document'][0] (filter by type, single quotes!)
-✅ CORRECT: result.data[?category=='api'][0] (filter by category)
-✅ CORRECT: result.documents[?status=='published'][0] (filter by status)
+✅ CORRECT: result.items[?type=='document'] | [0] (filter by type, single quotes!)
+✅ CORRECT: result.data[?category=='api'] | [0] (filter by category)
+✅ CORRECT: result.documents[?status=='published'] | [0] (filter by status)
 
 EXAMPLE TEXT RESPONSE:
-"I found the authentication documentation. <${ARTIFACT_TAG.CREATE} id='auth-doc-1' tool='call_xyz789' type='APIDoc' base="result.documents[?type=='auth']" details='{"title":"metadata.title","endpoint":"api.endpoint","description":"content.description","parameters":"spec.parameters","examples":"examples.sample_code"}' /> The documentation explains OAuth 2.0 implementation in detail.
+"I found the authentication documentation. <${ARTIFACT_TAG.CREATE} id='auth-doc-1' tool='call_xyz789' type='APIDoc' base="result.documents[?type=='auth'] | [0]" details='{"title":"metadata.title","endpoint":"api.endpoint","description":"content.description","parameters":"spec.parameters","examples":"examples.sample_code"}' /> The documentation explains OAuth 2.0 implementation in detail.
 
 The process involves three main steps: registration, token exchange, and API calls. As mentioned in the authentication documentation <${ARTIFACT_TAG.REF} id='auth-doc-1' tool='call_xyz789' />, you'll need to register your application first."
 
@@ -677,15 +688,15 @@ IMPORTANT GUIDELINES:
     return `
 SELECTOR CRAFT — writing base_selector + details_selector:
 - base_selector points to ONE specific item in the tool result; details_selector entries are
-  JMESPath selectors RELATIVE to it. Example: if base_selector = "result.documents[?type=='api'][0]",
+  JMESPath selectors RELATIVE to it. Example: if base_selector = "result.documents[?type=='api'] | [0]",
   a details_selector field uses "title", NOT "documents[0].title".
 - details_selector values are SELECTORS, not literal values. NEVER write a literal like "Inkeep"
   or "2023" — always a selector like "metadata.company" or "founded_year" that the system
   evaluates against the tool result.
 
 ALWAYS SELECT A SINGLE ITEM, NEVER AN ARRAY:
-- Filter to one item: result.items[?title=='API Guide'][0]
-- Exact match: result.documents[?name=='Setup Instructions'][0]
+- Filter to one item: result.items[?title=='<EXACT_TITLE_FROM_DATA>'] | [0]
+- Exact match: result.documents[?name=='<EXACT_NAME_FROM_DATA>'] | [0]
 
 🚫 FORBIDDEN JMESPATH PATTERNS:
 ❌ [?title~'.*text.*'] or any ~ (regex) operator
@@ -708,23 +719,23 @@ EXAMINE THE TOOL RESULT BEFORE WRITING SELECTORS:
    the user's question.
 2. USE STRUCTURE HINTS — _structureHints.exampleSelectors show real working paths you can copy;
    _structureHints.commonFields lists available field names.
-3. MATCH ACTUAL VALUES — use exact titles/types that exist in the data (e.g. a doc titled
-   "Inkeep" with record_type=='site'), not guesses.
+3. MATCH ACTUAL VALUES — use the exact titles/types that actually exist in the data; the quoted
+   values in these examples are PLACEHOLDERS, never copy them. Read the real values from the result.
 4. VALIDATE — your base_selector must match an actual item; use compound conditions when needed:
-   [?title=='Inkeep' && record_type=='site'].
+   [?title=='<EXACT_TITLE_FROM_DATA>' && record_type=='<EXACT_RECORD_TYPE_FROM_DATA>'].
 
 COMMON FAILURE POINTS (AVOID):
-1. Array selection: result.items ❌ → result.items[?type=='guide'] ✅
+1. Array selection: result.items ❌ → result.items[?type=='guide'] | [0] ✅
 2. Similar key names (title vs name vs heading) → check the actual field names.
-3. Repeated keys → use a more specific filter: [?title=='Guide' && section=='setup'].
+3. Repeated keys → use a more specific filter: [?title=='<EXACT_TITLE_FROM_DATA>' && section=='<EXACT_SECTION_FROM_DATA>'].
 4. Case sensitivity ('Guide' vs 'guide') → match the exact case from the data.
-5. Missing nested levels ("content.text" vs "body.content.text") → include all intermediate levels.
+5. Missing nested levels or repeated names ("content.text" vs "body.content.text"; the wrong "content" when it appears at several depths) → include all intermediate levels; when a name repeats, copy the exact full path from _structureHints.ambiguousFields, never the bare name.
 
 EXAMPLE BASE SELECTORS:
 ❌ result.data[?type=="document"] (double quotes invalid)
 ✅ result.structuredContent.content[0] (first item)
-✅ result.items[?type=='document'][0] (filter by type, single quotes)
-✅ result.documents[?status=='published'][0] (filter by status)
+✅ result.items[?type=='document'] | [0] (filter by type, single quotes)
+✅ result.documents[?status=='published'] | [0] (filter by status)
 `;
   }
 
@@ -750,7 +761,7 @@ CREATE — save data from a tool result as a citable artifact:
   - tool_call_id: the EXACT tool_call_id from the tool execution that produced the data
     (e.g. "call_xyz789" / "toolu_abc123"). NEVER invent or guess this id.
   - base_selector: a JMESPath selector starting with "result." that navigates to ONE specific
-    item (use filtering to avoid arrays, e.g. "result.items[?type=='guide']").
+    item (use filtering to avoid arrays, e.g. "result.items[?type=='guide'] | [0]").
   - details_selector: JMESPath selectors RELATIVE to base_selector that map to the artifact's
     schema fields. Include ALL schema fields (preview and non-preview).
 - ⚠️ Only create artifacts from original tool results — never from ${ARTIFACT_TOOL.GET_REFERENCE} output.
@@ -881,7 +892,12 @@ ${typeDescriptions}
     excludeArtifactXml: boolean = false,
     structuredMode: boolean = false
   ): string {
-    const shouldShowReferencingRules = hasAgentArtifactComponents || artifacts.length > 0;
+    // R10/D17: the referencing/creation rules describe the agent's CAPABILITY to create and
+    // reference artifacts — they belong to the cached per-agent system prefix and must NOT vary with
+    // the runtime artifact count. The live instances live in a separate user-message block. Gate
+    // rule visibility on static config only; never on artifacts.length for the cached system path.
+    const shouldShowReferencingRules =
+      hasAgentArtifactComponents || (!excludeArtifactXml && artifacts.length > 0);
     const rules = structuredMode
       ? this.getStructuredArtifactRules(hasArtifactComponents, shouldShowReferencingRules)
       : this.getArtifactReferencingRules(
@@ -896,8 +912,13 @@ ${typeDescriptions}
       ? ''
       : this.getArtifactCreationInstructions(hasArtifactComponents, artifactComponents);
 
-    if (artifacts.length === 0) {
-      return `<available_artifacts description="No artifacts are currently available, but you may create them during execution.
+    // System (cached prefix) path: byte-identical regardless of how many artifacts currently exist.
+    // Checked BEFORE the count branches so the per-agent prefix never drifts as artifacts accumulate
+    // (the previous "No artifacts…" vs "These are the artifacts…" wrapper flip busted the cache on
+    // the first artifact created in a conversation). Live instances render in the separate
+    // artifactsMessage user block, not here.
+    if (excludeArtifactXml) {
+      return `<available_artifacts description="Artifacts can be created and referenced during execution. Any currently available artifacts are provided in a separate block.
 
 ${rules}
 
@@ -906,8 +927,8 @@ ${creationInstructions}
 "></available_artifacts>`;
     }
 
-    if (excludeArtifactXml) {
-      return `<available_artifacts description="These are the artifacts available for you to use in generating responses.
+    if (artifacts.length === 0) {
+      return `<available_artifacts description="No artifacts are currently available, but you may create them during execution.
 
 ${rules}
 

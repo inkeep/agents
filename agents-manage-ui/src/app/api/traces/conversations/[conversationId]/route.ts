@@ -193,6 +193,94 @@ async function signozQuery(
   }
 }
 
+/**
+ * Fetch the reliable numeric attribute bundle for every span in the conversation (span_id ->
+ * { attributeKey: number }) by reading the raw number map via the dedicated clickhouse_sql endpoint.
+ * The builder list query drops `gen_ai.usage.*` / `gen_ai.cost.*` / `cache.intent.*` numerics on
+ * some SigNoz deployments; these are merged back onto the spans so tokens/cost/cache numbers are
+ * accurate. Best-effort: on failure, returns an empty map and the (possibly-dropped) builder-query
+ * numbers are used as before.
+ */
+// Must match agents-core/agents-api signozHelpers.CONVERSATION_SPAN_NUMBERS_LIMIT (cross-package, so
+// mirrored here rather than imported). Used only to detect truncation for a warning.
+const CONVERSATION_SPAN_NUMBERS_LIMIT = 2000;
+
+async function fetchConversationNumbers(
+  conversationId: string,
+  tenantId: string,
+  authHeaders: Record<string, string>,
+  start: number,
+  end: number
+): Promise<Map<string, Record<string, number>>> {
+  const logger = getLogger('conversation-numbers');
+  const map = new Map<string, Record<string, number>>();
+  try {
+    const agentsApiUrl = getAgentsApiUrl();
+    const endpoint = `${agentsApiUrl}/manage/tenants/${tenantId}/signoz/conversation-span-numbers`;
+    const response = await fetchWithRetry(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      // Pass the SAME time range the main spans query uses, so the number merge covers exactly the
+      // same window instead of the endpoint's default 180-day lookback.
+      body: JSON.stringify({ conversationId, start, end }),
+      credentials: 'include',
+      timeout: 15000,
+      maxAttempts: 2,
+      label: 'signoz-conversation-numbers',
+    });
+    if (!response.ok) {
+      logger.warn(
+        { conversationId, status: response.status },
+        'conversation-span-numbers request failed; falling back to builder-query numbers (may be dropped)'
+      );
+      return map;
+    }
+    const json = await response.json();
+    const result = (json?.data?.data?.results ?? [])[0];
+    const columns: Array<{ name: string }> = result?.columns ?? [];
+    const rows: unknown[][] = result?.data ?? [];
+    const spanIdIdx = columns.findIndex((col) => col.name === 'span_id');
+    const numsIdx = columns.findIndex((col) => col.name === 'attributes_number_json');
+    if (spanIdIdx < 0 || numsIdx < 0) {
+      logger.warn(
+        { conversationId, columns: columns.map((c) => c.name) },
+        'conversation-span-numbers response missing span_id/attributes_number_json columns'
+      );
+      return map;
+    }
+    let unparseable = 0;
+    for (const row of rows) {
+      const spanId = row[spanIdIdx] == null ? '' : String(row[spanIdIdx]);
+      if (!spanId) continue;
+      try {
+        const nums = JSON.parse(String(row[numsIdx] ?? '{}')) as Record<string, number>;
+        map.set(spanId, nums);
+      } catch {
+        unparseable++;
+      }
+    }
+    if (unparseable > 0) {
+      logger.warn(
+        { conversationId, unparseable, total: rows.length },
+        'some conversation-span-numbers rows had unparseable number JSON; their numerics were skipped'
+      );
+    }
+    if (rows.length >= CONVERSATION_SPAN_NUMBERS_LIMIT) {
+      logger.warn(
+        { conversationId, rows: rows.length, limit: CONVERSATION_SPAN_NUMBERS_LIMIT },
+        'conversation-span-numbers hit the row limit; spans beyond it have no merged numerics (tokens/cost/cache may read low)'
+      );
+    }
+  } catch (error) {
+    // Best-effort; builder-query numbers are used as the fallback. Log so the degradation is visible.
+    logger.warn(
+      { conversationId, error },
+      'conversation-span-numbers fetch threw; falling back to builder-query numbers (may be dropped)'
+    );
+  }
+  return map;
+}
+
 // ---------- Payload builder (single combined "list" payload)
 
 type SelectField = { name: string; fieldDataType: string; fieldContext: string };
@@ -302,12 +390,15 @@ function buildAllSpansPayload(
     sf(SPAN_KEYS.AI_MODEL_ID, str, attr),
     sf(SPAN_KEYS.AI_MODEL_PROVIDER, str, attr),
     sf(SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER, str, attr),
-    sf(SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, int64, attr),
-    sf(SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, int64, attr),
+    // Numeric span attributes are stored in SigNoz's Float64 map; selecting them as int64 can drop
+    // the value (returns null → 0), which falsely renders cache badges as "Skipped" (marker_count 0)
+    // and tokens as 0. Read them as float64 so the row badges and token columns are reliable.
+    sf(SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, float64, attr),
+    sf(SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, float64, attr),
     sf(SPAN_KEYS.GEN_AI_COST_ESTIMATED_USD, float64, attr),
-    sf(SPAN_KEYS.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, int64, attr),
-    sf(SPAN_KEYS.GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, int64, attr),
-    sf(SPAN_KEYS.CACHE_INTENT_MARKER_COUNT, int64, attr),
+    sf(SPAN_KEYS.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, float64, attr),
+    sf(SPAN_KEYS.GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS, float64, attr),
+    sf(SPAN_KEYS.CACHE_INTENT_MARKER_COUNT, float64, attr),
     sf(SPAN_KEYS.CACHE_INTENT_PREFIX_SIGNATURE, str, attr),
     sf(SPAN_KEYS.AI_RESPONSE_TEXT, str, attr),
     sf(SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE, str, attr),
@@ -580,7 +671,10 @@ export async function GET(
     const allSpansPayload = buildAllSpansPayload(conversationId, start, end, projectId);
 
     const batchStart = Date.now();
-    const allSpansResp = await signozQuery(allSpansPayload, tenantId, authResult.headers);
+    const [allSpansResp, numbersBySpanId] = await Promise.all([
+      signozQuery(allSpansPayload, tenantId, authResult.headers),
+      fetchConversationNumbers(conversationId, tenantId, authResult.headers, start, end),
+    ]);
     logger.info(
       { batch: 'all-spans', queries: 1, ms: Date.now() - batchStart },
       'signoz batch complete'
@@ -588,6 +682,17 @@ export async function GET(
     const tSignoz = Date.now();
 
     const allRows = allSpansResp.results.flatMap((r) => r.rows ?? []);
+    // Merge the reliable numeric attributes (read from the raw number map) onto each span,
+    // overriding any numerics the builder list query dropped to 0/absent. After this, getNumber
+    // reads accurate tokens/cost/cache values and the cache-state derivation, token columns, and
+    // cost are all correct without UI re-derive workarounds.
+    for (const span of allRows) {
+      const sid = getString(span, SPAN_KEYS.SPAN_ID);
+      const nums = sid ? numbersBySpanId.get(sid) : undefined;
+      if (!nums) continue;
+      if (!span.data) span.data = {};
+      Object.assign(span.data, nums);
+    }
     if (allRows.length >= SPAN_QUERY_LIMIT) {
       logger.warn(
         { conversationId, rowCount: allRows.length, limit: SPAN_QUERY_LIMIT },
@@ -613,14 +718,9 @@ export async function GET(
     const llmCallsChronological = [...aiGenerationSpans, ...aiStreamingSpans].sort((a, b) =>
       String(a.timestamp ?? '').localeCompare(String(b.timestamp ?? ''))
     );
-    const priorSignatureByAgent = new Map<string, string>();
     for (const llmSpan of llmCallsChronological) {
       const spanId = getString(llmSpan, SPAN_KEYS.SPAN_ID, '');
       if (!spanId) continue;
-      const subAgentId =
-        getString(llmSpan, SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, '') ||
-        getString(llmSpan, SPAN_KEYS.AGENT_ID, '') ||
-        '_default';
       // Resolve the provider for the caching-support gate: gateway-routed spans
       // report ai.model.provider='gateway' (not caching-capable) while the real
       // backend that owns the cache keys is in gen_ai.response.provider. Prefer
@@ -629,19 +729,20 @@ export async function GET(
         requestProvider: getString(llmSpan, SPAN_KEYS.AI_MODEL_PROVIDER, ''),
         responseProvider: getString(llmSpan, SPAN_KEYS.GEN_AI_RESPONSE_PROVIDER, ''),
       });
-      const prefixSignature =
-        getString(llmSpan, SPAN_KEYS.CACHE_INTENT_PREFIX_SIGNATURE, '') || null;
+      const cacheReadTokens = getNumber(llmSpan, SPAN_KEYS.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, 0);
+      // marker_count is merged from the raw attributes_number bundle above (the typed list query
+      // drops it), so this is the real value — derive directly from it, no synthesis. A genuine 0
+      // means no cache marker was placed (caching not attempted), which reads as "Skipped".
+      const markerCount = getNumber(llmSpan, SPAN_KEYS.CACHE_INTENT_MARKER_COUNT, 0);
+      const providerSupportsCaching = cachingProvider
+        ? isProviderSupportedForCaching(cachingProvider)
+        : true;
       const state = deriveCacheState({
-        markerCount: getNumber(llmSpan, SPAN_KEYS.CACHE_INTENT_MARKER_COUNT, 0),
-        prefixSignature,
-        cacheRead: getNumber(llmSpan, SPAN_KEYS.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS, 0),
-        priorSignature: priorSignatureByAgent.get(subAgentId) ?? null,
-        providerSupportsCaching: cachingProvider
-          ? isProviderSupportedForCaching(cachingProvider)
-          : true,
+        markerCount,
+        cacheRead: cacheReadTokens,
+        providerSupportsCaching,
       });
       cacheStateBySpanId.set(spanId, state);
-      if (prefixSignature) priorSignatureByAgent.set(subAgentId, prefixSignature);
     }
     const {
       agentGenerationSpans,

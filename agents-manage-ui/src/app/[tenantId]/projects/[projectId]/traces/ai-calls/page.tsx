@@ -25,16 +25,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { UNKNOWN_VALUE } from '@/constants/signoz';
 import { type TimeRange, useAICallsQueryState } from '@/hooks/use-ai-calls-query-state';
 import { getSigNozStatsClient, type TokenUsageResult } from '@/lib/api/signoz-stats';
-
-function formatTokenCount(count: number): string {
-  if (count >= 1_000_000) {
-    return `${(count / 1_000_000).toFixed(2)}M`;
-  }
-  if (count >= 1_000) {
-    return `${(count / 1_000).toFixed(1)}K`;
-  }
-  return count.toLocaleString();
-}
+import { formatTokenCount } from '@/lib/utils/trace-usage';
 
 // Time range options
 const TIME_RANGES = {

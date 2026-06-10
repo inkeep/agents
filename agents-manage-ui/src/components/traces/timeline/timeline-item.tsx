@@ -34,6 +34,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { SLACK_BRAND_COLOR } from '@/constants/theme';
 import { formatDateTime } from '@/lib/utils/format-date';
+import { formatCostUsd } from '@/lib/utils/trace-usage';
 
 function truncateWords(s: string, nWords: number) {
   const words = s.split(/\s+/);
@@ -286,9 +287,7 @@ export function TimelineItem({
               )}
               {activity.costUsd != null && (
                 <span className="flex-shrink-0 text-xs font-mono text-emerald-600 dark:text-emerald-400">
-                  {activity.costUsd < 0.01
-                    ? `$${activity.costUsd.toFixed(6)}`
-                    : `$${activity.costUsd.toFixed(4)}`}
+                  {formatCostUsd(activity.costUsd)}
                 </span>
               )}
               {hasChildren && onToggleCollapse && (

@@ -100,9 +100,37 @@ export function countCacheMarkers(
     if (msg.providerOptions?.anthropic?.cacheControl) {
       count++;
     }
+    // Part-level markers (BP2, the conversation-history block) — message-level counting alone
+    // would miss them and under-report the attached breakpoints.
+    if (Array.isArray(msg.content)) {
+      for (const part of msg.content) {
+        if (part?.providerOptions?.anthropic?.cacheControl) {
+          count++;
+        }
+      }
+    }
   }
 
   return Math.min(count, 4);
+}
+
+/**
+ * Count of part-level (conversation-history / BP2) cache markers only — the distinct BP2 signal.
+ * BP1 (system + tools) is message-level and tracked via the prefix signature; this isolates the
+ * history boundary so cross-turn cache participation can be attributed to it.
+ */
+export function countHistoryCacheMarkers(prompt: readonly any[]): number {
+  let count = 0;
+  for (const msg of prompt) {
+    if (Array.isArray(msg.content)) {
+      for (const part of msg.content) {
+        if (part?.providerOptions?.anthropic?.cacheControl) {
+          count++;
+        }
+      }
+    }
+  }
+  return count;
 }
 
 export function computePrefixSignature(prompt: readonly any[], tools?: readonly any[]): string {
@@ -155,6 +183,11 @@ function setCacheAttributesOnSpan(params: Record<string, any>, usage: any): void
 
   const prefixSignature = computePrefixSignature(prompt, params.tools);
   activeSpan.setAttribute(SPAN_KEYS.CACHE_INTENT_PREFIX_SIGNATURE, prefixSignature);
+
+  // BP2 — distinct history-marker signal (part-level), so cross-turn caching can be attributed to
+  // the conversation-history boundary rather than only the static tools+system prefix.
+  const historyMarkerCount = countHistoryCacheMarkers(prompt);
+  activeSpan.setAttribute(SPAN_KEYS.CACHE_INTENT_HISTORY_MARKER_COUNT, historyMarkerCount);
 }
 
 export const gatewayCostMiddleware: LanguageModelMiddleware = {

@@ -201,14 +201,67 @@ export function enhanceToolResultWithStructureHints(
     const usefulSelectors = findUsefulSelectors(parsedForAnalysis).slice(0, 10);
     const nestedContentPaths = findNestedContentPaths(parsedForAnalysis).slice(0, 8);
 
-    const terminalPaths = allPaths
-      .filter((p) => p.includes('[string]') || p.includes('[number]') || p.includes('[boolean]'))
-      .slice(0, 20);
+    // Leaf (scalar) paths carry a [type] suffix, e.g. "result.content.text[string]".
+    const leafPaths = allPaths.filter(
+      (p) => p.includes('[string]') || p.includes('[number]') || p.includes('[boolean]')
+    );
+
+    // A field NAME that resolves to more than one distinct full path is ambiguous: writing the bare
+    // name or guessing the nesting silently picks the wrong one (the classic "content" under both
+    // the root and result.content.text.content). List every full path so the model copies the exact
+    // one instead of reconstructing it from the path-less, de-duplicated commonFields list.
+    const stripLeafType = (p: string) => p.replace(/\[(?:string|number|boolean)\]$/, '');
+    const fieldNameToPaths = new Map<string, Set<string>>();
+    for (const leaf of leafPaths) {
+      const fullPath = stripLeafType(leaf);
+      const name = fullPath.split('.').pop() ?? '';
+      if (!name) continue;
+      if (!fieldNameToPaths.has(name)) fieldNameToPaths.set(name, new Set());
+      fieldNameToPaths.get(name)?.add(fullPath);
+    }
+    const ambiguousFields: Record<string, string[]> = {};
+    for (const [name, paths] of fieldNameToPaths) {
+      if (paths.size > 1) {
+        ambiguousFields[name] = Array.from(paths).slice(0, 8);
+      }
+    }
+
+    // Prioritize the disambiguating leaf paths so they survive truncation — a terminalPaths list
+    // that drops the one repeated-name path the model needs is the whole failure mode.
+    const ambiguousPathSet = new Set(Object.values(ambiguousFields).flat());
+    const isAmbiguousLeaf = (p: string) => ambiguousPathSet.has(stripLeafType(p));
+    const terminalPaths = [
+      ...leafPaths.filter(isAmbiguousLeaf),
+      ...leafPaths.filter((p) => !isAmbiguousLeaf(p)),
+    ].slice(0, 30);
     const arrayPaths = allPaths.filter((p) => p.includes('[array')).slice(0, 15);
     const objectPaths = allPaths.filter((p) => p.includes('[object]')).slice(0, 15);
 
     const allSelectors = [...usefulSelectors, ...nestedContentPaths];
     const uniqueSelectors = [...new Set(allSelectors)].slice(0, 15);
+
+    // A short, copy-ready list of single-item base selectors, cleanest path first. The model tends
+    // to invent a path segment (observed: writing `content[0].text.documents` for a `.content`
+    // array) when it has to assemble a deep path itself. MCP results expose a flat `structuredContent`
+    // array alongside the nested `content[0].text...` envelope, so rank structuredContent-rooted and
+    // document-typed selectors to the front; the model copies the top one instead of guessing.
+    // A single-item selector is the pipe form (`...[?f] | [0]`) or a plain trailing index on a
+    // non-filtered array (`...content[0]`). Exclude the bare filter-then-index form `...[?f][0]`,
+    // which projects the index over each match and resolves to [] at runtime (the form this PR
+    // teaches against), so a future selector generator can never feed it in as "ready-to-use".
+    const isSingleItem = (s: string) =>
+      s.includes('| [0]') || (/\[0\]$/.test(s) && !/\[\?[^\]]*\]\[0\]/.test(s));
+    const baseSelectorRank = (s: string) => {
+      let score = 0;
+      if (s.includes('structuredContent')) score -= 10;
+      if (s.includes("type=='document'")) score -= 5;
+      if (s.includes('title') || s.includes('record_type')) score -= 2;
+      return score;
+    };
+    const recommendedBaseSelectors = uniqueSelectors
+      .filter(isSingleItem)
+      .sort((a, b) => baseSelectorRank(a) - baseSelectorRank(b))
+      .slice(0, 6);
 
     const enhanced = {
       ...result,
@@ -218,6 +271,8 @@ export function enhanceToolResultWithStructureHints(
         arrayPaths: arrayPaths,
         objectPaths: objectPaths,
         commonFields: commonFields,
+        ambiguousFields: ambiguousFields,
+        recommendedBaseSelectors: recommendedBaseSelectors,
         exampleSelectors: uniqueSelectors,
         deepStructureExamples: nestedContentPaths,
         maxDepthFound: Math.max(...allPaths.map((p) => (p.match(/\./g) || []).length)),
@@ -246,7 +301,7 @@ export function enhanceToolResultWithStructureHints(
           avoidArrays:
             '✨ ALWAYS filter arrays to single items using [?condition] - NEVER use [*] notation which returns arrays',
           nestedKeys:
-            '🔑 For structures with repeated keys (like result.content.data.content.items.content), use full paths with filtering at each level',
+            '🔑 When a field name repeats at multiple depths (like result.content.data.content), check _structureHints.ambiguousFields — it lists EVERY full path for that name. Copy the exact full path you want; never write the bare name or guess the nesting from commonFields.',
           filterTips:
             "💡 Use compound filters for precision: [?type=='document' && category=='api']",
           forbiddenSyntax:

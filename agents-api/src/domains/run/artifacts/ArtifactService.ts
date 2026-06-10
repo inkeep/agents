@@ -4,6 +4,7 @@ import {
   getLedgerArtifacts,
   getTask,
   listTaskIdsByContextId,
+  parseEmbeddedJson,
   SESSION_EVENT_ARTIFACT_SAVED,
   upsertLedgerArtifact,
 } from '@inkeep/agents-core';
@@ -212,7 +213,11 @@ export class ArtifactService {
     }
 
     const toolArgs = toolResultRecord.args;
-    const toolResultData = this.getToolResultFull(request.toolCallId);
+    // Parse embedded JSON so the base selector evaluates against the SAME structure the model was
+    // shown in _structureHints (which are computed on parseEmbeddedJson(result)). MCP results wrap
+    // their payload as a JSON string under content[0].text; without parsing, a hint-derived path
+    // like content[0].text.documents[...] sees `.text` as a string and resolves to nothing.
+    const toolResultData = parseEmbeddedJson(this.getToolResultFull(request.toolCallId));
 
     try {
       let sanitizedBaseSelector = sanitizeJMESPathSelector(request.baseSelector);

@@ -38,6 +38,7 @@ import { buildConversationHistory, buildInitialMessages } from './conversation-h
 import { configureModelSettings } from './model-config';
 import { formatFinalResponse } from './response-formatting';
 import { buildDataComponentsSchema } from './schema-builder';
+import { getClientCurrentTime } from './system-prompt';
 import { loadToolsAndPrompts } from './tool-loading';
 
 const logger = getLogger('Agent');
@@ -419,14 +420,15 @@ export async function runGenerate(
           artifactsMessage,
         } = await loadToolsAndPrompts(ctx, sessionId, streamRequestId || undefined, runtimeContext);
 
-        const { conversationHistory, contextBreakdown } = await buildConversationHistory(
-          ctx,
-          contextId,
-          taskId,
-          userMessage,
-          streamRequestId || undefined,
-          initialContextBreakdown
-        );
+        const { conversationHistory, conversationHistorySegments, contextBreakdown } =
+          await buildConversationHistory(
+            ctx,
+            contextId,
+            taskId,
+            userMessage,
+            streamRequestId || undefined,
+            initialContextBreakdown
+          );
 
         const breakdownAttributes: Record<string, number> = {};
         for (const componentDef of V1_BREAKDOWN_SCHEMA) {
@@ -471,6 +473,14 @@ export async function runGenerate(
           span.setAttribute('input.stripped_file_count', stripped.length);
         }
 
+        // Inject the per-request client time into the (uncached) current user message rather than
+        // the cached system block, so the system prefix stays byte-stable across turns. Call-only:
+        // effectiveUserMessage is not persisted, so this never leaks into future conversation history.
+        const clientCurrentTime = getClientCurrentTime(ctx);
+        if (clientCurrentTime) {
+          effectiveUserMessage = `${effectiveUserMessage}\n\n<current_time>\nThe current time for the user is: ${clientCurrentTime}\n</current_time>`;
+        }
+
         const inlinePdfFileCount = compatibleFileParts.filter(
           (part) => part.file.mimeType?.toLowerCase().startsWith('application/pdf') === true
         ).length;
@@ -491,7 +501,8 @@ export async function runGenerate(
           conversationHistory,
           effectiveUserMessage,
           compatibleFileParts,
-          artifactsMessage
+          artifactsMessage,
+          conversationHistorySegments
         );
 
         const { originalMessageCount, compressor } = setupCompression(

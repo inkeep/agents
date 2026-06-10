@@ -388,7 +388,6 @@ export async function buildSystemPrompt(
     },
     'System prompt configuration'
   );
-  const clientCurrentTime = getClientCurrentTime(ctx);
 
   const appPrompt = ctx.executionContext.metadata?.appPrompt;
 
@@ -408,7 +407,6 @@ export async function buildSystemPrompt(
     hasDelegateRelations: (ctx.config.delegateRelations?.length ?? 0) > 0,
     includeDataComponents,
     hasStructuredOutput,
-    clientCurrentTime,
     outputContract: ctx.config.outputContract,
     resolvedAllowText: ctx.resolvedAllowText,
   };

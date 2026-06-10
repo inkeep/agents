@@ -43,6 +43,9 @@ vi.mock('@inkeep/agents-core', () => ({
   getLedgerArtifacts: getLedgerArtifactsMock,
   upsertLedgerArtifact: upsertLedgerArtifactMock,
   SESSION_EVENT_ARTIFACT_SAVED: 'artifact_saved',
+  // Tool results in these fixtures are already structured objects (no embedded JSON strings), so
+  // the real recursive parse is an identity here — the stub just satisfies the import.
+  parseEmbeddedJson: (x: unknown) => x,
   // Add stubs for exports needed by transitive dependencies
   createAgentsRunDatabaseClient: vi.fn(() => 'mock-run-db-client'),
   createAgentsManageDatabaseClient: vi.fn(() => 'mock-manage-db-client'),
