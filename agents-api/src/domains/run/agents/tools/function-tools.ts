@@ -16,6 +16,21 @@ import { wrapToolWithStreaming } from './tool-wrapper';
 
 const logger = getLogger('Agent');
 
+/**
+ * Deterministic ordering for function tools. Tools occupy wire position 0 of the prompt-cache
+ * prefix, and any reorder invalidates the ENTIRE cache (tools + system + messages) on every
+ * provider. The data-access query has no guaranteed ordering, so sort by a stable key
+ * (name, then id) before the tool set is built.
+ */
+export function sortFunctionToolsForStableOrder<T extends { name?: string; id?: string }>(
+  data: readonly T[]
+): T[] {
+  return [...data].sort((a, b) => {
+    const byName = (a.name ?? '').localeCompare(b.name ?? '');
+    return byName !== 0 ? byName : (a.id ?? '').localeCompare(b.id ?? '');
+  });
+}
+
 export async function getFunctionTools(
   ctx: AgentRunContext,
   sessionId?: string,
@@ -47,7 +62,7 @@ export async function getFunctionTools(
       );
     }
 
-    const functionToolsData = functionToolsForAgent.data ?? [];
+    const functionToolsData = sortFunctionToolsForStableOrder(functionToolsForAgent.data ?? []);
 
     if (functionToolsData.length === 0) {
       return functionTools;

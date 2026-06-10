@@ -4,6 +4,13 @@ const SERVICE_NAME_FILTER =
   "service.name IN ('inkeep-agents-api', 'inkeep-agents-run-api', 'inkeep-agents')";
 const SPAN_LOOKUP_TABLE = 'distributed_signoz_index_v3';
 
+/**
+ * Row cap for the per-conversation numeric-attribute lookup. A conversation with more spans than
+ * this has the overflow silently dropped from the number merge; callers can compare the returned
+ * row count against this to detect and report truncation.
+ */
+export const CONVERSATION_SPAN_NUMBERS_LIMIT = 2000;
+
 function buildSecurityExpression(tenantId: string, projectId?: string): string {
   let expr = `${SERVICE_NAME_FILTER} AND ${SPAN_KEYS.TENANT_ID} = '${tenantId}'`;
   if (projectId) expr += ` AND ${SPAN_KEYS.PROJECT_ID} = '${projectId}'`;
@@ -81,6 +88,53 @@ export function buildSpanLookupPayload(
                 AND timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
                 AND ts_bucket_start BETWEEN {{.start_timestamp}} - 1800 AND {{.end_timestamp}}
               LIMIT 1
+            `,
+          },
+        },
+      ],
+    },
+  };
+}
+
+/**
+ * Builds a tenant-scoped ClickHouse SQL payload returning the numeric attribute bundle for EVERY
+ * span in a conversation (span_id -> toJSONString(attributes_number)). The builder-query proxy
+ * drops `gen_ai.usage.*` / `gen_ai.cost.*` / `cache.intent.*` numeric attributes on some SigNoz
+ * deployments (typed numeric selects + sum() return null); reading the raw number map as JSON — the
+ * same approach the single-span lookup uses — is reliable. Callers merge these numbers back onto the
+ * spans from the builder query. Tenant filtering is baked into the WHERE clause so this never goes
+ * through the generic proxy's enforceSecurityFilters (which rejects non-builder queries).
+ */
+export function buildConversationNumbersPayload(
+  tenantId: string,
+  conversationId: string,
+  start: number,
+  end: number
+): Record<string, unknown> {
+  return {
+    start,
+    end,
+    requestType: 'scalar',
+    variables: {
+      conversation_id: { type: 'custom', value: conversationId },
+      tenant_id: { type: 'custom', value: tenantId },
+    },
+    compositeQuery: {
+      queries: [
+        {
+          type: 'clickhouse_sql',
+          spec: {
+            name: 'A',
+            query: `
+              SELECT
+                span_id,
+                toJSONString(attributes_number) AS attributes_number_json
+              FROM signoz_traces.${SPAN_LOOKUP_TABLE}
+              WHERE attributes_string['conversation.id'] = {{.conversation_id}}
+                AND attributes_string['${SPAN_KEYS.TENANT_ID}'] = {{.tenant_id}}
+                AND timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
+                AND ts_bucket_start BETWEEN {{.start_timestamp}} - 1800 AND {{.end_timestamp}}
+              LIMIT ${CONVERSATION_SPAN_NUMBERS_LIMIT}
             `,
           },
         },

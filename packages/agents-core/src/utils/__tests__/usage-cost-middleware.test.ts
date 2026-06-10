@@ -26,6 +26,7 @@ const {
   normalizeModelId,
   computePrefixSignature,
   countCacheMarkers,
+  countHistoryCacheMarkers,
 } = await import('../usage-cost-middleware');
 
 describe('gatewayCostMiddleware', () => {
@@ -970,5 +971,50 @@ describe('countCacheMarkers', () => {
   it('caps the marker count at 4', () => {
     const many = Array.from({ length: 6 }, () => cacheControlMsg);
     expect(countCacheMarkers(many, { gateway: { caching: 'auto' } })).toBe(4);
+  });
+
+  it('counts part-level (history block, BP2) cacheControl markers', () => {
+    // A user message whose content is per-message blocks, one of which carries the BP2 marker.
+    const historyMsg = {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'a' },
+        {
+          type: 'text',
+          text: 'b',
+          providerOptions: { anthropic: { cacheControl: { type: 'ephemeral' } } },
+        },
+        { type: 'text', text: 'c' },
+      ],
+    };
+    // BP1 (system message-level) + BP2 (one part-level) = 2.
+    expect(countCacheMarkers([cacheControlMsg, historyMsg], undefined)).toBe(2);
+  });
+});
+
+describe('countHistoryCacheMarkers (BP2 distinct signal)', () => {
+  it('counts only part-level markers, ignoring message-level (BP1) markers', () => {
+    const systemBp1 = {
+      role: 'system',
+      content: 'sys',
+      providerOptions: { anthropic: { cacheControl: { type: 'ephemeral' } } },
+    };
+    const historyMsg = {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'a' },
+        {
+          type: 'text',
+          text: 'b',
+          providerOptions: { anthropic: { cacheControl: { type: 'ephemeral' } } },
+        },
+      ],
+    };
+    expect(countHistoryCacheMarkers([systemBp1, historyMsg])).toBe(1);
+  });
+
+  it('returns 0 when no part-level markers are present', () => {
+    expect(countHistoryCacheMarkers([{ role: 'user', content: 'plain' }])).toBe(0);
+    expect(countHistoryCacheMarkers([])).toBe(0);
   });
 });

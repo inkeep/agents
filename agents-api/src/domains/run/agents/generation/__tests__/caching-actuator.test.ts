@@ -9,7 +9,7 @@ vi.mock('../../../../../env', () => ({
   env: refs.envMock,
 }));
 
-import { attachPromptCaching } from '../caching-actuator';
+import { attachPromptCaching, INKEEP_CACHE_BOUNDARY_PROP } from '../caching-actuator';
 
 const ENV_KEYS = ['AI_GATEWAY_API_KEY'] as const;
 
@@ -444,6 +444,131 @@ describe('attachPromptCaching', () => {
         caching: 'auto',
       });
       expect(result.providerOptions.anthropic).toEqual({ structuredOutputMode: 'jsonTool' });
+    });
+  });
+
+  describe('history boundary marker (R4: BP2)', () => {
+    const makeConfig = () => ({
+      messages: [
+        { role: 'system', content: 'sys' },
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: '<conversation_history>\nuser: """a"""' },
+            { type: 'text', text: '\nuser: """b"""', [INKEEP_CACHE_BOUNDARY_PROP]: 'history' },
+            { type: 'text', text: '\n</conversation_history>\n' },
+          ],
+        },
+        { role: 'user', content: 'current' },
+      ],
+    });
+
+    type PartArr = Array<Record<string, unknown> & { providerOptions?: { anthropic?: unknown } }>;
+
+    it('direct Anthropic: marks the tagged history block + system, and strips the tag', () => {
+      const result = attachPromptCaching(makeConfig(), makeDirectRoutedSettings()) as ReturnType<
+        typeof makeConfig
+      > & { messages: Array<{ providerOptions?: { anthropic?: { cacheControl?: unknown } } }> };
+
+      // BP1 — system message marked
+      expect(result.messages[0].providerOptions?.anthropic?.cacheControl).toEqual({
+        type: 'ephemeral',
+      });
+      // BP2 — the tagged history block marked, tag stripped
+      const parts = result.messages[1].content as unknown as PartArr;
+      expect(parts[1]).not.toHaveProperty(INKEEP_CACHE_BOUNDARY_PROP);
+      expect(parts[1].providerOptions?.anthropic).toEqual({ cacheControl: { type: 'ephemeral' } });
+      // Other history blocks untouched (no marker)
+      expect(parts[0]).not.toHaveProperty('providerOptions');
+      expect(parts[2]).not.toHaveProperty('providerOptions');
+    });
+
+    it('strips the boundary tag even when caching is disabled (no marker)', () => {
+      refs.envMock.INKEEP_PROMPT_CACHING_ENABLED = false;
+      const result = attachPromptCaching(makeConfig(), makeDirectRoutedSettings());
+      const parts = result.messages[1].content as unknown as PartArr;
+      expect(parts[1]).not.toHaveProperty(INKEEP_CACHE_BOUNDARY_PROP);
+      expect(parts[1]).not.toHaveProperty('providerOptions');
+    });
+
+    it('non-Anthropic direct: strips the tag, no anthropic marker', () => {
+      const result = attachPromptCaching(makeConfig(), { model: 'openai/gpt-4o' });
+      const parts = result.messages[1].content as unknown as PartArr;
+      expect(parts[1]).not.toHaveProperty(INKEEP_CACHE_BOUNDARY_PROP);
+      expect(parts[1]).not.toHaveProperty('providerOptions');
+      expect(result.messages[0]).not.toHaveProperty('providerOptions');
+    });
+
+    it('gateway: strips the tag and keeps caching:auto (no per-part marker yet)', () => {
+      process.env.AI_GATEWAY_API_KEY = 'test-key';
+      const result = attachPromptCaching(makeConfig(), makeGatewayRoutedSettings()) as ReturnType<
+        typeof makeConfig
+      > & { providerOptions: { gateway: { caching: string } } };
+      const parts = result.messages[1].content as unknown as PartArr;
+      expect(parts[1]).not.toHaveProperty(INKEEP_CACHE_BOUNDARY_PROP);
+      expect(parts[1]).not.toHaveProperty('providerOptions');
+      expect(result.providerOptions.gateway.caching).toBe('auto');
+    });
+  });
+
+  describe('two-block system (R3: per-agent BP1 + per-conversation)', () => {
+    it('marks BOTH consecutive system blocks on direct Anthropic', () => {
+      const config = {
+        messages: [
+          { role: 'system', content: 'STABLE per-agent (Sub-block A)' },
+          { role: 'system', content: 'app context + prompts (Sub-block B+C)' },
+          { role: 'user', content: 'current' },
+        ],
+      };
+
+      const result = attachPromptCaching(config, makeDirectRoutedSettings()) as typeof config & {
+        messages: Array<{ providerOptions?: { anthropic?: { cacheControl?: unknown } } }>;
+      };
+
+      // BP1 (per-agent) and the per-conversation boundary are both marked; the user turn is not.
+      expect(result.messages[0].providerOptions?.anthropic?.cacheControl).toEqual({
+        type: 'ephemeral',
+      });
+      expect(result.messages[1].providerOptions?.anthropic?.cacheControl).toEqual({
+        type: 'ephemeral',
+      });
+      expect(result.messages[2].providerOptions).toBeUndefined();
+    });
+  });
+
+  describe('multi-provider system-block merge', () => {
+    const twoSystemBlocks = () => ({
+      messages: [
+        { role: 'system', content: 'STABLE (Sub-block A)' },
+        { role: 'system', content: 'PER-CONVERSATION (Sub-block B+C)' },
+        { role: 'user', content: 'current' },
+      ],
+    });
+
+    it('merges two leading system blocks into one on gateway routes', () => {
+      process.env.AI_GATEWAY_API_KEY = 'test-key';
+      const result = attachPromptCaching(twoSystemBlocks(), makeGatewayRoutedSettings()) as {
+        messages: Array<{ role: string; content: string }>;
+      };
+      expect(result.messages.filter((m) => m.role === 'system')).toHaveLength(1);
+      expect(result.messages[0].content).toBe(
+        'STABLE (Sub-block A)PER-CONVERSATION (Sub-block B+C)'
+      );
+      expect(result.messages[1].role).toBe('user');
+    });
+
+    it('merges two leading system blocks into one for a non-Anthropic direct model', () => {
+      const result = attachPromptCaching(twoSystemBlocks(), { model: 'openai/gpt-4o' }) as {
+        messages: Array<{ role: string }>;
+      };
+      expect(result.messages.filter((m) => m.role === 'system')).toHaveLength(1);
+    });
+
+    it('keeps two system blocks on direct Anthropic (BP1 needs the split)', () => {
+      const result = attachPromptCaching(twoSystemBlocks(), makeDirectRoutedSettings()) as {
+        messages: Array<{ role: string }>;
+      };
+      expect(result.messages.filter((m) => m.role === 'system')).toHaveLength(2);
     });
   });
 });

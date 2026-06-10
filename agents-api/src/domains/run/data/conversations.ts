@@ -320,6 +320,36 @@ export async function getFullConversationContext(
 }
 
 /**
+ * The current-turn text to use for history dedup.
+ *
+ * The LLM-facing `currentMessage` is `textParts + dataContext`, where `dataContext` is zero or more
+ * appended `\n\n<structured_data ...>...</structured_data>` blocks (see runGenerate). The persisted
+ * message stores only the user text, so on structured-data turns `content.text !== currentMessage`
+ * and the current turn fails to dedup — it then leaks into conversation history (double-inclusion).
+ * Stripping the structured-data suffix yields the text to compare like-for-like.
+ */
+export function currentTurnTextForDedup(currentMessage: string): string {
+  const idx = currentMessage.indexOf('\n\n<structured_data');
+  return idx === -1 ? currentMessage : currentMessage.slice(0, idx);
+}
+
+/**
+ * Whether the last fetched history message is the current turn (and should be stripped).
+ * Matches whether the stored `content.text` is the bare user text OR the full `text + dataContext`,
+ * so it fixes structured-data turns without regressing the plain-text path.
+ */
+export function isCurrentTurnLastMessage(
+  lastMessageText: string | undefined,
+  currentMessage: string
+): boolean {
+  if (lastMessageText === undefined) return false;
+  return (
+    lastMessageText === currentMessage ||
+    lastMessageText === currentTurnTextForDedup(currentMessage)
+  );
+}
+
+/**
  * Get formatted conversation history for a2a
  */
 export async function getFormattedConversationHistory({
@@ -354,7 +384,7 @@ export async function getFormattedConversationHistory({
   let messagesToFormat = conversationHistory;
   if (currentMessage && conversationHistory.length > 0) {
     const lastMessage = conversationHistory[conversationHistory.length - 1];
-    if (lastMessage.content.text === currentMessage) {
+    if (isCurrentTurnLastMessage(lastMessage.content.text, currentMessage)) {
       messagesToFormat = conversationHistory.slice(0, -1);
     }
   }
@@ -430,7 +460,7 @@ export async function getConversationHistoryWithCompression({
   let messagesToFormat = conversationHistory;
   if (currentMessage && conversationHistory.length > 0) {
     const lastMessage = conversationHistory[conversationHistory.length - 1];
-    if (lastMessage.content.text === currentMessage) {
+    if (isCurrentTurnLastMessage(lastMessage.content.text, currentMessage)) {
       messagesToFormat = conversationHistory.slice(0, -1);
     }
   }
@@ -931,6 +961,40 @@ export function reconstructMessageText(msg: Pick<MessageSelect, 'content'>): str
   return fromParts || textFallback;
 }
 
+// Single source of truth for one history line so the string and segment renderings stay
+// byte-identical. Returns null for messages that reconstruct to empty text (dropped).
+async function formatConversationHistoryLine(msg: MessageSelect): Promise<string | null> {
+  let roleLabel: string;
+
+  if (msg.role === 'user') {
+    roleLabel = 'user';
+  } else if (
+    msg.role === 'agent' &&
+    (msg.messageType === 'a2a-request' || msg.messageType === 'a2a-response')
+  ) {
+    const fromSubAgent = msg.fromSubAgentId || msg.fromExternalAgentId || 'unknown';
+    const toSubAgent = msg.toSubAgentId || msg.toExternalAgentId || 'unknown';
+    roleLabel = `${fromSubAgent} to ${toSubAgent}`;
+  } else if (msg.role === 'agent' && msg.messageType === 'chat') {
+    const fromSubAgent = msg.fromSubAgentId || 'unknown';
+    roleLabel = `${fromSubAgent} to User`;
+  } else if (msg.role === 'assistant' && msg.messageType === 'tool-result') {
+    const fromSubAgent = msg.fromSubAgentId || 'unknown';
+    const toolName = msg.metadata?.a2a_metadata?.toolName || 'unknown';
+    roleLabel = `${fromSubAgent} tool: ${toolName}`;
+  } else if (msg.role === 'system') {
+    roleLabel = 'system';
+  } else {
+    roleLabel = msg.role || 'system';
+  }
+
+  const reconstructedMessage = reconstructMessageText(msg);
+  if (!reconstructedMessage) {
+    return null;
+  }
+  return `${roleLabel}: """${reconstructedMessage}"""`; // TODO: add timestamp?
+}
+
 export async function formatMessagesAsConversationHistory(
   messages: MessageSelect[]
 ): Promise<string> {
@@ -938,39 +1002,7 @@ export async function formatMessagesAsConversationHistory(
     return '';
   }
 
-  const formattedHistoryParts = await Promise.all(
-    messages.map(async (msg: MessageSelect) => {
-      let roleLabel: string;
-
-      if (msg.role === 'user') {
-        roleLabel = 'user';
-      } else if (
-        msg.role === 'agent' &&
-        (msg.messageType === 'a2a-request' || msg.messageType === 'a2a-response')
-      ) {
-        const fromSubAgent = msg.fromSubAgentId || msg.fromExternalAgentId || 'unknown';
-        const toSubAgent = msg.toSubAgentId || msg.toExternalAgentId || 'unknown';
-        roleLabel = `${fromSubAgent} to ${toSubAgent}`;
-      } else if (msg.role === 'agent' && msg.messageType === 'chat') {
-        const fromSubAgent = msg.fromSubAgentId || 'unknown';
-        roleLabel = `${fromSubAgent} to User`;
-      } else if (msg.role === 'assistant' && msg.messageType === 'tool-result') {
-        const fromSubAgent = msg.fromSubAgentId || 'unknown';
-        const toolName = msg.metadata?.a2a_metadata?.toolName || 'unknown';
-        roleLabel = `${fromSubAgent} tool: ${toolName}`;
-      } else if (msg.role === 'system') {
-        roleLabel = 'system';
-      } else {
-        roleLabel = msg.role || 'system';
-      }
-
-      const reconstructedMessage = reconstructMessageText(msg);
-      if (!reconstructedMessage) {
-        return null;
-      }
-      return `${roleLabel}: """${reconstructedMessage}"""`; // TODO: add timestamp?
-    })
-  );
+  const formattedHistoryParts = await Promise.all(messages.map(formatConversationHistoryLine));
 
   const formattedHistory = formattedHistoryParts
     .filter((line): line is string => line !== null)
@@ -981,6 +1013,40 @@ export async function formatMessagesAsConversationHistory(
   }
 
   return `<conversation_history>\n${formattedHistory}\n</conversation_history>\n`;
+}
+
+/**
+ * Per-message segments of the conversation history, for the LLM prompt path (R4: history caching).
+ *
+ * Concatenating the segments is byte-identical to formatMessagesAsConversationHistory(messages),
+ * so the model sees exactly the same text. The split exists so a cache breakpoint can sit on the
+ * most-recent message block: older messages are stable across turns, giving Anthropic a reusable
+ * prefix. The `</conversation_history>` close tag is its OWN final segment so the marked block (the
+ * last message segment) stays byte-stable as new turns are appended before the close tag.
+ *
+ * Returns [] when there is no history (matches the empty-string case of the string formatter).
+ * Does NOT change the A2A path, which keeps using formatMessagesAsConversationHistory.
+ */
+export async function formatMessagesAsConversationHistorySegments(
+  messages: MessageSelect[]
+): Promise<string[]> {
+  if (messages.length === 0) {
+    return [];
+  }
+
+  const lines = (await Promise.all(messages.map(formatConversationHistoryLine))).filter(
+    (line): line is string => line !== null
+  );
+
+  if (lines.length === 0) {
+    return [];
+  }
+
+  const segments = lines.map((line, i) =>
+    i === 0 ? `<conversation_history>\n${line}` : `\n${line}`
+  );
+  segments.push('\n</conversation_history>\n');
+  return segments;
 }
 
 /**

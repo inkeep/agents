@@ -29,24 +29,18 @@ function walkCacheStates(spans: TestSpan[]) {
   const sorted = [...spans].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
   const result = new Map<string, ReturnType<typeof deriveCacheState>>();
 
-  const priorSignatureByAgent = new Map<string, string>();
   for (const span of sorted) {
     if (!span.spanId) continue;
-    const subAgentId = span.subAgentId || '_default';
     const provider = resolveCachingProvider({
       requestProvider: span.modelProvider,
       responseProvider: span.responseProvider,
     });
-    const prefixSignature = span.prefixSignature || null;
     const state = deriveCacheState({
       markerCount: span.markerCount,
-      prefixSignature,
       cacheRead: span.cacheRead,
-      priorSignature: priorSignatureByAgent.get(subAgentId) ?? null,
       providerSupportsCaching: provider ? isProviderSupportedForCaching(provider) : true,
     });
     result.set(span.spanId, state);
-    if (prefixSignature) priorSignatureByAgent.set(subAgentId, prefixSignature);
   }
   return result;
 }
@@ -85,11 +79,11 @@ describe('cacheStateBySpanId walk — per-agent priorSignature tracking', () => 
 
     const result = walkCacheStates(spans);
 
-    expect(result.get('span-A1')).toBe('MISS-expected');
-    expect(result.get('span-B1')).toBe('MISS-expected');
+    expect(result.get('span-A1')).toBe('MISS');
+    expect(result.get('span-B1')).toBe('MISS');
     // A2: same signature as A1 ("sigA"), cacheRead=0 => MISS-regression
     // A global cursor would compare against B1's "sigB" and return MISS-expected
-    expect(result.get('span-A2')).toBe('MISS-regression');
+    expect(result.get('span-A2')).toBe('MISS');
   });
 
   it('detects HIT correctly with per-agent tracking', () => {
@@ -125,7 +119,7 @@ describe('cacheStateBySpanId walk — per-agent priorSignature tracking', () => 
 
     const result = walkCacheStates(spans);
 
-    expect(result.get('span-A1')).toBe('MISS-expected');
+    expect(result.get('span-A1')).toBe('MISS');
     expect(result.get('span-B1')).toBe('HIT');
     expect(result.get('span-A2')).toBe('HIT');
   });
@@ -154,8 +148,8 @@ describe('cacheStateBySpanId walk — per-agent priorSignature tracking', () => 
 
     const result = walkCacheStates(spans);
 
-    expect(result.get('span-1')).toBe('MISS-expected');
-    expect(result.get('span-2')).toBe('MISS-regression');
+    expect(result.get('span-1')).toBe('MISS');
+    expect(result.get('span-2')).toBe('MISS');
   });
 });
 

@@ -12,11 +12,12 @@ import { isTextDocumentMimeType } from '@inkeep/agents-core/text-attachments';
 import { getLogger } from '../../../../logger';
 import {
   createDefaultConversationHistoryConfig,
-  formatMessagesAsConversationHistory,
+  formatMessagesAsConversationHistorySegments,
   getConversationHistoryWithCompression,
 } from '../../data/conversations';
 import { resolveTextAttachmentBlock } from '../../services/blob-storage/text-attachment-resolver';
 import type { AgentRunContext, AiSdkContentPart } from '../agent-types';
+import { INKEEP_CACHE_BOUNDARY_PROP, SYSTEM_CACHE_BOUNDARY_SENTINEL } from './caching-actuator';
 import { getPrimaryModel, getSummarizerModel } from './model-config';
 
 const PDF_MEDIA_TYPE = 'application/pdf';
@@ -56,8 +57,12 @@ export async function buildConversationHistory(
   userMessage: string,
   streamRequestId: string | undefined,
   initialContextBreakdown: ContextBreakdown
-): Promise<{ conversationHistory: string; contextBreakdown: ContextBreakdown }> {
-  let conversationHistory = '';
+): Promise<{
+  conversationHistory: string;
+  conversationHistorySegments: string[];
+  contextBreakdown: ContextBreakdown;
+}> {
+  let historyMessages: Awaited<ReturnType<typeof getConversationHistoryWithCompression>> = [];
   const historyConfig =
     ctx.config.conversationHistoryConfig ?? createDefaultConversationHistoryConfig();
 
@@ -68,7 +73,7 @@ export async function buildConversationHistory(
         isDelegated: ctx.isDelegatedAgent,
       };
 
-      const historyMessages = await getConversationHistoryWithCompression({
+      historyMessages = await getConversationHistoryWithCompression({
         tenantId: ctx.config.tenantId,
         projectId: ctx.config.projectId,
         conversationId: contextId,
@@ -80,9 +85,8 @@ export async function buildConversationHistory(
         streamRequestId,
         fullContextSize: initialContextBreakdown.total,
       });
-      conversationHistory = await formatMessagesAsConversationHistory(historyMessages);
     } else if (historyConfig.mode === 'scoped') {
-      const historyMessages = await getConversationHistoryWithCompression({
+      historyMessages = await getConversationHistoryWithCompression({
         tenantId: ctx.config.tenantId,
         projectId: ctx.config.projectId,
         conversationId: contextId,
@@ -99,9 +103,13 @@ export async function buildConversationHistory(
         streamRequestId,
         fullContextSize: initialContextBreakdown.total,
       });
-      conversationHistory = await formatMessagesAsConversationHistory(historyMessages);
     }
   }
+
+  // Per-turn segments for the prompt path (R4); join is byte-identical to the legacy single string.
+  const conversationHistorySegments =
+    await formatMessagesAsConversationHistorySegments(historyMessages);
+  const conversationHistory = conversationHistorySegments.join('');
 
   const conversationHistoryTokens = estimateTokens(conversationHistory);
   const updatedContextBreakdown: ContextBreakdown = {
@@ -114,7 +122,11 @@ export async function buildConversationHistory(
 
   calculateBreakdownTotal(updatedContextBreakdown);
 
-  return { conversationHistory, contextBreakdown: updatedContextBreakdown };
+  return {
+    conversationHistory,
+    conversationHistorySegments,
+    contextBreakdown: updatedContextBreakdown,
+  };
 }
 
 async function buildTextAttachmentPart(part: FilePart): Promise<AiSdkContentPart> {
@@ -129,12 +141,44 @@ export async function buildInitialMessages(
   conversationHistory: string,
   userMessage: string,
   fileParts?: FilePart[],
-  artifactsMessage: string | null = null
+  artifactsMessage: string | null = null,
+  conversationHistorySegments?: string[]
 ): Promise<any[]> {
   const messages: any[] = [];
-  messages.push({ role: 'system', content: systemPrompt });
 
-  if (conversationHistory.trim() !== '') {
+  // R3: split the system prompt at the cache boundary into two CONSECUTIVE system blocks —
+  // Sub-block A (per-agent stable; the actuator marks it as BP1) and Sub-block B+C (app context +
+  // agent/sub-agent prompts; per-conversation). Anthropic maps consecutive system messages to an
+  // array of system text blocks, each with its own cacheControl, so the stable prefix caches across
+  // an agent's conversations. Without the sentinel (other version configs) it stays one block.
+  const [systemStable, systemPerConversation] = systemPrompt.split(SYSTEM_CACHE_BOUNDARY_SENTINEL);
+  if (systemStable !== undefined && systemStable.trim() !== '') {
+    messages.push({ role: 'system', content: systemStable });
+  }
+  if (systemPerConversation !== undefined && systemPerConversation.trim() !== '') {
+    messages.push({ role: 'system', content: systemPerConversation });
+  }
+
+  // R4: emit history as per-message content blocks so a cache breakpoint can sit on the most-recent
+  // message; older blocks are stable across turns. The last MESSAGE segment (the one before the
+  // `</conversation_history>` close-tag segment) carries an internal boundary tag that the prompt-
+  // caching actuator turns into a cacheControl marker (Anthropic) and strips before the wire.
+  // Falls back to the legacy single string when segments are absent (preserves existing callers).
+  const historySegments = conversationHistorySegments ?? [];
+  if (historySegments.length > 0) {
+    // The last MESSAGE segment is the one before the `</conversation_history>` close-tag segment
+    // (index length-2). Clamp to 0 so a single-segment array (a caller not honoring the close-tag
+    // contract) still places the breakpoint on a real block instead of dropping it silently (-1).
+    const lastMessageSegmentIndex = Math.max(0, historySegments.length - 2);
+    messages.push({
+      role: 'user',
+      content: historySegments.map((text, i) => ({
+        type: 'text',
+        text,
+        ...(i === lastMessageSegmentIndex ? { [INKEEP_CACHE_BOUNDARY_PROP]: 'history' } : {}),
+      })),
+    });
+  } else if (conversationHistory.trim() !== '') {
     messages.push({ role: 'user', content: conversationHistory });
   }
 

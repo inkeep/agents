@@ -99,6 +99,10 @@ export const SPAN_KEYS = {
   // Cache intent (Inkeep namespace)
   CACHE_INTENT_MARKER_COUNT: 'cache.intent.marker_count',
   CACHE_INTENT_PREFIX_SIGNATURE: 'cache.intent.prefix_signature',
+  // BP2 — count of part-level (conversation-history) cache markers, distinct from the total so
+  // dashboards can attribute cross-turn caching to the history boundary (per-conversation) vs the
+  // static tools+system prefix (BP1, per-agent).
+  CACHE_INTENT_HISTORY_MARKER_COUNT: 'cache.intent.history_marker_count',
 
   // Provider routing
   GEN_AI_REQUEST_PROVIDER: 'gen_ai.request.provider',

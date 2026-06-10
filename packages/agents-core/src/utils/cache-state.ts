@@ -1,9 +1,4 @@
-export type CacheState =
-  | 'HIT'
-  | 'MISS-regression'
-  | 'MISS-expected'
-  | 'NOT-ATTEMPTED'
-  | 'NOT-SUPPORTED-BY-PROVIDER';
+export type CacheState = 'HIT' | 'MISS' | 'NOT-ATTEMPTED' | 'NOT-SUPPORTED-BY-PROVIDER';
 
 // Providers with server-side prompt caching. Mirrors the gateway-routable set
 // (anthropic, openai, google) plus 'gemini' as an explicit forward-compatibility
@@ -39,24 +34,25 @@ export function resolveCachingProvider({
 
 export interface DeriveCacheStateInput {
   markerCount: number;
-  prefixSignature: string | null;
   cacheRead: number;
-  priorSignature?: string | null;
   providerSupportsCaching?: boolean;
 }
 
+// A call either served input tokens from the provider cache (HIT), attempted caching but did not
+// (MISS), placed no cache marker (NOT-ATTEMPTED), or ran on a provider without prompt caching
+// (NOT-SUPPORTED-BY-PROVIDER). We deliberately do NOT try to label a MISS a "regression" vs
+// "expected": that inference needs a reliable per-call marker_count and prior-signature cursor, and
+// the trace store drops those numerics — so the guess was unreliable and alarming. A miss is a miss;
+// the prefix_signature is shown alongside for anyone who wants to compare calls by hand.
 export function deriveCacheState({
   markerCount,
-  prefixSignature,
   cacheRead,
-  priorSignature = null,
   providerSupportsCaching = true,
 }: DeriveCacheStateInput): CacheState {
   if (!providerSupportsCaching) return 'NOT-SUPPORTED-BY-PROVIDER';
-  if (markerCount <= 0) return 'NOT-ATTEMPTED';
+  // A cache read is definitive proof of a HIT — you cannot read what was never cached — so it wins
+  // over the marker count (which the trace store can drop to 0 even on a real hit).
   if (cacheRead > 0) return 'HIT';
-  if (priorSignature && prefixSignature && prefixSignature === priorSignature) {
-    return 'MISS-regression';
-  }
-  return 'MISS-expected';
+  if (markerCount <= 0) return 'NOT-ATTEMPTED';
+  return 'MISS';
 }

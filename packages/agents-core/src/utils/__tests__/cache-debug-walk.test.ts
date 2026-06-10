@@ -53,9 +53,9 @@ describe('deriveCacheDebugCalls — per-agent priorSignature tracking (multi-age
     ]);
 
     const byId = new Map(calls.map((c) => [c.spanId, c]));
-    expect(byId.get('span-A1')?.cacheState).toBe('MISS-expected');
-    expect(byId.get('span-B1')?.cacheState).toBe('MISS-expected');
-    expect(byId.get('span-A2')?.cacheState).toBe('MISS-regression');
+    expect(byId.get('span-A1')?.cacheState).toBe('MISS');
+    expect(byId.get('span-B1')?.cacheState).toBe('MISS');
+    expect(byId.get('span-A2')?.cacheState).toBe('MISS');
   });
 
   it('falls back to AGENT_ID when AI_TELEMETRY_SUB_AGENT_ID is empty', () => {
@@ -77,8 +77,8 @@ describe('deriveCacheDebugCalls — per-agent priorSignature tracking (multi-age
     ]);
 
     const byId = new Map(calls.map((c) => [c.spanId, c]));
-    expect(byId.get('span-1')?.cacheState).toBe('MISS-expected');
-    expect(byId.get('span-2')?.cacheState).toBe('MISS-regression');
+    expect(byId.get('span-1')?.cacheState).toBe('MISS');
+    expect(byId.get('span-2')?.cacheState).toBe('MISS');
     // The output `subAgentId` field reflects only AI_TELEMETRY_SUB_AGENT_ID (returns '' here),
     // intentionally distinct from the internal bucketing key (which falls back to AGENT_ID).
     // Pinning this gap so a future change that unifies them surfaces explicitly.
@@ -103,8 +103,8 @@ describe('deriveCacheDebugCalls — per-agent priorSignature tracking (multi-age
     ]);
 
     const byId = new Map(calls.map((c) => [c.spanId, c]));
-    expect(byId.get('span-1')?.cacheState).toBe('MISS-expected');
-    expect(byId.get('span-2')?.cacheState).toBe('MISS-regression');
+    expect(byId.get('span-1')?.cacheState).toBe('MISS');
+    expect(byId.get('span-2')?.cacheState).toBe('MISS');
   });
 
   it('honors providerSupportsCaching from the AI_MODEL_PROVIDER attribute', () => {
@@ -192,8 +192,8 @@ describe('deriveCacheDebugCalls — per-agent priorSignature tracking (multi-age
     ]);
 
     expect(calls.map((c) => c.spanId)).toEqual(['span-early', 'span-late']);
-    expect(calls[0]?.cacheState).toBe('MISS-expected'); // first chronological
-    expect(calls[1]?.cacheState).toBe('MISS-regression'); // sig matches prior for same agent
+    expect(calls[0]?.cacheState).toBe('MISS'); // first chronological
+    expect(calls[1]?.cacheState).toBe('MISS'); // sig matches prior for same agent
   });
 
   it('surfaces subAgentId on the call output (for downstream debugging)', () => {
@@ -223,7 +223,7 @@ describe('deriveCacheDebugCalls — per-agent priorSignature tracking (multi-age
     expect(calls[0]?.spanId).toBe('flat-1');
     expect(calls[0]?.subAgentId).toBe('agentFlat');
     expect(calls[0]?.markerCount).toBe(2);
-    expect(calls[0]?.cacheState).toBe('MISS-expected');
+    expect(calls[0]?.cacheState).toBe('MISS');
   });
 
   it('advances the per-agent priorSignature cursor on a HIT, not only on misses', () => {
@@ -257,6 +257,6 @@ describe('deriveCacheDebugCalls — per-agent priorSignature tracking (multi-age
 
     const byId = new Map(calls.map((c) => [c.spanId, c]));
     expect(byId.get('span-2')?.cacheState).toBe('HIT');
-    expect(byId.get('span-3')?.cacheState).toBe('MISS-regression');
+    expect(byId.get('span-3')?.cacheState).toBe('MISS');
   });
 });

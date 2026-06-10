@@ -16,20 +16,14 @@ describe('CacheStateBadge', () => {
     expect(svg).toHaveAttribute('aria-hidden', 'true');
   });
 
-  test('MISS-regression renders error variant with MISS label and regression aria-label', () => {
-    render(<CacheStateBadge state="MISS-regression" />);
-    const badge = screen.getByLabelText(/Cache miss regression/i);
+  test('MISS renders a neutral warning variant with MISS label (never "regression")', () => {
+    render(<CacheStateBadge state="MISS" />);
+    const badge = screen.getByLabelText(/Cache miss/i);
     expect(badge).toBeInTheDocument();
     expect(badge).toHaveTextContent('MISS');
-    expect(badge).toHaveAttribute('data-cache-state', 'MISS-regression');
-  });
-
-  test('MISS-expected renders warning variant with MISS label and expected aria-label', () => {
-    render(<CacheStateBadge state="MISS-expected" />);
-    const badge = screen.getByLabelText(/Cache miss expected/i);
-    expect(badge).toBeInTheDocument();
-    expect(badge).toHaveTextContent('MISS');
-    expect(badge).toHaveAttribute('data-cache-state', 'MISS-expected');
+    expect(badge).toHaveAttribute('data-cache-state', 'MISS');
+    // The alarming "possible regression" framing must not come back.
+    expect(badge.getAttribute('aria-label')).not.toMatch(/regression/i);
   });
 
   test('NOT-ATTEMPTED renders code variant with Skipped label and not-attempted aria-label', () => {
@@ -88,7 +82,7 @@ describe('CacheStateBadge', () => {
   });
 
   test('defaults a missing read or write side to 0 rather than omitting it', () => {
-    render(<CacheStateBadge state="MISS-expected" writeTokens={15927} />);
+    render(<CacheStateBadge state="MISS" writeTokens={15927} />);
     const badge = screen.getByLabelText(/0 read \/ 15,927 write/i);
     expect(badge).toBeInTheDocument();
   });
@@ -100,13 +94,7 @@ describe('CacheStateBadge', () => {
   });
 
   test('each state includes both icon (svg) and text — three a11y channels (icon + text + variant), not color-only', () => {
-    const states = [
-      'HIT',
-      'MISS-regression',
-      'MISS-expected',
-      'NOT-ATTEMPTED',
-      'NOT-SUPPORTED-BY-PROVIDER',
-    ] as const;
+    const states = ['HIT', 'MISS', 'NOT-ATTEMPTED', 'NOT-SUPPORTED-BY-PROVIDER'] as const;
 
     for (const state of states) {
       const { unmount } = render(<CacheStateBadge state={state} />);
