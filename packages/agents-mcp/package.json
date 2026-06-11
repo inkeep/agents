@@ -4,6 +4,7 @@
   "author": "Speakeasy",
   "type": "module",
   "sideEffects": false,
+  "files": ["esm/", "bin/"],
   "bin": {
     "@inkeep/agents-mcp": "bin/mcp-server.js",
     "mcp": "bin/mcp-server.js"
