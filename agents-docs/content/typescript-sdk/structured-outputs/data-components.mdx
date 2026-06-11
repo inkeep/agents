@@ -94,10 +94,11 @@ The `agent_generate` event records `parts` with `type: 'text' | 'data_component'
 
 ## Frontend Integration
 
-Create a React component that receives the props defined by your data component schema:
+Create a React component that receives the props defined by your data component schema.
+The widget also injects a `messageId` prop automatically (see [Injected props](#injected-props) below).
 
 ```tsx
-const TaskList = ({ tasks, totalCount, completedCount }) => (
+const TaskList = ({ tasks, totalCount, completedCount, messageId }) => (
   <div className="task-list">
     <h3>Your Tasks ({completedCount}/{totalCount} completed)</h3>
     {tasks.map((task) => (
@@ -126,6 +127,12 @@ import { TaskList } from './ui/TaskList';
 ```
 
 The agent will automatically return structured data that renders as your React component.
+
+### Injected props
+
+In addition to the props defined in your schema, the widget automatically injects a `messageId` prop (a `string`) into every data component. This identifies the message the component belongs to, which is useful for attributing analytics events to a specific conversation message.
+
+Because data components render in isolated React roots, React context cannot reach them. `messageId` is passed via props so that in-component event handlers can reference the parent message without a context provider.
 
 ## Enforcing component emission
 
