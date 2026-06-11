@@ -1,0 +1,88 @@
+---
+title: Content Security Policy
+description: Configure CSP for Inkeep's UI components.
+keywords: content security policy, CSP configuration, security settings, web security, CSP directives, security headers, CSP setup
+icon: LuShieldCheck
+---
+
+If your site enforces a Content Security Policy, add the following directives so the
+Inkeep widget can load, reach the API, render its default styling, and run its
+bot-protection check.
+
+## Directives
+
+The `connect-src`, `style-src`, `font-src`, and `worker-src` directives are required
+for all integration methods. `script-src https://cdn.jsdelivr.net` is only needed when
+you load the widget via the JS Snippet.
+
+### script-src — widget script
+
+If you load the widget via the [JS Snippet](/talk-to-your-agents/javascript/chat-button):
+
+- `https://cdn.jsdelivr.net`
+
+### style-src — inline styles and default font
+
+The widget injects its styles as inline `<style>` tags, so it requires
+`'unsafe-inline'`. Most sites already allow this — common frameworks (Next.js,
+Tailwind, styled-components, and similar) need it too — so it is usually already
+present in your policy.
+
+- `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`
+
+`https://fonts.googleapis.com` is only needed for the default Inter font, loaded from
+Google Fonts. To avoid that external request, set `disableLoadingDefaultFont: true` in
+your widget config and self-host Inter from your own origin — then you can drop
+`https://fonts.googleapis.com` here and `https://fonts.gstatic.com` from `font-src`.
+
+### font-src — default font files
+
+When the default font is enabled, the browser fetches Inter font files from:
+
+- `font-src 'self' https://fonts.gstatic.com`
+
+### connect-src — API endpoints
+
+Allowlist the host(s) for the components you use:
+
+- `https://api.agents.inkeep.com` — chat / agents
+- `https://api.inkeep.com` — search (SearchBar, search-and-chat)
+
+### worker-src — bot protection
+
+The widget runs a lightweight proof-of-work bot-protection check on a background
+Web Worker, which the browser loads from an in-memory `blob:` URL. CSP requires
+`blob:` to be listed explicitly — `'self'` alone does not cover it:
+
+- `worker-src 'self' blob:`
+
+### Example
+
+```text
+# script-src is only needed for the JS Snippet (omit for npm / React / Next.js):
+script-src  'self' https://cdn.jsdelivr.net;
+style-src   'self' 'unsafe-inline' https://fonts.googleapis.com;
+font-src    'self' https://fonts.gstatic.com;
+connect-src 'self' https://api.agents.inkeep.com https://api.inkeep.com;
+worker-src  'self' blob:;
+```
+
+## Self-hosting the JS file
+
+You can host the widget script on your own server instead of loading it from jsDelivr.
+
+1. Download [`embed.js`](https://cdn.jsdelivr.net/npm/@inkeep/agents-ui-js-cloud@0.17/dist/embed.js) and save it as `inkeep-agents-ui-{version}.js` (find the current version [here](https://cdn.jsdelivr.net/npm/@inkeep/agents-ui-js-cloud@0.17/dist/))
+2. Add the file to your project
+3. Point the script tag at your copy:
+
+```html
+<!-- assumes the file is in the root of your project -->
+<script type="module" src="./inkeep-agents-ui-{version}.js" defer></script>
+```
+
+4. When updating, re-download the new version and update the script tag.
+
+When self-hosting, you can drop `https://cdn.jsdelivr.net` from `script-src` (the
+script is now same-origin). You still need **`worker-src 'self' blob:`** — the
+bot-protection worker is bundled inside the script and is always loaded from a
+`blob:` URL, regardless of where the script is served.
