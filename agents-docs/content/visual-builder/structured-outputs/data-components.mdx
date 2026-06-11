@@ -46,7 +46,7 @@ To visually add the data component to the Agent, see the [Sub Agents](/visual-bu
 Create a React component that receives the props defined by your data component schema:
 
 ```tsx
-const TaskList = ({ tasks, totalCount }) => (
+const TaskList = ({ tasks, totalCount, messageId }) => (
   <div className="task-list">
     <h3>Your Tasks ({totalCount} total)</h3>
     {tasks.map((task) => (
@@ -57,6 +57,14 @@ const TaskList = ({ tasks, totalCount }) => (
   </div>
 );
 ```
+
+### Injected props
+
+In addition to the props defined in your JSON schema, the widget automatically injects a `messageId` prop identifying the message the component belongs to. This is useful for attributing analytics events back to a specific conversation message.
+
+<Callout>
+`messageId` is optional and additive — existing components that do not use it are unaffected.
+</Callout>
 
 If you have generated component UI (render code) for this data component in the dashboard, you can add the component file to your app instead via the CLI:
 
