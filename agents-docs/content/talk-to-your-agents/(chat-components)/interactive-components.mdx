@@ -12,6 +12,8 @@ Custom components let your agent render rich, interactive UI inside chat respons
 2. The chat widget matches the component name to a render function you provide via the `components` prop
 3. Your render function builds the UI and calls `submitMessage()` to send a message on the user's behalf
 
+Every render function also receives a `messageId` prop — the id of the message the component belongs to. Because data components render in isolated roots (React context cannot reach them), `messageId` is the only way for in-component handlers to attribute analytics events back to a specific message. The prop is additive and optional, so existing consumers are unaffected.
+
 ## Setup
 
 The pattern requires two things in your `aiChatSettings`:
@@ -523,6 +525,32 @@ IkpTool: (props) => {
   // Fall back to a generic card for other tools
   return <GenericToolCard tool={tool} approve={approve} />
 },
+```
+
+## Injected props
+
+The widget automatically injects the following props into every data component render function, in addition to the props defined by your schema:
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `messageId` | `string` | The id of the message the component belongs to. Useful for attributing analytics events to a specific message. |
+
+```tsx title="Using messageId for analytics"
+QuickActions: (props) => (
+  <div className="flex gap-2 flex-wrap my-2">
+    {props.actions.map((action) => (
+      <button
+        key={action.label}
+        onClick={() => {
+          trackEvent('quick_action_click', { messageId: props.messageId, label: action.label })
+          chatFunctionsRef.current?.submitMessage(action.message)
+        }}
+      >
+        {action.label}
+      </button>
+    ))}
+  </div>
+),
 ```
 
 ## AIChatFunctions reference
