@@ -1,5 +1,19 @@
 # @inkeep/agents-api
 
+## 0.78.1
+
+### Patch Changes
+
+- 8b0bc17: Improve artifact base-selector prompting and evaluation. Fixes: (1) The "✅ CORRECT" JMESPath examples taught the bare-index form `result.items[?type=='doc'][0]`, which projects the index over each filtered match and resolves to nothing; the rules now teach the working pipe form `result.items[?type=='doc'] | [0]` everywhere, matching the runtime structure hints. (2) Example filter values were realistic-looking literals (e.g. `title=='Inkeep' && record_type=='site'`) that the model pasted verbatim, matching no real data; free-text example values are now obvious `<PLACEHOLDER>`s with an explicit instruction to substitute real values from the data. (3) Tool-result structure hints now include an `ambiguousFields` map listing every full path for any field name that occurs at more than one depth (e.g. `content` at the root and at `content.text.content`), prioritized so they are not truncated out of `terminalPaths`. (4) Tool-result hints now include a short, ranked `recommendedBaseSelectors` list of ready-to-use single-item base selectors, preferring MCP's flat `structuredContent.content` array over the deeply nested `content[0].text...` envelope; the prompt steers the model to copy a path from the hints and never invent a path segment like `.documents` for a `.content` array. (5) The base-selector evaluator now parses embedded JSON before applying the selector, so it operates on the same structure the model was shown in the hints.
+- 8b0bc17: Improve prompt caching to lower LLM input-token cost. The cached system prefix is now byte-stable (the per-request client timestamp moved from the system prompt to the current user message), tool ordering is deterministic, and conversation history is sent as reusable per-message blocks so prior turns read from cache on direct-Anthropic routes instead of being reprocessed each turn. Also fixes a history dedup bug on structured-data turns and adds a distinct telemetry signal for history-block cache participation. Behavior is unchanged for callers; gains apply across providers (explicit Anthropic markers and implicit OpenAI/Google prefix caching).
+- 8b0bc17: Keep the cached prompt prefix stable across turns by de-conditioning the artifact-rules system text (it no longer changes shape when a conversation creates its first artifact), and add a guardrail test asserting the per-agent system prefix is byte-identical across turns. Fix conversation-trace reporting to read token, cost, and cache numeric attributes from the raw number map so cost, token counts, and cache HIT/MISS badges are accurate where the typed query previously returned zero.
+- Updated dependencies [8b0bc17]
+- Updated dependencies [8b0bc17]
+  - @inkeep/agents-core@0.78.1
+  - @inkeep/agents-work-apps@0.78.1
+  - @inkeep/agents-email@0.78.1
+  - @inkeep/agents-mcp@0.78.1
+
 ## 0.78.0
 
 ### Minor Changes
