@@ -27,13 +27,12 @@ Caching only applies above the provider's minimum cacheable prefix size (1,024 t
 
 ## Cache states
 
-Every LLM generation span carries cache telemetry, from which Inkeep derives one of five cache states per call:
+Every LLM generation span carries cache telemetry, from which Inkeep derives one of four cache states per call:
 
 | State | Meaning |
 |-------|---------|
 | **HIT** | Caching was attempted and the provider served tokens from cache — the win condition. |
-| **MISS-expected** | Caching was attempted but the prompt prefix changed since the last call, so no cache read happened. Normal on the first turn or after a prefix change. |
-| **MISS-regression** | Caching was attempted and the prefix was unchanged, yet nothing was read from cache. The actionable alarm state — something broke cross-turn caching. |
+| **MISS** | Caching was attempted but no tokens were served from cache. Normal on the first turn or after a prefix change. |
 | **NOT-ATTEMPTED** | No cache markers were attached (for example, the prefix was below the provider floor, or caching is disabled). |
 | **NOT-SUPPORTED-BY-PROVIDER** | The routed provider does not support marker-based caching. |
 
@@ -44,8 +43,7 @@ Every LLM generation span carries cache telemetry, from which Inkeep derives one
 In the Manage UI, open a conversation's trace timeline. Each LLM call row shows a cache-state badge next to its per-call cost. The badge encodes state through an icon, a label, and a color variant (not color alone):
 
 - **HIT** renders as a success badge
-- **MISS-regression** renders as an error badge — the one state worth investigating
-- **MISS-expected** renders as a warning badge
+- **MISS** renders as a neutral badge
 - **NOT-ATTEMPTED** and **NOT-SUPPORTED-BY-PROVIDER** share a neutral badge, distinguished by label and tooltip
 
 ### Cost dashboard
