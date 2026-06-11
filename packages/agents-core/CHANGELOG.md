@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.78.1
+
+### Patch Changes
+
+- 8b0bc17: Simplify cache-state reporting to use the real per-call numbers. Removes the "MISS-regression" state: a cache miss is now a single neutral `MISS` instead of an alarming red "possible regression" vs a "miss is expected" split, which depended on a reliable per-call marker_count and a prior-signature cursor that the trace store does not provide. Also stops synthesizing a marker count: the conversation route and the timeline usage resolver now derive the cache state directly from the real `marker_count` (merged from the raw attributes_number bundle) and `cache_read` instead of fabricating `markerCount = 1` when a prefix signature was present — so the badge and the raw "Cache markers" field agree, and a genuine zero-marker call reads as "Skipped". `deriveCacheState` now treats a cache read as a HIT before checking the marker count, since a read is definitive proof of a hit even when the marker numeric was dropped.
+- 8b0bc17: Improve prompt caching to lower LLM input-token cost. The cached system prefix is now byte-stable (the per-request client timestamp moved from the system prompt to the current user message), tool ordering is deterministic, and conversation history is sent as reusable per-message blocks so prior turns read from cache on direct-Anthropic routes instead of being reprocessed each turn. Also fixes a history dedup bug on structured-data turns and adds a distinct telemetry signal for history-block cache participation. Behavior is unchanged for callers; gains apply across providers (explicit Anthropic markers and implicit OpenAI/Google prefix caching).
+
 ## 0.78.0
 
 ### Patch Changes

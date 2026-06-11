@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-ui
 
+## 0.78.1
+
+### Patch Changes
+
+- 8b0bc17: Simplify cache-state reporting to use the real per-call numbers. Removes the "MISS-regression" state: a cache miss is now a single neutral `MISS` instead of an alarming red "possible regression" vs a "miss is expected" split, which depended on a reliable per-call marker_count and a prior-signature cursor that the trace store does not provide. Also stops synthesizing a marker count: the conversation route and the timeline usage resolver now derive the cache state directly from the real `marker_count` (merged from the raw attributes_number bundle) and `cache_read` instead of fabricating `markerCount = 1` when a prefix signature was present — so the badge and the raw "Cache markers" field agree, and a genuine zero-marker call reads as "Skipped". `deriveCacheState` now treats a cache read as a HIT before checking the marker count, since a read is definitive proof of a hit even when the marker numeric was dropped.
+- 8b0bc17: Keep the cached prompt prefix stable across turns by de-conditioning the artifact-rules system text (it no longer changes shape when a conversation creates its first artifact), and add a guardrail test asserting the per-agent system prefix is byte-identical across turns. Fix conversation-trace reporting to read token, cost, and cache numeric attributes from the raw number map so cost, token counts, and cache HIT/MISS badges are accurate where the typed query previously returned zero.
+- Updated dependencies [8b0bc17]
+- Updated dependencies [8b0bc17]
+  - @inkeep/agents-core@0.78.1
+
 ## 0.78.0
 
 ### Patch Changes
