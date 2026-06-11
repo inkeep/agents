@@ -115,17 +115,16 @@ LLM generation spans carry cache telemetry emitted by the gateway cost middlewar
 | Attribute | Type | Description |
 |-----------|------|-------------|
 | `cache.intent.marker_count` | int (0–4) | Number of cache markers attached to the request prefix |
-| `cache.intent.prefix_signature` | string | 10-character SHA-256 hex prefix of the cacheable prefix (system prompts and tool definitions), used to distinguish MISS-expected (prefix changed) from MISS-regression (stable prefix, no read) |
+| `cache.intent.prefix_signature` | string | 10-character SHA-256 hex prefix of the cacheable prefix (system prompts and tool definitions) for debugging purposes |
 
 ### Cache state (consumer-derived, not a span attribute)
 
-`cache_state` is **not emitted as a span attribute** — it is computed by consumers (Manage UI, the `pnpm cache-debug` CLI) from the four attributes above plus prior-turn signature comparison:
+`cache_state` is **not emitted as a span attribute** — it is computed by consumers (Manage UI, the `pnpm cache-debug` CLI) from the attributes above:
 
 | State | Derivation |
-|-------|-----------|
-| `HIT` | `marker_count > 0` and `cache_read > 0` |
-| `MISS-expected` | `marker_count > 0`, `cache_read = 0`, prefix signature differs from previous call |
-| `MISS-regression` | `marker_count > 0`, `cache_read = 0`, prefix signature identical to previous call |
+|-------|------------|
+| `HIT` | `cache_read > 0` (a cache read is definitive proof of a hit) |
+| `MISS` | `marker_count > 0` and `cache_read = 0` |
 | `NOT-ATTEMPTED` | `marker_count = 0` |
 | `NOT-SUPPORTED-BY-PROVIDER` | Provider metadata absent or provider does not support marker-based caching |
 
