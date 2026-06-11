@@ -111,7 +111,7 @@ When you click on a specific trace from the list, you'll see the detailed trace 
 
 Every LLM generation span includes prompt-cache telemetry. In the Manage UI:
 
-- The **conversation trace timeline** shows a per-call cache-state badge (HIT / MISS-regression / MISS-expected / NOT-ATTEMPTED) next to each call's cost.
+- The **conversation trace timeline** shows a per-call cache-state badge (HIT / MISS / NOT-ATTEMPTED) next to each call's cost.
 - The **cost dashboard** includes a **Cost by Cache Participation** breakdown alongside the existing Cost by Model, Agent, Provider, and Generation Type tables.
 
 You can also query raw cache attributes directly in SigNoz using the span attributes emitted by the gateway cost middleware:
@@ -122,4 +122,4 @@ gen_ai.usage.cache_creation.input_tokens > 0
 cache.intent.marker_count > 0
 ```
 
-See [Prompt Caching](/guides/observability/prompt-caching) for the full cache-state taxonomy and how to interpret MISS-regression signals.
+See [Prompt Caching](/guides/observability/prompt-caching) for the full cache-state taxonomy.
