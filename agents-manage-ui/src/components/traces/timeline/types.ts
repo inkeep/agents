@@ -122,7 +122,6 @@ export interface ActivityItem {
   artifactType?: string;
   artifactName?: string;
   artifactDescription?: string;
-  artifactData?: string;
   artifactSubAgentId?: string;
   artifactToolCallId?: string;
   artifactIsOversized?: boolean;
