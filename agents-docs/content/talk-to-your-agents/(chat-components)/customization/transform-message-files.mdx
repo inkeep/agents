@@ -1,0 +1,136 @@
+---
+title: Filter or rename file attachment chips
+sidebarTitle: Transform message files
+description: Use the transformMessageFiles option (beta) to filter or rename the file-attachment chips rendered on user messages in the embedded chat widget.
+keywords: transformMessageFiles, file attachments, file chips, hide files, rename files, aiChatSettings, support copilot, injected files, FileUIPart
+icon: LuFileStack
+---
+
+`transformMessageFiles` is a `@beta` option in `aiChatSettings` that lets your application filter or rename the file-attachment chips displayed on user messages at render time.
+
+## Overview
+
+When your app injects files on the user's behalf — for example, a support copilot that attaches ticket metadata, comments, or screenshots via `aiChatSettings.files` — those files render as chips in the user message bubble. The user never attached them, which can erode trust in what the message shows.
+
+`transformMessageFiles` gives you a render-time hook to hide your app-injected files while keeping any user-attached files visible. The transformer runs per message for both live and history-loaded conversations.
+
+<Warning>
+  `transformMessageFiles` is **display-only** and is **not a security boundary**. Hidden files are still sent to the agent, stored in conversation history, and present in client memory. If the transformer throws or returns a non-array, the widget fails open and renders the original untransformed chips (with a one-time console warning).
+</Warning>
+
+## Configuration
+
+Set `transformMessageFiles` in `aiChatSettings`. The function receives the array of `FileUIPart` objects for a given message and returns the array of parts to display.
+
+```
+(files: FileUIPart[]) => Array<FileUIPart | null | undefined>
+```
+
+`FileUIPart` is re-exported from `@inkeep/agents-ui/types`. Import it from the package directly — do not import it from `ai`.
+
+<Tabs>
+  <Tab title="React">
+
+```tsx
+import { InkeepEmbeddedChat } from '@inkeep/agents-ui-cloud';
+import type { InkeepAIChatSettings, FileUIPart } from '@inkeep/agents-ui-cloud/types';
+
+const APP_FILE_NAMES = new Set(['ticket-metadata', 'ticket-comments', 'customer-info']);
+
+function SupportCopilot() {
+  const aiChatSettings: InkeepAIChatSettings = {
+    appId: 'YOUR_APP_ID',
+    // Files injected by the app on behalf of the user
+    files: [
+      { type: 'file', url: '...', mediaType: 'text/plain', filename: 'ticket-metadata' },
+      { type: 'file', url: '...', mediaType: 'text/plain', filename: 'ticket-comments' },
+    ],
+    // Hide app-injected files; user-attached files remain visible
+    transformMessageFiles: (files: FileUIPart[]) =>
+      files.map((file) =>
+        file.filename && APP_FILE_NAMES.has(file.filename) ? null : file
+      ),
+  };
+
+  return <InkeepEmbeddedChat aiChatSettings={aiChatSettings} />;
+}
+```
+
+  </Tab>
+  <Tab title="JavaScript">
+
+```javascript
+const APP_FILE_NAMES = new Set(['ticket-metadata', 'ticket-comments', 'customer-info']);
+
+const widget = Inkeep.EmbeddedChat('#ikp-embedded-chat-target', {
+  aiChatSettings: {
+    appId: 'YOUR_APP_ID',
+    // Files injected by the app on behalf of the user
+    files: [
+      { type: 'file', url: '...', mediaType: 'text/plain', filename: 'ticket-metadata' },
+      { type: 'file', url: '...', mediaType: 'text/plain', filename: 'ticket-comments' },
+    ],
+    // Hide app-injected files; user-attached files remain visible
+    transformMessageFiles: (files) =>
+      files.map((file) =>
+        file.filename && APP_FILE_NAMES.has(file.filename) ? null : file
+      ),
+  },
+});
+```
+
+  </Tab>
+</Tabs>
+
+## Behavior
+
+| Behavior | Detail |
+|---|---|
+| **Scope** | Called per message at render time for live and history-loaded messages |
+| **Null entries** | `null` or `undefined` entries in the returned array are dropped (treated as intent to omit) |
+| **MIME filtering** | The widget's accepted-MIME-types whitelist is re-applied to the transformer's output — unsupported types still never render |
+| **Fail-open** | A throw or non-array return causes the widget to render the original untransformed chips and emit a one-time `console.warn` |
+| **Mutation** | Do not mutate input parts — return new or copied objects |
+| **Performance** | Must be pure and cheap; it runs on every message render |
+
+<Note>
+  Use a stable function reference (`useCallback` in React, or a module-scope function) to avoid spurious re-renders and to ensure the per-transformer warning deduplication works as intended.
+</Note>
+
+## Common patterns
+
+### Hide files by filename
+
+```tsx
+transformMessageFiles: (files) =>
+  files.map((file) =>
+    file.filename?.startsWith('ticket-') ? null : file
+  ),
+```
+
+### Rename files for display
+
+Return a shallow copy with a modified `filename`. The new name appears in the chip label and as the download filename for data-URL attachments.
+
+```tsx
+transformMessageFiles: (files) =>
+  files.map((file) => {
+    if (file.filename === 'ticket-metadata') {
+      return { ...file, filename: 'Ticket details' };
+    }
+    return file;
+  }),
+```
+
+### Hide all app files, show none
+
+Return an empty array to suppress all file chips on a message.
+
+```tsx
+transformMessageFiles: () => [],
+```
+
+## Related
+
+- [`aiChatSettings.files`](/talk-to-your-agents/app-credentials) — pre-populate file attachments on behalf of the user
+- [In-product copilot guide](/guides/agents/in-product-copilot) — the primary use case that motivated this option
