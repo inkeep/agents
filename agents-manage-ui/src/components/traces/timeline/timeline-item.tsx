@@ -505,15 +505,6 @@ export function TimelineItem({
                       </span>
                     </div>
                   )}
-                  {activity.artifactData && (
-                    <div className="mt-2">
-                      <JsonEditorWithCopy
-                        value={formatJsonSafely(activity.artifactData)}
-                        title="Artifact data"
-                        uri={`artifact-data-${activity.id}.json`}
-                      />
-                    </div>
-                  )}
                 </div>
               </div>
             </div>

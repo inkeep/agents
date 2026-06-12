@@ -24,6 +24,7 @@ import {
 } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { SPAN_KEYS } from '@/constants/signoz';
 import { formatDateTime } from '@/lib/utils/format-date';
 import { formatCostUsd, resolveCacheUsage, type SpanData } from '@/lib/utils/trace-usage';
 
@@ -688,19 +689,28 @@ export function renderPanelContent({
       );
     }
 
-    case 'artifact_processing':
+    case 'artifact_processing': {
+      const artifactData =
+        typeof span?.data?.[SPAN_KEYS.ARTIFACT_DATA] === 'string'
+          ? span.data[SPAN_KEYS.ARTIFACT_DATA]
+          : undefined;
       return (
         <>
           <Section>
             {a.artifactName && <Info label="Name" value={a.artifactName} />}
             {a.artifactType && <Info label="Type" value={a.artifactType} />}
             {a.artifactDescription && <Info label="Description" value={a.artifactDescription} />}
-            {a.artifactData && (
+            {artifactData && (
               <JsonEditorWithCopy
-                value={formatJsonSafely(a.artifactData)}
+                value={formatJsonSafely(artifactData)}
                 title="Artifact data"
                 uri="artifact-data.json"
               />
+            )}
+            {!artifactData && spanLoading && (
+              <div className="text-xs text-muted-foreground animate-pulse">
+                Loading artifact data…
+              </div>
             )}
             <StatusBadge status={a.status} />
             {a.status === 'error' && a.otelStatusDescription && (
@@ -751,6 +761,7 @@ export function renderPanelContent({
           {AdvancedBlock}
         </>
       );
+    }
 
     case 'tool_approval_requested':
       return (

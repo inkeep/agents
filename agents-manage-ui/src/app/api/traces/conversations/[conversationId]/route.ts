@@ -417,7 +417,6 @@ function buildAllSpansPayload(
     sf(SPAN_KEYS.ARTIFACT_TOOL_CALL_ID, str, attr),
     sf(SPAN_KEYS.ARTIFACT_NAME, str, attr),
     sf(SPAN_KEYS.ARTIFACT_DESCRIPTION, str, attr),
-    sf(SPAN_KEYS.ARTIFACT_DATA, str, attr),
     sf(SPAN_KEYS.ARTIFACT_IS_OVERSIZED, bool, attr),
     sf(SPAN_KEYS.ARTIFACT_RETRIEVAL_BLOCKED, bool, attr),
     sf(SPAN_KEYS.ARTIFACT_ORIGINAL_TOKEN_SIZE, int64, attr),
@@ -909,7 +908,6 @@ export async function GET(
       artifactType?: string;
       artifactName?: string;
       artifactDescription?: string;
-      artifactData?: string;
       artifactSubAgentId?: string;
       artifactToolCallId?: string;
       artifactIsOversized?: boolean;
@@ -1310,7 +1308,6 @@ export async function GET(
         artifactType: artifactType || undefined,
         artifactName: artifactName || undefined,
         artifactDescription: artifactDescription || undefined,
-        artifactData: getString(span, SPAN_KEYS.ARTIFACT_DATA, '') || undefined,
         artifactToolCallId: getString(span, SPAN_KEYS.ARTIFACT_TOOL_CALL_ID, '') || undefined,
         artifactIsOversized: isOversized || undefined,
         artifactRetrievalBlocked: retrievalBlocked || undefined,
