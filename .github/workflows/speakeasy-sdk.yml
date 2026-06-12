@@ -10,7 +10,7 @@ jobs:
     name: Generate agents-mcp SDK
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Check Speakeasy secret
         id: speakeasy-secret
@@ -26,7 +26,7 @@ jobs:
 
       - name: Generate SDK
         if: steps.speakeasy-secret.outputs.skip != 'true'
-        uses: speakeasy-api/sdk-generation-action@b823adc6be7d30b25198529f99f46303bc083534 # v15
+        uses: speakeasy-api/sdk-generation-action@16db42199b82eaacbc48b7b5d642a29da87b4609 # v15
         with:
           speakeasy_api_key: ${{ secrets.SPEAKEASY_API_KEY }}
           github_access_token: ${{ secrets.GITHUB_TOKEN }}

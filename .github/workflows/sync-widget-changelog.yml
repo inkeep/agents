@@ -22,7 +22,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Install
         uses: ./.github/composite-actions/install
@@ -33,7 +33,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.AGENTS_UI_READ_PAT }}
 
       - name: Create pull request
-        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: sync/widget-changelog
