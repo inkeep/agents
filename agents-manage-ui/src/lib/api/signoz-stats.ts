@@ -211,7 +211,7 @@ type Series = {
 
 const countFromSeries = (s: Series) => parseInt(s.values?.[0]?.value ?? '0', 10) || 0;
 
-const DAY_IN_SECONDS = 86400;
+const HOUR_IN_SECONDS = 3600;
 
 const dateKeyFromMs = (ms: number) => {
   const d = new Date(ms);
@@ -239,7 +239,8 @@ const extractTimeSeriesBuckets = (resp: any, name: string): Map<string, number> 
   const buckets = new Map<string, number>();
   const addToBucket = (ms: number, value: number) => {
     if (!ms) return;
-    buckets.set(dateKeyFromMs(ms), (buckets.get(dateKeyFromMs(ms)) ?? 0) + value);
+    const key = dateKeyFromMs(ms);
+    buckets.set(key, (buckets.get(key) ?? 0) + value);
   };
 
   const results = resp?.data?.data?.results ?? resp?.data?.results;
@@ -406,9 +407,7 @@ const datesRange = (startMs: number, endMs: number) => {
   end.setHours(0, 0, 0, 0);
   const out: string[] = [];
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    out.push(
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-    );
+    out.push(dateKeyFromMs(d.getTime()));
   }
   return out;
 };
@@ -1555,6 +1554,26 @@ class SigNozStatsAPI {
     }
   }
 
+  private async fetchAllConversationActivitySeries(
+    buildPayload: (offset: number) => any,
+    projectId: string | undefined,
+    signal?: AbortSignal
+  ): Promise<Series[]> {
+    const pageSize = QUERY_DEFAULTS.CONVERSATION_ACTIVITY_PAGE_SIZE;
+    const allSeries: Series[] = [];
+    let offset = 0;
+
+    do {
+      const resp = await this.makeRequest(buildPayload(offset), projectId, signal);
+      const page = this.extractSeries(resp, QUERY_EXPRESSIONS.LAST_ACTIVITY);
+      allSeries.push(...page);
+      if (page.length < pageSize) break;
+      offset += pageSize;
+    } while (offset < pageSize * QUERY_DEFAULTS.CONVERSATION_ACTIVITY_MAX_PAGES);
+
+    return allSeries;
+  }
+
   async getConversationsPerDay(
     startTime: number,
     endTime: number,
@@ -1564,12 +1583,27 @@ class SigNozStatsAPI {
     signal?: AbortSignal
   ) {
     try {
-      const activityResp = await this.makeRequest(
-        this.buildConversationActivityPayload(startTime, endTime, agentId, projectId, origin),
+      const activitySeries = await this.fetchAllConversationActivitySeries(
+        (offset) =>
+          this.buildConversationActivityPayload(
+            startTime,
+            endTime,
+            agentId,
+            projectId,
+            origin,
+            offset
+          ),
         undefined,
         signal
       );
-      const buckets = extractTimeSeriesBuckets(activityResp, QUERY_EXPRESSIONS.LAST_ACTIVITY);
+
+      const buckets = new Map<string, number>();
+      for (const s of activitySeries) {
+        const tsMs = timestampMsFromSeries(s);
+        if (!tsMs) continue;
+        const key = dateKeyFromMs(tsMs);
+        buckets.set(key, (buckets.get(key) || 0) + 1);
+      }
 
       return datesRange(startTime, endTime).map((date) => ({
         date,
@@ -1753,7 +1787,8 @@ class SigNozStatsAPI {
     end: number,
     agentId?: string,
     projectId?: string,
-    origin?: string
+    origin?: string,
+    offset?: number
   ) {
     const filterItems: Array<{ key: string; op: string; value: unknown }> = [
       { key: SPAN_KEYS.CONVERSATION_ID, op: OPERATORS.EXISTS, value: '' },
@@ -1766,7 +1801,7 @@ class SigNozStatsAPI {
     return {
       start,
       end,
-      requestType: REQUEST_TYPES.TIME_SERIES,
+      requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
         queries: [
           {
@@ -1774,12 +1809,21 @@ class SigNozStatsAPI {
             spec: {
               name: QUERY_EXPRESSIONS.LAST_ACTIVITY,
               signal: SIGNALS.TRACES,
-              aggregations: [{ expression: `countDistinct(${SPAN_KEYS.CONVERSATION_ID})` }],
+              aggregations: [{ expression: `min(${SPAN_KEYS.TIMESTAMP})` }],
               filter: { expression: buildFilterExpression(filterItems) },
-              groupBy: [],
-              order: [],
-              stepInterval: DAY_IN_SECONDS,
-              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              groupBy: [
+                {
+                  name: SPAN_KEYS.CONVERSATION_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+              ],
+              order: [
+                { key: { name: `min(${SPAN_KEYS.TIMESTAMP})` }, direction: ORDER_DIRECTIONS.DESC },
+              ],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.CONVERSATION_ACTIVITY_PAGE_SIZE,
+              ...(offset ? { offset } : {}),
               disabled: QUERY_DEFAULTS.DISABLED,
             },
           },
@@ -2604,11 +2648,19 @@ class SigNozStatsAPI {
   ): Promise<{ date: string; count: number }[]> {
     try {
       const singleProjectId = projectIds?.length === 1 ? projectIds[0] : undefined;
-      const activityResp = await this.makeRequest(
-        this.buildProjectConversationActivityPayload(startTime, endTime, projectIds),
+      const activitySeries = await this.fetchAllConversationActivitySeries(
+        (offset) =>
+          this.buildProjectConversationActivityPayload(startTime, endTime, projectIds, offset),
         singleProjectId
       );
-      const buckets = extractTimeSeriesBuckets(activityResp, QUERY_EXPRESSIONS.LAST_ACTIVITY);
+
+      const buckets = new Map<string, number>();
+      for (const s of activitySeries) {
+        const tsMs = timestampMsFromSeries(s);
+        if (!tsMs) continue;
+        const key = dateKeyFromMs(tsMs);
+        buckets.set(key, (buckets.get(key) || 0) + 1);
+      }
 
       return datesRange(startTime, endTime).map((date) => ({
         date,
@@ -2835,7 +2887,8 @@ class SigNozStatsAPI {
   private buildProjectConversationActivityPayload(
     start: number,
     end: number,
-    projectIds?: string[]
+    projectIds?: string[],
+    offset?: number
   ) {
     const projectItem: { key: string; op: string; value: unknown } =
       projectIds && projectIds.length > 0
@@ -2849,7 +2902,7 @@ class SigNozStatsAPI {
     return {
       start,
       end,
-      requestType: REQUEST_TYPES.TIME_SERIES,
+      requestType: REQUEST_TYPES.SCALAR,
       compositeQuery: {
         queries: [
           {
@@ -2857,12 +2910,21 @@ class SigNozStatsAPI {
             spec: {
               name: QUERY_EXPRESSIONS.LAST_ACTIVITY,
               signal: SIGNALS.TRACES,
-              aggregations: [{ expression: `countDistinct(${SPAN_KEYS.CONVERSATION_ID})` }],
+              aggregations: [{ expression: `min(${SPAN_KEYS.TIMESTAMP})` }],
               filter: { expression: buildFilterExpression(filterItems) },
-              groupBy: [],
-              order: [],
-              stepInterval: DAY_IN_SECONDS,
-              limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+              groupBy: [
+                {
+                  name: SPAN_KEYS.CONVERSATION_ID,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+              ],
+              order: [
+                { key: { name: `min(${SPAN_KEYS.TIMESTAMP})` }, direction: ORDER_DIRECTIONS.DESC },
+              ],
+              stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+              limit: QUERY_DEFAULTS.CONVERSATION_ACTIVITY_PAGE_SIZE,
+              ...(offset ? { offset } : {}),
               disabled: QUERY_DEFAULTS.DISABLED,
             },
           },
@@ -3352,7 +3414,7 @@ class SigNozStatsAPI {
                 filter: { expression: buildFilterExpression(filterItems) },
                 groupBy: [],
                 order: [],
-                stepInterval: DAY_IN_SECONDS,
+                stepInterval: HOUR_IN_SECONDS,
                 disabled: QUERY_DEFAULTS.DISABLED,
               },
             },

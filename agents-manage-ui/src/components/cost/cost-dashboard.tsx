@@ -403,16 +403,8 @@ export function CostDashboard({
                 isLoading={chartLoading}
                 tickFormatter={(value: string) => {
                   try {
-                    const date = new Date(value);
-                    if (Number.isNaN(date.getTime())) {
-                      const [y, m, d] = value.split('-').map(Number);
-                      return new Date(y, (m || 1) - 1, d || 1).toLocaleDateString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      });
-                    }
-                    return date.toLocaleDateString(undefined, {
+                    const [y, m, d] = value.split('-').map(Number);
+                    return new Date(y, (m || 1) - 1, d || 1).toLocaleDateString(undefined, {
                       month: 'short',
                       day: 'numeric',
                       year: 'numeric',
