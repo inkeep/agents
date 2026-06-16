@@ -12,7 +12,7 @@
   "outputDirectory": "dist",
   "functions": {
     "index.js": {
-      "maxDuration": 800,
+      "maxDuration": 1800,
       "includeFiles": ".well-known/**/*",
       "experimentalTriggers": [
         {
