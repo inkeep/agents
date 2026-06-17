@@ -33,12 +33,14 @@ interface WebhookDestinationsTableProps {
   destinations: WebhookDestination[];
   tenantId: string;
   projectId: string;
+  canEdit: boolean;
 }
 
 export function WebhookDestinationsTable({
   destinations,
   tenantId,
   projectId,
+  canEdit,
 }: WebhookDestinationsTableProps) {
   const router = useRouter();
   const [loadingIds, setLoadingIds] = useState(new Set<string>());
@@ -141,35 +143,40 @@ export function WebhookDestinationsTable({
               <Switch
                 checked={dest.enabled}
                 onCheckedChange={() => toggleEnabled(dest)}
-                disabled={loadingIds.has(dest.id)}
+                disabled={!canEdit || loadingIds.has(dest.id)}
               />
             </TableCell>
             <TableCell>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href={`/${tenantId}/projects/${projectId}/webhook-destinations/${dest.id}/edit`}
+              {canEdit && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href={`/${tenantId}/projects/${projectId}/webhook-destinations/${dest.id}/edit`}
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleTest(dest)}>
+                      <Send className="mr-2 h-4 w-4" />
+                      Send Test Event
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleDelete(dest)}
+                      className="text-destructive"
                     >
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Edit
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleTest(dest)}>
-                    <Send className="mr-2 h-4 w-4" />
-                    Send Test Event
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleDelete(dest)} className="text-destructive">
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </TableCell>
           </TableRow>
         ))}

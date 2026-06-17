@@ -13,6 +13,7 @@ import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { createDatasetAction, updateDatasetAction } from '@/lib/actions/datasets';
 import type { Dataset } from '@/lib/api/datasets';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 
 const formatFormData = (data?: DatasetFormData): DatasetFormData => {
   if (!data) {
@@ -43,6 +44,9 @@ export default function DatasetForm({
 
   const { isSubmitting } = form.formState;
   const router = useRouter();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
 
   const onSubmit = form.handleSubmit(async (data) => {
     try {
@@ -86,7 +90,7 @@ export default function DatasetForm({
           />
 
           <div className="flex w-full justify-between">
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || !canEdit}>
               {id ? 'Update' : 'Create'} Test Suite
             </Button>
             {id && (

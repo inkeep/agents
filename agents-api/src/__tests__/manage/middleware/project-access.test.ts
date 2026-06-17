@@ -134,8 +134,20 @@ describe('requireProjectPermission middleware', () => {
       expect(canUseProject).toHaveBeenCalled();
     });
 
-    it('should return 404 when canUseProject returns false', async () => {
+    it('should return 403 when canUseProject returns false but user can view', async () => {
       vi.mocked(canUseProject).mockResolvedValue(false);
+      vi.mocked(canViewProject).mockResolvedValue(true);
+
+      app.use('/projects/:projectId', requireProjectPermission('use'));
+      app.get('/projects/:projectId', (c) => c.json({ success: true }));
+
+      const res = await app.request('/projects/test-project');
+      expect(res.status).toBe(403);
+    });
+
+    it('should return 404 when canUseProject returns false and user cannot view', async () => {
+      vi.mocked(canUseProject).mockResolvedValue(false);
+      vi.mocked(canViewProject).mockResolvedValue(false);
 
       app.use('/projects/:projectId', requireProjectPermission('use'));
       app.get('/projects/:projectId', (c) => c.json({ success: true }));
@@ -157,8 +169,22 @@ describe('requireProjectPermission middleware', () => {
       expect(canEditProject).toHaveBeenCalled();
     });
 
-    it('should return 404 when canEditProject returns false', async () => {
+    it('should return 403 with the permission name when canEditProject returns false but user can view', async () => {
       vi.mocked(canEditProject).mockResolvedValue(false);
+      vi.mocked(canViewProject).mockResolvedValue(true);
+
+      app.use('/projects/:projectId', requireProjectPermission('edit'));
+      app.get('/projects/:projectId', (c) => c.json({ success: true }));
+
+      const res = await app.request('/projects/test-project');
+      expect(res.status).toBe(403);
+      const body = await res.json();
+      expect(body.detail).toBe('You do not have permission to edit this project');
+    });
+
+    it('should return 404 when canEditProject returns false and user cannot view', async () => {
+      vi.mocked(canEditProject).mockResolvedValue(false);
+      vi.mocked(canViewProject).mockResolvedValue(false);
 
       app.use('/projects/:projectId', requireProjectPermission('edit'));
       app.get('/projects/:projectId', (c) => c.json({ success: true }));
@@ -192,6 +218,17 @@ describe('requireProjectPermission middleware', () => {
 
       const res = await app.request('/no-project-id');
       expect(res.status).toBe(400);
+    });
+
+    it('should return 500 when the secondary canViewProject check throws', async () => {
+      vi.mocked(canEditProject).mockResolvedValue(false);
+      vi.mocked(canViewProject).mockRejectedValue(new Error('SpiceDB unavailable'));
+
+      app.use('/projects/:projectId', requireProjectPermission('edit'));
+      app.get('/projects/:projectId', (c) => c.json({ success: true }));
+
+      const res = await app.request('/projects/test-project');
+      expect(res.status).toBe(500);
     });
   });
 });

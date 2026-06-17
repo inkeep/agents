@@ -117,12 +117,19 @@ export function ProjectWorkAppGitHubAccessSection({
               <p className="text-sm text-muted-foreground">
                 No GitHub organizations connected to this tenant.
               </p>
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/${tenantId}/work-apps/github`}>
+              {disabled ? (
+                <Button variant="outline" size="sm" disabled>
                   Connect GitHub
                   <ExternalLink className="size-3 ml-1.5" />
-                </Link>
-              </Button>
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/${tenantId}/work-apps/github`}>
+                    Connect GitHub
+                    <ExternalLink className="size-3 ml-1.5" />
+                  </Link>
+                </Button>
+              )}
             </div>
           </div>
         </div>

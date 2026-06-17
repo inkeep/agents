@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { EvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
 import { fetchEvaluationRunConfigs } from '@/lib/api/evaluation-run-configs';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { formatDate } from '@/lib/utils/format-date';
 import { DeleteEvaluationRunConfigConfirmation } from './delete-evaluation-run-config-confirmation';
 import { EvaluationRunConfigFormDialog } from './evaluation-run-config-form-dialog';
@@ -39,6 +40,9 @@ export function EvaluationRunConfigsList({
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [deletingRunConfig, setDeletingRunConfig] = useState<EvaluationRunConfig | undefined>();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
 
   async function refreshRunConfigs() {
     try {
@@ -95,48 +99,52 @@ export function EvaluationRunConfigsList({
         <span className="text-sm text-muted-foreground">{formatDate(row.original.updatedAt)}</span>
       ),
     },
-    {
-      id: 'actions',
-      header: '',
-      enableSorting: false,
-      meta: { className: 'w-12' },
-      cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                setEditingRunConfig(row.original);
-                setIsEditDialogOpen(true);
-              }}
-            >
-              <Pencil className="h-4 w-4" />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                setDeletingRunConfig(row.original);
-              }}
-              variant="destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
-    },
+    ...(canEdit
+      ? [
+          {
+            id: 'actions',
+            header: '',
+            enableSorting: false,
+            meta: { className: 'w-12' },
+            cell: ({ row }) => (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingRunConfig(row.original);
+                      setIsEditDialogOpen(true);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeletingRunConfig(row.original);
+                    }}
+                    variant="destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ),
+          } satisfies ColumnDef<EvaluationRunConfig>,
+        ]
+      : []),
     {
       id: 'chevron',
       header: '',
@@ -162,19 +170,21 @@ export function EvaluationRunConfigsList({
           emptyState={
             <div className="flex flex-col items-center gap-4">
               <span>No continuous tests yet</span>
-              <EvaluationRunConfigFormDialog
-                tenantId={tenantId}
-                projectId={projectId}
-                isOpen={isCreateDialogOpen}
-                onOpenChange={setIsCreateDialogOpen}
-                onSuccess={refreshRunConfigs}
-                trigger={
-                  <Button variant="outline" size="sm">
-                    <Plus className="h-4 w-4" />
-                    Add first continuous test
-                  </Button>
-                }
-              />
+              {canEdit && (
+                <EvaluationRunConfigFormDialog
+                  tenantId={tenantId}
+                  projectId={projectId}
+                  isOpen={isCreateDialogOpen}
+                  onOpenChange={setIsCreateDialogOpen}
+                  onSuccess={refreshRunConfigs}
+                  trigger={
+                    <Button variant="outline" size="sm">
+                      <Plus className="h-4 w-4" />
+                      Add first continuous test
+                    </Button>
+                  }
+                />
+              )}
             </div>
           }
         />

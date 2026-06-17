@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { Evaluator } from '@/lib/api/evaluators';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { formatDate } from '@/lib/utils/format-date';
 import { DeleteEvaluatorConfirmation } from './delete-evaluator-confirmation';
 import { EvaluatorFormDialog } from './evaluator-form-dialog';
@@ -30,6 +31,9 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [deletingEvaluator, setDeletingEvaluator] = useState<Evaluator | undefined>();
   const [viewingEvaluator, setViewingEvaluator] = useState<Evaluator | undefined>();
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
 
   const columns: ColumnDef<Evaluator>[] = [
     {
@@ -77,39 +81,43 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
         <span className="text-sm text-muted-foreground">{formatDate(row.original.updatedAt)}</span>
       ),
     },
-    {
-      id: 'actions',
-      header: '',
-      enableSorting: false,
-      meta: { className: 'w-12' },
-      cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm">
-              <MoreVertical />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onClick={() => {
-                setEditingEvaluator(row.original);
-                setIsEditDialogOpen(true);
-              }}
-            >
-              <Pencil />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setDeletingEvaluator(row.original)}
-              variant="destructive"
-            >
-              <Trash2 className="text-inherit" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
-    },
+    ...(canEdit
+      ? [
+          {
+            id: 'actions',
+            header: '',
+            enableSorting: false,
+            meta: { className: 'w-12' },
+            cell: ({ row }) => (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <MoreVertical />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setEditingEvaluator(row.original);
+                      setIsEditDialogOpen(true);
+                    }}
+                  >
+                    <Pencil />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setDeletingEvaluator(row.original)}
+                    variant="destructive"
+                  >
+                    <Trash2 className="text-inherit" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ),
+          } satisfies ColumnDef<Evaluator>,
+        ]
+      : []),
   ];
 
   return (
@@ -123,18 +131,20 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
           emptyState={
             <div className="flex flex-col items-center gap-4">
               <span>No evaluators yet</span>
-              <EvaluatorFormDialog
-                tenantId={tenantId}
-                projectId={projectId}
-                isOpen={isCreateDialogOpen}
-                onOpenChange={setIsCreateDialogOpen}
-                trigger={
-                  <Button variant="outline" size="sm">
-                    <Plus className="h-4 w-4" />
-                    Add first evaluator
-                  </Button>
-                }
-              />
+              {canEdit && (
+                <EvaluatorFormDialog
+                  tenantId={tenantId}
+                  projectId={projectId}
+                  isOpen={isCreateDialogOpen}
+                  onOpenChange={setIsCreateDialogOpen}
+                  trigger={
+                    <Button variant="outline" size="sm">
+                      <Plus className="h-4 w-4" />
+                      Add first evaluator
+                    </Button>
+                  }
+                />
+              )}
             </div>
           }
         />

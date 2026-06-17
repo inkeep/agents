@@ -13,6 +13,7 @@ import type {
 import { fetchEvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
 import { fetchEvaluators } from '@/lib/api/evaluators';
+import { getEvaluationJobLabel } from '@/lib/evaluation/job-config-label';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,25 +26,28 @@ export async function getJobName({
   projectId: string;
   jobConfig: EvaluationJobConfig;
 }) {
-  let displayName = jobConfig.id;
   const criteria = jobConfig.jobFilters as EvaluationJobFilterCriteria;
 
-  // Prefer date range if available
-  if (criteria?.dateRange?.startDate && criteria?.dateRange?.endDate) {
-    const startDate = new Date(criteria.dateRange.startDate).toLocaleDateString();
-    const endDate = new Date(criteria.dateRange.endDate).toLocaleDateString();
-    displayName = `${startDate} - ${endDate}`;
-  } else if (criteria?.datasetRunIds && criteria.datasetRunIds.length > 0) {
-    // Fall back to dataset run name
-    try {
-      const datasetRun = await fetchDatasetRun(tenantId, projectId, criteria.datasetRunIds[0]);
-      displayName = datasetRun.data?.runConfigName || jobConfig.id;
-    } catch {
-      // Fallback to ID if fetch fails
-    }
+  // Resolve dataset run names so the shared label can render them; failures
+  // fall back to a short `Run <id>` inside the helper.
+  let datasetRunNames: Record<string, string> | undefined;
+  if (criteria?.datasetRunIds && criteria.datasetRunIds.length > 0) {
+    const entries = await Promise.all(
+      criteria.datasetRunIds.map(async (runId) => {
+        try {
+          const datasetRun = await fetchDatasetRun(tenantId, projectId, runId);
+          return [runId, datasetRun.data?.runConfigName] as const;
+        } catch {
+          return [runId, undefined] as const;
+        }
+      })
+    );
+    datasetRunNames = Object.fromEntries(
+      entries.filter((entry): entry is readonly [string, string] => Boolean(entry[1]))
+    );
   }
 
-  return displayName;
+  return getEvaluationJobLabel(jobConfig, datasetRunNames);
 }
 
 async function EvaluationJobPage({

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Combobox } from '@/components/ui/combobox';
 import type { AgentSummary, TriggerWithAgent } from '@/lib/api/project-triggers';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { FilterTriggerComponent } from '../traces/filters/filter-trigger';
 import { NewTriggerDialog } from './new-trigger-dialog';
 import { ProjectTriggersTable } from './project-triggers-table';
@@ -19,6 +20,9 @@ export function WebhooksTabPanel({
   agents: AgentSummary[];
 }) {
   const [agentFilter, setAgentFilter] = useState('');
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
 
   const filteredTriggers = !agentFilter
     ? triggers
@@ -58,7 +62,7 @@ export function WebhooksTabPanel({
             />
           )}
         </div>
-        {agents.length > 0 && (
+        {agents.length > 0 && canEdit && (
           <NewTriggerDialog
             tenantId={tenantId}
             projectId={projectId}

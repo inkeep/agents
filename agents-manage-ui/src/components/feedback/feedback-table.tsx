@@ -45,6 +45,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { triggerImprovementAction } from '@/lib/actions/improvements';
 import type { Feedback } from '@/lib/api/feedback';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { formatDateTimeTable } from '@/lib/utils/format-date';
 
 function truncate(value: string, max = 120): string {
@@ -89,6 +90,9 @@ export function FeedbackTable({
   const [isTriggering, setIsTriggering] = React.useState(false);
   const [showContextDialog, setShowContextDialog] = React.useState(false);
   const [additionalContext, setAdditionalContext] = React.useState('');
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
 
   const toggleFeedback = (id: string) => {
     setSelectedIds((prev) => {
@@ -222,16 +226,18 @@ export function FeedbackTable({
         description="When users leave feedback, it will show up here. You can also import feedback from a CSV file."
         icon={<MessageSquare className="h-10 w-10 text-muted-foreground" />}
         action={
-          <FeedbackCsvUploadDialog
-            tenantId={tenantId}
-            projectId={projectId}
-            trigger={
-              <Button variant="outline" size="sm">
-                <FileUp className="h-3.5 w-3.5" />
-                Import CSV
-              </Button>
-            }
-          />
+          canEdit ? (
+            <FeedbackCsvUploadDialog
+              tenantId={tenantId}
+              projectId={projectId}
+              trigger={
+                <Button variant="outline" size="sm">
+                  <FileUp className="h-3.5 w-3.5" />
+                  Import CSV
+                </Button>
+              }
+            />
+          ) : undefined
         }
       />
     );
@@ -301,16 +307,18 @@ export function FeedbackTable({
             />
           </div>
 
-          <FeedbackCsvUploadDialog
-            tenantId={tenantId}
-            projectId={projectId}
-            trigger={
-              <Button variant="ghost" size="sm" className="h-8">
-                <FileUp className="h-3.5 w-3.5" />
-                Import CSV
-              </Button>
-            }
-          />
+          {canEdit && (
+            <FeedbackCsvUploadDialog
+              tenantId={tenantId}
+              projectId={projectId}
+              trigger={
+                <Button variant="ghost" size="sm" className="h-8">
+                  <FileUp className="h-3.5 w-3.5" />
+                  Import CSV
+                </Button>
+              }
+            />
+          )}
 
           {hasActiveFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs">
@@ -318,7 +326,7 @@ export function FeedbackTable({
             </Button>
           )}
 
-          {selectedIds.size > 0 && (
+          {selectedIds.size > 0 && canEdit && (
             <Button size="sm" onClick={handleTriggerImprovement} disabled={isTriggering}>
               {isTriggering ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
@@ -407,15 +415,17 @@ export function FeedbackTable({
                   </Link>
                 </TableCell>
                 <TableCell className="whitespace-nowrap text-right">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                    aria-label="Delete feedback"
-                    onClick={() => setDeleteFeedbackId(item.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {canEdit && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      aria-label="Delete feedback"
+                      onClick={() => setDeleteFeedbackId(item.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             );

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import { getProjectScheduledTriggersAction } from '@/lib/actions/project-triggers';
 import type { AgentSummary, ScheduledTriggerWithAgent } from '@/lib/api/project-triggers';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { FilterTriggerComponent } from '../traces/filters/filter-trigger';
 import { NewTriggerDialog } from './new-trigger-dialog';
 import { ProjectScheduledTriggersTable } from './project-scheduled-triggers-table';
@@ -26,6 +27,9 @@ export function ScheduledTabPanel({
 }) {
   const [agentFilter, setAgentFilter] = useState('');
   const [triggers, setTriggers] = useState(initialTriggers);
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
 
   useEffect(() => {
     const fetchTriggers = async () => {
@@ -87,12 +91,14 @@ export function ScheduledTabPanel({
                 All Invocations
               </Link>
             </Button>
-            <NewTriggerDialog
-              tenantId={tenantId}
-              projectId={projectId}
-              agents={agents}
-              type="scheduled"
-            />
+            {canEdit && (
+              <NewTriggerDialog
+                tenantId={tenantId}
+                projectId={projectId}
+                agents={agents}
+                type="scheduled"
+              />
+            )}
           </div>
         )}
       </div>

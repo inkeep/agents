@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { DatasetItem } from '@/lib/api/dataset-items';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { formatDateTimeTable } from '@/lib/utils/format-date';
 import { DatasetItemFormDialog } from './dataset-item-form-dialog';
 import { DeleteDatasetItemConfirmation } from './delete-dataset-item-confirmation';
@@ -40,6 +41,9 @@ export function DatasetItemsTable({
   const [editingItemId, setEditingItemId] = useState<string | undefined>();
   const [deletingItemId, setDeletingItemId] = useState<string | undefined>();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
 
   const editingItem = editingItemId ? items.find((item) => item.id === editingItemId) : undefined;
   const deletingItem = deletingItemId
@@ -78,34 +82,38 @@ export function DatasetItemsTable({
           <span className="text-sm text-muted-foreground italic">None</span>
         ),
     },
-    {
-      id: 'actions',
-      header: '',
-      enableSorting: false,
-      meta: { className: 'w-12' },
-      cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm">
-              <MoreVertical />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setEditingItemId(row.original.id)}>
-              <Pencil />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setDeletingItemId(row.original.id)}
-              variant="destructive"
-            >
-              <Trash2 className="text-inherit" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
-    },
+    ...(canEdit
+      ? [
+          {
+            id: 'actions',
+            header: '',
+            enableSorting: false,
+            meta: { className: 'w-12' },
+            cell: ({ row }) => (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <MoreVertical />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setEditingItemId(row.original.id)}>
+                    <Pencil />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setDeletingItemId(row.original.id)}
+                    variant="destructive"
+                  >
+                    <Trash2 className="text-inherit" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ),
+          } satisfies ColumnDef<DatasetItem>,
+        ]
+      : []),
   ];
 
   return (
@@ -120,19 +128,21 @@ export function DatasetItemsTable({
           emptyState={
             <div className="flex flex-col items-center gap-4">
               <span>No items yet</span>
-              <DatasetItemFormDialog
-                tenantId={tenantId}
-                projectId={projectId}
-                datasetId={datasetId}
-                isOpen={isCreateDialogOpen}
-                onOpenChange={setIsCreateDialogOpen}
-                trigger={
-                  <Button variant="outline" size="sm">
-                    <Plus className="h-4 w-4" />
-                    Add first item
-                  </Button>
-                }
-              />
+              {canEdit && (
+                <DatasetItemFormDialog
+                  tenantId={tenantId}
+                  projectId={projectId}
+                  datasetId={datasetId}
+                  isOpen={isCreateDialogOpen}
+                  onOpenChange={setIsCreateDialogOpen}
+                  trigger={
+                    <Button variant="outline" size="sm">
+                      <Plus className="h-4 w-4" />
+                      Add first item
+                    </Button>
+                  }
+                />
+              )}
             </div>
           }
         />

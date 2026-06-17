@@ -9,6 +9,7 @@ import { WebhookAgentFilter } from '@/components/webhook-destinations/webhook-ag
 import { WebhookDestinationsTable } from '@/components/webhook-destinations/webhook-destinations-table';
 import { fetchAgents } from '@/lib/api/agent-full-client';
 import { fetchProjectWebhookDestinations } from '@/lib/api/project-webhook-destinations';
+import { fetchProjectPermissions } from '@/lib/api/projects';
 
 export const metadata = {
   title: 'Outbound Webhooks',
@@ -24,9 +25,10 @@ async function WebhookDestinationsContent({
   projectId: string;
   agentId?: string;
 }) {
-  const [destinations, { data: agents }] = await Promise.all([
+  const [destinations, { data: agents }, { canEdit }] = await Promise.all([
     fetchProjectWebhookDestinations(tenantId, projectId, agentId),
     fetchAgents(tenantId, projectId),
+    fetchProjectPermissions(tenantId, projectId),
   ]);
 
   return (
@@ -38,19 +40,22 @@ async function WebhookDestinationsContent({
           tenantId={tenantId}
           projectId={projectId}
         />
-        <div className="flex items-center gap-2">
-          <ConnectSlackButton tenantId={tenantId} projectId={projectId} />
-          <Button asChild>
-            <Link href={`/${tenantId}/projects/${projectId}/webhook-destinations/new`}>
-              New Webhook
-            </Link>
-          </Button>
-        </div>
+        {canEdit && (
+          <div className="flex items-center gap-2">
+            <ConnectSlackButton tenantId={tenantId} projectId={projectId} />
+            <Button asChild>
+              <Link href={`/${tenantId}/projects/${projectId}/webhook-destinations/new`}>
+                New Webhook
+              </Link>
+            </Button>
+          </div>
+        )}
       </div>
       <WebhookDestinationsTable
         destinations={destinations}
         tenantId={tenantId}
         projectId={projectId}
+        canEdit={canEdit}
       />
     </div>
   );

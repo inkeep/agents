@@ -6,6 +6,7 @@ import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { STATIC_LABELS } from '@/constants/theme';
 import { fetchDatasets } from '@/lib/api/datasets';
+import { fetchProjectPermissions } from '@/lib/api/projects';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,18 +18,26 @@ export const metadata = {
 async function DatasetsPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/datasets'>) {
   const { tenantId, projectId } = await params;
   try {
-    const datasets = await fetchDatasets(tenantId, projectId);
+    const [datasets, { canEdit }] = await Promise.all([
+      fetchDatasets(tenantId, projectId),
+      fetchProjectPermissions(tenantId, projectId),
+    ]);
     return datasets.data.length ? (
       <>
         <PageHeader title={metadata.title} description={metadata.description} />
-        <DatasetsList tenantId={tenantId} projectId={projectId} datasets={datasets.data} />
+        <DatasetsList
+          tenantId={tenantId}
+          projectId={projectId}
+          datasets={datasets.data}
+          canEdit={canEdit}
+        />
       </>
     ) : (
       <EmptyState
         title="No test suites yet."
         description={metadata.description}
-        link={`/${tenantId}/projects/${projectId}/datasets/new`}
-        linkText="Create test suite"
+        link={canEdit ? `/${tenantId}/projects/${projectId}/datasets/new` : undefined}
+        linkText={canEdit ? 'Create test suite' : undefined}
         icon={<Database />}
       />
     );

@@ -7,6 +7,7 @@ import { ScheduledTriggerForm } from '@/components/scheduled-triggers/scheduled-
 import { Button } from '@/components/ui/button';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { getScheduledTrigger } from '@/lib/api/scheduled-triggers';
+import { checkProjectPermissionOrRedirect } from '@/lib/auth/check-permission-or-redirect';
 
 export const metadata = {
   title: 'Edit scheduled trigger',
@@ -17,6 +18,12 @@ export default async function EditScheduledTriggerPage({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/triggers/scheduled/[agentId]/[scheduledTriggerId]/edit'>) {
   const { tenantId, projectId, agentId, scheduledTriggerId } = await params;
+  await checkProjectPermissionOrRedirect(
+    tenantId,
+    projectId,
+    'edit',
+    `/${tenantId}/projects/${projectId}/triggers?tab=scheduled`
+  );
 
   // Fetch agent to verify it exists
   const agent = await getFullAgentAction(tenantId, projectId, agentId);

@@ -90,6 +90,30 @@ export const requireProjectPermission = <
       }
 
       if (!hasAccess) {
+        // For `use`/`edit` failures, distinguish "user can't see the project at
+        // all" from "user can see it but lacks the higher permission". If they
+        // already have view access, returning "Project not found" is confusing
+        // (they're operating inside a project they can see), so return a 403
+        // with a clear message instead. We only fall back to the 404 mask when
+        // the user genuinely can't view the project, preserving the existing
+        // behavior of not leaking project existence to unauthorized users.
+        if (permission !== 'view') {
+          const canView = await canViewProject({
+            userId,
+            tenantId,
+            projectId,
+            orgRole: tenantRole,
+          });
+
+          if (canView) {
+            throw createApiError({
+              code: 'forbidden',
+              message: `You do not have permission to ${permission} this project`,
+              instance: c.req.path,
+            });
+          }
+        }
+
         throw createApiError({
           code: 'not_found',
           message: 'Project not found',
