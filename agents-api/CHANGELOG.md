@@ -1,5 +1,16 @@
 # @inkeep/agents-api
 
+## 0.78.3
+
+### Patch Changes
+
+- b169c71: Exempt more manage-domain routes that never read the branch-scoped manage DB from the branch-scoped DB middleware, so they no longer pin a Doltgres branch-checkout connection for the duration of the request. Newly exempt: the conversations family (list/detail/bounds/media), api-keys, the nested app auth-keys router, credential-stores, project permissions, mcp-catalog, third-party-mcp-servers, and evals evaluation-results. Scoping stays narrow where a sibling under the same prefix still uses the manage DB (`/apps` CRUD, the other `/evals/*` routers, and `/credentials`).
+- 10b84ca: Return a clear 403 instead of a misleading 'Project not found' 404 when a user can view a project but lacks use/edit permission
+  - @inkeep/agents-core@0.78.3
+  - @inkeep/agents-email@0.78.3
+  - @inkeep/agents-mcp@0.78.3
+  - @inkeep/agents-work-apps@0.78.3
+
 ## 0.78.2
 
 ### Patch Changes
