@@ -76,7 +76,16 @@ Return a JSON object with:
   model: { model: "gpt-4o-mini" },
   passCriteria: {
     operator: "and",
-    conditions: [{ field: "score", operator: ">=", value: 4 }],
+    conditions: [
+      { field: "score", operator: ">=", value: 4 },
+      {
+        operator: "or",
+        conditions: [
+          { field: "passed", operator: "=", value: true },
+          { field: "score", operator: ">=", value: 5 },
+        ],
+      },
+    ],
   },
 })) as { id: string };
 ```
@@ -88,7 +97,7 @@ Return a JSON object with:
 | `prompt` | string | Yes | Instructions for the evaluation model |
 | `schema` | object (JSON Schema) | Yes | Structure of the evaluation output — typically includes `score`, `passed`, and `reasoning` |
 | `model` | object | Yes | `{ model: string, providerOptions?: object }` |
-| `passCriteria` | object | No | `{ operator: "and"\|"or", conditions: [{ field, operator, value }] }`. Operators: `>`, `<`, `>=`, `<=`, `=`, `!=` |
+| `passCriteria` | object | No | Nested conditions with `and`/`or` operators. Conditions can include nested groups for complex logic. Supports numeric operators (`>`, `<`, `>=`, `<=`, `=`, `!=`) and boolean operators (`=`, `!=`). Max nesting depth: 5. |
 
 ### Step 2 — Create a test suite and add items
 
