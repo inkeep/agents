@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { WebhookDestinationForm } from '@/components/webhook-destinations/webhook-destination-form';
 import { fetchAgents } from '@/lib/api/agent-full-client';
 import { getWebhookDestination, type WebhookDestination } from '@/lib/api/webhook-destinations';
+import { checkProjectPermissionOrRedirect } from '@/lib/auth/check-permission-or-redirect';
 
 export const metadata = {
   title: 'Edit Outbound Webhook',
@@ -17,6 +18,12 @@ export default async function EditWebhookDestinationPage({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/webhook-destinations/[webhookDestinationId]/edit'>) {
   const { tenantId, projectId, webhookDestinationId } = await params;
+  await checkProjectPermissionOrRedirect(
+    tenantId,
+    projectId,
+    'edit',
+    `/${tenantId}/projects/${projectId}/webhook-destinations`
+  );
 
   let webhookDestination: WebhookDestination;
   try {

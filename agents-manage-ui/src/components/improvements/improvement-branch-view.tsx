@@ -41,6 +41,7 @@ import type {
   ImprovementDiffResponse,
   ImprovementFeedbackItem,
 } from '@/lib/api/improvements';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import type { ExcludedRow } from './improvement-diff-view';
 import { ImprovementDiffView } from './improvement-diff-view';
 import { ImprovementEvalResults } from './improvement-eval-results';
@@ -72,6 +73,9 @@ export function ImprovementBranchView({
   const [isSendingFollowUp, setIsSendingFollowUp] = useState(false);
   const [overrideRunning, setOverrideRunning] = useState(false);
   const [excludedRows, setExcludedRows] = useState<ExcludedRow[]>([]);
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
 
   const isRunning = overrideRunning || status === 'running';
   const isCompleted = !overrideRunning && status === 'completed';
@@ -216,31 +220,35 @@ export function ImprovementBranchView({
             </Badge>
           )}
 
-          {(isCompleted || isFailed) && (
+          {(isCompleted || isFailed) && canEdit && (
             <Button size="sm" variant="outline" onClick={() => setShowFollowUpDialog(true)}>
               <MessageSquare className="h-4 w-4 mr-1" />
               Continue
             </Button>
           )}
 
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleMerge()}
-            disabled={loadingAction !== null || diff.summary.length === 0}
-          >
-            {loadingAction === 'merge' && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-            Approve & Merge
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={handleReject}
-            disabled={loadingAction !== null}
-          >
-            {loadingAction === 'reject' && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-            Reject
-          </Button>
+          {canEdit && (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleMerge()}
+                disabled={loadingAction !== null || diff.summary.length === 0}
+              >
+                {loadingAction === 'merge' && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                Approve & Merge
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleReject}
+                disabled={loadingAction !== null}
+              >
+                {loadingAction === 'reject' && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                Reject
+              </Button>
+            </>
+          )}
         </div>
       </div>
 

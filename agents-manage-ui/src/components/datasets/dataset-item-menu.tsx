@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { DeleteDatasetConfirmation } from './delete-dataset-confirmation';
 import { RenameDatasetDialog } from './rename-dataset-dialog';
 
@@ -26,6 +27,13 @@ export function DatasetItemMenu({
 }: DatasetItemMenuProps) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isRenameOpen, setIsRenameOpen] = useState(false);
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
+
+  if (!canEdit) {
+    return null;
+  }
 
   return (
     <>

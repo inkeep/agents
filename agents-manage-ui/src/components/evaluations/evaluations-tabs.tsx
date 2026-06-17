@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { EvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import type { EvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
 import type { Evaluator } from '@/lib/api/evaluators';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { EvaluationJobFormDialog } from '../evaluation-jobs/evaluation-job-form-dialog';
 import { EvaluationJobsList } from '../evaluation-jobs/evaluation-jobs-list';
 import { EvaluationRunConfigFormDialog } from '../evaluation-run-configs/evaluation-run-config-form-dialog';
@@ -51,6 +52,9 @@ export function EvaluationsTabs({
   const [isCreateJobOpen, setIsCreateJobOpen] = useState(false);
   const [isCreateRunConfigOpen, setIsCreateRunConfigOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -66,7 +70,7 @@ export function EvaluationsTabs({
             Continuous Tests
           </TabsTrigger>
         </TabsList>
-        {activeTab === 'evaluators' && (
+        {activeTab === 'evaluators' && canEdit && (
           <div className="flex items-center h-10 px-4">
             <EvaluatorFormDialog
               tenantId={tenantId}
@@ -82,7 +86,7 @@ export function EvaluationsTabs({
             />
           </div>
         )}
-        {activeTab === 'jobs' && (
+        {activeTab === 'jobs' && canEdit && (
           <div className="flex items-center h-10 px-4">
             <EvaluationJobFormDialog
               tenantId={tenantId}
@@ -98,7 +102,7 @@ export function EvaluationsTabs({
             />
           </div>
         )}
-        {activeTab === 'run-configs' && (
+        {activeTab === 'run-configs' && canEdit && (
           <div className="flex items-center h-10 px-4">
             <EvaluationRunConfigFormDialog
               tenantId={tenantId}

@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { WebhookDestinationForm } from '@/components/webhook-destinations/webhook-destination-form';
 import { fetchAgents } from '@/lib/api/agent-full-client';
+import { checkProjectPermissionOrRedirect } from '@/lib/auth/check-permission-or-redirect';
 
 export const metadata = {
   title: 'New Outbound Webhook',
@@ -21,6 +22,12 @@ export default async function NewWebhookDestinationPage({
   searchParams: Promise<{ url?: string }>;
 }) {
   const { tenantId, projectId } = await params;
+  await checkProjectPermissionOrRedirect(
+    tenantId,
+    projectId,
+    'edit',
+    `/${tenantId}/projects/${projectId}/webhook-destinations`
+  );
   const { url: rawPrefillUrl } = await searchParams;
   const prefillUrl = rawPrefillUrl?.startsWith(ALLOWED_PREFILL_PREFIX) ? rawPrefillUrl : undefined;
 

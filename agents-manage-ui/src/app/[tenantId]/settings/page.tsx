@@ -169,19 +169,6 @@ export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings
           <CopyableSingleLineCode code={organization.id} />
         </div>
       </div>
-      <Card className="shadow-none">
-        <CardHeader>
-          <CardTitle className="text-base font-medium">Management MCP Server</CardTitle>
-          <CardDescription>
-            Connect your AI editor to manage agents, projects, and tools over MCP. Signing in uses
-            your Inkeep account, so actions are limited to your own permissions. No API key
-            required.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ManagementMcpGuide />
-        </CardContent>
-      </Card>
       {isOrgAdmin && (
         <>
           <Card className="shadow-none">
@@ -224,6 +211,19 @@ export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings
           )}
         </>
       )}
+      <Card className="shadow-none">
+        <CardHeader>
+          <CardTitle className="text-base font-medium">Management MCP Server</CardTitle>
+          <CardDescription>
+            Connect your AI editor to manage agents, projects, and tools over MCP. Signing in uses
+            your Inkeep account, so actions are limited to your own permissions. No API key
+            required.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ManagementMcpGuide />
+        </CardContent>
+      </Card>
     </div>
   );
 }

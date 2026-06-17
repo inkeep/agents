@@ -7,6 +7,7 @@ import { TriggerForm } from '@/components/triggers/trigger-form';
 import { Button } from '@/components/ui/button';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { getTrigger, type Trigger } from '@/lib/api/triggers';
+import { checkProjectPermissionOrRedirect } from '@/lib/auth/check-permission-or-redirect';
 
 export const metadata = {
   description: 'Update the webhook trigger configuration.',
@@ -16,6 +17,12 @@ export default async function EditTriggerPage({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/triggers/webhooks/[agentId]/[triggerId]/edit'>) {
   const { tenantId, projectId, agentId, triggerId } = await params;
+  await checkProjectPermissionOrRedirect(
+    tenantId,
+    projectId,
+    'edit',
+    `/${tenantId}/projects/${projectId}/triggers?tab=webhooks`
+  );
 
   // Fetch agent to verify it exists
   const agent = await getFullAgentAction(tenantId, projectId, agentId);

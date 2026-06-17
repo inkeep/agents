@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { TriggerForm } from '@/components/triggers/trigger-form';
 import { Button } from '@/components/ui/button';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
+import { checkProjectPermissionOrRedirect } from '@/lib/auth/check-permission-or-redirect';
 
 export const metadata = {
   title: 'New webhook trigger',
@@ -17,6 +18,12 @@ export default async function NewTriggerPage({
   searchParams,
 }: PageProps<'/[tenantId]/projects/[projectId]/triggers/webhooks/[agentId]/new'>) {
   const { tenantId, projectId, agentId } = await params;
+  await checkProjectPermissionOrRedirect(
+    tenantId,
+    projectId,
+    'edit',
+    `/${tenantId}/projects/${projectId}/triggers?tab=webhooks`
+  );
   const rawSearchParams = await searchParams;
 
   // Fetch agent to verify it exists

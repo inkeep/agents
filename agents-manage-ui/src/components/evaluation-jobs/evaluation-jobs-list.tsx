@@ -19,6 +19,8 @@ import type {
   EvaluationJobConfig,
   EvaluationJobFilterCriteria,
 } from '@/lib/api/evaluation-job-configs';
+import { getEvaluationJobLabel } from '@/lib/evaluation/job-config-label';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { formatDate } from '@/lib/utils/format-date';
 import { DeleteEvaluationJobConfirmation } from './delete-evaluation-job-confirmation';
 import { EvaluationJobFormDialog } from './evaluation-job-form-dialog';
@@ -35,6 +37,9 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
   const [datasetRunNames, setDatasetRunNames] = useState<Record<string, string>>({});
   const [isLoadingNames, setIsLoadingNames] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
 
   useEffect(() => {
     const fetchRunNames = async () => {
@@ -69,54 +74,19 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
     }
   }, [jobConfigs, tenantId, projectId]);
 
-  function formatFilters(filters: EvaluationJobConfig['jobFilters']): string {
-    if (!filters) return 'No filters';
-    const filterCriteria = filters as EvaluationJobFilterCriteria;
-    const parts: string[] = [];
-
-    if (
-      filterCriteria.datasetRunIds &&
-      Array.isArray(filterCriteria.datasetRunIds) &&
-      filterCriteria.datasetRunIds.length > 0
-    ) {
-      const runNames = filterCriteria.datasetRunIds
-        .map((id) => datasetRunNames[id] || `Run ${id.slice(0, 8)}`)
-        .join(', ');
-      parts.push(runNames);
-    }
-
-    if (filterCriteria.dateRange?.startDate && filterCriteria.dateRange?.endDate) {
-      const startDate = new Date(filterCriteria.dateRange.startDate);
-      const endDate = new Date(filterCriteria.dateRange.endDate);
-
-      const startFormatted = startDate.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
-      const endFormatted = endDate.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
-
-      parts.push(`${startFormatted} - ${endFormatted}`);
-    }
-
-    return parts.length > 0 ? parts.join(' • ') : 'No filters';
-  }
-
   const columns: ColumnDef<EvaluationJobConfig>[] = [
     {
       id: 'name',
-      accessorFn: (row) => formatFilters(row.jobFilters),
+      accessorFn: (row) => getEvaluationJobLabel(row, datasetRunNames),
       header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
       sortingFn: 'text',
       cell: ({ row }) =>
         isLoadingNames ? (
           <Skeleton className="h-4 w-48" />
         ) : (
-          <span className="font-medium">{formatFilters(row.original.jobFilters)}</span>
+          <span className="font-medium">
+            {getEvaluationJobLabel(row.original, datasetRunNames)}
+          </span>
         ),
     },
     {
@@ -133,41 +103,45 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
           </span>
         ),
     },
-    {
-      id: 'actions',
-      header: '',
-      enableSorting: false,
-      meta: { className: 'w-12' },
-      cell: ({ row }) =>
-        isLoadingNames ? (
-          <Skeleton className="h-4 w-8" />
-        ) : (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDeletingJobConfig(row.original);
-                }}
-                variant="destructive"
-              >
-                <Trash2 className="text-inherit" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ),
-    },
+    ...(canEdit
+      ? [
+          {
+            id: 'actions',
+            header: '',
+            enableSorting: false,
+            meta: { className: 'w-12' },
+            cell: ({ row }) =>
+              isLoadingNames ? (
+                <Skeleton className="h-4 w-8" />
+              ) : (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeletingJobConfig(row.original);
+                      }}
+                      variant="destructive"
+                    >
+                      <Trash2 className="text-inherit" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ),
+          } satisfies ColumnDef<EvaluationJobConfig>,
+        ]
+      : []),
     {
       id: 'chevron',
       header: '',
@@ -196,18 +170,20 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
           emptyState={
             <div className="flex flex-col items-center gap-4">
               <span>No batch evaluations yet</span>
-              <EvaluationJobFormDialog
-                tenantId={tenantId}
-                projectId={projectId}
-                isOpen={isCreateDialogOpen}
-                onOpenChange={setIsCreateDialogOpen}
-                trigger={
-                  <Button variant="outline" size="sm">
-                    <Plus className="h-4 w-4" />
-                    Add first batch evaluation
-                  </Button>
-                }
-              />
+              {canEdit && (
+                <EvaluationJobFormDialog
+                  tenantId={tenantId}
+                  projectId={projectId}
+                  isOpen={isCreateDialogOpen}
+                  onOpenChange={setIsCreateDialogOpen}
+                  trigger={
+                    <Button variant="outline" size="sm">
+                      <Plus className="h-4 w-4" />
+                      Add first batch evaluation
+                    </Button>
+                  }
+                />
+              )}
             </div>
           }
         />

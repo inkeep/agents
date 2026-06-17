@@ -9,6 +9,7 @@ import { DatasetItemsTable } from '@/components/dataset-items/dataset-items-tabl
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { DatasetItem } from '@/lib/api/dataset-items';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { DatasetRunConfigFormDialog } from './dataset-run-config-form-dialog';
 import { DatasetRunsList } from './dataset-runs-list';
 
@@ -36,6 +37,9 @@ export function DatasetTabs({
   const [isCreateItemOpen, setIsCreateItemOpen] = useState(false);
   const [isCreateRunOpen, setIsCreateRunOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
 
   useEffect(() => {
     if (tabFromUrl && (tabFromUrl === 'items' || tabFromUrl === 'runs')) {
@@ -62,7 +66,7 @@ export function DatasetTabs({
             Items
           </TabsTrigger>
         </TabsList>
-        {activeTab === 'items' && (
+        {activeTab === 'items' && canEdit && (
           <div className="flex items-center h-10 px-4 gap-1">
             <CsvUploadDialog
               tenantId={tenantId}
@@ -93,7 +97,7 @@ export function DatasetTabs({
             />
           </div>
         )}
-        {activeTab === 'runs' && (
+        {activeTab === 'runs' && canEdit && (
           <div className="flex items-center h-10 px-4">
             <DatasetRunConfigFormDialog
               tenantId={tenantId}

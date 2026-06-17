@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { ScheduledTriggerForm } from '@/components/scheduled-triggers/scheduled-trigger-form';
 import { Button } from '@/components/ui/button';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
+import { checkProjectPermissionOrRedirect } from '@/lib/auth/check-permission-or-redirect';
 
 export const metadata = {
   title: 'New scheduled trigger',
@@ -17,6 +18,12 @@ export default async function NewScheduledTriggerPage({
   searchParams,
 }: PageProps<'/[tenantId]/projects/[projectId]/triggers/scheduled/[agentId]/new'>) {
   const { tenantId, projectId, agentId } = await params;
+  await checkProjectPermissionOrRedirect(
+    tenantId,
+    projectId,
+    'edit',
+    `/${tenantId}/projects/${projectId}/triggers?tab=scheduled`
+  );
   const rawSearchParams = await searchParams;
   const defaultsFromParams: Record<string, string> = {};
   for (const [key, value] of Object.entries(rawSearchParams)) {

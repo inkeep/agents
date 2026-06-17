@@ -35,6 +35,7 @@ import type { DatasetRunInvocation, DatasetRunWithConversations } from '@/lib/ap
 import { fetchDatasetRun, fetchDatasetRunItems } from '@/lib/api/dataset-runs';
 import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
 import { downloadCsv } from '@/lib/csv/export-csv';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { formatDateAgo, formatDateTime } from '@/lib/utils/format-date';
 
 function extractInputText(
@@ -63,6 +64,9 @@ export default function Page({
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [filters, setFilters] = useState<TestCaseFiltersType>({});
   const [invocations, setInvocations] = useState<DatasetRunInvocation[]>([]);
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
   const { rerun, isRerunning, canRerun } = useRerunDatasetRun({
     tenantId,
     projectId,
@@ -282,7 +286,7 @@ export default function Page({
         {(() => {
           const target = { runId, datasetRunConfigId: run.datasetRunConfigId };
           const rerunning = isRerunning(runId);
-          const eligible = canRerun(target);
+          const eligible = canRerun(target) && canEdit;
           return (
             <Button
               variant="outline"

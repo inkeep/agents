@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/table';
 import { mergeImprovementAction, rejectImprovementAction } from '@/lib/actions/improvements';
 import type { ImprovementRun } from '@/lib/api/improvements';
+import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { formatDateTimeTable } from '@/lib/utils/format-date';
 
 interface ImprovementsTableProps {
@@ -28,6 +29,9 @@ interface ImprovementsTableProps {
 export function ImprovementsTable({ tenantId, projectId, improvements }: ImprovementsTableProps) {
   const router = useRouter();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const {
+    data: { canEdit },
+  } = useProjectPermissionsQuery();
 
   const handleMerge = (branchName: string) => {
     setLoadingAction(`merge-${branchName}`);
@@ -134,32 +138,36 @@ export function ImprovementsTable({ tenantId, projectId, improvements }: Improve
                       <span className="ml-1">Diff</span>
                     </Link>
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleMerge(improvement.branchName)}
-                    disabled={loadingAction !== null}
-                  >
-                    {loadingAction === `merge-${improvement.branchName}` ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Check className="h-4 w-4" />
-                    )}
-                    <span className="ml-1">Merge</span>
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleReject(improvement.branchName)}
-                    disabled={loadingAction !== null}
-                  >
-                    {loadingAction === `reject-${improvement.branchName}` ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <X className="h-4 w-4" />
-                    )}
-                    <span className="ml-1">Reject</span>
-                  </Button>
+                  {canEdit && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleMerge(improvement.branchName)}
+                        disabled={loadingAction !== null}
+                      >
+                        {loadingAction === `merge-${improvement.branchName}` ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Check className="h-4 w-4" />
+                        )}
+                        <span className="ml-1">Merge</span>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleReject(improvement.branchName)}
+                        disabled={loadingAction !== null}
+                      >
+                        {loadingAction === `reject-${improvement.branchName}` ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <X className="h-4 w-4" />
+                        )}
+                        <span className="ml-1">Reject</span>
+                      </Button>
+                    </>
+                  )}
                 </div>
               </TableCell>
             </TableRow>
