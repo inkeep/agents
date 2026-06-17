@@ -30,7 +30,7 @@ Evaluators define how agent responses are scored. Each evaluator has a **prompt*
    - **Prompt** — instructions for the model (e.g. what to score and how)
    - **Schema** — JSON schema for structured output (e.g. numeric score, categories)
    - **Model** — the model used to run the evaluator
-   - **Pass criteria** (optional) — conditions on numeric schema fields that define pass/fail (e.g. `score >= 0.8`)
+   - **Pass criteria** (optional) — conditions that define pass/fail. Supports numeric comparisons (e.g. `score >= 0.8`) and boolean checks (e.g. `passed = true`). Conditions can be nested with AND/OR operators for complex logic.
 
 4. Save. The evaluator is then available for batch evaluations and continuous tests.
 
