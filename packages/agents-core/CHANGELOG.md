@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.78.2
+
+### Patch Changes
+
+- 4dde32b: Enable DCR + RFC 8707 validAudiences on the better-auth oauthProvider and expose oauthClientId on BaseExecutionContext.metadata so MCP clients can self-register and audit-trail their DCR client_id
+- 49fdcac: Fix timezone bug for conversations per day and cost graph
+
 ## 0.78.1
 
 ### Patch Changes

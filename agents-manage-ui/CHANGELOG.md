@@ -1,5 +1,16 @@
 # @inkeep/agents-manage-ui
 
+## 0.78.2
+
+### Patch Changes
+
+- 4dde32b: Add Management MCP Server section to organization settings with one-click install buttons (Add to Cursor, Install in VS Code) plus manual config for Windsurf and Claude Code, using OAuth login instead of an API key
+- 49fdcac: Fix timezone bug for conversations per day and cost graph
+- 355e7f5: Avoid loading artifact bodies in conversation traces
+- Updated dependencies [4dde32b]
+- Updated dependencies [49fdcac]
+  - @inkeep/agents-core@0.78.2
+
 ## 0.78.1
 
 ### Patch Changes
