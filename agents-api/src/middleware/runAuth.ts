@@ -22,17 +22,22 @@ import { getAnonJwtSecret } from '../domains/run/routes/auth';
 import { env } from '../env';
 import { getLogger } from '../logger';
 import { createBaseExecutionContext } from '../types/runExecutionContext';
-import { getOAuthIssuer, getOAuthJwks } from '../utils/oauthJwks';
+import { getAcceptedAudiences, getOAuthIssuer, getOAuthJwks } from '../utils/oauthJwks';
 
 const logger = getLogger('env-key-auth');
 
 // ============================================================================
-// Supported auth strategies
+// Supported auth strategies (run domain)
 // ============================================================================
-// 1. JWT temp token: generated with user session cookies
-// 2. Bypass secret: override used for development purposes
-// 3. Database API key: validated against database, created in the dashboard
-// 4. Team agent token: used for intra-tenant team-agent delegation
+// Separate early-return branch:
+//   - App credential (X-Inkeep-App-Id): web_client (anon/asym JWT) or support_copilot
+//
+// Pluggable strategy chain (tried in order):
+//   1. Bypass secret (INKEEP_AGENTS_RUN_API_BYPASS_SECRET): dev/test override
+//   2. Slack user JWT: Slack work-app user delegation
+//   3. OAuth user JWT: audience-bound, any DCR'd client (MCP clients, Gram)
+//   4. Database API key: persistent key created via the manage UI
+//   5. Team agent JWT: intra-tenant agent-to-agent delegation
 // ============================================================================
 
 /**
@@ -305,6 +310,128 @@ async function trySlackUserJwtAuth(token: string, reqData: RequestData): Promise
             teamId: payload.slack.teamId,
           },
         }),
+      },
+    },
+  };
+}
+
+/**
+ * Authenticate using an OAuth 2.1 user access token issued by the platform's
+ * better-auth authorization server — e.g. from an MCP client (Claude Desktop,
+ * Cursor, Gram) that performed DCR + PKCE and logged the user in.
+ *
+ * Additive and distinct from the support-copilot app path (tryAppCredentialAuth),
+ * which gates on a fixed `azp === COPILOT_OAUTH_CLIENT_ID`. That path is left
+ * intentionally untouched.
+ *
+ * The trust model here is deliberately NOT "which client issued the token"
+ * (there is no fixed client_id — MCP clients self-register via DCR). Instead it is:
+ *   (a) valid signature + issuer (our AS),
+ *   (b) audience binding — the token's `aud` must equal THIS resource (RFC 8707);
+ *       this replaces the copilot path's azp-allowlist as the security gate, and
+ *   (c) per-user authorization via SpiceDB on the requested project.
+ * better-auth only stamps `aud` when the client sent a `resource` param, so a
+ * non-resource token (e.g. copilot's) simply fails the audience check and falls
+ * through to the other strategies — it is never accepted here.
+ */
+async function tryOAuthUserAuth(token: string, reqData: RequestData): Promise<AuthAttempt> {
+  if (token.split('.').length !== 3) {
+    return { authResult: null };
+  }
+
+  let payload: Record<string, unknown>;
+  try {
+    const result = await jwtVerify(token, getOAuthJwks(), {
+      issuer: getOAuthIssuer(),
+      audience: getAcceptedAudiences(),
+    });
+    payload = result.payload as Record<string, unknown>;
+  } catch (error) {
+    // Not a valid OAuth user JWT for this resource — fall through cleanly so a
+    // bearer that happens to JWT-shape (e.g. a copilot token without `aud`, or a
+    // string with three dot-segments) can still be tried by later strategies.
+    // Logging at debug surfaces real failure modes (JWKS unreachable, signature
+    // failure, expired token) when an operator needs to diagnose silent fall-through.
+    logger.debug({ error }, 'OAuth user JWT verification failed, falling through');
+    return { authResult: null };
+  }
+
+  // Defense in depth: jose enforces the audience option above, but an explicit
+  // post-verify check documents the binding at the use site and guards against
+  // mock-based test paths where the option is not honored.
+  const accepted = getAcceptedAudiences();
+  const aud = payload.aud;
+  const audMatches =
+    (typeof aud === 'string' && accepted.includes(aud)) ||
+    (Array.isArray(aud) && aud.some((value) => accepted.includes(value)));
+  if (!audMatches) {
+    return { authResult: null };
+  }
+
+  const userId = typeof payload.sub === 'string' ? payload.sub : undefined;
+  const tenantId =
+    typeof payload['https://inkeep.com/tenantId'] === 'string'
+      ? (payload['https://inkeep.com/tenantId'] as string)
+      : undefined;
+  const oauthClientId = typeof payload.azp === 'string' ? (payload.azp as string) : undefined;
+
+  if (!userId || !tenantId) {
+    return { authResult: null, failureMessage: 'OAuth user JWT missing sub or tenant claim' };
+  }
+
+  if (!reqData.projectId || !reqData.agentId) {
+    return {
+      authResult: null,
+      failureMessage: 'OAuth user JWT requires x-inkeep-project-id and x-inkeep-agent-id headers',
+    };
+  }
+
+  try {
+    const canUse = await canUseProjectStrict({ userId, tenantId, projectId: reqData.projectId });
+    if (!canUse) {
+      logger.warn(
+        { userId, tenantId, projectId: reqData.projectId, oauthClientId },
+        'OAuth user JWT: user does not have access to requested project'
+      );
+      return {
+        authResult: null,
+        failureMessage: 'Access denied: insufficient permissions for the requested project',
+      };
+    }
+  } catch (error) {
+    logger.error(
+      { error, userId, projectId: reqData.projectId, oauthClientId },
+      'SpiceDB permission check failed for OAuth user JWT'
+    );
+    throw new HTTPException(503, { message: 'Authorization service temporarily unavailable' });
+  }
+
+  logger.info(
+    {
+      userId,
+      tenantId,
+      projectId: reqData.projectId,
+      agentId: reqData.agentId,
+      oauthClientId,
+    },
+    'OAuth user JWT authenticated successfully'
+  );
+
+  const span = trace.getActiveSpan();
+  if (oauthClientId) {
+    span?.setAttribute('oauth.client_id', oauthClientId);
+  }
+
+  return {
+    authResult: {
+      apiKey: token,
+      tenantId,
+      projectId: reqData.projectId,
+      agentId: reqData.agentId,
+      apiKeyId: 'oauth-user-token',
+      metadata: {
+        initiatedBy: { type: 'user', id: userId },
+        ...(oauthClientId ? { oauthClientId } : {}),
       },
     },
   };
@@ -1023,6 +1150,14 @@ async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
   if (slackAttempt.authResult) return slackAttempt;
   if (slackAttempt.failureMessage) return slackAttempt;
   failures.push({ strategy: 'Slack user JWT', reason: 'not a Slack token' });
+
+  const oauthUserAttempt = await tryOAuthUserAuth(apiKey, reqData);
+  if (oauthUserAttempt.authResult) return oauthUserAttempt;
+  // Once jwtVerify accepted the token (passed sig+iss+aud) any subsequent failure
+  // is definitive for this bearer — short-circuit instead of letting api-key/team
+  // strategies muddy the response.
+  if (oauthUserAttempt.failureMessage) return oauthUserAttempt;
+  failures.push({ strategy: 'OAuth user JWT', reason: 'not an OAuth user token' });
 
   const apiKeyAttempt = await tryApiKeyAuth(apiKey);
   if (apiKeyAttempt.authResult) return apiKeyAttempt;

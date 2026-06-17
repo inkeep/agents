@@ -34,6 +34,8 @@ type BaseAppVariables = {
   tenantId?: string;
   tenantRole?: string;
   projectId?: string;
+  /** OAuth client_id (`azp`) of the DCR'd client, when authenticated via an OAuth user JWT. */
+  oauthClientId?: string;
 };
 
 export type AppVariables = BaseAppVariables & {

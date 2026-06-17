@@ -270,6 +270,9 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
         loginPage: `${env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000'}/login`,
         consentPage: `${env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000'}/consent`,
         scopes: ['openid', 'profile', 'email', 'offline_access'],
+        allowDynamicClientRegistration: true,
+        allowUnauthenticatedClientRegistration: true,
+        validAudiences: [config.baseURL, `${config.baseURL}/`, `${config.baseURL}/mcp`],
         customAccessTokenClaims: async ({ user }) => {
           if (!user) return {};
           const org = await getInitialOrganization(config.dbClient, user.id);

@@ -331,6 +331,7 @@ export interface BaseExecutionContext {
       | 'app_credential_support_copilot';
     appId?: string;
     appPrompt?: string;
+    oauthClientId?: string;
   };
 }
 

@@ -7,6 +7,7 @@ import { Loader2 } from 'lucide-react';
 import { use, useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { AuthMethodConfiguration } from '@/components/settings/auth-method-configuration';
+import { ManagementMcpGuide } from '@/components/settings/management-mcp/management-mcp-guide';
 import {
   EditSSOForm,
   RegisterSSOForm,
@@ -168,6 +169,19 @@ export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings
           <CopyableSingleLineCode code={organization.id} />
         </div>
       </div>
+      <Card className="shadow-none">
+        <CardHeader>
+          <CardTitle className="text-base font-medium">Management MCP Server</CardTitle>
+          <CardDescription>
+            Connect your AI editor to manage agents, projects, and tools over MCP. Signing in uses
+            your Inkeep account, so actions are limited to your own permissions. No API key
+            required.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ManagementMcpGuide />
+        </CardContent>
+      </Card>
       {isOrgAdmin && (
         <>
           <Card className="shadow-none">
