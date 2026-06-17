@@ -1,5 +1,13 @@
 # @inkeep/agents-manage-ui
 
+## 0.78.3
+
+### Patch Changes
+
+- 10b84ca: Fix batch evaluation showing its raw ID as the title; show a consistent filter-based label (or 'All conversations' when unfiltered) in both the list and detail views
+- 10b84ca: Gate mutation controls on project edit permission across the manage UI. Create, edit, delete, and run actions for datasets, dataset items and runs, evaluations, evaluators, webhook destinations, triggers, improvements, feedback, and the project GitHub access "Connect GitHub" action are now hidden or disabled when the user lacks project edit permission.
+  - @inkeep/agents-core@0.78.3
+
 ## 0.78.2
 
 ### Patch Changes
