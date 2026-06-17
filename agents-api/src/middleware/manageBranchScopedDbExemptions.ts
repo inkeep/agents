@@ -55,6 +55,58 @@ export const MANAGE_BRANCH_SCOPED_DB_EXEMPT_ROUTES: ReadonlyArray<{
     path: /^\/manage\/tenants\/[^/]+\/projects\/[^/]+\/feedback(?:\/|$)/,
   },
   {
+    // The whole conversations family is runtime/blob-only: list and detail read
+    // via runDbClient, `/bounds` reads via runDbClient, and `/media` streams
+    // from blob storage. None touch `c.get('db')`.
+    name: 'conversations',
+    reason: 'Runtime Postgres (runDbClient) + blob storage',
+    path: /^\/manage\/tenants\/[^/]+\/projects\/[^/]+\/conversations(?:\/|$)/,
+  },
+  {
+    name: 'api-keys',
+    reason: 'Runtime Postgres (runDbClient)',
+    path: /^\/manage\/tenants\/[^/]+\/projects\/[^/]+\/api-keys(?:\/|$)/,
+  },
+  {
+    // Scope is the nested auth-key router ONLY. The sibling `PATCH
+    // /projects/:p/apps/:appId` DOES read the branch-scoped db (support_copilot
+    // credential validation), so the literal `/auth/keys` keeps the match off
+    // the `/apps` and `/apps/:appId` routes.
+    name: 'app-auth-keys',
+    reason: 'Runtime Postgres (runDbClient)',
+    path: /^\/manage\/tenants\/[^/]+\/projects\/[^/]+\/apps\/[^/]+\/auth\/keys(?:\/|$)/,
+  },
+  {
+    // Distinct from the sibling `/credentials` router (which DOES use the
+    // branch-scoped db); `credential-stores` needs the literal `-stores`.
+    name: 'credential-stores',
+    reason: 'Credential-store registry + external stores (no db)',
+    path: /^\/manage\/tenants\/[^/]+\/projects\/[^/]+\/credential-stores(?:\/|$)/,
+  },
+  {
+    name: 'project-permissions',
+    reason: 'SpiceDB + session context only',
+    path: /^\/manage\/tenants\/[^/]+\/projects\/[^/]+\/permissions(?:\/|$)/,
+  },
+  {
+    name: 'mcp-catalog',
+    reason: 'Static catalog + optional Composio fetch (external)',
+    path: /^\/manage\/tenants\/[^/]+\/projects\/[^/]+\/mcp-catalog(?:\/|$)/,
+  },
+  {
+    name: 'third-party-mcp-servers',
+    reason: 'Composio external API + OAuth helper',
+    path: /^\/manage\/tenants\/[^/]+\/projects\/[^/]+\/third-party-mcp-servers(?:\/|$)/,
+  },
+  {
+    // Scope is `evaluation-results` ONLY. Sibling evals routers (datasets,
+    // evaluators, dataset-runs, ...) DO use the branch-scoped db, so the literal
+    // `/evals/evaluation-results` keeps the match off them.
+    name: 'evals-evaluation-results',
+    reason: 'Runtime Postgres (runDbClient)',
+    path: /^\/manage\/tenants\/[^/]+\/projects\/[^/]+\/evals\/evaluation-results(?:\/|$)/,
+  },
+  {
     name: 'tenant-apps',
     reason: 'Runtime Postgres (runDbClient)',
     path: /^\/manage\/tenants\/[^/]+\/apps(?:\/|$)/,
