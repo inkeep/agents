@@ -161,7 +161,7 @@ describe('Manage Auth - OAuth JWT', () => {
     expect(res.status).toBe(401);
   });
 
-  it('should skip OAuth JWT path entirely when COPILOT_OAUTH_CLIENT_ID is not configured', async () => {
+  it('should skip the copilot OAuth JWT path entirely when COPILOT_OAUTH_CLIENT_ID is not configured', async () => {
     const original = env.COPILOT_OAUTH_CLIENT_ID;
     env.COPILOT_OAUTH_CLIENT_ID = undefined;
     try {
@@ -172,10 +172,12 @@ describe('Manage Auth - OAuth JWT', () => {
         headers: { Authorization: `Bearer ${VALID_JWT}` },
       });
 
+      // The copilot azp-gated path is the one protected by COPILOT_OAUTH_CLIENT_ID:
+      // when unset, a JWT for a different OAuth client cannot authenticate AS copilot.
+      // The audience-bound OAuth-user strategy (separate from copilot) verifies tokens
+      // independently and would fall through for any token not bound to this resource —
+      // here the test token has no audience, so it cannot authenticate via either path.
       expect(res.status).toBe(401);
-      // Critical: must not even attempt JWT verification when unconfigured,
-      // so that JWTs issued to other OAuth clients cannot authenticate.
-      expect(jwtVerifyMock).not.toHaveBeenCalled();
     } finally {
       env.COPILOT_OAUTH_CLIENT_ID = original;
     }

@@ -48,6 +48,7 @@ import { healthChecksHandler } from './routes/healthChecks';
 import { restartWorkflowHandler } from './routes/restartScheduler';
 import { POST as handleWebhookDeliveryQueue } from './routes/webhookDeliveryConsumer';
 import type { AppConfig, AppVariables } from './types';
+import { getProtectedResourceMetadata } from './utils/oauthProtectedResource';
 
 const logger = getLogger('agents-api');
 
@@ -144,6 +145,18 @@ function createAgentsHono(config: AppConfig) {
     });
     app.get('/.well-known/oauth-authorization-server/*', (c) => {
       return authServerMetadataHandler(c.req.raw);
+    });
+
+    const protectedResourceHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Cache-Control': 'public, max-age=15, stale-while-revalidate=15, stale-if-error=86400',
+    };
+    app.get('/.well-known/oauth-protected-resource', (c) => {
+      return c.json(getProtectedResourceMetadata(), 200, protectedResourceHeaders);
+    });
+    app.get('/.well-known/oauth-protected-resource/*', (c) => {
+      return c.json(getProtectedResourceMetadata(), 200, protectedResourceHeaders);
     });
   }
   // Run routes - permissive CORS (origin: '*')
