@@ -1,5 +1,6 @@
 'use client';
 
+import type { PassCriteria, PassCriteriaCondition } from '@inkeep/agents-core/evaluation';
 import { useEffect, useState } from 'react';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +16,44 @@ import { Label } from '@/components/ui/label';
 import { fetchEvaluatorAgentsAction } from '@/lib/actions/agent-relations';
 import type { Evaluator } from '@/lib/api/evaluators';
 import { useAgentsQuery } from '@/lib/query/agents';
+
+type CriteriaNode = PassCriteriaCondition | PassCriteria;
+
+function isGroup(node: CriteriaNode): node is PassCriteria {
+  return 'conditions' in node && Array.isArray((node as PassCriteria).conditions);
+}
+
+function CriteriaGroupView({ group, depth }: { group: PassCriteria; depth: number }) {
+  if (group.conditions.length === 0) return null;
+
+  return (
+    <div className={depth > 0 ? 'rounded border p-2 space-y-1 bg-muted/30' : 'space-y-2'}>
+      <div className="text-sm">
+        <span className="text-muted-foreground">Match </span>
+        <span className="font-medium">{group.operator === 'and' ? 'ALL' : 'ANY'}</span>
+        <span className="text-muted-foreground"> of:</span>
+      </div>
+      <div className="space-y-1">
+        {group.conditions.map((child, index) => (
+          <div key={index} className="flex items-start gap-2 text-sm">
+            {index > 0 && (
+              <span className="text-muted-foreground text-xs uppercase pt-1">
+                {group.operator === 'and' ? 'and' : 'or'}
+              </span>
+            )}
+            {isGroup(child) ? (
+              <CriteriaGroupView group={child} depth={depth + 1} />
+            ) : (
+              <code className="bg-background px-2 py-1 rounded text-xs">
+                {child.field} {child.operator} {String(child.value)}
+              </code>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 interface EvaluatorViewDialogProps {
   tenantId: string;
@@ -148,29 +187,7 @@ export function EvaluatorViewDialog({
             <div className="bg-muted rounded-md p-3">
               {evaluator.passCriteria?.conditions &&
               evaluator.passCriteria.conditions.length > 0 ? (
-                <div className="space-y-2">
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Pass when </span>
-                    <span className="font-medium">
-                      {evaluator.passCriteria.operator === 'and' ? 'ALL' : 'ANY'}
-                    </span>
-                    <span className="text-muted-foreground"> conditions are met:</span>
-                  </div>
-                  <div className="space-y-1">
-                    {evaluator.passCriteria.conditions.map((condition, index) => (
-                      <div key={index} className="flex items-center gap-2 text-sm">
-                        {index > 0 && (
-                          <span className="text-muted-foreground text-xs uppercase">
-                            {evaluator.passCriteria?.operator === 'and' ? 'and' : 'or'}
-                          </span>
-                        )}
-                        <code className="bg-background px-2 py-1 rounded text-xs">
-                          {condition.field} {condition.operator} {condition.value}
-                        </code>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <CriteriaGroupView group={evaluator.passCriteria} depth={0} />
               ) : (
                 <span className="text-sm text-muted-foreground">No pass/fail criteria defined</span>
               )}

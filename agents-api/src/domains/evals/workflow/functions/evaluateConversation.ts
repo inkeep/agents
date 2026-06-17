@@ -131,7 +131,7 @@ async function executeEvaluatorStep(
           field: c.field,
           operator: c.operator,
           value: c.value,
-          actual: typeof val === 'number' ? val : 0,
+          actual: typeof val === 'number' || typeof val === 'boolean' ? val : 0,
         };
       });
 

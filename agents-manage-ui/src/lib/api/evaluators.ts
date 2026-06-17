@@ -7,23 +7,13 @@
 
 'use server';
 
+import type { PassCriteria } from '@inkeep/agents-core/evaluation';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 
 interface ModelSettings {
   model?: string;
   providerOptions?: Record<string, unknown>;
-}
-
-interface PassCriteriaCondition {
-  field: string;
-  operator: '>' | '<' | '>=' | '<=' | '=' | '!=';
-  value: number;
-}
-
-interface PassCriteria {
-  operator: 'and' | 'or';
-  conditions: PassCriteriaCondition[];
 }
 
 export interface Evaluator {

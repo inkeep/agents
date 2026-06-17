@@ -69,8 +69,10 @@ import {
   workAppSlackWorkspaces,
   workflowExecutions,
 } from '../db/runtime/runtime-schema';
+import type { PassCriteria } from '../types/utility';
 import {
   CredentialStoreType,
+  MAX_PASS_CRITERIA_DEPTH,
   MCPServerType,
   MCPTransportType,
   TOOL_STATUS_VALUES,
@@ -1876,9 +1878,55 @@ export const EvaluationSuiteConfigEvaluatorRelationApiUpdateSchema = createApiUp
   .omit({ id: true })
   .openapi('EvaluationSuiteConfigEvaluatorRelationUpdate');
 
+const passCriteriaConditionSchema = z
+  .object({
+    field: z.string().min(1),
+    operator: z.enum(['>', '<', '>=', '<=', '=', '!=']),
+    value: z.union([z.number(), z.boolean()]),
+  })
+  .superRefine((val, ctx) => {
+    if (typeof val.value === 'boolean' && val.operator !== '=' && val.operator !== '!=') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Boolean values only support '=' and '!=' operators, got '${val.operator}'`,
+        path: ['operator'],
+      });
+    }
+  });
+
+const passCriteriaSchema: z.ZodType<PassCriteria, any, any> = z
+  .lazy(() =>
+    z.object({
+      operator: z.enum(['and', 'or']),
+      conditions: z.array(z.union([passCriteriaConditionSchema, passCriteriaSchema])).min(1),
+    })
+  )
+  .meta({ type: 'object' })
+  .superRefine((val, ctx) => {
+    const checkDepth = (node: unknown, depth: number): void => {
+      if (depth > MAX_PASS_CRITERIA_DEPTH) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Pass criteria exceeds maximum nesting depth of ${MAX_PASS_CRITERIA_DEPTH}`,
+        });
+        return;
+      }
+      const obj = node as Record<string, unknown>;
+      if ('conditions' in obj && Array.isArray(obj.conditions)) {
+        for (const child of obj.conditions) {
+          if (child && typeof child === 'object' && 'conditions' in child) {
+            checkDepth(child, depth + 1);
+          }
+        }
+      }
+    };
+    checkDepth(val, 0);
+  });
+
 export const EvaluatorSelectSchema = createSelectSchema(evaluator);
 export const EvaluatorInsertSchema = createInsertSchema(evaluator).extend({
   id: ResourceIdSchema,
+  passCriteria: passCriteriaSchema.nullable().optional(),
 });
 export const EvaluatorUpdateSchema = EvaluatorInsertSchema.partial();
 

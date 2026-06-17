@@ -391,18 +391,29 @@ export type Filter<T extends Record<string, unknown>> =
   | { and: Array<Filter<T>> }
   | { or: Array<Filter<T>> };
 
-export type PassCriteriaOperator = '>' | '<' | '>=' | '<=' | '=' | '!=';
+export type PassCriteriaNumericOperator = '>' | '<' | '>=' | '<=' | '=' | '!=';
+export type PassCriteriaBooleanOperator = '=' | '!=';
 
-export type PassCriteriaCondition = {
+export type PassCriteriaNumericCondition = {
   field: string;
-  operator: PassCriteriaOperator;
+  operator: PassCriteriaNumericOperator;
   value: number;
 };
 
+export type PassCriteriaBooleanCondition = {
+  field: string;
+  operator: PassCriteriaBooleanOperator;
+  value: boolean;
+};
+
+export type PassCriteriaCondition = PassCriteriaNumericCondition | PassCriteriaBooleanCondition;
+
 export type PassCriteria = {
   operator: 'and' | 'or';
-  conditions: PassCriteriaCondition[];
+  conditions: Array<PassCriteriaCondition | PassCriteria>;
 };
+
+export const MAX_PASS_CRITERIA_DEPTH = 5;
 
 export type EvaluationJobFilterCriteria = z.infer<typeof EvaluationJobFilterCriteriaSchema>;
 

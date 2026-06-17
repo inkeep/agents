@@ -480,8 +480,8 @@ export interface EmitEvaluationFailedWebhookParams {
   failedConditions: Array<{
     field: string;
     operator: string;
-    value: number;
-    actual: number;
+    value: number | boolean;
+    actual: number | boolean;
   }>;
   evaluationResult: {
     id: string;
