@@ -1,5 +1,21 @@
 # @inkeep/agents-api
 
+## 0.78.2
+
+### Patch Changes
+
+- 4dde32b: Add audience-bound OAuth user JWT auth strategy (RFC 8707) on run + manage domains for any DCR'd client (MCP clients, Gram) and advertise an oauth2 authorizationCode security scheme in the generated OpenAPI alongside the existing apiKey/bearer schemes
+- 4dde32b: Fix org-level permission checks (requirePermission) for OAuth user JWT principals: authorize from the resolved org role via the shared access-control definitions instead of a better-auth session lookup, so project create/delete works for MCP/OAuth callers (not just session/UI); map authz denials to 403 instead of 500
+- 4dde32b: Improve /mcp ergonomics: add a happy-path example to create-full-agent's description (and a full-replace warning to update-full-agent), and re-add the lightweight agents-update-agent / projects-update-project tools for targeted edits (165 to 167)
+- 4dde32b: Curate the /mcp management server: restrict the auto-generated tool surface to a 165-tool golden-path allowlist (down from ~290), and add server-level instructions to guide tool selection (prefer full-agent/full-project composites)
+- 4dde32b: Bind tenantId to the OAuth session on the /mcp management server: drop tenantId from tool input schemas and inject it from the authenticated user's token, so MCP agents no longer pass (or mis-pass) it
+- Updated dependencies [4dde32b]
+- Updated dependencies [49fdcac]
+  - @inkeep/agents-core@0.78.2
+  - @inkeep/agents-work-apps@0.78.2
+  - @inkeep/agents-email@0.78.2
+  - @inkeep/agents-mcp@0.78.2
+
 ## 0.78.1
 
 ### Patch Changes
