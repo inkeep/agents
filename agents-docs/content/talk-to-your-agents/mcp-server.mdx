@@ -36,6 +36,40 @@ The tool handles:
 - Context resolution if your agent has context configuration
 - Error handling and response formatting
 
+## Management MCP Server
+
+The Management MCP Server is a separate OAuth 2.1-authenticated endpoint that allows AI-powered code editors (Cursor, VS Code, Claude, Windsurf) to manage your Inkeep tenant programmatically.
+
+<Note>
+  The Management MCP Server is different from the agent MCP server above. The agent MCP server lets you **talk to** your agents, while the Management MCP Server lets you **manage** your Inkeep organization (projects, agents, tools, and more).
+</Note>
+
+### Key Features
+
+- **OAuth 2.1 Authentication**: Secure authentication using PKCE and audience-bound tokens (RFC 9728, RFC 8707)
+- **Curated Tool Surface**: 167 carefully selected management tools for tenant administration
+- **Tenant-Scoped Access**: Your tenant ID is automatically bound from your authenticated session—no need to pass it manually
+- **Permission-Based Authorization**: Operations are authorized based on your organization role
+
+### Connecting Your AI Editor
+
+To connect your AI editor to the Management MCP Server:
+
+1. Navigate to **Settings** in the Inkeep dashboard
+2. Find the **Management MCP Server** card
+3. Click **Add to Cursor** or **Add to VS Code** for one-click setup
+4. For Windsurf or Claude, use the manual configuration provided
+
+### Available Operations
+
+The Management MCP Server provides tools for:
+
+- **Projects**: Create, update, delete, and list projects
+- **Agents**: Configure agents, sub-agents, and agent graphs
+- **Tools**: Register and manage MCP servers and tool definitions
+- **Data Components**: Define structured UI components for agent responses
+- **Evaluations**: Run and manage agent evaluation sets
+
 ## Using with Cursor
 
 ### Quick Install (Inkeep Hosted Docs MCP)
