@@ -155,8 +155,8 @@ function buildEvaluationFailedSlack(
     (data.failedConditions as Array<{
       field: string;
       operator: string;
-      value: number;
-      actual: number;
+      value: number | boolean;
+      actual: number | boolean;
     }>) ?? [];
   const evaluationRunConfigId = meta?.evaluationRunConfigId ?? null;
   const evaluationJobConfigId = meta?.evaluationJobConfigId ?? null;

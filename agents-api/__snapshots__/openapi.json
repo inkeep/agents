@@ -4941,35 +4941,7 @@
             "type": "string"
           },
           "passCriteria": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
+            "type": "object"
           },
           "prompt": {
             "type": "string"
@@ -5062,35 +5034,7 @@
             "type": "string"
           },
           "passCriteria": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
+            "type": "object"
           },
           "prompt": {
             "type": "string"

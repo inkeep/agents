@@ -121,7 +121,10 @@ export function EvaluatorFormDialog({
     name: 'model.providerOptions',
     defaultValue: undefined,
   });
-  const passCriteriaValue = useWatch({ control, name: 'passCriteria' });
+  const passCriteriaValue = useWatch({
+    control,
+    name: 'passCriteria',
+  }) as EvaluatorFormData['passCriteria'];
   const { field: schemaField } = useController({ control, name: 'schema' });
 
   const onInvalid = (errors: Record<string, unknown>) => {
