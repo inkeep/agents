@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import FullPageError from '@/components/errors/full-page-error';
 import { EvaluationRunConfigResults } from '@/components/evaluation-run-configs/evaluation-run-config-results';
 import { PageHeader } from '@/components/layout/page-header';
-import { fetchEvaluationResultsByRunConfig } from '@/lib/api/evaluation-results';
+import { fetchEvaluationResultsPaginated } from '@/lib/api/evaluation-results';
 import { fetchEvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
 import {
   fetchEvaluationSuiteConfigEvaluators,
@@ -22,14 +22,16 @@ async function EvaluationRunConfigPage({
   const { tenantId, projectId, configId } = await params;
 
   try {
-    const [runConfig, results, evaluators, suiteConfigs] = await Promise.all([
+    const [runConfig, initialResponse, evaluators, suiteConfigs] = await Promise.all([
       fetchEvaluationRunConfig(tenantId, projectId, configId),
-      fetchEvaluationResultsByRunConfig(tenantId, projectId, configId),
+      fetchEvaluationResultsPaginated(tenantId, projectId, 'run-config', configId, {
+        page: 1,
+        limit: 50,
+      }),
       fetchEvaluators(tenantId, projectId),
       fetchEvaluationSuiteConfigs(tenantId, projectId),
     ]);
 
-    // Fetch evaluators for each suite config used by this run config
     const suiteConfigEvaluators = new Map<string, string[]>();
     if (runConfig.suiteConfigIds && runConfig.suiteConfigIds.length > 0) {
       await Promise.all(
@@ -45,7 +47,6 @@ async function EvaluationRunConfigPage({
               evaluatorsRes.data.map((e) => e.evaluatorId)
             );
           } catch {
-            // If fetch fails, set empty array
             suiteConfigEvaluators.set(suiteConfigId, []);
           }
         })
@@ -62,7 +63,7 @@ async function EvaluationRunConfigPage({
           tenantId={tenantId}
           projectId={projectId}
           runConfig={runConfig}
-          results={results}
+          initialResponse={initialResponse}
           evaluators={evaluators.data}
           suiteConfigs={suiteConfigs.data}
           suiteConfigEvaluators={suiteConfigEvaluators}

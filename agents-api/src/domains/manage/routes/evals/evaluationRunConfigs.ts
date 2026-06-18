@@ -10,16 +10,13 @@ import {
   EvaluationRunConfigApiInsertSchema,
   EvaluationRunConfigApiUpdateSchema,
   EvaluationRunConfigWithSuiteConfigsApiSelectSchema,
-  extractMessageText,
   generateId,
-  getConversationsByIds,
   getEvaluationRunConfigById,
   getEvaluationRunConfigEvaluationSuiteConfigRelations,
-  getFirstUserMessageByConversations,
   ListResponseSchema,
-  listEvaluationResultsByRun,
+  listEvaluationResultsPaginated,
   listEvaluationRunConfigsWithSuiteConfigs,
-  listEvaluationRunsByRunConfigId,
+  PaginationQueryParamsSchema,
   SingleResponseSchema,
   TenantProjectParamsSchema,
   updateEvaluationRunConfig,
@@ -161,9 +158,9 @@ app.openapi(
     permission: requireProjectPermission('view'),
     request: {
       params: TenantProjectParamsSchema.extend({ configId: z.string() }),
-      query: z.object({
-        page: z.coerce.number().min(1).default(1),
-        limit: z.coerce.number().min(1).max(200).default(50),
+      query: PaginationQueryParamsSchema.extend({
+        evaluatorId: z.string().optional(),
+        agentId: z.string().optional(),
       }),
     },
     responses: {
@@ -180,84 +177,25 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, configId } = c.req.valid('param');
-    const { page, limit } = c.req.valid('query');
+    const { page, limit, evaluatorId, agentId } = c.req.valid('query');
 
     try {
-      // Find evaluation run(s) for this run config
-      const runConfigRuns = await listEvaluationRunsByRunConfigId(runDbClient)({
+      const result = await listEvaluationResultsPaginated(runDbClient)({
         scopes: { tenantId, projectId },
         evaluationRunConfigId: configId,
+        filters: {
+          evaluatorId: evaluatorId || undefined,
+          agentId: agentId || undefined,
+        },
+        pagination: { page, limit },
       });
 
-      if (runConfigRuns.length === 0) {
-        return c.json({ data: [], pagination: { page, limit, total: 0, pages: 0 } }) as any;
-      }
-
-      // Get all results for all runs
-      const allResults = (
-        await Promise.all(
-          runConfigRuns.map((run) =>
-            listEvaluationResultsByRun(runDbClient)({
-              scopes: { tenantId, projectId, evaluationRunId: run.id },
-            })
-          )
-        )
-      ).flat();
-
-      // Stable ordering (newest first) so pagination is deterministic across requests.
-      allResults.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
-
-      const total = allResults.length;
-      const pages = Math.ceil(total / limit);
-      const offset = (page - 1) * limit;
-      const pageResults = allResults.slice(offset, offset + limit);
-
-      // Enrich only the conversations on this page, and do it with two set-based queries
-      // instead of fanning out per-conversation lookups (which exhausted the runtime DB pool).
-      const uniqueConversationIds = [...new Set(pageResults.map((r) => r.conversationId))];
-
-      const [conversationsForPage, firstUserMessages] = await Promise.all([
-        getConversationsByIds(runDbClient)({
-          scopes: { tenantId, projectId },
-          conversationIds: uniqueConversationIds,
-        }),
-        getFirstUserMessageByConversations(runDbClient)({
-          scopes: { tenantId, projectId },
-          conversationIds: uniqueConversationIds,
-        }),
-      ]);
-
-      const conversationsById = new Map(conversationsForPage.map((c) => [c.id, c]));
-
-      const conversationInputs = new Map<string, string>();
-      for (const message of firstUserMessages) {
-        const text = extractMessageText(message.content);
-        if (text) {
-          conversationInputs.set(message.conversationId, text);
-        }
-      }
-
-      const enrichedResults = pageResults.map((result) => ({
-        ...result,
-        input: conversationInputs.get(result.conversationId) || null,
-        agentId: conversationsById.get(result.conversationId)?.agentId || null,
-        conversationCreatedAt: conversationsById.get(result.conversationId)?.createdAt || null,
-      }));
-
       logger.info(
-        { configId, page, limit, total, returned: enrichedResults.length },
+        { configId, total: result.pagination.total, page: result.pagination.page },
         'Retrieved evaluation results for run config'
       );
 
-      return c.json({
-        data: enrichedResults as any[],
-        pagination: {
-          page,
-          limit,
-          total,
-          pages,
-        },
-      }) as any;
+      return c.json(result) as any;
     } catch (error) {
       logger.error({ error, configId }, 'Failed to get evaluation results for run config');
       return c.json(

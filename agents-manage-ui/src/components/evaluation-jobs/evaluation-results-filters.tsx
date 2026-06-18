@@ -16,8 +16,6 @@ import type {
 } from '@/lib/evaluation/filter-evaluation-results';
 import { OutputSchemaFilters } from './output-schema-filters';
 
-export type { EvaluationResultFilters };
-
 interface EvaluationResultsFiltersProps {
   filters: EvaluationResultFilters;
   onFiltersChange: (filters: EvaluationResultFilters) => void;

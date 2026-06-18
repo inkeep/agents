@@ -11,7 +11,7 @@ import type {
   EvaluationJobFilterCriteria,
 } from '@/lib/api/evaluation-job-configs';
 import { fetchEvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
-import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
+import { fetchEvaluationResultsPaginated } from '@/lib/api/evaluation-results';
 import { fetchEvaluators } from '@/lib/api/evaluators';
 import { getEvaluationJobLabel } from '@/lib/evaluation/job-config-label';
 
@@ -56,9 +56,12 @@ async function EvaluationJobPage({
   const { tenantId, projectId, configId } = await params;
 
   try {
-    const [jobConfig, results, evaluators] = await Promise.all([
+    const [jobConfig, initialResponse, evaluators] = await Promise.all([
       fetchEvaluationJobConfig(tenantId, projectId, configId),
-      fetchEvaluationResultsByJobConfig(tenantId, projectId, configId),
+      fetchEvaluationResultsPaginated(tenantId, projectId, 'job-config', configId, {
+        page: 1,
+        limit: 50,
+      }),
       fetchEvaluators(tenantId, projectId),
     ]);
 
@@ -84,7 +87,7 @@ async function EvaluationJobPage({
           tenantId={tenantId}
           projectId={projectId}
           jobConfig={jobConfig}
-          results={results}
+          initialResponse={initialResponse}
           evaluators={evaluators.data}
         />
       </>

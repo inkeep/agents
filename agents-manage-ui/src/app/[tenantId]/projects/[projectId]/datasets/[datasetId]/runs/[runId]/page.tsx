@@ -33,7 +33,7 @@ import {
 import { useRerunDatasetRun } from '@/hooks/use-rerun-dataset-run';
 import type { DatasetRunInvocation, DatasetRunWithConversations } from '@/lib/api/dataset-runs';
 import { fetchDatasetRun, fetchDatasetRunItems } from '@/lib/api/dataset-runs';
-import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
+import { fetchEvaluationResultsPaginated } from '@/lib/api/evaluation-results';
 import { downloadCsv } from '@/lib/csv/export-csv';
 import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { formatDateAgo, formatDateTime } from '@/lib/utils/format-date';
@@ -96,22 +96,26 @@ export default function Page({
 
       // If there's an evaluation job, fetch evaluation progress
       if (response.data?.evaluationJobConfigId) {
-        const evalResults = await fetchEvaluationResultsByJobConfig(
-          tenantId,
-          projectId,
-          response.data.evaluationJobConfigId
-        );
+        try {
+          const evalResponse = await fetchEvaluationResultsPaginated(
+            tenantId,
+            projectId,
+            'job-config',
+            response.data.evaluationJobConfigId
+          );
 
-        const totalEvaluations = evalResults.length;
-        const completedEvaluations = evalResults.filter(
-          (result) => result.output !== null && result.output !== undefined
-        ).length;
+          const totalEvaluations = evalResponse.pagination.total;
+          const completedEvaluations = evalResponse.pagination.completedCount ?? 0;
 
-        setEvaluationProgress({
-          total: totalEvaluations,
-          completed: completedEvaluations,
-          isRunning: completedEvaluations < totalEvaluations && totalEvaluations > 0,
-        });
+          setEvaluationProgress({
+            total: totalEvaluations,
+            completed: completedEvaluations,
+            isRunning: completedEvaluations < totalEvaluations && totalEvaluations > 0,
+          });
+        } catch (evalErr) {
+          console.error('Error fetching evaluation progress:', evalErr);
+          setEvaluationProgress(null);
+        }
       } else {
         setEvaluationProgress(null);
       }
