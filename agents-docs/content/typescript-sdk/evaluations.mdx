@@ -144,6 +144,13 @@ const runConfig = (await client.createDatasetRunConfig({
 | `datasetId` | string | Yes | The test suite to run |
 | `agentIds` | string[] | No | Agents that process each item (at least one needed before trigger) |
 | `evaluatorIds` | string[] | No | Default evaluators attached when you trigger a run |
+| `runAsUserIds` | string[] | No | User IDs whose identities are used for scheduled runs (enables per-user fan-out) |
+| `scheduleConfig` | object | No | Configuration for automatic scheduled execution (see below) |
+| `scheduleConfig.cronExpression` | string | No | 5-field cron expression for recurring runs (mutually exclusive with `runAt`) |
+| `scheduleConfig.cronTimezone` | string | No | IANA timezone for cron evaluation (defaults to `UTC`) |
+| `scheduleConfig.runAt` | string | No | ISO 8601 timestamp for a one-time scheduled run (mutually exclusive with `cronExpression`) |
+| `scheduleConfig.enabled` | boolean | No | Whether the schedule is active (defaults to `true`) |
+| `scheduleConfig.dispatchDelayMs` | number | No | Milliseconds to stagger dispatch per user for load spreading |
 
 ### Step 4 — Trigger a run
 
@@ -153,10 +160,17 @@ Starting a run queues every item × agent combination. When evaluators are inclu
 const started = await client.triggerDatasetRun(runConfig.id, {
   evaluatorIds: [evaluator.id],
 });
-// { datasetRunId: "...", status: "pending", totalItems: 3 }
+// { datasetRunId: "...", datasetRunIds: ["..."], status: "pending", totalItems: 3 }
 ```
 
 The `evaluatorIds` on trigger is optional — omit it to use the defaults from the run configuration, or pass different ids to override.
+
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `evaluatorIds` | string[] | No | Evaluator IDs to use (overrides config defaults) |
+| `branchName` | string | No | Branch name for the run |
+| `runAsUserId` | string | No | User ID whose identity is used for this run |
+| `dispatchDelayMs` | number | No | Milliseconds to stagger dispatch per user |
 
 ### Step 5 — Check run status
 
@@ -166,6 +180,31 @@ console.log(run);
 ```
 
 Poll `getDatasetRun` or check the **Test Suites** page in the Visual Builder to watch items transition from pending to completed with evaluation scores.
+
+### Scheduled test suite runs
+
+Run configurations can be scheduled to run automatically on a cron schedule or at a specific future time. Add a `scheduleConfig` when creating a run configuration:
+
+```typescript
+const scheduledRunConfig = await client.createDatasetRunConfig({
+  name: "Nightly regression tests",
+  datasetId: testSuite.id,
+  agentIds: ["your-agent-id"],
+  evaluatorIds: [evaluator.id],
+  scheduleConfig: {
+    cronExpression: "0 2 * * *", // Daily at 2 AM
+    cronTimezone: "America/New_York",
+    enabled: true,
+  },
+  runAsUserIds: ["user_abc123"], // Optional: run as specific users
+});
+```
+
+Scheduled runs support retry with exponential backoff and idempotency. One-time schedules (`runAt`) automatically disable after completion.
+
+When `runAsUserIds` is set, the system fans out the run per user — each user gets their own dataset run executed with their identity and credentials.
+
+For more details on scheduling options, see [Scheduled Triggers](/typescript-sdk/triggers/scheduled).
 
 ### Step 6 (optional) — Evaluate a previous run after the fact
 
@@ -210,8 +249,8 @@ await client.triggerBatchEvaluation({
 
 | Method | Purpose |
 |--------|---------|
-| `createDatasetRunConfig({ name, datasetId, agentIds?, evaluatorIds? })` | Create a run configuration (which agents run the suite; optional default evaluators) |
-| `triggerDatasetRun(runConfigId, { evaluatorIds?, branchName? }?)` | Start a run; returns `datasetRunId`, `status`, `totalItems` |
+| `createDatasetRunConfig({ name, datasetId, agentIds?, evaluatorIds?, scheduleConfig?, runAsUserIds? })` | Create a run configuration (agents, evaluators, optional schedule) |
+| `triggerDatasetRun(runConfigId, { evaluatorIds?, branchName?, runAsUserId?, dispatchDelayMs? }?)` | Start a run; returns `datasetRunId`, `datasetRunIds`, `status`, `totalItems` |
 | `listDatasetRuns(testSuiteId)` | List runs for a test suite |
 | `getDatasetRun(runId)` | Fetch a run with items and conversations |
 
