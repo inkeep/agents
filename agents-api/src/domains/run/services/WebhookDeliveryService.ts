@@ -12,7 +12,7 @@ import {
   type ResolvedRef,
   type WebhookDestinationEventTypeEnum,
   type WebhookDestinationSelect,
-  type WebhookDestinationWithAgents,
+  type WebhookDestinationWithScoping,
   type WebhookEventEnvelopeSchema,
   withRef,
 } from '@inkeep/agents-core';
@@ -45,7 +45,7 @@ export async function prefetchWebhookDestinations(params: {
   resolvedRef: ResolvedRef;
 }): Promise<WebhookDestinationSelect[] | undefined> {
   try {
-    let destinations: WebhookDestinationWithAgents[] = [];
+    let destinations: WebhookDestinationWithScoping[] = [];
     await withRef(manageDbPool, params.resolvedRef, async (db) => {
       destinations = await listEnabledWebhookDestinations(db)({
         scopes: { tenantId: params.tenantId, projectId: params.projectId },
@@ -56,7 +56,7 @@ export async function prefetchWebhookDestinations(params: {
       { tenantId: params.tenantId, projectId: params.projectId, count: destinations.length },
       'Pre-fetched webhook destinations for turn'
     );
-    return destinations.map(({ agentIds: _, ...dest }) => dest);
+    return destinations.map(({ agentIds: _, evaluatorIds: _e, ...dest }) => dest);
   } catch (err) {
     logger.error(
       {
@@ -93,9 +93,18 @@ async function lookupWebhookDestinations(params: {
   agentId: string;
   resolvedRef: ResolvedRef;
   eventType: WebhookEventType;
+  evaluatorId?: string;
   prefetchedDestinations?: WebhookDestinationSelect[];
 }): Promise<WebhookDestinationSelect[]> {
-  const { tenantId, projectId, agentId, resolvedRef, eventType, prefetchedDestinations } = params;
+  const {
+    tenantId,
+    projectId,
+    agentId,
+    resolvedRef,
+    eventType,
+    evaluatorId,
+    prefetchedDestinations,
+  } = params;
 
   if (prefetchedDestinations) {
     return prefetchedDestinations.filter(
@@ -103,7 +112,7 @@ async function lookupWebhookDestinations(params: {
     );
   }
 
-  let destinations: WebhookDestinationWithAgents[] = [];
+  let destinations: WebhookDestinationWithScoping[] = [];
   try {
     await withRef(manageDbPool, resolvedRef, async (db) => {
       destinations = await listEnabledWebhookDestinations(db)({
@@ -125,9 +134,15 @@ async function lookupWebhookDestinations(params: {
     return [];
   }
 
-  return destinations.filter(
-    (dest) => Array.isArray(dest.eventTypes) && dest.eventTypes.includes(eventType)
-  );
+  return destinations.filter((dest) => {
+    if (!Array.isArray(dest.eventTypes) || !dest.eventTypes.includes(eventType)) {
+      return false;
+    }
+    if (evaluatorId && dest.evaluatorIds.length > 0 && !dest.evaluatorIds.includes(evaluatorId)) {
+      return false;
+    }
+    return true;
+  });
 }
 
 interface DispatchToDestinationsParams {
@@ -519,6 +534,7 @@ export async function emitEvaluationFailedWebhook(
       agentId,
       resolvedRef,
       eventType: 'evaluation.failed',
+      evaluatorId: evaluator.id,
     });
 
     if (destinations.length === 0) return;

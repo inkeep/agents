@@ -1,6 +1,10 @@
 import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
-import { webhookDestinationAgents, webhookDestinations } from '../../db/manage/manage-schema';
+import {
+  webhookDestinationAgents,
+  webhookDestinationEvaluators,
+  webhookDestinations,
+} from '../../db/manage/manage-schema';
 import type {
   WebhookDestinationInsert,
   WebhookDestinationSelect,
@@ -102,22 +106,27 @@ export const listWebhookDestinationsPaginated =
     return { data, pagination: { page, limit, total, pages } };
   };
 
-export type WebhookDestinationWithAgents = WebhookDestinationSelect & {
+export type WebhookDestinationWithScoping = WebhookDestinationSelect & {
   agentIds: string[];
+  evaluatorIds: string[];
 };
+
+/** @deprecated Use {@link WebhookDestinationWithScoping} instead. */
+export type WebhookDestinationWithAgents = WebhookDestinationWithScoping;
 
 export const listEnabledWebhookDestinations =
   (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     agentId: string;
-  }): Promise<WebhookDestinationWithAgents[]> => {
+  }): Promise<WebhookDestinationWithScoping[]> => {
     const { scopes, agentId } = params;
 
     const rows = await db
       .select({
         dest: webhookDestinations,
         scopedAgentId: webhookDestinationAgents.agentId,
+        scopedEvaluatorId: webhookDestinationEvaluators.evaluatorId,
       })
       .from(webhookDestinations)
       .leftJoin(
@@ -128,28 +137,45 @@ export const listEnabledWebhookDestinations =
           eq(webhookDestinationAgents.webhookDestinationId, webhookDestinations.id)
         )
       )
+      .leftJoin(
+        webhookDestinationEvaluators,
+        and(
+          eq(webhookDestinationEvaluators.tenantId, webhookDestinations.tenantId),
+          eq(webhookDestinationEvaluators.projectId, webhookDestinations.projectId),
+          eq(webhookDestinationEvaluators.webhookDestinationId, webhookDestinations.id)
+        )
+      )
       .where(
         and(projectScopedWhere(webhookDestinations, scopes), eq(webhookDestinations.enabled, true))
       );
 
     if (rows.length === 0) return [];
 
-    const destMap = new Map<string, { dest: WebhookDestinationSelect; agentIds: string[] }>();
+    const destMap = new Map<
+      string,
+      { dest: WebhookDestinationSelect; agentIds: Set<string>; evaluatorIds: Set<string> }
+    >();
     for (const row of rows) {
       const existing = destMap.get(row.dest.id);
       if (existing) {
-        if (row.scopedAgentId) existing.agentIds.push(row.scopedAgentId);
+        if (row.scopedAgentId) existing.agentIds.add(row.scopedAgentId);
+        if (row.scopedEvaluatorId) existing.evaluatorIds.add(row.scopedEvaluatorId);
       } else {
         destMap.set(row.dest.id, {
           dest: row.dest as WebhookDestinationSelect,
-          agentIds: row.scopedAgentId ? [row.scopedAgentId] : [],
+          agentIds: new Set(row.scopedAgentId ? [row.scopedAgentId] : []),
+          evaluatorIds: new Set(row.scopedEvaluatorId ? [row.scopedEvaluatorId] : []),
         });
       }
     }
 
     return Array.from(destMap.values())
-      .filter(({ agentIds }) => agentIds.length === 0 || agentIds.includes(agentId))
-      .map(({ dest, agentIds }) => ({ ...dest, agentIds }));
+      .filter(({ agentIds }) => agentIds.size === 0 || agentIds.has(agentId))
+      .map(({ dest, agentIds, evaluatorIds }) => ({
+        ...dest,
+        agentIds: Array.from(agentIds),
+        evaluatorIds: Array.from(evaluatorIds),
+      }));
   };
 
 export const createWebhookDestination =
@@ -252,6 +278,57 @@ export const setWebhookDestinationAgentIds =
           projectId: scopes.projectId,
           webhookDestinationId,
           agentId,
+        }))
+      );
+    }
+  };
+
+export const getWebhookDestinationEvaluatorIds =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    webhookDestinationId: string;
+  }): Promise<string[]> => {
+    const rows = await db
+      .select({ evaluatorId: webhookDestinationEvaluators.evaluatorId })
+      .from(webhookDestinationEvaluators)
+      .where(
+        and(
+          eq(webhookDestinationEvaluators.tenantId, params.scopes.tenantId),
+          eq(webhookDestinationEvaluators.projectId, params.scopes.projectId),
+          eq(webhookDestinationEvaluators.webhookDestinationId, params.webhookDestinationId)
+        )
+      );
+    return rows.map((r) => r.evaluatorId);
+  };
+
+export const setWebhookDestinationEvaluatorIds =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    webhookDestinationId: string;
+    evaluatorIds: string[];
+  }): Promise<void> => {
+    const { scopes, webhookDestinationId, evaluatorIds } = params;
+
+    await db
+      .delete(webhookDestinationEvaluators)
+      .where(
+        and(
+          eq(webhookDestinationEvaluators.tenantId, scopes.tenantId),
+          eq(webhookDestinationEvaluators.projectId, scopes.projectId),
+          eq(webhookDestinationEvaluators.webhookDestinationId, webhookDestinationId)
+        )
+      );
+
+    if (evaluatorIds.length > 0) {
+      await db.insert(webhookDestinationEvaluators).values(
+        evaluatorIds.map((evaluatorId) => ({
+          id: generateId(),
+          tenantId: scopes.tenantId,
+          projectId: scopes.projectId,
+          webhookDestinationId,
+          evaluatorId,
         }))
       );
     }
