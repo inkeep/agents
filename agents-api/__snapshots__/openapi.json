@@ -7890,6 +7890,9 @@
       },
       "Pagination": {
         "properties": {
+          "completedCount": {
+            "type": "number"
+          },
           "limit": {
             "$ref": "#/components/schemas/PaginationLimitQueryParam"
           },
@@ -38821,9 +38824,7 @@
             "name": "page",
             "required": false,
             "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
+              "$ref": "#/components/schemas/PaginationPageQueryParam"
             }
           },
           {
@@ -38831,10 +38832,23 @@
             "name": "limit",
             "required": false,
             "schema": {
-              "default": 50,
-              "maximum": 200,
-              "minimum": 1,
-              "type": "number"
+              "$ref": "#/components/schemas/PaginationLimitQueryParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evaluatorId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "agentId",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -40048,9 +40062,7 @@
             "name": "page",
             "required": false,
             "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
+              "$ref": "#/components/schemas/PaginationPageQueryParam"
             }
           },
           {
@@ -40058,10 +40070,23 @@
             "name": "limit",
             "required": false,
             "schema": {
-              "default": 50,
-              "maximum": 200,
-              "minimum": 1,
-              "type": "number"
+              "$ref": "#/components/schemas/PaginationLimitQueryParam"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evaluatorId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "agentId",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],

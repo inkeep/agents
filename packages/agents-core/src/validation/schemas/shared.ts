@@ -52,6 +52,7 @@ const PaginationSchema = z
     limit: limitNumber,
     total: z.number(),
     pages: z.number(),
+    completedCount: z.number().optional(),
   })
   .openapi('Pagination');
 

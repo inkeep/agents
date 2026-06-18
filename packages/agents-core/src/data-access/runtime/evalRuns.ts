@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, lte } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, inArray, lte, type SQL, sql } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import {
   conversations,
@@ -6,6 +6,7 @@ import {
   datasetRunConversationRelations,
   evaluationResult,
   evaluationRun,
+  messages,
 } from '../../db/runtime/runtime-schema';
 import type {
   ConversationSelect,
@@ -20,7 +21,12 @@ import type {
   EvaluationRunSelect,
   EvaluationRunUpdate,
 } from '../../types/entities';
-import type { EvaluationJobFilterCriteria, Filter, ProjectScopeConfig } from '../../types/utility';
+import type {
+  EvaluationJobFilterCriteria,
+  Filter,
+  MessageContent,
+  ProjectScopeConfig,
+} from '../../types/utility';
 import { projectScopedWhere } from '../manage/scope-helpers';
 
 // ============================================================================
@@ -264,23 +270,6 @@ export const listEvaluationRunsByJobConfigId =
       );
   };
 
-export const listEvaluationRunsByRunConfigId =
-  (db: AgentsRunDatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig;
-    evaluationRunConfigId: string;
-  }): Promise<EvaluationRunSelect[]> => {
-    return await db
-      .select()
-      .from(evaluationRun)
-      .where(
-        and(
-          projectScopedWhere(evaluationRun, params.scopes),
-          eq(evaluationRun.evaluationRunConfigId, params.evaluationRunConfigId)
-        )
-      );
-  };
-
 export const getEvaluationRunByJobConfigId =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
@@ -404,6 +393,231 @@ export const listEvaluationResultsByRun =
         eq(evaluationResult.evaluationRunId, params.scopes.evaluationRunId)
       ),
     });
+  };
+
+const EVAL_RESULTS_MAX_ROWS = 20_000;
+
+// ---------------------------------------------------------------------------
+// Server-side paginated + filtered evaluation results
+// ---------------------------------------------------------------------------
+
+export interface EvalResultsFilter {
+  evaluatorId?: string;
+  agentId?: string;
+}
+
+export interface EvalResultsPagination {
+  page: number;
+  limit: number;
+}
+
+export interface EnrichedEvaluationResult {
+  id: string;
+  tenantId: string;
+  projectId: string;
+  conversationId: string;
+  evaluatorId: string;
+  evaluationRunId: string | null;
+  output: MessageContent | null;
+  createdAt: string;
+  updatedAt: string;
+  input: string | null;
+  agentId: string | null;
+  conversationCreatedAt: string | null;
+}
+
+export interface PaginatedEvalResults {
+  data: EnrichedEvaluationResult[];
+  pagination: { page: number; limit: number; total: number; pages: number; completedCount: number };
+  distinctAgentIds: string[];
+  distinctOutputKeys: string[];
+}
+
+function buildFirstUserMessageSubquery(db: AgentsRunDatabaseClient) {
+  return db
+    .selectDistinctOn([messages.conversationId], {
+      conversationId: messages.conversationId,
+      content: messages.content,
+    })
+    .from(messages)
+    .where(eq(messages.role, 'user'))
+    .orderBy(messages.conversationId, asc(messages.createdAt), asc(messages.id))
+    .as('first_msg');
+}
+
+function buildEvalResultsBaseQuery(
+  db: AgentsRunDatabaseClient,
+  params: {
+    scopes: ProjectScopeConfig;
+    evaluationRunConfigId?: string;
+    evaluationJobConfigId?: string;
+    filters?: EvalResultsFilter;
+  }
+) {
+  const runWhereConditions: (SQL | undefined)[] = [
+    projectScopedWhere(evaluationRun, params.scopes),
+  ];
+  if (params.evaluationRunConfigId) {
+    runWhereConditions.push(eq(evaluationRun.evaluationRunConfigId, params.evaluationRunConfigId));
+  }
+  if (params.evaluationJobConfigId) {
+    runWhereConditions.push(eq(evaluationRun.evaluationJobConfigId, params.evaluationJobConfigId));
+  }
+
+  const runIdSubquery = db
+    .select({ id: evaluationRun.id })
+    .from(evaluationRun)
+    .where(and(...runWhereConditions));
+
+  const whereConditions: (SQL | undefined)[] = [
+    projectScopedWhere(evaluationResult, params.scopes),
+    inArray(evaluationResult.evaluationRunId, runIdSubquery),
+  ];
+
+  if (params.filters?.evaluatorId) {
+    whereConditions.push(eq(evaluationResult.evaluatorId, params.filters.evaluatorId));
+  }
+
+  if (params.filters?.agentId) {
+    whereConditions.push(eq(conversations.agentId, params.filters.agentId));
+  }
+
+  return { whereConditions };
+}
+
+export const listEvaluationResultsPaginated =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    evaluationRunConfigId?: string;
+    evaluationJobConfigId?: string;
+    filters?: EvalResultsFilter;
+    pagination?: EvalResultsPagination;
+  }): Promise<PaginatedEvalResults> => {
+    const page = params.pagination?.page ?? 1;
+    const limit = Math.min(params.pagination?.limit ?? 50, EVAL_RESULTS_MAX_ROWS);
+    const offset = (page - 1) * limit;
+
+    const { whereConditions } = buildEvalResultsBaseQuery(db, {
+      scopes: params.scopes,
+      evaluationRunConfigId: params.evaluationRunConfigId,
+      evaluationJobConfigId: params.evaluationJobConfigId,
+      filters: params.filters,
+    });
+
+    const conversationsJoin = and(
+      eq(evaluationResult.conversationId, conversations.id),
+      eq(evaluationResult.tenantId, conversations.tenantId),
+      eq(evaluationResult.projectId, conversations.projectId)
+    );
+
+    const firstMsg = buildFirstUserMessageSubquery(db);
+
+    const [countResult, rows, agentIdRows, outputKeyRows] = await Promise.all([
+      db
+        .select({
+          total: count(),
+          completedCount: count(evaluationResult.output),
+        })
+        .from(evaluationResult)
+        .leftJoin(conversations, conversationsJoin)
+        .where(and(...whereConditions)),
+
+      db
+        .select({
+          id: evaluationResult.id,
+          tenantId: evaluationResult.tenantId,
+          projectId: evaluationResult.projectId,
+          conversationId: evaluationResult.conversationId,
+          evaluatorId: evaluationResult.evaluatorId,
+          evaluationRunId: evaluationResult.evaluationRunId,
+          output: evaluationResult.output,
+          createdAt: evaluationResult.createdAt,
+          updatedAt: evaluationResult.updatedAt,
+          agentId: conversations.agentId,
+          conversationCreatedAt: conversations.createdAt,
+          firstMsgContent: firstMsg.content,
+        })
+        .from(evaluationResult)
+        .leftJoin(conversations, conversationsJoin)
+        .leftJoin(firstMsg, eq(evaluationResult.conversationId, firstMsg.conversationId))
+        .where(and(...whereConditions))
+        .orderBy(desc(evaluationResult.createdAt))
+        .limit(limit)
+        .offset(offset),
+
+      db
+        .selectDistinct({ agentId: conversations.agentId })
+        .from(evaluationResult)
+        .leftJoin(conversations, conversationsJoin)
+        .where(and(...whereConditions)),
+
+      db
+        .select({
+          key: sql<string>`jsonb_object_keys(${evaluationResult.output}->'output')`,
+        })
+        .from(evaluationResult)
+        .leftJoin(conversations, conversationsJoin)
+        .where(
+          and(
+            ...whereConditions,
+            sql`jsonb_typeof(${evaluationResult.output}->'output') = 'object'`
+          )
+        )
+        .groupBy(sql`jsonb_object_keys(${evaluationResult.output}->'output')`),
+    ]);
+
+    const total = countResult[0]?.total ?? 0;
+    const completedCount = countResult[0]?.completedCount ?? 0;
+    const distinctAgentIds = agentIdRows
+      .map((r) => r.agentId)
+      .filter((id): id is string => id != null)
+      .sort();
+    const distinctOutputKeys = outputKeyRows.map((r) => `output.${r.key}`).sort();
+
+    const data: EnrichedEvaluationResult[] = rows.map((row) => {
+      let input: string | null = null;
+      if (row.firstMsgContent) {
+        const content = row.firstMsgContent as MessageContent;
+        if (content.text) {
+          input = content.text;
+        } else if (content.parts) {
+          input =
+            content.parts
+              .filter((part: any) => part.kind === 'text' && part.text)
+              .map((part: any) => part.text)
+              .join(' ') || null;
+        }
+      }
+
+      return {
+        id: row.id,
+        tenantId: row.tenantId,
+        projectId: row.projectId,
+        conversationId: row.conversationId,
+        evaluatorId: row.evaluatorId,
+        evaluationRunId: row.evaluationRunId,
+        output: row.output,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+        input,
+        agentId: row.agentId ?? null,
+        conversationCreatedAt: row.conversationCreatedAt ?? null,
+      };
+    });
+
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+        completedCount,
+      },
+      distinctAgentIds,
+      distinctOutputKeys,
+    };
   };
 
 export const listEvaluationResultsByConversation =
