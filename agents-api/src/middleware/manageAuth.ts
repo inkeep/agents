@@ -84,10 +84,13 @@ type OAuthUserJwtAttempt =
  *
  * Distinct from the copilot path below, which gates on a fixed
  * `azp === COPILOT_OAUTH_CLIENT_ID`. The trust gate here is the `aud` binding
- * (RFC 8707) to this resource — not a client_id. better-auth only stamps
- * `aud` when the client sent a `resource` param, so a copilot-shaped token
- * (no `aud`) fails the audience check and falls through to the copilot path,
- * preserving its azp gate as the sole authority on copilot tokens.
+ * (RFC 8707) to this resource — not a client_id. better-auth only stamps `aud`
+ * when the client sends a `resource` param. The copilot app requests a valid
+ * `resource` (an accepted audience) at exchange and refresh, so its tokens are
+ * audience-bound and authenticate HERE. The copilot path below is now only a
+ * transitional fallback for tokens minted before that fix — their `aud`
+ * (`.../api/auth`) is not an accepted audience, so they fail the check here and
+ * fall through until they refresh into audience-bound tokens.
  */
 async function tryOAuthUserAuth(token: string): Promise<OAuthUserJwtAttempt> {
   if (token.split('.').length !== 3) {
@@ -152,8 +155,8 @@ async function tryOAuthUserAuth(token: string): Promise<OAuthUserJwtAttempt> {
  * Authentication priority:
  * 1. Bypass secret (INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET)
  * 2. Better-auth session token (from device authorization flow)
- * 3. OAuth user JWT (audience-bound, any DCR'd client — MCP clients, Gram)
- * 4. Copilot OAuth JWT (azp-gated to COPILOT_OAUTH_CLIENT_ID)
+ * 3. OAuth user JWT (audience-bound, any DCR'd client — MCP clients, Gram, copilot)
+ * 4. Copilot OAuth JWT (azp-gated; transitional fallback for pre-audience-binding tokens)
  * 5. Slack user JWT token (for Slack work app delegation)
  * 6. Internal service token
  *
@@ -235,13 +238,14 @@ export const manageBearerAuth = () =>
       logger.debug({ error }, 'Better-auth session validation failed, trying other auth methods');
     }
 
-    // 3. Validate as an audience-bound OAuth user JWT (any DCR'd client).
+    // 3. Validate as an audience-bound OAuth user JWT (any DCR'd client,
+    //    including the copilot app now that it requests a valid resource).
     //    The trust gate is RFC 8707 audience binding to this resource — not a
-    //    fixed client_id. Tokens not bound to this resource (e.g. copilot's
-    //    no-aud tokens) fall through cleanly to the copilot path below.
-    //    A token that DID bind to this resource but is missing required claims
-    //    is a committed failure — short-circuit so the copilot path (which has
-    //    no audience enforcement) cannot pick it up via its azp gate.
+    //    fixed client_id. Tokens not bound to this resource (e.g. pre-fix copilot
+    //    tokens with aud `.../api/auth`) fall through cleanly to the copilot path
+    //    below. A token that DID bind to this resource but is missing required
+    //    claims is a committed failure — short-circuit so the copilot path (which
+    //    has no audience enforcement) cannot pick it up via its azp gate.
     const oauthUserAttempt = await tryOAuthUserAuth(token);
     if (oauthUserAttempt.result) {
       logger.info(
@@ -274,7 +278,11 @@ export const manageBearerAuth = () =>
       throw new HTTPException(401, { message: 'Invalid Token' });
     }
 
-    // 4. Validate as an OAuth JWT access token (from oauthProvider plugin)
+    // 4. Validate as an OAuth JWT access token (from oauthProvider plugin).
+    //    Transitional fallback: copilot now requests a valid resource and lands
+    //    on strategy 3, but tokens minted before that fix carry an aud that is
+    //    not an accepted audience; this azp gate keeps those sessions alive until
+    //    they refresh into audience-bound tokens.
     // Only JWT tokens are handled here — opaque tokens are not issued by the copilot flow.
     // OAuth JWT auth is disabled entirely when COPILOT_OAUTH_CLIENT_ID is unset, so an
     // unconfigured deployment cannot be tricked into accepting a JWT intended for a different
