@@ -223,6 +223,7 @@ export const webhookDestinationsRelations = relations(webhookDestinations, ({ on
     references: [projects.tenantId, projects.id],
   }),
   webhookDestinationAgents: many(webhookDestinationAgents),
+  webhookDestinationEvaluators: many(webhookDestinationEvaluators),
 }));
 
 export const webhookDestinationAgentsRelations = relations(webhookDestinationAgents, ({ one }) => ({
@@ -247,6 +248,59 @@ export const webhookDestinationAgentsRelations = relations(webhookDestinationAge
     references: [agents.tenantId, agents.projectId, agents.id],
   }),
 }));
+
+export const webhookDestinationEvaluators = pgTable(
+  'webhook_destination_evaluators',
+  {
+    ...projectScoped,
+    webhookDestinationId: varchar('webhook_destination_id', { length: 256 }).notNull(),
+    evaluatorId: varchar('evaluator_id', { length: 256 }).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.webhookDestinationId],
+      foreignColumns: [
+        webhookDestinations.tenantId,
+        webhookDestinations.projectId,
+        webhookDestinations.id,
+      ],
+      name: 'webhook_destination_evaluators_destination_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.evaluatorId],
+      foreignColumns: [evaluator.tenantId, evaluator.projectId, evaluator.id],
+      name: 'webhook_destination_evaluators_evaluator_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+export const webhookDestinationEvaluatorsRelations = relations(
+  webhookDestinationEvaluators,
+  ({ one }) => ({
+    webhookDestination: one(webhookDestinations, {
+      fields: [
+        webhookDestinationEvaluators.tenantId,
+        webhookDestinationEvaluators.projectId,
+        webhookDestinationEvaluators.webhookDestinationId,
+      ],
+      references: [
+        webhookDestinations.tenantId,
+        webhookDestinations.projectId,
+        webhookDestinations.id,
+      ],
+    }),
+    evaluator: one(evaluator, {
+      fields: [
+        webhookDestinationEvaluators.tenantId,
+        webhookDestinationEvaluators.projectId,
+        webhookDestinationEvaluators.evaluatorId,
+      ],
+      references: [evaluator.tenantId, evaluator.projectId, evaluator.id],
+    }),
+  })
+);
 
 export const triggerUsers = pgTable(
   'trigger_users',

@@ -1125,6 +1125,12 @@ export const WebhookDestinationApiSelectSchema = createApiSchema(WebhookDestinat
       .describe(
         'Agent IDs this webhook is scoped to. Empty array means all agents. Omitted on list responses.'
       ),
+    evaluatorIds: z
+      .array(z.string())
+      .optional()
+      .describe(
+        'Evaluator IDs this webhook is scoped to for evaluation.failed events. Empty array means all evaluators. Omitted on list responses.'
+      ),
   })
   .openapi('WebhookDestination');
 export const WebhookDestinationApiInsertSchema = createApiInsertSchema(
@@ -1136,6 +1142,12 @@ export const WebhookDestinationApiInsertSchema = createApiInsertSchema(
       .array(z.string())
       .optional()
       .describe('Agent IDs to scope this webhook to. Omit or empty for all agents.'),
+    evaluatorIds: z
+      .array(z.string())
+      .optional()
+      .describe(
+        'Evaluator IDs to scope evaluation.failed events to. Omit or empty for all evaluators.'
+      ),
   })
   .omit({
     createdAt: true,
@@ -1150,6 +1162,12 @@ export const WebhookDestinationApiUpdateSchema = createApiUpdateSchema(
       .array(z.string())
       .optional()
       .describe('Agent IDs to scope this webhook to. Empty array for all agents.'),
+    evaluatorIds: z
+      .array(z.string())
+      .optional()
+      .describe(
+        'Evaluator IDs to scope evaluation.failed events to. Empty array for all evaluators.'
+      ),
   })
   .openapi('WebhookDestinationUpdate');
 

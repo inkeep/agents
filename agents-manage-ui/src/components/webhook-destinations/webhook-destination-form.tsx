@@ -1,8 +1,12 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ChevronDown } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useState } from 'react';
+import type { Control } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import {
@@ -12,6 +16,7 @@ import {
 import { GenericKeyValueInput } from '@/components/form/generic-key-value-input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Form,
   FormControl,
@@ -46,6 +51,7 @@ const formSchema = z.object({
   url: z.string().url('Must be a valid URL'),
   eventTypes: z.array(z.string()).min(1, 'Select at least one event type'),
   agentIds: z.array(z.string()),
+  evaluatorIds: z.array(z.string()),
   headers: z.array(z.object({ key: z.string(), value: z.string() })),
 });
 
@@ -75,13 +81,91 @@ interface Agent {
   name: string;
 }
 
+interface Evaluator {
+  id: string;
+  name: string;
+}
+
 interface WebhookDestinationFormProps {
   mode: 'create' | 'edit';
   tenantId: string;
   projectId: string;
   webhookDestination?: WebhookDestination;
   agents?: Agent[];
+  evaluators?: Evaluator[];
   defaultUrl?: string;
+}
+
+function EvaluatorScopeSection({
+  evaluators,
+  control,
+  tenantId,
+  projectId,
+  onEvaluatorChecked,
+}: {
+  evaluators: Evaluator[];
+  control: Control<FormValues>;
+  tenantId: string;
+  projectId: string;
+  onEvaluatorChecked: () => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground ml-6">
+        <ChevronDown className={`h-3 w-3 transition-transform ${isOpen ? '' : '-rotate-90'}`} />
+        Advanced
+      </CollapsibleTrigger>
+      <CollapsibleContent className="ml-6 mt-1 space-y-2">
+        {evaluators.length === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            No evaluators configured.{' '}
+            <Link
+              href={`/${tenantId}/projects/${projectId}/evaluators`}
+              className="text-primary underline hover:no-underline"
+            >
+              Create an evaluator
+            </Link>{' '}
+            to scope this webhook to specific evaluators.
+          </p>
+        ) : (
+          <>
+            <p className="text-xs text-muted-foreground">
+              Scope to specific evaluators. Leave all unchecked to receive failures from all
+              evaluators.
+            </p>
+            {evaluators.map((ev) => (
+              <FormField
+                key={ev.id}
+                control={control}
+                name="evaluatorIds"
+                render={({ field }) => (
+                  <FormItem className="flex items-center space-x-2 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value?.includes(ev.id)}
+                        onCheckedChange={(checked) => {
+                          const current = field.value || [];
+                          if (checked) {
+                            field.onChange([...current, ev.id]);
+                            onEvaluatorChecked();
+                          } else {
+                            field.onChange(current.filter((v: string) => v !== ev.id));
+                          }
+                        }}
+                      />
+                    </FormControl>
+                    <FormLabel className="font-normal cursor-pointer">{ev.name}</FormLabel>
+                  </FormItem>
+                )}
+              />
+            ))}
+          </>
+        )}
+      </CollapsibleContent>
+    </Collapsible>
+  );
 }
 
 export function WebhookDestinationForm({
@@ -90,6 +174,7 @@ export function WebhookDestinationForm({
   projectId,
   webhookDestination,
   agents = [],
+  evaluators = [],
   defaultUrl,
 }: WebhookDestinationFormProps) {
   const router = useRouter();
@@ -102,10 +187,14 @@ export function WebhookDestinationForm({
       enabled: webhookDestination?.enabled ?? true,
       url: webhookDestination?.url || defaultUrl || '',
       eventTypes: webhookDestination?.eventTypes || [],
-      agentIds: (webhookDestination as any)?.agentIds || [],
+      agentIds: webhookDestination?.agentIds ?? [],
+      evaluatorIds: webhookDestination?.evaluatorIds ?? [],
       headers: recordToKeyValuePairs(webhookDestination?.headers ?? undefined),
     },
   });
+
+  const selectedEventTypes = useWatch({ control: form.control, name: 'eventTypes' });
+  const hasEvaluationFailed = selectedEventTypes.includes('evaluation.failed');
 
   async function onSubmit(values: FormValues) {
     const headersRecord = keyValuePairsToRecord(values.headers);
@@ -116,6 +205,7 @@ export function WebhookDestinationForm({
       url: values.url,
       eventTypes: values.eventTypes,
       agentIds: values.agentIds,
+      evaluatorIds: hasEvaluationFailed ? values.evaluatorIds : [],
       headers: Object.keys(headersRecord).length > 0 ? headersRecord : undefined,
     };
 
@@ -231,6 +321,9 @@ export function WebhookDestinationForm({
                                 field.onChange(
                                   current.filter((v: string) => v !== eventType.value)
                                 );
+                                if (eventType.value === 'evaluation.failed') {
+                                  form.setValue('evaluatorIds', []);
+                                }
                               }
                             }}
                           />
@@ -242,6 +335,18 @@ export function WebhookDestinationForm({
                     )}
                   />
                 ))}
+                <EvaluatorScopeSection
+                  evaluators={evaluators}
+                  control={form.control}
+                  tenantId={tenantId}
+                  projectId={projectId}
+                  onEvaluatorChecked={() => {
+                    const current = form.getValues('eventTypes') || [];
+                    if (!current.includes('evaluation.failed')) {
+                      form.setValue('eventTypes', [...current, 'evaluation.failed']);
+                    }
+                  }}
+                />
                 <FormField
                   control={form.control}
                   name="eventTypes"

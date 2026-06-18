@@ -692,6 +692,7 @@ describe('WebhookDeliveryService', () => {
             url: 'https://hooks.slack.com/services/T/B/x',
             eventTypes: ['evaluation.failed'],
             agentIds: [],
+            evaluatorIds: [],
           },
         ])
       );
@@ -806,6 +807,7 @@ describe('WebhookDeliveryService', () => {
             headers: null,
             eventTypes: ['evaluation.failed'],
             agentIds: [],
+            evaluatorIds: [],
           },
         ])
       );
@@ -872,6 +874,75 @@ describe('WebhookDeliveryService', () => {
         })
       ).resolves.toBeUndefined();
       await expect(flushDeferred()).resolves.toBeUndefined();
+    });
+
+    it('skips destinations scoped to a different evaluator', async () => {
+      mockListEnabled.mockReturnValue(() =>
+        Promise.resolve([
+          {
+            id: 'dest-scoped-other',
+            url: 'https://hooks.slack.com/services/T/B/x',
+            eventTypes: ['evaluation.failed'],
+            agentIds: [],
+            evaluatorIds: ['evaluator-OTHER'],
+          },
+        ])
+      );
+
+      await emitEvaluationFailedWebhook({
+        ...baseEvalParams,
+        verdict: 'failed',
+        failedConditions: failedScoreConditions,
+      });
+      await flushDeferred();
+
+      expect(mockStart).not.toHaveBeenCalled();
+    });
+
+    it('dispatches to destinations scoped to the matching evaluator', async () => {
+      mockListEnabled.mockReturnValue(() =>
+        Promise.resolve([
+          {
+            id: 'dest-scoped-match',
+            url: 'https://hooks.slack.com/services/T/B/x',
+            eventTypes: ['evaluation.failed'],
+            agentIds: [],
+            evaluatorIds: ['evaluator-1'],
+          },
+        ])
+      );
+
+      await emitEvaluationFailedWebhook({
+        ...baseEvalParams,
+        verdict: 'failed',
+        failedConditions: failedScoreConditions,
+      });
+      await flushDeferred();
+
+      expect(mockStart).toHaveBeenCalledTimes(1);
+    });
+
+    it('dispatches to unscoped destinations (empty evaluatorIds)', async () => {
+      mockListEnabled.mockReturnValue(() =>
+        Promise.resolve([
+          {
+            id: 'dest-unscoped',
+            url: 'https://hooks.slack.com/services/T/B/x',
+            eventTypes: ['evaluation.failed'],
+            agentIds: [],
+            evaluatorIds: [],
+          },
+        ])
+      );
+
+      await emitEvaluationFailedWebhook({
+        ...baseEvalParams,
+        verdict: 'failed',
+        failedConditions: failedScoreConditions,
+      });
+      await flushDeferred();
+
+      expect(mockStart).toHaveBeenCalledTimes(1);
     });
   });
 

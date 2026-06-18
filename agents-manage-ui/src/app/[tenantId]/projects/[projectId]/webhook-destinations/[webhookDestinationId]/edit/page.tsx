@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { WebhookDestinationForm } from '@/components/webhook-destinations/webhook-destination-form';
 import { fetchAgents } from '@/lib/api/agent-full-client';
+import { fetchEvaluators } from '@/lib/api/evaluators';
 import { getWebhookDestination, type WebhookDestination } from '@/lib/api/webhook-destinations';
 import { checkProjectPermissionOrRedirect } from '@/lib/auth/check-permission-or-redirect';
 
@@ -32,8 +33,12 @@ export default async function EditWebhookDestinationPage({
     notFound();
   }
 
-  const agentsResponse = await fetchAgents(tenantId, projectId);
+  const [agentsResponse, evaluatorsResponse] = await Promise.all([
+    fetchAgents(tenantId, projectId),
+    fetchEvaluators(tenantId, projectId),
+  ]);
   const agents = agentsResponse.data.map((a) => ({ id: a.id, name: a.name }));
+  const evaluators = evaluatorsResponse.data.map((e) => ({ id: e.id, name: e.name }));
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -52,6 +57,7 @@ export default async function EditWebhookDestinationPage({
         projectId={projectId}
         webhookDestination={webhookDestination}
         agents={agents}
+        evaluators={evaluators}
       />
     </div>
   );

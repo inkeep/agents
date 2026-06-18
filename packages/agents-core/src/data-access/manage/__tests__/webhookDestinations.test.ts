@@ -1,15 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { testManageDbClient } from '../../../__tests__/setup';
-import { agents } from '../../../db/manage/manage-schema';
+import { agents, evaluator } from '../../../db/manage/manage-schema';
 import { createTestProject } from '../../../db/manage/test-manage-client';
 import {
   createWebhookDestination,
   deleteWebhookDestination,
   getWebhookDestinationAgentIds,
   getWebhookDestinationById,
+  getWebhookDestinationEvaluatorIds,
   listEnabledWebhookDestinations,
   listWebhookDestinationsPaginated,
   setWebhookDestinationAgentIds,
+  setWebhookDestinationEvaluatorIds,
   updateWebhookDestination,
 } from '../webhookDestinations';
 
@@ -52,6 +54,22 @@ async function ensureAgent(agentId: string, tid = tenantId, pid = projectId) {
   await testManageDbClient
     .insert(agents)
     .values({ tenantId: tid, projectId: pid, id: agentId, name: `Agent ${agentId}` })
+    .onConflictDoNothing();
+}
+
+async function ensureEvaluator(evaluatorId: string, tid = tenantId, pid = projectId) {
+  await ensureProject(tid, pid);
+  await testManageDbClient
+    .insert(evaluator)
+    .values({
+      tenantId: tid,
+      projectId: pid,
+      id: evaluatorId,
+      name: `Evaluator ${evaluatorId}`,
+      prompt: 'test prompt',
+      schema: {},
+      model: { model: 'gpt-4o' },
+    })
     .onConflictDoNothing();
 }
 
@@ -431,6 +449,83 @@ describe('webhookDestinations DAL', () => {
         webhookDestinationId: 'wh-roundtrip-agents',
       });
       expect(afterClear).toEqual([]);
+    });
+  });
+
+  describe('webhook destination evaluator scoping', () => {
+    it('get and set evaluator ids round-trip', async () => {
+      await insertWebhookDestination('wh-roundtrip-evals', {
+        eventTypes: ['evaluation.failed'],
+      });
+
+      const initial = await getWebhookDestinationEvaluatorIds(testManageDbClient)({
+        scopes: { tenantId, projectId },
+        webhookDestinationId: 'wh-roundtrip-evals',
+      });
+      expect(initial).toEqual([]);
+
+      await ensureEvaluator('eval-1');
+      await ensureEvaluator('eval-2');
+      await setWebhookDestinationEvaluatorIds(testManageDbClient)({
+        scopes: { tenantId, projectId },
+        webhookDestinationId: 'wh-roundtrip-evals',
+        evaluatorIds: ['eval-1', 'eval-2'],
+      });
+
+      const afterSet = await getWebhookDestinationEvaluatorIds(testManageDbClient)({
+        scopes: { tenantId, projectId },
+        webhookDestinationId: 'wh-roundtrip-evals',
+      });
+      expect(afterSet.sort()).toEqual(['eval-1', 'eval-2']);
+
+      await setWebhookDestinationEvaluatorIds(testManageDbClient)({
+        scopes: { tenantId, projectId },
+        webhookDestinationId: 'wh-roundtrip-evals',
+        evaluatorIds: [],
+      });
+
+      const afterClear = await getWebhookDestinationEvaluatorIds(testManageDbClient)({
+        scopes: { tenantId, projectId },
+        webhookDestinationId: 'wh-roundtrip-evals',
+      });
+      expect(afterClear).toEqual([]);
+    });
+
+    it('returns evaluatorIds on listEnabledWebhookDestinations', async () => {
+      await insertWebhookDestination('wh-eval-list', {
+        eventTypes: ['evaluation.failed'],
+      });
+      await ensureEvaluator('eval-a');
+      await ensureEvaluator('eval-b');
+      await setWebhookDestinationEvaluatorIds(testManageDbClient)({
+        scopes: { tenantId, projectId },
+        webhookDestinationId: 'wh-eval-list',
+        evaluatorIds: ['eval-a', 'eval-b'],
+      });
+
+      const dests = await listEnabledWebhookDestinations(testManageDbClient)({
+        scopes: { tenantId, projectId },
+        agentId: 'any-agent',
+      });
+
+      const dest = dests.find((d) => d.id === 'wh-eval-list');
+      expect(dest).toBeDefined();
+      expect(dest?.evaluatorIds.sort()).toEqual(['eval-a', 'eval-b']);
+    });
+
+    it('returns empty evaluatorIds for unscoped destinations', async () => {
+      await insertWebhookDestination('wh-eval-unscoped', {
+        eventTypes: ['evaluation.failed'],
+      });
+
+      const dests = await listEnabledWebhookDestinations(testManageDbClient)({
+        scopes: { tenantId, projectId },
+        agentId: 'any-agent',
+      });
+
+      const dest = dests.find((d) => d.id === 'wh-eval-unscoped');
+      expect(dest).toBeDefined();
+      expect(dest?.evaluatorIds).toEqual([]);
     });
   });
 });

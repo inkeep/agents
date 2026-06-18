@@ -7,9 +7,11 @@ import {
   generateId,
   getWebhookDestinationAgentIds,
   getWebhookDestinationById,
+  getWebhookDestinationEvaluatorIds,
   listWebhookDestinationsPaginated,
   PaginationQueryParamsSchema,
   setWebhookDestinationAgentIds,
+  setWebhookDestinationEvaluatorIds,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateWebhookDestination,
@@ -45,10 +47,15 @@ function toApiShape(
     projectId: string;
     [key: string]: unknown;
   },
-  agentIds?: string[]
+  agentIds?: string[],
+  evaluatorIds?: string[]
 ): WebhookDestinationApiSelect {
   const { tenantId: _tid, projectId: _pid, ...rest } = dest;
-  return { ...rest, ...(agentIds && { agentIds }) } as unknown as WebhookDestinationApiSelect;
+  return {
+    ...rest,
+    ...(agentIds && { agentIds }),
+    ...(evaluatorIds && { evaluatorIds }),
+  } as unknown as WebhookDestinationApiSelect;
 }
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
@@ -142,7 +149,12 @@ app.openapi(
       webhookDestinationId: id,
     });
 
-    return c.json({ data: toApiShape(dest, agentIds) });
+    const evaluatorIds = await getWebhookDestinationEvaluatorIds(db)({
+      scopes: { tenantId, projectId },
+      webhookDestinationId: id,
+    });
+
+    return c.json({ data: toApiShape(dest, agentIds, evaluatorIds) });
   }
 );
 
@@ -194,8 +206,9 @@ app.openapi(
 
     logger.debug({ webhookDestinationId: id }, 'Creating webhook destination');
 
-    const { agentIds: bodyAgentIds, ...insertBody } = body;
+    const { agentIds: bodyAgentIds, evaluatorIds: bodyEvaluatorIds, ...insertBody } = body;
     const agentIds = bodyAgentIds ?? [];
+    const evaluatorIds = bodyEvaluatorIds ?? [];
 
     const dest = await db.transaction(async (tx) => {
       const created = await createWebhookDestination(tx)({
@@ -214,10 +227,18 @@ app.openapi(
         });
       }
 
+      if (evaluatorIds.length > 0) {
+        await setWebhookDestinationEvaluatorIds(tx)({
+          scopes: { tenantId, projectId },
+          webhookDestinationId: id,
+          evaluatorIds,
+        });
+      }
+
       return created;
     });
 
-    return c.json({ data: toApiShape(dest, agentIds) }, 201);
+    return c.json({ data: toApiShape(dest, agentIds, evaluatorIds) }, 201);
   }
 );
 
@@ -281,9 +302,9 @@ app.openapi(
 
     logger.debug({ webhookDestinationId: id }, 'Updating webhook destination');
 
-    const { agentIds: bodyAgentIds, ...updateBody } = body;
+    const { agentIds: bodyAgentIds, evaluatorIds: bodyEvaluatorIds, ...updateBody } = body;
 
-    const { updated, agentIds } = await db.transaction(async (tx) => {
+    const { updated, agentIds, evaluatorIds } = await db.transaction(async (tx) => {
       const result = await updateWebhookDestination(tx)({
         scopes: { tenantId, projectId },
         webhookDestinationId: id,
@@ -305,6 +326,14 @@ app.openapi(
         });
       }
 
+      if (bodyEvaluatorIds !== undefined) {
+        await setWebhookDestinationEvaluatorIds(tx)({
+          scopes: { tenantId, projectId },
+          webhookDestinationId: id,
+          evaluatorIds: bodyEvaluatorIds,
+        });
+      }
+
       const ids =
         bodyAgentIds ??
         (await getWebhookDestinationAgentIds(tx)({
@@ -312,10 +341,17 @@ app.openapi(
           webhookDestinationId: id,
         }));
 
-      return { updated: result, agentIds: ids };
+      const evalIds =
+        bodyEvaluatorIds ??
+        (await getWebhookDestinationEvaluatorIds(tx)({
+          scopes: { tenantId, projectId },
+          webhookDestinationId: id,
+        }));
+
+      return { updated: result, agentIds: ids, evaluatorIds: evalIds };
     });
 
-    return c.json({ data: toApiShape(updated, agentIds) });
+    return c.json({ data: toApiShape(updated, agentIds, evaluatorIds) });
   }
 );
 

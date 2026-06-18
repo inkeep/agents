@@ -162,6 +162,13 @@
       "when": 1781734414569,
       "tag": "0022_last_nemesis",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1781761600284,
+      "tag": "0023_flimsy_patriot",
+      "breakpoints": true
     }
   ]
 }

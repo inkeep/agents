@@ -12718,6 +12718,13 @@
           "enabled": {
             "type": "boolean"
           },
+          "evaluatorIds": {
+            "description": "Evaluator IDs this webhook is scoped to for evaluation.failed events. Empty array means all evaluators. Omitted on list responses.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "eventTypes": {
             "items": {
               "description": "Event type that triggers webhook delivery. `event.created` fires whenever an event is logged via POST /run/v1/events.",
@@ -12790,6 +12797,13 @@
             "default": true,
             "description": "Whether the webhook destination is enabled",
             "type": "boolean"
+          },
+          "evaluatorIds": {
+            "description": "Evaluator IDs to scope evaluation.failed events to. Omit or empty for all evaluators.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "eventTypes": {
             "description": "Event types to subscribe to",
@@ -12909,6 +12923,13 @@
           "enabled": {
             "description": "Whether the webhook destination is enabled",
             "type": "boolean"
+          },
+          "evaluatorIds": {
+            "description": "Evaluator IDs to scope evaluation.failed events to. Empty array for all evaluators.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "eventTypes": {
             "description": "Event types to subscribe to",
