@@ -1,5 +1,17 @@
 # @inkeep/agents-manage-ui
 
+## 0.78.4
+
+### Patch Changes
+
+- 292842b: Scheduled dataset runs
+- 4f78f6d: Implement scoping for evaluators in outbound webhook eval failures
+- 673f4c6: Pass fail criteria changed from flat to nested
+- Updated dependencies [292842b]
+- Updated dependencies [4f78f6d]
+- Updated dependencies [673f4c6]
+  - @inkeep/agents-core@0.78.4
+
 ## 0.78.3
 
 ### Patch Changes
