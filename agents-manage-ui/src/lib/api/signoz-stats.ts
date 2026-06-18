@@ -1469,8 +1469,11 @@ class SigNozStatsAPI {
       const errorMap = new Map<string, number>();
       for (const s of errorSeries) {
         const toolName = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_NAME] || UNKNOWN_VALUE;
+        const server = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME] || UNKNOWN_VALUE;
+        const serverId = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID] || UNKNOWN_VALUE;
         const count = countFromSeries(s);
-        errorMap.set(toolName, (errorMap.get(toolName) || 0) + count);
+        const errorKey = `${toolName}::${server}::${serverId}`;
+        errorMap.set(errorKey, (errorMap.get(errorKey) || 0) + count);
       }
 
       const acc = new Map<
@@ -1504,7 +1507,7 @@ class SigNozStatsAPI {
           errorRate: 0,
         };
         row.totalCalls += count;
-        row.errorCount = errorMap.get(toolName) || 0;
+        row.errorCount = errorMap.get(key) || 0;
         row.errorRate = row.totalCalls > 0 ? (row.errorCount / row.totalCalls) * 100 : 0;
         acc.set(key, row);
       }
@@ -2450,6 +2453,16 @@ class SigNozStatsAPI {
               groupBy: [
                 {
                   name: SPAN_KEYS.AI_TOOL_CALL_NAME,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+                {
+                  name: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME,
+                  fieldDataType: FIELD_DATA_TYPES.STRING,
+                  fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
+                },
+                {
+                  name: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID,
                   fieldDataType: FIELD_DATA_TYPES.STRING,
                   fieldContext: FIELD_CONTEXTS.ATTRIBUTE,
                 },
