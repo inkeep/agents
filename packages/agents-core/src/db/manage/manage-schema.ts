@@ -854,6 +854,7 @@ export const datasetRunConfig = pgTable(
     ...projectScoped,
     ...uiProperties,
     datasetId: varchar('dataset_id', { length: 256 }).notNull(),
+    dispatchDelayMs: integer('dispatch_delay_ms'),
     ...timestamps,
   },
   (table) => [
@@ -1466,6 +1467,45 @@ export const datasetRunConfigAgentRelations = pgTable(
       foreignColumns: [agents.tenantId, agents.projectId, agents.id],
       name: 'dataset_run_config_agent_relations_agent_fk',
     }).onDelete('cascade'),
+  ]
+);
+
+/**
+ * Links evaluators to dataset run configs. Many-to-many relationship that
+ * allows one dataset run config to use multiple evaluators, and one evaluator
+ * to be used by multiple dataset run configs.
+ *
+ * Includes: datasetRunConfigId, evaluatorId, and timestamps
+ */
+export const datasetRunConfigEvaluatorRelations = pgTable(
+  'dataset_run_config_evaluator_relations',
+  {
+    ...projectScoped,
+    datasetRunConfigId: varchar('dataset_run_config_id', { length: 256 }).notNull(),
+    evaluatorId: varchar('evaluator_id', { length: 256 }).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.tenantId, table.projectId, table.id],
+      name: 'drc_evaluator_rel_pk',
+    }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.datasetRunConfigId],
+      foreignColumns: [datasetRunConfig.tenantId, datasetRunConfig.projectId, datasetRunConfig.id],
+      name: 'drc_evaluator_rel_config_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.evaluatorId],
+      foreignColumns: [evaluator.tenantId, evaluator.projectId, evaluator.id],
+      name: 'drc_evaluator_rel_evaluator_fk',
+    }).onDelete('cascade'),
+    unique('drc_evaluator_unique').on(
+      table.tenantId,
+      table.projectId,
+      table.datasetRunConfigId,
+      table.evaluatorId
+    ),
   ]
 );
 

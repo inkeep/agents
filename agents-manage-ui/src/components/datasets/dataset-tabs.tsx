@@ -12,6 +12,7 @@ import type { DatasetItem } from '@/lib/api/dataset-items';
 import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { DatasetRunConfigFormDialog } from './dataset-run-config-form-dialog';
 import { DatasetRunsList } from './dataset-runs-list';
+import { ScheduledConfigsList } from './scheduled-configs-list';
 
 interface DatasetTabsProps {
   tenantId: string;
@@ -42,7 +43,10 @@ export function DatasetTabs({
   } = useProjectPermissionsQuery();
 
   useEffect(() => {
-    if (tabFromUrl && (tabFromUrl === 'items' || tabFromUrl === 'runs')) {
+    if (
+      tabFromUrl &&
+      (tabFromUrl === 'items' || tabFromUrl === 'runs' || tabFromUrl === 'scheduled')
+    ) {
       setActiveTab(tabFromUrl);
     }
   }, [tabFromUrl]);
@@ -61,6 +65,9 @@ export function DatasetTabs({
         <TabsList className="border-b bg-transparent p-0 h-auto">
           <TabsTrigger value="runs" variant="underline" className="h-10">
             Runs
+          </TabsTrigger>
+          <TabsTrigger value="scheduled" variant="underline" className="h-10">
+            Scheduled Runs
           </TabsTrigger>
           <TabsTrigger value="items" variant="underline" className="h-10">
             Items
@@ -97,6 +104,26 @@ export function DatasetTabs({
             />
           </div>
         )}
+        {activeTab === 'scheduled' && canEdit && (
+          <div className="flex items-center h-10 px-4">
+            <DatasetRunConfigFormDialog
+              tenantId={tenantId}
+              projectId={projectId}
+              datasetId={datasetId}
+              showSchedule
+              onSuccess={() => {
+                setRefreshKey((prev) => prev + 1);
+                router.refresh();
+              }}
+              trigger={
+                <Button variant="ghost" size="sm" className="h-8">
+                  <Plus />
+                  New scheduled run
+                </Button>
+              }
+            />
+          </div>
+        )}
         {activeTab === 'runs' && canEdit && (
           <div className="flex items-center h-10 px-4">
             <DatasetRunConfigFormDialog
@@ -126,6 +153,16 @@ export function DatasetTabs({
           projectId={projectId}
           datasetId={datasetId}
           refreshKey={refreshKey}
+        />
+      </TabsContent>
+
+      <TabsContent value="scheduled" className="mt-6">
+        <ScheduledConfigsList
+          tenantId={tenantId}
+          projectId={projectId}
+          datasetId={datasetId}
+          refreshKey={refreshKey}
+          onRunTriggered={() => setRefreshKey((prev) => prev + 1)}
         />
       </TabsContent>
 

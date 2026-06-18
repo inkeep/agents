@@ -124,3 +124,35 @@ export async function rerunDatasetRun(
     }
   );
 }
+
+export interface DatasetRunConversationInfo {
+  datasetRunId: string;
+  datasetItemId: string;
+  conversationId: string;
+}
+
+export async function getDatasetRunByConversation(
+  tenantId: string,
+  projectId: string,
+  conversationId: string
+): Promise<DatasetRunConversationInfo | null> {
+  return makeManagementApiRequest<DatasetRunConversationInfo | null>(
+    `tenants/${tenantId}/projects/${projectId}/evals/dataset-runs/by-conversation/${conversationId}`
+  );
+}
+
+export async function rerunDatasetRunItem(
+  tenantId: string,
+  projectId: string,
+  runId: string,
+  itemId: string
+): Promise<{ invocationId: string; datasetRunId: string; datasetItemId: string }> {
+  return makeManagementApiRequest<{
+    invocationId: string;
+    datasetRunId: string;
+    datasetItemId: string;
+  }>(
+    `tenants/${tenantId}/projects/${projectId}/evals/dataset-runs/${runId}/items/${itemId}/rerun`,
+    { method: 'POST' }
+  );
+}

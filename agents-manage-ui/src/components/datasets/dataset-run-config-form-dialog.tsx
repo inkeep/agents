@@ -29,6 +29,7 @@ interface DatasetRunConfigFormDialogProps {
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
   onSuccess?: () => void;
+  showSchedule?: boolean;
 }
 
 export function DatasetRunConfigFormDialog({
@@ -41,6 +42,7 @@ export function DatasetRunConfigFormDialog({
   isOpen: controlledIsOpen,
   onOpenChange,
   onSuccess,
+  showSchedule,
 }: DatasetRunConfigFormDialogProps) {
   const router = useRouter();
   const [internalIsOpen, setInternalIsOpen] = useState(false);
@@ -85,6 +87,7 @@ export function DatasetRunConfigFormDialog({
           datasetId={datasetId}
           runConfigId={runConfigId}
           initialData={initialData}
+          showSchedule={showSchedule}
           onSuccess={handleSuccess}
           onCancel={handleCancel}
         />

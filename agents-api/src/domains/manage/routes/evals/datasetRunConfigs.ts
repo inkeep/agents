@@ -1,38 +1,44 @@
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
+  computeNextRunAt,
   createApiError,
-  createDatasetRun,
   createDatasetRunConfig,
   createDatasetRunConfigAgentRelation,
-  createEvaluationJobConfig,
-  createEvaluationJobConfigEvaluatorRelation,
-  createEvaluationRun,
-  createScheduledTriggerInvocation,
+  createDatasetRunConfigEvaluatorRelation,
+  createScheduledTrigger,
   DatasetRunConfigApiInsertSchema,
   DatasetRunConfigApiSelectSchema,
   DatasetRunConfigApiUpdateSchema,
   deleteDatasetRunConfig,
   deleteDatasetRunConfigAgentRelation,
+  deleteDatasetRunConfigEvaluatorRelation,
+  deleteScheduledTrigger,
+  findScheduledTriggerByDatasetRunConfigId,
   generateId,
-  getAgentDatasetRelationsByDataset,
   getDatasetRunConfigAgentRelations,
   getDatasetRunConfigById,
+  getDatasetRunConfigEvaluatorRelations,
+  getLastRunAtForTrigger,
   ListResponseSchema,
-  linkDatasetRunToEvaluationJobConfig,
-  listDatasetItems,
   listDatasetRunConfigs,
+  type OrgRole,
+  SCHEDULED_TRIGGER_DEFAULT_MAX_RETRIES,
+  SCHEDULED_TRIGGER_DEFAULT_RETRY_DELAY_SECONDS,
+  SCHEDULED_TRIGGER_DEFAULT_TIMEOUT_SECONDS,
   SingleResponseSchema,
   TenantProjectParamsSchema,
   updateDatasetRunConfig,
+  updateScheduledTrigger,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
+import { HTTPException } from 'hono/http-exception';
 import runDbClient from '../../../../data/db/runDbClient';
 import { getLogger } from '../../../../logger';
 import { requireProjectPermission } from '../../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../../types/app';
-import type { DatasetRunQueueItem } from '../../../evals/services/datasetRun';
-import { queueDatasetRunItems } from '../../../evals/services/datasetRun';
+import { executeDatasetRun } from '../../../evals/services/datasetRun';
+import { validateRunAsUserId } from '../triggerHelpers';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('datasetRunConfigs');
@@ -107,7 +113,12 @@ app.openapi(
         description: 'Dataset run config details',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(DatasetRunConfigApiSelectSchema),
+            schema: SingleResponseSchema(
+              DatasetRunConfigApiSelectSchema.extend({
+                agentIds: z.array(z.string()).optional(),
+                evaluatorIds: z.array(z.string()).optional(),
+              })
+            ),
           },
         },
       },
@@ -130,8 +141,21 @@ app.openapi(
         ) as any;
       }
 
+      const [agentRelations, evaluatorRelations] = await Promise.all([
+        getDatasetRunConfigAgentRelations(db)({
+          scopes: { tenantId, projectId, datasetRunConfigId: runConfigId },
+        }),
+        getDatasetRunConfigEvaluatorRelations(db)({
+          scopes: { tenantId, projectId, datasetRunConfigId: runConfigId },
+        }),
+      ]);
+
       return c.json({
-        data: config,
+        data: {
+          ...config,
+          agentIds: agentRelations.map((r) => r.agentId),
+          evaluatorIds: evaluatorRelations.map((r) => r.evaluatorId),
+        },
       }) as any;
     } catch (error) {
       logger.error({ error, runConfigId }, 'Failed to get dataset run config');
@@ -184,7 +208,7 @@ app.openapi(
     const db = c.get('db');
     const configData = c.req.valid('json') as any;
 
-    const { agentIds, evaluatorIds: _evaluatorIds, ...runConfigData } = configData;
+    const { agentIds, evaluatorIds, ...runConfigData } = configData;
 
     try {
       const id = runConfigData.id || generateId();
@@ -209,6 +233,20 @@ app.openapi(
         );
       }
 
+      if (evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0) {
+        await Promise.all(
+          evaluatorIds.map((evaluatorId: string) =>
+            createDatasetRunConfigEvaluatorRelation(db)({
+              tenantId,
+              projectId,
+              id: generateId(),
+              datasetRunConfigId: id,
+              evaluatorId,
+            })
+          )
+        );
+      }
+
       logger.info({ runConfigId: id }, 'Dataset run config created');
       return c.json({ data: created as any }, 201) as any;
     } catch (error) {
@@ -216,7 +254,7 @@ app.openapi(
       return c.json(
         createApiError({
           code: 'internal_server_error',
-          message: error instanceof Error ? error.message : 'Failed to create dataset run config',
+          message: 'Failed to create dataset run config',
         }),
         500
       );
@@ -240,6 +278,14 @@ app.openapi(
             schema: z.object({
               branchName: z.string().optional(),
               evaluatorIds: z.array(z.string()).optional(),
+              runAsUserId: z.string().optional().describe('User ID to run dataset items as'),
+              dispatchDelayMs: z
+                .number()
+                .int()
+                .min(0)
+                .max(600_000)
+                .optional()
+                .describe('Delay in ms between each item execution (overrides schedule default)'),
             }),
           },
         },
@@ -252,8 +298,10 @@ app.openapi(
           'application/json': {
             schema: z.object({
               datasetRunId: z.string(),
+              datasetRunIds: z.array(z.string()),
               status: z.literal('pending'),
               totalItems: z.number(),
+              failedCount: z.number().optional(),
             }),
           },
         },
@@ -264,7 +312,12 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, runConfigId } = c.req.valid('param');
     const db = c.get('db');
-    const { evaluatorIds, branchName } = c.req.valid('json');
+    const {
+      evaluatorIds: bodyEvaluatorIds,
+      branchName,
+      runAsUserId,
+      dispatchDelayMs: bodyDispatchDelayMs,
+    } = c.req.valid('json');
 
     try {
       const config = await getDatasetRunConfigById(db)({
@@ -278,30 +331,21 @@ app.openapi(
         ) as any;
       }
 
-      const datasetId = config.datasetId;
-      const [datasetItems, allAgentRelations, datasetAgentRelations] = await Promise.all([
-        listDatasetItems(db)({
-          scopes: { tenantId, projectId, datasetId },
-        }),
+      const [agentRelations, evaluatorRelations, scheduledTrigger] = await Promise.all([
         getDatasetRunConfigAgentRelations(db)({
           scopes: { tenantId, projectId, datasetRunConfigId: runConfigId },
         }),
-        getAgentDatasetRelationsByDataset(db)({
-          scopes: { tenantId, projectId, datasetId },
+        getDatasetRunConfigEvaluatorRelations(db)({
+          scopes: { tenantId, projectId, datasetRunConfigId: runConfigId },
+        }),
+        findScheduledTriggerByDatasetRunConfigId(runDbClient)({
+          tenantId,
+          projectId,
+          datasetRunConfigId: runConfigId,
         }),
       ]);
 
-      if (datasetItems.length === 0) {
-        return c.json(
-          createApiError({
-            code: 'bad_request',
-            message: 'Dataset has no items. Add items to the dataset before triggering a run.',
-          }),
-          400
-        ) as any;
-      }
-
-      if (allAgentRelations.length === 0) {
+      if (agentRelations.length === 0) {
         return c.json(
           createApiError({
             code: 'bad_request',
@@ -312,167 +356,65 @@ app.openapi(
         ) as any;
       }
 
-      let agentRelations = allAgentRelations;
-      if (datasetAgentRelations.length > 0) {
-        const allowedAgentIds = new Set(datasetAgentRelations.map((r) => r.agentId));
-        agentRelations = allAgentRelations.filter((r) => allowedAgentIds.has(r.agentId));
-
-        if (agentRelations.length < allAgentRelations.length) {
-          const excluded = allAgentRelations
-            .filter((r) => !allowedAgentIds.has(r.agentId))
-            .map((r) => r.agentId);
-          logger.info(
-            { runConfigId, datasetId, excludedAgents: excluded },
-            'Excluded agents not scoped to this dataset'
-          );
-        }
-
-        if (agentRelations.length === 0) {
-          return c.json(
-            createApiError({
-              code: 'bad_request',
-              message:
-                'None of the configured agents are scoped to this dataset. Update the dataset agent scope or run config agents.',
-            }),
-            400
-          ) as any;
-        }
-      }
-
-      const datasetRunId = generateId();
-
-      await createDatasetRun(runDbClient)({
-        id: datasetRunId,
-        tenantId,
-        projectId,
-        datasetId: config.datasetId,
-        datasetRunConfigId: runConfigId,
-        evaluationJobConfigId: undefined,
-        ref: c.get('resolvedRef'),
-      });
-
-      let evaluationRunId: string | undefined;
-      if (evaluatorIds && evaluatorIds.length > 0) {
-        const jobConfigId = generateId();
-        await createEvaluationJobConfig(db)({
-          id: jobConfigId,
-          tenantId,
-          projectId,
-          jobFilters: { datasetRunIds: [datasetRunId] },
-        });
-        await Promise.all(
-          evaluatorIds.map((evaluatorId: string) =>
-            createEvaluationJobConfigEvaluatorRelation(db)({
-              tenantId,
-              projectId,
-              id: generateId(),
-              evaluationJobConfigId: jobConfigId,
-              evaluatorId,
-            })
-          )
-        );
-        await linkDatasetRunToEvaluationJobConfig(runDbClient)({
-          scopes: { tenantId, projectId, datasetRunId },
-          evaluationJobConfigId: jobConfigId,
-        });
-        evaluationRunId = generateId();
-        await createEvaluationRun(runDbClient)({
-          id: evaluationRunId,
-          tenantId,
-          projectId,
-          evaluationJobConfigId: jobConfigId,
-          ref: c.get('resolvedRef'),
-        });
-      }
-
-      const invocationPairs = agentRelations.flatMap((agentRelation) =>
-        datasetItems.map((datasetItem) => ({
-          agentId: agentRelation.agentId,
-          datasetItem,
-        }))
-      );
-
-      const invocations = await Promise.all(
-        invocationPairs.map(({ agentId, datasetItem }) =>
-          createScheduledTriggerInvocation(runDbClient)({
-            id: generateId(),
-            tenantId,
-            projectId,
-            agentId,
-            scheduledTriggerId: datasetRunId,
-            status: 'pending',
-            scheduledFor: new Date().toISOString(),
-            resolvedPayload: {
-              datasetItemId: datasetItem.id,
-              datasetRunId,
-              messages: datasetItem.input.messages,
-            },
-            idempotencyKey: `${datasetRunId}-${agentId}-${datasetItem.id}`,
-            attemptNumber: 1,
-          })
-        )
-      );
-
-      const invocationMap = new Map<string, (typeof invocations)[number]>();
-      for (let idx = 0; idx < invocationPairs.length; idx++) {
-        const pair = invocationPairs[idx];
-        invocationMap.set(`${pair.agentId}:${pair.datasetItem.id}`, invocations[idx]);
-      }
-
-      const items: DatasetRunQueueItem[] = agentRelations.flatMap((agentRelation) =>
-        datasetItems.map((datasetItem) => {
-          const inv = invocationMap.get(`${agentRelation.agentId}:${datasetItem.id}`);
-          if (!inv) {
-            throw new Error(
-              `Missing invocation for agent ${agentRelation.agentId} and dataset item ${datasetItem.id}`
-            );
-          }
-          return {
-            agentId: agentRelation.agentId,
-            id: datasetItem.id,
-            input: datasetItem.input,
-            expectedOutput: datasetItem.expectedOutput,
-            scheduledTriggerInvocationId: inv.id,
-          };
-        })
-      );
+      const configEvaluatorIds = evaluatorRelations.map((r) => r.evaluatorId);
+      const effectiveEvaluatorIds =
+        bodyEvaluatorIds ?? (configEvaluatorIds.length > 0 ? configEvaluatorIds : undefined);
+      const effectiveDispatchDelayMs = bodyDispatchDelayMs ?? config.dispatchDelayMs ?? 0;
 
       const rawRef = c.req.query('ref') || c.req.header('x-inkeep-ref');
       const effectiveRef = branchName || (rawRef && rawRef !== 'main' ? rawRef : undefined);
 
-      logger.debug(
-        {
+      const agentIds = agentRelations.map((r) => r.agentId);
+
+      if (runAsUserId) {
+        const callerId = c.get('userId') ?? 'system';
+        const tenantRole = c.get('tenantRole') as OrgRole;
+        await validateRunAsUserId({
+          runAsUserId,
+          callerId,
           tenantId,
           projectId,
-          runConfigId,
-          datasetRunId,
-          branchName,
-          rawRef,
-          effectiveRef,
-          resolvedRefName: c.get('resolvedRef')?.name,
-        },
-        'Queueing dataset run items with ref'
-      );
+          tenantRole,
+        });
+      }
 
-      await queueDatasetRunItems({
+      const result = await executeDatasetRun({
         tenantId,
         projectId,
-        datasetRunId,
-        items,
-        evaluatorIds,
-        evaluationRunId,
+        datasetRunConfigId: runConfigId,
+        agentIds,
+        manageDb: db,
+        resolvedRef: c.get('resolvedRef'),
+        evaluatorIds: effectiveEvaluatorIds,
+        runAsUserId,
         ref: effectiveRef,
+        scheduledTriggerId: scheduledTrigger?.id,
+        staggerDelayMs: effectiveDispatchDelayMs,
       });
 
-      logger.info({ runConfigId, datasetRunId, totalItems: items.length }, 'Dataset run triggered');
+      logger.info(
+        { runConfigId, datasetRunId: result.datasetRunId, totalItems: result.totalItems },
+        'Dataset run triggered'
+      );
 
-      return c.json({ datasetRunId, status: 'pending' as const, totalItems: items.length }, 202);
+      const failedCount = result.failedInvocations + result.failedQueueing;
+      return c.json(
+        {
+          datasetRunId: result.datasetRunId,
+          datasetRunIds: [result.datasetRunId],
+          status: 'pending' as const,
+          totalItems: result.totalItems,
+          ...(failedCount > 0 ? { failedCount } : {}),
+        },
+        202
+      );
     } catch (error) {
+      if (error instanceof HTTPException) throw error;
       logger.error({ error, runConfigId }, 'Failed to trigger dataset run');
       return c.json(
         createApiError({
           code: 'internal_server_error',
-          message: error instanceof Error ? error.message : 'Failed to trigger dataset run',
+          message: 'Failed to trigger dataset run',
         }),
         500
       );
@@ -517,7 +459,7 @@ app.openapi(
     const { tenantId, projectId, runConfigId } = c.req.valid('param');
     const db = c.get('db');
     const configData = c.req.valid('json');
-    const { agentIds, ...runConfigUpdateData } = configData as any;
+    const { agentIds, evaluatorIds, ...runConfigUpdateData } = configData as any;
 
     try {
       const updated = await updateDatasetRunConfig(db)({
@@ -532,9 +474,7 @@ app.openapi(
         ) as any;
       }
 
-      // Update agent relations if provided
       if (agentIds !== undefined) {
-        // Get existing relations
         const existingRelations = await getDatasetRunConfigAgentRelations(db)({
           scopes: { tenantId, projectId, datasetRunConfigId: runConfigId },
         });
@@ -542,20 +482,18 @@ app.openapi(
         const existingAgentIds = existingRelations.map((rel) => rel.agentId);
         const newAgentIds = Array.isArray(agentIds) ? agentIds : [];
 
-        // Delete relations that are no longer in the list
-        const toDelete = existingAgentIds.filter((id) => !newAgentIds.includes(id));
+        const agentsToDelete = existingAgentIds.filter((id) => !newAgentIds.includes(id));
         await Promise.all(
-          toDelete.map((agentId) =>
+          agentsToDelete.map((agentId) =>
             deleteDatasetRunConfigAgentRelation(db)({
               scopes: { tenantId, projectId, datasetRunConfigId: runConfigId, agentId },
             })
           )
         );
 
-        // Create new relations
-        const toCreate = newAgentIds.filter((id) => !existingAgentIds.includes(id));
+        const agentsToCreate = newAgentIds.filter((id) => !existingAgentIds.includes(id));
         await Promise.all(
-          toCreate.map((agentId) =>
+          agentsToCreate.map((agentId) =>
             createDatasetRunConfigAgentRelation(db)({
               tenantId,
               projectId,
@@ -567,8 +505,36 @@ app.openapi(
         );
       }
 
-      // Note: evaluatorIds are only used when creating a new dataset run,
-      // not when updating an existing config. Updates don't trigger new runs.
+      if (evaluatorIds !== undefined) {
+        const existingEvalRelations = await getDatasetRunConfigEvaluatorRelations(db)({
+          scopes: { tenantId, projectId, datasetRunConfigId: runConfigId },
+        });
+
+        const existingEvalIds = existingEvalRelations.map((rel) => rel.evaluatorId);
+        const newEvalIds = Array.isArray(evaluatorIds) ? (evaluatorIds as string[]) : [];
+
+        const evalsToDelete = existingEvalIds.filter((id) => !newEvalIds.includes(id));
+        await Promise.all(
+          evalsToDelete.map((evaluatorId) =>
+            deleteDatasetRunConfigEvaluatorRelation(db)({
+              scopes: { tenantId, projectId, datasetRunConfigId: runConfigId, evaluatorId },
+            })
+          )
+        );
+
+        const evalsToCreate = newEvalIds.filter((id) => !existingEvalIds.includes(id));
+        await Promise.all(
+          evalsToCreate.map((evaluatorId) =>
+            createDatasetRunConfigEvaluatorRelation(db)({
+              tenantId,
+              projectId,
+              id: generateId(),
+              datasetRunConfigId: runConfigId,
+              evaluatorId,
+            })
+          )
+        );
+      }
 
       logger.info({ runConfigId }, 'Dataset run config updated');
       return c.json({ data: updated as any }) as any;
@@ -636,7 +602,292 @@ app.openapi(
       return c.json(
         createApiError({
           code: 'internal_server_error',
-          message: error?.cause?.detail || error?.message || 'Failed to delete dataset run config',
+          message: 'Failed to delete dataset run config',
+        }),
+        500
+      );
+    }
+  }
+);
+
+const ScheduleBodySchema = z.object({
+  cronExpression: z.string().min(1).describe('Cron expression for the schedule'),
+  cronTimezone: z.string().optional().default('UTC').describe('Timezone for the cron schedule'),
+  enabled: z.boolean().optional().default(true).describe('Whether the schedule is active'),
+  maxRetries: z
+    .number()
+    .int()
+    .min(0)
+    .max(10)
+    .optional()
+    .describe('Number of retry attempts (0-10)'),
+  retryDelaySeconds: z
+    .number()
+    .int()
+    .min(10)
+    .max(3600)
+    .optional()
+    .describe('Seconds between retries (10-3600)'),
+  timeoutSeconds: z
+    .number()
+    .int()
+    .min(30)
+    .max(780)
+    .optional()
+    .describe('Execution timeout (30-780)'),
+});
+
+const ScheduleResponseSchema = z.object({
+  id: z.string(),
+  cronExpression: z.string(),
+  cronTimezone: z.string(),
+  enabled: z.boolean(),
+  maxRetries: z.number().optional(),
+  retryDelaySeconds: z.number().optional(),
+  timeoutSeconds: z.number().optional(),
+  nextRunAt: z.string().nullable().optional(),
+  lastRunAt: z.string().nullable().optional(),
+});
+
+app.openapi(
+  createProtectedRoute({
+    method: 'put',
+    path: '/{runConfigId}/schedule',
+    summary: 'Set or update schedule for a dataset run config',
+    operationId: 'set-dataset-run-config-schedule',
+    tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: TenantProjectParamsSchema.extend({ runConfigId: z.string() }),
+      body: {
+        content: {
+          'application/json': { schema: ScheduleBodySchema },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Schedule set successfully',
+        content: {
+          'application/json': { schema: ScheduleResponseSchema },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, runConfigId } = c.req.valid('param');
+    const db = c.get('db');
+    const body = c.req.valid('json');
+    const callerId = c.get('userId') ?? 'system';
+
+    try {
+      const config = await getDatasetRunConfigById(db)({
+        scopes: { tenantId, projectId, datasetRunConfigId: runConfigId },
+      });
+      if (!config) {
+        return c.json(
+          createApiError({ code: 'not_found', message: 'Dataset run config not found' }),
+          404
+        ) as any;
+      }
+
+      const existing = await findScheduledTriggerByDatasetRunConfigId(runDbClient)({
+        tenantId,
+        projectId,
+        datasetRunConfigId: runConfigId,
+      });
+
+      const nextRunAt = body.enabled
+        ? computeNextRunAt({
+            cronExpression: body.cronExpression,
+            cronTimezone: body.cronTimezone,
+          })
+        : null;
+
+      let trigger: Awaited<ReturnType<ReturnType<typeof createScheduledTrigger>>>;
+      if (existing) {
+        trigger = await updateScheduledTrigger(runDbClient)({
+          scopes: { tenantId, projectId, agentId: existing.agentId ?? undefined },
+          scheduledTriggerId: existing.id,
+          data: {
+            cronExpression: body.cronExpression,
+            cronTimezone: body.cronTimezone,
+            enabled: body.enabled,
+            nextRunAt,
+            maxRetries: body.maxRetries ?? existing.maxRetries,
+            retryDelaySeconds: body.retryDelaySeconds ?? existing.retryDelaySeconds,
+            timeoutSeconds: body.timeoutSeconds ?? existing.timeoutSeconds,
+          },
+        });
+      } else {
+        trigger = await createScheduledTrigger(runDbClient)({
+          id: generateId(),
+          tenantId,
+          projectId,
+          agentId: null,
+          datasetRunConfigId: runConfigId,
+          name: config.name ?? runConfigId,
+          cronExpression: body.cronExpression,
+          cronTimezone: body.cronTimezone,
+          enabled: body.enabled,
+          maxRetries: body.maxRetries ?? SCHEDULED_TRIGGER_DEFAULT_MAX_RETRIES,
+          retryDelaySeconds:
+            body.retryDelaySeconds ?? SCHEDULED_TRIGGER_DEFAULT_RETRY_DELAY_SECONDS,
+          timeoutSeconds: body.timeoutSeconds ?? SCHEDULED_TRIGGER_DEFAULT_TIMEOUT_SECONDS,
+          createdBy: callerId,
+          ref: 'main',
+          nextRunAt,
+        });
+      }
+
+      const lastRunAt = existing
+        ? await getLastRunAtForTrigger(runDbClient)({
+            scopes: { tenantId, projectId },
+            scheduledTriggerId: trigger.id,
+          })
+        : null;
+
+      return c.json(
+        {
+          id: trigger.id,
+          cronExpression: trigger.cronExpression ?? body.cronExpression,
+          cronTimezone: trigger.cronTimezone ?? body.cronTimezone ?? 'UTC',
+          enabled: trigger.enabled,
+          maxRetries: trigger.maxRetries ?? SCHEDULED_TRIGGER_DEFAULT_MAX_RETRIES,
+          retryDelaySeconds:
+            trigger.retryDelaySeconds ?? SCHEDULED_TRIGGER_DEFAULT_RETRY_DELAY_SECONDS,
+          timeoutSeconds: trigger.timeoutSeconds ?? SCHEDULED_TRIGGER_DEFAULT_TIMEOUT_SECONDS,
+          nextRunAt: trigger.nextRunAt ?? null,
+          lastRunAt,
+        },
+        200
+      );
+    } catch (error) {
+      logger.error({ error, runConfigId }, 'Failed to set schedule');
+      return c.json(
+        createApiError({
+          code: 'internal_server_error',
+          message: 'Failed to set schedule',
+        }),
+        500
+      );
+    }
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/{runConfigId}/schedule',
+    summary: 'Get schedule for a dataset run config',
+    operationId: 'get-dataset-run-config-schedule',
+    tags: ['Evaluations'],
+    permission: requireProjectPermission('view'),
+    request: {
+      params: TenantProjectParamsSchema.extend({ runConfigId: z.string() }),
+    },
+    responses: {
+      200: {
+        description: 'Schedule details',
+        content: {
+          'application/json': {
+            schema: ScheduleResponseSchema.nullable(),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, runConfigId } = c.req.valid('param');
+
+    try {
+      const trigger = await findScheduledTriggerByDatasetRunConfigId(runDbClient)({
+        tenantId,
+        projectId,
+        datasetRunConfigId: runConfigId,
+      });
+
+      if (!trigger) {
+        return c.json(null, 200);
+      }
+
+      const lastRunAt = await getLastRunAtForTrigger(runDbClient)({
+        scopes: { tenantId, projectId },
+        scheduledTriggerId: trigger.id,
+      });
+
+      return c.json(
+        {
+          id: trigger.id,
+          cronExpression: trigger.cronExpression ?? '',
+          cronTimezone: trigger.cronTimezone ?? 'UTC',
+          enabled: trigger.enabled,
+          maxRetries: trigger.maxRetries ?? SCHEDULED_TRIGGER_DEFAULT_MAX_RETRIES,
+          retryDelaySeconds:
+            trigger.retryDelaySeconds ?? SCHEDULED_TRIGGER_DEFAULT_RETRY_DELAY_SECONDS,
+          timeoutSeconds: trigger.timeoutSeconds ?? SCHEDULED_TRIGGER_DEFAULT_TIMEOUT_SECONDS,
+          dispatchDelayMs: trigger.dispatchDelayMs ?? undefined,
+          runAsUserId: trigger.runAsUserId ?? null,
+          nextRunAt: trigger.nextRunAt ?? null,
+          lastRunAt,
+        },
+        200
+      );
+    } catch (error) {
+      logger.error({ error, runConfigId }, 'Failed to get schedule');
+      return c.json(
+        createApiError({
+          code: 'internal_server_error',
+          message: 'Failed to get schedule',
+        }),
+        500
+      ) as any;
+    }
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'delete',
+    path: '/{runConfigId}/schedule',
+    summary: 'Delete schedule for a dataset run config',
+    operationId: 'delete-dataset-run-config-schedule',
+    tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: TenantProjectParamsSchema.extend({ runConfigId: z.string() }),
+    },
+    responses: {
+      204: { description: 'Schedule deleted' },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, runConfigId } = c.req.valid('param');
+
+    try {
+      const trigger = await findScheduledTriggerByDatasetRunConfigId(runDbClient)({
+        tenantId,
+        projectId,
+        datasetRunConfigId: runConfigId,
+      });
+
+      if (trigger) {
+        await deleteScheduledTrigger(runDbClient)({
+          scopes: { tenantId, projectId, agentId: trigger.agentId ?? undefined },
+          scheduledTriggerId: trigger.id,
+        });
+      }
+
+      return c.body(null, 204) as any;
+    } catch (error) {
+      logger.error({ error, runConfigId }, 'Failed to delete schedule');
+      return c.json(
+        createApiError({
+          code: 'internal_server_error',
+          message: 'Failed to delete schedule',
         }),
         500
       );

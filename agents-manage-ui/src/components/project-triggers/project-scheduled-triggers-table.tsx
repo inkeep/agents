@@ -110,7 +110,12 @@ export function ProjectScheduledTriggersTable({
     return member?.name || member?.email || userId;
   };
 
-  const toggleEnabled = async (triggerId: string, agentId: string, currentEnabled: boolean) => {
+  const toggleEnabled = async (
+    triggerId: string,
+    agentId: string | null,
+    currentEnabled: boolean
+  ) => {
+    if (!agentId) return;
     const newEnabled = !currentEnabled;
     setLoadingTriggers((prev) => new Set(prev).add(triggerId));
 
@@ -139,7 +144,8 @@ export function ProjectScheduledTriggersTable({
     });
   };
 
-  const deleteTrigger = async (triggerId: string, agentId: string, name: string) => {
+  const deleteTrigger = async (triggerId: string, agentId: string | null, name: string) => {
+    if (!agentId) return;
     if (!confirm(`Are you sure you want to delete the scheduled trigger "${name}"?`)) {
       return;
     }
@@ -170,7 +176,8 @@ export function ProjectScheduledTriggersTable({
     }
   };
 
-  const runTrigger = async (triggerId: string, agentId: string, name: string) => {
+  const runTrigger = async (triggerId: string, agentId: string | null, name: string) => {
+    if (!agentId) return;
     if (loadingTriggers.has(triggerId)) return;
     setLoadingTriggers((prev) => new Set(prev).add(triggerId));
 
@@ -230,7 +237,14 @@ export function ProjectScheduledTriggersTable({
                 <TableRow key={trigger.id} noHover>
                   <TableCell>
                     <div className="space-y-1">
-                      <div className="font-medium text-foreground">{trigger.name}</div>
+                      <div className="flex items-center gap-2 font-medium text-foreground">
+                        {trigger.name}
+                        {trigger.datasetRunConfigId ? (
+                          <Badge variant="outline" className="text-xs">
+                            Dataset Run
+                          </Badge>
+                        ) : null}
+                      </div>
                       {trigger.description && (
                         <div className="text-sm text-muted-foreground max-w-md truncate">
                           {trigger.description}
@@ -239,12 +253,18 @@ export function ProjectScheduledTriggersTable({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Link
-                      href={`/${tenantId}/projects/${projectId}/agents/${trigger.agentId}`}
-                      className="text-sm text-muted-foreground hover:text-foreground hover:underline"
-                    >
-                      {trigger.agentName}
-                    </Link>
+                    {trigger.agentId ? (
+                      <Link
+                        href={`/${tenantId}/projects/${projectId}/agents/${trigger.agentId}`}
+                        className="text-sm text-muted-foreground hover:text-foreground hover:underline"
+                      >
+                        {trigger.agentName}
+                      </Link>
+                    ) : (
+                      <Badge variant="outline" className="text-xs">
+                        Dataset Run
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -402,13 +422,13 @@ export function ProjectScheduledTriggersTable({
                         )}
                         <DropdownMenuItem asChild>
                           <Link
-                            href={`/${tenantId}/projects/${projectId}/triggers/scheduled/${trigger.agentId}/${trigger.id}/invocations`}
+                            href={`/${tenantId}/projects/${projectId}/triggers/scheduled/${trigger.agentId ?? '_'}/${trigger.id}/invocations`}
                           >
                             <History className="w-4 h-4" />
                             View Invocations
                           </Link>
                         </DropdownMenuItem>
-                        {canManage && (
+                        {canManage && trigger.agentId && (
                           <DropdownMenuItem asChild>
                             <Link
                               href={`/${tenantId}/projects/${projectId}/triggers/scheduled/${trigger.agentId}/${trigger.id}/edit`}
@@ -418,37 +438,39 @@ export function ProjectScheduledTriggersTable({
                             </Link>
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem asChild>
-                          <Link
-                            href={`/${tenantId}/projects/${projectId}/triggers/scheduled/${trigger.agentId}/new?${new URLSearchParams(
-                              {
-                                ...(trigger.cronExpression
-                                  ? {
-                                      scheduleType: 'cron',
-                                      cronExpression: trigger.cronExpression,
-                                      cronTimezone: trigger.cronTimezone || 'UTC',
-                                    }
-                                  : {
-                                      scheduleType: 'one-time',
-                                      ...(trigger.runAt ? { runAt: trigger.runAt } : {}),
-                                    }),
-                                ...(trigger.payload
-                                  ? { payloadJson: JSON.stringify(trigger.payload) }
-                                  : {}),
-                                ...(trigger.messageTemplate
-                                  ? { messageTemplate: trigger.messageTemplate }
-                                  : {}),
-                                maxRetries: String(trigger.maxRetries ?? 1),
-                                retryDelaySeconds: String(trigger.retryDelaySeconds ?? 60),
-                                timeoutSeconds: String(trigger.timeoutSeconds ?? 780),
-                                ...(trigger.ref ? { ref: trigger.ref } : {}),
-                              }
-                            ).toString()}`}
-                          >
-                            <Copy className="w-4 h-4" />
-                            Duplicate
-                          </Link>
-                        </DropdownMenuItem>
+                        {trigger.agentId && (
+                          <DropdownMenuItem asChild>
+                            <Link
+                              href={`/${tenantId}/projects/${projectId}/triggers/scheduled/${trigger.agentId}/new?${new URLSearchParams(
+                                {
+                                  ...(trigger.cronExpression
+                                    ? {
+                                        scheduleType: 'cron',
+                                        cronExpression: trigger.cronExpression,
+                                        cronTimezone: trigger.cronTimezone || 'UTC',
+                                      }
+                                    : {
+                                        scheduleType: 'one-time',
+                                        ...(trigger.runAt ? { runAt: trigger.runAt } : {}),
+                                      }),
+                                  ...(trigger.payload
+                                    ? { payloadJson: JSON.stringify(trigger.payload) }
+                                    : {}),
+                                  ...(trigger.messageTemplate
+                                    ? { messageTemplate: trigger.messageTemplate }
+                                    : {}),
+                                  maxRetries: String(trigger.maxRetries ?? 1),
+                                  retryDelaySeconds: String(trigger.retryDelaySeconds ?? 60),
+                                  timeoutSeconds: String(trigger.timeoutSeconds ?? 780),
+                                  ...(trigger.ref ? { ref: trigger.ref } : {}),
+                                }
+                              ).toString()}`}
+                            >
+                              <Copy className="w-4 h-4" />
+                              Duplicate
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
                         {canManage && (
                           <DropdownMenuItem
                             variant="destructive"

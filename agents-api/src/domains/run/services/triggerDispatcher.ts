@@ -9,6 +9,10 @@ import { start } from 'workflow/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import {
+  type ScheduledDatasetRunPayload,
+  scheduledDatasetRunWorkflow,
+} from '../../evals/workflow/functions/scheduledDatasetRun';
+import {
   scheduledTriggerRunnerWorkflow,
   type TriggerPayload,
 } from '../workflow/functions/scheduledTriggerRunner';
@@ -56,8 +60,89 @@ export async function dispatchDueTriggers(): Promise<DispatchResult> {
   return { dispatched: totalDispatched };
 }
 
-async function dispatchSingleTrigger(trigger: ScheduledTrigger): Promise<number> {
+interface FanOutParams<T> {
+  trigger: ScheduledTrigger;
+  scheduledFor: string;
+  dispatchDelayMs: number;
+  workflowFn: { (payload: T): unknown; workflowId: string };
+  buildPayload: (base: {
+    tenantId: string;
+    projectId: string;
+    agentId?: string;
+    scheduledTriggerId: string;
+    scheduledFor: string;
+    ref: string;
+    runAsUserId?: string;
+    delayBeforeExecutionMs?: number;
+  }) => T;
+  errorLabel: string;
+}
+
+async function dispatchTriggerForUsers<T>({
+  trigger,
+  scheduledFor,
+  dispatchDelayMs,
+  workflowFn,
+  buildPayload,
+  errorLabel,
+}: FanOutParams<T>): Promise<number> {
   const { tenantId, projectId, agentId, id: scheduledTriggerId } = trigger;
+
+  const joinTableUsers = await getScheduledTriggerUsers(runDbClient)({
+    tenantId,
+    scheduledTriggerId,
+  });
+
+  if (joinTableUsers.length === 0) {
+    const payload = buildPayload({
+      tenantId,
+      projectId,
+      agentId: agentId ?? undefined,
+      scheduledTriggerId,
+      scheduledFor,
+      ref: trigger.ref,
+      runAsUserId: trigger.runAsUserId ?? undefined,
+    });
+    await start(workflowFn, [payload]);
+    return 1;
+  }
+
+  const workflowResults = await Promise.allSettled(
+    joinTableUsers.map((row, index) => {
+      const payload = buildPayload({
+        tenantId,
+        projectId,
+        agentId: agentId ?? undefined,
+        scheduledTriggerId,
+        scheduledFor,
+        ref: trigger.ref,
+        runAsUserId: row.userId,
+        delayBeforeExecutionMs: index * dispatchDelayMs,
+      });
+      return start(workflowFn, [payload]);
+    })
+  );
+
+  let started = 0;
+  for (let i = 0; i < workflowResults.length; i++) {
+    if (workflowResults[i].status === 'fulfilled') {
+      started++;
+    } else {
+      logger.error(
+        {
+          scheduledTriggerId,
+          userId: joinTableUsers[i].userId,
+          error: (workflowResults[i] as PromiseRejectedResult).reason,
+        },
+        errorLabel
+      );
+    }
+  }
+  return started;
+}
+
+async function dispatchSingleTrigger(trigger: ScheduledTrigger): Promise<number> {
+  const { tenantId, projectId, id: scheduledTriggerId } = trigger;
 
   const isOneTime = !trigger.cronExpression;
   const nextRunAt = isOneTime
@@ -71,63 +156,41 @@ async function dispatchSingleTrigger(trigger: ScheduledTrigger): Promise<number>
 
   const scheduledFor = trigger.nextRunAt ?? new Date().toISOString();
   const dispatchDelayMs = trigger.dispatchDelayMs ?? 0;
+  const isDatasetRun = trigger.datasetRunConfigId != null;
 
-  const joinTableUsers = await getScheduledTriggerUsers(runDbClient)({
-    tenantId,
-    scheduledTriggerId,
-  });
+  let workflowsStarted: number;
 
-  let workflowsStarted = 0;
-
-  if (joinTableUsers.length > 0) {
-    const payloads: TriggerPayload[] = joinTableUsers.map((row, index) => ({
+  if (isDatasetRun && trigger.datasetRunConfigId) {
+    const payload: ScheduledDatasetRunPayload = {
       tenantId,
       projectId,
-      agentId,
+      datasetRunConfigId: trigger.datasetRunConfigId,
       scheduledTriggerId,
       scheduledFor,
       ref: trigger.ref,
-      runAsUserId: row.userId,
-      delayBeforeExecutionMs: index * dispatchDelayMs,
-    }));
-
-    const workflowResults = await Promise.allSettled(
-      payloads.map((payload) => start(scheduledTriggerRunnerWorkflow, [payload]))
-    );
-
-    for (let i = 0; i < workflowResults.length; i++) {
-      if (workflowResults[i].status === 'fulfilled') {
-        workflowsStarted++;
-      } else {
-        const error = (workflowResults[i] as PromiseRejectedResult).reason;
-        logger.error(
-          {
-            scheduledTriggerId,
-            userId: joinTableUsers[i].userId,
-            error,
-          },
-          'Failed to start workflow for user'
-        );
-      }
-    }
-  } else {
-    const payload: TriggerPayload = {
-      tenantId,
-      projectId,
-      agentId,
-      scheduledTriggerId,
-      scheduledFor,
-      ref: trigger.ref,
+      runAsUserId: trigger.runAsUserId ?? undefined,
     };
-
-    await start(scheduledTriggerRunnerWorkflow, [payload]);
+    await start(scheduledDatasetRunWorkflow, [payload]);
     workflowsStarted = 1;
+  } else if (trigger.agentId) {
+    const agentId = trigger.agentId;
+    workflowsStarted = await dispatchTriggerForUsers<TriggerPayload>({
+      trigger,
+      scheduledFor,
+      dispatchDelayMs,
+      workflowFn: scheduledTriggerRunnerWorkflow,
+      buildPayload: (base) => ({ ...base, agentId }),
+      errorLabel: 'Failed to start workflow for user',
+    });
+  } else {
+    logger.warn({ scheduledTriggerId }, 'Trigger has neither datasetRunConfigId nor agentId');
+    workflowsStarted = 0;
   }
 
   if (workflowsStarted > 0) {
     try {
       await advanceScheduledTriggerNextRunAt(runDbClient)({
-        scopes: { tenantId, projectId, agentId },
+        scopes: { tenantId, projectId, agentId: trigger.agentId ?? undefined },
         scheduledTriggerId,
         nextRunAt,
       });
@@ -144,7 +207,10 @@ async function dispatchSingleTrigger(trigger: ScheduledTrigger): Promise<number>
     );
   }
 
-  logger.info({ scheduledTriggerId, scheduledFor, workflowsStarted }, 'Trigger dispatched');
+  logger.info(
+    { scheduledTriggerId, scheduledFor, workflowsStarted, isDatasetRun },
+    'Trigger dispatched'
+  );
 
   return workflowsStarted;
 }

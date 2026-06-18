@@ -15,6 +15,7 @@ import {
   datasetItem,
   datasetRunConfig,
   datasetRunConfigAgentRelations,
+  datasetRunConfigEvaluatorRelations,
   evaluationJobConfig,
   evaluationJobConfigEvaluatorRelations,
   evaluationRunConfig,
@@ -1174,6 +1175,10 @@ export const CronExpressionSchema = z
   .openapi('CronExpression');
 
 export const maxScheduledTriggerDispatchDelayMs = 600_000;
+export const SCHEDULED_TRIGGER_DEFAULT_MAX_RETRIES = 1;
+export const SCHEDULED_TRIGGER_DEFAULT_RETRY_DELAY_SECONDS = 60;
+export const SCHEDULED_TRIGGER_DEFAULT_TIMEOUT_SECONDS = 780;
+export const SCHEDULED_TRIGGER_DEFAULT_DISPATCH_DELAY_MS = 120_000;
 
 export const ScheduledTriggerSelectSchema = createSelectSchema(scheduledTriggers).extend({
   payload: z.record(z.string(), z.unknown()).nullable().optional(),
@@ -1205,9 +1210,11 @@ const ScheduledTriggerInsertSchemaBase = createInsertSchema(scheduledTriggers, {
       .describe('Static payload for agent execution'),
   messageTemplate: () =>
     z.string().trim().min(1).describe('Message template with {{placeholder}} syntax').optional(),
-  maxRetries: () => z.number().int().min(0).max(10).default(1),
-  retryDelaySeconds: () => z.number().int().min(10).max(3600).default(60),
-  timeoutSeconds: () => z.number().int().min(30).max(780).default(780),
+  maxRetries: () => z.number().int().min(0).max(10).default(SCHEDULED_TRIGGER_DEFAULT_MAX_RETRIES),
+  retryDelaySeconds: () =>
+    z.number().int().min(10).max(3600).default(SCHEDULED_TRIGGER_DEFAULT_RETRY_DELAY_SECONDS),
+  timeoutSeconds: () =>
+    z.number().int().min(30).max(780).default(SCHEDULED_TRIGGER_DEFAULT_TIMEOUT_SECONDS),
   createdBy: () =>
     UserIdSchema.nullable().optional().describe('User ID of the user who created this trigger'),
 })
@@ -2073,6 +2080,17 @@ export const DatasetRunConfigAgentRelationInsertSchema = createInsertSchema(
 });
 export const DatasetRunConfigAgentRelationUpdateSchema =
   DatasetRunConfigAgentRelationInsertSchema.partial();
+
+export const DatasetRunConfigEvaluatorRelationSelectSchema = createSelectSchema(
+  datasetRunConfigEvaluatorRelations
+);
+export const DatasetRunConfigEvaluatorRelationInsertSchema = createInsertSchema(
+  datasetRunConfigEvaluatorRelations
+).extend({
+  id: ResourceIdSchema,
+});
+export const DatasetRunConfigEvaluatorRelationUpdateSchema =
+  DatasetRunConfigEvaluatorRelationInsertSchema.partial();
 
 export const DataComponentSelectSchema = createSelectSchema(dataComponents);
 export const DataComponentInsertSchema = createInsertSchema(dataComponents)

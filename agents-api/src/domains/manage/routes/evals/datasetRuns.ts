@@ -4,26 +4,30 @@ import {
   createApiError,
   DatasetRunApiSelectSchema,
   extractMessageText,
+  findScheduledTriggerByDatasetRunConfigId,
+  getConversation,
   getConversationsByIds,
+  getDatasetItemById,
   getDatasetRunById,
+  getDatasetRunConfigAgentRelations,
   getDatasetRunConfigById,
+  getDatasetRunConfigEvaluatorRelations,
+  getDatasetRunConversationRelationByConversation,
   getDatasetRunConversationRelations,
-  getEvaluationJobConfigEvaluatorRelations,
-  getInProcessFetch,
   getLastAssistantMessageByConversations,
   ListResponseSchema,
   listDatasetItems,
   listDatasetRuns,
-  listScheduledTriggerInvocationsByTriggerId,
+  listScheduledTriggerInvocationsByDatasetRunId,
   SingleResponseSchema,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../../data/db/runDbClient';
-import { env } from '../../../../env';
 import { getLogger } from '../../../../logger';
 import { requireProjectPermission } from '../../../../middleware/projectAccess';
 import type { ManageAppVariables } from '../../../../types/app';
+import { createInvocationAndQueue, executeDatasetRun } from '../../../evals/services/datasetRun';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('datasetRuns');
@@ -289,9 +293,9 @@ app.openapi(
 
     try {
       const [invocations, relations] = await Promise.all([
-        listScheduledTriggerInvocationsByTriggerId(runDbClient)({
+        listScheduledTriggerInvocationsByDatasetRunId(runDbClient)({
           scopes: { tenantId, projectId },
-          scheduledTriggerId: runId,
+          datasetRunId: runId,
           filters: status ? { status } : undefined,
         }),
         getDatasetRunConversationRelations(runDbClient)({
@@ -310,7 +314,7 @@ app.openapi(
           tenantId: inv.tenantId,
           projectId: inv.projectId,
           agentId: inv.agentId,
-          datasetRunId: inv.scheduledTriggerId,
+          datasetRunId: runId,
           datasetItemId: datasetItemId ?? '',
           status: inv.status,
           startedAt: inv.startedAt ?? null,
@@ -378,8 +382,10 @@ app.openapi(
           'application/json': {
             schema: z.object({
               datasetRunId: z.string(),
+              datasetRunIds: z.array(z.string()),
               status: z.literal('pending'),
               totalItems: z.number(),
+              failedCount: z.number().optional(),
             }),
           },
         },
@@ -415,87 +421,268 @@ app.openapi(
         ) as any;
       }
 
-      let evaluatorIds = body.evaluatorIds;
-      if (!evaluatorIds && sourceRun.evaluationJobConfigId) {
-        const evaluatorRelations = await getEvaluationJobConfigEvaluatorRelations(db)({
-          scopes: {
+      const datasetRunConfigId = sourceRun.datasetRunConfigId;
+
+      const [agentRelations, configEvaluatorRelations, config, scheduledTrigger] =
+        await Promise.all([
+          getDatasetRunConfigAgentRelations(db)({
+            scopes: { tenantId, projectId, datasetRunConfigId },
+          }),
+          getDatasetRunConfigEvaluatorRelations(db)({
+            scopes: { tenantId, projectId, datasetRunConfigId },
+          }),
+          getDatasetRunConfigById(db)({
+            scopes: { tenantId, projectId, datasetRunConfigId },
+          }),
+          findScheduledTriggerByDatasetRunConfigId(runDbClient)({
             tenantId,
             projectId,
-            evaluationJobConfigId: sourceRun.evaluationJobConfigId,
-          },
-        });
-        if (evaluatorRelations.length > 0) {
-          evaluatorIds = evaluatorRelations.map((rel) => rel.evaluatorId);
-        }
-      }
+            datasetRunConfigId,
+          }),
+        ]);
+
+      const configEvaluatorIds = configEvaluatorRelations.map((r) => r.evaluatorId);
+      const effectiveEvaluatorIds =
+        body.evaluatorIds ?? (configEvaluatorIds.length > 0 ? configEvaluatorIds : undefined);
+      const effectiveDispatchDelayMs = config?.dispatchDelayMs ?? 0;
 
       const sourceRef = sourceRun.ref as { branchName?: string } | null | undefined;
       const branchName = body.branchName ?? sourceRef?.branchName;
+      const agentIds = agentRelations.map((r) => r.agentId);
 
-      const triggerUrl = `${env.INKEEP_AGENTS_API_URL.replace(
-        /\/$/,
-        ''
-      )}/manage/tenants/${tenantId}/projects/${projectId}/evals/dataset-run-configs/${sourceRun.datasetRunConfigId}/run`;
-
-      const forwardedHeaders: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      const authHeader = c.req.header('authorization');
-      if (authHeader) forwardedHeaders.Authorization = authHeader;
-      const cookieHeader = c.req.header('cookie');
-      if (cookieHeader) forwardedHeaders.cookie = cookieHeader;
-      const adminSecret = c.req.header('x-inkeep-admin-secret');
-      if (adminSecret) forwardedHeaders['x-inkeep-admin-secret'] = adminSecret;
-      const apiKey = c.req.header('x-api-key');
-      if (apiKey) forwardedHeaders['x-api-key'] = apiKey;
-
-      const response = await getInProcessFetch()(triggerUrl, {
-        method: 'POST',
-        headers: forwardedHeaders,
-        body: JSON.stringify({
-          ...(evaluatorIds ? { evaluatorIds } : {}),
-          ...(branchName ? { branchName } : {}),
-        }),
+      const result = await executeDatasetRun({
+        tenantId,
+        projectId,
+        datasetRunConfigId,
+        agentIds,
+        manageDb: db,
+        resolvedRef: c.get('resolvedRef'),
+        evaluatorIds: effectiveEvaluatorIds,
+        ref: branchName,
+        scheduledTriggerId: scheduledTrigger?.id,
+        staggerDelayMs: effectiveDispatchDelayMs,
       });
 
-      if (!response.ok) {
-        const errorBody = await response.text();
-        logger.error(
-          { runId, status: response.status, body: errorBody },
-          'Rerun delegation to trigger endpoint failed'
-        );
-        try {
-          const parsed = JSON.parse(errorBody);
-          return c.json(parsed, response.status as any);
-        } catch {
-          return c.json(
-            createApiError({
-              code: 'internal_server_error',
-              message: `Rerun failed: ${response.status}`,
-            }),
-            response.status as any
-          );
-        }
-      }
-
-      const result = (await response.json()) as {
-        datasetRunId: string;
-        status: 'pending';
-        totalItems: number;
-      };
-
       logger.info(
-        { sourceRunId: runId, newRunId: result.datasetRunId, totalItems: result.totalItems },
+        {
+          sourceRunId: runId,
+          datasetRunId: result.datasetRunId,
+          totalItems: result.totalItems,
+        },
         'Dataset run rerun triggered'
       );
 
-      return c.json(result, 202);
+      return c.json(
+        {
+          datasetRunId: result.datasetRunId,
+          datasetRunIds: [result.datasetRunId],
+          status: 'pending' as const,
+          totalItems: result.totalItems,
+        },
+        202
+      );
     } catch (error) {
       logger.error({ error, runId }, 'Failed to rerun dataset run');
       return c.json(
         createApiError({
           code: 'internal_server_error',
-          message: error instanceof Error ? error.message : 'Failed to rerun dataset run',
+          message: 'Failed to rerun dataset run',
+        }),
+        500
+      );
+    }
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'get',
+    path: '/by-conversation/{conversationId}',
+    summary: 'Get dataset run info for a conversation',
+    operationId: 'get-dataset-run-by-conversation',
+    tags: ['Evaluations'],
+    permission: requireProjectPermission('view'),
+    request: {
+      params: TenantProjectParamsSchema.extend({ conversationId: z.string() }),
+    },
+    responses: {
+      200: {
+        description: 'Dataset run info for the conversation',
+        content: {
+          'application/json': {
+            schema: z
+              .object({
+                datasetRunId: z.string(),
+                datasetItemId: z.string(),
+                conversationId: z.string(),
+              })
+              .nullable(),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, conversationId } = c.req.valid('param');
+
+    try {
+      const relation = await getDatasetRunConversationRelationByConversation(runDbClient)({
+        scopes: { tenantId, projectId, conversationId },
+      });
+
+      if (!relation) {
+        return c.json(null, 200);
+      }
+
+      return c.json(
+        {
+          datasetRunId: relation.datasetRunId,
+          datasetItemId: relation.datasetItemId,
+          conversationId: relation.conversationId,
+        },
+        200
+      );
+    } catch (error) {
+      logger.error({ error, conversationId }, 'Failed to get dataset run by conversation');
+      return c.json(
+        createApiError({
+          code: 'internal_server_error',
+          message: 'Failed to get dataset run by conversation',
+        }),
+        500
+      ) as any;
+    }
+  }
+);
+
+app.openapi(
+  createProtectedRoute({
+    method: 'post',
+    path: '/{runId}/items/{itemId}/rerun',
+    summary: 'Rerun a single dataset item',
+    operationId: 'rerun-dataset-run-item',
+    tags: ['Evaluations'],
+    permission: requireProjectPermission('edit'),
+    request: {
+      params: TenantProjectParamsSchema.extend({
+        runId: z.string(),
+        itemId: z.string(),
+      }),
+    },
+    responses: {
+      202: {
+        description: 'Dataset item rerun triggered',
+        content: {
+          'application/json': {
+            schema: z.object({
+              invocationId: z.string(),
+              datasetRunId: z.string(),
+              datasetItemId: z.string(),
+            }),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, runId, itemId } = c.req.valid('param');
+    const db = c.get('db');
+
+    try {
+      const run = await getDatasetRunById(runDbClient)({
+        scopes: { tenantId, projectId, datasetRunId: runId },
+      });
+
+      if (!run) {
+        return c.json(
+          createApiError({ code: 'not_found', message: 'Dataset run not found' }),
+          404
+        ) as any;
+      }
+
+      const relations = await getDatasetRunConversationRelations(runDbClient)({
+        scopes: { tenantId, projectId, datasetRunId: runId },
+      });
+
+      const itemRelation = relations.find((r) => r.datasetItemId === itemId);
+      if (!itemRelation) {
+        return c.json(
+          createApiError({
+            code: 'not_found',
+            message: 'Dataset item not found in this run',
+          }),
+          404
+        ) as any;
+      }
+
+      const originalConversation = await getConversation(runDbClient)({
+        scopes: { tenantId, projectId },
+        conversationId: itemRelation.conversationId,
+      });
+
+      if (!originalConversation) {
+        return c.json(
+          createApiError({ code: 'not_found', message: 'Original conversation not found' }),
+          404
+        ) as any;
+      }
+
+      const agentId = originalConversation.agentId;
+      if (!agentId) {
+        return c.json(
+          createApiError({ code: 'bad_request', message: 'Original conversation has no agent' }),
+          400
+        ) as any;
+      }
+
+      const datasetItem = await getDatasetItemById(db)({
+        scopes: { tenantId, projectId, datasetItemId: itemId },
+      });
+
+      if (!datasetItem) {
+        return c.json(
+          createApiError({ code: 'not_found', message: 'Dataset item not found' }),
+          404
+        ) as any;
+      }
+
+      const scheduledTrigger = run.datasetRunConfigId
+        ? await findScheduledTriggerByDatasetRunConfigId(runDbClient)({
+            tenantId,
+            projectId,
+            datasetRunConfigId: run.datasetRunConfigId,
+          })
+        : undefined;
+      const triggerScope = scheduledTrigger?.id ?? runId;
+
+      const { invocationId } = await createInvocationAndQueue({
+        tenantId,
+        projectId,
+        datasetRunId: runId,
+        agentId,
+        scheduledTriggerId: triggerScope,
+        datasetItem,
+        idempotencyKey: `rerun-${runId}-${itemRelation.conversationId}`,
+        resolvedPayload: {
+          datasetItemId: itemId,
+          datasetRunId: runId,
+          messages: datasetItem.input.messages,
+          rerunOf: itemRelation.conversationId,
+        },
+        ref: (run.ref as { branchName?: string } | null)?.branchName ?? undefined,
+      });
+
+      logger.info({ runId, itemId, invocationId, agentId }, 'Dataset item rerun triggered');
+
+      return c.json({ invocationId, datasetRunId: runId, datasetItemId: itemId }, 202);
+    } catch (error) {
+      logger.error({ error, runId, itemId }, 'Failed to rerun dataset item');
+      return c.json(
+        createApiError({
+          code: 'internal_server_error',
+          message: 'Failed to rerun dataset item',
         }),
         500
       );

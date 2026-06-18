@@ -496,8 +496,12 @@ export default function Page({
                           )}
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm">
-                            {formatDateTime(inv?.createdAt ?? run.createdAt, { local: true })}
+                          <span className="text-sm text-muted-foreground">
+                            {isPending
+                              ? 'Pending...'
+                              : formatDateTime(inv?.startedAt ?? inv?.createdAt ?? run.createdAt, {
+                                  local: true,
+                                })}
                           </span>
                         </TableCell>
                         <TableCell>

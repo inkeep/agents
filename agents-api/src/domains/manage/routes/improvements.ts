@@ -39,7 +39,7 @@ import {
   listDatasetRuns,
   listEvaluationResultsByRun,
   listEvaluationRunsByJobConfigId,
-  listScheduledTriggerInvocationsByTriggerId,
+  listScheduledTriggerInvocationsByDatasetRunId,
   manageFkColumnLinks,
   managePkMap,
   revertImprovementRows,
@@ -986,9 +986,9 @@ app.openapi(
     const runData = await Promise.all(
       branchRuns.map(async (run) => {
         const [invocations, dataset] = await Promise.all([
-          listScheduledTriggerInvocationsByTriggerId(runDbClient)({
+          listScheduledTriggerInvocationsByDatasetRunId(runDbClient)({
             scopes: { tenantId, projectId },
-            scheduledTriggerId: run.id,
+            datasetRunId: run.id,
           }),
           getDatasetById(db)({
             scopes: { tenantId, projectId, datasetId: run.datasetId },

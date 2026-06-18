@@ -406,7 +406,8 @@ export const workAppSlackChannelAgentConfigs = pgTable(
 export const scheduledTriggers = pgTable(
   'scheduled_triggers',
   {
-    ...agentScoped,
+    ...projectScoped,
+    agentId: varchar('agent_id', { length: 256 }),
     name: varchar('name', { length: 256 }).notNull(),
     description: text('description'),
     enabled: boolean('enabled').notNull().default(true),
@@ -425,6 +426,7 @@ export const scheduledTriggers = pgTable(
     nextRunAt: timestamp('next_run_at', { withTimezone: true, mode: 'string' }),
     ref: varchar('ref', { length: 256 }).notNull().default('main'),
     dispatchDelayMs: integer('dispatch_delay_ms'),
+    datasetRunConfigId: varchar('dataset_run_config_id', { length: 256 }),
     ...timestamps,
   },
   (table) => [

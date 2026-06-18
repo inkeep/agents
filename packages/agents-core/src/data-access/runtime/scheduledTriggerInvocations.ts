@@ -374,7 +374,7 @@ export const markScheduledTriggerInvocationCancelled =
  */
 export const cancelPendingInvocationsForTrigger =
   (db: AgentsRunDatabaseClient) =>
-  async (params: { scopes: AgentScopeConfig; scheduledTriggerId: string }): Promise<number> => {
+  async (params: { scopes: ProjectScopeConfig; scheduledTriggerId: string }): Promise<number> => {
     const result = await db
       .update(scheduledTriggerInvocations)
       .set({
@@ -383,7 +383,7 @@ export const cancelPendingInvocationsForTrigger =
       })
       .where(
         and(
-          agentScopedWhere(scheduledTriggerInvocations, params.scopes),
+          projectScopedWhere(scheduledTriggerInvocations, params.scopes),
           eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
           inArray(scheduledTriggerInvocations.status, ['pending', 'running'])
         )
@@ -399,7 +399,7 @@ export const cancelPendingInvocationsForTrigger =
  */
 export const cancelPastPendingInvocationsForTrigger =
   (db: AgentsRunDatabaseClient) =>
-  async (params: { scopes: AgentScopeConfig; scheduledTriggerId: string }): Promise<number> => {
+  async (params: { scopes: ProjectScopeConfig; scheduledTriggerId: string }): Promise<number> => {
     const now = new Date().toISOString();
     const result = await db
       .update(scheduledTriggerInvocations)
@@ -409,7 +409,7 @@ export const cancelPastPendingInvocationsForTrigger =
       })
       .where(
         and(
-          agentScopedWhere(scheduledTriggerInvocations, params.scopes),
+          projectScopedWhere(scheduledTriggerInvocations, params.scopes),
           eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
           inArray(scheduledTriggerInvocations.status, ['pending', 'running']),
           lte(scheduledTriggerInvocations.scheduledFor, now)
@@ -741,4 +741,56 @@ export const listScheduledTriggerInvocationsByTriggerId =
       .from(scheduledTriggerInvocations)
       .where(and(...conditions))
       .orderBy(asc(scheduledTriggerInvocations.createdAt));
+  };
+
+export const listScheduledTriggerInvocationsByDatasetRunId =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    datasetRunId: string;
+    filters?: { status?: string };
+  }) => {
+    const conditions = [
+      eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
+      eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
+      sql`${scheduledTriggerInvocations.resolvedPayload}->>'datasetRunId' = ${params.datasetRunId}`,
+    ];
+
+    if (params.filters?.status) {
+      conditions.push(
+        eq(
+          scheduledTriggerInvocations.status,
+          params.filters.status as ScheduledTriggerInvocationStatus
+        )
+      );
+    }
+
+    return await db
+      .select()
+      .from(scheduledTriggerInvocations)
+      .where(and(...conditions))
+      .orderBy(asc(scheduledTriggerInvocations.createdAt));
+  };
+
+export const getLastRunAtForTrigger =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    scheduledTriggerId: string;
+  }): Promise<string | null> => {
+    const [row] = await db
+      .select({ completedAt: scheduledTriggerInvocations.completedAt })
+      .from(scheduledTriggerInvocations)
+      .where(
+        and(
+          eq(scheduledTriggerInvocations.tenantId, params.scopes.tenantId),
+          eq(scheduledTriggerInvocations.projectId, params.scopes.projectId),
+          eq(scheduledTriggerInvocations.scheduledTriggerId, params.scheduledTriggerId),
+          inArray(scheduledTriggerInvocations.status, ['completed', 'failed'])
+        )
+      )
+      .orderBy(desc(scheduledTriggerInvocations.completedAt))
+      .limit(1);
+
+    return row?.completedAt ?? null;
   };

@@ -1,7 +1,7 @@
 'use client';
 
 import type { ColumnDef } from '@tanstack/react-table';
-import { Ban, ChevronDown, ChevronRight, MoreHorizontal, RotateCcw } from 'lucide-react';
+import { Ban, MoreHorizontal, RotateCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -16,7 +16,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ExternalLink } from '@/components/ui/external-link';
-import { useOrgMembers } from '@/hooks/use-org-members';
 import {
   cancelScheduledTriggerInvocationAction,
   getScheduledTriggerInvocationsAction,
@@ -109,6 +108,28 @@ interface ScheduledTriggerInvocationsTableProps {
   projectId: string;
   agentId: string;
   scheduledTriggerId: string;
+  /**
+   * All triggers for this view
+   */
+  triggers?: { agentId: string; scheduledTriggerId: string }[];
+  datasetId?: string;
+}
+
+type DatasetRunLink = { datasetRunId: string; agentId: string };
+
+function extractDatasetRunLinks(
+  group: TickGroup,
+  resolveAgentId: (inv: ScheduledTriggerInvocation) => string | undefined
+): DatasetRunLink[] {
+  const seen = new Map<string, string>();
+  for (const inv of group.invocations) {
+    const runId = (inv.resolvedPayload as { datasetRunId?: string } | null | undefined)
+      ?.datasetRunId;
+    if (runId && !seen.has(runId)) {
+      seen.set(runId, resolveAgentId(inv) ?? 'unknown');
+    }
+  }
+  return Array.from(seen, ([datasetRunId, agentId]) => ({ datasetRunId, agentId }));
 }
 
 export function ScheduledTriggerInvocationsTable({
@@ -117,8 +138,18 @@ export function ScheduledTriggerInvocationsTable({
   projectId,
   agentId,
   scheduledTriggerId,
+  triggers,
+  datasetId,
 }: ScheduledTriggerInvocationsTableProps) {
   const router = useRouter();
+  const pollTargets =
+    triggers && triggers.length > 0 ? triggers : [{ agentId, scheduledTriggerId }];
+  const pollTargetsKey = JSON.stringify(pollTargets);
+  const agentIdByTriggerId = new Map(pollTargets.map((t) => [t.scheduledTriggerId, t.agentId]));
+  const resolveAgentId = (inv: ScheduledTriggerInvocation): string | undefined =>
+    agentIdByTriggerId.get(inv.scheduledTriggerId) ?? agentId;
+  const resolveTriggerId = (inv: ScheduledTriggerInvocation): string =>
+    inv.scheduledTriggerId ?? scheduledTriggerId;
   const [invocations, setInvocations] = useState(initialInvocations);
   const [prevInitialInvocations, setPrevInitialInvocations] = useState(initialInvocations);
   if (prevInitialInvocations !== initialInvocations) {
@@ -127,8 +158,6 @@ export function ScheduledTriggerInvocationsTable({
   }
 
   const [loadingInvocations, setLoadingInvocations] = useState<Set<string>>(new Set());
-  const [expandedTicks, setExpandedTicks] = useState<Set<string>>(new Set());
-  const { members: orgMembers } = useOrgMembers(tenantId);
 
   const hasTransientInvocations = invocations.some(
     (inv) => inv.status === 'pending' || inv.status === 'running'
@@ -137,16 +166,26 @@ export function ScheduledTriggerInvocationsTable({
   useEffect(() => {
     if (!hasTransientInvocations) return;
 
+    const targets = JSON.parse(pollTargetsKey) as {
+      agentId: string;
+      scheduledTriggerId: string;
+    }[];
+
     const pollInvocations = async () => {
       try {
-        const updated = await getScheduledTriggerInvocationsAction(
-          tenantId,
-          projectId,
-          agentId,
-          scheduledTriggerId,
-          { limit: 50 }
+        const perTrigger = await Promise.all(
+          targets.map(async (t) => {
+            const inv = await getScheduledTriggerInvocationsAction(
+              tenantId,
+              projectId,
+              t.agentId,
+              t.scheduledTriggerId,
+              { limit: 50 }
+            );
+            return Array.isArray(inv) ? inv : [];
+          })
         );
-        setInvocations(updated);
+        setInvocations(perTrigger.flat());
       } catch (error) {
         console.error('Failed to poll invocations:', error);
       }
@@ -154,42 +193,25 @@ export function ScheduledTriggerInvocationsTable({
 
     const intervalId = setInterval(pollInvocations, POLLING_INTERVAL_MS);
     return () => clearInterval(intervalId);
-  }, [hasTransientInvocations, tenantId, projectId, agentId, scheduledTriggerId]);
+  }, [hasTransientInvocations, tenantId, projectId, pollTargetsKey]);
 
   const tickGroups = groupByTick(invocations);
   const isMultiUser = tickGroups.some((g) => g.invocations.length > 1);
 
-  function toggleTick(scheduledFor: string) {
-    setExpandedTicks((prev) => {
-      const next = new Set(prev);
-      if (next.has(scheduledFor)) {
-        next.delete(scheduledFor);
-      } else {
-        next.add(scheduledFor);
-      }
-      return next;
-    });
-  }
-
-  function getUserDisplayName(userId: string | null | undefined) {
-    if (!userId) return '—';
-    const member = orgMembers.find((m) => m.id === userId);
-    return member?.name || member?.email || userId;
-  }
-
-  async function cancelInvocation(invocationId: string) {
+  async function cancelInvocation(inv: ScheduledTriggerInvocation) {
     if (!confirm('Are you sure you want to cancel this invocation?')) {
       return;
     }
 
+    const invocationId = inv.id;
     setLoadingInvocations((prev) => new Set(prev).add(invocationId));
 
     try {
       const result = await cancelScheduledTriggerInvocationAction(
         tenantId,
         projectId,
-        agentId,
-        scheduledTriggerId,
+        resolveAgentId(inv) ?? agentId,
+        resolveTriggerId(inv),
         invocationId
       );
 
@@ -210,19 +232,20 @@ export function ScheduledTriggerInvocationsTable({
     });
   }
 
-  async function rerunInvocation(invocationId: string) {
+  async function rerunInvocation(inv: ScheduledTriggerInvocation) {
     if (!confirm('Are you sure you want to rerun this invocation?')) {
       return;
     }
 
+    const invocationId = inv.id;
     setLoadingInvocations((prev) => new Set(prev).add(invocationId));
 
     try {
       const result = await rerunScheduledTriggerInvocationAction(
         tenantId,
         projectId,
-        agentId,
-        scheduledTriggerId,
+        resolveAgentId(inv) ?? agentId,
+        resolveTriggerId(inv),
         invocationId
       );
 
@@ -261,13 +284,13 @@ export function ScheduledTriggerInvocationsTable({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {canRerun && (
-            <DropdownMenuItem onClick={() => rerunInvocation(inv.id)}>
+            <DropdownMenuItem onClick={() => rerunInvocation(inv)}>
               <RotateCcw className="w-4 h-4" />
               Rerun
             </DropdownMenuItem>
           )}
           {canCancel && (
-            <DropdownMenuItem variant="destructive" onClick={() => cancelInvocation(inv.id)}>
+            <DropdownMenuItem variant="destructive" onClick={() => cancelInvocation(inv)}>
               <Ban className="w-4 h-4" />
               Cancel
             </DropdownMenuItem>
@@ -284,56 +307,66 @@ export function ScheduledTriggerInvocationsTable({
           <table className="w-full caption-bottom text-sm">
             <thead className="[&_tr]:border-b">
               <tr className="border-b transition-colors hover:bg-muted/50">
-                <th className="h-10 px-4 text-left align-middle font-medium text-muted-foreground w-8" />
                 <th className="h-10 px-4 text-left align-middle font-medium text-muted-foreground">
                   Scheduled For
+                </th>
+                <th className="h-10 px-4 text-left align-middle font-medium text-muted-foreground">
+                  Items
+                </th>
+                <th className="h-10 px-4 text-left align-middle font-medium text-muted-foreground">
+                  Agents
                 </th>
                 <th className="h-10 px-4 text-left align-middle font-medium text-muted-foreground">
                   Status
                 </th>
                 <th className="h-10 px-4 text-left align-middle font-medium text-muted-foreground">
-                  Users
+                  Executed At
                 </th>
                 <th className="h-10 px-4 text-left align-middle font-medium text-muted-foreground">
-                  Duration
+                  Run
                 </th>
               </tr>
             </thead>
             <tbody className="[&_tr:last-child]:border-0">
               {tickGroups.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="h-24 text-center text-muted-foreground">
+                  <td colSpan={6} className="h-24 text-center text-muted-foreground">
                     No invocations yet. The scheduled trigger will create invocations when it runs.
                   </td>
                 </tr>
               )}
               {tickGroups.map((group) => {
-                const isExpanded = expandedTicks.has(group.scheduledFor);
-                const latestCompletedAt = group.invocations
-                  .flatMap((i) => (i.completedAt ? [new Date(i.completedAt).getTime()] : []))
-                  .sort((a, b) => b - a)[0];
                 const earliestStartedAt = group.invocations
                   .flatMap((i) => (i.startedAt ? [new Date(i.startedAt).getTime()] : []))
                   .sort((a, b) => a - b)[0];
+                const agentCount = new Set(group.invocations.map((i) => resolveAgentId(i))).size;
+                const itemCount = new Set(
+                  group.invocations.map(
+                    (i) =>
+                      (i.resolvedPayload as { datasetItemId?: string } | null | undefined)
+                        ?.datasetItemId
+                  )
+                ).size;
+
+                const runLinks = datasetId
+                  ? extractDatasetRunLinks(group, resolveAgentId).map((link) => ({
+                      ...link,
+                      href: `/${tenantId}/projects/${projectId}/datasets/${datasetId}/runs/${link.datasetRunId}`,
+                    }))
+                  : [];
 
                 return (
                   <TickGroupRows
                     key={group.scheduledFor}
                     group={group}
-                    isExpanded={isExpanded}
-                    onToggle={() => toggleTick(group.scheduledFor)}
-                    tickDuration={
-                      earliestStartedAt !== undefined && latestCompletedAt !== undefined
-                        ? formatInvocationDuration(
-                            new Date(earliestStartedAt).toISOString(),
-                            new Date(latestCompletedAt).toISOString()
-                          )
+                    agentCount={agentCount}
+                    itemCount={itemCount}
+                    tickExecutedAt={
+                      earliestStartedAt !== undefined
+                        ? formatInvocationDateTime(new Date(earliestStartedAt).toISOString())
                         : '—'
                     }
-                    tenantId={tenantId}
-                    projectId={projectId}
-                    getUserDisplayName={getUserDisplayName}
-                    renderActions={renderInvocationActions}
+                    runLinks={runLinks}
                   />
                 );
               })}
@@ -439,93 +472,56 @@ export function ScheduledTriggerInvocationsTable({
 
 function TickGroupRows({
   group,
-  isExpanded,
-  onToggle,
-  tickDuration,
-  tenantId,
-  projectId,
-  getUserDisplayName,
-  renderActions,
+  agentCount,
+  itemCount,
+  tickExecutedAt,
+  runLinks,
 }: {
   group: TickGroup;
-  isExpanded: boolean;
-  onToggle: () => void;
-  tickDuration: string;
-  tenantId: string;
-  projectId: string;
-  getUserDisplayName: (userId: string | null | undefined) => string;
-  renderActions: (inv: ScheduledTriggerInvocation) => React.ReactNode;
+  agentCount: number;
+  itemCount: number;
+  tickExecutedAt: string;
+  runLinks: Array<{ datasetRunId: string; agentId: string; href: string }>;
 }) {
   return (
-    <>
-      <tr
-        className="border-b transition-colors hover:bg-muted/50 cursor-pointer"
-        onClick={onToggle}
-      >
-        <td className="p-4 align-middle">
-          {isExpanded ? (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          )}
-        </td>
-        <td className="p-4 align-middle">
-          <div className="font-mono text-sm">{formatInvocationDateTime(group.scheduledFor)}</div>
-        </td>
-        <td className="p-4 align-middle">
-          <TickStatusSummary summary={group.summary} />
-        </td>
-        <td className="p-4 align-middle">
-          <span className="text-sm text-muted-foreground">
-            {group.summary.total} user{group.summary.total !== 1 ? 's' : ''}
-          </span>
-        </td>
-        <td className="p-4 align-middle">
-          <span className="text-sm text-muted-foreground">{tickDuration}</span>
-        </td>
-      </tr>
-      {isExpanded &&
-        group.invocations.map((inv) => (
-          <tr key={inv.id} className="border-b transition-colors hover:bg-muted/30 bg-muted/10">
-            <td className="p-4 align-middle" />
-            <td className="p-4 align-middle pl-8">
-              <div className="text-sm font-medium">
-                {getUserDisplayName(
-                  (inv as ScheduledTriggerInvocation & { runAsUserId?: string }).runAsUserId
-                )}
-              </div>
-            </td>
-            <td className="p-4 align-middle">
-              {getInvocationStatusBadge(inv.status as InvocationStatus)}
-            </td>
-            <td className="p-4 align-middle">
-              {inv.conversationIds && inv.conversationIds.length > 0 ? (
-                <div className="flex flex-col gap-1">
-                  {inv.conversationIds.map((convId: string) => (
-                    <ExternalLink
-                      key={convId}
-                      href={`/${tenantId}/projects/${projectId}/traces/conversations/${convId}`}
-                      className="text-primary no-underline text-sm"
-                      iconClassName="text-primary"
-                    >
-                      View trace
-                    </ExternalLink>
-                  ))}
-                </div>
-              ) : (
-                <span className="text-muted-foreground text-sm">—</span>
-              )}
-            </td>
-            <td className="p-4 align-middle">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">
-                  {formatInvocationDuration(inv.startedAt, inv.completedAt)}
-                </span>
-                {renderActions(inv)}
-              </div>
-            </td>
-          </tr>
-        ))}
-    </>
+    <tr className="border-b transition-colors hover:bg-muted/50">
+      <td className="p-4 align-middle">
+        <div className="font-mono text-sm">{formatInvocationDateTime(group.scheduledFor)}</div>
+      </td>
+      <td className="p-4 align-middle">
+        <span className="text-sm text-muted-foreground">
+          {itemCount} item{itemCount !== 1 ? 's' : ''}
+        </span>
+      </td>
+      <td className="p-4 align-middle">
+        <span className="text-sm text-muted-foreground">
+          {agentCount} agent{agentCount !== 1 ? 's' : ''}
+        </span>
+      </td>
+      <td className="p-4 align-middle">
+        <TickStatusSummary summary={group.summary} />
+      </td>
+      <td className="p-4 align-middle">
+        <span className="text-sm text-muted-foreground">{tickExecutedAt}</span>
+      </td>
+      <td className="p-4 align-middle">
+        {runLinks.length > 0 ? (
+          <div className="flex flex-col gap-1">
+            {runLinks.map((link) => (
+              <ExternalLink
+                key={link.datasetRunId}
+                href={link.href}
+                className="text-primary no-underline text-sm"
+                iconClassName="text-primary"
+              >
+                {runLinks.length > 1 ? link.agentId : 'View run'}
+              </ExternalLink>
+            ))}
+          </div>
+        ) : (
+          <span className="text-muted-foreground text-sm">—</span>
+        )}
+      </td>
+    </tr>
   );
 }
