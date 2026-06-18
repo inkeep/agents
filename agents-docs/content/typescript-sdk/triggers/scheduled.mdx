@@ -5,7 +5,7 @@ description: Define scheduled triggers in the TypeScript SDK to run agents on a 
 icon: LuClock
 ---
 
-Scheduled triggers run agents on a time-based schedule using cron expressions or at a one-time future timestamp. See [Scheduled Triggers](/visual-builder/triggers/scheduled) for the dashboard configuration walkthrough.
+Scheduled triggers run agents on a time-based schedule using cron expressions or at a one-time future timestamp. The same scheduling primitives (cron and one-time) are also available for [scheduled dataset runs](#scheduled-dataset-runs). See [Scheduled Triggers](/visual-builder/triggers/scheduled) for the dashboard configuration walkthrough.
 
 ## Creating Scheduled Triggers
 
@@ -160,3 +160,90 @@ Scheduled triggers are managed separately from webhook triggers via dedicated AP
 2. **Configure retries for critical tasks** - Use `maxRetries` for important scheduled jobs
 3. **Monitor invocations** - Check the invocation history for failed runs
 4. **Use one-time triggers for deferred work** - Prefer `runAt` over cron for tasks that should execute exactly once
+
+## Scheduled Dataset Runs
+
+In addition to scheduling agent execution, you can schedule dataset runs (test suite runs) to run automatically. This is configured through the `EvaluationClient` when creating dataset run configs.
+
+### Creating a scheduled dataset run config
+
+Use `createDatasetRunConfig` with a `scheduleConfig` object to create a scheduled dataset run:
+
+```typescript
+import { EvaluationClient } from "@inkeep/agents-sdk";
+
+const client = new EvaluationClient({
+  tenantId: process.env.INKEEP_TENANT_ID!,
+  projectId: process.env.INKEEP_PROJECT_ID!,
+  apiUrl: "https://api.inkeep.com",
+  apiKey: process.env.INKEEP_API_KEY,
+});
+
+// Create a scheduled dataset run config
+const scheduledConfig = await client.createDatasetRunConfig({
+  name: "Nightly Regression Tests",
+  datasetId: "your-test-suite-id",
+  agentIds: ["your-agent-id"],
+  evaluatorIds: ["your-evaluator-id"],
+  scheduleConfig: {
+    cronExpression: "0 2 * * *", // Daily at 2 AM
+    cronTimezone: "America/New_York",
+    enabled: true,
+    dispatchDelayMs: 1000, // Stagger dispatch by 1 second per user
+  },
+  runAsUserIds: ["user_abc123", "user_def456"], // Optional: fan out per user
+});
+```
+
+### Schedule configuration options
+
+| Option | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `cronExpression` | `string` | One of cron/runAt | — | 5-field cron expression for recurring runs |
+| `cronTimezone` | `string` | No | `UTC` | IANA timezone for cron evaluation |
+| `runAt` | `string` | One of cron/runAt | — | ISO 8601 timestamp for one-time execution |
+| `enabled` | `boolean` | No | `true` | Whether the schedule is active |
+| `dispatchDelayMs` | `number` | No | `0` | Milliseconds to stagger dispatch per user |
+
+### Per-user fan-out
+
+When `runAsUserIds` is provided, the scheduled run creates separate dataset run executions for each user. This is useful when:
+- Tests need to run with different user credentials
+- You want to validate behavior across multiple user contexts
+- Tools require user-scoped OAuth tokens
+
+Each user's run is dispatched with an optional stagger delay (`dispatchDelayMs`) to spread load.
+
+### One-time scheduled runs
+
+For runs that should execute once and then disable:
+
+```typescript
+const oneTimeRun = await client.createDatasetRunConfig({
+  name: "Migration Validation",
+  datasetId: testSuiteId,
+  agentIds: [agentId],
+  scheduleConfig: {
+    runAt: "2025-04-01T00:00:00Z",
+    enabled: true,
+  },
+});
+```
+
+One-time triggers automatically disable after successful completion.
+
+See [Evaluations](/typescript-sdk/evaluations) for full documentation on creating and managing dataset run configs.
+
+## Related
+
+<Cards>
+  <Card title="Evaluations SDK" icon="LuFlaskConical" href="/typescript-sdk/evaluations">
+    Create and manage evaluators, test suites, and dataset run configs programmatically.
+  </Card>
+  <Card title="Visual Builder: Test Suites" icon="LuFlaskConical" href="/visual-builder/test-suites">
+    Configure test suites and run configurations in the UI.
+  </Card>
+  <Card title="Scheduled Triggers (Visual Builder)" icon="LuClock" href="/visual-builder/triggers/scheduled">
+    Configure scheduled triggers in the dashboard.
+  </Card>
+</Cards>
