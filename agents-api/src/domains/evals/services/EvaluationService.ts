@@ -64,22 +64,11 @@ export class EvaluationService {
       throw new Error('Failed to resolve ref');
     }
 
-    // Get conversation history
-    const conversationHistory = await getConversationHistory(runDbClient)({
-      scopes: { tenantId, projectId },
-      conversationId: conversation.id,
-      options: {
-        includeInternal: false,
-        limit: 100,
-      },
-    });
-
     // Get agent definition
     let agentDefinition: FullAgentDefinition | null = null;
     let agentId: string | null = null;
 
     try {
-      // Get agentId from subagent
       agentId = conversation.agentId ?? null;
 
       if (agentId) {
@@ -117,13 +106,65 @@ export class EvaluationService {
       'Trace fetch completed'
     );
 
-    const conversationText = JSON.stringify(conversationHistory, null, 2);
+    let conversationText: string;
+    let traceText: string;
+
+    if (prettifiedTrace) {
+      traceText = JSON.stringify(prettifiedTrace, null, 2);
+      try {
+        const conversationHistory = await getConversationHistory(runDbClient)({
+          scopes: { tenantId, projectId },
+          conversationId: conversation.id,
+          options: {
+            includeInternal: false,
+            limit: 100,
+          },
+        });
+        conversationText = JSON.stringify(conversationHistory, null, 2);
+      } catch (error) {
+        logger.warn(
+          { error, conversationId: conversation.id },
+          'Failed to fetch conversation history, proceeding without it'
+        );
+        conversationText = 'Conversation history not available';
+      }
+    } else {
+      try {
+        const fullHistory = await getConversationHistory(runDbClient)({
+          scopes: { tenantId, projectId },
+          conversationId: conversation.id,
+          options: {
+            includeInternal: true,
+            limit: 200,
+          },
+        });
+
+        logger.info(
+          {
+            conversationId: conversation.id,
+            fullHistoryCount: fullHistory.length,
+            hasToolMessages: fullHistory.some(
+              (m) => m.messageType === 'tool-call' || m.messageType === 'tool-result'
+            ),
+          },
+          'Trace unavailable, using full conversation history with tool messages as fallback'
+        );
+
+        conversationText = JSON.stringify(fullHistory, null, 2);
+      } catch (error) {
+        logger.warn(
+          { error, conversationId: conversation.id },
+          'Failed to fetch full conversation history fallback, proceeding without it'
+        );
+        conversationText = 'Conversation history not available';
+      }
+      traceText =
+        'Trace data not available — tool call details are included in Conversation History above.';
+    }
+
     const agentDefinitionText = agentDefinition
       ? JSON.stringify(agentDefinition, null, 2)
       : 'Agent definition not available';
-    const traceText = prettifiedTrace
-      ? JSON.stringify(prettifiedTrace, null, 2)
-      : 'Trace data not available';
 
     const modelConfig: ModelSettings = (evaluator.model ?? {}) as ModelSettings;
 
