@@ -4,7 +4,7 @@ description: Run your Agents automatically on a recurring schedule or at a speci
 icon: LuClock
 ---
 
-Scheduled triggers run agents automatically on a recurring schedule (cron) or at a specific future time (one-time). Use them for daily reports, hourly health checks, periodic data syncs, or deferred tasks.
+Scheduled triggers run agents automatically on a recurring schedule (cron) or at a specific future time (one-time). Use them for daily reports, hourly health checks, periodic data syncs, or deferred tasks. Scheduled triggers can also be configured for [dataset runs](#scheduled-dataset-runs) (test suite runs) to automate recurring evaluation workflows.
 
 <Snippet file="user-scoped-mcp-triggers-warning.mdx" />
 
@@ -131,6 +131,45 @@ Each invocation shows its status, scheduled time, start time, duration, attempt 
 | **Cancel** | `pending` or `running` | Stop the invocation before it completes |
 | **Rerun** | `completed`, `failed`, or `cancelled` | Re-execute with the same trigger configuration. Creates a new invocation and runs it immediately. |
 
+
+## Scheduled dataset runs
+
+Dataset run configurations (used for [test suite](/visual-builder/test-suites) runs and evaluations) can also be scheduled to run automatically. This lets you set up nightly regression tests, periodic evaluation runs, or other recurring test workflows.
+
+### Creating a scheduled dataset run
+
+1. Navigate to **Datasets** and select your test suite.
+2. Open the **Scheduled** tab to see existing scheduled configurations.
+3. Click **New scheduled config** to create a new scheduled dataset run.
+4. Configure the schedule using the same options as agent triggers:
+   - **Recurring (Cron)** — runs on a schedule defined by a cron expression
+   - **One-time** — runs once at a specified future time
+5. Select the **run-as users** if you need the dataset run to execute with specific user identities and credentials.
+6. Set retry behavior and dispatch delay as needed.
+7. Save the configuration.
+
+### Managing scheduled dataset runs
+
+The **Scheduled** tab on the Datasets page shows all scheduled configurations for that dataset:
+
+| Column | Description |
+| --- | --- |
+| **Name** | The run configuration name |
+| **Status** | Enabled or disabled |
+| **Schedule** | Cron expression or one-time timestamp |
+| **Next Run** | When the trigger will next fire |
+| **Last Run** | When it last executed |
+
+Each scheduled config has actions to edit, delete, trigger immediately, or view invocation history.
+
+### Viewing invocation history
+
+Click **View Invocations** on a scheduled config to see all past executions. Each invocation shows:
+- Status (pending, running, completed, failed)
+- Scheduled time and actual start time
+- Duration and attempt number
+- Link to the dataset run results
+
 ## Cron expression reference
 
 Cron triggers use standard 5-field syntax:
@@ -163,6 +202,9 @@ Cron triggers use standard 5-field syntax:
   </Card>
   <Card title="Webhook Triggers" icon="LuWebhook" href="/visual-builder/triggers/webhooks">
     For event-driven execution from external services, use webhook triggers.
+  </Card>
+  <Card title="Test Suites" icon="LuFlaskConical" href="/visual-builder/test-suites">
+    Learn about test suites and evaluation workflows.
   </Card>
   <Card title="Chat API" icon="LuNetwork" href="/talk-to-your-agents/chat-api">
     For synchronous conversations, use the Chat API.
