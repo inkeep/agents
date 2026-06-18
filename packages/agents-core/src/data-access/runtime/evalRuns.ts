@@ -61,6 +61,24 @@ export const listDatasetRuns =
       .orderBy(desc(datasetRun.createdAt));
   };
 
+export const getDatasetRunsByIds =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    datasetRunIds: string[];
+  }): Promise<DatasetRunSelect[]> => {
+    if (params.datasetRunIds.length === 0) return [];
+    return await db
+      .select()
+      .from(datasetRun)
+      .where(
+        and(
+          projectScopedWhere(datasetRun, params.scopes),
+          inArray(datasetRun.id, params.datasetRunIds)
+        )
+      );
+  };
+
 export const listDatasetRunsByConfig =
   (db: AgentsRunDatabaseClient) =>
   async (params: {

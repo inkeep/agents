@@ -40,14 +40,15 @@ export interface EvaluationJobConfigInsert {
   evaluatorIds?: string[];
 }
 
-/**
- * Fetch all evaluation job configs for a project
- */
+export interface EvaluationJobConfigsResponse extends ListResponse<EvaluationJobConfig> {
+  datasetRunNames?: Record<string, string>;
+}
+
 export async function fetchEvaluationJobConfigs(
   tenantId: string,
   projectId: string
-): Promise<ListResponse<EvaluationJobConfig>> {
-  return makeManagementApiRequest<ListResponse<EvaluationJobConfig>>(
+): Promise<EvaluationJobConfigsResponse> {
+  return makeManagementApiRequest<EvaluationJobConfigsResponse>(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluation-job-configs`
   );
 }
