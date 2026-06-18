@@ -84,4 +84,42 @@ describe('queueDatasetRunItems', () => {
       ])
     );
   });
+
+  it('routes each item to its own scheduledTriggerId', async () => {
+    markRunningMock.mockResolvedValue(null);
+    markFailedMock.mockResolvedValue(null);
+    startMock.mockReset().mockResolvedValue(undefined);
+
+    await queueDatasetRunItems({
+      tenantId: 't1',
+      projectId: 'p1',
+      datasetRunId: 'dr1',
+      items: [
+        {
+          agentId: 'a1',
+          id: 'i1',
+          input: { messages: [] },
+          scheduledTriggerInvocationId: 'inv1',
+          scheduledTriggerId: 'trigger-a1',
+        },
+        {
+          agentId: 'a2',
+          id: 'i2',
+          input: { messages: [] },
+          scheduledTriggerInvocationId: 'inv2',
+        },
+      ],
+    });
+
+    expect(startMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.arrayContaining([expect.objectContaining({ triggerId: 'trigger-a1' })])
+    );
+    expect(startMock).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.arrayContaining([expect.objectContaining({ triggerId: undefined })])
+    );
+  });
 });

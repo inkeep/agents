@@ -743,7 +743,7 @@ app.openapi(
 
     // Cancel any pending invocations before deleting the trigger
     const cancelledCount = await cancelPendingInvocationsForTrigger(runDbClient)({
-      scopes: { tenantId, projectId, agentId },
+      scopes: { tenantId, projectId },
       scheduledTriggerId: id,
     });
 

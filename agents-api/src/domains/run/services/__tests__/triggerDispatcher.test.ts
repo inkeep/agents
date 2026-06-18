@@ -20,7 +20,11 @@ vi.mock('workflow/api', () => ({
 vi.mock('../../../../logger', () => createMockLoggerModule().module);
 
 vi.mock('../../workflow/functions/scheduledTriggerRunner', () => ({
-  scheduledTriggerRunnerWorkflow: 'mock-workflow',
+  scheduledTriggerRunnerWorkflow: 'mock-agent-workflow',
+}));
+
+vi.mock('../../../evals/workflow/functions/scheduledDatasetRun', () => ({
+  scheduledDatasetRunWorkflow: 'mock-dataset-run-workflow',
 }));
 
 import {
@@ -57,6 +61,7 @@ function makeTrigger(overrides: Partial<ScheduledTrigger> = {}): ScheduledTrigge
     runAsUserId: 'user-1',
     createdBy: null,
     dispatchDelayMs: null,
+    datasetRunConfigId: null,
     nextRunAt: '2026-03-13T10:00:00.000Z',
     enabled: true,
     ref: 'main',
@@ -276,5 +281,51 @@ describe('dispatchDueTriggers', () => {
         ref: 'main',
       }),
     ]);
+  });
+
+  it('dispatches dataset run trigger to scheduledDatasetRunWorkflow (no fan-out)', async () => {
+    const trigger = makeTrigger({
+      datasetRunConfigId: 'drc-1',
+      agentId: null,
+    });
+    mockFindDueTriggers.mockReturnValue(() => Promise.resolve([trigger]));
+
+    const result = await dispatchDueTriggers();
+
+    expect(result).toEqual({ dispatched: 1 });
+    expect(mockStart).toHaveBeenCalledTimes(1);
+    expect(mockStart).toHaveBeenCalledWith('mock-dataset-run-workflow', [
+      expect.objectContaining({
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        datasetRunConfigId: 'drc-1',
+        scheduledTriggerId: 'trigger-1',
+      }),
+    ]);
+    expect(mockGetScheduledTriggerUsers).not.toHaveBeenCalled();
+  });
+
+  it('does not fan out dataset run trigger even when join table has entries', async () => {
+    const trigger = makeTrigger({
+      datasetRunConfigId: 'drc-1',
+      agentId: null,
+    });
+    mockFindDueTriggers.mockReturnValue(() => Promise.resolve([trigger]));
+
+    const result = await dispatchDueTriggers();
+
+    expect(result).toEqual({ dispatched: 1 });
+    expect(mockStart).toHaveBeenCalledTimes(1);
+    expect(mockStart).toHaveBeenCalledWith('mock-dataset-run-workflow', [expect.any(Object)]);
+  });
+
+  it('dispatches agent trigger to scheduledTriggerRunnerWorkflow when no datasetRunConfigId', async () => {
+    const trigger = makeTrigger({ payload: { someKey: 'value' } });
+    mockFindDueTriggers.mockReturnValue(() => Promise.resolve([trigger]));
+
+    const result = await dispatchDueTriggers();
+
+    expect(result).toEqual({ dispatched: 1 });
+    expect(mockStart).toHaveBeenCalledWith('mock-agent-workflow', [expect.any(Object)]);
   });
 });

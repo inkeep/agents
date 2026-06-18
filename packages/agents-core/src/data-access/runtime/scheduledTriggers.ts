@@ -8,16 +8,21 @@ import { computeNextRunAt } from '../../utils/compute-next-run-at';
 export const getScheduledTriggerById =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
-    scopes: AgentScopeConfig;
+    scopes: { tenantId: string; projectId: string; agentId?: string };
     scheduledTriggerId: string;
   }): Promise<ScheduledTrigger | undefined> => {
+    const conditions = [
+      eq(scheduledTriggers.tenantId, params.scopes.tenantId),
+      eq(scheduledTriggers.projectId, params.scopes.projectId),
+      eq(scheduledTriggers.id, params.scheduledTriggerId),
+    ];
+
+    if (params.scopes.agentId) {
+      conditions.push(eq(scheduledTriggers.agentId, params.scopes.agentId));
+    }
+
     const result = await db.query.scheduledTriggers.findFirst({
-      where: and(
-        eq(scheduledTriggers.tenantId, params.scopes.tenantId),
-        eq(scheduledTriggers.projectId, params.scopes.projectId),
-        eq(scheduledTriggers.agentId, params.scopes.agentId),
-        eq(scheduledTriggers.id, params.scheduledTriggerId)
-      ),
+      where: and(...conditions),
     });
 
     return result;
@@ -72,26 +77,24 @@ export const createScheduledTrigger =
 export const updateScheduledTrigger =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
-    scopes: AgentScopeConfig;
+    scopes: { tenantId: string; projectId: string; agentId?: string };
     scheduledTriggerId: string;
     data: Partial<ScheduledTriggerInsert> & { nextRunAt?: string | null };
   }): Promise<ScheduledTrigger> => {
-    const updateData = {
-      ...params.data,
-      updatedAt: new Date().toISOString(),
-    };
+    const conditions = [
+      eq(scheduledTriggers.tenantId, params.scopes.tenantId),
+      eq(scheduledTriggers.projectId, params.scopes.projectId),
+      eq(scheduledTriggers.id, params.scheduledTriggerId),
+    ];
+
+    if (params.scopes.agentId) {
+      conditions.push(eq(scheduledTriggers.agentId, params.scopes.agentId));
+    }
 
     const result = await db
       .update(scheduledTriggers)
-      .set(updateData as any)
-      .where(
-        and(
-          eq(scheduledTriggers.tenantId, params.scopes.tenantId),
-          eq(scheduledTriggers.projectId, params.scopes.projectId),
-          eq(scheduledTriggers.agentId, params.scopes.agentId),
-          eq(scheduledTriggers.id, params.scheduledTriggerId)
-        )
-      )
+      .set({ ...params.data, updatedAt: new Date().toISOString() } as any)
+      .where(and(...conditions))
       .returning();
 
     const updated = result[0];
@@ -103,17 +106,21 @@ export const updateScheduledTrigger =
 
 export const deleteScheduledTrigger =
   (db: AgentsRunDatabaseClient) =>
-  async (params: { scopes: AgentScopeConfig; scheduledTriggerId: string }): Promise<void> => {
-    await db
-      .delete(scheduledTriggers)
-      .where(
-        and(
-          eq(scheduledTriggers.tenantId, params.scopes.tenantId),
-          eq(scheduledTriggers.projectId, params.scopes.projectId),
-          eq(scheduledTriggers.agentId, params.scopes.agentId),
-          eq(scheduledTriggers.id, params.scheduledTriggerId)
-        )
-      );
+  async (params: {
+    scopes: { tenantId: string; projectId: string; agentId?: string };
+    scheduledTriggerId: string;
+  }): Promise<void> => {
+    const conditions = [
+      eq(scheduledTriggers.tenantId, params.scopes.tenantId),
+      eq(scheduledTriggers.projectId, params.scopes.projectId),
+      eq(scheduledTriggers.id, params.scheduledTriggerId),
+    ];
+
+    if (params.scopes.agentId) {
+      conditions.push(eq(scheduledTriggers.agentId, params.scopes.agentId));
+    }
+
+    await db.delete(scheduledTriggers).where(and(...conditions));
   };
 
 export const upsertScheduledTrigger =
@@ -209,7 +216,7 @@ export const findDueScheduledTriggersAcrossProjects =
 export const advanceScheduledTriggerNextRunAt =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
-    scopes: AgentScopeConfig;
+    scopes: { tenantId: string; projectId: string; agentId?: string };
     scheduledTriggerId: string;
     nextRunAt: string | null;
     enabled?: boolean;
@@ -223,15 +230,39 @@ export const advanceScheduledTriggerNextRunAt =
       set.enabled = params.enabled;
     }
 
+    const conditions = [
+      eq(scheduledTriggers.tenantId, params.scopes.tenantId),
+      eq(scheduledTriggers.projectId, params.scopes.projectId),
+      eq(scheduledTriggers.id, params.scheduledTriggerId),
+    ];
+
+    if (params.scopes.agentId) {
+      conditions.push(eq(scheduledTriggers.agentId, params.scopes.agentId));
+    }
+
     await db
       .update(scheduledTriggers)
       .set(set as any)
+      .where(and(...conditions));
+  };
+
+export const findScheduledTriggerByDatasetRunConfigId =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    tenantId: string;
+    projectId: string;
+    datasetRunConfigId: string;
+  }): Promise<ScheduledTrigger | undefined> => {
+    const [result] = await db
+      .select()
+      .from(scheduledTriggers)
       .where(
         and(
-          eq(scheduledTriggers.tenantId, params.scopes.tenantId),
-          eq(scheduledTriggers.projectId, params.scopes.projectId),
-          eq(scheduledTriggers.agentId, params.scopes.agentId),
-          eq(scheduledTriggers.id, params.scheduledTriggerId)
+          eq(scheduledTriggers.tenantId, params.tenantId),
+          eq(scheduledTriggers.projectId, params.projectId),
+          eq(scheduledTriggers.datasetRunConfigId, params.datasetRunConfigId)
         )
       );
+
+    return result;
   };

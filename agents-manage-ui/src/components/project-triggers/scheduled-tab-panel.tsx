@@ -17,16 +17,16 @@ const POLLING_INTERVAL_MS = 3000;
 export function ScheduledTabPanel({
   tenantId,
   projectId,
-  initialTriggers,
+  allTriggers,
   agents,
 }: {
   tenantId: string;
   projectId: string;
-  initialTriggers: ScheduledTriggerWithAgent[];
+  allTriggers: ScheduledTriggerWithAgent[];
   agents: AgentSummary[];
 }) {
   const [agentFilter, setAgentFilter] = useState('');
-  const [triggers, setTriggers] = useState(initialTriggers);
+  const [triggers, setTriggers] = useState(allTriggers);
   const {
     data: { canEdit },
   } = useProjectPermissionsQuery();
@@ -45,9 +45,11 @@ export function ScheduledTabPanel({
     return () => clearInterval(intervalId);
   }, [tenantId, projectId]);
 
+  const agentConversationTriggers = triggers.filter((t) => !t.datasetRunConfigId);
+
   const filteredTriggers = !agentFilter
-    ? triggers
-    : triggers.filter((t) => t.agentId === agentFilter);
+    ? agentConversationTriggers
+    : agentConversationTriggers.filter((t) => t.agentId === agentFilter);
 
   return (
     <div className="space-y-4">

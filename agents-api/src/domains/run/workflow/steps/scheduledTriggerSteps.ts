@@ -45,13 +45,13 @@ export async function logStep(message: string, data: Record<string, unknown>) {
 export async function checkTriggerEnabledStep(params: {
   tenantId: string;
   projectId: string;
-  agentId: string;
+  agentId?: string;
   scheduledTriggerId: string;
   runnerId: string;
 }) {
   'use step';
 
-  const scopes = {
+  const scopes: { tenantId: string; projectId: string; agentId?: string } = {
     tenantId: params.tenantId,
     projectId: params.projectId,
     agentId: params.agentId,
@@ -111,10 +111,18 @@ export async function createInvocationIdempotentStep(params: {
   }
 
   const projectScopedRef = getProjectScopedRef(params.tenantId, params.projectId, params.ref);
-  const resolvedRef = await resolveRef(manageDbClient)(projectScopedRef);
+  let resolvedRef: Awaited<ReturnType<ReturnType<typeof resolveRef>>> = null;
+  try {
+    resolvedRef = await resolveRef(manageDbClient)(projectScopedRef);
+  } catch (err) {
+    logger.warn(
+      { err },
+      'Failed to resolve ref for project, run will not be associated with a branch'
+    );
+  }
 
   if (!resolvedRef) {
-    logger.warn('Failed to resolve ref for project, run will not be associated with a branch');
+    logger.warn('Could not resolve ref for project, run will not be associated with a branch');
   }
 
   const invocationId = generateId();
@@ -291,7 +299,7 @@ export async function markFailedStep(params: {
 export async function disableOneTimeTriggerStep(params: {
   tenantId: string;
   projectId: string;
-  agentId: string;
+  agentId?: string;
   scheduledTriggerId: string;
 }) {
   'use step';

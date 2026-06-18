@@ -14,7 +14,7 @@ export async function ScheduledTabContent({
     <ScheduledTabPanel
       tenantId={tenantId}
       projectId={projectId}
-      initialTriggers={triggers}
+      allTriggers={triggers}
       agents={agents}
     />
   );

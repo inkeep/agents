@@ -81,6 +81,9 @@ import type {
   DatasetRunConfigAgentRelationInsertSchema,
   DatasetRunConfigAgentRelationSelectSchema,
   DatasetRunConfigAgentRelationUpdateSchema,
+  DatasetRunConfigEvaluatorRelationInsertSchema,
+  DatasetRunConfigEvaluatorRelationSelectSchema,
+  DatasetRunConfigEvaluatorRelationUpdateSchema,
   DatasetRunConfigInsertSchema,
   DatasetRunConfigSelectSchema,
   DatasetRunConfigUpdateSchema,
@@ -402,6 +405,15 @@ export type DatasetRunConfigAgentRelationInsert = z.infer<
 >;
 export type DatasetRunConfigAgentRelationUpdate = z.infer<
   typeof DatasetRunConfigAgentRelationUpdateSchema
+>;
+export type DatasetRunConfigEvaluatorRelationSelect = z.infer<
+  typeof DatasetRunConfigEvaluatorRelationSelectSchema
+>;
+export type DatasetRunConfigEvaluatorRelationInsert = z.infer<
+  typeof DatasetRunConfigEvaluatorRelationInsertSchema
+>;
+export type DatasetRunConfigEvaluatorRelationUpdate = z.infer<
+  typeof DatasetRunConfigEvaluatorRelationUpdateSchema
 >;
 export type DatasetRunItem = z.infer<typeof DatasetRunItemSchema>;
 export type TriggerConversationEvaluationRequest = z.infer<

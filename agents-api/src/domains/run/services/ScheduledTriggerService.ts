@@ -33,7 +33,6 @@ export async function onTriggerUpdated(params: {
       scopes: {
         tenantId: trigger.tenantId,
         projectId: trigger.projectId,
-        agentId: trigger.agentId,
       },
       scheduledTriggerId: trigger.id,
     });
@@ -53,7 +52,6 @@ export async function onTriggerUpdated(params: {
       scopes: {
         tenantId: trigger.tenantId,
         projectId: trigger.projectId,
-        agentId: trigger.agentId,
       },
       scheduledTriggerId: trigger.id,
     });

@@ -694,6 +694,7 @@ describe('User-Scoped Scheduled Triggers', () => {
       createdBy: 'user-a',
       ref: 'main',
       dispatchDelayMs: null,
+      datasetRunConfigId: null,
       nextRunAt: '2025-01-01T09:00:00Z',
       createdAt: '2025-01-01T00:00:00Z',
       updatedAt: '2025-01-01T00:00:00Z',

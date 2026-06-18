@@ -17,13 +17,16 @@ import type { ActionResult } from './types';
 export async function createDatasetRunConfigAction(
   tenantId: string,
   projectId: string,
-  data: DatasetRunConfigInsert
+  data: DatasetRunConfigInsert & { skipAutoRun?: boolean; dispatchDelayMs?: number }
 ): Promise<ActionResult<DatasetRunConfig>> {
   try {
     const response = await apiCreateDatasetRunConfig(tenantId, projectId, data);
-    await apiTriggerDatasetRun(tenantId, projectId, response.data.id, {
-      evaluatorIds: data.evaluatorIds,
-    });
+    if (!data.skipAutoRun) {
+      await apiTriggerDatasetRun(tenantId, projectId, response.data.id, {
+        evaluatorIds: data.evaluatorIds,
+        dispatchDelayMs: data.dispatchDelayMs,
+      });
+    }
     revalidatePath(`/${tenantId}/projects/${projectId}/datasets/${data.datasetId}`);
     return { success: true, data: response.data };
   } catch (error) {

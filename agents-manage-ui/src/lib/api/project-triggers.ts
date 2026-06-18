@@ -22,12 +22,12 @@ export type TriggerWithAgent = Trigger & {
 };
 
 export type ScheduledTriggerWithAgent = ScheduledTriggerWithRunInfo & {
-  agentId: string;
+  agentId: string | null;
   agentName: string;
 };
 
 export type ScheduledTriggerInvocationWithContext = ScheduledTriggerInvocation & {
-  agentId: string;
+  agentId: string | null;
   agentName: string;
   triggerName: string;
 };
@@ -109,25 +109,27 @@ export async function fetchProjectScheduledTriggerInvocations(
   const { triggers: scheduledTriggers } = await fetchProjectScheduledTriggers(tenantId, projectId);
 
   const allInvocations = await Promise.all(
-    scheduledTriggers.map(async (trigger) => {
-      try {
-        const response = await fetchScheduledTriggerInvocations(
-          tenantId,
-          projectId,
-          trigger.agentId,
-          trigger.id,
-          { status: options?.status, limit: options?.limit || 20 }
-        );
-        return response.data.map((invocation) => ({
-          ...invocation,
-          agentId: trigger.agentId,
-          agentName: trigger.agentName,
-          triggerName: trigger.name,
-        }));
-      } catch {
-        return [];
-      }
-    })
+    scheduledTriggers
+      .filter((t): t is typeof t & { agentId: string } => t.agentId !== null)
+      .map(async (trigger) => {
+        try {
+          const response = await fetchScheduledTriggerInvocations(
+            tenantId,
+            projectId,
+            trigger.agentId,
+            trigger.id,
+            { status: options?.status, limit: options?.limit || 20 }
+          );
+          return response.data.map((invocation) => ({
+            ...invocation,
+            agentId: trigger.agentId,
+            agentName: trigger.agentName,
+            triggerName: trigger.name,
+          }));
+        } catch {
+          return [];
+        }
+      })
   );
 
   return allInvocations.flat().sort((a, b) => {

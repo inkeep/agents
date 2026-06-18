@@ -49,6 +49,8 @@ type RunDatasetItemPayload = {
   evaluationRunId?: string;
   ref?: string;
   delayBeforeExecutionMs?: number;
+  triggerId?: string;
+  runAsUserId?: string;
 };
 
 /**
@@ -94,13 +96,14 @@ async function executeDatasetItemStep(payload: RunDatasetItemPayload) {
         tenantId,
         projectId,
         agentId,
-        triggerId: datasetRunId,
+        triggerId: payload.triggerId ?? datasetRunId,
         invocationId: scheduledTriggerInvocationId,
         conversationId,
         resolvedRef,
         messages: datasetItemInput.messages,
         invocationType: 'scheduled_trigger',
         datasetRunId,
+        runAsUserId: payload.runAsUserId,
       }),
       timeoutPromise,
     ]);
@@ -132,6 +135,7 @@ async function recordConversationStep(params: {
   datasetItemId: string;
   conversationId: string;
   scheduledTriggerInvocationId: string;
+  triggerScope: string;
 }) {
   'use step';
 
@@ -157,7 +161,7 @@ async function recordConversationStep(params: {
       }),
       addConversationIdToInvocation(runDbClient)({
         scopes: { tenantId, projectId, agentId },
-        scheduledTriggerId: datasetRunId,
+        scheduledTriggerId: params.triggerScope,
         invocationId: scheduledTriggerInvocationId,
         conversationId,
       }),
@@ -183,6 +187,7 @@ async function markCompletedStep(params: {
   agentId: string;
   datasetRunId: string;
   scheduledTriggerInvocationId: string;
+  triggerScope: string;
 }) {
   'use step';
 
@@ -193,7 +198,7 @@ async function markCompletedStep(params: {
         projectId: params.projectId,
         agentId: params.agentId,
       },
-      scheduledTriggerId: params.datasetRunId,
+      scheduledTriggerId: params.triggerScope,
       invocationId: params.scheduledTriggerInvocationId,
     }),
     updateTriggerInvocationStatus(runDbClient)({
@@ -202,7 +207,7 @@ async function markCompletedStep(params: {
         projectId: params.projectId,
         agentId: params.agentId,
       },
-      triggerId: params.datasetRunId,
+      triggerId: params.triggerScope,
       invocationId: params.scheduledTriggerInvocationId,
       data: { status: 'success' },
     }).catch((err) =>
@@ -223,6 +228,7 @@ async function markFailedStep(params: {
   agentId: string;
   datasetRunId: string;
   scheduledTriggerInvocationId: string;
+  triggerScope: string;
 }) {
   'use step';
 
@@ -233,7 +239,7 @@ async function markFailedStep(params: {
         projectId: params.projectId,
         agentId: params.agentId,
       },
-      scheduledTriggerId: params.datasetRunId,
+      scheduledTriggerId: params.triggerScope,
       invocationId: params.scheduledTriggerInvocationId,
     }),
     updateTriggerInvocationStatus(runDbClient)({
@@ -242,7 +248,7 @@ async function markFailedStep(params: {
         projectId: params.projectId,
         agentId: params.agentId,
       },
-      triggerId: params.datasetRunId,
+      triggerId: params.triggerScope,
       invocationId: params.scheduledTriggerInvocationId,
       data: { status: 'failed' },
     }).catch((err) =>
@@ -263,6 +269,7 @@ async function markRunningStep(params: {
   agentId: string;
   datasetRunId: string;
   scheduledTriggerInvocationId: string;
+  triggerScope: string;
 }) {
   'use step';
 
@@ -272,7 +279,7 @@ async function markRunningStep(params: {
       projectId: params.projectId,
       agentId: params.agentId,
     },
-    scheduledTriggerId: params.datasetRunId,
+    scheduledTriggerId: params.triggerScope,
     invocationId: params.scheduledTriggerInvocationId,
   });
 }
@@ -496,6 +503,7 @@ async function _runDatasetItemWorkflow(payload: RunDatasetItemPayload) {
     evaluationRunId,
     delayBeforeExecutionMs,
   } = payload;
+  const triggerScope = payload.triggerId ?? datasetRunId;
 
   await logStep('Starting dataset item processing', {
     datasetItemId,
@@ -515,6 +523,7 @@ async function _runDatasetItemWorkflow(payload: RunDatasetItemPayload) {
     agentId,
     datasetRunId,
     scheduledTriggerInvocationId,
+    triggerScope,
   });
 
   const result = await executeDatasetItemStep(payload);
@@ -528,6 +537,7 @@ async function _runDatasetItemWorkflow(payload: RunDatasetItemPayload) {
       datasetItemId,
       conversationId: result.conversationId,
       scheduledTriggerInvocationId,
+      triggerScope,
     });
 
     await markCompletedStep({
@@ -536,6 +546,7 @@ async function _runDatasetItemWorkflow(payload: RunDatasetItemPayload) {
       agentId,
       datasetRunId,
       scheduledTriggerInvocationId,
+      triggerScope,
     });
 
     if (evaluatorIds && evaluatorIds.length > 0 && evaluationRunId) {
@@ -572,6 +583,7 @@ async function _runDatasetItemWorkflow(payload: RunDatasetItemPayload) {
       agentId,
       datasetRunId,
       scheduledTriggerInvocationId,
+      triggerScope,
     });
   }
 

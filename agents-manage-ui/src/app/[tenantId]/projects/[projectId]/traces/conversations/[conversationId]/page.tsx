@@ -33,6 +33,7 @@ import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { hasConversationFeedbackAction } from '@/lib/actions/feedback';
 import { rerunScheduledTriggerInvocationAction } from '@/lib/actions/scheduled-triggers';
 import { rerunTriggerAction } from '@/lib/actions/triggers';
+import { getDatasetRunByConversation, rerunDatasetRunItem } from '@/lib/api/dataset-runs';
 import { throwError } from '@/lib/utils';
 import { formatDateTime, formatDuration } from '@/lib/utils/format-date';
 import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
@@ -134,13 +135,34 @@ export default function ConversationDetail({
     const isScheduledTrigger = conversation.invocationType === 'scheduled_trigger';
 
     if (isScheduledTrigger) {
-      if (!conversation.triggerInvocationId) {
-        toast.error('Missing invocation ID — cannot rerun scheduled trigger from this trace');
-        return;
-      }
-
       setIsRerunning(true);
       try {
+        const datasetRunInfo = await getDatasetRunByConversation(
+          tenantId,
+          projectId,
+          conversationId
+        );
+
+        if (datasetRunInfo) {
+          const result = await rerunDatasetRunItem(
+            tenantId,
+            projectId,
+            datasetRunInfo.datasetRunId,
+            datasetRunInfo.datasetItemId
+          );
+          toast.success('Dataset item rerun dispatched', {
+            description: `New invocation: ${result.invocationId}`,
+          });
+          setIsRerunning(false);
+          return;
+        }
+
+        if (!conversation.triggerInvocationId) {
+          toast.error('Missing invocation ID — cannot rerun scheduled trigger from this trace');
+          setIsRerunning(false);
+          return;
+        }
+
         const result = await rerunScheduledTriggerInvocationAction(
           tenantId,
           projectId,
@@ -159,11 +181,12 @@ export default function ConversationDetail({
           });
         }
       } catch (err) {
-        toast.error('Failed to rerun scheduled trigger', {
+        toast.error('Failed to rerun', {
           description: err instanceof Error ? err.message : 'An unknown error occurred',
         });
       }
       setIsRerunning(false);
+      return;
     }
 
     const userMessageActivity = conversation.activities?.find(

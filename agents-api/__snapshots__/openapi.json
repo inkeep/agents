@@ -3731,6 +3731,12 @@
             "nullable": true,
             "type": "string"
           },
+          "dispatchDelayMs": {
+            "maximum": 2147483647,
+            "minimum": -2147483648,
+            "nullable": true,
+            "type": "integer"
+          },
           "id": {
             "maxLength": 256,
             "type": "string"
@@ -3748,6 +3754,7 @@
           "name",
           "description",
           "datasetId",
+          "dispatchDelayMs",
           "createdAt",
           "updatedAt"
         ],
@@ -3765,6 +3772,12 @@
           "description": {
             "nullable": true,
             "type": "string"
+          },
+          "dispatchDelayMs": {
+            "maximum": 2147483647,
+            "minimum": -2147483648,
+            "nullable": true,
+            "type": "integer"
           },
           "name": {
             "maxLength": 256,
@@ -3792,6 +3805,12 @@
           "description": {
             "nullable": true,
             "type": "string"
+          },
+          "dispatchDelayMs": {
+            "maximum": 2147483647,
+            "minimum": -2147483648,
+            "nullable": true,
+            "type": "integer"
           },
           "name": {
             "maxLength": 256,
@@ -8462,6 +8481,11 @@
             "nullable": true,
             "type": "string"
           },
+          "datasetRunConfigId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
           "description": {
             "nullable": true,
             "type": "string"
@@ -8553,6 +8577,7 @@
           "nextRunAt",
           "ref",
           "dispatchDelayMs",
+          "datasetRunConfigId",
           "createdAt",
           "updatedAt"
         ],
@@ -8573,6 +8598,11 @@
             "default": "UTC",
             "description": "IANA timezone for cron expression (e.g., America/New_York, Europe/London)",
             "maxLength": 64,
+            "nullable": true,
+            "type": "string"
+          },
+          "datasetRunConfigId": {
+            "maxLength": 256,
             "nullable": true,
             "type": "string"
           },
@@ -8828,6 +8858,11 @@
           "cronTimezone": {
             "description": "IANA timezone for cron expression (e.g., America/New_York, Europe/London)",
             "maxLength": 64,
+            "nullable": true,
+            "type": "string"
+          },
+          "datasetRunConfigId": {
+            "maxLength": 256,
             "nullable": true,
             "type": "string"
           },
@@ -35085,7 +35120,28 @@
                 "schema": {
                   "properties": {
                     "data": {
-                      "$ref": "#/components/schemas/DatasetRunConfig"
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/DatasetRunConfig"
+                        },
+                        {
+                          "properties": {
+                            "agentIds": {
+                              "items": {
+                                "type": "string"
+                              },
+                              "type": "array"
+                            },
+                            "evaluatorIds": {
+                              "items": {
+                                "type": "string"
+                              },
+                              "type": "array"
+                            }
+                          },
+                          "type": "object"
+                        }
+                      ]
                     }
                   },
                   "required": [
@@ -35358,11 +35414,21 @@
                   "branchName": {
                     "type": "string"
                   },
+                  "dispatchDelayMs": {
+                    "description": "Delay in ms between each item execution (overrides schedule default)",
+                    "maximum": 600000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
                   "evaluatorIds": {
                     "items": {
                       "type": "string"
                     },
                     "type": "array"
+                  },
+                  "runAsUserId": {
+                    "description": "User ID to run dataset items as",
+                    "type": "string"
                   }
                 },
                 "type": "object"
@@ -35379,6 +35445,15 @@
                     "datasetRunId": {
                       "type": "string"
                     },
+                    "datasetRunIds": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "failedCount": {
+                      "type": "number"
+                    },
                     "status": {
                       "enum": [
                         "pending"
@@ -35391,6 +35466,7 @@
                   },
                   "required": [
                     "datasetRunId",
+                    "datasetRunIds",
                     "status",
                     "totalItems"
                   ],
@@ -35468,6 +35544,590 @@
         "x-authz": {
           "description": "Requires project edit permission (project_admin, or org admin/owner)",
           "permission": "edit",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/evals/dataset-run-configs/{runConfigId}/schedule": {
+      "delete": {
+        "operationId": "delete-dataset-run-config-schedule",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "runConfigId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Schedule deleted"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Delete schedule for a dataset run config",
+        "tags": [
+          "Evaluations"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      },
+      "get": {
+        "operationId": "get-dataset-run-config-schedule",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "runConfigId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": true,
+                  "properties": {
+                    "cronExpression": {
+                      "type": "string"
+                    },
+                    "cronTimezone": {
+                      "type": "string"
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "lastRunAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "maxRetries": {
+                      "type": "number"
+                    },
+                    "nextRunAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "retryDelaySeconds": {
+                      "type": "number"
+                    },
+                    "timeoutSeconds": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "cronExpression",
+                    "cronTimezone",
+                    "enabled"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Schedule details"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get schedule for a dataset run config",
+        "tags": [
+          "Evaluations"
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
+          "resource": "project"
+        }
+      },
+      "put": {
+        "operationId": "set-dataset-run-config-schedule",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "runConfigId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "cronExpression": {
+                    "description": "Cron expression for the schedule",
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "cronTimezone": {
+                    "default": "UTC",
+                    "description": "Timezone for the cron schedule",
+                    "type": "string"
+                  },
+                  "enabled": {
+                    "default": true,
+                    "description": "Whether the schedule is active",
+                    "type": "boolean"
+                  },
+                  "maxRetries": {
+                    "description": "Number of retry attempts (0-10)",
+                    "maximum": 10,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "retryDelaySeconds": {
+                    "description": "Seconds between retries (10-3600)",
+                    "maximum": 3600,
+                    "minimum": 10,
+                    "type": "integer"
+                  },
+                  "timeoutSeconds": {
+                    "description": "Execution timeout (30-780)",
+                    "maximum": 780,
+                    "minimum": 30,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "cronExpression"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "cronExpression": {
+                      "type": "string"
+                    },
+                    "cronTimezone": {
+                      "type": "string"
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "lastRunAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "maxRetries": {
+                      "type": "number"
+                    },
+                    "nextRunAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "retryDelaySeconds": {
+                      "type": "number"
+                    },
+                    "timeoutSeconds": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "cronExpression",
+                    "cronTimezone",
+                    "enabled"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Schedule set successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Set or update schedule for a dataset run config",
+        "tags": [
+          "Evaluations"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      }
+    },
+    "/manage/tenants/{tenantId}/projects/{projectId}/evals/dataset-runs/by-conversation/{conversationId}": {
+      "get": {
+        "operationId": "get-dataset-run-by-conversation",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "conversationId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": true,
+                  "properties": {
+                    "conversationId": {
+                      "type": "string"
+                    },
+                    "datasetItemId": {
+                      "type": "string"
+                    },
+                    "datasetRunId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "datasetRunId",
+                    "datasetItemId",
+                    "conversationId"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Dataset run info for the conversation"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get dataset run info for a conversation",
+        "tags": [
+          "Evaluations"
+        ],
+        "x-authz": {
+          "description": "Requires project view permission (project_viewer+, or org admin/owner)",
+          "permission": "view",
           "resource": "project"
         }
       }
@@ -36003,6 +36663,144 @@
         }
       }
     },
+    "/manage/tenants/{tenantId}/projects/{projectId}/evals/dataset-runs/{runId}/items/{itemId}/rerun": {
+      "post": {
+        "operationId": "rerun-dataset-run-item",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "itemId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "datasetItemId": {
+                      "type": "string"
+                    },
+                    "datasetRunId": {
+                      "type": "string"
+                    },
+                    "invocationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "invocationId",
+                    "datasetRunId",
+                    "datasetItemId"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Dataset item rerun triggered"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Rerun a single dataset item",
+        "tags": [
+          "Evaluations"
+        ],
+        "x-authz": {
+          "description": "Requires project edit permission (project_admin, or org admin/owner)",
+          "permission": "edit",
+          "resource": "project"
+        }
+      }
+    },
     "/manage/tenants/{tenantId}/projects/{projectId}/evals/dataset-runs/{runId}/rerun": {
       "post": {
         "operationId": "rerun-dataset-run",
@@ -36065,6 +36863,15 @@
                     "datasetRunId": {
                       "type": "string"
                     },
+                    "datasetRunIds": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "failedCount": {
+                      "type": "number"
+                    },
                     "status": {
                       "enum": [
                         "pending"
@@ -36077,6 +36884,7 @@
                   },
                   "required": [
                     "datasetRunId",
+                    "datasetRunIds",
                     "status",
                     "totalItems"
                   ],

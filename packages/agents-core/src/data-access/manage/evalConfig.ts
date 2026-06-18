@@ -7,6 +7,7 @@ import {
   datasetItem,
   datasetRunConfig,
   datasetRunConfigAgentRelations,
+  datasetRunConfigEvaluatorRelations,
   evaluationJobConfig,
   evaluationJobConfigEvaluatorRelations,
   evaluationRunConfig,
@@ -28,6 +29,8 @@ import type {
   DatasetItemUpdate,
   DatasetRunConfigAgentRelationInsert,
   DatasetRunConfigAgentRelationSelect,
+  DatasetRunConfigEvaluatorRelationInsert,
+  DatasetRunConfigEvaluatorRelationSelect,
   DatasetRunConfigInsert,
   DatasetRunConfigSelect,
   DatasetRunConfigUpdate,
@@ -427,6 +430,84 @@ export const deleteDatasetRunConfigAgentRelation =
       .returning();
 
     return result.length > 0;
+  };
+
+export const getDatasetRunConfigEvaluatorRelations =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig & { datasetRunConfigId: string };
+  }): Promise<DatasetRunConfigEvaluatorRelationSelect[]> => {
+    return await db
+      .select()
+      .from(datasetRunConfigEvaluatorRelations)
+      .where(
+        and(
+          projectScopedWhere(datasetRunConfigEvaluatorRelations, params.scopes),
+          eq(
+            datasetRunConfigEvaluatorRelations.datasetRunConfigId,
+            params.scopes.datasetRunConfigId
+          )
+        )
+      );
+  };
+
+export const createDatasetRunConfigEvaluatorRelation =
+  (db: AgentsManageDatabaseClient) =>
+  async (
+    data: DatasetRunConfigEvaluatorRelationInsert
+  ): Promise<DatasetRunConfigEvaluatorRelationSelect> => {
+    const now = new Date().toISOString();
+
+    const [created] = await db
+      .insert(datasetRunConfigEvaluatorRelations)
+      .values({
+        ...data,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+
+    return created;
+  };
+
+export const deleteDatasetRunConfigEvaluatorRelation =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig & { datasetRunConfigId: string; evaluatorId: string };
+  }): Promise<boolean> => {
+    const result = await db
+      .delete(datasetRunConfigEvaluatorRelations)
+      .where(
+        and(
+          projectScopedWhere(datasetRunConfigEvaluatorRelations, params.scopes),
+          eq(
+            datasetRunConfigEvaluatorRelations.datasetRunConfigId,
+            params.scopes.datasetRunConfigId
+          ),
+          eq(datasetRunConfigEvaluatorRelations.evaluatorId, params.scopes.evaluatorId)
+        )
+      )
+      .returning();
+
+    return result.length > 0;
+  };
+
+export const deleteDatasetRunConfigEvaluatorRelationsByConfigId =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig & { datasetRunConfigId: string };
+  }): Promise<void> => {
+    await db
+      .delete(datasetRunConfigEvaluatorRelations)
+      .where(
+        and(
+          projectScopedWhere(datasetRunConfigEvaluatorRelations, params.scopes),
+          eq(
+            datasetRunConfigEvaluatorRelations.datasetRunConfigId,
+            params.scopes.datasetRunConfigId
+          )
+        )
+      );
   };
 
 // ============================================================================

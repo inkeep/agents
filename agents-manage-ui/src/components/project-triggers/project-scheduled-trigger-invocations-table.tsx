@@ -57,7 +57,7 @@ export function ProjectScheduledTriggerInvocationsTable({
   // Derive unique agents and triggers from the data
   const uniqueAgents = new Map<string, string>();
   invocations.forEach((inv) => {
-    if (!uniqueAgents.has(inv.agentId)) {
+    if (inv.agentId && !uniqueAgents.has(inv.agentId)) {
       uniqueAgents.set(inv.agentId, inv.agentName);
     }
   });
@@ -132,7 +132,7 @@ export function ProjectScheduledTriggerInvocationsTable({
       const result = await cancelScheduledTriggerInvocationAction(
         tenantId,
         projectId,
-        invocation.agentId,
+        invocation.agentId ?? '',
         invocation.scheduledTriggerId,
         invocation.id
       );
@@ -165,7 +165,7 @@ export function ProjectScheduledTriggerInvocationsTable({
       const result = await rerunScheduledTriggerInvocationAction(
         tenantId,
         projectId,
-        invocation.agentId,
+        invocation.agentId ?? '',
         invocation.scheduledTriggerId,
         invocation.id
       );
