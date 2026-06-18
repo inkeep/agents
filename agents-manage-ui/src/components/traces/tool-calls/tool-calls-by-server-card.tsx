@@ -101,7 +101,7 @@ export function ToolCallsByServerCard({
           const serverTools = toolsByServer[serverName];
           const serverTotalCalls = serverTools.reduce((sum, t) => sum + t.totalCalls, 0);
           const serverTotalErrors = serverTools.reduce((sum, t) => sum + t.errorCount, 0);
-          const serverSuccessful = serverTotalCalls - serverTotalErrors;
+          const serverSuccessful = Math.max(0, serverTotalCalls - serverTotalErrors);
           const serverId = serverTools[0]?.serverId;
           const toolsToShow = serverTools
             .filter((tool) => selectedTool === 'all' || tool.toolName === selectedTool)
@@ -117,7 +117,7 @@ export function ToolCallsByServerCard({
               totalCalls={serverTotalCalls}
               tools={toolsToShow.map((tool) => ({
                 name: tool.toolName === UNKNOWN_VALUE ? 'Unknown Tool' : tool.toolName,
-                successCount: tool.totalCalls - tool.errorCount,
+                successCount: Math.max(0, tool.totalCalls - tool.errorCount),
                 totalCalls: tool.totalCalls,
               }))}
             />
