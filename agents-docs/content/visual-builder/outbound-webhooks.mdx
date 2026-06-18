@@ -36,6 +36,7 @@ Outbound webhooks push data _from_ Inkeep _to_ your server. For the reverse — 
     | **Description** | No | Explains what this webhook does |
     | **Custom Headers** | No | Additional HTTP headers sent with every delivery |
     | **Agents** | No | Scope to specific agents. Leave empty to receive events from all agents in the project |
+    | **Evaluators** | No | Scope `evaluation.failed` events to specific evaluators. Leave empty to receive failures from all evaluators |
     | **Enabled** | — | Toggle on to activate immediately |
   </Step>
   <Step>
@@ -64,6 +65,12 @@ Each webhook destination subscribes to one or more event types. Your endpoint re
 ### Agent scoping
 
 When you select specific agents on a webhook destination, only events originating from those agents trigger delivery. Leave the agents field empty to receive events from every agent in the project.
+
+### Evaluator scoping
+
+The `evaluation.failed` event type supports additional scoping by evaluator. When you select specific evaluators on a webhook destination, only failures from those evaluators trigger delivery. Leave the evaluators field empty to receive failures from all evaluators in the project.
+
+In the webhook destination form, the evaluator scope appears under an **Advanced** collapsible section beneath the `evaluation.failed` event type checkbox.
 
 ## Payload format
 
