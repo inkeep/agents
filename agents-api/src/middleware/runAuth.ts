@@ -331,8 +331,8 @@ async function trySlackUserJwtAuth(token: string, reqData: RequestData): Promise
  *       this replaces the copilot path's azp-allowlist as the security gate, and
  *   (c) per-user authorization via SpiceDB on the requested project.
  * better-auth only stamps `aud` when the client sent a `resource` param, so a
- * non-resource token (e.g. copilot's) simply fails the audience check and falls
- * through to the other strategies — it is never accepted here.
+ * non-resource token simply fails the audience check and falls through to the
+ * other strategies — it is never accepted here.
  */
 async function tryOAuthUserAuth(token: string, reqData: RequestData): Promise<AuthAttempt> {
   if (token.split('.').length !== 3) {
