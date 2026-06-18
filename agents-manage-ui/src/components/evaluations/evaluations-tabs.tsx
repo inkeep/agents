@@ -24,6 +24,7 @@ interface EvaluationsTabsProps {
   projectId: string;
   evaluators: Evaluator[];
   jobConfigs: EvaluationJobConfig[];
+  datasetRunNames?: Record<string, string>;
   runConfigs: EvaluationRunConfig[];
 }
 
@@ -32,6 +33,7 @@ export function EvaluationsTabs({
   projectId,
   evaluators,
   jobConfigs,
+  datasetRunNames,
   runConfigs,
 }: EvaluationsTabsProps) {
   const router = useRouter();
@@ -129,7 +131,12 @@ export function EvaluationsTabs({
       </TabsContent>
 
       <TabsContent value="jobs" className="mt-6">
-        <EvaluationJobsList tenantId={tenantId} projectId={projectId} jobConfigs={jobConfigs} />
+        <EvaluationJobsList
+          tenantId={tenantId}
+          projectId={projectId}
+          jobConfigs={jobConfigs}
+          datasetRunNames={datasetRunNames}
+        />
       </TabsContent>
 
       <TabsContent value="run-configs" className="mt-6">

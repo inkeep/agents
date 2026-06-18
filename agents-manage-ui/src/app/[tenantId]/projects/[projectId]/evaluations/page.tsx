@@ -21,7 +21,7 @@ async function EvaluationsPage({
   const { tenantId, projectId } = await params;
 
   try {
-    const [evaluators, jobConfigs, runConfigs] = await Promise.all([
+    const [evaluators, jobConfigsResponse, runConfigs] = await Promise.all([
       fetchEvaluators(tenantId, projectId),
       fetchEvaluationJobConfigs(tenantId, projectId),
       fetchEvaluationRunConfigs(tenantId, projectId),
@@ -33,7 +33,8 @@ async function EvaluationsPage({
           tenantId={tenantId}
           projectId={projectId}
           evaluators={evaluators.data}
-          jobConfigs={jobConfigs.data}
+          jobConfigs={jobConfigsResponse.data}
+          datasetRunNames={jobConfigsResponse.datasetRunNames ?? {}}
           runConfigs={runConfigs.data}
         />
       </>

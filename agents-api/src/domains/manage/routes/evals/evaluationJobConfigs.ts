@@ -10,8 +10,10 @@ import {
   type EvaluationJobFilterCriteria,
   EvaluationResultApiSelectSchema,
   generateId,
+  getDatasetRunsByIds,
   getEvaluationJobConfigById,
   ListResponseSchema,
+  listDatasetRunConfigs,
   listEvaluationJobConfigs,
   listEvaluationResultsPaginated,
   PaginationQueryParamsSchema,
@@ -27,6 +29,12 @@ import { queueEvaluationJobConversations } from '../../../evals/services/evaluat
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('evaluationJobConfigs');
+
+const EvaluationJobConfigsListResponseSchema = ListResponseSchema(
+  EvaluationJobConfigApiSelectSchema
+).extend({
+  datasetRunNames: z.record(z.string(), z.string()).optional(),
+});
 
 // Require edit permission for write operations
 /**
@@ -60,7 +68,7 @@ app.openapi(
         description: 'List of evaluation job configs',
         content: {
           'application/json': {
-            schema: ListResponseSchema(EvaluationJobConfigApiSelectSchema),
+            schema: EvaluationJobConfigsListResponseSchema,
           },
         },
       },
@@ -75,8 +83,46 @@ app.openapi(
       const configs = await listEvaluationJobConfigs(db)({
         scopes: { tenantId, projectId },
       });
+
+      const datasetRunIds = new Set<string>();
+      for (const config of configs) {
+        const criteria = config.jobFilters as EvaluationJobFilterCriteria | null | undefined;
+        if (criteria?.datasetRunIds) {
+          for (const id of criteria.datasetRunIds) {
+            datasetRunIds.add(id);
+          }
+        }
+      }
+
+      const datasetRunNames: Record<string, string> = {};
+      if (datasetRunIds.size > 0) {
+        const [datasetRuns, runConfigs] = await Promise.all([
+          getDatasetRunsByIds(runDbClient)({
+            scopes: { tenantId, projectId },
+            datasetRunIds: [...datasetRunIds],
+          }).catch((error) => {
+            logger.warn({ error }, 'Failed to fetch dataset runs for name resolution');
+            return [] as Awaited<ReturnType<ReturnType<typeof getDatasetRunsByIds>>>;
+          }),
+          listDatasetRunConfigs(db)({ scopes: { tenantId, projectId } }).catch((error) => {
+            logger.warn({ error }, 'Failed to fetch dataset run configs for name resolution');
+            return [] as Awaited<ReturnType<ReturnType<typeof listDatasetRunConfigs>>>;
+          }),
+        ]);
+
+        const configNameById = new Map(runConfigs.map((rc) => [rc.id, rc.name]));
+
+        for (const run of datasetRuns) {
+          const name = run.datasetRunConfigId && configNameById.get(run.datasetRunConfigId);
+          if (name) {
+            datasetRunNames[run.id] = name;
+          }
+        }
+      }
+
       return c.json({
         data: configs as any,
+        datasetRunNames,
         pagination: {
           page: 1,
           limit: configs.length,
