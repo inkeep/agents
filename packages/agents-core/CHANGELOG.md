@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.79.1
+
+### Patch Changes
+
+- 1f02799: Deliver classic (non-durable) tool approvals across server instances via a shared decision store, fixing approvals lost when the response lands on a different instance than the one running the agent
+
 ## 0.79.0
 
 ### Minor Changes
