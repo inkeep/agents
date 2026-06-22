@@ -3,6 +3,7 @@ import {
   ConversationDetailSchema,
   commonGetErrorResponses,
   createApiError,
+  errorSchemaFactory,
   formatMessagesForLLMContext,
   getConversation,
   getConversationHistory,
@@ -335,15 +336,10 @@ app.openapi(
           },
         },
       },
+      // commonGetErrorResponses already provides the RFC-7807 400/404 envelopes the
+      // handler now throws via createApiError. 502 (blob storage failure) is added here.
       ...commonGetErrorResponses,
-      400: {
-        description: 'Invalid path or media key',
-        content: {
-          'application/json': {
-            schema: z.object({ error: z.string() }),
-          },
-        },
-      },
+      502: errorSchemaFactory('bad_gateway', 'Failed to retrieve media from storage'),
     },
   }),
   async (c) => {
@@ -354,7 +350,7 @@ app.openapi(
     try {
       decodedForValidation = decodeURIComponent(pathAfterMedia);
     } catch {
-      return c.json({ error: 'Invalid media key' }, 400);
+      throw createApiError({ code: 'bad_request', message: 'Invalid media key' });
     }
 
     if (
@@ -363,7 +359,7 @@ app.openapi(
       decodedForValidation.includes('\\') ||
       decodedForValidation.split('/').some((segment) => segment === '..')
     ) {
-      return c.json({ error: 'Invalid media key' }, 400);
+      throw createApiError({ code: 'bad_request', message: 'Invalid media key' });
     }
 
     const key = `${buildMediaStorageKeyPrefix({ tenantId, projectId, conversationId })}/${pathAfterMedia}`;
@@ -386,9 +382,9 @@ app.openapi(
         'Failed to serve media'
       );
       if (isMediaNotFoundError(error)) {
-        return c.json({ error: 'Media not found' }, 404);
+        throw createApiError({ code: 'not_found', message: 'Media not found' });
       }
-      return c.json({ error: 'Failed to retrieve media' }, 502);
+      throw createApiError({ code: 'bad_gateway', message: 'Failed to retrieve media' });
     }
   }
 );

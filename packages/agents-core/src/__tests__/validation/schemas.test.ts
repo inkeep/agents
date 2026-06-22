@@ -3,6 +3,7 @@ import {
   ConversationInsertSchema,
   DataComponentApiInsertSchema,
   DataComponentApiUpdateSchema,
+  EvaluatorApiInsertSchema,
   MessageInsertSchema,
   PaginationQueryParamsSchema,
   PaginationSchema,
@@ -155,6 +156,34 @@ describe('Validation Schemas', () => {
   describe('DataComponentApiInsertSchema', () => {
     it('should still require name and props on create', () => {
       const result = DataComponentApiInsertSchema.safeParse({ id: 'tasks-agent', render: null });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('EvaluatorApiInsertSchema', () => {
+    const valid = {
+      name: 'quality',
+      prompt: 'Evaluate the response',
+      model: { model: 'openai/gpt-5' },
+      schema: { type: 'object', properties: { pass: { type: 'boolean' } }, required: ['pass'] },
+    };
+
+    it('accepts a valid evaluator', () => {
+      expect(EvaluatorApiInsertSchema.safeParse(valid).success).toBe(true);
+    });
+
+    it('gives an actionable message when model/schema are omitted (not a generic union dump)', () => {
+      const result = EvaluatorApiInsertSchema.safeParse({ name: 'quality', prompt: 'x' });
+      expect(result.success).toBe(false);
+      if (result.success) return;
+      const byPath = (p: string) =>
+        result.error.issues.find((i) => i.path.join('.') === p)?.message ?? '';
+      expect(byPath('model')).toContain('model is required');
+      expect(byPath('schema')).toContain('schema is required');
+    });
+
+    it('rejects non-object model/schema (was previously accepted as JSON strings)', () => {
+      const result = EvaluatorApiInsertSchema.safeParse({ ...valid, model: 'gpt', schema: 'x' });
       expect(result.success).toBe(false);
     });
   });

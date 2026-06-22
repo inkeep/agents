@@ -21,7 +21,7 @@ vi.mock('../../../data/db/runDbClient.js', () => ({
   default: {},
 }));
 
-// Mock session auth
+// Mock session auth (these endpoints stay session-cookie-only).
 vi.mock('../../../middleware/sessionAuth.js', () => ({
   sessionAuth:
     () => async (c: { set: (key: string, value: unknown) => void }, next: () => Promise<void>) => {
@@ -246,7 +246,7 @@ describe('Users Route', () => {
         expect(getUserProvidersFromDbMock).not.toHaveBeenCalled();
       });
 
-      it('should call getUserProvidersFromDb with correct userIds', async () => {
+      it('should call getUserProvidersFromDb with the userIds scoped to the organization', async () => {
         getUserProvidersFromDbMock.mockResolvedValue([]);
 
         await usersRoutes.request('/providers', {
@@ -255,7 +255,11 @@ describe('Users Route', () => {
           body: JSON.stringify({ userIds: ['user-1', 'user-2', 'user-3'], organizationId: orgId }),
         });
 
-        expect(getUserProvidersFromDbMock).toHaveBeenCalledWith(['user-1', 'user-2', 'user-3']);
+        // organizationId is passed so the query only returns providers for org members (IDOR fix).
+        expect(getUserProvidersFromDbMock).toHaveBeenCalledWith(
+          ['user-1', 'user-2', 'user-3'],
+          orgId
+        );
       });
 
       it('should handle database errors gracefully', async () => {

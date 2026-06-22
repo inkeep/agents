@@ -185,7 +185,11 @@ describe('Conversation media route', () => {
     );
 
     expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({ error: 'Invalid media key' });
+    // Normalized RFC-7807 envelope (consistent with the rest of the API).
+    await expect(response.json()).resolves.toMatchObject({
+      code: 'bad_request',
+      detail: 'Invalid media key',
+    });
   });
 
   it('returns 404 for missing media keys from storage', async () => {
@@ -197,7 +201,10 @@ describe('Conversation media route', () => {
     );
 
     expect(response.status).toBe(404);
-    await expect(response.json()).resolves.toEqual({ error: 'Media not found' });
+    await expect(response.json()).resolves.toMatchObject({
+      code: 'not_found',
+      detail: 'Media not found',
+    });
   });
 
   it('returns 502 for storage infrastructure errors and logs context', async () => {
@@ -209,7 +216,8 @@ describe('Conversation media route', () => {
     );
 
     expect(response.status).toBe(502);
-    await expect(response.json()).resolves.toEqual({ error: 'Failed to retrieve media' });
+    // 5xx detail is intentionally a generic message (no internal leak); assert the code.
+    await expect(response.json()).resolves.toMatchObject({ code: 'bad_gateway', status: 502 });
     expect(refs.mockLogger.error).toHaveBeenCalledWith(
       expect.objectContaining({
         requestId: 'req-test-1',

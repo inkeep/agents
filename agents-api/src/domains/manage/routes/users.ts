@@ -13,8 +13,19 @@ import type { ManageAppVariables } from '../../../types/app';
 
 const usersRoutes = new Hono<{ Variables: ManageAppVariables }>();
 
-// Require authentication for all routes
-usersRoutes.use('*', sessionAuth());
+// Session-cookie auth for this route group's own endpoints. Scoped to those exact paths
+// (NOT a `use('*')`) on purpose: usersRoutes shares the /api/users prefix with
+// userProfileRoutes, and a wildcard gate here runs first and shadows
+// /api/users/{userId}/profile — that is what 401'd OAuth/MCP bearer callers before the
+// profile route (which has its own manageBearerOrSessionAuth) could run. Keeping these
+// endpoints session-only also avoids widening them to bearer callers.
+//
+// IMPORTANT: there is NO `/manage/api/users/*` global auth gate (the global
+// manageBearerOrSessionAuth only covers `/manage/tenants/*`), so these per-path gates are
+// the ONLY auth boundary for this group. Any NEW route added here MUST add a matching
+// `usersRoutes.use('<path>', sessionAuth())` or it ships unauthenticated.
+usersRoutes.use('/:userId/organizations', sessionAuth());
+usersRoutes.use('/providers', sessionAuth());
 
 /**
  * GET /api/users/:userId/organizations
@@ -103,7 +114,9 @@ usersRoutes.post('/providers', async (c) => {
   }
 
   try {
-    const providers = await getUserProvidersFromDb(runDbClient)(userIds);
+    // Pass organizationId so the query only returns providers for members of this org
+    // (the caller was authorized as an admin/owner of it above).
+    const providers = await getUserProvidersFromDb(runDbClient)(userIds, organizationId);
     return c.json(providers);
   } catch (error) {
     console.error('[users/providers] Error fetching providers:', error);

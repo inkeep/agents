@@ -1965,7 +1965,23 @@ const passCriteriaSchema: z.ZodType<PassCriteria, any, any> = z
   });
 
 export const EvaluatorSelectSchema = createSelectSchema(evaluator);
-export const EvaluatorInsertSchema = createInsertSchema(evaluator).extend({
+// `model` and `schema` are notNull jsonb columns. Without refinement drizzle-zod types
+// them as a generic JSON-value union, so a missing/wrong field produced an unhelpful
+// `invalid_union: "Invalid input"` error (and a bare string like "gpt" was accepted).
+// Require an object with an actionable message instead. Kept as a permissive object
+// (not the full recursive JSON-Schema meta-schema) to avoid bloating the tool schema;
+// the evaluator validates the precise shapes when it runs.
+export const EvaluatorInsertSchema = createInsertSchema(evaluator, {
+  model: () =>
+    z.record(z.string(), z.unknown(), {
+      error: 'model is required: the evaluator LLM config object, e.g. { "model": "openai/gpt-5" }',
+    }),
+  schema: () =>
+    z.record(z.string(), z.unknown(), {
+      error:
+        'schema is required: a JSON Schema object for the evaluator output, e.g. { "type": "object", "properties": { "pass": { "type": "boolean" } }, "required": ["pass"] }',
+    }),
+}).extend({
   id: ResourceIdSchema,
   passCriteria: passCriteriaSchema.nullable().optional(),
 });

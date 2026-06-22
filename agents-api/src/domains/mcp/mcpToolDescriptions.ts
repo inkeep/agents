@@ -29,6 +29,10 @@ Notes: pass projectId as a separate top-level argument (tenantId is bound from y
   'agents-update-full-agent': `
 
 This REPLACES the agent's full definition — include every sub-agent/tool/component you want to keep, or they are removed. For a simple field change (e.g. name or description), prefer agents-update-agent instead.`,
+
+  'skills-update-skill': `
+
+Destructive default: a 'files' array REPLACES the skill's full file set — any file you omit is dropped. To change one file, prefer skills-update-skill-file (or include every file you want to keep).`,
 };
 
 export function augmentToolDescriptions(mcpServer: unknown): void {

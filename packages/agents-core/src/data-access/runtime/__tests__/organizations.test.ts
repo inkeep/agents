@@ -4,6 +4,7 @@ import { createInvitationInDb, getUserProvidersFromDb } from '../organizations';
 describe('getUserProvidersFromDb', () => {
   const mockSelect = vi.fn();
   const mockFrom = vi.fn();
+  const mockInnerJoin = vi.fn();
   const mockWhere = vi.fn();
 
   const mockDb = {
@@ -13,14 +14,15 @@ describe('getUserProvidersFromDb', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Setup the mock chain: db.select().from().where()
+    // Setup the mock chain: db.select().from().innerJoin().where()
     mockSelect.mockReturnValue({ from: mockFrom });
-    mockFrom.mockReturnValue({ where: mockWhere });
+    mockFrom.mockReturnValue({ innerJoin: mockInnerJoin });
+    mockInnerJoin.mockReturnValue({ where: mockWhere });
     mockWhere.mockResolvedValue([]);
   });
 
   it('should return empty array when given empty userIds array', async () => {
-    const result = await getUserProvidersFromDb(mockDb as never)([]);
+    const result = await getUserProvidersFromDb(mockDb as never)([], 'org-1');
 
     expect(result).toEqual([]);
     expect(mockSelect).not.toHaveBeenCalled();
@@ -34,7 +36,7 @@ describe('getUserProvidersFromDb', () => {
     ];
     mockWhere.mockResolvedValue(mockAccounts);
 
-    const result = await getUserProvidersFromDb(mockDb as never)(['user-1', 'user-2']);
+    const result = await getUserProvidersFromDb(mockDb as never)(['user-1', 'user-2'], 'org-1');
 
     expect(result).toEqual([
       { userId: 'user-1', providers: ['credential', 'google'] },
@@ -45,7 +47,7 @@ describe('getUserProvidersFromDb', () => {
   it('should return empty providers array for users with no accounts', async () => {
     mockWhere.mockResolvedValue([]);
 
-    const result = await getUserProvidersFromDb(mockDb as never)(['user-1', 'user-2']);
+    const result = await getUserProvidersFromDb(mockDb as never)(['user-1', 'user-2'], 'org-1');
 
     expect(result).toEqual([
       { userId: 'user-1', providers: [] },
@@ -61,7 +63,7 @@ describe('getUserProvidersFromDb', () => {
     ];
     mockWhere.mockResolvedValue(mockAccounts);
 
-    const result = await getUserProvidersFromDb(mockDb as never)(['user-1']);
+    const result = await getUserProvidersFromDb(mockDb as never)(['user-1'], 'org-1');
 
     expect(result).toEqual([{ userId: 'user-1', providers: ['credential', 'google'] }]);
   });
@@ -70,7 +72,7 @@ describe('getUserProvidersFromDb', () => {
     const mockAccounts = [{ userId: 'user-1', providerId: 'auth0' }];
     mockWhere.mockResolvedValue(mockAccounts);
 
-    const result = await getUserProvidersFromDb(mockDb as never)(['user-1']);
+    const result = await getUserProvidersFromDb(mockDb as never)(['user-1'], 'org-1');
 
     expect(result).toEqual([{ userId: 'user-1', providers: ['auth0'] }]);
   });
@@ -82,7 +84,10 @@ describe('getUserProvidersFromDb', () => {
     ];
     mockWhere.mockResolvedValue(mockAccounts);
 
-    const result = await getUserProvidersFromDb(mockDb as never)(['user-1', 'user-2', 'user-3']);
+    const result = await getUserProvidersFromDb(mockDb as never)(
+      ['user-1', 'user-2', 'user-3'],
+      'org-1'
+    );
 
     expect(result[0].userId).toBe('user-1');
     expect(result[1].userId).toBe('user-2');
@@ -99,7 +104,7 @@ describe('getUserProvidersFromDb', () => {
     ];
     mockWhere.mockResolvedValue(mockAccounts);
 
-    const result = await getUserProvidersFromDb(mockDb as never)(['user-1']);
+    const result = await getUserProvidersFromDb(mockDb as never)(['user-1'], 'org-1');
 
     expect(result).toEqual([
       { userId: 'user-1', providers: ['credential', 'google', 'auth0', 'github'] },
@@ -113,7 +118,10 @@ describe('getUserProvidersFromDb', () => {
     ];
     mockWhere.mockResolvedValue(mockAccounts);
 
-    const result = await getUserProvidersFromDb(mockDb as never)(['user-1', 'user-2', 'user-3']);
+    const result = await getUserProvidersFromDb(mockDb as never)(
+      ['user-1', 'user-2', 'user-3'],
+      'org-1'
+    );
 
     expect(result).toEqual([
       { userId: 'user-1', providers: [] },

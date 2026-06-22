@@ -1,7 +1,8 @@
 /**
  * Shared structural types + accessors for the (untyped) MCP SDK internals that the
- * `/mcp` post-process helpers reach into — `fillMissingToolTitles`, `bindTenantId`,
- * `augmentToolDescriptions`, and `setServerInstructions`.
+ * `/mcp` post-process helpers reach into — `fillMissingToolTitles`, `renameHashedTools`,
+ * `augmentToolDescriptions`, `compactToolInputSchemas`, `bindTenantId`, and
+ * `setServerInstructions`.
  *
  * The Speakeasy-generated `createMCPServer` returns a server whose tool registry and
  * low-level Server are not part of the public SDK type surface, so we describe them
@@ -28,11 +29,19 @@ export interface RegisteredToolInternal {
   handler?: (...args: unknown[]) => unknown;
 }
 
+/**
+ * The low-level Server's request-handler registry. Handlers are keyed by MCP
+ * method string (e.g. `tools/list`) and stored as `(request, extra) => Promise<result>`.
+ * Wrapping the `tools/list` entry lets us post-process the serialized tool list
+ * (e.g. compact oversized input schemas) without touching the SDK's Zod internals.
+ */
+export type RequestHandler = (request: unknown, extra: unknown) => Promise<unknown>;
+
 interface McpServerShape {
   server?: {
     _registeredTools?: Record<string, RegisteredToolInternal>;
     // McpServer.server is the low-level Server that emits `instructions` at initialize.
-    server?: { _instructions?: string };
+    server?: { _instructions?: string; _requestHandlers?: Map<string, RequestHandler> };
   };
 }
 
@@ -46,4 +55,9 @@ export function getRegisteredTools(
 /** The low-level Server whose `_instructions` is returned in the initialize handshake. */
 export function getLowLevelServer(mcpServer: unknown): { _instructions?: string } | undefined {
   return (mcpServer as McpServerShape)?.server?.server;
+}
+
+/** The low-level Server's `method -> handler` map; mutable before connect(). */
+export function getRequestHandlers(mcpServer: unknown): Map<string, RequestHandler> | undefined {
+  return (mcpServer as McpServerShape)?.server?.server?._requestHandlers;
 }
