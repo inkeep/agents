@@ -174,22 +174,31 @@ export interface UserProviderInfo {
 }
 
 /**
- * Get authentication providers for a list of users.
- * Returns which providers each user has linked (e.g., 'credential', 'google').
+ * Get authentication providers for a list of users WITHIN an organization.
+ * Returns which providers each member has linked (e.g., 'credential', 'google').
+ * Results are scoped to members of `organizationId`; users outside it return no providers.
  */
 export const getUserProvidersFromDb =
   (db: AgentsRunDatabaseClient) =>
-  async (userIds: string[]): Promise<UserProviderInfo[]> => {
+  async (userIds: string[], organizationId: string): Promise<UserProviderInfo[]> => {
     if (userIds.length === 0) {
       return [];
     }
 
+    // Scope to users who are members of `organizationId`. Without this join a caller who
+    // is an admin/owner of one org could read the auth providers of any user in any org
+    // (cross-tenant IDOR) — the requested userIds are caller-supplied. Non-members simply
+    // return no provider rows (see the per-userId mapping below).
     const accounts = await db
       .select({
         userId: account.userId,
         providerId: account.providerId,
       })
       .from(account)
+      .innerJoin(
+        member,
+        and(eq(member.userId, account.userId), eq(member.organizationId, organizationId))
+      )
       .where(inArray(account.userId, userIds));
 
     // Group providers by userId

@@ -10,7 +10,7 @@ import {
 } from '@inkeep/agents-core';
 import { createProtectedRoute, inheritedManageTenantAuth } from '@inkeep/agents-core/middleware';
 import runDbClient from '../../../data/db/runDbClient';
-import { sessionAuth } from '../../../middleware/sessionAuth';
+import { manageBearerOrSessionAuth } from '../../../middleware/manageAuth';
 import type { ManageAppVariables } from '../../../types/app';
 import {
   type ManageRouteHandler,
@@ -19,7 +19,10 @@ import {
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-app.use('*', sessionAuth());
+// Accept the OAuth/MCP bearer JWT as well as a session cookie. manageBearerAuth sets
+// c.get('userId') from the JWT `sub`, so the per-route ownership check below still holds.
+// (Session-only auth here 401'd every OAuth/MCP caller before reaching that check.)
+app.use('*', manageBearerOrSessionAuth());
 
 app.openapi(
   createProtectedRoute({

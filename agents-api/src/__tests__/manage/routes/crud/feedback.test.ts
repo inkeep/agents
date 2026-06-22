@@ -241,9 +241,8 @@ describe('Feedback CRUD Routes - Integration Tests', () => {
       `/manage/tenants/${tenantId}/projects/${projectId}/feedback/${createData.id}`,
       { method: 'DELETE' }
     );
-    expect(deleteRes.status).toBe(200);
-    const deleteBody = await deleteRes.json();
-    expect(deleteBody).toEqual({ success: true });
+    // 204 No Content — consistent with every other delete route; no body to parse.
+    expect(deleteRes.status).toBe(204);
 
     const listRes = await makeRequest(
       `/manage/tenants/${tenantId}/projects/${projectId}/feedback?page=1&limit=10`

@@ -18,8 +18,11 @@ vi.mock('../../../data/db/runDbClient.js', () => ({
   default: {},
 }));
 
-vi.mock('../../../middleware/sessionAuth.js', () => ({
-  sessionAuth:
+// The route mounts manageBearerOrSessionAuth (accepts the OAuth/MCP bearer JWT *and*
+// session cookies). Mock it to resolve the authenticated user the way manageBearerAuth
+// does from a JWT `sub`, so the per-route ownership checks are exercised.
+vi.mock('../../../middleware/manageAuth.js', () => ({
+  manageBearerOrSessionAuth:
     () => async (c: { set: (key: string, value: unknown) => void }, next: () => Promise<void>) => {
       c.set('userId', 'test-user-123');
       c.set('userEmail', 'test@example.com');
@@ -131,6 +134,26 @@ describe('User Profile Route', () => {
         const res = await userProfileRoutes.request('/test-user-123/profile', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ timezone: 'America/New_York' }),
+        });
+
+        expect(res.status).toBe(200);
+      });
+
+      // NOTE: route-plumbing only. The auth middleware is mocked and
+      // manageBearerOrSessionAuth also short-circuits when ENVIRONMENT === 'test', so this
+      // exercises that the route accepts a bearer-bearing request and reaches the handler,
+      // not the real bearer-vs-session decision. Real auth behavior is covered by the
+      // middleware (manageAuth) and the route mount config; verified live (returns 403, not 401).
+      it('should accept an OAuth/MCP bearer token (not just a session cookie)', async () => {
+        upsertUserProfileMock.mockResolvedValue(mockProfile);
+
+        const res = await userProfileRoutes.request('/test-user-123/profile', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer header.payload.signature',
+          },
           body: JSON.stringify({ timezone: 'America/New_York' }),
         });
 

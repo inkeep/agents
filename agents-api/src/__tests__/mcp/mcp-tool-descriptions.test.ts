@@ -45,6 +45,21 @@ describe('augmentToolDescriptions', () => {
     expect(desc.split('prefer agents-update-agent').length).toBe(2); // appears exactly once
   });
 
+  it('warns about the destructive files-replace default on update-skill', () => {
+    const mcpServer = realServer();
+    const tools = (
+      mcpServer as unknown as {
+        server: { _registeredTools: Record<string, { description: string }> };
+      }
+    ).server._registeredTools;
+
+    augmentToolDescriptions(mcpServer);
+
+    const desc = tools['skills-update-skill'].description;
+    expect(desc).toContain('Destructive default');
+    expect(desc).toContain('skills-update-skill-file');
+  });
+
   it('no-ops safely on an unexpected shape', () => {
     expect(() => augmentToolDescriptions({})).not.toThrow();
     expect(() => augmentToolDescriptions({ server: {} })).not.toThrow();

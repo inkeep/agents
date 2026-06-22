@@ -345,13 +345,9 @@ app.openapi(
       params: TenantProjectIdParamsSchema,
     },
     responses: {
-      200: {
+      // 204 No Content — consistent with every other delete route in the API.
+      204: {
         description: 'Feedback deleted successfully',
-        content: {
-          'application/json': {
-            schema: z.object({ success: z.boolean() }),
-          },
-        },
       },
       ...commonDeleteErrorResponses,
     },
@@ -371,7 +367,7 @@ app.openapi(
       });
     }
 
-    return c.json({ success: true });
+    return c.body(null, 204);
   }
 );
 

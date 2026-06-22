@@ -17,6 +17,8 @@ import { INKEEP_MCP_ALLOWED_TOOLS } from '../mcpAllowedTools';
 import { bindTenantId } from '../mcpGlobalParams';
 import { INKEEP_MCP_INSTRUCTIONS, setServerInstructions } from '../mcpServerInstructions';
 import { augmentToolDescriptions } from '../mcpToolDescriptions';
+import { renameHashedTools } from '../mcpToolNames';
+import { compactToolInputSchemas } from '../mcpToolSchemas';
 import { fillMissingToolTitles } from '../mcpToolTitles';
 
 const app = new Hono();
@@ -146,7 +148,9 @@ app.all('/', async (c) => {
     allowedTools: [...INKEEP_MCP_ALLOWED_TOOLS],
   });
   fillMissingToolTitles(mcpServer);
+  renameHashedTools(mcpServer);
   augmentToolDescriptions(mcpServer);
+  compactToolInputSchemas(mcpServer);
   setServerInstructions(mcpServer, INKEEP_MCP_INSTRUCTIONS);
   if (sessionTenantId) {
     const { expected, injected, hidden } = bindTenantId(mcpServer, sessionTenantId, logger);
