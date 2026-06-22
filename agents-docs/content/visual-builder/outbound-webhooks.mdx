@@ -1,12 +1,12 @@
 ---
 title: Outbound Webhooks
-description: Receive real-time HTTP notifications when conversations, feedback, or custom events occur in your project
+description: Receive real-time notifications via HTTP or Slack when conversations, feedback, or custom events occur in your project
 sidebarTitle: Outbound Webhooks
 icon: LuWebhook
 keywords: webhooks, outbound webhooks, webhook destinations, event notifications, conversation events, feedback events
 ---
 
-Outbound webhooks send HTTP POST requests to your server when events happen in your project — new conversations, conversation updates, feedback submissions, and custom events. Use them to sync data with external systems, trigger downstream workflows, or build real-time integrations.
+Outbound webhooks send HTTP POST requests to your server or Slack channels when events happen in your project — new conversations, conversation updates, feedback submissions, and custom events. Use them to sync data with external systems, trigger downstream workflows, or build real-time integrations.
 
 <Note>
 Outbound webhooks push data _from_ Inkeep _to_ your server. For the reverse — external services triggering your agents — see [Webhook Triggers](/visual-builder/triggers/webhooks).
@@ -31,7 +31,8 @@ Outbound webhooks push data _from_ Inkeep _to_ your server. For the reverse — 
     | Field | Required | Description |
     | --- | --- | --- |
     | **Name** | Yes | Human-readable identifier (e.g., "Slack Notifications" or "CRM Sync") |
-    | **Destination URL** | Yes | The HTTPS endpoint that receives webhook POST requests |
+    | **Destination URL** | Conditional | The HTTPS endpoint that receives webhook POST requests. Required unless a Slack channel is selected. |
+    | **Slack Channel** | Conditional | A Slack channel to post alerts to via the Inkeep bot. Required unless a destination URL is provided. See [Slack integration](#slack-integration). |
     | **Event Types** | Yes | Which events trigger delivery (select at least one) |
     | **Description** | No | Explains what this webhook does |
     | **Custom Headers** | No | Additional HTTP headers sent with every delivery |
@@ -41,7 +42,7 @@ Outbound webhooks push data _from_ Inkeep _to_ your server. For the reverse — 
   <Step>
     ### Test the destination
 
-    After creating the destination, use the **Test** action to send a sample payload to your URL. The test request uses a `test` event type with synthetic data and a 10-second timeout, so you can verify your endpoint is reachable before real events fire.
+    After creating the destination, use the **Test** action to send a sample payload to your destination. The test request uses a `test` event type with synthetic data and a 10-second timeout, so you can verify your endpoint or Slack channel is reachable before real events fire.
   </Step>
 </Steps>
 
@@ -224,21 +225,29 @@ Every delivery is an HTTP POST with `Content-Type: application/json`. The body f
 
 ## Slack integration
 
-Webhook destinations pointing to Slack automatically receive rich formatted messages instead of raw JSON. This applies whether the URL was added via the OAuth flow or typed manually.
+You can send webhook events directly to a Slack channel using the Inkeep Slack bot instead of an incoming webhook URL. Slack destinations deliver rich formatted messages with Block Kit layouts.
+
+<Note>
+Slack channel destinations use the Slack Bot API (`chat.postMessage`) for delivery. The Inkeep bot must be installed in your workspace and added as a member of the target channel.
+</Note>
 
 ### Connect a Slack channel
 
 <Steps>
   <Step>
-    On the **Outbound Webhooks** page, click **Connect Slack Channel**. This starts a Slack OAuth flow that lets you pick a channel and grants an incoming-webhook URL.
+    On the **Outbound Webhooks** page, click **Connect Slack**. If the Inkeep Slack app is not yet installed, you'll be guided through an OAuth flow to add it to your workspace.
   </Step>
   <Step>
-    After authorizing, you're redirected back to the webhook creation form with the Slack URL pre-filled. Select your event types and click **Create**.
+    Select a channel from your workspace. The Inkeep bot must be a member of the channel — add it beforehand if needed.
+  </Step>
+  <Step>
+    Configure your event types, agent scope, and other settings, then click **Create Destination**.
   </Step>
 </Steps>
 
 ### Slack payload format
 
+When delivering to a Slack channel, Inkeep posts messages via the Slack Bot API using Block Kit formatting:
 
 ```json
 {
@@ -260,7 +269,7 @@ Webhook destinations pointing to Slack automatically receive rich formatted mess
 }
 ```
 
-The `text` field serves as the notification preview (mobile push, channel sidebar). The `blocks` array renders the rich card in the channel. Non-Slack URLs always receive the standard JSON envelope without `text` or `blocks`.
+The `text` field serves as the notification preview (mobile push, channel sidebar). The `blocks` array renders the rich card in the channel. Destinations using a Slack incoming webhook URL also receive this format. Non-Slack URL destinations always receive the standard JSON envelope without `text` or `blocks`.
 
 ## Delivery and retries
 
@@ -282,11 +291,11 @@ The following reserved headers cannot be used as custom headers: `Connection`, `
 
 ## Manage webhook destinations
 
-The webhook destinations page shows all configured destinations with their name, URL, enabled status, and subscribed event types.
+The webhook destinations page shows all configured destinations with their name, destination (URL or Slack channel), enabled status, and subscribed event types.
 
 | Action | Description |
 | --- | --- |
-| **Edit** | Update the name, URL, events, headers, agent scope, or enabled status |
+| **Edit** | Update the name, destination, events, headers, agent scope, or enabled status |
 | **Test** | Send a sample payload to verify the destination is reachable |
 | **Delete** | Permanently remove the destination |
 
