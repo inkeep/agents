@@ -19,6 +19,7 @@ import {
   loggerFactory,
   type Part,
   PartSchema,
+  recordToolApprovalDecision,
   setActiveAgentForConversation,
   TOOL_APPROVAL_HOOK_PREFIX,
 } from '@inkeep/agents-core';
@@ -229,19 +230,67 @@ app.openapi(chatDataStreamRoute, async (c) => {
         });
       }
 
-      const results = approvalParts.map((approvalPart: any) => {
-        const toolCallId = approvalPart.toolCallId as string;
-        const approved = !!approvalPart.approval?.approved;
-        const reason = approvalPart.approval?.reason as string | undefined;
+      const settled = await Promise.allSettled(
+        approvalParts.map(async (approvalPart: any) => {
+          const toolCallId = approvalPart.toolCallId as string;
+          const approved = !!approvalPart.approval?.approved;
+          const reason = approvalPart.approval?.reason as string | undefined;
 
-        // Classic in-memory approval path.
-        const ok = approved
-          ? pendingToolApprovalManager.approveToolCall(toolCallId)
-          : pendingToolApprovalManager.denyToolCall(toolCallId, reason);
-        return { toolCallId, approved, alreadyProcessed: !ok };
+          // Classic in-memory approval path: resolves instantly when this
+          // instance is the one running the suspended agent.
+          const ok = approved
+            ? pendingToolApprovalManager.approveToolCall(toolCallId)
+            : pendingToolApprovalManager.denyToolCall(toolCallId, reason);
+
+          if (ok) {
+            return { toolCallId, approved, alreadyProcessed: false, deferred: false };
+          }
+
+          // No in-memory entry here: the agent is running on a different
+          // instance (or hasn't suspended yet). Persist the decision so the
+          // waiting instance can poll and consume it. Without this the approval
+          // is lost and the agent waits out its 10-minute timeout.
+          await recordToolApprovalDecision(runDbClient)({
+            tenantId,
+            projectId,
+            conversationId,
+            toolCallId,
+            approved,
+            reason,
+          });
+
+          logger.info(
+            { toolCallId, approved, conversationId },
+            'Tool approval not held on this instance; deferred to shared store for cross-instance delivery'
+          );
+
+          return { toolCallId, approved, alreadyProcessed: false, deferred: true };
+        })
+      );
+
+      // One failed DB write must not drop the rest of the batch. Report
+      // per-toolCallId status so the client can tell which approvals landed;
+      // in-memory approvals from earlier items have already resumed their agents.
+      const results = settled.map((outcome, i) => {
+        if (outcome.status === 'fulfilled') {
+          return outcome.value;
+        }
+        const part = approvalParts[i] as any;
+        const toolCallId = part.toolCallId as string;
+        logger.error(
+          { toolCallId, error: outcome.reason },
+          'Failed to record tool approval decision in shared store'
+        );
+        return {
+          toolCallId,
+          approved: !!part.approval?.approved,
+          alreadyProcessed: false,
+          deferred: false,
+          error: 'failed_to_record',
+        };
       });
 
-      return c.json({ success: true, results });
+      return c.json({ success: results.every((r) => !('error' in r)), results });
     }
 
     // Extract target context headers (for copilot/chat-to-edit scenarios)

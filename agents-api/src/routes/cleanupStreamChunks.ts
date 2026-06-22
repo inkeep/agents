@@ -1,6 +1,9 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { OpenAPIHono } from '@hono/zod-openapi';
-import { cleanupExpiredStreamChunks } from '@inkeep/agents-core';
+import {
+  cleanupExpiredStreamChunks,
+  cleanupExpiredToolApprovalDecisions,
+} from '@inkeep/agents-core';
 import { createProtectedRoute, noAuth } from '@inkeep/agents-core/middleware';
 import runDbClient from '../data/db/runDbClient';
 import { env } from '../env';
@@ -43,13 +46,29 @@ cleanupStreamChunksHandler.openapi(
       return c.json({ error: 'Unauthorized' }, 401);
     }
 
+    // Run each cleanup independently so a failure in one doesn't skip the other,
+    // and report which one(s) failed rather than a single misleading message.
+    const failures: string[] = [];
+
     try {
       await cleanupExpiredStreamChunks(runDbClient)();
-      logger.info({}, 'Stream chunk cleanup completed via cron');
-      return c.json({ ok: true });
     } catch (err) {
+      failures.push('stream_chunks');
       logger.error({ error: err }, 'Failed to cleanup stream chunks via cron');
-      return c.json({ error: 'Cleanup failed' }, 500);
     }
+
+    try {
+      await cleanupExpiredToolApprovalDecisions(runDbClient)();
+    } catch (err) {
+      failures.push('tool_approval_decisions');
+      logger.error({ error: err }, 'Failed to cleanup tool approval decisions via cron');
+    }
+
+    if (failures.length > 0) {
+      return c.json({ error: `Cleanup failed: ${failures.join(', ')}` }, 500);
+    }
+
+    logger.info({}, 'Stream chunk and tool-approval decision cleanup completed via cron');
+    return c.json({ ok: true });
   }
 );

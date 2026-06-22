@@ -53,6 +53,7 @@ export * from './runtime/schedulerState';
 export * from './runtime/slack-work-app-mcp';
 export * from './runtime/streamChunks';
 export * from './runtime/tasks';
+export * from './runtime/toolApprovalDecisions';
 export * from './runtime/triggerInvocations';
 export * from './runtime/userProfiles';
 export * from './runtime/users';

@@ -152,13 +152,17 @@ export async function waitForToolApproval(
     }
   }
 
-  const approvalResult = await pendingToolApprovalManager.waitForApproval(
+  const approvalResult = await pendingToolApprovalManager.waitForApproval({
     toolCallId,
     toolName,
     args,
-    ctx.conversationId || 'unknown',
-    ctx.config.id
-  );
+    // Empty (not a sentinel) when absent so the falsy guard disables polling —
+    // a 'unknown' placeholder would never match the real recorded conversationId.
+    conversationId: ctx.conversationId || '',
+    subAgentId: ctx.config.id,
+    tenantId: ctx.config.tenantId,
+    projectId: ctx.config.projectId,
+  });
 
   if (!approvalResult.approved) {
     if (!streamHelper && ctx.isDelegatedAgent) {

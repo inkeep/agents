@@ -151,7 +151,10 @@ if (workflowWorld === '@workflow/world-postgres' || workflowWorld === 'local') {
   }, STARTUP_DELAY_MS);
 }
 
-import { cleanupExpiredStreamChunks } from '@inkeep/agents-core';
+import {
+  cleanupExpiredStreamChunks,
+  cleanupExpiredToolApprovalDecisions,
+} from '@inkeep/agents-core';
 import runDbClient from './data/db/runDbClient';
 
 if (!process.env.VERCEL) {
@@ -161,6 +164,11 @@ if (!process.env.VERCEL) {
       await cleanupExpiredStreamChunks(runDbClient)();
     } catch (err) {
       logger.error({ error: err }, 'Failed to cleanup expired stream chunks');
+    }
+    try {
+      await cleanupExpiredToolApprovalDecisions(runDbClient)();
+    } catch (err) {
+      logger.error({ error: err }, 'Failed to cleanup expired tool approval decisions');
     }
   }, STREAM_CHUNK_CLEANUP_INTERVAL_MS);
   streamChunkCleanupTimer.unref();
