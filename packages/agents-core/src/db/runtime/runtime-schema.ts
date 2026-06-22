@@ -189,6 +189,39 @@ export const streamChunks = pgTable(
   ]
 );
 
+/**
+ * Pending tool-approval decisions for the classic (non-durable) execution path.
+ *
+ * Classic execution keeps the pending approval in the memory of the single
+ * server instance running the agent. When the user's approval request is
+ * load-balanced to a *different* instance, that instance has no in-memory entry
+ * and the approval is otherwise lost (the agent waits out its timeout). To make
+ * delivery cross-instance, the receiving instance records the decision here and
+ * the instance awaiting the approval polls and consumes it.
+ *
+ * Rows are short-lived: consumed on pickup, or swept by a periodic cleanup job
+ * (see cleanupExpiredToolApprovalDecisions). A residual row means the waiting
+ * instance went away before consuming it. Mirrors the stream_chunks pattern.
+ */
+export const toolApprovalDecisions = pgTable(
+  'tool_approval_decisions',
+  {
+    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
+    projectId: varchar('project_id', { length: 256 }).notNull(),
+    conversationId: varchar('conversation_id', { length: 256 }).notNull(),
+    toolCallId: varchar('tool_call_id', { length: 256 }).notNull(),
+    approved: boolean('approved').notNull(),
+    reason: text('reason'),
+    createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.tenantId, table.projectId, table.conversationId, table.toolCallId],
+    }),
+    index('tool_approval_decisions_cleanup_idx').on(table.createdAt),
+  ]
+);
+
 export const apiKeys = pgTable(
   'api_keys',
   {

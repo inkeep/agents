@@ -1,5 +1,7 @@
+import { recordToolApprovalDecision } from '@inkeep/agents-core';
 import { PdfUrlIngestionError } from '@inkeep/agents-core/external-fetch';
 import { describe, expect, it, vi } from 'vitest';
+import runDbClient from '../../../../data/db/runDbClient';
 import type { ExecutionHandlerParams } from '../../../../domains/run/handlers/executionHandler';
 import { pendingToolApprovalManager } from '../../../../domains/run/session/PendingToolApprovalManager';
 import { toolApprovalUiBus } from '../../../../domains/run/session/ToolApprovalUiBus';
@@ -678,13 +680,15 @@ describe('Chat Data Stream Route', () => {
     const conversationId = 'conv-123';
 
     // Create a pending approval first
-    const approvalPromise = pendingToolApprovalManager.waitForApproval(
+    const approvalPromise = pendingToolApprovalManager.waitForApproval({
       toolCallId,
-      'delete_file',
-      { filePath: 'user/readme.md' },
+      toolName: 'delete_file',
+      args: { filePath: 'user/readme.md' },
       conversationId,
-      'test-agent'
-    );
+      subAgentId: 'test-agent',
+      tenantId: 'test-tenant',
+      projectId: 'default',
+    });
 
     const body = {
       conversationId,
@@ -723,7 +727,7 @@ describe('Chat Data Stream Route', () => {
     await expect(approvalPromise).resolves.toMatchObject({ approved: true });
   });
 
-  it('should treat approval responded tool part for unknown toolCallId as alreadyProcessed (idempotent 200)', async () => {
+  it('should persist approval for a toolCallId not held on this instance (deferred cross-instance delivery, idempotent 200)', async () => {
     const toolCallId = 'call_test_approval_missing';
     const conversationId = 'conv-123';
 
@@ -752,9 +756,11 @@ describe('Chat Data Stream Route', () => {
 
     expect(res.status).toBe(200);
     const json = await res.json();
+    // No in-memory entry here, so the decision is persisted to the shared store
+    // for the instance running the agent to consume (or cleaned up if none).
     expect(json).toMatchObject({
       success: true,
-      results: [{ toolCallId, approved: true, alreadyProcessed: true }],
+      results: [{ toolCallId, approved: true, alreadyProcessed: false, deferred: true }],
     });
   });
 
@@ -763,20 +769,24 @@ describe('Chat Data Stream Route', () => {
     const toolCallId2 = 'call_batch_approval_2';
     const conversationId = 'conv-batch-123';
 
-    const approval1Promise = pendingToolApprovalManager.waitForApproval(
-      toolCallId1,
-      'delete_file',
-      { filePath: 'a.md' },
+    const approval1Promise = pendingToolApprovalManager.waitForApproval({
+      toolCallId: toolCallId1,
+      toolName: 'delete_file',
+      args: { filePath: 'a.md' },
       conversationId,
-      'test-agent'
-    );
-    const approval2Promise = pendingToolApprovalManager.waitForApproval(
-      toolCallId2,
-      'send_email',
-      { to: 'user@example.com' },
+      subAgentId: 'test-agent',
+      tenantId: 'test-tenant',
+      projectId: 'default',
+    });
+    const approval2Promise = pendingToolApprovalManager.waitForApproval({
+      toolCallId: toolCallId2,
+      toolName: 'send_email',
+      args: { to: 'user@example.com' },
       conversationId,
-      'test-agent'
-    );
+      subAgentId: 'test-agent',
+      tenantId: 'test-tenant',
+      projectId: 'default',
+    });
 
     const body = {
       conversationId,
@@ -823,6 +833,65 @@ describe('Chat Data Stream Route', () => {
       reason: expect.stringContaining('not now'),
     });
   });
+
+  it('delivers a cross-instance approval decision to a waiting agent via the shared store', async () => {
+    const toolCallId = 'call_cross_instance_1';
+    const conversationId = 'conv-cross-1';
+
+    // Simulate the approval landing on a different instance: persist the
+    // decision directly to the shared store. No in-memory pending entry exists
+    // on this "instance" yet.
+    await recordToolApprovalDecision(runDbClient)({
+      tenantId: 'test-tenant',
+      projectId: 'default',
+      conversationId,
+      toolCallId,
+      approved: true,
+    });
+
+    // The agent waits on this instance; with no in-memory entry it must resolve
+    // by polling and consuming the persisted decision.
+    const result = await pendingToolApprovalManager.waitForApproval({
+      toolCallId,
+      toolName: 'delete_file',
+      args: { filePath: 'user/readme.md' },
+      conversationId,
+      subAgentId: 'test-agent',
+      tenantId: 'test-tenant',
+      projectId: 'default',
+    });
+
+    expect(result).toMatchObject({ approved: true });
+  }, 10_000);
+
+  it('delivers a cross-instance denial with reason to a waiting agent', async () => {
+    const toolCallId = 'call_cross_instance_deny_1';
+    const conversationId = 'conv-cross-deny-1';
+
+    // A denial recorded on another instance, including its reason, must reach
+    // the waiting agent through the same poll-and-consume path.
+    await recordToolApprovalDecision(runDbClient)({
+      tenantId: 'test-tenant',
+      projectId: 'default',
+      conversationId,
+      toolCallId,
+      approved: false,
+      reason: 'security policy',
+    });
+
+    const result = await pendingToolApprovalManager.waitForApproval({
+      toolCallId,
+      toolName: 'delete_file',
+      args: { filePath: 'user/readme.md' },
+      conversationId,
+      subAgentId: 'test-agent',
+      tenantId: 'test-tenant',
+      projectId: 'default',
+    });
+
+    expect(result.approved).toBe(false);
+    expect(result.reason).toContain('security policy');
+  }, 10_000);
 
   it('should accept approval requested tool part (approval.id only) without failing schema validation', async () => {
     const body = {
