@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.78.5
+
+### Patch Changes
+
+- 78594e9: Improve performance speed of evaluator results pages
+
 ## 0.78.4
 
 ### Patch Changes
