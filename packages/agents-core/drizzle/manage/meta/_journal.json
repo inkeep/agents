@@ -169,6 +169,13 @@
       "when": 1781761600284,
       "tag": "0023_flimsy_patriot",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1782141138286,
+      "tag": "0024_blue_junta",
+      "breakpoints": true
     }
   ]
 }

@@ -23,6 +23,8 @@ import {
 } from '@inkeep/agents-core';
 import { FileSecurityError } from '@inkeep/agents-core/external-fetch';
 import { createProtectedRoute } from '@inkeep/agents-core/middleware';
+import { getSlackClient, resolveWorkspaceToken } from '@inkeep/agents-work-apps/slack';
+import { HTTPException } from 'hono/http-exception';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
@@ -40,6 +42,41 @@ import {
 } from '../../run/services/slackBlockKit';
 
 const logger = getLogger('webhookDestinations');
+
+async function validateSlackChannelId(tenantId: string, slackChannelId: string): Promise<void> {
+  let botToken: string;
+  try {
+    botToken = await resolveWorkspaceToken(tenantId);
+  } catch {
+    throw createApiError({
+      code: 'bad_request',
+      message: 'No Slack workspace connected. Install the Slack app first.',
+    });
+  }
+
+  const client = getSlackClient(botToken);
+  try {
+    const result = await client.conversations.info({ channel: slackChannelId });
+    if (!result.ok) {
+      throw createApiError({
+        code: 'bad_request',
+        message: `Channel ${slackChannelId} not found in your Slack workspace`,
+      });
+    }
+    if (!result.channel?.is_member) {
+      throw createApiError({
+        code: 'bad_request',
+        message: `The Inkeep bot is not a member of this channel. Add the bot to the channel first.`,
+      });
+    }
+  } catch (err) {
+    if (err instanceof HTTPException) throw err;
+    throw createApiError({
+      code: 'bad_request',
+      message: `Unable to verify channel ${slackChannelId}. Ensure it exists and the bot has access.`,
+    });
+  }
+}
 
 function toApiShape(
   dest: {
@@ -195,13 +232,32 @@ app.openapi(
 
     const id = body.id || generateId();
 
-    try {
-      validateWebhookUrl(body.url);
-    } catch (err) {
+    if (!body.url && !body.slackChannelId) {
       throw createApiError({
         code: 'bad_request',
-        message: err instanceof WebhookUrlSecurityError ? err.message : 'Invalid webhook URL',
+        message: 'Either url or slackChannelId must be provided',
       });
+    }
+    if (body.url && body.slackChannelId) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Provide either url or slackChannelId, not both',
+      });
+    }
+
+    if (body.url) {
+      try {
+        validateWebhookUrl(body.url);
+      } catch (err) {
+        throw createApiError({
+          code: 'bad_request',
+          message: err instanceof WebhookUrlSecurityError ? err.message : 'Invalid webhook URL',
+        });
+      }
+    }
+
+    if (body.slackChannelId) {
+      await validateSlackChannelId(tenantId, body.slackChannelId);
     }
 
     logger.debug({ webhookDestinationId: id }, 'Creating webhook destination');
@@ -289,7 +345,25 @@ app.openapi(
       });
     }
 
-    if (body.url !== undefined) {
+    const resultingUrl = body.url !== undefined ? body.url : existing.url;
+    const resultingChannel =
+      body.slackChannelId !== undefined ? body.slackChannelId : existing.slackChannelId;
+
+    if (resultingUrl && resultingChannel) {
+      throw createApiError({
+        code: 'bad_request',
+        message:
+          'A destination cannot have both url and slackChannelId. Clear one before setting the other.',
+      });
+    }
+    if (!resultingUrl && !resultingChannel) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'A destination must have either url or slackChannelId',
+      });
+    }
+
+    if (body.url) {
       try {
         validateWebhookUrl(body.url);
       } catch (err) {
@@ -298,6 +372,10 @@ app.openapi(
           message: err instanceof WebhookUrlSecurityError ? err.message : 'Invalid webhook URL',
         });
       }
+    }
+
+    if (body.slackChannelId) {
+      await validateSlackChannelId(tenantId, body.slackChannelId);
     }
 
     logger.debug({ webhookDestinationId: id }, 'Updating webhook destination');
@@ -474,6 +552,39 @@ app.openapi(
       agentId: 'test-agent-id',
       manageUiBaseUrl: env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000',
     };
+
+    if (dest.slackChannelId) {
+      try {
+        const botToken = await resolveWorkspaceToken(tenantId);
+        const slackClient = getSlackClient(botToken);
+        const payload = buildTestSlackPayload(testEnvelope, slackCtx);
+        const args = {
+          channel: dest.slackChannelId,
+          text: payload.text as string,
+          blocks: payload.blocks as unknown[],
+        };
+        await slackClient.chat.postMessage(
+          args as Parameters<typeof slackClient.chat.postMessage>[0]
+        );
+        return c.json({ success: true });
+      } catch (err) {
+        logger.warn(
+          { webhookDestinationId: id, error: err instanceof Error ? err.message : String(err) },
+          'Test Slack bot delivery failed'
+        );
+        return c.json({
+          success: false,
+          error: 'Slack delivery failed',
+        });
+      }
+    }
+
+    if (!dest.url) {
+      return c.json({
+        success: false,
+        error: 'Destination has no URL or Slack channel configured',
+      });
+    }
 
     const requestBody = isSlackIncomingWebhookUrl(dest.url)
       ? buildTestSlackPayload(testEnvelope, slackCtx)

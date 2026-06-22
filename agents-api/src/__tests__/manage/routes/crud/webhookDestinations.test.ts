@@ -13,6 +13,22 @@ vi.mock('../../../../utils/webhook-url-security', async () => {
   };
 });
 
+const { resolveWorkspaceTokenMock, getSlackClientMock } = vi.hoisted(() => ({
+  resolveWorkspaceTokenMock: vi.fn(),
+  getSlackClientMock: vi.fn(),
+}));
+
+vi.mock('@inkeep/agents-work-apps/slack', async () => {
+  const actual = await vi.importActual<typeof import('@inkeep/agents-work-apps/slack')>(
+    '@inkeep/agents-work-apps/slack'
+  );
+  return {
+    ...actual,
+    resolveWorkspaceToken: resolveWorkspaceTokenMock,
+    getSlackClient: getSlackClientMock,
+  };
+});
+
 import manageDbClient from '../../../../data/db/manageDbClient';
 import {
   fetchWithSsrfProtection,
@@ -841,6 +857,168 @@ describe('Webhook Destination CRUD Routes - Integration Tests', () => {
 
       expect(res.status).toBe(404);
       expect(mockSsrfFetch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Slack Bot Destinations', () => {
+    beforeEach(() => {
+      resolveWorkspaceTokenMock.mockResolvedValue('xoxb-test-token');
+      getSlackClientMock.mockReturnValue({
+        conversations: {
+          info: vi.fn().mockResolvedValue({ ok: true, channel: { is_member: true } }),
+        },
+        chat: { postMessage: vi.fn().mockResolvedValue({ ok: true }) },
+      });
+    });
+
+    it('should create a destination with slackChannelId', async () => {
+      const tenantId = await createTestTenantWithOrg('wh-slack-create');
+      const { projectId } = await createTestProjectForWebhooks(tenantId);
+
+      const res = await makeRequest(basePath(tenantId, projectId), {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Slack Alert',
+          slackChannelId: 'C0ABC123',
+          eventTypes: ['conversation.created'],
+        }),
+      });
+
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.data.name).toBe('Slack Alert');
+      expect(body.data.slackChannelId).toBe('C0ABC123');
+      expect(body.data.url).toBeNull();
+    });
+
+    it('should reject when neither url nor slackChannelId is provided', async () => {
+      const tenantId = await createTestTenantWithOrg('wh-slack-neither');
+      const { projectId } = await createTestProjectForWebhooks(tenantId);
+
+      const res = await makeRequest(basePath(tenantId, projectId), {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'No Destination',
+          eventTypes: ['conversation.created'],
+        }),
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('should reject when both url and slackChannelId are provided', async () => {
+      const tenantId = await createTestTenantWithOrg('wh-slack-both');
+      const { projectId } = await createTestProjectForWebhooks(tenantId);
+
+      const res = await makeRequest(basePath(tenantId, projectId), {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Both Destinations',
+          url: 'https://example.com/hook',
+          slackChannelId: 'C0ABC123',
+          eventTypes: ['conversation.created'],
+        }),
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('should get a Slack bot destination by id', async () => {
+      const tenantId = await createTestTenantWithOrg('wh-slack-get');
+      const { projectId } = await createTestProjectForWebhooks(tenantId);
+
+      const createRes = await makeRequest(basePath(tenantId, projectId), {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Slack Get Test',
+          slackChannelId: 'C0GET456',
+          eventTypes: ['feedback.created'],
+        }),
+      });
+      const { data: created } = await createRes.json();
+
+      const getRes = await makeRequest(`${basePath(tenantId, projectId)}/${created.id}`);
+      expect(getRes.status).toBe(200);
+
+      const body = await getRes.json();
+      expect(body.data.slackChannelId).toBe('C0GET456');
+      expect(body.data.url).toBeNull();
+    });
+
+    it('should update a Slack bot destination', async () => {
+      const tenantId = await createTestTenantWithOrg('wh-slack-update');
+      const { projectId } = await createTestProjectForWebhooks(tenantId);
+
+      const createRes = await makeRequest(basePath(tenantId, projectId), {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Slack Update Test',
+          slackChannelId: 'C0OLD789',
+          eventTypes: ['conversation.created'],
+        }),
+      });
+      const { data: created } = await createRes.json();
+
+      const updateRes = await makeRequest(`${basePath(tenantId, projectId)}/${created.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: 'Updated Slack Alert',
+          slackChannelId: 'C0NEW789',
+        }),
+      });
+
+      expect(updateRes.status).toBe(200);
+      const body = await updateRes.json();
+      expect(body.data.name).toBe('Updated Slack Alert');
+      expect(body.data.slackChannelId).toBe('C0NEW789');
+    });
+
+    it('should list both webhook and Slack bot destinations', async () => {
+      const tenantId = await createTestTenantWithOrg('wh-slack-list');
+      const { projectId } = await createTestProjectForWebhooks(tenantId);
+
+      await createTestWebhookDestination({ tenantId, projectId, name: 'URL Hook' });
+
+      await makeRequest(basePath(tenantId, projectId), {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Slack Hook',
+          slackChannelId: 'C0LIST123',
+          eventTypes: ['conversation.created'],
+        }),
+      });
+
+      const res = await makeRequest(`${basePath(tenantId, projectId)}?page=1&limit=10`);
+      const body = await res.json();
+      expect(body.data).toHaveLength(2);
+
+      const slackDest = body.data.find((d: { slackChannelId?: string }) => d.slackChannelId);
+      const webhookDest = body.data.find((d: { url?: string }) => d.url);
+      expect(slackDest.slackChannelId).toBe('C0LIST123');
+      expect(webhookDest.url).toBe('https://example.com/webhook');
+    });
+
+    it('should delete a Slack bot destination', async () => {
+      const tenantId = await createTestTenantWithOrg('wh-slack-delete');
+      const { projectId } = await createTestProjectForWebhooks(tenantId);
+
+      const createRes = await makeRequest(basePath(tenantId, projectId), {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Slack Delete Test',
+          slackChannelId: 'C0DEL123',
+          eventTypes: ['conversation.created'],
+        }),
+      });
+      const { data: created } = await createRes.json();
+
+      const deleteRes = await makeRequest(`${basePath(tenantId, projectId)}/${created.id}`, {
+        method: 'DELETE',
+      });
+      expect(deleteRes.status).toBe(204);
+
+      const getRes = await makeRequest(`${basePath(tenantId, projectId)}/${created.id}`);
+      expect(getRes.status).toBe(404);
     });
   });
 });

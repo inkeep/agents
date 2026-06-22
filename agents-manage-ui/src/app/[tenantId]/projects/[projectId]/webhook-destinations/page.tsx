@@ -1,10 +1,16 @@
+import { ChevronDown, Globe, Hash, Plus } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ConnectSlackButton } from '@/components/webhook-destinations/connect-slack-button';
 import { WebhookAgentFilter } from '@/components/webhook-destinations/webhook-agent-filter';
 import { WebhookDestinationsTable } from '@/components/webhook-destinations/webhook-destinations-table';
 import { fetchAgents } from '@/lib/api/agent-full-client';
@@ -41,14 +47,33 @@ async function WebhookDestinationsContent({
           projectId={projectId}
         />
         {canEdit && (
-          <div className="flex items-center gap-2">
-            <ConnectSlackButton tenantId={tenantId} projectId={projectId} />
-            <Button asChild>
-              <Link href={`/${tenantId}/projects/${projectId}/webhook-destinations/new`}>
-                New Webhook
-              </Link>
-            </Button>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4" />
+                New Destination
+                <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem asChild>
+                <Link
+                  href={`/${tenantId}/projects/${projectId}/webhook-destinations/new?type=slack`}
+                >
+                  <Hash className="h-4 w-4" />
+                  Slack Channel
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link
+                  href={`/${tenantId}/projects/${projectId}/webhook-destinations/new?type=webhook`}
+                >
+                  <Globe className="h-4 w-4" />
+                  Custom Webhook
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
       <WebhookDestinationsTable
