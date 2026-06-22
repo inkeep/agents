@@ -1,5 +1,18 @@
 # @inkeep/agents-manage-ui
 
+## 0.79.0
+
+### Minor Changes
+
+- 356084b: Outbound webhook destinations delivered via Slack Bot API
+
+### Patch Changes
+
+- Updated dependencies [62616af]
+- Updated dependencies [62616af]
+- Updated dependencies [356084b]
+  - @inkeep/agents-core@0.79.0
+
 ## 0.78.5
 
 ### Patch Changes

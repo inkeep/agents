@@ -1,5 +1,36 @@
 # @inkeep/agents-api
 
+## 0.79.0
+
+### Minor Changes
+
+- 62616af: Improve the management MCP tool surface: compact oversized tool input schemas (collapse advisory config blocks to a placeholder; ~29% smaller tools/list) and rename the hash-truncated scheduled-trigger invocation tools to clear, descriptive names.
+
+  Breaking (tool names): the five hash-suffixed tools are renamed. Clients that call them by name must update:
+  - `scheduled-triggers-cancel-scheduled-trigger-747` -> `scheduled-triggers-cancel-invocation`
+  - `scheduled-triggers-get-scheduled-trigger-a41` -> `scheduled-triggers-get-invocation`
+  - `scheduled-triggers-list-scheduled-trigger-61d` -> `scheduled-triggers-list-invocations`
+  - `scheduled-triggers-rerun-scheduled-trigger-825` -> `scheduled-triggers-rerun-invocation`
+  - `user-project-memberships-list-user-project-88a` -> `user-project-memberships-list`
+
+  The old names were Speakeasy content-hash suffixes (unstable across regens), not a stable contract.
+
+- 62616af: Security: scope the user-providers lookup to an organization, fixing a cross-tenant IDOR in POST /manage/api/users/providers. getUserProvidersFromDb now requires an organizationId and returns providers only for members of that org, so an org admin can no longer enumerate auth providers of users in other orgs.
+- 356084b: Outbound webhook destinations delivered via Slack Bot API
+
+### Patch Changes
+
+- 62616af: Normalize error responses: conversation-media errors now use the standard RFC-7807 envelope (code/title/status/detail) instead of bare {error}; evaluator create/update gives clear 'model/schema is required' messages and rejects non-object model/schema instead of a generic invalid_union dump
+- 62616af: Make delete-feedback return 204 No Content, consistent with every other delete route (was the lone delete returning {success:true})
+- 62616af: Fix user-profile routes rejecting OAuth/MCP bearer tokens. The `users` route group (mounted at the same `/api/users` prefix as the user-profile routes, and registered first) used a wildcard session-only auth gate that 401'd every OAuth/MCP bearer caller before the profile route ran. Its auth is now scoped to its own endpoints so it no longer shadows the user-profile routes, which authenticate with `manageBearerOrSessionAuth`. The `users` endpoints remain session-only (no widening), and per-route ownership/admin checks are unchanged. Also add a destructive-default warning to the update-skill MCP tool description.
+- Updated dependencies [62616af]
+- Updated dependencies [62616af]
+- Updated dependencies [356084b]
+  - @inkeep/agents-core@0.79.0
+  - @inkeep/agents-work-apps@0.79.0
+  - @inkeep/agents-email@0.79.0
+  - @inkeep/agents-mcp@0.79.0
+
 ## 0.78.5
 
 ### Patch Changes

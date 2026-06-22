@@ -1,5 +1,16 @@
 # @inkeep/agents-core
 
+## 0.79.0
+
+### Minor Changes
+
+- 62616af: Security: scope the user-providers lookup to an organization, fixing a cross-tenant IDOR in POST /manage/api/users/providers. getUserProvidersFromDb now requires an organizationId and returns providers only for members of that org, so an org admin can no longer enumerate auth providers of users in other orgs.
+- 356084b: Outbound webhook destinations delivered via Slack Bot API
+
+### Patch Changes
+
+- 62616af: Normalize error responses: conversation-media errors now use the standard RFC-7807 envelope (code/title/status/detail) instead of bare {error}; evaluator create/update gives clear 'model/schema is required' messages and rejects non-object model/schema instead of a generic invalid_union dump
+
 ## 0.78.5
 
 ### Patch Changes
