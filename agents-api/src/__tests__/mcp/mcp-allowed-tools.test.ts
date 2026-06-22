@@ -15,9 +15,9 @@ function registeredToolNames(opts?: { allowedTools?: string[] }): Set<string> {
 }
 
 describe('INKEEP_MCP_ALLOWED_TOOLS', () => {
-  it('is the curated 167-tool golden path with no duplicates', () => {
-    expect(INKEEP_MCP_ALLOWED_TOOLS.length).toBe(167);
-    expect(new Set(INKEEP_MCP_ALLOWED_TOOLS).size).toBe(167);
+  it('is the curated 180-tool golden path with no duplicates', () => {
+    expect(INKEEP_MCP_ALLOWED_TOOLS.length).toBe(180);
+    expect(new Set(INKEEP_MCP_ALLOWED_TOOLS).size).toBe(180);
   });
 
   it('every allowlisted name exists in the real generated tool registry (no typos / drift)', () => {
@@ -26,9 +26,9 @@ describe('INKEEP_MCP_ALLOWED_TOOLS', () => {
     expect(missing).toEqual([]);
   });
 
-  it('passing the allowlist to createMCPServer exposes exactly those 167 tools', () => {
+  it('passing the allowlist to createMCPServer exposes exactly those 180 tools', () => {
     const exposed = registeredToolNames({ allowedTools: [...INKEEP_MCP_ALLOWED_TOOLS] });
-    expect(exposed.size).toBe(167);
+    expect(exposed.size).toBe(180);
     // and it genuinely filtered the surface down (full set is much larger)
     const full = registeredToolNames();
     expect(full.size).toBeGreaterThan(200);

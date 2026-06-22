@@ -2,7 +2,7 @@
  * Curated "golden path" allowlist for the management MCP server.
  *
  * Passed to createMCPServer({ allowedTools }) to restrict the auto-generated
- * Speakeasy tool surface (~290) down to the 167 tools an agent actually needs
+ * Speakeasy tool surface (~290) down to the 180 tools an agent actually needs
  * for control-plane management. Default-deny: any tool not listed is not exposed.
  *
  * Source of truth: mcp-allowlist.md (repo root). Longer-term this should become a
@@ -18,6 +18,7 @@ export const INKEEP_MCP_ALLOWED_TOOLS: readonly string[] = [
   'API-keys-get-api-key-by-id',
   'API-keys-list-api-keys',
   'API-keys-update-api-key',
+  'MCP-catalog-list-mcp-catalog',
   'agents-create-full-agent',
   'agents-delete-full-agent',
   'agents-get-full-agent',
@@ -64,6 +65,9 @@ export const INKEEP_MCP_ALLOWED_TOOLS: readonly string[] = [
   'data-components-update-data-component',
   'evaluations-add-agent-to-dataset',
   'evaluations-add-agent-to-evaluator',
+  'evaluations-add-evaluator-to-job-config',
+  'evaluations-add-evaluator-to-suite-config',
+  'evaluations-batch-get-evaluator-agent-scopes',
   'evaluations-create-dataset',
   'evaluations-create-dataset-item',
   'evaluations-create-dataset-items-bulk',
@@ -93,18 +97,23 @@ export const INKEEP_MCP_ALLOWED_TOOLS: readonly string[] = [
   'evaluations-get-evaluation-run-config-results',
   'evaluations-get-evaluation-suite-config',
   'evaluations-get-evaluator',
+  'evaluations-get-evaluators-batch',
   'evaluations-list-dataset-agents',
   'evaluations-list-dataset-items',
   'evaluations-list-dataset-run-configs',
   'evaluations-list-dataset-runs',
   'evaluations-list-datasets',
+  'evaluations-list-evaluation-job-config-evaluators',
   'evaluations-list-evaluation-job-configs',
   'evaluations-list-evaluation-run-configs',
+  'evaluations-list-evaluation-suite-config-evaluators',
   'evaluations-list-evaluation-suite-configs',
   'evaluations-list-evaluator-agents',
   'evaluations-list-evaluators',
   'evaluations-remove-agent-from-dataset',
   'evaluations-remove-agent-from-evaluator',
+  'evaluations-remove-evaluator-from-job-config',
+  'evaluations-remove-evaluator-from-suite-config',
   'evaluations-trigger-dataset-run',
   'evaluations-update-dataset',
   'evaluations-update-dataset-item',
@@ -163,6 +172,10 @@ export const INKEEP_MCP_ALLOWED_TOOLS: readonly string[] = [
   'skills-list-skills',
   'skills-update-skill',
   'skills-update-skill-file',
+  'sub-agents-create-subagent-tool-relation',
+  'sub-agents-get-subagent-tool-relation',
+  'sub-agents-list-subagent-tool-relations',
+  'sub-agents-update-subagent-tool-relation',
   'tools-create-tool',
   'tools-delete-tool',
   'tools-get-tool',
