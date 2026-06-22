@@ -33,6 +33,14 @@ vi.mock('workflow/api', () => ({
   start: vi.fn(),
 }));
 
+const mockPostMessage = vi.fn();
+vi.mock('@inkeep/agents-work-apps/slack', () => ({
+  resolveWorkspaceToken: vi.fn(),
+  getSlackClient: vi.fn(() => ({
+    chat: { postMessage: mockPostMessage },
+  })),
+}));
+
 vi.mock('../../../../data/db', () => ({
   manageDbClient: 'mock-manage-client',
   manageDbPool: 'mock-manage-pool',
@@ -48,12 +56,16 @@ import {
   listEnabledWebhookDestinations,
   withRef,
 } from '@inkeep/agents-core';
+import { resolveWorkspaceToken } from '@inkeep/agents-work-apps/slack';
 import { start } from 'workflow/api';
 import {
   buildSlackPayload,
   buildTestSlackPayload,
   isSlackIncomingWebhookUrl,
 } from '../slackBlockKit';
+
+const mockResolveWorkspaceToken = resolveWorkspaceToken as ReturnType<typeof vi.fn>;
+
 import {
   emitConversationWebhook,
   emitEvaluationFailedWebhook,
@@ -1376,6 +1388,129 @@ describe('WebhookDeliveryService', () => {
       await flushDeferred();
 
       expect(mockStart).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Slack bot destinations', () => {
+    beforeEach(() => {
+      mockPostMessage.mockResolvedValue({ ok: true, ts: '1234.5678' });
+      mockResolveWorkspaceToken.mockResolvedValue('xoxb-mock-token');
+    });
+
+    it('delivers to Slack bot destination via postMessage', async () => {
+      const destinations = [
+        {
+          id: 'slack-dest-1',
+          url: null,
+          slackChannelId: 'C0SLACK1',
+          headers: null,
+          eventTypes: ['conversation.created'],
+          agentIds: [],
+        },
+      ];
+
+      mockWithRef.mockImplementation(
+        async (_pool: unknown, _ref: unknown, fn: (db: string) => Promise<unknown>) => fn('mock-db')
+      );
+      mockListEnabled.mockReturnValue(() => Promise.resolve(destinations));
+
+      await emitWebhookEvent(baseParams);
+
+      expect(mockPostMessage).toHaveBeenCalledTimes(1);
+      expect(mockPostMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ channel: 'C0SLACK1' })
+      );
+      expect(mockStart).not.toHaveBeenCalled();
+    });
+
+    it('does not call postMessage when token resolution fails', async () => {
+      mockResolveWorkspaceToken.mockRejectedValue(new Error('No workspace'));
+
+      const destinations = [
+        {
+          id: 'slack-dest-fail',
+          url: null,
+          slackChannelId: 'C0FAIL1',
+          headers: null,
+          eventTypes: ['conversation.created'],
+          agentIds: [],
+        },
+      ];
+
+      mockWithRef.mockImplementation(
+        async (_pool: unknown, _ref: unknown, fn: (db: string) => Promise<unknown>) => fn('mock-db')
+      );
+      mockListEnabled.mockReturnValue(() => Promise.resolve(destinations));
+
+      await emitWebhookEvent(baseParams);
+
+      expect(mockPostMessage).not.toHaveBeenCalled();
+      expect(mockStart).not.toHaveBeenCalled();
+    });
+
+    it('handles partial postMessage failures without throwing', async () => {
+      mockPostMessage
+        .mockResolvedValueOnce({ ok: true, ts: '1234.5678' })
+        .mockRejectedValueOnce(new Error('channel_not_found'));
+
+      const destinations = [
+        {
+          id: 'slack-ok',
+          url: null,
+          slackChannelId: 'C0OK1',
+          headers: null,
+          eventTypes: ['conversation.created'],
+          agentIds: [],
+        },
+        {
+          id: 'slack-fail',
+          url: null,
+          slackChannelId: 'C0BAD1',
+          headers: null,
+          eventTypes: ['conversation.created'],
+          agentIds: [],
+        },
+      ];
+
+      mockWithRef.mockImplementation(
+        async (_pool: unknown, _ref: unknown, fn: (db: string) => Promise<unknown>) => fn('mock-db')
+      );
+      mockListEnabled.mockReturnValue(() => Promise.resolve(destinations));
+
+      await expect(emitWebhookEvent(baseParams)).resolves.toBeUndefined();
+      expect(mockPostMessage).toHaveBeenCalledTimes(2);
+    });
+
+    it('dispatches mixed destinations concurrently', async () => {
+      const destinations = [
+        {
+          id: 'slack-dest',
+          url: null,
+          slackChannelId: 'C0MIX1',
+          headers: null,
+          eventTypes: ['conversation.created'],
+          agentIds: [],
+        },
+        {
+          id: 'webhook-dest',
+          url: 'https://hook.example.com',
+          slackChannelId: null,
+          headers: null,
+          eventTypes: ['conversation.created'],
+          agentIds: [],
+        },
+      ];
+
+      mockWithRef.mockImplementation(
+        async (_pool: unknown, _ref: unknown, fn: (db: string) => Promise<unknown>) => fn('mock-db')
+      );
+      mockListEnabled.mockReturnValue(() => Promise.resolve(destinations));
+
+      await emitWebhookEvent(baseParams);
+
+      expect(mockPostMessage).toHaveBeenCalledTimes(1);
+      expect(mockPostMessage).toHaveBeenCalledWith(expect.objectContaining({ channel: 'C0MIX1' }));
+      expect(mockStart).toHaveBeenCalledTimes(1);
     });
   });
 });

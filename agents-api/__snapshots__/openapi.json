@@ -12762,10 +12762,16 @@
             "maxLength": 256,
             "type": "string"
           },
+          "slackChannelId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
           "updatedAt": {
             "type": "string"
           },
           "url": {
+            "nullable": true,
             "type": "string"
           }
         },
@@ -12775,6 +12781,7 @@
           "description",
           "enabled",
           "url",
+          "slackChannelId",
           "eventTypes",
           "headers",
           "createdAt",
@@ -12847,15 +12854,20 @@
             "minLength": 1,
             "type": "string"
           },
+          "slackChannelId": {
+            "description": "Slack channel ID for bot-based delivery. Provide either slackChannelId or url, not both.",
+            "nullable": true,
+            "type": "string"
+          },
           "url": {
-            "description": "Destination URL to POST events to",
+            "description": "Destination URL to POST events to. Provide either url or slackChannelId, not both.",
             "format": "uri",
+            "nullable": true,
             "type": "string"
           }
         },
         "required": [
           "name",
-          "url",
           "eventTypes"
         ],
         "type": "object"
@@ -12973,12 +12985,18 @@
             "minLength": 1,
             "type": "string"
           },
+          "slackChannelId": {
+            "description": "Slack channel ID for bot-based delivery. Provide either slackChannelId or url, not both.",
+            "nullable": true,
+            "type": "string"
+          },
           "updatedAt": {
             "type": "string"
           },
           "url": {
-            "description": "Destination URL to POST events to",
+            "description": "Destination URL to POST events to. Provide either url or slackChannelId, not both.",
             "format": "uri",
+            "nullable": true,
             "type": "string"
           }
         },

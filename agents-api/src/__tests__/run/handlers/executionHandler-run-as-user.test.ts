@@ -9,6 +9,11 @@ const { a2aClientConstructorMock, initializeStatusUpdatesMock, mockSendMessage }
   })
 );
 
+vi.mock('@inkeep/agents-work-apps/slack', () => ({
+  resolveWorkspaceToken: vi.fn(),
+  getSlackClient: vi.fn(() => ({ chat: { postMessage: vi.fn() } })),
+}));
+
 vi.mock('@inkeep/agents-core', () => ({
   AGENT_EXECUTION_TRANSFER_COUNT_DEFAULT: 10,
   generateServiceToken: vi.fn().mockResolvedValue('mock-service-token'),

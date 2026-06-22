@@ -1,9 +1,9 @@
 'use client';
 
-import { MoreHorizontal, Pencil, Send, Trash2 } from 'lucide-react';
+import { Hash, MoreHorizontal, Pencil, Send, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { slackApi } from '@/features/work-apps/slack/api/slack-api';
 import {
   deleteWebhookDestinationAction,
   testWebhookDestinationAction,
@@ -44,6 +45,31 @@ export function WebhookDestinationsTable({
 }: WebhookDestinationsTableProps) {
   const router = useRouter();
   const [loadingIds, setLoadingIds] = useState(new Set<string>());
+  const [channelNames, setChannelNames] = useState<Map<string, string>>(new Map());
+
+  const hasSlackDestinations = destinations.some((d) => d.slackChannelId);
+
+  useEffect(() => {
+    if (!hasSlackDestinations) return;
+    let cancelled = false;
+
+    slackApi
+      .listWorkspaceInstallations()
+      .then(async ({ workspaces }) => {
+        if (cancelled || workspaces.length === 0) return;
+        const { channels } = await slackApi.listChannels(workspaces[0].teamId);
+        if (!cancelled) {
+          setChannelNames(new Map(channels.map((ch) => [ch.id, ch.name])));
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) console.warn('Failed to resolve Slack channel names', err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hasSlackDestinations]);
 
   function clearLoading(id: string) {
     setLoadingIds((prev) => {
@@ -96,7 +122,11 @@ export function WebhookDestinationsTable({
     try {
       const result = await testWebhookDestinationAction(tenantId, projectId, dest.id);
       if (result.success && result.data?.success) {
-        toast.success(`Test event sent (HTTP ${result.data.statusCode})`);
+        toast.success(
+          result.data.statusCode
+            ? `Test event sent (HTTP ${result.data.statusCode})`
+            : 'Test event sent'
+        );
       } else {
         toast.error(result.data?.error || result.error || 'Test failed');
       }
@@ -119,7 +149,7 @@ export function WebhookDestinationsTable({
       <TableHeader>
         <TableRow>
           <TableHead>Name</TableHead>
-          <TableHead>URL</TableHead>
+          <TableHead>Destination</TableHead>
           <TableHead>Events</TableHead>
           <TableHead>Enabled</TableHead>
           <TableHead className="w-[50px]" />
@@ -129,7 +159,16 @@ export function WebhookDestinationsTable({
         {destinations.map((dest) => (
           <TableRow key={dest.id}>
             <TableCell className="font-medium">{dest.name}</TableCell>
-            <TableCell className="max-w-[200px] truncate font-mono text-xs">{dest.url}</TableCell>
+            <TableCell className="max-w-[200px] truncate text-xs">
+              {dest.slackChannelId ? (
+                <span className="flex items-center gap-1.5">
+                  <Hash className="h-3 w-3 text-muted-foreground" />
+                  {channelNames.get(dest.slackChannelId) || dest.slackChannelId}
+                </span>
+              ) : (
+                <span className="font-mono">{dest.url}</span>
+              )}
+            </TableCell>
             <TableCell>
               <div className="flex flex-wrap gap-1">
                 {dest.eventTypes.map((et) => (

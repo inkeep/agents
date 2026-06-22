@@ -1107,7 +1107,23 @@ export const WebhookDestinationInsertSchema = createInsertSchema(webhookDestinat
   name: () => z.string().trim().nonempty().describe('Webhook destination name'),
   description: () => z.string().optional().describe('Webhook destination description'),
   enabled: () => z.boolean().default(true).describe('Whether the webhook destination is enabled'),
-  url: () => z.string().url().describe('Destination URL to POST events to'),
+  url: () =>
+    z
+      .string()
+      .url()
+      .nullable()
+      .optional()
+      .describe(
+        'Destination URL to POST events to. Provide either url or slackChannelId, not both.'
+      ),
+  slackChannelId: () =>
+    z
+      .string()
+      .nullable()
+      .optional()
+      .describe(
+        'Slack channel ID for bot-based delivery. Provide either slackChannelId or url, not both.'
+      ),
   eventTypes: () =>
     z.array(WebhookDestinationEventTypeEnum).min(1).describe('Event types to subscribe to'),
   headers: () => HttpHeadersRecordSchema.optional(),

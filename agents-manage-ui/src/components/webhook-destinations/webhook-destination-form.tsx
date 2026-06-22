@@ -1,10 +1,10 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Hash, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Control } from 'react-hook-form';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -27,8 +27,16 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { slackApi } from '@/features/work-apps/slack/api/slack-api';
 import {
   createWebhookDestinationAction,
   updateWebhookDestinationAction,
@@ -44,18 +52,56 @@ const EVENT_TYPES = [
   { value: 'evaluation.failed', label: 'Evaluation Failed' },
 ] as const;
 
-const formSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  description: z.string().optional(),
-  enabled: z.boolean(),
-  url: z.string().url('Must be a valid URL'),
-  eventTypes: z.array(z.string()).min(1, 'Select at least one event type'),
-  agentIds: z.array(z.string()),
-  evaluatorIds: z.array(z.string()),
-  headers: z.array(z.object({ key: z.string(), value: z.string() })),
-});
+type DestinationMode = 'webhook' | 'slack';
+
+const formSchema = z
+  .object({
+    destinationMode: z.enum(['webhook', 'slack']),
+    name: z.string().min(1, 'Name is required'),
+    description: z.string().optional(),
+    enabled: z.boolean(),
+    url: z.string().optional(),
+    slackChannelId: z.string().optional(),
+    eventTypes: z.array(z.string()).min(1, 'Select at least one event type'),
+    agentIds: z.array(z.string()),
+    evaluatorIds: z.array(z.string()),
+    headers: z.array(z.object({ key: z.string(), value: z.string() })),
+  })
+  .superRefine((data, ctx) => {
+    if (data.destinationMode === 'webhook' && !data.url) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'URL is required for webhook destinations',
+        path: ['url'],
+      });
+    }
+    if (data.destinationMode === 'webhook' && data.url) {
+      try {
+        new URL(data.url);
+      } catch {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Must be a valid URL',
+          path: ['url'],
+        });
+      }
+    }
+    if (data.destinationMode === 'slack' && !data.slackChannelId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Select a Slack channel',
+        path: ['slackChannelId'],
+      });
+    }
+  });
 
 type FormValues = z.infer<typeof formSchema>;
+
+interface SlackChannel {
+  id: string;
+  name: string;
+  isPrivate: boolean;
+}
 
 function formatHeaderValidationError(rawError: string | undefined): string {
   if (!rawError) return 'Unknown error';
@@ -93,7 +139,7 @@ interface WebhookDestinationFormProps {
   webhookDestination?: WebhookDestination;
   agents?: Agent[];
   evaluators?: Evaluator[];
-  defaultUrl?: string;
+  destinationType?: DestinationMode;
 }
 
 function EvaluatorScopeSection({
@@ -175,17 +221,25 @@ export function WebhookDestinationForm({
   webhookDestination,
   agents = [],
   evaluators = [],
-  defaultUrl,
+  destinationType,
 }: WebhookDestinationFormProps) {
   const router = useRouter();
+  const [slackChannels, setSlackChannels] = useState<SlackChannel[]>([]);
+  const [slackLoading, setSlackLoading] = useState(false);
+  const [slackError, setSlackError] = useState<string | null>(null);
+
+  const resolvedMode: DestinationMode =
+    destinationType ?? (webhookDestination?.slackChannelId ? 'slack' : 'webhook');
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      destinationMode: resolvedMode,
       name: webhookDestination?.name || '',
       description: webhookDestination?.description || '',
       enabled: webhookDestination?.enabled ?? true,
-      url: webhookDestination?.url || defaultUrl || '',
+      url: webhookDestination?.url || '',
+      slackChannelId: webhookDestination?.slackChannelId || '',
       eventTypes: webhookDestination?.eventTypes || [],
       agentIds: webhookDestination?.agentIds ?? [],
       evaluatorIds: webhookDestination?.evaluatorIds ?? [],
@@ -196,23 +250,64 @@ export function WebhookDestinationForm({
   const selectedEventTypes = useWatch({ control: form.control, name: 'eventTypes' });
   const hasEvaluationFailed = selectedEventTypes.includes('evaluation.failed');
 
+  useEffect(() => {
+    if (resolvedMode !== 'slack') return;
+    let cancelled = false;
+    setSlackLoading(true);
+    setSlackError(null);
+
+    slackApi
+      .listWorkspaceInstallations()
+      .then(async ({ workspaces }) => {
+        if (cancelled) return;
+        if (workspaces.length === 0) {
+          setSlackError('No Slack workspace connected. Install the Slack app first.');
+          setSlackLoading(false);
+          return;
+        }
+        const { channels } = await slackApi.listChannels(workspaces[0].teamId);
+        if (!cancelled) {
+          setSlackChannels(
+            channels.map((ch) => ({ id: ch.id, name: ch.name, isPrivate: ch.isPrivate }))
+          );
+        }
+      })
+      .catch((err) => {
+        if (!cancelled)
+          setSlackError(err instanceof Error ? err.message : 'Failed to load channels');
+      })
+      .finally(() => {
+        if (!cancelled) setSlackLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedMode]);
+
   async function onSubmit(values: FormValues) {
     const headersRecord = keyValuePairsToRecord(values.headers);
+    const isSlack = resolvedMode === 'slack';
     const payload = {
       name: values.name,
       description: values.description || undefined,
       enabled: values.enabled,
-      url: values.url,
+      url: isSlack ? undefined : values.url,
+      slackChannelId: isSlack ? values.slackChannelId : undefined,
       eventTypes: values.eventTypes,
       agentIds: values.agentIds,
       evaluatorIds: hasEvaluationFailed ? values.evaluatorIds : [],
-      headers: Object.keys(headersRecord).length > 0 ? headersRecord : undefined,
+      headers: isSlack
+        ? undefined
+        : Object.keys(headersRecord).length > 0
+          ? headersRecord
+          : undefined,
     };
 
     if (mode === 'create') {
       const result = await createWebhookDestinationAction(tenantId, projectId, payload);
       if (result.success) {
-        toast.success('Outbound webhook created');
+        toast.success(isSlack ? 'Slack alert destination created' : 'Outbound webhook created');
         router.push(`/${tenantId}/projects/${projectId}/webhook-destinations`);
         router.refresh();
       } else {
@@ -226,7 +321,7 @@ export function WebhookDestinationForm({
         payload
       );
       if (result.success) {
-        toast.success('Outbound webhook updated');
+        toast.success(isSlack ? 'Slack alert destination updated' : 'Outbound webhook updated');
         router.push(`/${tenantId}/projects/${projectId}/webhook-destinations`);
         router.refresh();
       } else {
@@ -266,32 +361,80 @@ export function WebhookDestinationForm({
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="url"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Destination URL</FormLabel>
-              <FormControl>
-                <Input placeholder="https://example.com/webhook" {...field} />
-              </FormControl>
-              <FormDescription>
-                Events will be sent as HTTP POST requests to this URL.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {resolvedMode === 'webhook' && (
+          <>
+            <FormField
+              control={form.control}
+              name="url"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Destination URL</FormLabel>
+                  <FormControl>
+                    <Input placeholder="https://example.com/webhook" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Events will be sent as HTTP POST requests to this URL.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <GenericKeyValueInput
-          control={form.control}
-          name="headers"
-          label="Custom Headers"
-          description="Add custom HTTP headers to include in webhook delivery requests. Header names are case-insensitive and may be received in lowercase by the destination."
-          keyPlaceholder="Header name"
-          valuePlaceholder="Header value"
-          addButtonLabel="Add Header"
-        />
+            <GenericKeyValueInput
+              control={form.control}
+              name="headers"
+              label="Custom Headers"
+              description="Add custom HTTP headers to include in webhook delivery requests. Header names are case-insensitive and may be received in lowercase by the destination."
+              keyPlaceholder="Header name"
+              valuePlaceholder="Header value"
+              addButtonLabel="Add Header"
+            />
+          </>
+        )}
+
+        {resolvedMode === 'slack' && (
+          <FormField
+            control={form.control}
+            name="slackChannelId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Slack Channel</FormLabel>
+                {slackError ? (
+                  <p className="text-sm text-muted-foreground">{slackError}</p>
+                ) : slackLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading channels...</p>
+                ) : (
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a channel" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {slackChannels.map((channel) => (
+                        <SelectItem key={channel.id} value={channel.id}>
+                          <span className="flex items-center gap-1.5">
+                            {channel.isPrivate ? (
+                              <Lock className="h-3 w-3 text-muted-foreground" />
+                            ) : (
+                              <Hash className="h-3 w-3 text-muted-foreground" />
+                            )}
+                            {channel.name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <FormDescription>
+                  Alerts will be posted to this channel via the Inkeep Slack bot. The bot must be a
+                  member of the channel.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <FormField
           control={form.control}
@@ -430,8 +573,8 @@ export function WebhookDestinationForm({
             {form.formState.isSubmitting
               ? 'Saving...'
               : mode === 'create'
-                ? 'Create Outbound Webhook'
-                : 'Update Outbound Webhook'}
+                ? 'Create Destination'
+                : 'Update Destination'}
           </Button>
           <Button
             type="button"

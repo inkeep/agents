@@ -17,6 +17,7 @@ import {
   withRef,
 } from '@inkeep/agents-core';
 import type { EvaluationStatus } from '@inkeep/agents-core/evaluation';
+import { getSlackClient, resolveWorkspaceToken } from '@inkeep/agents-work-apps/slack';
 import { start } from 'workflow/api';
 import { manageDbClient, manageDbPool } from '../../../data/db';
 import { env } from '../../../env';
@@ -155,6 +156,86 @@ interface DispatchToDestinationsParams {
   slackMeta?: WebhookSlackMeta;
 }
 
+async function dispatchSlackBotDestinations(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  eventType: WebhookEventType;
+  envelope: WebhookEventEnvelope;
+  slackCtx: SlackContext;
+  slackMeta?: WebhookSlackMeta;
+  destinations: WebhookDestinationSelect[];
+}): Promise<void> {
+  const { tenantId, eventType, envelope, slackCtx, slackMeta, destinations } = params;
+
+  if (destinations.length === 0) return;
+
+  let botToken: string;
+  try {
+    botToken = await resolveWorkspaceToken(tenantId);
+  } catch (err) {
+    logger.error(
+      {
+        tenantId,
+        projectId: params.projectId,
+        agentId: params.agentId,
+        eventType,
+        destinationCount: destinations.length,
+        error: err instanceof Error ? err.message : String(err),
+      },
+      'Failed to resolve Slack workspace token for bot destinations'
+    );
+    return;
+  }
+
+  const slackClient = getSlackClient(botToken);
+  const payload = buildSlackPayload(
+    eventType,
+    envelope as unknown as Record<string, unknown>,
+    slackCtx,
+    slackMeta
+  );
+
+  const results = await Promise.allSettled(
+    destinations.map((dest) => {
+      const channelId = dest.slackChannelId ?? '';
+      const args = {
+        channel: channelId,
+        text: payload.text as string,
+        blocks: payload.blocks as unknown[],
+      };
+      return slackClient.chat.postMessage(
+        args as Parameters<typeof slackClient.chat.postMessage>[0]
+      );
+    })
+  );
+
+  let delivered = 0;
+  for (let i = 0; i < results.length; i++) {
+    if (results[i].status === 'fulfilled') {
+      delivered++;
+    } else {
+      const error = (results[i] as PromiseRejectedResult).reason;
+      logger.error(
+        {
+          webhookDestinationId: destinations[i].id,
+          slackChannelId: destinations[i].slackChannelId,
+          eventType,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        'Failed to deliver Slack bot alert'
+      );
+    }
+  }
+
+  if (delivered > 0) {
+    logger.debug(
+      { tenantId, eventType, delivered, total: destinations.length },
+      'Slack bot alert deliveries completed'
+    );
+  }
+}
+
 async function dispatchToDestinations(params: DispatchToDestinationsParams): Promise<void> {
   const { tenantId, projectId, agentId, eventType, data, destinations, slackMeta } = params;
 
@@ -170,8 +251,23 @@ async function dispatchToDestinations(params: DispatchToDestinationsParams): Pro
   const manageUiBaseUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
   const slackCtx: SlackContext = { tenantId, projectId, agentId, manageUiBaseUrl };
 
-  const payloads: WebhookDeliveryPayload[] = destinations.map((dest) => {
-    const isSlackWebhook = isSlackIncomingWebhookUrl(dest.url);
+  const slackBotDests = destinations.filter((d) => d.slackChannelId);
+  const webhookDests = destinations.filter((d) => d.url);
+
+  const slackBotPromise = dispatchSlackBotDestinations({
+    tenantId,
+    projectId,
+    agentId,
+    eventType,
+    envelope,
+    slackCtx,
+    slackMeta,
+    destinations: slackBotDests,
+  });
+
+  const payloads: WebhookDeliveryPayload[] = webhookDests.map((dest) => {
+    const destUrl = dest.url ?? '';
+    const isSlackWebhook = isSlackIncomingWebhookUrl(destUrl);
     let payload: Record<string, unknown>;
     if (isSlackWebhook) {
       try {
@@ -196,7 +292,7 @@ async function dispatchToDestinations(params: DispatchToDestinationsParams): Pro
       payload = envelope as unknown as Record<string, unknown>;
     }
     return {
-      destinationUrl: dest.url,
+      destinationUrl: destUrl,
       tenantId,
       projectId,
       agentId,
@@ -206,7 +302,7 @@ async function dispatchToDestinations(params: DispatchToDestinationsParams): Pro
     };
   });
 
-  const results = await Promise.allSettled(
+  const webhookResults = await Promise.allSettled(
     payloads.map((deliveryPayload) =>
       useQueue
         ? dispatchViaQueue(deliveryPayload)
@@ -215,14 +311,14 @@ async function dispatchToDestinations(params: DispatchToDestinationsParams): Pro
   );
 
   let dispatched = 0;
-  for (let i = 0; i < results.length; i++) {
-    if (results[i].status === 'fulfilled') {
+  for (let i = 0; i < webhookResults.length; i++) {
+    if (webhookResults[i].status === 'fulfilled') {
       dispatched++;
     } else {
-      const error = (results[i] as PromiseRejectedResult).reason;
+      const error = (webhookResults[i] as PromiseRejectedResult).reason;
       logger.error(
         {
-          webhookDestinationId: destinations[i].id,
+          webhookDestinationId: webhookDests[i].id,
           eventType,
           error: error instanceof Error ? error.message : String(error),
         },
@@ -235,10 +331,12 @@ async function dispatchToDestinations(params: DispatchToDestinationsParams): Pro
 
   if (dispatched > 0) {
     logger.debug(
-      { tenantId, projectId, agentId, eventType, dispatched, total: destinations.length },
+      { tenantId, projectId, agentId, eventType, dispatched, total: webhookDests.length },
       useQueue ? 'Webhook deliveries enqueued' : 'Webhook delivery workflows started'
     );
   }
+
+  await slackBotPromise;
 }
 
 export async function emitWebhookEvent(params: EmitWebhookEventParams): Promise<void> {
