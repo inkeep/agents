@@ -1,7 +1,7 @@
 ---
 title: Build and deploy a Support Copilot for Zendesk
 sidebarTitle: Setup
-description: Deploy a knowledge-grounded AI copilot into your Zendesk ticket sidebar so support agents get answers, drafts, and next steps without leaving the ticket.
+description: Deploy an AI copilot into your Zendesk ticket sidebar that grounds its drafts in your team's internal context — prior resolved threads the customer-facing bot never saw — so agents get answers, sources, and next steps without leaving the ticket.
 icon: LuLifeBuoy
 ---
 
@@ -9,23 +9,31 @@ icon: LuLifeBuoy
 
 ## Overview
 
-Support Copilot puts an Inkeep agent right inside the Zendesk ticket sidebar, working alongside your support team. When an agent opens a ticket, the copilot will:
+> **Who this is for:** support teams giving their **agents** a copilot inside the **Zendesk ticket sidebar**. (For a copilot embedded in your own product for **logged-in end users**, see [In-Product Copilot](/guides/agents/in-product-copilot).)
+
+Support Copilot puts an Inkeep agent right inside the Zendesk ticket sidebar, working alongside your support team. Its edge is the context it can reach that your customer-facing bot never could: your team's **internal** knowledge — prior resolved threads, internal Slack discussions, and the diagnostics behind past fixes.
+
+When an agent opens a ticket and runs Smart Assist, the copilot will:
 
 1. Read the ticket — the conversation, metadata, and customer details — automatically
-2. Search your knowledge base for relevant answers
-3. Help the agent make progress — explain the issue, draft a reply, or suggest the next question to ask
+2. Search your internal threads for the times your team already solved this exact issue
+3. Return structured assistance: a **Draft Answer** the agent can send, the **Relevant Sources** behind it (the internal thread *and* the public article that backed the fix), plus quick replies, clarifying questions, a thread summary, or follow-up tasks as the ticket needs
 
 Everything happens inside the ticket the agent is already working in. No tab-switching, no copy-paste.
 
 ## Prerequisites
 
 - Access to Inkeep Enterprise — [schedule a demo](https://inkeep.com/schedule-demo) if you don't have it yet
-- An Inkeep account with [Inkeep Unified Search](/connect-your-data/inkeep) configured for your product (knowledge base, docs, sources connected)
+- An internal knowledge source exposed as an MCP server — e.g. your internal Slack support channels or a store of past resolved tickets — that returns prior threads and the public source behind each fix. See [Build Custom MCP Servers](/guides/mcp-servers/custom-mcp-servers) if you need to create one.
 - A Zendesk account, with a Zendesk admin available to approve the app install
+
+<Note>
+The internal-knowledge MCP is a custom server you build and deploy — it's where your team's prior resolutions live. Budget a little engineering time for it; everything after it is no-code in the Visual Builder.
+</Note>
 
 ## Build the Smart Assist agent
 
-Start by building the agent that powers the copilot: a single sub agent that searches your knowledge base and helps the support agent reason about the ticket.
+Start by building the agent that powers the copilot: a single sub agent that searches your internal threads and helps the support agent reason about the ticket.
 
 <Steps>
   <Step>
@@ -48,16 +56,14 @@ You are an AI copilot for [Your Company] that helps the support team make progre
 You're assisting a support agent — they are your user. Every message you receive is from the support agent, never from the customer. The ticket's conversation, metadata, and customer details are provided to you automatically. Focus on where the conversation currently stands.
 
 How to help:
-1. When the agent asks you to analyze a ticket — "Smart Assist", "what should I do here", "help me with this" — search the knowledge base first, then walk them through the issue and a recommended next step.
-2. When you draft a customer reply, match the tone of the thread and keep it concise.
-3. When the customer hasn't given enough detail, suggest the questions the agent should ask.
-
-Talk to the agent like a well-crafted Slack message: conversational and concise.
+1. When the agent asks you to analyze a ticket — "Smart Assist", "what should I do here", "help me with this" — search your internal threads FIRST. Your team may have resolved this exact issue before; that internal context is knowledge the customer-facing bot never had.
+2. Surface what you found together in one response: a Relevant Sources card showing the internal thread AND the public source behind the fix, plus a Draft Answer card with a customer-ready reply that cites only the public source.
+3. If the internal thread reveals the root cause (e.g. "not an outage — the bot was never invited to the channel"), state that briefly to the agent before the cards.
+4. When the customer hasn't given enough detail to resolve it, ask the questions the agent should send instead of drafting.
 
 Rules:
-- Ground every answer in knowledge base results. Only include a link if it appears in a search result — never invent or guess a URL. An answer with no sources beats one with a fabricated source.
-- If your sources don't cover the question, say so plainly and express uncertainty rather than guessing.
-- Never expose customer PII in anything customer-facing.
+- Only cite a URL if it appears verbatim in a search result — never invent or guess one. An answer with no source beats one with a fabricated source.
+- Never put internal/private links or customer PII in customer-facing content. Internal threads are for the agent only.
 - Don't tell the customer to "reach out to support" — they already have.
 ```
 
@@ -65,28 +71,55 @@ Rules:
 Replace `[Your Company]` with your company name. This prompt is a starting point — tune the tone and the "how to help" steps to match how your team works.
 </Tip>
 
-## Connect your knowledge base
+## Connect your internal knowledge
 
-Smart Assist needs to search your content to ground its answers. Inkeep Unified Search is exposed as an MCP server that gives the agent a `search-knowledge-base` tool.
+Smart Assist's advantage is the internal context it can reach. Expose that knowledge as an MCP server that gives the agent a search tool — in our example MCP that tool is `search_internal_threads`, returning a prior internal thread plus the public source that backed the fix. Your MCP may name its tool differently.
+
+Each search result should carry the internal thread, a short resolution summary, and the public source URL that backed the fix — for example:
+
+```json
+{
+  "thread_content": "Customer's Slack bot wasn't responding when tagged…",
+  "resolution": "Not an outage — the bot was never invited to the channel. Fix: /invite @bot, then retry.",
+  "public_source_url": "https://slack.com/help/articles/..."
+}
+```
+
+Smart Assist links `public_source_url` in the customer-facing Draft Answer and keeps the internal thread in Relevant Sources, flagged private for the agent.
 
 <Steps>
   <Step>
-    Click **MCP Servers** in the left sidebar, then **New MCP Server → Custom Server**. Register your Inkeep Unified Search server and give it a name (e.g., `Facts MCP`).
+    Click **MCP Servers** in the left sidebar, then **New MCP Server → Custom Server**. Register your internal-knowledge server and give it a name (e.g., `Internal Slack`).
   </Step>
   <Step>
-    Go back to your agent canvas, drag an **MCP** block onto it, select your search server, and connect it to the **Smart Assist** sub agent.
+    Go back to your agent canvas, drag an **MCP** block onto it, select your internal-knowledge server, and connect it to the **Smart Assist** sub agent.
   </Step>
   <Step>
     Click **Save Changes** in the top right corner.
   </Step>
 </Steps>
 
-Your canvas should now show **Smart Assist** connected to the knowledge base MCP:
+Your canvas should now show **Smart Assist** connected to the internal-knowledge MCP:
 
-<img src="/images/guides/support-copilot/agent-canvas.png" alt="The Smart Assist sub agent connected to the knowledge base MCP on the Visual Builder canvas" width="280" className="mx-auto block" style={{ display: 'block', margin: '0 auto' }} />
+<img src="/images/guides/support-copilot/agent-canvas.png" alt="The Smart Assist sub agent connected to the internal-knowledge MCP on the Visual Builder canvas" width="280" className="mx-auto block" style={{ display: 'block', margin: '0 auto' }} />
 
 <Tip>
-Need the full walkthrough for generating an Inkeep API key and saving it as a credential? See [Connect your data](/connect-your-data/inkeep).
+Need to build the internal-knowledge MCP itself? See [Build Custom MCP Servers](/guides/mcp-servers/custom-mcp-servers) for wrapping any internal source — Slack, past tickets, a wiki — as a server the agent can search.
+</Tip>
+
+## Add structured assistance
+
+Smart Assist doesn't just reply in plain text — it returns rich cards the agent can act on. You define these as **data components**: name each one and give it a JSON schema, and the agent fills them in. Create them in the **Data Components** tab, then attach them to Smart Assist. See [Data Components](/visual-builder/structured-outputs/data-components) for the full walkthrough.
+
+The two that carry this copilot:
+
+- **Draft Answer** — a customer-ready reply the agent can send as-is, citing only public sources.
+- **Relevant Sources** — the evidence behind the draft: the internal thread (marked private, for the agent's eyes only) and the public article (safe to link to the customer).
+
+Add more as your team needs them — the demo also ships **Quick Replies** (one-click acknowledgements), **Questions to Ask** (clarifying questions when the ticket is thin), a **Thread Summary** for long threads, and **Customer / Agent Tasks** for open action items.
+
+<Tip>
+Keep customer-facing cards (Draft Answer, Quick Replies, Questions to Ask) free of internal links and PII. Internal context belongs only in Relevant Sources, flagged private for the agent.
 </Tip>
 
 ## Create a Support Copilot app
@@ -146,6 +179,6 @@ Only people added to the project (Project Member role or above) can use the Supp
 
 Open a ticket in Zendesk and find **Inkeep Agents** in the sidebar. The copilot greets you with the ticket it's looking at, and your quick actions are ready at the top.
 
-Click **Smart Assist** and the copilot reads the ticket, searches your knowledge base, and walks you through the issue and a recommended next step — or type your own message to ask it anything about the ticket.
+Click **Smart Assist** and the copilot reads the ticket, searches your internal threads, and — when your team has solved it before — surfaces the prior fix: a brief note on the root cause, the **Relevant Sources** behind it, and a **Draft Answer** grounded in the public source, ready to send. Or type your own message to ask it anything about the ticket.
 
-From here you can extend the copilot with more tools as your team needs them — for example, searching private internal sources or pulling up a customer's logs. Each one builds on the same agent you just deployed.
+From here you can extend the copilot with more tools as your team needs them — for example, pulling up a customer's logs or checking live integration status. Each one builds on the same agent you just deployed.
