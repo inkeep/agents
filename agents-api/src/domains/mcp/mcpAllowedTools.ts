@@ -2,7 +2,7 @@
  * Curated "golden path" allowlist for the management MCP server.
  *
  * Passed to createMCPServer({ allowedTools }) to restrict the auto-generated
- * Speakeasy tool surface (~290) down to the 180 tools an agent actually needs
+ * Speakeasy tool surface (~290) down to the 184 tools an agent actually needs
  * for control-plane management. Default-deny: any tool not listed is not exposed.
  *
  * Source of truth: mcp-allowlist.md (repo root). Longer-term this should become a
@@ -21,6 +21,7 @@ export const INKEEP_MCP_ALLOWED_TOOLS: readonly string[] = [
   'MCP-catalog-list-mcp-catalog',
   'agents-create-full-agent',
   'agents-delete-full-agent',
+  'agents-get-agent',
   'agents-get-full-agent',
   'agents-list-agents',
   'agents-update-agent',
@@ -173,8 +174,11 @@ export const INKEEP_MCP_ALLOWED_TOOLS: readonly string[] = [
   'skills-update-skill',
   'skills-update-skill-file',
   'sub-agents-create-subagent-tool-relation',
+  'sub-agents-get-subagent-by-id',
   'sub-agents-get-subagent-tool-relation',
   'sub-agents-list-subagent-tool-relations',
+  'sub-agents-list-subagents',
+  'sub-agents-update-subagent',
   'sub-agents-update-subagent-tool-relation',
   'tools-create-tool',
   'tools-delete-tool',
