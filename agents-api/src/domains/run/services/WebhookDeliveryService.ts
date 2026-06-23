@@ -661,6 +661,8 @@ export interface EmitEvaluationFailedWebhookParams {
   };
   evaluator: { id: string; name: string };
   resolvedRef: ResolvedRef;
+  conversationUserProperties?: Record<string, unknown> | null;
+  conversationProperties?: Record<string, unknown> | null;
 }
 
 export async function emitEvaluationFailedWebhook(
@@ -709,7 +711,11 @@ export async function emitEvaluationFailedWebhook(
       eventType: 'evaluation.failed',
       data: {
         evaluator: { id: evaluator.id, name: evaluator.name },
-        conversation: { id: evaluationResult.conversationId },
+        conversation: {
+          id: evaluationResult.conversationId,
+          userProperties: params.conversationUserProperties ?? null,
+          properties: params.conversationProperties ?? null,
+        },
         failedConditions,
       },
       destinations,

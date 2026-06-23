@@ -466,6 +466,8 @@ app.openapi(chatDataStreamRoute, async (c) => {
         headers: validatedContext,
         credentialStores,
         prefetchedDestinations,
+        conversationUserProperties: resolvedUserProperties ?? null,
+        conversationProperties: resolvedProperties ?? null,
       });
 
       // Store last user message
@@ -658,6 +660,8 @@ app.openapi(chatDataStreamRoute, async (c) => {
           forwardedHeaders,
           responseMessageId,
           prefetchedDestinations,
+          conversationUserProperties: resolvedUserProperties ?? null,
+          conversationProperties: resolvedProperties ?? null,
         });
 
         const captured = bufferingHelper.getCapturedResponse();
@@ -774,6 +778,8 @@ app.openapi(chatDataStreamRoute, async (c) => {
               forwardedHeaders,
               responseMessageId,
               prefetchedDestinations,
+              conversationUserProperties: resolvedUserProperties ?? null,
+              conversationProperties: resolvedProperties ?? null,
             });
 
             if (!result.success) {

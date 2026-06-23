@@ -233,6 +233,8 @@ export class AgentSession {
   private artifactParser?: any; // Session-scoped ArtifactParser instance
   private isEmitOperations: boolean = false; // Whether to send data operations
   private _prefetchedDestinations?: WebhookDestinationSelect[];
+  private _conversationUserProperties?: Record<string, unknown> | null;
+  private _conversationProperties?: Record<string, unknown> | null;
   private logger: ReturnType<typeof getLogger>;
 
   constructor(
@@ -286,6 +288,22 @@ export class AgentSession {
 
   getPrefetchedDestinations(): WebhookDestinationSelect[] | undefined {
     return this._prefetchedDestinations;
+  }
+
+  setConversationUserProperties(userProperties: Record<string, unknown> | null): void {
+    this._conversationUserProperties = userProperties;
+  }
+
+  setConversationProperties(properties: Record<string, unknown> | null): void {
+    this._conversationProperties = properties;
+  }
+
+  getConversationUserProperties(): Record<string, unknown> | null | undefined {
+    return this._conversationUserProperties;
+  }
+
+  getConversationProperties(): Record<string, unknown> | null | undefined {
+    return this._conversationProperties;
   }
 
   /**
@@ -2038,6 +2056,31 @@ export class AgentSessionManager {
 
   getPrefetchedDestinations(sessionId: string): WebhookDestinationSelect[] | undefined {
     return this.sessions.get(sessionId)?.getPrefetchedDestinations();
+  }
+
+  setConversationUserProperties(
+    sessionId: string,
+    userProperties: Record<string, unknown> | null
+  ): void {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      session.setConversationUserProperties(userProperties);
+    }
+  }
+
+  setConversationProperties(sessionId: string, properties: Record<string, unknown> | null): void {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      session.setConversationProperties(properties);
+    }
+  }
+
+  getConversationUserProperties(sessionId: string): Record<string, unknown> | null | undefined {
+    return this.sessions.get(sessionId)?.getConversationUserProperties();
+  }
+
+  getConversationProperties(sessionId: string): Record<string, unknown> | null | undefined {
+    return this.sessions.get(sessionId)?.getConversationProperties();
   }
 
   /**

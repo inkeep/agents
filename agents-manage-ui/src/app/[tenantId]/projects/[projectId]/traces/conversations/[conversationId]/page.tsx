@@ -9,10 +9,11 @@ import {
   ExternalLink as ExternalLinkIcon,
   Timer,
   TriangleAlert,
+  User,
 } from 'lucide-react';
 import NextLink from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { use, useEffect, useState } from 'react';
+import { Fragment, use, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { FeedbackDialog } from '@/components/agent/playground/feedback-dialog';
 import { MCPBreakdownCard } from '@/components/traces/mcp-breakdown-card';
@@ -30,6 +31,7 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { fetchConversationHistoryAction } from '@/lib/actions/conversations';
 import { hasConversationFeedbackAction } from '@/lib/actions/feedback';
 import { rerunScheduledTriggerInvocationAction } from '@/lib/actions/scheduled-triggers';
 import { rerunTriggerAction } from '@/lib/actions/triggers';
@@ -75,6 +77,14 @@ export default function ConversationDetail({
     type?: 'positive' | 'negative';
   }>({ open: false });
   const [hasFeedback, setHasFeedback] = useState(false);
+  const [conversationUserProperties, setConversationUserProperties] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
+  const [conversationProperties, setConversationProperties] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(true);
   const { PUBLIC_SIGNOZ_URL, PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
   const isCloudDeployment = PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true';
@@ -255,11 +265,12 @@ export default function ConversationDetail({
         setLoading(true);
         setError(null);
 
-        const [traceResponse, feedbackResult] = await Promise.allSettled([
+        const [traceResponse, feedbackResult, convHistoryResult] = await Promise.allSettled([
           fetch(
             `/api/traces/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`
           ),
           hasConversationFeedbackAction(tenantId, projectId, conversationId),
+          fetchConversationHistoryAction(tenantId, projectId, conversationId, { limit: 1 }),
         ]);
 
         if (traceResponse.status === 'rejected' || !traceResponse.value.ok) {
@@ -271,6 +282,12 @@ export default function ConversationDetail({
         setUsageEvents(Array.isArray(data?.usageEvents) ? data.usageEvents : []);
 
         setHasFeedback(feedbackResult.status === 'fulfilled' && feedbackResult.value === true);
+
+        if (convHistoryResult.status === 'fulfilled' && convHistoryResult.value?.success) {
+          const convData = convHistoryResult.value.data?.conversation;
+          setConversationUserProperties(convData?.userProperties ?? null);
+          setConversationProperties(convData?.properties ?? null);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       }
@@ -367,7 +384,9 @@ export default function ConversationDetail({
           </CollapsibleTrigger>
         </div>
         <CollapsibleContent className="data-[state=closed]:animate-[collapsible-up_200ms_ease-out] data-[state=open]:animate-[collapsible-down_200ms_ease-out] overflow-hidden">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div
+            className={`grid gap-4 md:grid-cols-2 ${(conversationUserProperties && Object.keys(conversationUserProperties).length > 0) || (conversationProperties && Object.keys(conversationProperties).length > 0) ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}
+          >
             {/* Duration */}
             {(() => {
               const hasAssistantResponse = conversation.activities?.some(
@@ -432,6 +451,60 @@ export default function ConversationDetail({
                 </Card>
               );
             })()}
+
+            {/* User & Properties */}
+            {((conversationUserProperties && Object.keys(conversationUserProperties).length > 0) ||
+              (conversationProperties && Object.keys(conversationProperties).length > 0)) && (
+              <Card className="shadow-none bg-background max-h-[280px] flex flex-col">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
+                  <CardTitle className="text-sm font-medium text-foreground">Properties</CardTitle>
+                  <User className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent className="flex-1 min-h-0 overflow-y-auto -mt-1">
+                  <div className="space-y-3">
+                    {conversationUserProperties &&
+                      Object.keys(conversationUserProperties).length > 0 && (
+                        <div className="space-y-1">
+                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                            User Properties
+                          </span>
+                          <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
+                            {Object.entries(conversationUserProperties).map(([key, value]) => (
+                              <Fragment key={key}>
+                                <span className="text-muted-foreground">{key}</span>
+                                <span className="font-mono text-foreground truncate">
+                                  {typeof value === 'object' && value !== null
+                                    ? JSON.stringify(value)
+                                    : String(value)}
+                                </span>
+                              </Fragment>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    {conversationProperties && Object.keys(conversationProperties).length > 0 && (
+                      <div className="space-y-1">
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                          Properties
+                        </span>
+                        <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
+                          {Object.entries(conversationProperties).map(([key, value]) => (
+                            <Fragment key={key}>
+                              <span className="text-muted-foreground">{key}</span>
+                              <span className="font-mono text-foreground truncate">
+                                {typeof value === 'object' && value !== null
+                                  ? JSON.stringify(value)
+                                  : String(value)}
+                              </span>
+                            </Fragment>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* AI Usage & Cost */}
             <Card className="shadow-none bg-background max-h-[280px] flex flex-col">

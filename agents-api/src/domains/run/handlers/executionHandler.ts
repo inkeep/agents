@@ -65,6 +65,8 @@ export interface ExecutionHandlerParams {
   approvedToolCalls?: Record<string, { approved: boolean; reason?: string }>;
   /** Pre-fetched webhook destinations */
   prefetchedDestinations?: WebhookDestinationSelect[];
+  conversationUserProperties?: Record<string, unknown> | null;
+  conversationProperties?: Record<string, unknown> | null;
 }
 
 interface ExecutionResult {
@@ -104,6 +106,8 @@ export class ExecutionHandler {
       emitOperations,
       forwardedHeaders,
       prefetchedDestinations,
+      conversationUserProperties,
+      conversationProperties,
     } = params;
 
     const { tenantId, projectId, project, agentId, baseUrl, resolvedRef } = executionContext;
@@ -119,7 +123,14 @@ export class ExecutionHandler {
             agentName,
             resolvedRef,
             eventType: 'conversation.execution.error',
-            data: { conversation: { id: conversationId }, reason },
+            data: {
+              conversation: {
+                id: conversationId,
+                userProperties: conversationUserProperties ?? null,
+                properties: conversationProperties ?? null,
+              },
+              reason,
+            },
             prefetchedDestinations,
           },
           'execution-handler'
@@ -135,6 +146,12 @@ export class ExecutionHandler {
       if (prefetchedDestinations) {
         agentSessionManager.setPrefetchedDestinations(requestId, prefetchedDestinations);
       }
+
+      agentSessionManager.setConversationUserProperties(
+        requestId,
+        conversationUserProperties ?? null
+      );
+      agentSessionManager.setConversationProperties(requestId, conversationProperties ?? null);
 
       if (emitOperations) {
         agentSessionManager.enableEmitOperations(requestId);
