@@ -1,0 +1,324 @@
+---
+title: Build an AI SDR chatbot without code
+sidebarTitle: AI SDR Chatbot
+description: Step-by-step tutorial to build a public chatbot that answers product and pricing questions from your knowledge base, then books a meeting in-chat the moment a visitor shows sales intent.
+icon: LuCalendarClock
+---
+
+## Overview
+
+In this tutorial, you'll build a public-facing AI SDR chatbot in the Inkeep Visual Builder. It does two jobs in a single conversation — no handoff:
+
+1. Answers product and pricing questions grounded in your knowledge base, with citations.
+2. When a visitor shows sales intent — pricing, a demo, "talk to sales" — it shows a booking button that opens a Cal.com calendar so they can schedule a meeting without leaving the chat.
+
+After they book, the agent confirms the meeting in-chat and keeps answering questions. One agent meets the visitor at the speed they expect: instant answers, and a booked meeting while the intent is still warm.
+
+The agent logic is configured entirely in the Visual Builder (no code). The in-chat booking experience requires a small React component (~60 lines) to render the Cal.com calendar.
+
+<Note>
+  **You'll need Inkeep to run this.** The agent is built in the Inkeep Visual Builder, and the in-chat experience — the chat thread, citations, and the booking calendar — is rendered by the Inkeep embedded chat UI. Both require an Inkeep account. [Get Inkeep →](https://inkeep.com/demo)
+</Note>
+
+## Prerequisites
+
+- An Inkeep account with access to the Visual Builder and embedded chat UI — [schedule a demo](https://inkeep.com/schedule-demo) if you don't have one yet.
+- A docs-grounded assistant built from the [Customer Assistant setup](/guides/agents/customer-assistant/setup) and [Citations](/guides/agents/customer-assistant/citations) guides — a sub agent connected to Inkeep Unified Search that answers with citations. That's the Q&A foundation this tutorial extends.
+- A [Cal.com](https://cal.com) account with a bookable event type (e.g. `your-name/30min`).
+- A React app where you'll embed the chat widget, with the Cal.com embed installed: `npm install @calcom/embed-react`. See [App Credentials](/talk-to-your-agents/app-credentials) for your App ID.
+
+## Create the sales-booking skill
+
+A [skill](/visual-builder/skills) is a reusable instruction block you attach to a sub agent. Putting the booking SOP in a skill — rather than the agent prompt — keeps the trigger list and the acknowledge-then-book flow in one place. When you later add a second intent path, you drop in another skill instead of rewriting the prompt.
+
+<Steps>
+  <Step>
+    Go to the **Skills** tab in the left sidebar, then click **Create skill**.
+  </Step>
+  <Step>
+    Fill in:
+
+    - **Name**: `book-meeting-with-sales`
+    - **Description**: Paste the description below — the agent uses it to decide when the skill applies.
+    - **Content**: Paste the body below.
+  </Step>
+  <Step>
+    Click **Save**.
+  </Step>
+</Steps>
+
+**Description:**
+
+```text
+Use when the visitor shows sales intent — pricing, quotes, demos, trials, talking to a rep, buying, or "set up a call / next steps". Renders the SalesScheduler so they can book without leaving chat. Not for general product Q&A.
+```
+
+**Content:**
+
+```text
+# Book a meeting with sales
+
+When the visitor signals they want to talk to a human, render an in-chat scheduler so they can book in seconds.
+
+## Trigger on
+- Pricing — "how much", "pricing", "quote", "cost"
+- Sales / demo — "talk to sales", "see a demo", "get a trial"
+- Buying / next steps — "purchasing", "licensing", "set up a call"
+
+Just exploring how things work? Don't trigger — keep answering from the docs.
+
+## What to do
+1. Acknowledge in one plain-text sentence, customized to what they asked (pricing -> "Happy to connect you with our team — they can walk through pricing.").
+2. Render the SalesScheduler component. No input needed.
+3. After they book, confirm the date and time they mention, note the calendar invite is sent automatically, and offer to keep answering questions.
+
+## Rules
+- The acknowledgement and the scheduler must appear in the SAME response.
+- Acknowledgement text comes BEFORE the component, never inside it.
+- Never list time slots as text — the calendar handles selection.
+- Never invent meeting times or invite details.
+```
+
+<Tip>
+Swap the trigger examples for your own product's language. Keep the body shorter than your instinct says — the agent doesn't need ceremony, and an always-loaded skill sits in the prompt on every turn.
+</Tip>
+
+## Create the scheduler data component
+
+A [data component](/visual-builder/structured-outputs/data-components) lets the agent emit a structured UI block — here, the booking calendar — that your app renders. You'll define the schema now and wire up the React renderer later.
+
+<Steps>
+  <Step>
+    Go to the **Data Components** tab in the left sidebar, then select **New data component**.
+  </Step>
+  <Step>
+    Fill in:
+
+    - **Name**: `SalesScheduler` _(must match the key you'll register in your chat widget)_
+    - **Description**: `Renders a booking button that opens a Cal.com modal so the user can schedule a meeting. Just render it — the calendar is pre-configured.`
+  </Step>
+  <Step>
+    Paste the schema below into the **Props schema** field, then click **Save**.
+  </Step>
+</Steps>
+
+**Props schema:**
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "calLink": {
+      "type": "string",
+      "description": "Cal.com booking path, e.g. \"your-name/30min\". If omitted, the component falls back to the placeholder you hardcode in the renderer — replace it with your real Cal.com path."
+    },
+    "title": {
+      "type": "string",
+      "description": "Title shown above the calendar"
+    }
+  }
+}
+```
+
+## Teach the agent when to book
+
+Your sub agent already answers from the knowledge base with citations. Now give it the one override that makes the booking flow fire: on a sales-intent turn, skip docs Q&A and surface the scheduler instead.
+
+<Steps>
+  <Step>
+    Open your agent canvas and click the sub agent to open its config.
+  </Step>
+  <Step>
+    Replace the **Prompt** with the version below.
+  </Step>
+  <Step>
+    Scroll to the **Skills** picker and add `book-meeting-with-sales`. Turn on **Always loaded** so the booking SOP is in every prompt without a `load_skill` round-trip.
+  </Step>
+  <Step>
+    Scroll to **Data Components** and add `SalesScheduler`.
+  </Step>
+  <Step>
+    Click **Save Changes** in the top right corner.
+  </Step>
+</Steps>
+
+**Prompt:**
+
+```text
+You help prospective customers understand [Your Product] and connect with the sales team.
+
+# Sales intent
+When the visitor shows sales intent, follow the SOP in the "book-meeting-with-sales" skill. On a sales-intent turn:
+- Do NOT search the knowledge base, answer from docs, or save citations — even if the docs could answer. Surface the booking flow instead.
+
+# Everything else
+For genuine product or how-it-works questions:
+1. Search the knowledge base before answering.
+2. Save every fact you reference as a `citation` artifact before using it.
+3. Cite via saved artifacts — never paste raw URLs.
+4. If the docs don't cover it, say so plainly. Don't invent facts.
+
+# Rules
+- Render at most ONE data component per response.
+- Put any intro text in plain text BEFORE the component, never wrapped inside it.
+
+Tone: Direct, neutral, first person on behalf of the company.
+```
+
+<Tip>
+Replace `[Your Product]` with your product name. This prompt assumes you've already added the `citation` artifact from the [Citations](/guides/agents/customer-assistant/citations) guide.
+</Tip>
+
+## Render the scheduler and confirm the booking in your app
+
+The agent emits a `SalesScheduler` component; your app renders it as a booking button that opens a Cal.com modal. After the visitor books, Cal.com fires a callback — you relay that back to the agent as a chat message so it can confirm the meeting. This is the [interactive components](/talk-to-your-agents/interactive-components) pattern: a `components` map plus `chatFunctionsRef` to submit on the user's behalf.
+
+Because `SalesScheduler` is rendered by the Inkeep widget — not your own React tree — it can't call `chatFunctionsRef` directly. So it dispatches a window-level `inkeep-send-message` event; your host component listens for that event and relays it via `submitMessage`.
+
+First, register the component and listen for the booking relay in your chat settings:
+
+```tsx title="SalesIntentChat.tsx"
+import { useEffect, useRef } from 'react';
+import { InkeepEmbeddedChat } from '@inkeep/agents-ui-cloud';
+import type {
+  AIChatFunctions,
+  InkeepAIChatSettings,
+} from '@inkeep/agents-ui-cloud/types';
+import SalesScheduler from './SalesScheduler';
+
+export default function SalesIntentChat() {
+  const chatRef = useRef<AIChatFunctions | null>(null);
+
+  // The scheduler dispatches `inkeep-send-message` after a booking.
+  // Relay it into the chat so the agent can confirm the meeting.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const message = (e as CustomEvent).detail?.message;
+      if (message) chatRef.current?.submitMessage(message);
+    };
+    window.addEventListener('inkeep-send-message', handler);
+    return () => window.removeEventListener('inkeep-send-message', handler);
+  }, []);
+
+  const aiChatSettings: InkeepAIChatSettings = {
+    appId: 'YOUR_APP_ID',
+    chatFunctionsRef: chatRef,
+    components: {
+      SalesScheduler,
+    },
+  };
+
+  return <InkeepEmbeddedChat aiChatSettings={aiChatSettings} />;
+}
+```
+
+Then build the scheduler component. It opens the Cal.com calendar in a modal and, on a successful booking, dispatches `inkeep-send-message` with the meeting details:
+
+```tsx title="SalesScheduler.tsx"
+import { getCalApi } from '@calcom/embed-react';
+import { useEffect } from 'react';
+
+interface SalesSchedulerProps {
+  calLink?: string;
+  title?: string;
+}
+
+export default function SalesScheduler({ calLink, title }: SalesSchedulerProps) {
+  const resolvedLink = (calLink || 'your-name/30min').replace(
+    /^https?:\/\/cal\.com\//,
+    ''
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const handler = (e: { detail: { data: { title?: string; startTime?: string } } }) => {
+      const { title: bookingTitle, startTime } = e.detail.data;
+      let message = "I've just booked a meeting";
+      if (startTime) {
+        const formatted = new Date(startTime).toLocaleString('en-US', {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          timeZoneName: 'short',
+        });
+        message = `I've just booked a meeting for ${formatted}`;
+      }
+      if (bookingTitle) message += ` — "${bookingTitle}"`;
+      message += '.';
+
+      window.dispatchEvent(
+        new CustomEvent('inkeep-send-message', { detail: { message } })
+      );
+    };
+
+    (async () => {
+      const cal = await getCalApi();
+      if (cancelled) return;
+      cal('preload', { calLink: resolvedLink });
+      cal('on', { action: 'bookingSuccessfulV2', callback: handler });
+    })();
+
+    // The Cal.com embed API is a global singleton — remove the listener on
+    // unmount so React Strict Mode's remount doesn't double-register it
+    // (which would fire the booking message twice).
+    return () => {
+      cancelled = true;
+      getCalApi().then((cal) =>
+        cal('off', { action: 'bookingSuccessfulV2', callback: handler })
+      );
+    };
+  }, [resolvedLink]);
+
+  const openCalendar = async () => {
+    const cal = await getCalApi();
+    cal('modal', { calLink: resolvedLink, config: { layout: 'month_view' } });
+  };
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-5 my-2 w-full">
+      <p className="text-sm font-semibold text-gray-900 mb-1">
+        {title || 'Schedule a meeting'}
+      </p>
+      <p className="text-xs text-gray-600 mb-4">
+        Pick a time that works — calendar invite sent automatically
+      </p>
+      <button
+        type="button"
+        onClick={openCalendar}
+        className="px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+      >
+        Pick a time →
+      </button>
+    </div>
+  );
+}
+```
+
+<Note>
+Replace `YOUR_APP_ID` with the App ID from your project's **Apps** settings (see [App Credentials](/talk-to-your-agents/app-credentials)), and `your-name/30min` with your Cal.com event path.
+</Note>
+
+The round-trip: the visitor books → Cal.com fires `bookingSuccessfulV2` → your component dispatches `inkeep-send-message` → the listener calls `submitMessage` → the agent receives "I've just booked a meeting…" and confirms it, following step 3 of the skill.
+
+## Test the full flow
+
+<Steps>
+  <Step>
+    Click **Try it** in the top right corner of the Visual Builder. Ask a product question your docs cover — e.g. *"What does the product do?"*. The agent searches the knowledge base and answers with citations. No scheduler.
+  </Step>
+  <Step>
+    Now show sales intent — *"How much does it cost?"* or *"Can I get a demo?"*. The agent responds with a short acknowledgement and emits the `SalesScheduler` component.
+  </Step>
+  <Step>
+    In your embedded app, pick a time and book. Confirm the agent replies with a booking confirmation and offers to keep answering questions.
+  </Step>
+</Steps>
+
+When working correctly, one agent carries the visitor from "what is this?" to a booked meeting and back to Q&A — all in the same thread, no human handoff.
+
+## Next steps
+
+Add a second intent path — say, routing enterprise visitors to a different calendar or capturing a qualified lead — by dropping in another skill and a matching data component. The booking skill you built here is the template: trigger list, acknowledge-then-act SOP, one component to render. No prompt rewrite needed.
