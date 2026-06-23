@@ -354,6 +354,8 @@ app.openapi(chatCompletionsRoute, async (c) => {
         headers: validatedContext,
         credentialStores,
         prefetchedDestinations,
+        conversationUserProperties: resolvedUserProperties ?? null,
+        conversationProperties: resolvedProperties ?? null,
       });
 
       logger.info(
@@ -662,6 +664,8 @@ app.openapi(chatCompletionsRoute, async (c) => {
             emitOperations,
             forwardedHeaders,
             prefetchedDestinations,
+            conversationUserProperties: resolvedUserProperties ?? null,
+            conversationProperties: resolvedProperties ?? null,
           });
 
           logger.info(

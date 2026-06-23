@@ -180,6 +180,8 @@ async function executeEvaluatorStep(
         },
         evaluator: { id: evaluator.id, name: evaluator.name },
         resolvedRef: projectMain,
+        conversationUserProperties: conversation.userProperties ?? null,
+        conversationProperties: conversation.properties ?? null,
       });
     } catch (emitErr) {
       logger.warn(

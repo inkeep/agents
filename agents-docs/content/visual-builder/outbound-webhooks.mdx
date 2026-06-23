@@ -189,7 +189,11 @@ Every delivery is an HTTP POST with `Content-Type: application/json`. The body f
   "agentName": "Support Agent",
   "data": {
     "evaluator": { "id": "evaluator_abc", "name": "Response Quality" },
-    "conversation": { "id": "conv_abc123" },
+    "conversation": {
+      "id": "conv_abc123",
+      "userProperties": { "id": "u_456", "name": "Jane", "email": "jane@example.com" },
+      "properties": { "pageUrl": "https://example.com/help" }
+    },
     "failedConditions": [
       {
         "field": "score",
@@ -332,7 +336,11 @@ Each error event type is independently subscribable via the `eventTypes` array â
   "agentId": "agent_789",
   "agentName": "Support Agent",
   "data": {
-    "conversation": { "id": "conv_abc" },
+    "conversation": {
+      "id": "conv_abc",
+      "userProperties": { "id": "u_456", "name": "Jane", "email": "jane@example.com" },
+      "properties": { "pageUrl": "https://example.com/help" }
+    },
     "reason": "Maximum error limit (3) reached"
   }
 }
@@ -348,7 +356,11 @@ Each error event type is independently subscribable via the `eventTypes` array â
   "agentId": "agent_789",
   "agentName": "Support Agent",
   "data": {
-    "conversation": { "id": "conv_abc" },
+    "conversation": {
+      "id": "conv_abc",
+      "userProperties": { "id": "u_456", "name": "Jane", "email": "jane@example.com" },
+      "properties": { "pageUrl": "https://example.com/help" }
+    },
     "reason": "Generation terminated by timeout/abort signal"
   }
 }
@@ -367,7 +379,11 @@ For MCP tools, this event only fires when **all** calls to the same server fail 
   "agentId": "agent_789",
   "agentName": "Support Agent",
   "data": {
-    "conversation": { "id": "conv_abc" },
+    "conversation": {
+      "id": "conv_abc",
+      "userProperties": { "id": "u_456", "name": "Jane", "email": "jane@example.com" },
+      "properties": { "pageUrl": "https://example.com/help" }
+    },
     "tool": { "id": "tool_123", "name": "search_docs" },
     "mcpServer": { "id": "mcp_456", "name": "docs-server" },
     "reason": "Connection timeout after 30s"
@@ -385,7 +401,11 @@ For MCP tools, this event only fires when **all** calls to the same server fail 
   "agentId": "agent_789",
   "agentName": "Support Agent",
   "data": {
-    "conversation": { "id": "conv_abc" },
+    "conversation": {
+      "id": "conv_abc",
+      "userProperties": { "id": "u_456", "name": "Jane", "email": "jane@example.com" },
+      "properties": { "pageUrl": "https://example.com/help" }
+    },
     "contextDefinition": { "id": "ctx_def_123" },
     "reason": "HTTP 500 from upstream"
   }

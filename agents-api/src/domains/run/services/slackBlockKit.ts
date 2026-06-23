@@ -23,6 +23,24 @@ function escapeSlackMrkdwn(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+function formatPropertyValue(v: unknown): string {
+  const raw = typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v);
+  return raw.length > 100 ? `${raw.slice(0, 97)}...` : raw;
+}
+
+function formatPropertiesBlock(
+  label: string,
+  props: Record<string, unknown> | null | undefined
+): { type: string; text: { type: string; text: string } } | null {
+  if (!props || Object.keys(props).length === 0) return null;
+  const lines = Object.entries(props)
+    .slice(0, 8)
+    .map(([k, v]) => `*${escapeSlackMrkdwn(k)}:* ${escapeSlackMrkdwn(formatPropertyValue(v))}`)
+    .join('\n');
+  const suffix = Object.keys(props).length > 8 ? `\n_+${Object.keys(props).length - 8} more_` : '';
+  return { type: 'section', text: { type: 'mrkdwn', text: `*${label}*\n${lines}${suffix}` } };
+}
+
 function buildConversationSlack(
   data: Record<string, unknown>,
   eventType: WebhookEventType,
@@ -41,6 +59,9 @@ function buildConversationSlack(
     links.push(`<${baseProjectUrl}/traces/conversations/${convId}|View Conversation>`);
   }
 
+  const userProps = conversation?.userProperties as Record<string, unknown> | null | undefined;
+  const props = conversation?.properties as Record<string, unknown> | null | undefined;
+
   const blocks: unknown[] = [
     { type: 'header', text: { type: 'plain_text', text: header } },
     {
@@ -51,6 +72,11 @@ function buildConversationSlack(
       ],
     },
   ];
+
+  const userPropsBlock = formatPropertiesBlock('User Properties', userProps);
+  if (userPropsBlock) blocks.push(userPropsBlock);
+  const propsBlock = formatPropertiesBlock('Properties', props);
+  if (propsBlock) blocks.push(propsBlock);
 
   if (links.length > 0) {
     blocks.push({ type: 'section', text: { type: 'mrkdwn', text: links.join('  |  ') } });
@@ -82,7 +108,10 @@ function buildFeedbackSlack(
     links.push(`<${baseProjectUrl}/feedback?conversationId=${convId}|View Feedback>`);
   }
 
-  const fields = [
+  const userProps = conversation?.userProperties as Record<string, unknown> | null | undefined;
+  const props = conversation?.properties as Record<string, unknown> | null | undefined;
+
+  const fields: Array<{ type: string; text: string }> = [
     { type: 'mrkdwn', text: `*Agent:*\n${escapeSlackMrkdwn(ctx.agentName)}` },
     { type: 'mrkdwn', text: `*Type:*\n:${emoji}: ${escapeSlackMrkdwn(feedbackType)}` },
     { type: 'mrkdwn', text: `*Conversation:*\n${escapeSlackMrkdwn(convTitle)}` },
@@ -97,6 +126,11 @@ function buildFeedbackSlack(
     { type: 'header', text: { type: 'plain_text', text: 'Feedback Received' } },
     { type: 'section', fields },
   ];
+
+  const userPropsBlock = formatPropertiesBlock('User Properties', userProps);
+  if (userPropsBlock) blocks.push(userPropsBlock);
+  const propsBlock = formatPropertiesBlock('Properties', props);
+  if (propsBlock) blocks.push(propsBlock);
 
   if (links.length > 0) {
     blocks.push({ type: 'section', text: { type: 'mrkdwn', text: links.join('  |  ') } });
@@ -124,6 +158,9 @@ function buildEventSlack(
     links.push(`<${baseProjectUrl}/traces/conversations/${convId}|View Conversation>`);
   }
 
+  const userProps = event?.userProperties as Record<string, unknown> | null | undefined;
+  const props = event?.properties as Record<string, unknown> | null | undefined;
+
   const blocks: unknown[] = [
     { type: 'header', text: { type: 'plain_text', text: 'Event Created' } },
     {
@@ -135,6 +172,11 @@ function buildEventSlack(
       ],
     },
   ];
+
+  const userPropsBlock = formatPropertiesBlock('User Properties', userProps);
+  if (userPropsBlock) blocks.push(userPropsBlock);
+  const propsBlock = formatPropertiesBlock('Properties', props);
+  if (propsBlock) blocks.push(propsBlock);
 
   if (links.length > 0) {
     blocks.push({ type: 'section', text: { type: 'mrkdwn', text: links.join('  |  ') } });
@@ -204,6 +246,9 @@ function buildEvaluationFailedSlack(
     links.push(`<${baseProjectUrl}/evaluations/jobs/${evaluationJobConfigId}|View Evaluation>`);
   }
 
+  const userProps = conversationObj?.userProperties as Record<string, unknown> | null | undefined;
+  const props = conversationObj?.properties as Record<string, unknown> | null | undefined;
+
   const blocks: unknown[] = [
     {
       type: 'header',
@@ -216,8 +261,15 @@ function buildEvaluationFailedSlack(
         { type: 'mrkdwn', text: `*Evaluator:*\n${escapeSlackMrkdwn(evaluatorName)}` },
       ],
     },
-    ...conditionSections,
   ];
+
+  const userPropsBlock = formatPropertiesBlock('User Properties', userProps);
+  if (userPropsBlock) blocks.push(userPropsBlock);
+  const propsBlock = formatPropertiesBlock('Properties', props);
+  if (propsBlock) blocks.push(propsBlock);
+
+  blocks.push(...conditionSections);
+
   if (links.length > 0) {
     blocks.push({ type: 'section', text: { type: 'mrkdwn', text: links.join('  |  ') } });
   }
@@ -266,8 +318,8 @@ function buildConversationErrorSlack(
   eventType: WebhookEventType,
   ctx: SlackContext
 ): { text: string; blocks: unknown[] } {
-  const conversation = data.conversation as { id?: string } | undefined;
-  const conversationId = conversation?.id;
+  const conversation = data.conversation as Record<string, unknown> | undefined;
+  const conversationId = conversation?.id as string | undefined;
   const tool = data.tool as { id?: string; name?: string } | undefined;
   const toolName = tool?.name;
   const contextDef = data.contextDefinition as { id?: string } | undefined;
@@ -280,6 +332,9 @@ function buildConversationErrorSlack(
   const convUrl = conversationId
     ? `${baseProjectUrl}/traces/conversations/${conversationId}`
     : undefined;
+
+  const userProps = conversation?.userProperties as Record<string, unknown> | null | undefined;
+  const props = conversation?.properties as Record<string, unknown> | null | undefined;
 
   const fields: Array<{ type: string; text: string }> = [
     { type: 'mrkdwn', text: `*Agent:*\n${escapeSlackMrkdwn(ctx.agentName)}` },
@@ -301,6 +356,11 @@ function buildConversationErrorSlack(
     { type: 'header', text: { type: 'plain_text', text: 'Conversation Error' } },
     { type: 'section', fields },
   ];
+
+  const userPropsBlock = formatPropertiesBlock('User Properties', userProps);
+  if (userPropsBlock) blocks.push(userPropsBlock);
+  const propsBlock = formatPropertiesBlock('Properties', props);
+  if (propsBlock) blocks.push(propsBlock);
 
   if (convUrl) {
     blocks.push({

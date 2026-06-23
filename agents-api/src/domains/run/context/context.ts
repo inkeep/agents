@@ -66,12 +66,16 @@ async function handleContextResolution({
   headers,
   credentialStores,
   prefetchedDestinations,
+  conversationUserProperties,
+  conversationProperties,
 }: {
   executionContext: FullExecutionContext;
   conversationId: string;
   headers: Record<string, unknown>;
   credentialStores?: CredentialStoreRegistry;
   prefetchedDestinations?: WebhookDestinationSelect[];
+  conversationUserProperties?: Record<string, unknown> | null;
+  conversationProperties?: Record<string, unknown> | null;
 }): Promise<ResolvedContext | null> {
   return tracer.startActiveSpan(
     'context.handle_context_resolution',
@@ -144,7 +148,11 @@ async function handleContextResolution({
                   resolvedRef,
                   eventType: 'conversation.context.error',
                   data: {
-                    conversation: { id: conversationId },
+                    conversation: {
+                      id: conversationId,
+                      userProperties: conversationUserProperties ?? null,
+                      properties: conversationProperties ?? null,
+                    },
                     contextDefinition: err.definitionId ? { id: err.definitionId } : undefined,
                     reason: err.error,
                   },

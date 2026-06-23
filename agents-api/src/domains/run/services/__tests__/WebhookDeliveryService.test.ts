@@ -1004,6 +1004,40 @@ describe('WebhookDeliveryService', () => {
 
       expect(mockStart).toHaveBeenCalledTimes(1);
     });
+
+    it('includes conversationUserProperties and conversationProperties in data.conversation', async () => {
+      await emitEvaluationFailedWebhook({
+        ...baseEvalParams,
+        verdict: 'failed',
+        failedConditions: failedScoreConditions,
+        conversationUserProperties: { name: 'Jane', email: 'jane@test.com' },
+        conversationProperties: { plan: 'pro' },
+      });
+      await flushDeferred();
+
+      const dispatchedPayload = mockStart.mock.calls[0][1][0];
+      expect(dispatchedPayload.payload.data.conversation).toEqual({
+        id: 'conv-1',
+        userProperties: { name: 'Jane', email: 'jane@test.com' },
+        properties: { plan: 'pro' },
+      });
+    });
+
+    it('defaults conversation properties to null when not provided', async () => {
+      await emitEvaluationFailedWebhook({
+        ...baseEvalParams,
+        verdict: 'failed',
+        failedConditions: failedScoreConditions,
+      });
+      await flushDeferred();
+
+      const dispatchedPayload = mockStart.mock.calls[0][1][0];
+      expect(dispatchedPayload.payload.data.conversation).toEqual({
+        id: 'conv-1',
+        userProperties: null,
+        properties: null,
+      });
+    });
   });
 
   describe('isSlackIncomingWebhookUrl', () => {
@@ -1306,6 +1340,109 @@ describe('WebhookDeliveryService', () => {
         expect(result.text).toContain('HTTP 500');
         const fields = (result.blocks as any[])[1].fields;
         expect(fields.some((f: any) => f.text.includes('def-1'))).toBe(true);
+      });
+    });
+
+    describe('properties in Slack blocks', () => {
+      it('includes user properties and properties as separate section blocks', () => {
+        const envelope = {
+          data: {
+            conversation: {
+              id: 'conv-1',
+              title: 'Chat',
+              userProperties: { name: 'Jane', email: 'jane@example.com' },
+              properties: { pageUrl: 'https://example.com' },
+            },
+          },
+        };
+        const result = buildSlackPayload('conversation.created', envelope, ctx);
+        const blocks = result.blocks as any[];
+        const userPropsBlock = blocks.find(
+          (b: any) => b.type === 'section' && b.text?.text?.includes('User Properties')
+        );
+        const propsBlock = blocks.find(
+          (b: any) => b.type === 'section' && b.text?.text?.includes('*Properties*')
+        );
+        expect(userPropsBlock).toBeDefined();
+        expect(userPropsBlock.text.text).toContain('jane@example.com');
+        expect(propsBlock).toBeDefined();
+        expect(propsBlock.text.text).toContain('https://example.com');
+      });
+
+      it('omits properties blocks when properties are null', () => {
+        const envelope = {
+          data: {
+            conversation: { id: 'conv-1', title: 'Chat', userProperties: null, properties: null },
+          },
+        };
+        const result = buildSlackPayload('conversation.created', envelope, ctx);
+        const blocks = result.blocks as any[];
+        const propsBlocks = blocks.filter(
+          (b: any) => b.type === 'section' && b.text?.text?.includes('Properties')
+        );
+        expect(propsBlocks).toHaveLength(0);
+      });
+
+      it('truncates long property values at 100 characters', () => {
+        const longValue = 'x'.repeat(200);
+        const envelope = {
+          data: {
+            conversation: {
+              id: 'conv-1',
+              title: 'Chat',
+              userProperties: { token: longValue },
+              properties: null,
+            },
+          },
+        };
+        const result = buildSlackPayload('conversation.created', envelope, ctx);
+        const blocks = result.blocks as any[];
+        const userPropsBlock = blocks.find(
+          (b: any) => b.type === 'section' && b.text?.text?.includes('User Properties')
+        );
+        expect(userPropsBlock.text.text).toContain('...');
+        expect(userPropsBlock.text.text.length).toBeLessThan(300);
+      });
+
+      it('renders object values as JSON instead of [object Object]', () => {
+        const envelope = {
+          data: {
+            conversation: {
+              id: 'conv-1',
+              title: 'Chat',
+              userProperties: { meta: { nested: true } },
+              properties: null,
+            },
+          },
+        };
+        const result = buildSlackPayload('conversation.created', envelope, ctx);
+        const blocks = result.blocks as any[];
+        const userPropsBlock = blocks.find(
+          (b: any) => b.type === 'section' && b.text?.text?.includes('User Properties')
+        );
+        expect(userPropsBlock.text.text).toContain('{"nested":true}');
+        expect(userPropsBlock.text.text).not.toContain('[object Object]');
+      });
+
+      it('shows overflow suffix when more than 8 entries', () => {
+        const manyProps: Record<string, string> = {};
+        for (let i = 0; i < 12; i++) manyProps[`key${i}`] = `val${i}`;
+        const envelope = {
+          data: {
+            conversation: {
+              id: 'conv-1',
+              title: 'Chat',
+              userProperties: manyProps,
+              properties: null,
+            },
+          },
+        };
+        const result = buildSlackPayload('conversation.created', envelope, ctx);
+        const blocks = result.blocks as any[];
+        const userPropsBlock = blocks.find(
+          (b: any) => b.type === 'section' && b.text?.text?.includes('User Properties')
+        );
+        expect(userPropsBlock.text.text).toContain('+4 more');
       });
     });
 

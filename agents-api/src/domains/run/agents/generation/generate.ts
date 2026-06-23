@@ -265,6 +265,12 @@ function emitGenerationError(ctx: AgentRunContext, reason: string): void {
     const prefetchedDestinations = ctx.streamRequestId
       ? agentSessionManager.getPrefetchedDestinations(ctx.streamRequestId)
       : undefined;
+    const userProperties = ctx.streamRequestId
+      ? (agentSessionManager.getConversationUserProperties(ctx.streamRequestId) ?? null)
+      : null;
+    const properties = ctx.streamRequestId
+      ? (agentSessionManager.getConversationProperties(ctx.streamRequestId) ?? null)
+      : null;
     emitWebhookEventFireAndForget(
       {
         tenantId: ctx.executionContext.tenantId,
@@ -273,7 +279,7 @@ function emitGenerationError(ctx: AgentRunContext, reason: string): void {
         agentName: ctx.config.agentName,
         resolvedRef,
         eventType: 'conversation.generation.error',
-        data: { conversation: { id: ctx.conversationId }, reason },
+        data: { conversation: { id: ctx.conversationId, userProperties, properties }, reason },
         prefetchedDestinations,
       },
       'generation-error'
@@ -311,6 +317,13 @@ export function flushDeferredToolErrors(ctx: AgentRunContext): void {
     );
   }
 
+  const userProperties = ctx.streamRequestId
+    ? (agentSessionManager.getConversationUserProperties(ctx.streamRequestId) ?? null)
+    : null;
+  const properties = ctx.streamRequestId
+    ? (agentSessionManager.getConversationProperties(ctx.streamRequestId) ?? null)
+    : null;
+
   for (const err of errorsToEmit) {
     emitWebhookEventFireAndForget(
       {
@@ -321,7 +334,7 @@ export function flushDeferredToolErrors(ctx: AgentRunContext): void {
         resolvedRef,
         eventType: 'conversation.tool.error',
         data: {
-          conversation: { id: ctx.conversationId },
+          conversation: { id: ctx.conversationId, userProperties, properties },
           tool: { id: err.relationshipId, name: err.toolName },
           mcpServer: err.mcpServerName
             ? { id: err.mcpServerId, name: err.mcpServerName }

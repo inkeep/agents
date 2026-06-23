@@ -69,6 +69,9 @@ vi.mock('../../../domains/run/session/AgentSession.js', () => ({
     recordEvent: vi.fn(),
     getSession: vi.fn().mockReturnValue(undefined),
     endSession: vi.fn().mockResolvedValue(undefined),
+    setPrefetchedDestinations: vi.fn(),
+    setConversationUserProperties: vi.fn(),
+    setConversationProperties: vi.fn(),
   },
 }));
 vi.mock('../../../domains/run/utils/agent-operations.js', () => ({
