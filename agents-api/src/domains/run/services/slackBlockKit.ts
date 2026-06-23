@@ -11,6 +11,7 @@ export interface SlackContext {
   tenantId: string;
   projectId: string;
   agentId: string;
+  agentName: string;
   manageUiBaseUrl: string;
 }
 
@@ -46,7 +47,7 @@ function buildConversationSlack(
       type: 'section',
       fields: [
         { type: 'mrkdwn', text: `*Conversation:*\n${escapeSlackMrkdwn(title)}` },
-        { type: 'mrkdwn', text: `*Agent:*\n${escapeSlackMrkdwn(ctx.agentId || 'N/A')}` },
+        { type: 'mrkdwn', text: `*Agent:*\n${escapeSlackMrkdwn(ctx.agentName)}` },
       ],
     },
   ];
@@ -82,6 +83,7 @@ function buildFeedbackSlack(
   }
 
   const fields = [
+    { type: 'mrkdwn', text: `*Agent:*\n${escapeSlackMrkdwn(ctx.agentName)}` },
     { type: 'mrkdwn', text: `*Type:*\n:${emoji}: ${escapeSlackMrkdwn(feedbackType)}` },
     { type: 'mrkdwn', text: `*Conversation:*\n${escapeSlackMrkdwn(convTitle)}` },
   ];
@@ -127,6 +129,7 @@ function buildEventSlack(
     {
       type: 'section',
       fields: [
+        { type: 'mrkdwn', text: `*Agent:*\n${escapeSlackMrkdwn(ctx.agentName)}` },
         { type: 'mrkdwn', text: `*Event Type:*\n${escapeSlackMrkdwn(eventType)}` },
         { type: 'mrkdwn', text: `*Event ID:*\n${escapeSlackMrkdwn(eventId)}` },
       ],
@@ -208,7 +211,10 @@ function buildEvaluationFailedSlack(
     },
     {
       type: 'section',
-      fields: [{ type: 'mrkdwn', text: `*Evaluator:*\n${escapeSlackMrkdwn(evaluatorName)}` }],
+      fields: [
+        { type: 'mrkdwn', text: `*Agent:*\n${escapeSlackMrkdwn(ctx.agentName)}` },
+        { type: 'mrkdwn', text: `*Evaluator:*\n${escapeSlackMrkdwn(evaluatorName)}` },
+      ],
     },
     ...conditionSections,
   ];
@@ -236,7 +242,7 @@ export function buildTestSlackPayload(
       type: 'section',
       fields: [
         { type: 'mrkdwn', text: `*Conversation:*\n${escapeSlackMrkdwn(title)}` },
-        { type: 'mrkdwn', text: `*Agent:*\n${escapeSlackMrkdwn(ctx.agentId)}` },
+        { type: 'mrkdwn', text: `*Agent:*\n${escapeSlackMrkdwn(ctx.agentName)}` },
       ],
     },
     {
@@ -276,6 +282,7 @@ function buildConversationErrorSlack(
     : undefined;
 
   const fields: Array<{ type: string; text: string }> = [
+    { type: 'mrkdwn', text: `*Agent:*\n${escapeSlackMrkdwn(ctx.agentName)}` },
     { type: 'mrkdwn', text: `*Error Type:*\n${escapeSlackMrkdwn(eventType)}` },
     { type: 'mrkdwn', text: `*Reason:*\n${escapeSlackMrkdwn(reason)}` },
   ];

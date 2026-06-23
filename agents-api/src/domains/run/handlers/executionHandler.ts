@@ -107,6 +107,7 @@ export class ExecutionHandler {
     } = params;
 
     const { tenantId, projectId, project, agentId, baseUrl, resolvedRef } = executionContext;
+    const agentName = project.agents[agentId]?.name;
 
     const emitExecutionError = (reason: string) => {
       if (resolvedRef) {
@@ -115,6 +116,7 @@ export class ExecutionHandler {
             tenantId,
             projectId,
             agentId,
+            agentName,
             resolvedRef,
             eventType: 'conversation.execution.error',
             data: { conversation: { id: conversationId }, reason },
@@ -620,6 +622,7 @@ export class ExecutionHandler {
                     tenantId,
                     projectId,
                     agentId,
+                    agentName,
                     conversationId,
                     resolvedRef,
                     eventType: 'conversation.updated',

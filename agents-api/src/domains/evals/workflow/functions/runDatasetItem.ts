@@ -12,6 +12,7 @@ import {
   createEvaluationResult,
   evaluatePassCriteria,
   generateId,
+  getAgentById,
   getAgentIdsForEvaluators,
   getConversation,
   getEvaluatorById,
@@ -284,6 +285,37 @@ async function markRunningStep(params: {
   });
 }
 
+async function resolveAgentNameStep(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  ref?: string;
+}): Promise<string | undefined> {
+  'use step';
+
+  const { tenantId, projectId, agentId } = params;
+  if (!agentId) return undefined;
+
+  try {
+    const ref = getProjectScopedRef(tenantId, projectId, params.ref || 'main');
+    const resolvedRef = await resolveRef(manageDbClient)(ref);
+    if (!resolvedRef) return undefined;
+
+    let name: string | undefined;
+    await withRef(manageDbPool, resolvedRef, async (db) => {
+      const agent = await getAgentById(db)({ scopes: { tenantId, projectId, agentId } });
+      name = agent?.name;
+    });
+    return name;
+  } catch (err) {
+    logger.warn(
+      { tenantId, projectId, agentId, error: err instanceof Error ? err.message : String(err) },
+      'Failed to resolve agent name for evaluation webhook'
+    );
+    return undefined;
+  }
+}
+
 /**
  * Step: Execute a single evaluator on a conversation
  */
@@ -294,7 +326,8 @@ async function executeEvaluatorStep(
   evaluatorId: string,
   evaluationRunId: string,
   expectedOutput?: unknown,
-  branchRef?: string
+  branchRef?: string,
+  agentName?: string
 ) {
   'use step';
 
@@ -385,6 +418,7 @@ async function executeEvaluatorStep(
         tenantId,
         projectId,
         agentId: conversation.agentId ?? '',
+        agentName,
         verdict,
         failedConditions,
         evaluationResult: {
@@ -558,6 +592,16 @@ async function _runDatasetItemWorkflow(payload: RunDatasetItemPayload) {
         ref: payload.ref,
       });
 
+      const agentName =
+        filteredEvaluatorIds.length > 0
+          ? await resolveAgentNameStep({
+              tenantId,
+              projectId,
+              agentId,
+              ref: payload.ref,
+            })
+          : undefined;
+
       for (const evaluatorId of filteredEvaluatorIds) {
         await executeEvaluatorStep(
           tenantId,
@@ -566,7 +610,8 @@ async function _runDatasetItemWorkflow(payload: RunDatasetItemPayload) {
           evaluatorId,
           evaluationRunId,
           payload.datasetItemExpectedOutput,
-          payload.ref
+          payload.ref,
+          agentName
         );
       }
     }

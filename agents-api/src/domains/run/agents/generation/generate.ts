@@ -270,6 +270,7 @@ function emitGenerationError(ctx: AgentRunContext, reason: string): void {
         tenantId: ctx.executionContext.tenantId,
         projectId: ctx.executionContext.projectId,
         agentId: ctx.config.agentId,
+        agentName: ctx.config.agentName,
         resolvedRef,
         eventType: 'conversation.generation.error',
         data: { conversation: { id: ctx.conversationId }, reason },
@@ -316,6 +317,7 @@ export function flushDeferredToolErrors(ctx: AgentRunContext): void {
         tenantId: ctx.executionContext.tenantId,
         projectId: ctx.executionContext.projectId,
         agentId: ctx.config.agentId,
+        agentName: ctx.config.agentName,
         resolvedRef,
         eventType: 'conversation.tool.error',
         data: {

@@ -65,6 +65,10 @@ Each webhook destination subscribes to one or more event types. Your endpoint re
 
 When you select specific agents on a webhook destination, only events originating from those agents trigger delivery. Leave the agents field empty to receive events from every agent in the project.
 
+### Evaluator scoping
+
+For `evaluation.failed` events, you can further scope a webhook destination to specific evaluators. When evaluators are selected, only failures from those evaluators trigger delivery. Leave the evaluators field empty to receive `evaluation.failed` events from all evaluators in the project.
+
 ## Payload format
 
 Every delivery is an HTTP POST with `Content-Type: application/json`. The body follows a consistent envelope:
@@ -76,11 +80,13 @@ Every delivery is an HTTP POST with `Content-Type: application/json`. The body f
   "tenantId": "your-tenant-id",
   "projectId": "your-project-id",
   "agentId": "your-agent-id",
+  "agentName": "Support Agent",
   "data": {
     // event-specific payload (see below)
   }
 }
 ```
+
 ### Conversation events
 
 `conversation.created` and `conversation.updated` both deliver a `conversation` object inside `data`:
@@ -92,6 +98,7 @@ Every delivery is an HTTP POST with `Content-Type: application/json`. The body f
   "tenantId": "your-tenant-id",
   "projectId": "your-project-id",
   "agentId": "your-agent-id",
+  "agentName": "Support Agent",
   "data": {
     "conversation": {
       "id": "conv_abc123",
@@ -130,6 +137,7 @@ Every delivery is an HTTP POST with `Content-Type: application/json`. The body f
   "tenantId": "your-tenant-id",
   "projectId": "your-project-id",
   "agentId": "your-agent-id",
+  "agentName": "Support Agent",
   "data": {
     "feedback": {
       "id": "fb_789",
@@ -178,6 +186,7 @@ Every delivery is an HTTP POST with `Content-Type: application/json`. The body f
   "tenantId": "your-tenant-id",
   "projectId": "your-project-id",
   "agentId": "your-agent-id",
+  "agentName": "Support Agent",
   "data": {
     "evaluator": { "id": "evaluator_abc", "name": "Response Quality" },
     "conversation": { "id": "conv_abc123" },
@@ -204,6 +213,7 @@ Every delivery is an HTTP POST with `Content-Type: application/json`. The body f
   "tenantId": "your-tenant-id",
   "projectId": "your-project-id",
   "agentId": "your-agent-id",
+  "agentName": "Support Agent",
   "data": {
     "event": {
       "id": "evt_xyz",
@@ -247,6 +257,7 @@ Webhook destinations pointing to Slack automatically receive rich formatted mess
   "tenantId": "your-tenant-id",
   "projectId": "your-project-id",
   "agentId": "your-agent-id",
+  "agentName": "Support Agent",
   "data": {
     "conversation": { "id": "conv_abc123", "title": "..." }
   },
@@ -319,6 +330,7 @@ Each error event type is independently subscribable via the `eventTypes` array â
   "tenantId": "tenant_123",
   "projectId": "proj_456",
   "agentId": "agent_789",
+  "agentName": "Support Agent",
   "data": {
     "conversation": { "id": "conv_abc" },
     "reason": "Maximum error limit (3) reached"
@@ -334,6 +346,7 @@ Each error event type is independently subscribable via the `eventTypes` array â
   "tenantId": "tenant_123",
   "projectId": "proj_456",
   "agentId": "agent_789",
+  "agentName": "Support Agent",
   "data": {
     "conversation": { "id": "conv_abc" },
     "reason": "Generation terminated by timeout/abort signal"
@@ -352,6 +365,7 @@ For MCP tools, this event only fires when **all** calls to the same server fail 
   "tenantId": "tenant_123",
   "projectId": "proj_456",
   "agentId": "agent_789",
+  "agentName": "Support Agent",
   "data": {
     "conversation": { "id": "conv_abc" },
     "tool": { "id": "tool_123", "name": "search_docs" },
@@ -369,6 +383,7 @@ For MCP tools, this event only fires when **all** calls to the same server fail 
   "tenantId": "tenant_123",
   "projectId": "proj_456",
   "agentId": "agent_789",
+  "agentName": "Support Agent",
   "data": {
     "conversation": { "id": "conv_abc" },
     "contextDefinition": { "id": "ctx_def_123" },

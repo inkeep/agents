@@ -7,6 +7,7 @@ vi.mock('@inkeep/agents-core', async () => {
   const actual = await vi.importActual<typeof import('@inkeep/agents-core')>('@inkeep/agents-core');
   return {
     ...actual,
+    getAgentById: vi.fn(),
     getConversation: vi.fn(),
     getConversationHistory: vi.fn(),
     getEvaluationRunById: vi.fn(),
@@ -49,6 +50,7 @@ vi.mock('../../../../data/db', () => ({
 vi.mock('../../../../logger', () => createMockLoggerModule().module);
 
 import {
+  getAgentById,
   getConversation,
   getConversationHistory,
   getEvaluationRunById,
@@ -78,6 +80,7 @@ import {
 const mockWithRef = withRef as ReturnType<typeof vi.fn>;
 const mockListEnabled = listEnabledWebhookDestinations as ReturnType<typeof vi.fn>;
 const mockStart = start as ReturnType<typeof vi.fn>;
+const mockGetAgentById = getAgentById as ReturnType<typeof vi.fn>;
 const mockGetConversation = getConversation as ReturnType<typeof vi.fn>;
 const mockGetConversationHistory = getConversationHistory as ReturnType<typeof vi.fn>;
 const mockGetResolvedRef = getProjectMainResolvedRef as ReturnType<typeof vi.fn>;
@@ -96,6 +99,7 @@ describe('WebhookDeliveryService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockStart.mockResolvedValue(undefined);
+    mockGetAgentById.mockReturnValue(() => Promise.resolve({ name: 'Test Agent' }));
   });
 
   describe('emitWebhookEvent', () => {
@@ -149,10 +153,55 @@ describe('WebhookDeliveryService', () => {
             tenantId: 'tenant-1',
             projectId: 'project-1',
             agentId: 'agent-1',
+            agentName: '',
             data: { conversationId: 'conv-1', userId: null },
           }),
         }),
       ]);
+    });
+
+    it('includes agentName from caller when provided', async () => {
+      const destinations = [
+        {
+          id: 'dest-1',
+          url: 'https://hook.example.com',
+          headers: null,
+          eventTypes: ['conversation.created'],
+          agentIds: [],
+        },
+      ];
+
+      mockWithRef.mockImplementation(async (_pool: any, _ref: any, fn: any) => {
+        return fn('mock-db');
+      });
+      mockListEnabled.mockReturnValue(() => Promise.resolve(destinations));
+
+      await emitWebhookEvent({ ...baseParams, agentName: 'My Custom Agent' });
+
+      const dispatchedPayload = mockStart.mock.calls[0][1][0];
+      expect(dispatchedPayload.payload.agentName).toBe('My Custom Agent');
+    });
+
+    it('uses empty string for agentName when not provided by caller', async () => {
+      const destinations = [
+        {
+          id: 'dest-1',
+          url: 'https://hook.example.com',
+          headers: null,
+          eventTypes: ['conversation.created'],
+          agentIds: [],
+        },
+      ];
+
+      mockWithRef.mockImplementation(async (_pool: any, _ref: any, fn: any) => {
+        return fn('mock-db');
+      });
+      mockListEnabled.mockReturnValue(() => Promise.resolve(destinations));
+
+      await emitWebhookEvent(baseParams);
+
+      const dispatchedPayload = mockStart.mock.calls[0][1][0];
+      expect(dispatchedPayload.payload.agentName).toBe('');
     });
 
     it('includes dest.headers in dispatched payload', async () => {
@@ -310,9 +359,8 @@ describe('WebhookDeliveryService', () => {
         },
       ] as any[];
 
-      await emitWebhookEvent({ ...baseParams, prefetchedDestinations });
+      await emitWebhookEvent({ ...baseParams, agentName: 'Test Agent', prefetchedDestinations });
 
-      expect(mockWithRef).not.toHaveBeenCalled();
       expect(mockListEnabled).not.toHaveBeenCalled();
       expect(mockStart).toHaveBeenCalledTimes(1);
     });
@@ -509,10 +557,10 @@ describe('WebhookDeliveryService', () => {
         },
       ] as any[];
 
-      await emitConversationWebhook({ ...params, prefetchedDestinations });
+      await emitConversationWebhook({ ...params, agentName: 'Test Agent', prefetchedDestinations });
       await flushDeferred();
 
-      expect(mockWithRef).not.toHaveBeenCalled();
+      expect(mockListEnabled).not.toHaveBeenCalled();
       expect(mockStart).toHaveBeenCalledTimes(1);
       expect(mockStart).toHaveBeenCalledWith(expect.anything(), [
         expect.objectContaining({ webhookDestinationId: 'dest-1' }),
@@ -970,6 +1018,7 @@ describe('WebhookDeliveryService', () => {
       tenantId: 'tenant-1',
       projectId: 'project-1',
       agentId: 'test-agent-id',
+      agentName: 'Test Agent',
       manageUiBaseUrl: 'https://app.inkeep.com',
     };
 
@@ -1006,6 +1055,7 @@ describe('WebhookDeliveryService', () => {
       tenantId: 'tenant-1',
       projectId: 'project-1',
       agentId: 'agent-1',
+      agentName: 'Test Agent',
       manageUiBaseUrl: 'https://app.inkeep.com',
     };
 
@@ -1187,8 +1237,9 @@ describe('WebhookDeliveryService', () => {
         expect(result.text).toContain('execution error');
         expect(result.blocks).toHaveLength(4);
         const fields = (result.blocks as any[])[1].fields;
-        expect(fields[0].text).toContain('conversation.execution.error');
-        expect(fields[1].text).toContain('Maximum error limit');
+        expect(fields[0].text).toContain('Test Agent');
+        expect(fields[1].text).toContain('conversation.execution.error');
+        expect(fields[2].text).toContain('Maximum error limit');
         const linkBlock = (result.blocks as any[])[2];
         expect(linkBlock.text.text).toContain('traces/conversations/conv-1');
         const footer = (result.blocks as any[])[3];
