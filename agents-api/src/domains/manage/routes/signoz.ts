@@ -10,11 +10,7 @@ import { Hono } from 'hono';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import type { ManageAppVariables } from '../../../types/app';
-import {
-  buildConversationNumbersPayload,
-  buildSpanLookupPayload,
-  enforceSecurityFilters,
-} from '../../../utils/signozHelpers';
+import { buildSpanLookupPayload, enforceSecurityFilters } from '../../../utils/signozHelpers';
 
 const logger = getLogger('signoz-proxy');
 
@@ -554,47 +550,6 @@ app.post('/span-lookup', async (c) => {
     return c.json(resp.data);
   } catch (error) {
     const { body: errBody, status } = handleSignozError(error, 'span-lookup');
-    return c.json(errBody, status);
-  }
-});
-
-// Returns span_id -> numeric attribute bundle for EVERY span in a conversation, read from the raw
-// number map (reliable) rather than typed builder selects (which drop the numbers on some SigNoz
-// deployments). The conversations trace view merges these onto its spans so tokens/cost/cache
-// numbers are accurate. Tenant scoping is baked into the SQL WHERE clause (see helper).
-app.post('/conversation-span-numbers', async (c) => {
-  const body = await c.req.json();
-  const { conversationId, start, end } = body;
-
-  if (!conversationId) {
-    return c.json({ error: 'Bad Request', message: 'conversationId is required' }, 400);
-  }
-
-  const auth = await authorizeProject(c, undefined);
-  if (auth instanceof Response) return auth;
-
-  const signoz = getSignozConfig();
-  if (!signoz)
-    return c.json({ error: 'Service Unavailable', message: 'SigNoz is not configured' }, 500);
-
-  // Use the caller-supplied window (so the number merge matches the spans query exactly); fall back
-  // to a 180-day lookback only when the caller does not provide a range.
-  const now = Date.now();
-  const lookbackMs = 180 * 24 * 60 * 60 * 1000;
-  const rangeStart = typeof start === 'number' ? start : now - lookbackMs;
-  const rangeEnd = typeof end === 'number' ? end : now;
-  const payload = buildConversationNumbersPayload(
-    auth.tenantId,
-    conversationId,
-    rangeStart,
-    rangeEnd
-  );
-
-  try {
-    const resp = await signozPost(signoz.endpoint, payload, signoz.headers, 15000);
-    return c.json(resp.data);
-  } catch (error) {
-    const { body: errBody, status } = handleSignozError(error, 'conversation-span-numbers');
     return c.json(errBody, status);
   }
 });
