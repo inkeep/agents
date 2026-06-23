@@ -525,6 +525,7 @@ app.openapi(
       tenantId,
       projectId,
       agentId: 'test-agent-id',
+      agentName: 'Test Agent',
       data: {
         conversation: {
           id: 'test-conversation-id',
@@ -550,6 +551,7 @@ app.openapi(
       tenantId,
       projectId,
       agentId: 'test-agent-id',
+      agentName: 'Test Agent',
       manageUiBaseUrl: env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000',
     };
 

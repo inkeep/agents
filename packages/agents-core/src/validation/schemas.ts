@@ -1001,6 +1001,7 @@ export const WebhookEventEnvelopeSchema = z
     tenantId: z.string().describe('Tenant ID'),
     projectId: z.string().describe('Project ID'),
     agentId: z.string().describe('Agent ID'),
+    agentName: z.string().describe('Agent name'),
     data: z.record(z.string(), z.unknown()).describe('Event-specific payload data'),
   })
   .openapi('WebhookEventEnvelope');

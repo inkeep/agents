@@ -140,6 +140,7 @@ async function handleContextResolution({
                   tenantId,
                   projectId,
                   agentId,
+                  agentName: agent?.name,
                   resolvedRef,
                   eventType: 'conversation.context.error',
                   data: {

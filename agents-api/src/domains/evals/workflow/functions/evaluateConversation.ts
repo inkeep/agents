@@ -2,6 +2,7 @@ import {
   createEvaluationResult,
   evaluatePassCriteria,
   generateId,
+  getAgentById,
   getAgentIdsForEvaluators,
   getConversation,
   getEvaluatorById,
@@ -60,10 +61,38 @@ async function getEvaluatorsStep(payload: EvaluationPayload) {
   return evals;
 }
 
+async function resolveAgentNameStep(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string | null;
+}): Promise<string | undefined> {
+  'use step';
+
+  const { tenantId, projectId, agentId } = params;
+  if (!agentId) return undefined;
+
+  try {
+    const projectMain = await getProjectMainResolvedRef(manageDbClient)(tenantId, projectId);
+    let name: string | undefined;
+    await withRef(manageDbPool, projectMain, async (db) => {
+      const agent = await getAgentById(db)({ scopes: { tenantId, projectId, agentId } });
+      name = agent?.name;
+    });
+    return name;
+  } catch (err) {
+    logger.warn(
+      { tenantId, projectId, agentId, error: err instanceof Error ? err.message : String(err) },
+      'Failed to resolve agent name for evaluation webhook'
+    );
+    return undefined;
+  }
+}
+
 async function executeEvaluatorStep(
   payload: EvaluationPayload,
   evaluatorId: string,
-  conversation: any
+  conversation: any,
+  agentName?: string
 ) {
   'use step';
 
@@ -140,6 +169,7 @@ async function executeEvaluatorStep(
         tenantId,
         projectId,
         agentId: conversation.agentId ?? '',
+        agentName,
         verdict,
         failedConditions,
         evaluationResult: {
@@ -273,9 +303,15 @@ async function _evaluateConversationWorkflow(payload: EvaluationPayload) {
     return { success: false, reason: 'No valid evaluators' };
   }
 
+  const agentName = await resolveAgentNameStep({
+    tenantId,
+    projectId,
+    agentId: conversation.agentId,
+  });
+
   const results: any[] = [];
   for (const evaluator of evaluators) {
-    const result = await executeEvaluatorStep(payload, evaluator.id, conversation);
+    const result = await executeEvaluatorStep(payload, evaluator.id, conversation, agentName);
     results.push(result);
   }
 

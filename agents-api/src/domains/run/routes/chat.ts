@@ -489,6 +489,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
           tenantId,
           projectId,
           agentId,
+          agentName,
           conversationId,
           resolvedRef: executionContext.resolvedRef,
           eventType: isNewConversation ? 'conversation.created' : 'conversation.updated',

@@ -3,6 +3,7 @@ import {
   type AgentsRunDatabaseClient,
   type EventSelect,
   type FeedbackSelect,
+  getAgentById,
   getConversation,
   getConversationHistory,
   getEvaluationRunById,
@@ -81,6 +82,7 @@ export interface EmitWebhookEventParams {
   tenantId: string;
   projectId: string;
   agentId: string;
+  agentName?: string;
   resolvedRef: ResolvedRef;
   eventType: WebhookEventType;
   data: Record<string, unknown>;
@@ -146,10 +148,41 @@ async function lookupWebhookDestinations(params: {
   });
 }
 
+async function lookupAgentName(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  resolvedRef: ResolvedRef;
+}): Promise<string | undefined> {
+  const { tenantId, projectId, agentId, resolvedRef } = params;
+  if (!agentId) return undefined;
+
+  try {
+    let name: string | undefined;
+    await withRef(manageDbPool, resolvedRef, async (db) => {
+      const agent = await getAgentById(db)({ scopes: { tenantId, projectId, agentId } });
+      name = agent?.name;
+    });
+    return name;
+  } catch (err) {
+    logger.warn(
+      {
+        tenantId,
+        projectId,
+        agentId,
+        error: err instanceof Error ? err.message : String(err),
+      },
+      'Failed to resolve agent name for webhook envelope'
+    );
+    return undefined;
+  }
+}
+
 interface DispatchToDestinationsParams {
   tenantId: string;
   projectId: string;
   agentId: string;
+  agentName?: string;
   eventType: WebhookEventType;
   data: Record<string, unknown>;
   destinations: WebhookDestinationSelect[];
@@ -239,17 +272,26 @@ async function dispatchSlackBotDestinations(params: {
 async function dispatchToDestinations(params: DispatchToDestinationsParams): Promise<void> {
   const { tenantId, projectId, agentId, eventType, data, destinations, slackMeta } = params;
 
+  const agentName = params.agentName ?? '';
+
   const envelope: WebhookEventEnvelope = {
     type: eventType,
     timestamp: new Date().toISOString(),
     tenantId,
     projectId,
     agentId,
+    agentName,
     data,
   };
 
   const manageUiBaseUrl = env.INKEEP_AGENTS_MANAGE_UI_URL || 'http://localhost:3000';
-  const slackCtx: SlackContext = { tenantId, projectId, agentId, manageUiBaseUrl };
+  const slackCtx: SlackContext = {
+    tenantId,
+    projectId,
+    agentId,
+    agentName,
+    manageUiBaseUrl,
+  };
 
   const slackBotDests = destinations.filter((d) => d.slackChannelId);
   const webhookDests = destinations.filter((d) => d.url);
@@ -344,6 +386,7 @@ export async function emitWebhookEvent(params: EmitWebhookEventParams): Promise<
     tenantId,
     projectId,
     agentId,
+    agentName,
     resolvedRef,
     eventType,
     data,
@@ -368,6 +411,7 @@ export async function emitWebhookEvent(params: EmitWebhookEventParams): Promise<
     tenantId,
     projectId,
     agentId,
+    agentName,
     eventType,
     data,
     destinations,
@@ -402,6 +446,7 @@ export interface EmitConversationWebhookParams {
   tenantId: string;
   projectId: string;
   agentId: string;
+  agentName?: string;
   conversationId: string;
   resolvedRef: ResolvedRef;
   eventType: WebhookEventType;
@@ -416,6 +461,7 @@ export async function emitConversationWebhook(
     tenantId,
     projectId,
     agentId,
+    agentName,
     conversationId,
     resolvedRef,
     eventType,
@@ -451,6 +497,7 @@ export async function emitConversationWebhook(
         tenantId,
         projectId,
         agentId,
+        agentName,
         eventType,
         data: { conversation: detail },
         destinations,
@@ -477,6 +524,7 @@ export interface EmitFeedbackWebhookParams {
   tenantId: string;
   projectId: string;
   agentId?: string;
+  agentName?: string;
   feedback: FeedbackSelect;
   resolvedRef?: ResolvedRef;
 }
@@ -514,6 +562,9 @@ export async function emitFeedbackWebhook(params: EmitFeedbackWebhookParams): Pr
 
     if (destinations.length === 0) return;
 
+    const agentName =
+      params.agentName ?? (await lookupAgentName({ tenantId, projectId, agentId, resolvedRef }));
+
     const messages = await getConversationHistory(db)({
       scopes,
       conversationId: feedback.conversationId,
@@ -524,6 +575,7 @@ export async function emitFeedbackWebhook(params: EmitFeedbackWebhookParams): Pr
       tenantId,
       projectId,
       agentId,
+      agentName,
       eventType: 'feedback.created',
       data: {
         feedback: formatFeedback(feedback),
@@ -551,17 +603,21 @@ export interface EmitEventWebhookParams {
   tenantId: string;
   projectId: string;
   agentId: string;
+  agentName?: string;
   resolvedRef: ResolvedRef;
   event: EventSelect;
 }
 
 export async function emitEventWebhook(params: EmitEventWebhookParams): Promise<void> {
   const { tenantId, projectId, agentId, resolvedRef, event } = params;
+  const agentName =
+    params.agentName ?? (await lookupAgentName({ tenantId, projectId, agentId, resolvedRef }));
 
   const promise = emitWebhookEvent({
     tenantId,
     projectId,
     agentId,
+    agentName,
     resolvedRef,
     eventType: 'event.created',
     data: { event: formatEvent(event) },
@@ -589,6 +645,7 @@ export interface EmitEvaluationFailedWebhookParams {
   tenantId: string;
   projectId: string;
   agentId: string;
+  agentName?: string;
   verdict: EvaluationStatus;
   failedConditions: Array<{
     field: string;
@@ -614,6 +671,7 @@ export async function emitEvaluationFailedWebhook(
     tenantId,
     projectId,
     agentId,
+    agentName,
     verdict,
     failedConditions,
     evaluationResult,
@@ -647,6 +705,7 @@ export async function emitEvaluationFailedWebhook(
       tenantId,
       projectId,
       agentId,
+      agentName,
       eventType: 'evaluation.failed',
       data: {
         evaluator: { id: evaluator.id, name: evaluator.name },

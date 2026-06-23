@@ -573,6 +573,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
           tenantId,
           projectId,
           agentId,
+          agentName,
           conversationId,
           resolvedRef: executionContext.resolvedRef,
           eventType: activeAgent ? 'conversation.updated' : 'conversation.created',
