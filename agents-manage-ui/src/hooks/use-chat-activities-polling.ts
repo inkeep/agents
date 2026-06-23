@@ -33,6 +33,7 @@ export const useChatActivitiesPolling = ({
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isComponentMountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const wasPollingBeforeHiddenRef = useRef(false);
 
   async function fetchChatActivities(): Promise<ConversationDetail | null> {
     try {
@@ -154,6 +155,30 @@ export const useChatActivitiesPolling = ({
     return { hasNewActivity: newCount > currentCount };
   }
 
+  // Pause polling when the tab is hidden to avoid flooding SigNoz with
+  // requests while the user isn't looking at the page.
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.hidden) {
+        if (pollingIntervalRef.current) {
+          wasPollingBeforeHiddenRef.current = true;
+          stopPolling();
+        }
+      } else if (wasPollingBeforeHiddenRef.current) {
+        wasPollingBeforeHiddenRef.current = false;
+        startPolling();
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: stable refs, optimized by the React Compiler
+    startPolling,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: stable refs, optimized by the React Compiler
+    stopPolling,
+  ]);
+
   // Cleanup on unmount
   useEffect(() => {
     isComponentMountedRef.current = true;
@@ -184,6 +209,7 @@ export const useChatActivitiesPolling = ({
         abortControllerRef.current = null;
       }
       setIsPolling(false);
+      wasPollingBeforeHiddenRef.current = false;
 
       prevConversationIdRef.current = conversationId;
     }
