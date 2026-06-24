@@ -1,5 +1,30 @@
 # @inkeep/agents-api
 
+## 0.80.0
+
+### Minor Changes
+
+- 35000b5: Add optional startDate/endDate query filters to evaluation result routes; align feedback date filter params to ISO datetime format
+
+### Patch Changes
+
+- 888f8ee: Add user properties to UI and webhooks
+- 0f067b4: Allowlist sub-agent read/update tools referenced by the agent builder prompts
+- d667b35: Fix MCP tool schemas being stripped of $ref/$defs, nested objects, unions, and enums. Tool input schemas are now converted via z.fromJSONSchema at ingestion (preserving the full structure for the model and validation), and the system prompt renders the full schema (resolving $ref, recursing nested objects/arrays, and showing enums and nullables) instead of a flattened one-level view.
+- 953e70e: Fix intermittent 'Tool results are missing for tool calls' errors by reconciling tool-call/tool-result pairing in mid-generation compression output
+- b0d0011: Remove unneeded signoz query and timeline fetches
+- 11f7dad: Add agentName to outbound webhook event envelope
+- c228447: ?conversationId= filter for slack webhook events
+- Updated dependencies [35000b5]
+- Updated dependencies [d667b35]
+- Updated dependencies [1ca58a3]
+- Updated dependencies [11f7dad]
+- Updated dependencies [c228447]
+  - @inkeep/agents-core@0.80.0
+  - @inkeep/agents-work-apps@0.80.0
+  - @inkeep/agents-email@0.80.0
+  - @inkeep/agents-mcp@0.80.0
+
 ## 0.79.1
 
 ### Patch Changes

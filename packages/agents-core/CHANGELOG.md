@@ -1,5 +1,18 @@
 # @inkeep/agents-core
 
+## 0.80.0
+
+### Minor Changes
+
+- 11f7dad: Add agentName to outbound webhook event envelope
+
+### Patch Changes
+
+- 35000b5: Add optional startDate/endDate query filters to evaluation result routes; align feedback date filter params to ISO datetime format
+- d667b35: Fix MCP tool schemas being stripped of $ref/$defs, nested objects, unions, and enums. Tool input schemas are now converted via z.fromJSONSchema at ingestion (preserving the full structure for the model and validation), and the system prompt renders the full schema (resolving $ref, recursing nested objects/arrays, and showing enums and nullables) instead of a flattened one-level view.
+- 1ca58a3: Disable user-initiated organization creation via the auth API; organizations are provisioned through setup flows
+- c228447: ?conversationId= filter for slack webhook events
+
 ## 0.79.1
 
 ### Patch Changes
