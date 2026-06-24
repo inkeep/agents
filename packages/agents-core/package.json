@@ -90,6 +90,10 @@
       "types": "./dist/utils/schema-conversion.d.ts",
       "import": "./dist/utils/schema-conversion.js"
     },
+    "./utils/json-schema-walk": {
+      "types": "./dist/utils/json-schema-walk.d.ts",
+      "import": "./dist/utils/json-schema-walk.js"
+    },
     "./utils/retry": {
       "types": "./dist/utils/retry-client.d.ts",
       "import": "./dist/utils/retry-client.js"

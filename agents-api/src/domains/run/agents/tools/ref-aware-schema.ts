@@ -1,5 +1,6 @@
 import { z } from '@hono/zod-openapi';
 import { convertZodToJsonSchema } from '@inkeep/agents-core';
+import { unwrapJsonSchemaWrapper } from '@inkeep/agents-core/utils/json-schema-walk';
 import { jsonSchema } from 'ai';
 import { getLogger } from '../../../../logger';
 import { REFS_KEY, SENTINEL_KEY } from '../../constants/artifact-syntax';
@@ -174,6 +175,9 @@ export function makeBaseInputSchema(
   return z.fromJSONSchema(schema);
 }
 
+// Re-exported from the shared walker module so existing importers keep working.
+export { unwrapJsonSchemaWrapper };
+
 /**
  * Build both the ref-aware input schema (for the LLM tool definition) and
  * the base input schema (for post-resolution validation).
@@ -189,10 +193,11 @@ export function buildRefAwareSchemas(inputSchema: Record<string, unknown> | z.Zo
   refAwareInputSchema: ReturnType<typeof jsonSchema>;
   baseInputSchema: ReturnType<typeof z.fromJSONSchema> | undefined;
 } {
+  const source = unwrapJsonSchemaWrapper(inputSchema);
   const rawJson =
-    inputSchema instanceof z.ZodType
-      ? (convertZodToJsonSchema(inputSchema) as Record<string, unknown>)
-      : inputSchema;
+    source instanceof z.ZodType
+      ? (convertZodToJsonSchema(source) as Record<string, unknown>)
+      : source;
 
   let baseInputSchema: ReturnType<typeof z.fromJSONSchema> | undefined;
   try {

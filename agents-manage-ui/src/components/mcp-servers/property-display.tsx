@@ -1,5 +1,6 @@
 'use client';
 
+import type { NormalizedSchemaNode } from '@inkeep/agents-core/utils/json-schema-walk';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -7,27 +8,28 @@ import { getTypeBadgeVariant } from '@/lib/utils/mcp-schema-parser';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 
-interface SchemaProperty {
-  name: string;
-  type: string;
-  required: boolean;
-  description?: string;
-  enum?: string[];
-  properties?: SchemaProperty[];
-  items?: SchemaProperty;
-}
-
 interface PropertyDisplayProps {
-  property: SchemaProperty;
+  property: NormalizedSchemaNode;
   level: number;
 }
 
 export function PropertyDisplay({ property, level }: PropertyDisplayProps) {
   const [isExpanded, setIsExpanded] = useState(level < 2); // Auto-expand first 2 levels
   const indentClass = level > 0 ? `ml-${Math.min(level * 4, 8)}` : '';
+  // An array item is only worth expanding when it carries its own structure;
+  // a primitive item array (e.g. string[]) is fully described by the [] suffix + type badge.
+  const itemHasDetail =
+    !!property.items &&
+    (!!property.items.properties?.length ||
+      !!property.items.items ||
+      !!property.items.variants?.length ||
+      !!property.items.enumValues?.length ||
+      !!property.items.recursive);
   const hasNested =
     (property.properties && property.properties.length > 0) ||
-    (property.items && (property.items.properties || property.items.items));
+    itemHasDetail ||
+    (property.variants && property.variants.length > 0);
+  const enumValues = property.enumValues;
 
   return (
     <div className={cn('space-y-1', indentClass)}>
@@ -57,9 +59,17 @@ export function PropertyDisplay({ property, level }: PropertyDisplayProps) {
           {!property.required && (
             <span className="text-xs text-gray-500 dark:text-white/40">optional</span>
           )}
+          {property.nullable && (
+            <span className="text-xs text-gray-500 dark:text-white/40">nullable</span>
+          )}
           {property.description && (
             <span className="text-xs text-muted-foreground max-w-xs truncate">
               {property.description}
+            </span>
+          )}
+          {enumValues && enumValues.length > 0 && (
+            <span className="text-xs text-muted-foreground max-w-xs truncate">
+              enum: {enumValues.map((value) => String(value)).join(', ')}
             </span>
           )}
         </div>
@@ -68,7 +78,7 @@ export function PropertyDisplay({ property, level }: PropertyDisplayProps) {
         </Badge>
       </div>
 
-      {/* Nested properties */}
+      {/* Nested structure */}
       {isExpanded && hasNested && (
         <div className="ml-4 space-y-1 border-l border-border pl-3">
           {/* Object properties */}
@@ -76,21 +86,21 @@ export function PropertyDisplay({ property, level }: PropertyDisplayProps) {
             <PropertyDisplay key={nestedProp.name} property={nestedProp} level={level + 1} />
           ))}
 
-          {/* Array item properties */}
-          {property.items?.properties && (
-            <div className="space-y-1">
-              <div className="text-xs text-muted-foreground font-medium">Array items:</div>
-              {property.items.properties.map((itemProp) => (
-                <PropertyDisplay key={itemProp.name} property={itemProp} level={level + 1} />
-              ))}
-            </div>
-          )}
-
-          {/* Nested array items */}
-          {property.items?.items && (
+          {/* Array item schema */}
+          {property.items && (
             <div className="space-y-1">
               <div className="text-xs text-muted-foreground font-medium">Array items:</div>
               <PropertyDisplay property={property.items} level={level + 1} />
+            </div>
+          )}
+
+          {/* Union variants */}
+          {property.variants && property.variants.length > 0 && (
+            <div className="space-y-1">
+              <div className="text-xs text-muted-foreground font-medium">Variants (one of):</div>
+              {property.variants.map((variant, index) => (
+                <PropertyDisplay key={variant.name || index} property={variant} level={level + 1} />
+              ))}
             </div>
           )}
         </div>
