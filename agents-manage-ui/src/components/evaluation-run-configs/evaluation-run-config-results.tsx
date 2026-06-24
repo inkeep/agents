@@ -32,6 +32,7 @@ import type { EvaluationSuiteConfig } from '@/lib/api/evaluation-suite-configs';
 import type { Evaluator } from '@/lib/api/evaluators';
 import { exportEvaluationResultsCsv } from '@/lib/csv/export-csv';
 import { getEvaluationStatus } from '@/lib/evaluation/pass-criteria-evaluator';
+import { ALL_TIME, DEFAULT_RUN_CONFIG_TIME_RANGE } from '@/lib/filters/time-range-filter';
 import { formatDateTimeTable } from '@/lib/utils/format-date';
 
 import { EvaluationResultsFilters } from '../evaluation-jobs/evaluation-results-filters';
@@ -76,6 +77,11 @@ export function EvaluationRunConfigResults({
     getEvaluatorName,
     getEvaluatorById,
     handleFiltersChange,
+    timeRange,
+    customStartDate,
+    customEndDate,
+    setTimeRange,
+    setCustomDateRange,
     fetchAllForExport,
     isExporting,
     exportError,
@@ -88,6 +94,7 @@ export function EvaluationRunConfigResults({
     evaluators,
     pollIntervalMs: 5000,
     conversationId,
+    defaultTimeRange: conversationId ? ALL_TIME : DEFAULT_RUN_CONFIG_TIME_RANGE,
   });
 
   const selectedEvaluator = selectedEvaluatorId ? getEvaluatorById(selectedEvaluatorId) : undefined;
@@ -177,6 +184,11 @@ export function EvaluationRunConfigResults({
         evaluators={evaluatorOptions}
         agents={agentOptions}
         availableOutputKeys={availableOutputKeys}
+        timeRange={timeRange}
+        customStartDate={customStartDate}
+        customEndDate={customEndDate}
+        onTimeRangeChange={setTimeRange}
+        onCustomDateRangeChange={setCustomDateRange}
       />
 
       <div className="rounded-lg border">

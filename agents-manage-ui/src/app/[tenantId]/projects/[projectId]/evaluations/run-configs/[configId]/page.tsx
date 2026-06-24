@@ -9,6 +9,10 @@ import {
   fetchEvaluationSuiteConfigs,
 } from '@/lib/api/evaluation-suite-configs';
 import { fetchEvaluators } from '@/lib/api/evaluators';
+import {
+  DEFAULT_RUN_CONFIG_TIME_RANGE,
+  resolveTimeRangeISO,
+} from '@/lib/filters/time-range-filter';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +30,10 @@ async function EvaluationRunConfigPage({
   const { tenantId, projectId, configId } = await params;
   const { conversationId } = await searchParams;
 
+  const initialRange = conversationId
+    ? {}
+    : resolveTimeRangeISO({ timeRange: DEFAULT_RUN_CONFIG_TIME_RANGE });
+
   try {
     const [runConfig, initialResponse, evaluators, suiteConfigs] = await Promise.all([
       fetchEvaluationRunConfig(tenantId, projectId, configId),
@@ -33,6 +41,8 @@ async function EvaluationRunConfigPage({
         page: 1,
         limit: 50,
         conversationId,
+        startDate: initialRange.startDate,
+        endDate: initialRange.endDate,
       }),
       fetchEvaluators(tenantId, projectId),
       fetchEvaluationSuiteConfigs(tenantId, projectId),

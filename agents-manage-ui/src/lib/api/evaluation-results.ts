@@ -33,6 +33,8 @@ export interface ServerFilterParams {
   evaluatorId?: string;
   agentId?: string;
   conversationId?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface PaginatedEvalResultsResponse {
@@ -58,6 +60,8 @@ function buildQueryString(params: ServerFilterParams): string {
   if (params.evaluatorId) searchParams.set('evaluatorId', params.evaluatorId);
   if (params.agentId) searchParams.set('agentId', params.agentId);
   if (params.conversationId) searchParams.set('conversationId', params.conversationId);
+  if (params.startDate) searchParams.set('startDate', params.startDate);
+  if (params.endDate) searchParams.set('endDate', params.endDate);
   const qs = searchParams.toString();
   return qs ? `?${qs}` : '';
 }
@@ -89,7 +93,10 @@ export async function fetchAllEvaluationResults(
   projectId: string,
   kind: 'job-config' | 'run-config',
   configId: string,
-  params: Pick<ServerFilterParams, 'evaluatorId' | 'agentId' | 'conversationId'> = {}
+  params: Pick<
+    ServerFilterParams,
+    'evaluatorId' | 'agentId' | 'conversationId' | 'startDate' | 'endDate'
+  > = {}
 ): Promise<EvaluationResult[]> {
   const basePath = buildBasePath(tenantId, projectId, kind, configId);
   const aggregated: EvaluationResult[] = [];

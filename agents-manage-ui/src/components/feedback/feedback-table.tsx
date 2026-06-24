@@ -45,6 +45,12 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { triggerImprovementAction } from '@/lib/actions/improvements';
 import type { Feedback } from '@/lib/api/feedback';
+import {
+  ALL_TIME,
+  CUSTOM_RANGE,
+  TIME_RANGE_OPTIONS,
+  type TimeRangeValue,
+} from '@/lib/filters/time-range-filter';
 import { useProjectPermissionsQuery } from '@/lib/query/projects';
 import { formatDateTimeTable } from '@/lib/utils/format-date';
 
@@ -69,6 +75,7 @@ interface FeedbackTableProps {
     type?: 'positive' | 'negative';
     startDate?: string;
     endDate?: string;
+    range?: TimeRangeValue;
   };
 }
 
@@ -158,6 +165,7 @@ export function FeedbackTable({
       agentId?: string;
       startDate?: string;
       endDate?: string;
+      range?: TimeRangeValue;
       page?: number;
     }) => {
       const params = new URLSearchParams(searchParams.toString());
@@ -175,6 +183,14 @@ export function FeedbackTable({
           params.set('agentId', next.agentId);
         } else {
           params.delete('agentId');
+        }
+      }
+
+      if (next.range !== undefined) {
+        if (next.range) {
+          params.set('range', next.range);
+        } else {
+          params.delete('range');
         }
       }
 
@@ -210,13 +226,12 @@ export function FeedbackTable({
   const hasActiveFilters = !!(
     filters.type ||
     filters.agentId ||
-    filters.startDate ||
-    filters.endDate
+    (filters.range && filters.range !== ALL_TIME)
   );
 
   const clearFilters = () => {
     setTypeFilter(undefined);
-    updateQuery({ type: '', agentId: '', startDate: '', endDate: '', page: 1 });
+    updateQuery({ type: '', agentId: '', range: ALL_TIME, startDate: '', endDate: '', page: 1 });
   };
 
   if (!feedback.length && !hasActiveFilters) {
@@ -247,9 +262,9 @@ export function FeedbackTable({
   const negativeCount = typeFilter === 'negative' ? pagination.total : undefined;
 
   const dateRangeValue =
-    filters.startDate || filters.endDate
+    filters.range === CUSTOM_RANGE
       ? { from: filters.startDate ?? '', to: filters.endDate ?? '' }
-      : undefined;
+      : (filters.range ?? ALL_TIME);
 
   return (
     <div className="space-y-4">
@@ -292,17 +307,19 @@ export function FeedbackTable({
             }}
           />
           <div className="w-full sm:w-auto">
-            <DatePickerWithPresets
+            <DatePickerWithPresets<TimeRangeValue>
               label="Date range"
               value={dateRangeValue}
-              showCalendarDirectly
-              placeholder="Filter by date"
-              onAdd={() => {}}
+              options={TIME_RANGE_OPTIONS}
+              onAdd={(value) => {
+                updateQuery({ range: value, startDate: '', endDate: '', page: 1 });
+              }}
               onRemove={() => {
-                updateQuery({ startDate: '', endDate: '', page: 1 });
+                updateQuery({ range: ALL_TIME, startDate: '', endDate: '', page: 1 });
               }}
               setCustomDateRange={(start, end) => {
-                updateQuery({ startDate: start, endDate: end, page: 1 });
+                if (!start && !end) return;
+                updateQuery({ range: CUSTOM_RANGE, startDate: start, endDate: end, page: 1 });
               }}
             />
           </div>

@@ -423,6 +423,10 @@ export interface EvalResultsFilter {
   evaluatorId?: string;
   agentId?: string;
   conversationId?: string;
+  /** ISO timestamp — only include results whose conversation was created on or after this instant. */
+  startDate?: string;
+  /** ISO timestamp — only include results whose conversation was created on or before this instant. */
+  endDate?: string;
 }
 
 export interface EvalResultsPagination {
@@ -503,6 +507,16 @@ function buildEvalResultsBaseQuery(
 
   if (params.filters?.conversationId) {
     whereConditions.push(eq(evaluationResult.conversationId, params.filters.conversationId));
+  }
+
+  // Filter by when the underlying conversation was created (the "Time" column in
+  // the UI), not when the evaluation result row was written.
+  if (params.filters?.startDate) {
+    whereConditions.push(gte(conversations.createdAt, params.filters.startDate));
+  }
+
+  if (params.filters?.endDate) {
+    whereConditions.push(lte(conversations.createdAt, params.filters.endDate));
   }
 
   return { whereConditions };
