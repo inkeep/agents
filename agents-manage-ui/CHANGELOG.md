@@ -1,5 +1,20 @@
 # @inkeep/agents-manage-ui
 
+## 0.80.0
+
+### Patch Changes
+
+- 888f8ee: Add user properties to UI and webhooks
+- 35000b5: Add optional startDate/endDate query filters to evaluation result routes; align feedback date filter params to ISO datetime format
+- b0d0011: Remove unneeded signoz query and timeline fetches
+- c228447: ?conversationId= filter for slack webhook events
+- Updated dependencies [35000b5]
+- Updated dependencies [d667b35]
+- Updated dependencies [1ca58a3]
+- Updated dependencies [11f7dad]
+- Updated dependencies [c228447]
+  - @inkeep/agents-core@0.80.0
+
 ## 0.79.1
 
 ### Patch Changes

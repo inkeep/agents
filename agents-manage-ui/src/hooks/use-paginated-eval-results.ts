@@ -7,6 +7,8 @@ import {
 import type { Evaluator } from '@/lib/api/evaluators';
 import type { EvaluationResultFilters } from '@/lib/evaluation/filter-evaluation-results';
 import { filterEvaluationResults } from '@/lib/evaluation/filter-evaluation-results';
+import type { TimeRangeValue } from '@/lib/filters/time-range-filter';
+import { ALL_TIME, resolveTimeRangeISO } from '@/lib/filters/time-range-filter';
 
 const PAGE_SIZE = 50;
 
@@ -34,6 +36,8 @@ interface UsePaginatedEvalResultsOptions {
   evaluators: Evaluator[];
   pollIntervalMs?: number;
   conversationId?: string;
+  /** Initial time-range window applied to the results query. Defaults to all time. */
+  defaultTimeRange?: TimeRangeValue;
 }
 
 export function usePaginatedEvalResults({
@@ -45,9 +49,13 @@ export function usePaginatedEvalResults({
   evaluators,
   pollIntervalMs = 5000,
   conversationId,
+  defaultTimeRange = ALL_TIME,
 }: UsePaginatedEvalResultsOptions) {
   const [filters, setFilters] = useState<EvaluationResultFilters>({});
   const [currentPage, setCurrentPage] = useState(1);
+  const [timeRange, setTimeRangeState] = useState<TimeRangeValue>(defaultTimeRange);
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [response, setResponse] = useState<PaginatedEvalResultsResponse>(initialResponse);
   const [isLoading, setIsLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -63,6 +71,11 @@ export function usePaginatedEvalResults({
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       setIsLoading(true);
+      const { startDate, endDate } = resolveTimeRangeISO({
+        timeRange,
+        customStartDate,
+        customEndDate,
+      });
       try {
         if (!hasComplexFilters) {
           const res = await fetchEvaluationResultsPaginated(tenantId, projectId, kind, configId, {
@@ -71,6 +84,8 @@ export function usePaginatedEvalResults({
             evaluatorId: filters.evaluatorId || undefined,
             agentId: filters.agentId || undefined,
             conversationId: conversationId || undefined,
+            startDate,
+            endDate,
           });
           if (cancelled) return;
           setResponse(res);
@@ -82,6 +97,8 @@ export function usePaginatedEvalResults({
             evaluatorId: filters.evaluatorId || undefined,
             agentId: filters.agentId || undefined,
             conversationId: conversationId || undefined,
+            startDate,
+            endDate,
           });
           if (cancelled) return;
           const filtered = filterEvaluationResults(allResults, filters, evaluators);
@@ -131,6 +148,9 @@ export function usePaginatedEvalResults({
     evaluators,
     kind,
     conversationId,
+    timeRange,
+    customStartDate,
+    customEndDate,
   ]);
 
   const hasPendingOnPage = response.data.some((r) => r.output === null || r.output === undefined);
@@ -145,6 +165,11 @@ export function usePaginatedEvalResults({
 
     async function handlePoll() {
       if (document.visibilityState === 'hidden') return;
+      const { startDate, endDate } = resolveTimeRangeISO({
+        timeRange,
+        customStartDate,
+        customEndDate,
+      });
       try {
         if (!hasComplexFilters) {
           const res = await fetchEvaluationResultsPaginated(tenantId, projectId, kind, configId, {
@@ -153,6 +178,8 @@ export function usePaginatedEvalResults({
             evaluatorId: filters.evaluatorId || undefined,
             agentId: filters.agentId || undefined,
             conversationId: conversationId || undefined,
+            startDate,
+            endDate,
           });
           if (cancelled) return;
           setResponse(res);
@@ -164,6 +191,8 @@ export function usePaginatedEvalResults({
             evaluatorId: filters.evaluatorId || undefined,
             agentId: filters.agentId || undefined,
             conversationId: conversationId || undefined,
+            startDate,
+            endDate,
           });
           if (cancelled) return;
           const filtered = filterEvaluationResults(allResults, filters, evaluators);
@@ -217,6 +246,9 @@ export function usePaginatedEvalResults({
     kind,
     pollIntervalMs,
     conversationId,
+    timeRange,
+    customStartDate,
+    customEndDate,
   ]);
 
   const [isExporting, setIsExporting] = useState(false);
@@ -225,10 +257,17 @@ export function usePaginatedEvalResults({
   async function handleExportCsv() {
     setIsExporting(true);
     setExportError(null);
+    const { startDate, endDate } = resolveTimeRangeISO({
+      timeRange,
+      customStartDate,
+      customEndDate,
+    });
     const allResults = await fetchAllEvaluationResults(tenantId, projectId, kind, configId, {
       evaluatorId: filters.evaluatorId || undefined,
       agentId: filters.agentId || undefined,
       conversationId: conversationId || undefined,
+      startDate,
+      endDate,
     }).catch((error) => {
       console.error('Export failed:', error);
       setExportError('Export failed. Please try again.');
@@ -247,6 +286,17 @@ export function usePaginatedEvalResults({
 
   function handleFiltersChange(newFilters: EvaluationResultFilters) {
     setFilters(newFilters);
+    setCurrentPage(1);
+  }
+
+  function setTimeRange(nextTimeRange: TimeRangeValue) {
+    setTimeRangeState(nextTimeRange);
+    setCurrentPage(1);
+  }
+
+  function setCustomDateRange(start: string, end: string) {
+    setCustomStartDate(start);
+    setCustomEndDate(end);
     setCurrentPage(1);
   }
 
@@ -288,6 +338,11 @@ export function usePaginatedEvalResults({
     getEvaluatorName,
     getEvaluatorById,
     handleFiltersChange,
+    timeRange,
+    customStartDate,
+    customEndDate,
+    setTimeRange,
+    setCustomDateRange,
     fetchAllForExport: handleExportCsv,
     isExporting,
     exportError,

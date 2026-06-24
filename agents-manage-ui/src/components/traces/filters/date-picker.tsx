@@ -10,14 +10,13 @@ import { Calendar } from '@/components/ui/calendar';
 import { Command, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useDisclosure } from '@/hooks/use-disclosure';
-import type { TimeRange } from '@/hooks/use-traces-query-state';
 import { cn } from '@/lib/utils';
 import { FilterTriggerComponent } from './filter-trigger';
 
-interface DatePickerWithPresetsProps {
+interface DatePickerWithPresetsProps<T extends string = string> {
   label: string;
-  value?: TimeRange | { from: string; to: string } | undefined;
-  onAdd: (value: TimeRange) => void;
+  value?: T | { from: string; to: string } | undefined;
+  onAdd: (value: T) => void;
   onRemove: () => void;
   disabled?: boolean;
   options?: SelectOption[];
@@ -45,7 +44,7 @@ function parseLocalDate(dateString: string): Date {
   return new Date(`${dateString}T00:00:00`);
 }
 
-export function DatePickerWithPresets({
+export function DatePickerWithPresets<T extends string = string>({
   onAdd,
   onRemove,
   value,
@@ -55,7 +54,7 @@ export function DatePickerWithPresets({
   setCustomDateRange,
   showCalendarDirectly = false,
   placeholder = 'Select date range',
-}: DatePickerWithPresetsProps) {
+}: DatePickerWithPresetsProps<T>) {
   const [showCalendar, setShowCalendar] = useState(showCalendarDirectly);
   const { isOpen, onClose, onOpen } = useDisclosure();
 
@@ -182,7 +181,7 @@ export function DatePickerWithPresets({
               <Button
                 onClick={() => {
                   if (date?.from) {
-                    onAdd(CUSTOM);
+                    onAdd(CUSTOM as T);
                     setCustomDateRange(
                       format(date.from, 'yyyy-MM-dd'),
                       date.to ? format(date.to, 'yyyy-MM-dd') : ''
@@ -217,7 +216,7 @@ export function DatePickerWithPresets({
                         setShowCalendar(true);
                       } else {
                         setDate(undefined);
-                        onAdd(value as TimeRange);
+                        onAdd(value as T);
                         setCustomDateRange('', '');
                         onClose();
                       }

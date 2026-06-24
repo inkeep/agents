@@ -76,11 +76,11 @@ export const listFeedback =
     }
 
     if (params.startDate) {
-      conditions.push(gte(feedback.createdAt, `${params.startDate}T00:00:00.000Z`));
+      conditions.push(gte(feedback.createdAt, params.startDate));
     }
 
     if (params.endDate) {
-      conditions.push(lte(feedback.createdAt, `${params.endDate}T23:59:59.999Z`));
+      conditions.push(lte(feedback.createdAt, params.endDate));
     }
 
     if (params.agentId) {

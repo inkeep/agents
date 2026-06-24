@@ -23,6 +23,7 @@ import type { PaginatedEvalResultsResponse } from '@/lib/api/evaluation-results'
 import type { Evaluator } from '@/lib/api/evaluators';
 import { exportEvaluationResultsCsv } from '@/lib/csv/export-csv';
 import { getEvaluationStatus } from '@/lib/evaluation/pass-criteria-evaluator';
+import { ALL_TIME, DEFAULT_JOB_CONFIG_TIME_RANGE } from '@/lib/filters/time-range-filter';
 import { formatDateTimeTable } from '@/lib/utils/format-date';
 
 import { EvaluationResultsFilters } from './evaluation-results-filters';
@@ -62,6 +63,11 @@ export function EvaluationJobResults({
     getEvaluatorName,
     getEvaluatorById,
     handleFiltersChange,
+    timeRange,
+    customStartDate,
+    customEndDate,
+    setTimeRange,
+    setCustomDateRange,
     fetchAllForExport,
     isExporting,
     exportError,
@@ -74,6 +80,7 @@ export function EvaluationJobResults({
     evaluators,
     pollIntervalMs: 3000,
     conversationId,
+    defaultTimeRange: conversationId ? ALL_TIME : DEFAULT_JOB_CONFIG_TIME_RANGE,
   });
 
   const selectedEvaluator = selectedEvaluatorId ? getEvaluatorById(selectedEvaluatorId) : undefined;
@@ -97,6 +104,11 @@ export function EvaluationJobResults({
         evaluators={evaluatorOptions}
         agents={agentOptions}
         availableOutputKeys={availableOutputKeys}
+        timeRange={timeRange}
+        customStartDate={customStartDate}
+        customEndDate={customEndDate}
+        onTimeRangeChange={setTimeRange}
+        onCustomDateRangeChange={setCustomDateRange}
       />
 
       {isRunning && (

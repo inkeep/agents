@@ -38845,6 +38845,28 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "Only include results whose conversation was created on or after this ISO timestamp",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "description": "Only include results whose conversation was created on or after this ISO timestamp",
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only include results whose conversation was created on or before this ISO timestamp",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "description": "Only include results whose conversation was created on or before this ISO timestamp",
+              "format": "date-time",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -40089,6 +40111,28 @@
             "name": "conversationId",
             "required": false,
             "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only include results whose conversation was created on or after this ISO timestamp",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "description": "Only include results whose conversation was created on or after this ISO timestamp",
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only include results whose conversation was created on or before this ISO timestamp",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "description": "Only include results whose conversation was created on or before this ISO timestamp",
+              "format": "date-time",
               "type": "string"
             }
           }
@@ -43029,22 +43073,24 @@
             }
           },
           {
-            "description": "Filter feedback created on or after this date (YYYY-MM-DD)",
+            "description": "Filter feedback created on or after this ISO timestamp",
             "in": "query",
             "name": "startDate",
             "required": false,
             "schema": {
-              "description": "Filter feedback created on or after this date (YYYY-MM-DD)",
+              "description": "Filter feedback created on or after this ISO timestamp",
+              "format": "date-time",
               "type": "string"
             }
           },
           {
-            "description": "Filter feedback created on or before this date (YYYY-MM-DD)",
+            "description": "Filter feedback created on or before this ISO timestamp",
             "in": "query",
             "name": "endDate",
             "required": false,
             "schema": {
-              "description": "Filter feedback created on or before this date (YYYY-MM-DD)",
+              "description": "Filter feedback created on or before this ISO timestamp",
+              "format": "date-time",
               "type": "string"
             }
           }

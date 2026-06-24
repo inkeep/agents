@@ -1,6 +1,7 @@
 'use client';
 
 import { Search, X } from 'lucide-react';
+import { DatePickerWithPresets } from '@/components/traces/filters/date-picker';
 import { Button } from '@/components/ui/button';
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import {
@@ -14,6 +15,8 @@ import type {
   EvaluationResultFilters,
   OutputFilter,
 } from '@/lib/evaluation/filter-evaluation-results';
+import type { TimeRangeValue } from '@/lib/filters/time-range-filter';
+import { ALL_TIME, CUSTOM_RANGE, TIME_RANGE_OPTIONS } from '@/lib/filters/time-range-filter';
 import { OutputSchemaFilters } from './output-schema-filters';
 
 interface EvaluationResultsFiltersProps {
@@ -22,6 +25,11 @@ interface EvaluationResultsFiltersProps {
   evaluators: Array<{ id: string; name: string }>;
   agents: Array<{ id: string; name: string }>;
   availableOutputKeys?: string[];
+  timeRange: TimeRangeValue;
+  customStartDate: string;
+  customEndDate: string;
+  onTimeRangeChange: (value: TimeRangeValue) => void;
+  onCustomDateRangeChange: (start: string, end: string) => void;
 }
 
 export function EvaluationResultsFilters({
@@ -30,6 +38,11 @@ export function EvaluationResultsFilters({
   evaluators,
   agents,
   availableOutputKeys,
+  timeRange,
+  customStartDate,
+  customEndDate,
+  onTimeRangeChange,
+  onCustomDateRangeChange,
 }: EvaluationResultsFiltersProps) {
   const updateFilter = (key: keyof EvaluationResultFilters, value: unknown) => {
     onFiltersChange({
@@ -48,6 +61,17 @@ export function EvaluationResultsFilters({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
+        <DatePickerWithPresets<TimeRangeValue>
+          label="Time range"
+          value={
+            timeRange === CUSTOM_RANGE ? { from: customStartDate, to: customEndDate } : timeRange
+          }
+          onAdd={onTimeRangeChange}
+          onRemove={() => onTimeRangeChange(ALL_TIME)}
+          setCustomDateRange={onCustomDateRangeChange}
+          options={TIME_RANGE_OPTIONS}
+        />
+
         <InputGroup className="max-w-sm">
           <InputGroupInput
             type="text"

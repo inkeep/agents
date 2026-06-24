@@ -367,6 +367,20 @@ app.openapi(
         evaluatorId: z.string().optional(),
         agentId: z.string().optional(),
         conversationId: z.string().optional(),
+        startDate: z
+          .string()
+          .datetime({ offset: true })
+          .optional()
+          .describe(
+            'Only include results whose conversation was created on or after this ISO timestamp'
+          ),
+        endDate: z
+          .string()
+          .datetime({ offset: true })
+          .optional()
+          .describe(
+            'Only include results whose conversation was created on or before this ISO timestamp'
+          ),
       }),
     },
     responses: {
@@ -383,7 +397,8 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, configId } = c.req.valid('param');
-    const { page, limit, evaluatorId, agentId, conversationId } = c.req.valid('query');
+    const { page, limit, evaluatorId, agentId, conversationId, startDate, endDate } =
+      c.req.valid('query');
 
     try {
       const result = await listEvaluationResultsPaginated(runDbClient)({
@@ -393,6 +408,8 @@ app.openapi(
           evaluatorId: evaluatorId || undefined,
           agentId: agentId || undefined,
           conversationId: conversationId || undefined,
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
         },
         pagination: { page, limit },
       });

@@ -55,12 +55,14 @@ app.openapi(
           .describe('Optionally filter by feedback type'),
         startDate: z
           .string()
+          .datetime({ offset: true })
           .optional()
-          .describe('Filter feedback created on or after this date (YYYY-MM-DD)'),
+          .describe('Filter feedback created on or after this ISO timestamp'),
         endDate: z
           .string()
+          .datetime({ offset: true })
           .optional()
-          .describe('Filter feedback created on or before this date (YYYY-MM-DD)'),
+          .describe('Filter feedback created on or before this ISO timestamp'),
       }),
     },
     responses: {
