@@ -7,15 +7,17 @@ import {
   estimateTokens,
   V1_BREAKDOWN_SCHEMA,
 } from '@inkeep/agents-core';
+import {
+  type NormalizedSchemaNode,
+  normalizeJsonSchemaProperties,
+} from '@inkeep/agents-core/utils/json-schema-walk';
 import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
-
 import systemPromptTemplate from '../../../../../../templates/v1/prompt/system-prompt.xml?raw';
 import toolTemplate from '../../../../../../templates/v1/prompt/tool.xml?raw';
 import artifactTemplate from '../../../../../../templates/v1/shared/artifact.xml?raw';
 import artifactRetrievalGuidance from '../../../../../../templates/v1/shared/artifact-retrieval-guidance.md?raw';
 import dataComponentTemplate from '../../../../../../templates/v1/shared/data-component.xml?raw';
 import dataComponentsTemplate from '../../../../../../templates/v1/shared/data-components.xml?raw';
-
 import { ArtifactCreateSchema } from '../../../artifacts/artifact-component-schema';
 import { ARTIFACT_TAG, ARTIFACT_TOOL, SENTINEL_KEY } from '../../../constants/artifact-syntax';
 import {
@@ -25,6 +27,7 @@ import {
   extractPreviewFields,
 } from '../../../utils/schema-validation';
 import { SYSTEM_CACHE_BOUNDARY_SENTINEL } from '../../generation/caching-actuator';
+import { unwrapJsonSchemaWrapper } from '../../tools/ref-aware-schema';
 import type {
   McpServerGroupData,
   SkillData,
@@ -73,7 +76,9 @@ export class PromptConfig implements VersionConfig<SystemPromptV1> {
       }
     }
 
-    return inputSchema;
+    // Fallback-path tools carry an AI SDK jsonSchema() wrapper; unwrap so the renderer
+    // sees the real properties rather than the wrapper's top-level keys.
+    return unwrapJsonSchemaWrapper(inputSchema) as Record<string, unknown>;
   }
 
   assemble(templates: Map<string, string>, config: SystemPromptV1): AssembleResult {
@@ -1067,39 +1072,60 @@ ${SENTINEL_KEY.SELECT} JMESPATH PATTERNS:
       .replace(/"/g, '&quot;');
   }
 
-  private renderPropertyXml(name: string, prop: any, required: string[], indent: string): string {
-    const type = prop?.type || 'string';
-    const isRequired = required.includes(name);
-    const desc = prop?.description?.trim();
-    const descAttr = desc ? ` description="${this.escapeXml(desc)}"` : '';
-    const requiredAttr = isRequired ? ' required="true"' : '';
-    return `${indent}<property name="${name}" type="${type}"${requiredAttr}${descAttr} />`;
+  private emitSchemaNodesXml(nodes: NormalizedSchemaNode[], indent: string): string {
+    return nodes.map((node) => this.emitSchemaNodeXml(node, indent)).join('\n');
+  }
+
+  private emitSchemaNodeXml(node: NormalizedSchemaNode, indent: string): string {
+    const name = this.escapeXml(node.name);
+    const type = this.escapeXml(node.type);
+    const requiredAttr = node.required ? ' required="true"' : '';
+    const nullableAttr = node.nullable ? ' nullable="true"' : '';
+    const descAttr = node.description ? ` description="${this.escapeXml(node.description)}"` : '';
+
+    if (node.recursive) {
+      return `${indent}<property name="${name}" type="${type}"${requiredAttr}${nullableAttr}${descAttr} recursive="true" />`;
+    }
+
+    if (node.properties) {
+      const childrenXml = this.emitSchemaNodesXml(node.properties, `${indent}  `);
+      return `${indent}<property name="${name}" type="object"${requiredAttr}${nullableAttr}${descAttr}>\n${childrenXml}\n${indent}</property>`;
+    }
+
+    if (node.items) {
+      const itemXml = this.emitSchemaNodeXml(node.items, `${indent}  `);
+      return `${indent}<property name="${name}" type="array"${requiredAttr}${nullableAttr}${descAttr}>\n${indent}  <items>\n${itemXml}\n${indent}  </items>\n${indent}</property>`;
+    }
+
+    if (node.variants) {
+      const variantsXml = node.variants
+        .map((variant) => this.emitSchemaNodeXml(variant, `${indent}    `))
+        .join('\n');
+      return `${indent}<property name="${name}" type="union"${requiredAttr}${nullableAttr}${descAttr}>\n${indent}  <variants>\n${variantsXml}\n${indent}  </variants>\n${indent}</property>`;
+    }
+
+    const enumAttr = node.enumValues
+      ? ` enum="${this.escapeXml(JSON.stringify(node.enumValues))}"`
+      : '';
+    return `${indent}<property name="${name}" type="${type}"${requiredAttr}${nullableAttr}${enumAttr}${descAttr} />`;
   }
 
   private generateMcpToolXml(tool: ToolData): string {
-    const schema = tool.inputSchema as
-      | {
-          properties?: Record<string, { type?: string; description?: string }>;
-          required?: string[];
-        }
-      | undefined;
+    const schema = tool.inputSchema as { properties?: Record<string, unknown> } | undefined;
     const properties = schema?.properties || {};
-    const required: string[] = Array.isArray(schema?.required) ? schema.required : [];
     const propertyEntries = Object.entries(properties);
 
     const descriptionXml = tool.description?.trim()
-      ? `\n    <description>${tool.description.trim()}</description>`
+      ? `\n    <description>${this.escapeXml(tool.description.trim())}</description>`
       : '';
 
     let parametersXml = '';
     if (propertyEntries.length > 0) {
-      const propsXml = propertyEntries
-        .map(([name, prop]) => this.renderPropertyXml(name, prop, required, '      '))
-        .join('\n');
+      const propsXml = this.emitSchemaNodesXml(normalizeJsonSchemaProperties(schema), '      ');
       parametersXml = `\n    <parameters>\n${propsXml}\n    </parameters>`;
     }
 
-    return `<tool name="${tool.name}">${descriptionXml}${parametersXml}\n  </tool>`;
+    return `<tool name="${this.escapeXml(tool.name)}">${descriptionXml}${parametersXml}\n  </tool>`;
   }
 
   private generateMcpServerGroupXml(group: McpServerGroupData): string {
@@ -1107,7 +1133,7 @@ ${SENTINEL_KEY.SELECT} JMESPATH PATTERNS:
     const instructionsSection = group.serverInstructions
       ? `\n  <instructions>${this.escapeXml(group.serverInstructions)}</instructions>`
       : '';
-    return `<mcp_server name="${group.serverName}">${instructionsSection}
+    return `<mcp_server name="${this.escapeXml(group.serverName)}">${instructionsSection}
   ${toolsXml}
 </mcp_server>`;
   }
@@ -1166,16 +1192,9 @@ ${this.getToolChainingGuidance()}">
     if (!inputSchema) return '';
 
     const properties = (inputSchema.properties as Record<string, any>) || {};
-    const required: string[] = Array.isArray(inputSchema.required)
-      ? (inputSchema.required as string[])
-      : [];
-    const propertyEntries = Object.entries(properties);
+    if (Object.keys(properties).length === 0) return '';
 
-    if (propertyEntries.length === 0) return '';
-
-    const propsXml = propertyEntries
-      .map(([name, prop]: [string, any]) => this.renderPropertyXml(name, prop, required, '    '))
-      .join('\n');
+    const propsXml = this.emitSchemaNodesXml(normalizeJsonSchemaProperties(inputSchema), '    ');
 
     return `<parameters>\n${propsXml}\n  </parameters>`;
   }
@@ -1188,20 +1207,50 @@ ${this.getToolChainingGuidance()}">
     }
 
     const schemaType = (inputSchema.type as string) || 'object';
-    const properties = (inputSchema.properties as Record<string, any>) || {};
     const required = (inputSchema.required as string[]) || [];
 
-    const propertiesXml = Object.entries(properties)
-      .map(([key, value]) => {
-        const isRequired = required.includes(key);
-        const propType = value?.type || 'string';
-        const propDescription = value?.description || 'No description';
-
-        return `        ${key}: {\n          "type": "${propType}",\n          "description": "${propDescription}",\n          "required": ${isRequired}\n        }`;
-      })
+    const propertiesXml = normalizeJsonSchemaProperties(inputSchema)
+      .map((node) => this.emitDataComponentNodeJson(node, '        '))
       .join('\n');
 
     return `<type>${schemaType}</type>\n      <properties>\n${propertiesXml}\n      </properties>\n      <required>${JSON.stringify(required)}</required>`;
+  }
+
+  private emitDataComponentNodeJson(node: NormalizedSchemaNode, indent: string): string {
+    return `${indent}${JSON.stringify(node.name)}: ${this.emitDataComponentNodeBody(node, indent)}`;
+  }
+
+  private emitDataComponentNodeBody(node: NormalizedSchemaNode, indent: string): string {
+    const inner = `${indent}  `;
+    const description = node.description ?? 'No description';
+
+    if (node.recursive) {
+      return `{\n${inner}"type": ${JSON.stringify(node.type)},\n${inner}"description": ${JSON.stringify(description)},\n${inner}"required": ${node.required},\n${inner}"recursive": true\n${indent}}`;
+    }
+
+    const lines: string[] = [
+      `${inner}"type": ${JSON.stringify(node.type)}`,
+      `${inner}"description": ${JSON.stringify(description)}`,
+      `${inner}"required": ${node.required}`,
+    ];
+    if (node.nullable) lines.push(`${inner}"nullable": true`);
+    if (node.enumValues) lines.push(`${inner}"enum": ${JSON.stringify(node.enumValues)}`);
+
+    if (node.properties) {
+      const childEntries = node.properties
+        .map((child) => this.emitDataComponentNodeJson(child, `${inner}  `))
+        .join(',\n');
+      lines.push(`${inner}"properties": {\n${childEntries}\n${inner}}`);
+    } else if (node.items) {
+      lines.push(`${inner}"items": ${this.emitDataComponentNodeBody(node.items, inner)}`);
+    } else if (node.variants) {
+      const variantEntries = node.variants
+        .map((variant) => `${inner}  ${this.emitDataComponentNodeBody(variant, `${inner}  `)}`)
+        .join(',\n');
+      lines.push(`${inner}"variants": [\n${variantEntries}\n${inner}]`);
+    }
+
+    return `{\n${lines.join(',\n')}\n${indent}}`;
   }
 
   private generateDataComponentsSection(

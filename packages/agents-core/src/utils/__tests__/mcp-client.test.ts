@@ -1,3 +1,4 @@
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockClose = vi.fn().mockResolvedValue(undefined);
@@ -28,6 +29,11 @@ vi.mock('@modelcontextprotocol/sdk/shared/protocol.js', () => ({
 
 vi.mock('exit-hook', () => ({
   asyncExitHook: vi.fn(),
+}));
+
+const loggerRefs = vi.hoisted(() => ({ warn: vi.fn() }));
+vi.mock('../logger', () => ({
+  getLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: loggerRefs.warn, error: vi.fn() }),
 }));
 
 describe('McpClient global registry', () => {
@@ -114,5 +120,56 @@ describe('McpClient global registry', () => {
 
     await client.disconnect();
     expect(activeMcpClients.size).toBe(0);
+  });
+});
+
+describe('McpClient.tools() schema conversion', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    const { activeMcpClients } = await import('../mcp-client');
+    activeMcpClients.clear();
+  });
+
+  it('keeps a tool whose schema z.fromJSONSchema cannot parse (raw-passthrough fallback)', async () => {
+    vi.mocked(Client).mockImplementationOnce(
+      () =>
+        ({
+          connect: vi.fn(),
+          onclose: null,
+          listTools: vi.fn().mockResolvedValue({
+            tools: [
+              {
+                name: 'bad_tool',
+                // Unresolved $ref makes z.fromJSONSchema throw, exercising the fallback.
+                inputSchema: {
+                  type: 'object',
+                  properties: { x: { $ref: '#/$defs/Missing' } },
+                  required: ['x'],
+                },
+              },
+            ],
+          }),
+        }) as unknown as InstanceType<typeof Client>
+    );
+    loggerRefs.warn.mockClear();
+
+    const { McpClient } = await import('../mcp-client');
+    const client = new McpClient({
+      name: 'srv',
+      server: { type: 'streamable_http' as const, url: 'http://localhost:3000' },
+    });
+    await client.connect();
+    const tools = await client.tools();
+
+    expect(tools.bad_tool).toBeDefined();
+    expect(loggerRefs.warn).toHaveBeenCalled();
+    // Fallback passes the raw JSON Schema through (wrapped by the AI SDK's jsonSchema()).
+    const wrapped = tools.bad_tool.inputSchema as {
+      jsonSchema?: { properties?: Record<string, unknown> };
+    };
+    expect(wrapped.jsonSchema?.properties?.x).toBeDefined();
   });
 });

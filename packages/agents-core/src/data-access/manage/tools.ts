@@ -37,8 +37,10 @@ import {
   toISODateString,
 } from '../../utils';
 import { deriveRelationId } from '../../utils/conversations';
+import { unwrapJsonSchemaWrapper } from '../../utils/json-schema-walk';
 import { getLogger } from '../../utils/logger';
 import { McpClient, type McpServerConfig } from '../../utils/mcp-client';
+import { convertZodToJsonSchema } from '../../utils/schema-conversion';
 import { cascadeDeleteByTool } from '../runtime/cascade-delete';
 import { isGithubWorkAppTool } from '../runtime/github-work-app-installations';
 import { isSlackWorkAppTool } from '../runtime/slack-work-app-mcp';
@@ -168,31 +170,52 @@ async function getCredentialExpiresAt(
  * - parameters (direct) - alternative format
  * - schema - another possible location
  */
-function extractInputSchema(toolDef: any, _toolName?: string, _toolOverrides?: any): any {
+function extractInputSchema(toolDef: any, toolName?: string, _toolOverrides?: any): any {
   // Always return original schema during discovery
   // Tool overrides are applied during execution in Agent.ts, not during discovery
   // This allows the UI to show both original and override schemas for comparison
-  return extractOriginalSchema(toolDef);
+  return extractOriginalSchema(toolDef, toolName);
 }
 
-function extractOriginalSchema(toolDef: any): any {
+/**
+ * Normalize a tool's schema to plain JSON Schema for the manage UI. `McpClient.tools()`
+ * builds the schema as a Zod (via `z.fromJSONSchema`) or an AI SDK `jsonSchema()` wrapper;
+ * the UI needs JSON Schema so its shared walker can resolve $ref, unwrap nullables, expand
+ * union variants, and surface enums. Plain JSON Schema passes through unchanged.
+ */
+function toJsonSchemaForDisplay(raw: any, toolName?: string): any {
+  if (!raw || typeof raw !== 'object') return raw;
+  const unwrapped = unwrapJsonSchemaWrapper(raw);
+  if (unwrapped !== raw) return unwrapped;
+  if (typeof raw.safeParse === 'function' || typeof raw.parse === 'function') {
+    try {
+      return convertZodToJsonSchema(raw);
+    } catch (error) {
+      logger.warn(
+        { toolName, error: error instanceof Error ? error.message : String(error) },
+        'Failed to convert MCP tool schema to JSON Schema; tool will display no parameters'
+      );
+      return {};
+    }
+  }
+  return raw;
+}
+
+function extractOriginalSchema(toolDef: any, toolName?: string): any {
+  let raw: any;
   if (toolDef.inputSchema) {
-    return toolDef.inputSchema;
+    raw = toolDef.inputSchema;
+  } else if (toolDef.parameters?.properties) {
+    raw = toolDef.parameters.properties;
+  } else if (toolDef.parameters && typeof toolDef.parameters === 'object') {
+    raw = toolDef.parameters;
+  } else if (toolDef.schema) {
+    raw = toolDef.schema;
+  } else {
+    return {};
   }
 
-  if (toolDef.parameters?.properties) {
-    return toolDef.parameters.properties;
-  }
-
-  if (toolDef.parameters && typeof toolDef.parameters === 'object') {
-    return toolDef.parameters;
-  }
-
-  if (toolDef.schema) {
-    return toolDef.schema;
-  }
-
-  return {};
+  return toJsonSchemaForDisplay(raw, toolName);
 }
 
 const convertToMCPToolConfig = (tool: ToolSelect): MCPToolConfig => {

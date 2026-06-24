@@ -417,7 +417,10 @@ describe('SystemPromptBuilder', () => {
       const result = builder.buildSystemPrompt(config);
 
       expect(result.prompt).toContain('Instructions with <special> & "characters" and \'quotes\'.');
-      expect(result.prompt).toContain('Tool with <tags> & "quotes" and \'apostrophes\'.');
+      // Tool descriptions are XML-escaped (untrusted MCP input); apostrophes are left as-is.
+      expect(result.prompt).toContain(
+        "Tool with &lt;tags&gt; &amp; &quot;quotes&quot; and 'apostrophes'."
+      );
     });
 
     test('should include artifacts in system prompt', () => {

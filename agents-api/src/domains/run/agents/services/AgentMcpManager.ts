@@ -26,6 +26,7 @@ import { mergeHeadersWithoutOverrides } from '../../utils/merge-headers';
 import { setSpanWithError, tracer } from '../../utils/tracer';
 import type { AgentConfig } from '../Agent';
 import type { AiSdkToolDefinition } from '../agent-types';
+import { unwrapJsonSchemaWrapper } from '../tools/ref-aware-schema';
 
 const logger = getLogger('AgentMcpManager');
 
@@ -363,7 +364,9 @@ export class AgentMcpManager {
     override: any,
     mcpToolName: string
   ) {
-    const rawSchema = toolDef.inputSchema as Record<string, unknown>;
+    const rawSchema = unwrapJsonSchemaWrapper(
+      toolDef.inputSchema as Record<string, unknown>
+    ) as Record<string, unknown>;
     let inputSchema: ReturnType<typeof z.fromJSONSchema> | ReturnType<typeof jsonSchema>;
     try {
       inputSchema = override.schema ? z.fromJSONSchema(override.schema) : jsonSchema(rawSchema);

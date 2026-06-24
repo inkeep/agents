@@ -11,7 +11,7 @@ import {
   type ClientCapabilities,
   type Tool,
 } from '@modelcontextprotocol/sdk/types.js';
-import { tool } from 'ai';
+import { jsonSchema, tool } from 'ai';
 import { asyncExitHook } from 'exit-hook';
 import { match } from 'ts-pattern';
 import {
@@ -22,6 +22,9 @@ import {
   MCP_TOOL_RECONNECTION_DELAY_GROWTH_FACTOR,
 } from '../constants/execution-limits-shared';
 import { MCPTransportType } from '../types/utility';
+import { getLogger } from './logger';
+
+const logger = getLogger('mcp-client');
 
 export const activeMcpClients = new Set<McpClient>();
 
@@ -256,52 +259,26 @@ export class McpClient {
 
     for (const def of tools) {
       try {
-        const createZodSchema = (inputSchema: any) => {
-          if (!inputSchema || !inputSchema.properties) {
-            return z.object({});
-          }
-
-          const zodProperties: Record<string, any> = {};
-
-          for (const [key, prop] of Object.entries(inputSchema.properties)) {
-            const propDef = prop as any;
-            let zodType: z.ZodTypeAny;
-
-            switch (propDef.type) {
-              case 'string':
-                zodType = z.string();
-                break;
-              case 'number':
-                zodType = z.number();
-                break;
-              case 'boolean':
-                zodType = z.boolean();
-                break;
-              case 'array':
-                zodType = z.array(z.any());
-                break;
-              case 'object':
-                zodType = createZodSchema(propDef);
-                break;
-              default:
-                zodType = z.any();
-            }
-
-            if (propDef.description) {
-              zodType = zodType.describe(propDef.description);
-            }
-
-            const isRequired = inputSchema.required?.includes(key);
-            if (!isRequired) {
-              zodType = zodType.optional();
-            }
-
-            zodProperties[key] = zodType;
-          }
-          return z.object(zodProperties);
-        };
-
-        const schema = createZodSchema(def.inputSchema);
+        // Convert the MCP tool's JSON Schema to a Zod schema with Zod's ref-aware adapter,
+        // preserving $ref/$defs, unions, enums, and nesting. Fall back to passing the raw
+        // JSON Schema through for any schema z.fromJSONSchema cannot parse.
+        let schema: ReturnType<typeof z.fromJSONSchema> | ReturnType<typeof jsonSchema>;
+        try {
+          schema = z.fromJSONSchema(def.inputSchema as Parameters<typeof z.fromJSONSchema>[0]);
+        } catch (conversionError) {
+          logger.warn(
+            {
+              server: this.name,
+              tool: def.name,
+              error:
+                conversionError instanceof Error
+                  ? conversionError.message
+                  : String(conversionError),
+            },
+            'z.fromJSONSchema failed; passing raw JSON Schema through'
+          );
+          schema = jsonSchema((def.inputSchema ?? {}) as Record<string, unknown>);
+        }
 
         const createdTool = tool({
           id: `${this.name}.${def.name}` as const,
@@ -309,7 +286,7 @@ export class McpClient {
           inputSchema: schema,
           execute: async (context) => {
             const result = await this.client.callTool(
-              { name: def.name, arguments: context },
+              { name: def.name, arguments: context as Record<string, unknown> },
               CallToolResultSchema,
               { timeout: this.timeout }
             );
