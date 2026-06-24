@@ -161,6 +161,7 @@ app.openapi(
       query: PaginationQueryParamsSchema.extend({
         evaluatorId: z.string().optional(),
         agentId: z.string().optional(),
+        conversationId: z.string().optional(),
       }),
     },
     responses: {
@@ -177,7 +178,7 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, configId } = c.req.valid('param');
-    const { page, limit, evaluatorId, agentId } = c.req.valid('query');
+    const { page, limit, evaluatorId, agentId, conversationId } = c.req.valid('query');
 
     try {
       const result = await listEvaluationResultsPaginated(runDbClient)({
@@ -186,6 +187,7 @@ app.openapi(
         filters: {
           evaluatorId: evaluatorId || undefined,
           agentId: agentId || undefined,
+          conversationId: conversationId || undefined,
         },
         pagination: { page, limit },
       });

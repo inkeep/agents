@@ -239,11 +239,15 @@ function buildEvaluationFailedSlack(
   }
 
   if (evaluationRunConfigId) {
-    links.push(
-      `<${baseProjectUrl}/evaluations/run-configs/${evaluationRunConfigId}|View Evaluation>`
-    );
+    const evalUrl = conversationId
+      ? `${baseProjectUrl}/evaluations/run-configs/${evaluationRunConfigId}?conversationId=${conversationId}`
+      : `${baseProjectUrl}/evaluations/run-configs/${evaluationRunConfigId}`;
+    links.push(`<${evalUrl}|View Evaluation>`);
   } else if (evaluationJobConfigId) {
-    links.push(`<${baseProjectUrl}/evaluations/jobs/${evaluationJobConfigId}|View Evaluation>`);
+    const evalUrl = conversationId
+      ? `${baseProjectUrl}/evaluations/jobs/${evaluationJobConfigId}?conversationId=${conversationId}`
+      : `${baseProjectUrl}/evaluations/jobs/${evaluationJobConfigId}`;
+    links.push(`<${evalUrl}|View Evaluation>`);
   }
 
   const userProps = conversationObj?.userProperties as Record<string, unknown> | null | undefined;

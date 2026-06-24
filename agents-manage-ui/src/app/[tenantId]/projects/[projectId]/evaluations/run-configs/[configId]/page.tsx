@@ -18,8 +18,13 @@ export const metadata = {
 
 async function EvaluationRunConfigPage({
   params,
-}: PageProps<'/[tenantId]/projects/[projectId]/evaluations/run-configs/[configId]'>) {
+  searchParams,
+}: {
+  params: Promise<{ tenantId: string; projectId: string; configId: string }>;
+  searchParams: Promise<{ conversationId?: string }>;
+}) {
   const { tenantId, projectId, configId } = await params;
+  const { conversationId } = await searchParams;
 
   try {
     const [runConfig, initialResponse, evaluators, suiteConfigs] = await Promise.all([
@@ -27,6 +32,7 @@ async function EvaluationRunConfigPage({
       fetchEvaluationResultsPaginated(tenantId, projectId, 'run-config', configId, {
         page: 1,
         limit: 50,
+        conversationId,
       }),
       fetchEvaluators(tenantId, projectId),
       fetchEvaluationSuiteConfigs(tenantId, projectId),
@@ -67,6 +73,7 @@ async function EvaluationRunConfigPage({
           evaluators={evaluators.data}
           suiteConfigs={suiteConfigs.data}
           suiteConfigEvaluators={suiteConfigEvaluators}
+          conversationId={conversationId}
         />
       </>
     );

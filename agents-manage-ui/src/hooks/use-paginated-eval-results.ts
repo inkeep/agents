@@ -33,6 +33,7 @@ interface UsePaginatedEvalResultsOptions {
   initialResponse: PaginatedEvalResultsResponse;
   evaluators: Evaluator[];
   pollIntervalMs?: number;
+  conversationId?: string;
 }
 
 export function usePaginatedEvalResults({
@@ -43,6 +44,7 @@ export function usePaginatedEvalResults({
   initialResponse,
   evaluators,
   pollIntervalMs = 5000,
+  conversationId,
 }: UsePaginatedEvalResultsOptions) {
   const [filters, setFilters] = useState<EvaluationResultFilters>({});
   const [currentPage, setCurrentPage] = useState(1);
@@ -68,6 +70,7 @@ export function usePaginatedEvalResults({
             limit: PAGE_SIZE,
             evaluatorId: filters.evaluatorId || undefined,
             agentId: filters.agentId || undefined,
+            conversationId: conversationId || undefined,
           });
           if (cancelled) return;
           setResponse(res);
@@ -78,6 +81,7 @@ export function usePaginatedEvalResults({
           const allResults = await fetchAllEvaluationResults(tenantId, projectId, kind, configId, {
             evaluatorId: filters.evaluatorId || undefined,
             agentId: filters.agentId || undefined,
+            conversationId: conversationId || undefined,
           });
           if (cancelled) return;
           const filtered = filterEvaluationResults(allResults, filters, evaluators);
@@ -117,7 +121,17 @@ export function usePaginatedEvalResults({
       cancelled = true;
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [currentPage, filters, hasComplexFilters, tenantId, projectId, configId, evaluators, kind]);
+  }, [
+    currentPage,
+    filters,
+    hasComplexFilters,
+    tenantId,
+    projectId,
+    configId,
+    evaluators,
+    kind,
+    conversationId,
+  ]);
 
   const hasPendingOnPage = response.data.some((r) => r.output === null || r.output === undefined);
   const completedCount = response.pagination.completedCount ?? response.pagination.total;
@@ -138,6 +152,7 @@ export function usePaginatedEvalResults({
             limit: PAGE_SIZE,
             evaluatorId: filters.evaluatorId || undefined,
             agentId: filters.agentId || undefined,
+            conversationId: conversationId || undefined,
           });
           if (cancelled) return;
           setResponse(res);
@@ -148,6 +163,7 @@ export function usePaginatedEvalResults({
           const allResults = await fetchAllEvaluationResults(tenantId, projectId, kind, configId, {
             evaluatorId: filters.evaluatorId || undefined,
             agentId: filters.agentId || undefined,
+            conversationId: conversationId || undefined,
           });
           if (cancelled) return;
           const filtered = filterEvaluationResults(allResults, filters, evaluators);
@@ -200,6 +216,7 @@ export function usePaginatedEvalResults({
     evaluators,
     kind,
     pollIntervalMs,
+    conversationId,
   ]);
 
   const [isExporting, setIsExporting] = useState(false);
@@ -211,6 +228,7 @@ export function usePaginatedEvalResults({
     const allResults = await fetchAllEvaluationResults(tenantId, projectId, kind, configId, {
       evaluatorId: filters.evaluatorId || undefined,
       agentId: filters.agentId || undefined,
+      conversationId: conversationId || undefined,
     }).catch((error) => {
       console.error('Export failed:', error);
       setExportError('Export failed. Please try again.');

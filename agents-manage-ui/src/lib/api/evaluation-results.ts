@@ -32,6 +32,7 @@ export interface ServerFilterParams {
   limit?: number;
   evaluatorId?: string;
   agentId?: string;
+  conversationId?: string;
 }
 
 export interface PaginatedEvalResultsResponse {
@@ -56,6 +57,7 @@ function buildQueryString(params: ServerFilterParams): string {
   if (params.limit != null) searchParams.set('limit', String(params.limit));
   if (params.evaluatorId) searchParams.set('evaluatorId', params.evaluatorId);
   if (params.agentId) searchParams.set('agentId', params.agentId);
+  if (params.conversationId) searchParams.set('conversationId', params.conversationId);
   const qs = searchParams.toString();
   return qs ? `?${qs}` : '';
 }
@@ -87,7 +89,7 @@ export async function fetchAllEvaluationResults(
   projectId: string,
   kind: 'job-config' | 'run-config',
   configId: string,
-  params: Pick<ServerFilterParams, 'evaluatorId' | 'agentId'> = {}
+  params: Pick<ServerFilterParams, 'evaluatorId' | 'agentId' | 'conversationId'> = {}
 ): Promise<EvaluationResult[]> {
   const basePath = buildBasePath(tenantId, projectId, kind, configId);
   const aggregated: EvaluationResult[] = [];

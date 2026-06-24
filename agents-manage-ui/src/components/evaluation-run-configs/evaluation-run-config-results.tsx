@@ -44,6 +44,7 @@ interface EvaluationRunConfigResultsProps {
   evaluators: Evaluator[];
   suiteConfigs: EvaluationSuiteConfig[];
   suiteConfigEvaluators: Map<string, string[]>;
+  conversationId?: string;
 }
 
 export function EvaluationRunConfigResults({
@@ -54,6 +55,7 @@ export function EvaluationRunConfigResults({
   evaluators,
   suiteConfigs,
   suiteConfigEvaluators,
+  conversationId,
 }: EvaluationRunConfigResultsProps) {
   const [selectedEvaluatorId, setSelectedEvaluatorId] = useState<string | null>(null);
   const [selectedSuiteConfigId, setSelectedSuiteConfigId] = useState<string | null>(null);
@@ -85,6 +87,7 @@ export function EvaluationRunConfigResults({
     initialResponse,
     evaluators,
     pollIntervalMs: 5000,
+    conversationId,
   });
 
   const selectedEvaluator = selectedEvaluatorId ? getEvaluatorById(selectedEvaluatorId) : undefined;

@@ -33,6 +33,7 @@ interface EvaluationJobResultsProps {
   jobConfig: EvaluationJobConfig;
   initialResponse: PaginatedEvalResultsResponse;
   evaluators: Evaluator[];
+  conversationId?: string;
 }
 
 export function EvaluationJobResults({
@@ -41,6 +42,7 @@ export function EvaluationJobResults({
   jobConfig,
   initialResponse,
   evaluators,
+  conversationId,
 }: EvaluationJobResultsProps) {
   const [selectedEvaluatorId, setSelectedEvaluatorId] = useState<string | null>(null);
 
@@ -71,6 +73,7 @@ export function EvaluationJobResults({
     initialResponse,
     evaluators,
     pollIntervalMs: 3000,
+    conversationId,
   });
 
   const selectedEvaluator = selectedEvaluatorId ? getEvaluatorById(selectedEvaluatorId) : undefined;
