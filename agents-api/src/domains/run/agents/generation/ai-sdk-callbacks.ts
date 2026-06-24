@@ -1,12 +1,48 @@
 import { SESSION_EVENT_AGENT_REASONING, TRANSFER_TOOL_PREFIX } from '@inkeep/agents-core';
 import { getLogger } from '../../../../logger';
 import type { MidGenerationCompressor } from '../../compression/MidGenerationCompressor';
+import { reconcileToolPairs } from '../../compression/reconcileToolPairs';
 import { agentSessionManager } from '../../session/AgentSession';
 import { tracer } from '../../utils/tracer';
 import type { AgentRunContext } from '../agent-types';
 import { getMaxGenerationSteps } from './model-config';
 
 const logger = getLogger('Agent');
+
+/**
+ * Guarantee compression never returns a structurally-illegal message array (SPEC D1/D2): reconcile
+ * tool-call/tool-result pairing on every rewritten output before it leaves compression. A drop here is a
+ * signal that pairing-aware slicing (prevention) leaked and real tool results were lost.
+ *
+ * The result is never empty: both call sites prepend `originalMessages` (system + string-rendered
+ * history + user message — string content the reconciler never drops), and the summary path also appends
+ * a user message. So no empty-prompt guard is needed.
+ */
+function finalizeCompressedMessages(
+  messages: any[],
+  compressionPath: 'summary' | 'simple_fallback',
+  compressor: MidGenerationCompressor
+) {
+  const reconciled = reconcileToolPairs(messages);
+  if (reconciled.changed) {
+    // Separate id arrays keep the two sub-cases distinguishable for alerting: droppedOrphanResultIds
+    // is the data-loss signal (a computed tool result discarded), droppedDanglingCallIds is benign
+    // cleanup of a call whose result was already gone.
+    logger.warn(
+      {
+        op: 'tool_pair_repair',
+        compressionPath,
+        sessionId: compressor.sessionId,
+        conversationId: compressor.conversationId,
+        droppedDanglingCallIds: reconciled.droppedDanglingCallIds,
+        droppedOrphanResultIds: reconciled.droppedOrphanResultIds,
+        droppedMessageCount: reconciled.droppedMessageCount,
+      },
+      'Compression output had broken tool-call pairing; reconciled before returning'
+    );
+  }
+  return reconciled.messages;
+}
 
 export async function handlePrepareStepCompression(
   stepMessages: any[],
@@ -87,6 +123,8 @@ export async function handlePrepareStepCompression(
             {
               error: error instanceof Error ? error.message : String(error),
               stack: error instanceof Error ? error.stack : undefined,
+              sessionId: compressor.sessionId,
+              conversationId: compressor.conversationId,
               messageCount: generatedMessages.length,
               totalTokens,
             },
@@ -109,7 +147,13 @@ export async function handlePrepareStepCompression(
             },
             'Simple compression fallback applied'
           );
-          return { messages: [...originalMessages, ...compressedMessages] };
+          return {
+            messages: finalizeCompressedMessages(
+              [...originalMessages, ...compressedMessages],
+              'simple_fallback',
+              compressor
+            ),
+          };
         }
 
         const finalMessages = [...originalMessages];
@@ -171,7 +215,7 @@ ${stopInstruction} When referencing artifacts, use <artifact:ref id="artifact_id
           'AI compression completed successfully'
         );
 
-        return { messages: finalMessages };
+        return { messages: finalizeCompressedMessages(finalMessages, 'summary', compressor) };
       }
     }
 
@@ -181,6 +225,8 @@ ${stopInstruction} When referencing artifacts, use <artifact:ref id="artifact_id
       {
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
+        sessionId: compressor.sessionId,
+        conversationId: compressor.conversationId,
         messageCount: stepMessages.length,
         originalMessageCount,
       },
