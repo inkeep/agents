@@ -94,8 +94,8 @@ export abstract class BaseCompressor {
   private toolCallInputMap = new Map<string, unknown>();
 
   constructor(
-    protected sessionId: string,
-    protected conversationId: string,
+    public readonly sessionId: string,
+    public readonly conversationId: string,
     protected tenantId: string,
     protected projectId: string,
     protected agentId: string,

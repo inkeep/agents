@@ -14,10 +14,14 @@ vi.mock('../../../tools/distill-conversation-tool', () => ({
   distillConversation: vi.fn(),
 }));
 
+// Legal filler messages for compression slicing/summary tests. (Previously these were orphan
+// tool-result messages — a tool-result with no matching tool-call — which the pairing reconciler in
+// handlePrepareStepCompression's output correctly drops. Pairing behavior is covered directly in
+// reconcileToolPairs.test.ts; here we just need structurally-legal messages identified by count.)
 function makeMessages(count: number, prefix = 'msg'): any[] {
   return Array.from({ length: count }, (_, i) => ({
-    role: 'tool',
-    content: [{ type: 'tool-result', toolCallId: `${prefix}-${i}`, output: `r${i}` }],
+    role: 'user',
+    content: `${prefix}-${i}`,
   }));
 }
 
@@ -222,6 +226,37 @@ describe('handlePrepareStepCompression', () => {
     expect(result.messages?.some((m: any) => m.content?.includes?.('YOU MUST RESPOND NOW'))).toBe(
       false
     );
+  });
+
+  // Wiring guards: prove finalizeCompressedMessages (the reconciler) is actually applied to BOTH
+  // compression return paths. These fail if the reconciler call is removed from either path.
+  const danglingCallMsg = (id: string) => ({
+    role: 'assistant',
+    content: [{ type: 'tool-call', toolCallId: id, toolName: 't', input: {} }],
+  });
+  const hasToolCall = (messages: any[] | undefined, id: string) =>
+    !!messages?.some(
+      (m: any) =>
+        Array.isArray(m.content) &&
+        m.content.some((p: any) => p.type === 'tool-call' && p.toolCallId === id)
+    );
+
+  it('reconciles a dangling tool-call in the simple-fallback path output (wiring guard)', async () => {
+    const compressor = makeCompressor({
+      isCompressionNeededFromActualUsage: vi.fn().mockReturnValue(true),
+      safeCompress: vi.fn().mockResolvedValue({ artifactIds: [], summary: [danglingCallMsg('x')] }),
+    });
+    const result = await handlePrepareStepCompression(makeMessages(6), makeSteps(1), compressor, 2);
+    expect(hasToolCall(result.messages, 'x')).toBe(false);
+  });
+
+  it('reconciles a dangling tool-call carried in originalMessages on the summary path (wiring guard)', async () => {
+    const stepMessages = [danglingCallMsg('y'), ...makeMessages(5)];
+    const compressor = makeCompressor({
+      isCompressionNeededFromActualUsage: vi.fn().mockReturnValue(true),
+    });
+    const result = await handlePrepareStepCompression(stepMessages, makeSteps(1), compressor, 1);
+    expect(hasToolCall(result.messages, 'y')).toBe(false);
   });
 
   it('returns empty when safeCompress throws', async () => {
