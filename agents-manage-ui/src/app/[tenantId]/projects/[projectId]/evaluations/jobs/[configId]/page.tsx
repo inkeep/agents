@@ -52,8 +52,13 @@ export async function getJobName({
 
 async function EvaluationJobPage({
   params,
-}: PageProps<'/[tenantId]/projects/[projectId]/evaluations/jobs/[configId]'>) {
+  searchParams,
+}: {
+  params: Promise<{ tenantId: string; projectId: string; configId: string }>;
+  searchParams: Promise<{ conversationId?: string }>;
+}) {
   const { tenantId, projectId, configId } = await params;
+  const { conversationId } = await searchParams;
 
   try {
     const [jobConfig, initialResponse, evaluators] = await Promise.all([
@@ -61,6 +66,7 @@ async function EvaluationJobPage({
       fetchEvaluationResultsPaginated(tenantId, projectId, 'job-config', configId, {
         page: 1,
         limit: 50,
+        conversationId,
       }),
       fetchEvaluators(tenantId, projectId),
     ]);
@@ -89,6 +95,7 @@ async function EvaluationJobPage({
           jobConfig={jobConfig}
           initialResponse={initialResponse}
           evaluators={evaluators.data}
+          conversationId={conversationId}
         />
       </>
     );

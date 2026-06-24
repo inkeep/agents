@@ -422,6 +422,7 @@ const EVAL_RESULTS_MAX_ROWS = 20_000;
 export interface EvalResultsFilter {
   evaluatorId?: string;
   agentId?: string;
+  conversationId?: string;
 }
 
 export interface EvalResultsPagination {
@@ -498,6 +499,10 @@ function buildEvalResultsBaseQuery(
 
   if (params.filters?.agentId) {
     whereConditions.push(eq(conversations.agentId, params.filters.agentId));
+  }
+
+  if (params.filters?.conversationId) {
+    whereConditions.push(eq(evaluationResult.conversationId, params.filters.conversationId));
   }
 
   return { whereConditions };
