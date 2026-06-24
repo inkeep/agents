@@ -264,6 +264,10 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
     },
     plugins: [
       bearer(),
+      // dash() registers the /dash/* admin surface (including /dash/organization/create).
+      // Those endpoints are gated by the BETTER_AUTH_API_KEY service-secret JWT handshake
+      // (@better-auth/infra jwtMiddleware), independent of the organization plugin's
+      // allowUserToCreateOrganization flag below.
       dash(),
       jwt(),
       oauthProvider({
@@ -326,7 +330,7 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
         productionURL: env.OAUTH_PROXY_PRODUCTION_URL || config.baseURL,
       }),
       organization({
-        allowUserToCreateOrganization: true,
+        allowUserToCreateOrganization: false,
         ac,
         roles: {
           member: memberRole,
