@@ -1,6 +1,7 @@
 import type { z } from '@hono/zod-openapi';
 import {
   type AgentsRunDatabaseClient,
+  type ConversationSelect,
   type EventSelect,
   type FeedbackSelect,
   getAgentById,
@@ -10,6 +11,8 @@ import {
   getProjectMainResolvedRef,
   getWaitUntil,
   listEnabledWebhookDestinations,
+  type MessageContent,
+  type MessageSelect,
   type ResolvedRef,
   type WebhookDestinationEventTypeEnum,
   type WebhookDestinationSelect,
@@ -24,15 +27,19 @@ import { manageDbClient, manageDbPool } from '../../../data/db';
 import { env } from '../../../env';
 import { getLogger } from '../../../logger';
 import {
+  buildConversationDetail,
   CONVERSATION_DETAIL_MESSAGE_LIMIT,
-  formatConversationDetail,
   formatEvent,
   formatFeedback,
+  type WebhookMessage,
 } from '../../../utils/conversationFormatter';
+import { toVercelMessage } from '../../../utils/vercel-message-formatter';
+import { createReplayHydrationContext } from '../artifacts/replay-hydration';
 import {
   type WebhookDeliveryPayload,
   webhookDeliveryWorkflow,
 } from '../workflow/functions/webhookDelivery';
+import { resolveMessagesListBlobUris } from './blob-storage/resolve-blob-uris';
 import { buildSlackPayload, isSlackIncomingWebhookUrl, type SlackContext } from './slackBlockKit';
 import { dispatchViaQueue } from './webhookQueueDispatcher';
 
@@ -453,6 +460,43 @@ export interface EmitConversationWebhookParams {
   prefetchedDestinations?: WebhookDestinationSelect[];
 }
 
+/**
+ * Build the ConversationDetail embedded in webhook payloads, with messages in
+ * the same Vercel AI SDK UIMessage `parts` format the Get Conversation endpoint
+ * returns (artifact hydration + blob-URI resolution included).
+ */
+async function buildConversationDetailWithParts(params: {
+  tenantId: string;
+  projectId: string;
+  conversation: ConversationSelect;
+  messages: MessageSelect[];
+}) {
+  const { tenantId, projectId, conversation, messages } = params;
+
+  const resolvedMessages = await resolveMessagesListBlobUris(
+    messages.map((m) => ({ ...m, content: m.content as MessageContent }))
+  );
+  const hydration = await createReplayHydrationContext({ tenantId, projectId }, resolvedMessages);
+
+  const formattedMessages: WebhookMessage[] = await Promise.all(
+    resolvedMessages.map(async (m) => {
+      const vm = await toVercelMessage(
+        { id: m.id, role: m.role, content: m.content, createdAt: m.createdAt },
+        hydration
+      );
+      return {
+        id: vm.id,
+        role: vm.role === 'assistant' ? 'assistant' : 'user',
+        content: vm.content,
+        parts: vm.parts,
+        createdAt: vm.createdAt,
+      };
+    })
+  );
+
+  return buildConversationDetail(conversation, formattedMessages);
+}
+
 export async function emitConversationWebhook(
   params: EmitConversationWebhookParams
 ): Promise<void> {
@@ -492,7 +536,12 @@ export async function emitConversationWebhook(
         logger.warn({ conversationId, eventType }, 'Skipping webhook emit: conversation not found');
         return;
       }
-      const detail = formatConversationDetail(conversation, messages);
+      const detail = await buildConversationDetailWithParts({
+        tenantId,
+        projectId,
+        conversation,
+        messages,
+      });
       return dispatchToDestinations({
         tenantId,
         projectId,
@@ -571,6 +620,13 @@ export async function emitFeedbackWebhook(params: EmitFeedbackWebhookParams): Pr
       options: { limit: CONVERSATION_DETAIL_MESSAGE_LIMIT },
     });
 
+    const conversationDetail = await buildConversationDetailWithParts({
+      tenantId,
+      projectId,
+      conversation,
+      messages,
+    });
+
     return dispatchToDestinations({
       tenantId,
       projectId,
@@ -579,7 +635,7 @@ export async function emitFeedbackWebhook(params: EmitFeedbackWebhookParams): Pr
       eventType: 'feedback.created',
       data: {
         feedback: formatFeedback(feedback),
-        conversation: formatConversationDetail(conversation, messages),
+        conversation: conversationDetail,
       },
       destinations,
     });

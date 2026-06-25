@@ -36,9 +36,9 @@ export function formatMessage(m: MessageSelect): WebhookMessage {
   };
 }
 
-export function formatConversationDetail(
+export function buildConversationDetail(
   conversation: ConversationSelect,
-  messages: MessageSelect[]
+  messages: WebhookMessage[]
 ): ConversationDetail {
   return {
     id: conversation.id,
@@ -48,8 +48,15 @@ export function formatConversationDetail(
     properties: getConversationProperties(conversation),
     createdAt: toIsoString(conversation.createdAt),
     updatedAt: toIsoString(conversation.updatedAt),
-    messages: messages.slice(-CONVERSATION_DETAIL_MESSAGE_LIMIT).map(formatMessage),
+    messages: messages.slice(-CONVERSATION_DETAIL_MESSAGE_LIMIT),
   };
+}
+
+export function formatConversationDetail(
+  conversation: ConversationSelect,
+  messages: MessageSelect[]
+): ConversationDetail {
+  return buildConversationDetail(conversation, messages.map(formatMessage));
 }
 
 export function formatFeedback(feedback: FeedbackSelect) {

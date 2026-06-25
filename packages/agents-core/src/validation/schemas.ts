@@ -1011,6 +1011,12 @@ export const WebhookMessageSchema = z
     id: z.string().describe('Message ID'),
     role: z.enum(['user', 'assistant']).describe('Message author role'),
     content: z.string().nullable().describe('Message content as a flattened string'),
+    parts: z
+      .array(z.record(z.string(), z.unknown()))
+      .optional()
+      .describe(
+        'Structured message parts in Vercel AI SDK UIMessage format (text, file, data-component, tool-invocation), matching the Get Conversation response'
+      ),
     createdAt: z.string().datetime().describe('ISO 8601 timestamp when the message was created'),
   })
   .openapi('WebhookMessage');
