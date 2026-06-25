@@ -39,7 +39,7 @@ export const SPAN_KEYS = {
   OTEL_STATUS_CODE: 'otel.status_code',
   OTEL_STATUS_DESCRIPTION: 'otel.status_description',
 
-  // Agent attributesa
+  // Agent attributes
   AGENT_ID: 'agent.id',
   AGENT_NAME: 'agent.name',
   TENANT_ID: 'tenant.id',
@@ -211,6 +211,14 @@ export const SPAN_KEYS = {
   STREAM_BUFFER_SIZE_BYTES: 'stream.buffer_size_bytes',
   STREAM_SENT_ITEMS_COUNT: 'stream.sent_items_count',
   STREAM_COMPLETED_ITEMS_COUNT: 'stream.completed_items_count',
+
+  // Time-to-first-token (TTFT) attributes — interaction-grain, seconds.
+  // Custom `inkeep.*` namespace: these are self-emitted, interaction-rolled-up
+  // values, distinct from the OTel GenAI per-call histogram
+  // `gen_ai.client.operation.time_to_first_chunk` (reserved for future metric work).
+  TTFT_MODEL_TOKEN: 'inkeep.agent.time_to_first_model_token',
+  TTFT_VISIBLE_TOKEN: 'inkeep.agent.time_to_first_visible_token',
+  TTFT_VISIBLE_PART: 'inkeep.agent.time_to_first_visible_part',
 } as const;
 
 export const UNKNOWN_VALUE = 'unknown' as const;

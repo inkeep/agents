@@ -9,6 +9,7 @@ import {
 } from '../constants/execution-limits';
 import type { ErrorEvent, OperationEvent } from '../utils/agent-operations';
 import { setSpanWithError, tracer } from '../utils/tracer';
+import type { TtftRecorder } from './ttft-recorder';
 
 export interface StreamHelper {
   writeRole(role?: string): Promise<void>;
@@ -84,7 +85,8 @@ export class SSEStreamHelper implements StreamHelper {
   constructor(
     private stream: HonoSSEStream,
     private requestId: string,
-    private timestamp: number
+    private timestamp: number,
+    private ttft?: TtftRecorder
   ) {}
 
   /**
@@ -164,6 +166,10 @@ export class SSEStreamHelper implements StreamHelper {
    * Stream text word by word with optional delay
    */
   async streamText(text: string, delayMs = 100): Promise<void> {
+    // First user-visible text token of the interaction (TTFT latches; first-write-wins).
+    this.ttft?.recordVisibleToken();
+    this.ttft?.recordVisiblePart();
+
     const words = text.split(' ');
 
     this.isTextStreaming = true;
@@ -215,6 +221,8 @@ export class SSEStreamHelper implements StreamHelper {
   }
 
   async writeData(type: string, data: any): Promise<void> {
+    // A rendered component/artifact is a user-visible part.
+    this.ttft?.recordVisiblePart();
     await this.stream.writeSSE({
       data: JSON.stringify({
         id: this.requestId,
@@ -238,6 +246,8 @@ export class SSEStreamHelper implements StreamHelper {
   // ============================================================================
 
   async writeToolInputStart(params: { toolCallId: string; toolName: string }): Promise<void> {
+    // A user-visible tool card is a visible part (hidden tools never reach here).
+    this.ttft?.recordVisiblePart();
     const index = this.getToolIndex(params.toolCallId);
     await this.writeToolCallsDelta([
       {
@@ -281,6 +291,7 @@ export class SSEStreamHelper implements StreamHelper {
   }
 
   async writeToolOutputAvailable(params: { toolCallId: string; output: any }): Promise<void> {
+    this.ttft?.recordVisiblePart();
     // Custom JSON envelope inside delta.content
     await this.writeContent(
       JSON.stringify({
@@ -296,6 +307,7 @@ export class SSEStreamHelper implements StreamHelper {
     errorText: string;
     output?: any;
   }): Promise<void> {
+    this.ttft?.recordVisiblePart();
     await this.writeContent(
       JSON.stringify({
         type: 'tool-output-error',
@@ -312,6 +324,7 @@ export class SSEStreamHelper implements StreamHelper {
     toolName?: string;
     input?: Record<string, unknown>;
   }): Promise<void> {
+    this.ttft?.recordVisiblePart();
     await this.writeContent(
       JSON.stringify({
         type: 'tool-approval-request',
@@ -324,6 +337,7 @@ export class SSEStreamHelper implements StreamHelper {
   }
 
   async writeToolOutputDenied(params: { toolCallId: string }): Promise<void> {
+    this.ttft?.recordVisiblePart();
     await this.writeContent(
       JSON.stringify({
         type: 'tool-output-denied',
@@ -391,9 +405,10 @@ export class SSEStreamHelper implements StreamHelper {
 export function createSSEStreamHelper(
   stream: HonoSSEStream,
   requestId: string,
-  timestamp: number
+  timestamp: number,
+  ttft?: TtftRecorder
 ): SSEStreamHelper {
-  return new SSEStreamHelper(stream, requestId, timestamp);
+  return new SSEStreamHelper(stream, requestId, timestamp, ttft);
 }
 
 export interface VercelUIWriter {
@@ -418,7 +433,10 @@ export class VercelDataStreamHelper implements StreamHelper {
 
   private connectionDropTimer?: ReturnType<typeof setTimeout>;
 
-  constructor(private writer: VercelUIWriter) {
+  constructor(
+    private writer: VercelUIWriter,
+    private ttft?: TtftRecorder
+  ) {
     this.connectionDropTimer = setTimeout(() => {
       this.forceCleanup('Connection lifetime exceeded');
     }, STREAM_MAX_LIFETIME_MS);
@@ -482,6 +500,10 @@ export class VercelDataStreamHelper implements StreamHelper {
       return;
     }
 
+    // First user-visible text token of the interaction (TTFT latches; first-write-wins).
+    this.ttft?.recordVisibleToken();
+    this.ttft?.recordVisiblePart();
+
     if (!this.textId) this.textId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     const id = this.textId;
@@ -538,6 +560,9 @@ export class VercelDataStreamHelper implements StreamHelper {
       return;
     }
 
+    // A rendered component/artifact is a user-visible part.
+    this.ttft?.recordVisiblePart();
+
     if (type === 'data-artifact') {
       const now = Date.now();
       const gapFromLastTextEnd =
@@ -585,6 +610,8 @@ export class VercelDataStreamHelper implements StreamHelper {
 
   async writeToolInputStart(params: { toolCallId: string; toolName: string }): Promise<void> {
     if (this.isCompleted) return;
+    // A user-visible tool card is a visible part (hidden tools never reach here).
+    this.ttft?.recordVisiblePart();
     this.writer.write({
       type: 'tool-input-start',
       toolCallId: params.toolCallId,
@@ -619,6 +646,7 @@ export class VercelDataStreamHelper implements StreamHelper {
 
   async writeToolOutputAvailable(params: { toolCallId: string; output: any }): Promise<void> {
     if (this.isCompleted) return;
+    this.ttft?.recordVisiblePart();
     this.writer.write({
       type: 'tool-output-available',
       toolCallId: params.toolCallId,
@@ -628,6 +656,7 @@ export class VercelDataStreamHelper implements StreamHelper {
 
   async writeToolOutputError(params: { toolCallId: string; errorText: string }): Promise<void> {
     if (this.isCompleted) return;
+    this.ttft?.recordVisiblePart();
     this.writer.write({
       type: 'tool-output-error',
       toolCallId: params.toolCallId,
@@ -642,6 +671,7 @@ export class VercelDataStreamHelper implements StreamHelper {
     input?: Record<string, unknown>;
   }): Promise<void> {
     if (this.isCompleted) return;
+    this.ttft?.recordVisiblePart();
     this.writer.write({
       type: 'tool-approval-request',
       approvalId: params.approvalId,
@@ -651,6 +681,7 @@ export class VercelDataStreamHelper implements StreamHelper {
 
   async writeToolOutputDenied(params: { toolCallId: string }): Promise<void> {
     if (this.isCompleted) return;
+    this.ttft?.recordVisiblePart();
     this.writer.write({
       type: 'tool-output-denied',
       toolCallId: params.toolCallId,
@@ -924,8 +955,8 @@ export class VercelDataStreamHelper implements StreamHelper {
   }
 }
 
-export function createVercelStreamHelper(writer: VercelUIWriter) {
-  return new VercelDataStreamHelper(writer);
+export function createVercelStreamHelper(writer: VercelUIWriter, ttft?: TtftRecorder) {
+  return new VercelDataStreamHelper(writer, ttft);
 }
 
 /**

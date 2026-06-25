@@ -1,5 +1,6 @@
 import { parsePartialJson, type StreamTextResult, type ToolSet } from 'ai';
 import type { IncrementalStreamParser } from '../../stream/IncrementalStreamParser';
+import { getTtftRecorder, type TtftRecorder } from '../../stream/ttft-recorder';
 import type { AgentRunContext, ResolvedGenerationResponse } from '../agent-types';
 import { resolveGenerationResponse } from '../agent-types';
 import { setupStreamParser } from './stream-parser';
@@ -30,11 +31,21 @@ export async function handleStreamGeneration(
 ): Promise<ResolvedGenerationResponse> {
   const parser = setupStreamParser(ctx, sessionId, contextId);
 
+  // Resolve the request-scoped TTFT recorder (sessionId === the stream request id).
+  // The model-token latch fires on the first raw fullStream text-delta below.
+  const ttft = getTtftRecorder(sessionId);
+
   if (hasStructuredOutput) {
     const abort = new AbortController();
     try {
       await Promise.all([
-        processStreamEvents(streamResult, parser, abort.signal, /* structuredOutputMode */ true),
+        processStreamEvents(
+          streamResult,
+          parser,
+          abort.signal,
+          /* structuredOutputMode */ true,
+          ttft
+        ),
         consumePartialOutputStream(streamResult, parser, abort.signal),
       ]);
     } catch (err) {
@@ -42,7 +53,7 @@ export async function handleStreamGeneration(
       throw err;
     }
   } else {
-    await processStreamEvents(streamResult, parser);
+    await processStreamEvents(streamResult, parser, undefined, false, ttft);
   }
 
   await parser.finalize();
@@ -87,7 +98,8 @@ export async function processStreamEvents(
   streamResult: StreamTextResult<ToolSet, any>,
   parser: IncrementalStreamParser,
   signal?: AbortSignal,
-  structuredOutputMode = false
+  structuredOutputMode = false,
+  ttft?: TtftRecorder
 ): Promise<void> {
   let stepMode: StepMode = 'unknown';
   const jsonBuffer: JsonParseState = { buffer: '', lastSnapshot: null };
@@ -102,6 +114,8 @@ export async function processStreamEvents(
     if (signal?.aborted) break;
     switch (event.type) {
       case 'text-delta':
+        // First raw model token of the interaction (first-write-wins).
+        ttft?.recordModelToken();
         if (structuredOutputMode) {
           if (stepMode === 'unknown') stepMode = classifyStepMode(event.text);
           if (stepMode === 'json') {

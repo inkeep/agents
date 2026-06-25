@@ -213,6 +213,10 @@ export interface ConversationDetail {
   operationTime?: number;
   totalInputTokens?: number;
   totalOutputTokens?: number;
+  // Time-to-first-token (seconds), interaction-grained. Null when absent (e.g. no-text turns).
+  ttftModelTokenSeconds?: number | null;
+  ttftVisibleTokenSeconds?: number | null;
+  ttftVisiblePartSeconds?: number | null;
   traceId?: string;
   agentId?: string;
   agentName?: string;

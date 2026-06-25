@@ -43,6 +43,7 @@ import {
   copyFullTraceToClipboard,
   copySummarizedTraceToClipboard,
 } from '@/lib/utils/trace-formatter';
+import { formatTtft } from '@/lib/utils/ttft';
 
 export default function ConversationDetail({
   params,
@@ -434,11 +435,19 @@ export default function ConversationDetail({
                           </div>
                           <div className="space-y-1 mt-2">
                             {hasAssistantResponse && conversation.conversationDuration && (
-                              <div className="text-xs text-muted-foreground">
-                                <span className="font-medium">Conversation Duration:</span>{' '}
-                                {formatDuration(conversation.conversationDuration)}
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <span className="font-medium">Conversation Duration:</span>
+                                <span className="font-mono text-foreground">
+                                  {formatDuration(conversation.conversationDuration)}
+                                </span>
                               </div>
                             )}
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <span className="font-medium">Time to first token:</span>
+                              <span className="font-mono text-foreground">
+                                {formatTtft(conversation.ttftVisibleTokenSeconds)}
+                              </span>
+                            </div>
                           </div>
                         </>
                       ) : (
