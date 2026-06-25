@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-ui
 
+## 0.80.1
+
+### Patch Changes
+
+- d94d837: Fix time-to-first-token showing 0 ms in the conversation view. The trace lookup matched the wrong span because SigNoz returns 0 for numeric attributes a span lacks; now only a positive value counts as a present TTFT.
+- d94d837: Show time-to-first-token (TTFT) in the conversation trace view: a customer-facing first-token timing with a fast/moderate/slow band on the conversation detail, and model/visible-token/visible-part timings in the operator span panel.
+- d94d837: Fix inconsistent conversation trace timing. Anchor the user-message event at the request-arrival span start (matching the conversation list and TTFT) instead of a mid-handler timestamp, and stop labeling the user-message row with the whole-request span duration, so time-to-first-token, conversation duration, and the message event no longer contradict each other.
+- Updated dependencies [d94d837]
+  - @inkeep/agents-core@0.80.1
+
 ## 0.80.0
 
 ### Patch Changes
