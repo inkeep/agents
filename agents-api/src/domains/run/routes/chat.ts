@@ -1,3 +1,4 @@
+import { performance } from 'node:perf_hooks';
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   APPROVAL_NEEDED_EVENT,
@@ -38,6 +39,11 @@ import {
 } from '../services/WebhookDeliveryService';
 import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
 import { createSSEStreamHelper } from '../stream/stream-helpers';
+import {
+  registerTtftRecorder,
+  TtftRecorder,
+  unregisterTtftRecorder,
+} from '../stream/ttft-recorder';
 import type { Message } from '../types/chat';
 import { FileContentItemSchema, ImageContentItemSchema, MessageIdSchema } from '../types/chat';
 import { getUserIdFromContext } from '../types/executionContext';
@@ -200,6 +206,13 @@ const chatCompletionsRoute = createProtectedRoute({
 app.use('/completions', contextValidationMiddleware);
 
 app.openapi(chatCompletionsRoute, async (c) => {
+  // TTFT clock start: monotonic timestamp + the interaction (HTTP server) span,
+  // both captured at true handler entry. Capturing the span here (rather than inside
+  // the streaming callback) guarantees we record onto the request-wrapping span even
+  // if the async streaming context does not propagate the active span.
+  const ttftT0 = performance.now();
+  const ttftSpan = trace.getActiveSpan();
+
   getLogger('chat').info(
     {
       path: c.req.path,
@@ -596,7 +609,12 @@ app.openapi(chatCompletionsRoute, async (c) => {
 
         let unsubscribe: (() => void) | undefined;
         try {
-          const sseHelper = createSSEStreamHelper(stream, requestId, timestamp);
+          // Request-scoped TTFT recorder writes to the interaction (HTTP server) span,
+          // which is the active span at handler entry and wraps all transfer iterations.
+          const ttftRecorder = new TtftRecorder(ttftT0, ttftSpan);
+          registerTtftRecorder(requestId, ttftRecorder);
+
+          const sseHelper = createSSEStreamHelper(stream, requestId, timestamp, ttftRecorder);
 
           await sseHelper.writeRole();
 
@@ -708,6 +726,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
           try {
             unsubscribe?.();
           } catch (_e) {}
+          unregisterTtftRecorder(requestId);
           await flushBatchProcessor();
         }
       });

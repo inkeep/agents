@@ -36,6 +36,7 @@ import {
 } from '@/lib/api/signoz-conversation-time-range';
 import { requireApiRouteSessionOrBearer } from '@/lib/auth/api-route-auth';
 import { getLogger } from '@/lib/logger';
+import { parseTtftSeconds } from '@/lib/utils/ttft';
 
 export const dynamic = 'force-dynamic';
 
@@ -351,6 +352,10 @@ function buildAllSpansPayload(
     sf(SPAN_KEYS.TOOL_RESPONSE_CONTENT, str, attr),
     sf(SPAN_KEYS.TOOL_RESPONSE_TIMESTAMP, str, attr),
     sf(SPAN_KEYS.AI_RESPONSE_FINISH_REASON, str, attr),
+    // TTFT attributes (seconds) live on the interaction HTTP server span.
+    sf(SPAN_KEYS.TTFT_MODEL_TOKEN, float64, attr),
+    sf(SPAN_KEYS.TTFT_VISIBLE_TOKEN, float64, attr),
+    sf(SPAN_KEYS.TTFT_VISIBLE_PART, float64, attr),
   ];
 
   return wrapQueries([buildQueryEnvelope('allSpans', base, allFields)], start, end, projectId);
@@ -960,7 +965,6 @@ export async function GET(
     // user messages
     for (const span of userMessageSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
-      const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const userMessageSpanId = getString(span, SPAN_KEYS.SPAN_ID, '');
       const invocationType = getString(span, SPAN_KEYS.INVOCATION_TYPE, '');
       const spanEntryPoint = getString(span, SPAN_KEYS.INVOCATION_ENTRY_POINT, '');
@@ -983,7 +987,11 @@ export async function GET(
         messageId: getString(span, SPAN_KEYS.MESSAGE_ID, '') || undefined,
         type: ACTIVITY_TYPES.USER_MESSAGE,
         description,
-        timestamp: getString(span, SPAN_KEYS.MESSAGE_TIMESTAMP),
+        // Anchor at the span's intrinsic start (true request arrival), matching every
+        // other activity (e.g. AI generation uses span.timestamp). MESSAGE_TIMESTAMP is
+        // set mid-handler (after context resolution), so it plots the message ~late and
+        // makes TTFT — measured from request arrival — appear larger than the duration.
+        timestamp: span.timestamp,
         parentSpanId: spanIdToParentSpanId.get(userMessageSpanId) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: AGENT_IDS.USER,
@@ -992,9 +1000,7 @@ export async function GET(
           : isSlackMessage
             ? 'Slack'
             : ACTIVITY_NAMES.USER,
-        result: hasError
-          ? 'Message processing failed'
-          : `Message received successfully (${durMs.toFixed(2)}ms)`,
+        result: hasError ? 'Message processing failed' : 'Message received successfully',
         messageContent: getString(span, SPAN_KEYS.MESSAGE_CONTENT, ''),
         messageParts: getString(span, SPAN_KEYS.MESSAGE_PARTS, ''),
         invocationType: invocationType || undefined,
@@ -1540,6 +1546,27 @@ export async function GET(
       if (a.type === ACTIVITY_TYPES.TOOL_CALL) totalToolCalls++;
     }
 
+    // Time-to-first-token: interaction-grained values (in seconds) recorded on the
+    // interaction HTTP server span — the only span carrying these attributes. It is
+    // in allRows (it has conversation.id) but is not surfaced as an activity, so it
+    // is located by TTFT-attribute presence rather than by span name.
+    //
+    // SigNoz/ClickHouse returns 0 (not null) for a numeric attribute a span does not
+    // have, so a `!= null` presence check matches EVERY span and reads 0 off the wrong
+    // one. A real first-token time is always > 0, so treat only a positive value as
+    // present — this both selects the right span and yields "absent" (→ "—") when a
+    // metric is genuinely omitted (e.g. the no-text turn where visible-token is omitted).
+    const readTtftFrom = (row: SigNozListItem, key: string): number | null =>
+      parseTtftSeconds(getField(row, key));
+    const ttftSpanRow = allRows.find(
+      (row) =>
+        readTtftFrom(row, SPAN_KEYS.TTFT_VISIBLE_TOKEN) != null ||
+        readTtftFrom(row, SPAN_KEYS.TTFT_MODEL_TOKEN) != null ||
+        readTtftFrom(row, SPAN_KEYS.TTFT_VISIBLE_PART) != null
+    );
+    const readTtft = (key: string): number | null =>
+      ttftSpanRow ? readTtftFrom(ttftSpanRow, key) : null;
+
     const conversation = {
       conversationId,
       startTime: conversationStartTime ? conversationStartTime : null,
@@ -1549,6 +1576,9 @@ export async function GET(
       totalToolCalls,
       totalErrors: finalErrorCount,
       totalOpenAICalls: openAICallsCount,
+      ttftModelTokenSeconds: readTtft(SPAN_KEYS.TTFT_MODEL_TOKEN),
+      ttftVisibleTokenSeconds: readTtft(SPAN_KEYS.TTFT_VISIBLE_TOKEN),
+      ttftVisiblePartSeconds: readTtft(SPAN_KEYS.TTFT_VISIBLE_PART),
     };
 
     const tDone = Date.now();

@@ -222,6 +222,18 @@ Click on any conversation to see detailed execution flow:
 
 <Snippet file="copy-trace.mdx" />
 
+#### Time to first token (TTFT)
+
+Each conversation records how quickly the agent started responding. The conversation detail view shows the **time to first token** — the time from request arrival to the first user-visible text token.
+
+Three interaction-level timings are recorded as span attributes (in seconds) on the request span, and surfaced in the assistant message's span panel:
+
+- `inkeep.agent.time_to_first_model_token` — first raw token from the model (model + network latency).
+- `inkeep.agent.time_to_first_visible_token` — first user-visible **text** token (this is the headline "time to first token"). Omitted for turns that never produce text (for example, tool-only or artifact-only responses).
+- `inkeep.agent.time_to_first_visible_part` — first user-visible output of **any** kind (text, a tool card, or an artifact). On a typical text-first turn this matches the visible-token timing; it diverges only when a tool card or artifact renders before any text.
+
+The gap between the model timing and the visible-text timing reflects the framework's own parsing and buffering overhead. All three are queryable in SigNoz by `conversation.id` and `agent.id`.
+
 ### 2. SigNoz Dashboard
 
 For detailed analysis and further debugging:

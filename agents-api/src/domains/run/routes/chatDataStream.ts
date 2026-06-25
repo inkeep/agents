@@ -1,3 +1,4 @@
+import { performance } from 'node:perf_hooks';
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   APPROVAL_NEEDED_EVENT,
@@ -48,6 +49,11 @@ import { pendingToolApprovalManager } from '../session/PendingToolApprovalManage
 import { toolApprovalUiBus } from '../session/ToolApprovalUiBus';
 import { streamBufferRegistry } from '../stream/stream-buffer-registry';
 import { createBufferingStreamHelper, createVercelStreamHelper } from '../stream/stream-helpers';
+import {
+  registerTtftRecorder,
+  TtftRecorder,
+  unregisterTtftRecorder,
+} from '../stream/ttft-recorder';
 import { MessageIdSchema, VercelMessageSchema } from '../types/chat';
 import { getUserIdFromContext } from '../types/executionContext';
 import { errorOp } from '../utils/agent-operations';
@@ -130,6 +136,13 @@ const chatDataStreamRoute = createProtectedRoute({
 app.use('/chat', contextValidationMiddleware);
 
 app.openapi(chatDataStreamRoute, async (c) => {
+  // TTFT clock start: monotonic timestamp + the interaction (HTTP server) span,
+  // both captured at true handler entry. Capturing the span here (rather than inside
+  // the streaming callback) guarantees we record onto the request-wrapping span even
+  // if the async streaming context does not propagate the active span.
+  const ttftT0 = performance.now();
+  const ttftSpan = trace.getActiveSpan();
+
   try {
     // Get execution context from API key authentication
     const executionContext = c.get('executionContext');
@@ -696,7 +709,14 @@ app.openapi(chatDataStreamRoute, async (c) => {
         execute: async ({ writer }) => {
           writer.write({ type: 'start', messageId: responseMessageId });
 
-          const streamHelper = createVercelStreamHelper(writer);
+          const requestId = `chatds-${Date.now()}`;
+
+          // Request-scoped TTFT recorder writes to the interaction (HTTP server) span,
+          // the active span at handler entry that wraps all transfer iterations.
+          const ttftRecorder = new TtftRecorder(ttftT0, ttftSpan);
+          registerTtftRecorder(requestId, ttftRecorder);
+
+          const streamHelper = createVercelStreamHelper(writer, ttftRecorder);
           let unsubscribe: (() => void) | undefined;
           try {
             // Check for emit operations header
@@ -707,8 +727,6 @@ app.openapi(chatDataStreamRoute, async (c) => {
 
             // Check if this is a dataset run conversation via header
             const datasetRunId = c.req.header('x-inkeep-dataset-run-id');
-
-            const requestId = `chatds-${Date.now()}`;
 
             const chunkString = (s: string, size = 16) => {
               const out: string[] = [];
@@ -792,6 +810,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
             try {
               unsubscribe?.();
             } catch (_e) {}
+            unregisterTtftRecorder(requestId);
             // Clean up stream helper resources if it has cleanup method
             if ('cleanup' in streamHelper && typeof streamHelper.cleanup === 'function') {
               streamHelper.cleanup();

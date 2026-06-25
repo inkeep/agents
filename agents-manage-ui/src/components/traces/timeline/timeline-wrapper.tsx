@@ -744,6 +744,7 @@ export function TimelineWrapper({
               findSpanById,
               spanLoading: lazySpanLoading,
               onLeaveFeedback,
+              conversation: conversation ?? undefined,
             })}
           </ActivityDetailsSidePane>
         </ResizablePanel>

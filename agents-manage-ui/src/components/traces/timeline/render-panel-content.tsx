@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { SPAN_KEYS } from '@/constants/signoz';
 import { formatDateTime } from '@/lib/utils/format-date';
 import { formatCostUsd, resolveCacheUsage, type SpanData } from '@/lib/utils/trace-usage';
+import { formatTtft } from '@/lib/utils/ttft';
 
 function formatJsonSafely(content: string): string {
   try {
@@ -167,6 +168,7 @@ export function renderPanelContent({
   findSpanById,
   spanLoading = false,
   onLeaveFeedback,
+  conversation,
 }: {
   selected: SelectedPanel;
   findSpanById: (
@@ -178,6 +180,13 @@ export function renderPanelContent({
     messageId?: string,
     type?: 'positive' | 'negative'
   ) => void;
+  // Interaction-level TTFT (seconds). These live on the interaction HTTP span,
+  // not on any per-activity span, so they are threaded in from the conversation
+  // detail rather than read from `findSpanById`.
+  conversation?: Pick<
+    ConversationDetail,
+    'ttftModelTokenSeconds' | 'ttftVisibleTokenSeconds' | 'ttftVisiblePartSeconds'
+  >;
 }) {
   if (selected.type === 'mcp_tool_error') {
     const e = selected.item;
@@ -383,6 +392,31 @@ export function renderPanelContent({
             )}
             <Info label="Activity timestamp" value={formatDateTime(a.timestamp, { local: true })} />
           </Section>
+          {conversation &&
+            (conversation.ttftModelTokenSeconds != null ||
+              conversation.ttftVisibleTokenSeconds != null ||
+              conversation.ttftVisiblePartSeconds != null) && (
+              <>
+                <Divider />
+                <Section>
+                  <h4 className="text-sm font-semibold text-foreground mb-1">
+                    Time to first token (interaction)
+                  </h4>
+                  <Info
+                    label="First model token"
+                    value={formatTtft(conversation.ttftModelTokenSeconds)}
+                  />
+                  <Info
+                    label="First visible token"
+                    value={formatTtft(conversation.ttftVisibleTokenSeconds)}
+                  />
+                  <Info
+                    label="First visible part"
+                    value={formatTtft(conversation.ttftVisiblePartSeconds)}
+                  />
+                </Section>
+              </>
+            )}
           <Divider />
           {SignozButton}
           {AdvancedBlock}
