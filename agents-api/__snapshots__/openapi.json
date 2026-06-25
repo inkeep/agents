@@ -12979,6 +12979,16 @@
             "description": "Message ID",
             "type": "string"
           },
+          "parts": {
+            "description": "Structured message parts in Vercel AI SDK UIMessage format (text, file, data-component, tool-invocation), matching the Get Conversation response",
+            "items": {
+              "additionalProperties": {
+                "nullable": true
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
           "role": {
             "description": "Message author role",
             "enum": [

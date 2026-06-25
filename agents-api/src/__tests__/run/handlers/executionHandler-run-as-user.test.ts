@@ -60,6 +60,8 @@ vi.mock('../../../domains/run/a2a/types.js', () => ({
 }));
 vi.mock('../../../domains/run/constants/execution-limits', () => ({
   AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS: 3,
+  SESSION_TOOL_RESULT_CACHE_TIMEOUT_MS: 300_000,
+  SESSION_CLEANUP_INTERVAL_MS: 60_000,
 }));
 vi.mock('../../../domains/run/session/AgentSession.js', () => ({
   agentSessionManager: {

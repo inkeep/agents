@@ -515,6 +515,58 @@ describe('WebhookDeliveryService', () => {
       });
     });
 
+    it('includes Vercel-format message parts, matching the Get Conversation response', async () => {
+      await emitConversationWebhook(params);
+      await flushDeferred();
+
+      const dispatchedPayload = mockStart.mock.calls[0][1][0];
+      const { messages } = dispatchedPayload.payload.data.conversation;
+      expect(messages).toEqual([
+        {
+          id: 'msg-1',
+          role: 'user',
+          content: 'hello',
+          parts: [{ type: 'text', text: 'hello' }],
+          createdAt: '2026-05-05T10:00:00.500Z',
+        },
+      ]);
+    });
+
+    it('builds parts from structured message content (text + data-component)', async () => {
+      mockGetConversationHistory.mockReturnValue(() =>
+        Promise.resolve([
+          {
+            ...message,
+            role: 'agent',
+            content: {
+              parts: [
+                { kind: 'text', text: 'Here you go' },
+                { kind: 'data', data: { foo: 'bar' } },
+              ],
+            },
+          },
+        ])
+      );
+
+      await emitConversationWebhook(params);
+      await flushDeferred();
+
+      const dispatchedPayload = mockStart.mock.calls[0][1][0];
+      const { messages } = dispatchedPayload.payload.data.conversation;
+      expect(messages).toEqual([
+        {
+          id: 'msg-1',
+          role: 'assistant',
+          content: 'Here you go',
+          parts: [
+            { type: 'text', text: 'Here you go' },
+            { type: 'data-component', data: { foo: 'bar' } },
+          ],
+          createdAt: '2026-05-05T10:00:00.500Z',
+        },
+      ]);
+    });
+
     it('skips dispatch when conversation row is not found', async () => {
       mockGetConversation.mockReturnValue(() => Promise.resolve(undefined));
 
@@ -643,6 +695,47 @@ describe('WebhookDeliveryService', () => {
           conversation: expect.objectContaining({ id: 'conv-1' }),
         },
       });
+    });
+
+    it('includes Vercel-format message parts in the conversation block, matching the Get Conversation response', async () => {
+      mockGetConversationHistory.mockReturnValue(() =>
+        Promise.resolve([
+          {
+            id: 'msg-1',
+            tenantId: 'tenant-1',
+            projectId: 'project-1',
+            conversationId: 'conv-1',
+            role: 'user',
+            content: { text: 'hello' },
+            visibility: 'user-facing',
+            messageType: 'chat',
+            metadata: null,
+            createdAt: '2026-05-05T10:00:00.500Z',
+            updatedAt: '2026-05-05T10:00:00.500Z',
+          },
+        ])
+      );
+
+      await emitFeedbackWebhook({
+        runDbClient: 'mock-run-db' as any,
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        agentId: 'caller-agent',
+        feedback: feedback as any,
+      });
+      await flushDeferred();
+
+      const dispatchedPayload = mockStart.mock.calls[0][1][0];
+      const { messages } = dispatchedPayload.payload.data.conversation;
+      expect(messages).toEqual([
+        {
+          id: 'msg-1',
+          role: 'user',
+          content: 'hello',
+          parts: [{ type: 'text', text: 'hello' }],
+          createdAt: '2026-05-05T10:00:00.500Z',
+        },
+      ]);
     });
 
     it('strips tenantId/projectId from the feedback object', async () => {

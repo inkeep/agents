@@ -113,12 +113,16 @@ Every delivery is an HTTP POST with `Content-Type: application/json`. The body f
           "id": "msg_001",
           "role": "user",
           "content": "How do I reset my password?",
+          "parts": [{ "type": "text", "text": "How do I reset my password?" }],
           "createdAt": "2026-05-12T14:29:50.000Z"
         },
         {
           "id": "msg_002",
           "role": "assistant",
           "content": "You can reset your password from the Settings page...",
+          "parts": [
+            { "type": "text", "text": "You can reset your password from the Settings page..." }
+          ],
           "createdAt": "2026-05-12T14:30:00.000Z"
         }
       ]
@@ -161,12 +165,16 @@ Every delivery is an HTTP POST with `Content-Type: application/json`. The body f
           "id": "msg_001",
           "role": "user",
           "content": "How do I reset my password?",
+          "parts": [{ "type": "text", "text": "How do I reset my password?" }],
           "createdAt": "2026-05-12T14:29:50.000Z"
         },
         {
           "id": "msg_002",
           "role": "assistant",
           "content": "You can reset your password from the Settings page...",
+          "parts": [
+            { "type": "text", "text": "You can reset your password from the Settings page..." }
+          ],
           "createdAt": "2026-05-12T14:30:00.000Z"
         }
       ]
