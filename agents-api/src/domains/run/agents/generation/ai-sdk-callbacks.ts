@@ -44,6 +44,45 @@ function finalizeCompressedMessages(
   return reconciled.messages;
 }
 
+/**
+ * Final structural guard for the prepareStep callback. Even when no compression runs, the AI SDK's
+ * accumulated stepMessages can contain a tool-call whose result was produced out-of-band (the durable
+ * executeToolStep persists the result to the DB but never threads it back into the SDK's in-memory
+ * message array), leaving an unpaired tool-call. `convertToLanguageModelPrompt` rejects that with
+ * AI_MissingToolResultsError, the turn errors, and the user sees the "having some issues" fallback even
+ * though the edit succeeded. Reconcile on every step so a structurally-illegal array never reaches the
+ * provider regardless of whether compression triggered. Returns `{}` (no override) when the array is
+ * already legal, so the healthy path is untouched.
+ */
+function reconcilePrepareStepMessages(stepMessages: any[]): { messages?: any[] } {
+  try {
+    const reconciled = reconcileToolPairs(stepMessages);
+    if (!reconciled.changed) {
+      return {};
+    }
+    logger.warn(
+      {
+        op: 'tool_pair_repair',
+        compressionPath: 'prepare_step_guard',
+        droppedDanglingCallIds: reconciled.droppedDanglingCallIds,
+        droppedOrphanResultIds: reconciled.droppedOrphanResultIds,
+        droppedMessageCount: reconciled.droppedMessageCount,
+      },
+      'prepareStep messages had broken tool-call pairing; reconciled before step'
+    );
+    return { messages: reconciled.messages };
+  } catch (error) {
+    logger.error(
+      {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      },
+      'prepareStep tool-pair reconciliation failed; continuing with original messages'
+    );
+    return {};
+  }
+}
+
 export async function handlePrepareStepCompression(
   stepMessages: any[],
   steps: Array<{ usage: { inputTokens?: number; outputTokens?: number } }>,
@@ -51,7 +90,7 @@ export async function handlePrepareStepCompression(
   originalMessageCount: number
 ): Promise<{ messages?: any[] }> {
   if (!compressor) {
-    return {};
+    return reconcilePrepareStepMessages(stepMessages);
   }
 
   try {
@@ -130,7 +169,7 @@ export async function handlePrepareStepCompression(
             },
             'Mid-generation compression failed, continuing without compression'
           );
-          return {};
+          return reconcilePrepareStepMessages(stepMessages);
         }
 
         // Record baseline only after compression succeeds so a failure doesn't corrupt the next cycle
@@ -219,7 +258,7 @@ ${stopInstruction} When referencing artifacts, use <artifact:ref id="artifact_id
       }
     }
 
-    return {};
+    return reconcilePrepareStepMessages(stepMessages);
   } catch (error) {
     logger.error(
       {
@@ -232,7 +271,7 @@ ${stopInstruction} When referencing artifacts, use <artifact:ref id="artifact_id
       },
       'Compression callback failed, continuing with original messages'
     );
-    return {};
+    return reconcilePrepareStepMessages(stepMessages);
   }
 }
 

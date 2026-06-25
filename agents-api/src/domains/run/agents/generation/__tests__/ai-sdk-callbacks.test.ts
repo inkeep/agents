@@ -259,7 +259,41 @@ describe('handlePrepareStepCompression', () => {
     expect(hasToolCall(result.messages, 'y')).toBe(false);
   });
 
-  it('returns empty when safeCompress throws', async () => {
+  // prepareStep guard: a dangling tool-call must be reconciled even when NO compression runs. This is
+  // the real-world failure — a small conversation never trips compression, so before the guard the
+  // unpaired tool-call reached convertToLanguageModelPrompt and threw AI_MissingToolResultsError.
+  it('reconciles a dangling tool-call when there is no compressor (prepareStep guard)', async () => {
+    const stepMessages = [...makeMessages(3), danglingCallMsg('z')];
+    const result = await handlePrepareStepCompression(stepMessages, [], null, 3);
+    expect(result.messages).toBeDefined();
+    expect(hasToolCall(result.messages, 'z')).toBe(false);
+  });
+
+  it('reconciles a dangling tool-call when compression is not needed (prepareStep guard)', async () => {
+    const compressor = makeCompressor({
+      isCompressionNeededFromActualUsage: vi.fn().mockReturnValue(false),
+    });
+    const stepMessages = [...makeMessages(3), danglingCallMsg('w')];
+    const result = await handlePrepareStepCompression(stepMessages, makeSteps(1), compressor, 4);
+    expect(result.messages).toBeDefined();
+    expect(hasToolCall(result.messages, 'w')).toBe(false);
+    expect(compressor.safeCompress).not.toHaveBeenCalled();
+  });
+
+  // The compression-failed path is the large-conversation-with-tool-steps case — the one most likely
+  // to carry a dangling tool-call — so it must reconcile too, not pass stepMessages through bare.
+  it('reconciles a dangling tool-call when safeCompress throws (prepareStep guard)', async () => {
+    const compressor = makeCompressor({
+      isCompressionNeededFromActualUsage: vi.fn().mockReturnValue(true),
+      safeCompress: vi.fn().mockRejectedValue(new Error('compression failed')),
+    });
+    const stepMessages = [...makeMessages(4), danglingCallMsg('sc')];
+    const result = await handlePrepareStepCompression(stepMessages, makeSteps(1), compressor, 2);
+    expect(result.messages).toBeDefined();
+    expect(hasToolCall(result.messages, 'sc')).toBe(false);
+  });
+
+  it('returns empty when safeCompress throws on an already-legal array', async () => {
     const compressor = makeCompressor({
       isCompressionNeededFromActualUsage: vi.fn().mockReturnValue(true),
       safeCompress: vi.fn().mockRejectedValue(new Error('compression failed')),
