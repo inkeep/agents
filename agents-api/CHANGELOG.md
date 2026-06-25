@@ -1,5 +1,17 @@
 # @inkeep/agents-api
 
+## 0.80.1
+
+### Patch Changes
+
+- f9d1483: Fix chat-to-edit turns erroring with "having some issues" after a successful tool call by reconciling unpaired tool calls on every generation step, not only when compression runs
+- d94d837: Add time-to-first-token (TTFT) telemetry. Records three interaction-level span attributes (inkeep.agent.time_to_first_model_token, time_to_first_visible_token, time_to_first_visible_part) on the request span for classic SSE and Vercel data-stream responses, graph-correctly across transfers and delegations.
+- Updated dependencies [d94d837]
+  - @inkeep/agents-core@0.80.1
+  - @inkeep/agents-work-apps@0.80.1
+  - @inkeep/agents-email@0.80.1
+  - @inkeep/agents-mcp@0.80.1
+
 ## 0.80.0
 
 ### Minor Changes
