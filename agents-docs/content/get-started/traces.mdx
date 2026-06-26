@@ -3,7 +3,7 @@ title: Live Debugger, Traces, and OTEL Telemetry
 sidebarTitle: Traces
 description: Set up SigNoz to enable full observability with traces and live debugging capabilities for your agents.
 icon: LuActivity
-keywords: SigNoz, traces, live debugger, observability, OpenTelemetry, monitoring, distributed tracing, debugging, copy trace, export trace, JSON export
+keywords: SigNoz, traces, live debugger, observability, OpenTelemetry, monitoring, distributed tracing, debugging, copy trace, export trace, JSON export, conversation transcript
 ---
 
 ## Overview
@@ -219,6 +219,16 @@ Click on any conversation to see detailed execution flow:
   src="/images/trace-detail.png"
   alt="Detailed conversation trace showing step-by-step execution and timing"
 />
+
+
+#### Conversation transcript view
+
+When viewing a conversation trace, you can switch between two views:
+
+- **Timeline view** — Shows the step-by-step execution flow with tool calls, agent transfers, and timing information. This is useful for debugging agent behavior and understanding the internal execution.
+- **Conversation transcript view** — Displays the conversation in a familiar chat interface format, showing messages as they appeared to the end user. This is useful for reviewing the conversation flow from the user's perspective and sharing conversation examples with stakeholders.
+
+Toggle between these views using the view selector at the top of the conversation detail panel.
 
 <Snippet file="copy-trace.mdx" />
 
