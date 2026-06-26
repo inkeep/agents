@@ -243,6 +243,8 @@ async function dispatchSlackBotDestinations(params: {
         channel: channelId,
         text: payload.text as string,
         blocks: payload.blocks as unknown[],
+        unfurl_links: false,
+        unfurl_media: false,
       };
       return slackClient.chat.postMessage(
         args as Parameters<typeof slackClient.chat.postMessage>[0]
