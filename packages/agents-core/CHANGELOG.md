@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.80.2
+
+### Patch Changes
+
+- ac3476b: Include Vercel-format message parts in conversation and feedback webhook payloads, matching the Get Conversation response
+
 ## 0.80.1
 
 ### Patch Changes

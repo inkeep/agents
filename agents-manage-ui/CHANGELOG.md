@@ -1,5 +1,13 @@
 # @inkeep/agents-manage-ui
 
+## 0.80.2
+
+### Patch Changes
+
+- f73615b: Widget view shown in traces
+- Updated dependencies [ac3476b]
+  - @inkeep/agents-core@0.80.2
+
 ## 0.80.1
 
 ### Patch Changes
