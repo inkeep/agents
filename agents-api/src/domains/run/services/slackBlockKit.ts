@@ -413,5 +413,5 @@ export function buildSlackPayload(
     }
   }
 
-  return { ...envelope, ...slackFields };
+  return { ...envelope, ...slackFields, unfurl_links: false, unfurl_media: false };
 }
