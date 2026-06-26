@@ -29,7 +29,9 @@ publicHoistPattern:
   - "@types/react-dom"
 
 ignorePatchFailures: false
-minimumReleaseAge: 1440
+# Supply-chain cooldown (admission-time): refuse versions published less than 3
+# days ago. Unit = MINUTES (4320 = 3 days). Own-org (@inkeep/*) exempt.
+minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
   - '@inkeep/*'
 

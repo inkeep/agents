@@ -4,6 +4,10 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+    # Supply-chain cooldown: hold version-update PRs until a release is >= 3 days
+    # old (security updates bypass). Mirrors the package-manager minimumReleaseAge.
+    cooldown:
+      default-days: 3
     ignore:
       - dependency-name: '*'
         update-types:
@@ -17,6 +21,8 @@ updates:
     directory: '/create-agents-template'
     schedule:
       interval: 'weekly'
+    cooldown:
+      default-days: 3
     ignore:
       - dependency-name: '*'
         update-types:
@@ -43,6 +49,8 @@ updates:
     directory: '/'
     schedule:
       interval: 'daily'
+    cooldown:
+      default-days: 3
     groups:
       high-frequency:
         patterns:
