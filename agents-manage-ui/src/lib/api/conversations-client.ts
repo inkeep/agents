@@ -4,6 +4,17 @@
 
 import { makeManagementApiRequest } from './api-config';
 
+/**
+ * Mirrors agents-api/src/utils/vercel-message-formatter.ts VercelMessage.
+ */
+export interface VercelMessage {
+  id: string;
+  role: string;
+  content: string;
+  parts: Array<Record<string, unknown>>;
+  createdAt: string;
+}
+
 export interface ConversationHistoryResponse {
   data: {
     conversation: {
@@ -30,20 +41,50 @@ export interface ConversationHistoryResponse {
 /**
  * Fetches conversation history from the API
  */
+export interface ConversationVercelResponse {
+  data: {
+    id: string;
+    agentId: string | null;
+    title: string | null;
+    createdAt: string;
+    updatedAt: string;
+    messages: VercelMessage[];
+  };
+}
+
+interface FetchConversationOptions {
+  limit?: number;
+  format?: 'default' | 'vercel';
+}
+
 export async function fetchConversationHistory(
   tenantId: string,
   projectId: string,
   conversationId: string,
-  options?: { limit?: number }
-): Promise<ConversationHistoryResponse['data'] | null> {
-  try {
-    const limit = options?.limit ?? 200;
-    const response = await makeManagementApiRequest<ConversationHistoryResponse>(
-      `tenants/${tenantId}/projects/${projectId}/conversations/${conversationId}?limit=${limit}`
-    );
-    return response.data;
-  } catch (error) {
-    console.warn('Failed to fetch conversation history:', error);
-    return null;
+  options?: FetchConversationOptions & { format?: 'default' }
+): Promise<ConversationHistoryResponse['data']>;
+export async function fetchConversationHistory(
+  tenantId: string,
+  projectId: string,
+  conversationId: string,
+  options: FetchConversationOptions & { format: 'vercel' }
+): Promise<ConversationVercelResponse['data']>;
+export async function fetchConversationHistory(
+  tenantId: string,
+  projectId: string,
+  conversationId: string,
+  options?: FetchConversationOptions
+): Promise<ConversationHistoryResponse['data'] | ConversationVercelResponse['data']> {
+  const limit = options?.limit ?? 200;
+  const format = options?.format ?? 'default';
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (format !== 'default') {
+    params.set('format', format);
   }
+  const response = await makeManagementApiRequest<
+    ConversationHistoryResponse | ConversationVercelResponse
+  >(
+    `tenants/${tenantId}/projects/${projectId}/conversations/${conversationId}?${params.toString()}`
+  );
+  return response.data;
 }
