@@ -8,8 +8,10 @@ import {
   getConversation,
   getConversationHistory,
   listConversations,
+  type MessageContent,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
+  toISODateString,
 } from '@inkeep/agents-core';
 import {
   ALLOWED_IMAGE_MIME_TYPES,
@@ -22,6 +24,8 @@ import runDbClient from '../../../data/db/runDbClient';
 import { getLogger } from '../../../logger';
 import { requireProjectPermission } from '../../../middleware/projectAccess';
 import { formatConversationDetail } from '../../../utils/conversationFormatter';
+import { toVercelMessage, VercelMessageSchema } from '../../../utils/vercel-message-formatter';
+import { createReplayHydrationContext } from '../../run/artifacts/replay-hydration';
 import { getBlobStorageProvider } from '../../run/services/blob-storage';
 import { resolveMessagesListBlobUris } from '../../run/services/blob-storage/resolve-blob-uris';
 import { buildMediaStorageKeyPrefix } from '../../run/services/blob-storage/storage-keys';
@@ -185,6 +189,7 @@ app.openapi(
 const ConversationQueryParamsSchema = z.object({
   limit: z.coerce.number().min(1).max(200).default(20).optional(),
   includeInternal: z.coerce.boolean().default(false).optional(),
+  format: z.enum(['default', 'vercel']).default('default').optional(),
 });
 
 const ConversationWithFormattedMessagesResponse = z
@@ -197,6 +202,19 @@ const ConversationWithFormattedMessagesResponse = z
     }),
   })
   .openapi('ConversationWithFormattedMessagesResponse');
+
+const ConversationVercelFormatResponse = z
+  .object({
+    data: z.object({
+      id: z.string(),
+      agentId: z.string().nullable(),
+      title: z.string().nullable(),
+      createdAt: z.string(),
+      updatedAt: z.string(),
+      messages: z.array(VercelMessageSchema),
+    }),
+  })
+  .openapi('ConversationVercelFormatResponse');
 
 app.openapi(
   createProtectedRoute({
@@ -212,10 +230,14 @@ app.openapi(
     },
     responses: {
       200: {
-        description: 'Conversation found with formatted messages for LLM use',
+        description:
+          'Conversation found. Shape depends on format query param: default returns { conversation, formatted }, vercel returns { id, agentId, title, messages[] }',
         content: {
           'application/json': {
-            schema: ConversationWithFormattedMessagesResponse,
+            schema: z.union([
+              ConversationWithFormattedMessagesResponse,
+              ConversationVercelFormatResponse,
+            ]),
           },
         },
       },
@@ -224,8 +246,58 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
-    const { limit = 20, includeInternal = true } = c.req.valid('query');
+    const { limit = 20, includeInternal = false, format = 'default' } = c.req.valid('query');
     const scopes = { tenantId, projectId };
+
+    if (format === 'vercel') {
+      const [conversation, messages] = await Promise.all([
+        getConversation(runDbClient)({ scopes, conversationId: id }),
+        getConversationHistory(runDbClient)({
+          scopes,
+          conversationId: id,
+          options: { limit, includeInternal },
+        }),
+      ]);
+
+      if (!conversation) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'Conversation not found',
+        });
+      }
+
+      const resolvedMessages = await resolveMessagesListBlobUris(messages);
+
+      const hydration = await createReplayHydrationContext(
+        { tenantId, projectId },
+        resolvedMessages
+      );
+
+      const formattedMessages = await Promise.all(
+        resolvedMessages.map((msg) =>
+          toVercelMessage(
+            {
+              id: msg.id,
+              role: msg.role,
+              content: msg.content as MessageContent,
+              createdAt: msg.createdAt,
+            },
+            hydration
+          )
+        )
+      );
+
+      return c.json({
+        data: {
+          id: conversation.id,
+          agentId: conversation.agentId,
+          title: conversation.title,
+          createdAt: toISODateString(conversation.createdAt),
+          updatedAt: toISODateString(conversation.updatedAt),
+          messages: formattedMessages,
+        },
+      });
+    }
 
     const [conversation, messages] = await Promise.all([
       getConversation(runDbClient)({ scopes, conversationId: id }),

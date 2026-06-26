@@ -2529,6 +2529,80 @@
         ],
         "type": "object"
       },
+      "ConversationVercelFormatResponse": {
+        "properties": {
+          "data": {
+            "properties": {
+              "agentId": {
+                "nullable": true,
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "messages": {
+                "items": {
+                  "properties": {
+                    "content": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "parts": {
+                      "items": {
+                        "additionalProperties": {
+                          "nullable": true
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "role": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "role",
+                    "content",
+                    "parts",
+                    "createdAt"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "title": {
+                "nullable": true,
+                "type": "string"
+              },
+              "updatedAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "agentId",
+              "title",
+              "createdAt",
+              "updatedAt",
+              "messages"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "ConversationWithFormattedMessagesResponse": {
         "properties": {
           "data": {
@@ -32269,6 +32343,19 @@
               "nullable": true,
               "type": "boolean"
             }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "default",
+              "enum": [
+                "default",
+                "vercel"
+              ],
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -32276,11 +32363,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ConversationWithFormattedMessagesResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ConversationWithFormattedMessagesResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ConversationVercelFormatResponse"
+                    }
+                  ]
                 }
               }
             },
-            "description": "Conversation found with formatted messages for LLM use"
+            "description": "Conversation found. Shape depends on format query param: default returns { conversation, formatted }, vercel returns { id, agentId, title, messages[] }"
           },
           "400": {
             "content": {

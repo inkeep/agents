@@ -232,4 +232,158 @@ describe('Manage API - Conversation List', () => {
       expect(conv.updatedAt).toBeDefined();
     });
   });
+
+  describe('GET /manage/tenants/:tenantId/projects/:projectId/conversations/:id?format=vercel', () => {
+    it('returns 200 with vercel-shaped messages and normalizes agent role to assistant', async () => {
+      const tenantId = await createTestTenantWithOrg('manage-conv-vercel-happy');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const conv = await createTestConversation({ tenantId, projectId, title: 'Vercel test' });
+
+      await createMessage(runDbClient)({
+        scopes: { tenantId, projectId },
+        data: {
+          id: `msg-user-${crypto.randomUUID()}`,
+          conversationId: conv.id,
+          role: 'user',
+          content: { text: 'Hello' },
+          visibility: 'user-facing',
+          messageType: 'chat',
+        },
+      });
+
+      await createMessage(runDbClient)({
+        scopes: { tenantId, projectId },
+        data: {
+          id: `msg-agent-${crypto.randomUUID()}`,
+          conversationId: conv.id,
+          role: 'agent',
+          content: { text: 'Hi there!' },
+          visibility: 'user-facing',
+          messageType: 'chat',
+        },
+      });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/conversations/${conv.id}?format=vercel`
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.data.id).toBe(conv.id);
+      expect(body.data.agentId).toBe('test-agent');
+      expect(body.data.title).toBe('Vercel test');
+      expect(body.data.createdAt).toBeDefined();
+      expect(body.data.updatedAt).toBeDefined();
+      expect(body.data.messages).toHaveLength(2);
+
+      const [userMsg, assistantMsg] = body.data.messages;
+      expect(userMsg.role).toBe('user');
+      expect(userMsg.content).toBe('Hello');
+      expect(userMsg.parts).toEqual([{ type: 'text', text: 'Hello' }]);
+
+      expect(assistantMsg.role).toBe('assistant');
+      expect(assistantMsg.content).toBe('Hi there!');
+      expect(assistantMsg.parts).toEqual([{ type: 'text', text: 'Hi there!' }]);
+    });
+
+    it('returns 200 with empty messages[] for a conversation with no messages', async () => {
+      const tenantId = await createTestTenantWithOrg('manage-conv-vercel-empty');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const conv = await createTestConversation({ tenantId, projectId, title: 'Empty conv' });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/conversations/${conv.id}?format=vercel`
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.data.id).toBe(conv.id);
+      expect(body.data.messages).toEqual([]);
+    });
+
+    it('returns 404 for a nonexistent conversation id', async () => {
+      const tenantId = await createTestTenantWithOrg('manage-conv-vercel-notfound');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/conversations/nonexistent-id?format=vercel`
+      );
+
+      expect(res.status).toBe(404);
+    });
+
+    it('suppresses internal tool_result artifacts in format=vercel (intentional user-facing view)', async () => {
+      const tenantId = await createTestTenantWithOrg('manage-conv-vercel-suppress');
+      const projectId = 'default-project';
+      await createTestProject(manageDbClient, tenantId, projectId);
+
+      const conv = await createTestConversation({
+        tenantId,
+        projectId,
+        title: 'Artifact suppression test',
+      });
+
+      const internalArtifactId = 'compress_tool_call_vercel';
+      const internalToolCallId = 'call-internal-vercel';
+      await addLedgerArtifacts(runDbClient)({
+        scopes: { tenantId, projectId },
+        contextId: conv.id,
+        taskId: `task-${crypto.randomUUID()}`,
+        toolCallId: internalToolCallId,
+        artifacts: [
+          {
+            artifactId: internalArtifactId,
+            name: 'Tool result',
+            description: 'compressed to save context space',
+            type: 'tool_result',
+            parts: [{ kind: 'data', data: { summary: { content: 'internal plumbing' } } }],
+            metadata: { artifactType: 'tool_result' },
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      });
+
+      const messageId = `msg-${crypto.randomUUID()}`;
+      await createMessage(runDbClient)({
+        scopes: { tenantId, projectId },
+        data: {
+          id: messageId,
+          conversationId: conv.id,
+          role: 'agent',
+          content: {
+            text: 'Here is your answer.',
+            parts: [
+              { kind: 'text', text: 'Here is your answer.' },
+              {
+                kind: 'data',
+                data: JSON.stringify({
+                  artifactId: internalArtifactId,
+                  toolCallId: internalToolCallId,
+                }),
+              },
+            ],
+          },
+          visibility: 'user-facing',
+          messageType: 'chat',
+        },
+      });
+
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/conversations/${conv.id}?format=vercel`
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      const msg = body.data.messages.find((m: { id: string }) => m.id === messageId);
+      expect(msg).toBeDefined();
+      expect(msg.content).toBe('Here is your answer.');
+      const artifactParts = msg.parts.filter((p: { type: string }) => p.type === 'data-artifact');
+      expect(artifactParts).toHaveLength(0);
+    });
+  });
 });

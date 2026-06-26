@@ -5,6 +5,8 @@ import {
   Activity,
   ArrowLeft,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Coins,
   ExternalLink as ExternalLinkIcon,
   Timer,
@@ -14,8 +16,10 @@ import {
 import NextLink from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Fragment, use, useEffect, useState } from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
 import { toast } from 'sonner';
 import { FeedbackDialog } from '@/components/agent/playground/feedback-dialog';
+import { ConversationTranscript } from '@/components/traces/conversation-transcript';
 import { MCPBreakdownCard } from '@/components/traces/mcp-breakdown-card';
 import { SignozLink } from '@/components/traces/signoz-link';
 import { InfoRow } from '@/components/traces/timeline/blocks';
@@ -87,6 +91,7 @@ export default function ConversationDetail({
     unknown
   > | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(true);
+  const [collapsedPanel, setCollapsedPanel] = useState<'left' | 'right' | null>(null);
   const { PUBLIC_SIGNOZ_URL, PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
   const isCloudDeployment = PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true';
 
@@ -700,29 +705,93 @@ export default function ConversationDetail({
         </CollapsibleContent>
       </Collapsible>
 
-      {/* Timeline Panel - Takes remaining height */}
-      <div className="flex-1 min-h-0">
-        <ResizablePanelGroup
-          direction="horizontal"
-          className="h-full border rounded-xl bg-background"
-        >
-          <TimelineWrapper
-            conversation={conversation}
-            conversationId={conversationId}
-            tenantId={tenantId}
-            projectId={projectId}
-            highlightMessageId={highlightMessageId}
-            onLeaveFeedback={(_activityId, messageId, type) => {
-              setFeedbackDialog({ open: true, messageId, type: type ?? 'negative' });
-            }}
-            onCopyFullTrace={handleCopyFullTrace}
-            onCopySummarizedTrace={handleCopySummarizedTrace}
-            isCopying={isCopying}
-            onRerunTrigger={handleRerunTrigger}
-            isRerunning={isRerunning}
-            showRerunTrigger={!!(conversation.triggerId && conversation.agentId)}
-          />
-        </ResizablePanelGroup>
+      {/* Content Panel - Side by side: Conversation left, Trace right */}
+      <div className="flex-1 min-h-0 flex items-stretch gap-2">
+        {collapsedPanel !== 'left' && (
+          <div className="flex-1 min-w-0 h-full border rounded-xl bg-background overflow-y-auto">
+            <ErrorBoundary
+              fallback={
+                <div className="p-4 text-sm text-muted-foreground">
+                  Failed to load conversation replay.
+                </div>
+              }
+            >
+              <ConversationTranscript
+                tenantId={tenantId}
+                projectId={projectId}
+                conversationId={conversationId}
+              />
+            </ErrorBoundary>
+          </div>
+        )}
+
+        {/* Collapse divider — chevrons live between the panels, never over their headers */}
+        <div className="flex flex-col items-center gap-1 pt-2 flex-shrink-0">
+          {collapsedPanel !== 'right' && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="text-muted-foreground hover:text-foreground"
+              onClick={() => setCollapsedPanel((p) => (p === 'left' ? null : 'left'))}
+              title={collapsedPanel === 'left' ? 'Show conversation' : 'Hide conversation'}
+            >
+              {collapsedPanel === 'left' ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : (
+                <ChevronLeft className="h-4 w-4" />
+              )}
+              <span className="sr-only">
+                {collapsedPanel === 'left' ? 'Show conversation' : 'Hide conversation'}
+              </span>
+            </Button>
+          )}
+          {collapsedPanel !== 'left' && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="text-muted-foreground hover:text-foreground"
+              onClick={() => setCollapsedPanel((p) => (p === 'right' ? null : 'right'))}
+              title={
+                collapsedPanel === 'right' ? 'Show activity timeline' : 'Hide activity timeline'
+              }
+            >
+              {collapsedPanel === 'right' ? (
+                <ChevronLeft className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+              <span className="sr-only">
+                {collapsedPanel === 'right' ? 'Show activity timeline' : 'Hide activity timeline'}
+              </span>
+            </Button>
+          )}
+        </div>
+
+        {collapsedPanel !== 'right' && (
+          <div className="flex-1 min-w-0 h-full">
+            <ResizablePanelGroup
+              direction="horizontal"
+              className="h-full border rounded-xl bg-background"
+            >
+              <TimelineWrapper
+                conversation={conversation}
+                conversationId={conversationId}
+                tenantId={tenantId}
+                projectId={projectId}
+                highlightMessageId={highlightMessageId}
+                onLeaveFeedback={(_activityId, messageId, type) => {
+                  setFeedbackDialog({ open: true, messageId, type: type ?? 'negative' });
+                }}
+                onCopyFullTrace={handleCopyFullTrace}
+                onCopySummarizedTrace={handleCopySummarizedTrace}
+                isCopying={isCopying}
+                onRerunTrigger={handleRerunTrigger}
+                isRerunning={isRerunning}
+                showRerunTrigger={!!(conversation.triggerId && conversation.agentId)}
+              />
+            </ResizablePanelGroup>
+          </div>
+        )}
       </div>
 
       <FeedbackDialog
