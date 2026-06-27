@@ -343,45 +343,43 @@ ${buildBridgeMetadata(publicPr, mirrorPath)}`;
   return body;
 }
 
-function buildPublicComment({ publicPr, internalPr, status, details }) {
+function buildPublicComment({ publicPr, status, details }) {
   if (status === 'synced') {
     return `${BRIDGE_COMMENT_MARKER}
-Thanks for the contribution! Your PR has been mirrored into Inkeep's internal monorepo, where review and merge happen. Your commit attribution is preserved as @${publicPr.user.login}.
+Thanks for the contribution! A maintainer will review and merge your PR. Your commit attribution is preserved as @${publicPr.user.login}.
 
 **What happens next:**
 
-- An Inkeep maintainer will review the internal mirror PR.
-- Reviewer comments are not automatically mirrored back to this thread. If you don't hear from us within a few business days, please comment here to nudge — that's the right thing to do.
-- Once merged internally, the change will sync back to this repository and this PR will close automatically (don't be alarmed when it closes — that's how it lands).
+- A maintainer will review your PR.
+- If you don't hear back within a few business days, please comment here to nudge — that's the right thing to do, not annoying.
+- When your change is accepted, this PR closes automatically. Don't be alarmed when it closes — that's how it merges, and your authorship is preserved.
 
-**For Inkeep maintainers** (link goes to a private repo and is not accessible to external contributors): ${internalPr.html_url}
-
-See the repository's CONTRIBUTING.md for more context on how public PRs flow. This comment will be updated as the bridge state changes.`;
+This comment will be updated as the status changes.`;
   }
 
   if (status === 'no-op') {
     return `${BRIDGE_COMMENT_MARKER}
-I checked this public PR, but there was no new diff to port into \`agents-private\`.
+I checked this PR, but there was no new change to sync.
 
 ${details}`;
   }
 
   if (status === 'closed') {
     return `${BRIDGE_COMMENT_MARKER}
-The public PR was closed without merge, so the matching internal PR was closed as well.
+This PR was closed without merging.
 
 ${details}`;
   }
 
   if (status === 'merged-upstream') {
     return `${BRIDGE_COMMENT_MARKER}
-This public PR was merged directly in the public repo. The matching monorepo PR was left open for manual follow-up because \`agents-private\` remains the source of truth.
+This PR was merged directly here. A maintainer will make sure the change is reconciled on our side.
 
 ${details}`;
   }
 
   return `${BRIDGE_COMMENT_MARKER}
-I could not sync this public PR into \`agents-private\` automatically.
+I could not sync this PR automatically. A maintainer will look into it.
 
 ${details}`;
 }
@@ -682,8 +680,7 @@ async function syncPublicPr() {
         body: buildPublicComment({
           publicPr,
           status: 'no-op',
-          details:
-            'The diff already appears to be present on the internal base branch, so no new monorepo PR was opened.',
+          details: 'The change already appears to be present, so there was nothing new to sync.',
         }),
       });
       return;
@@ -767,7 +764,7 @@ async function closeLinkedInternalPr() {
         publicPr,
         internalPr,
         status: 'merged-upstream',
-        details: `Matching internal PR: [#${internalPr.number}](${internalPr.html_url})`,
+        details: '',
       }),
     });
     return;
@@ -807,7 +804,7 @@ async function closeLinkedInternalPr() {
     body: buildPublicComment({
       publicPr,
       status: 'closed',
-      details: `Closed matching internal PR [#${internalPr.number}](${internalPr.html_url}).`,
+      details: '',
     }),
   });
 }
