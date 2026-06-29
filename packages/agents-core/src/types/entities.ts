@@ -96,6 +96,7 @@ import type {
   DatasetRunUpdateSchema,
   DatasetSelectSchema,
   DatasetUpdateSchema,
+  DuplicateAgentRequestSchema,
   EvaluationJobConfigEvaluatorRelationInsertSchema,
   EvaluationJobConfigEvaluatorRelationSelectSchema,
   EvaluationJobConfigEvaluatorRelationUpdateSchema,
@@ -156,6 +157,9 @@ import type {
   FunctionToolApiSelectSchema,
   FunctionToolApiUpdateSchema,
   FunctionUpdateSchema,
+  ImportAgentRequestSchema,
+  ImportAgentResponseSchema,
+  ImportAgentWarningSchema,
   LastRunSummarySchema,
   LedgerArtifactApiInsertSchema,
   LedgerArtifactApiSelectSchema,
@@ -721,6 +725,10 @@ export type FullAgentSubAgentSelect = z.infer<typeof FullAgentSubAgentSelectSche
 export type FullAgentSubAgentSelectWithRelationIds = z.infer<
   typeof FullAgentSubAgentSelectSchemaWithRelationIds
 >;
+export type DuplicateAgentRequest = z.infer<typeof DuplicateAgentRequestSchema>;
+export type ImportAgentRequest = z.infer<typeof ImportAgentRequestSchema>;
+export type ImportAgentWarning = z.infer<typeof ImportAgentWarningSchema>;
+export type ImportAgentResponse = z.infer<typeof ImportAgentResponseSchema>;
 
 export type FullProjectDefinition = z.infer<typeof FullProjectDefinitionSchema>;
 export type FullProjectSelect = z.infer<typeof FullProjectSelectSchema>;
