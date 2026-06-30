@@ -4,16 +4,7 @@ import { type LucideIcon, Workflow } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SidePane as SidePaneLayout } from '../../layout/sidepane';
 import { edgeTypeMap } from '../configuration/edge-types';
-import {
-  type AgentNodeData,
-  type ExternalAgentNodeData,
-  type FunctionToolNodeData,
-  type MCPNodeData,
-  NodeType,
-  newNodeDefaults,
-  nodeTypeMap,
-  type TeamAgentNodeData,
-} from '../configuration/node-types';
+import { isNodeType, NodeType, newNodeDefaults, nodeTypeMap } from '../configuration/node-types';
 import EdgeEditor from './edges/edge-editor';
 import { EditorLoadingSkeleton } from './editor-loading-skeleton';
 import { Heading } from './heading';
@@ -80,27 +71,18 @@ export function SidePane({
         case NodeType.SubAgentPlaceholder:
           return <SubAgentSelector selectedNode={selectedNode as Node} />;
         case NodeType.SubAgent:
-          return (
-            <SubAgentNodeEditor
-              selectedNode={selectedNode as Pick<Node<AgentNodeData>, 'id' | 'data'>}
-            />
-          );
+          if (!isNodeType(selectedNode, NodeType.SubAgent)) return null;
+          return <SubAgentNodeEditor selectedNode={selectedNode} />;
         case NodeType.ExternalAgent: {
-          return (
-            <ExternalAgentNodeEditor
-              selectedNode={selectedNode as Pick<Node<ExternalAgentNodeData>, 'id' | 'data'>}
-            />
-          );
+          if (!isNodeType(selectedNode, NodeType.ExternalAgent)) return null;
+          return <ExternalAgentNodeEditor selectedNode={selectedNode} />;
         }
         case NodeType.ExternalAgentPlaceholder: {
           return <ExternalAgentSelector selectedNode={selectedNode as Node} />;
         }
         case NodeType.TeamAgent: {
-          return (
-            <TeamAgentNodeEditor
-              selectedNode={selectedNode as Pick<Node<TeamAgentNodeData>, 'id' | 'data'>}
-            />
-          );
+          if (!isNodeType(selectedNode, NodeType.TeamAgent)) return null;
+          return <TeamAgentNodeEditor selectedNode={selectedNode} />;
         }
         case NodeType.TeamAgentPlaceholder: {
           return <TeamAgentSelector selectedNode={selectedNode as Node} />;
@@ -109,18 +91,12 @@ export function SidePane({
           return <MCPSelector selectedNode={selectedNode as Node} />;
         }
         case NodeType.MCP: {
-          return (
-            <MCPServerNodeEditor
-              selectedNode={selectedNode as Pick<Node<MCPNodeData>, 'id' | 'data'>}
-            />
-          );
+          if (!isNodeType(selectedNode, NodeType.MCP)) return null;
+          return <MCPServerNodeEditor selectedNode={selectedNode} />;
         }
         case NodeType.FunctionTool: {
-          return (
-            <FunctionToolNodeEditor
-              selectedNode={selectedNode as Pick<Node<FunctionToolNodeData>, 'id' | 'data'>}
-            />
-          );
+          if (!isNodeType(selectedNode, NodeType.FunctionTool)) return null;
+          return <FunctionToolNodeEditor selectedNode={selectedNode} />;
         }
         default:
           return null;
