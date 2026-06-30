@@ -1,5 +1,7 @@
 # @inkeep/agents-core
 
+## 0.80.3
+
 ## 0.80.2
 
 ### Patch Changes

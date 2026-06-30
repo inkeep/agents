@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-ui
 
+## 0.80.3
+
+### Patch Changes
+
+- 0565641: Fix side pane node editor type narrowing for agent and tool nodes.
+  - @inkeep/agents-core@0.80.3
+
 ## 0.80.2
 
 ### Patch Changes

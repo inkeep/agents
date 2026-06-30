@@ -1,5 +1,15 @@
 # @inkeep/agents-api
 
+## 0.80.3
+
+### Patch Changes
+
+- 9b83429: Remove link preview for slack outbound webhooks
+  - @inkeep/agents-core@0.80.3
+  - @inkeep/agents-email@0.80.3
+  - @inkeep/agents-mcp@0.80.3
+  - @inkeep/agents-work-apps@0.80.3
+
 ## 0.80.2
 
 ### Patch Changes
