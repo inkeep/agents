@@ -352,7 +352,7 @@ Thanks for the contribution! A maintainer will review and merge your PR. Your co
 
 - A maintainer will review your PR.
 - If you don't hear back within a few business days, please comment here to nudge — that's the right thing to do, not annoying.
-- When your change is accepted, this PR closes automatically. Don't be alarmed when it closes — that's how it merges.
+- When your change is accepted, this PR closes automatically. Don't be alarmed when it closes — that's how it merges, and your authorship is preserved.
 
 This comment will be updated as the status changes.`;
   }
