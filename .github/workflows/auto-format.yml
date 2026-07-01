@@ -47,7 +47,7 @@ jobs:
       - name: Checkout code
         if: steps.pr-check.outputs.skip != 'true'
         id: checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
         continue-on-error: true
         with:
           # On PRs, check out the PR branch so we push back to it.
@@ -66,20 +66,20 @@ jobs:
       - name: Generate GitHub App Token
         id: app-token
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
-        uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3 # v3.1.1
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
           app-id: ${{ secrets.INTERNAL_CI_APP_ID }}
           private-key: ${{ secrets.INTERNAL_CI_APP_PRIVATE_KEY }}
 
       - name: Setup Node.js
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 22.x
 
       - name: Setup pnpm
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
           version: 10.33.0
           run_install: false
@@ -97,7 +97,7 @@ jobs:
 
       - name: Setup pnpm cache
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
