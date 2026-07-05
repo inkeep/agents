@@ -67,7 +67,7 @@ Agents can also be used for **AI Workflow Automation** like:
 
 For a full overview, see the [Concepts](https://docs.inkeep.com/concepts) guide.
 
-Interested in a managed platform? Sign up for the [Inkeep Cloud waitlist](https://inkeep.com/cloud-waitlist) or learn about [Inkeep Enterprise](https://inkeep.com/enterprise).
+Interested in a managed platform? [Get started with Inkeep](https://inkeep.com/get-started) or learn about [Inkeep Enterprise](https://inkeep.com/enterprise).
 
 ## Architecture
 
