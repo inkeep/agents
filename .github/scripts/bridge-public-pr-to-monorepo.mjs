@@ -107,20 +107,17 @@ function parseJsonEnv(name, fallback) {
   }
 }
 
-function fallbackPublicAuthor(publicPr) {
-  return (
-    normalizeGitHubUserAuthor(publicPr.user) ?? {
-      name: publicPr.user.login,
-      email: `${publicPr.user.id}+${publicPr.user.login}@users.noreply.github.com`,
-    }
-  );
+function publicPrAuthor(publicPr) {
+  return {
+    name: publicPr.user.login,
+    email: `${publicPr.user.id}+${publicPr.user.login}@users.noreply.github.com`,
+  };
 }
 
 function normalizeGitHubUserAuthor(user) {
   const login = user?.login?.trim();
   const id = user?.id;
   if (!login || id === undefined || id === null) return null;
-  if (/\[bot\]$/i.test(login)) return null;
   return {
     name: login,
     email: `${id}+${login}@users.noreply.github.com`,
@@ -132,46 +129,102 @@ function normalizeCommitAuthor(author) {
   const email = author?.email?.trim();
   if (!name || !email || !email.includes('@')) return null;
   if (/[\r\n<>]/.test(name) || /[\r\n<>]/.test(email)) return null;
-  if (/oss-sync@inkeep\.com$/i.test(email) || /public-pr-bridge@inkeep\.com$/i.test(email)) {
-    return null;
-  }
-  if (/\[bot\]$/i.test(name) || /\[bot\]@users\.noreply\.github\.com$/i.test(email)) {
-    return null;
-  }
   return { name, email };
 }
 
-function uniqueCommitAuthors(authors, fallbackAuthor) {
+function parseCoauthorTrailer(line) {
+  const match = line.match(/^Co-authored-by:\s*(.+?)\s*<([^<>\s]+@[^<>\s]+)>\s*$/i);
+  if (!match) return null;
+  return normalizeCommitAuthor({ name: match[1], email: match[2] });
+}
+
+function coauthorsFromCommitMessage(message) {
+  return normalizeCommitMessage(message)
+    .split('\n')
+    .map((line) => parseCoauthorTrailer(line.trim()))
+    .filter(Boolean);
+}
+
+function uniqueCommitAuthors(authors) {
   const unique = new Map();
   for (const author of authors) {
     const normalized = normalizeCommitAuthor(author);
     if (!normalized) continue;
     unique.set(`${normalized.name.toLowerCase()} <${normalized.email.toLowerCase()}>`, normalized);
   }
-  return unique.size > 0 ? [...unique.values()] : [fallbackAuthor];
+  return [...unique.values()];
 }
 
-async function listPublicPrCommitAuthors({ token, repo, prNumber, request = githubRequest }) {
-  const commitAuthors = [];
+function normalizePublicPrCommit(commit) {
+  return {
+    sha: typeof commit?.sha === 'string' ? commit.sha : null,
+    author: normalizeGitHubUserAuthor(commit?.author) ?? commit?.commit?.author,
+    message: typeof commit?.commit?.message === 'string' ? commit.commit.message : '',
+  };
+}
+
+async function listPublicPrCommits({ token, repo, prNumber, request = githubRequest }) {
+  const publicCommits = [];
   let page = 1;
   while (true) {
     const commits = await request({
       token,
       path: `/repos/${repo}/pulls/${prNumber}/commits?per_page=100&page=${page}`,
     });
-    commitAuthors.push(
-      ...commits.map((commit) => normalizeGitHubUserAuthor(commit.author) ?? commit.commit?.author)
-    );
+    publicCommits.push(...commits.map((commit) => normalizePublicPrCommit(commit)));
     if (commits.length < 100) break;
     page++;
   }
-  return commitAuthors;
+  return publicCommits;
 }
 
-function buildCommitAttribution({ commitAuthors, fallbackAuthor }) {
-  const authors = uniqueCommitAuthors(commitAuthors, fallbackAuthor);
+function normalizeCommitMessage(message) {
+  if (typeof message !== 'string') return '';
+  return message.replace(/\r\n?/g, '\n').replace(/\0/g, '').trim();
+}
+
+function formatOriginalCommitMessages(commitMessages, publicRepo) {
+  const entries = commitMessages
+    .map((commit) => {
+      const message = normalizeCommitMessage(commit?.message);
+      if (!message) return null;
+      const rawSha = typeof commit?.sha === 'string' ? commit.sha : '';
+      const sha = /^[0-9a-f]{7,40}$/i.test(rawSha) ? rawSha : null;
+      const shortSha = sha ? sha.slice(0, 7) : null;
+      const author = normalizeCommitAuthor(commit?.author);
+      return { author, sha, shortSha, message };
+    })
+    .filter(Boolean);
+
+  if (entries.length === 0) return '';
+
+  const formatted = entries.map((entry, index) => {
+    const [subject, ...bodyLines] = entry.message.split('\n');
+    const body =
+      bodyLines.length > 0 ? `\n\n${bodyLines.map((line) => `   ${line}`).join('\n')}` : '';
+    const author = entry.author ? `\n   Author: ${entry.author.name} <${entry.author.email}>` : '';
+    if (entry.sha && entry.shortSha && publicRepo) {
+      return `${index + 1}. [${entry.shortSha}](https://github.com/${publicRepo}/commit/${entry.sha}) ${subject}${author}${body}`;
+    }
+    const prefix = entry.shortSha
+      ? `${index + 1}. ${entry.shortSha} ${subject}`
+      : `${index + 1}. ${subject}`;
+    return `${prefix}${author}${body}`;
+  });
+
+  return ['Commits:', '', ...formatted].join('\n');
+}
+
+function buildCommitAttribution({ commitAuthors, commitMessages = [], publicRepo }) {
+  const authors = uniqueCommitAuthors([
+    ...commitAuthors,
+    ...commitMessages.map((commit) => commit?.author),
+    ...commitMessages.flatMap((commit) => coauthorsFromCommitMessage(commit?.message)),
+  ]);
   const trailers = authors.map((author) => `Co-authored-by: ${author.name} <${author.email}>`);
-  return { trailers };
+  const originalCommitMessages = formatOriginalCommitMessages(commitMessages, publicRepo);
+  const body = [originalCommitMessages, trailers.join('\n')].filter(Boolean).join('\n\n');
+  return { trailers, originalCommitMessages, body };
 }
 
 // True when a `githubRequest` failed because the PR diff exceeds GitHub's
@@ -692,21 +745,22 @@ async function syncPublicPr() {
           run('git', ['-C', internalRepoDir, 'config', 'user.name', 'Inkeep OSS Sync']);
           run('git', ['-C', internalRepoDir, 'config', 'user.email', 'oss-sync@inkeep.com']);
 
-          let commitAuthors = [];
+          let publicCommits = [];
           try {
-            commitAuthors = await listPublicPrCommitAuthors({
+            publicCommits = await listPublicPrCommits({
               token: publicToken,
               repo: publicRepo,
               prNumber: publicPr.number,
             });
           } catch (error) {
             console.warn(
-              `Bridge: could not fetch public PR commit authors; falling back to PR opener attribution: ${error.message}`
+              `Bridge: could not fetch public PR commit messages; using PR opener attribution only: ${error.message}`
             );
           }
-          const { trailers } = buildCommitAttribution({
-            commitAuthors,
-            fallbackAuthor: fallbackPublicAuthor(publicPr),
+          const { body } = buildCommitAttribution({
+            commitAuthors: [publicPrAuthor(publicPr)],
+            commitMessages: publicCommits,
+            publicRepo,
           });
           run('git', [
             '-C',
@@ -715,7 +769,7 @@ async function syncPublicPr() {
             '-m',
             `chore(sync): mirror ${publicRepo}#${publicPr.number}`,
             '-m',
-            trailers.join('\n'),
+            body,
           ]);
 
           run('git', [
@@ -911,6 +965,6 @@ export {
   buildCommitAttribution,
   buildInternalPrBody,
   buildPublicComment,
-  listPublicPrCommitAuthors,
+  listPublicPrCommits,
   prefixPatchPaths,
 };
