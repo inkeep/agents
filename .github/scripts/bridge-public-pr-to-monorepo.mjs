@@ -107,6 +107,70 @@ function parseJsonEnv(name, fallback) {
   }
 }
 
+function fallbackPublicAuthor(publicPr) {
+  return (
+    normalizeGitHubUserAuthor(publicPr.user) ?? {
+      name: publicPr.user.login,
+      email: `${publicPr.user.id}+${publicPr.user.login}@users.noreply.github.com`,
+    }
+  );
+}
+
+function normalizeGitHubUserAuthor(user) {
+  const login = user?.login?.trim();
+  const id = user?.id;
+  if (!login || id === undefined || id === null) return null;
+  if (/\[bot\]$/i.test(login)) return null;
+  return {
+    name: login,
+    email: `${id}+${login}@users.noreply.github.com`,
+  };
+}
+
+function normalizeCommitAuthor(author) {
+  const name = author?.name?.trim();
+  const email = author?.email?.trim();
+  if (!name || !email || !email.includes('@')) return null;
+  if (/[\r\n<>]/.test(name) || /[\r\n<>]/.test(email)) return null;
+  if (/\[bot\]$/i.test(name) || /\[bot\]@users\.noreply\.github\.com$/i.test(email)) {
+    return null;
+  }
+  return { name, email };
+}
+
+function uniqueCommitAuthors(authors, fallbackAuthor) {
+  const unique = new Map();
+  for (const author of authors) {
+    const normalized = normalizeCommitAuthor(author);
+    if (!normalized) continue;
+    unique.set(`${normalized.name.toLowerCase()} <${normalized.email.toLowerCase()}>`, normalized);
+  }
+  return unique.size > 0 ? [...unique.values()] : [fallbackAuthor];
+}
+
+async function listPublicPrCommitAuthors({ token, repo, prNumber, request = githubRequest }) {
+  const commitAuthors = [];
+  let page = 1;
+  while (true) {
+    const commits = await request({
+      token,
+      path: `/repos/${repo}/pulls/${prNumber}/commits?per_page=100&page=${page}`,
+    });
+    commitAuthors.push(
+      ...commits.map((commit) => normalizeGitHubUserAuthor(commit.author) ?? commit.commit?.author)
+    );
+    if (commits.length < 100) break;
+    page++;
+  }
+  return commitAuthors;
+}
+
+function buildCommitAttribution({ commitAuthors, fallbackAuthor }) {
+  const authors = uniqueCommitAuthors(commitAuthors, fallbackAuthor);
+  const trailers = authors.map((author) => `Co-authored-by: ${author.name} <${author.email}>`);
+  return { trailers };
+}
+
 // True when a `githubRequest` failed because the PR diff exceeds GitHub's
 // hard cap on the diff endpoint (currently 20,000 lines). The API surfaces
 // this as a 406 with body `diff exceeded the maximum number of lines (20000)`,
@@ -631,15 +695,30 @@ async function syncPublicPr() {
             'public-pr-bridge@inkeep.com',
           ]);
 
-          const authorEmail = `${publicPr.user.id}+${publicPr.user.login}@users.noreply.github.com`;
+          let commitAuthors = [];
+          try {
+            commitAuthors = await listPublicPrCommitAuthors({
+              token: publicToken,
+              repo: publicRepo,
+              prNumber: publicPr.number,
+            });
+          } catch (error) {
+            console.warn(
+              `Bridge: could not fetch public PR commit authors; falling back to PR opener attribution: ${error.message}`
+            );
+          }
+          const { trailers } = buildCommitAttribution({
+            commitAuthors,
+            fallbackAuthor: fallbackPublicAuthor(publicPr),
+          });
           run('git', [
             '-C',
             internalRepoDir,
             'commit',
-            '--author',
-            `${publicPr.user.login} <${authorEmail}>`,
             '-m',
             `chore(sync): mirror ${publicRepo}#${publicPr.number}`,
+            '-m',
+            trailers.join('\n'),
           ]);
 
           run('git', [
@@ -831,4 +910,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   });
 }
 
-export { buildInternalPrBody, buildPublicComment, prefixPatchPaths };
+export {
+  buildCommitAttribution,
+  buildInternalPrBody,
+  buildPublicComment,
+  listPublicPrCommitAuthors,
+  prefixPatchPaths,
+};
