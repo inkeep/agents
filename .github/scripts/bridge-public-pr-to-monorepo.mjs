@@ -132,10 +132,7 @@ function normalizeCommitAuthor(author) {
   const email = author?.email?.trim();
   if (!name || !email || !email.includes('@')) return null;
   if (/[\r\n<>]/.test(name) || /[\r\n<>]/.test(email)) return null;
-  if (
-    /oss-sync@inkeep\.com$/i.test(email) ||
-    /public-pr-bridge@inkeep\.com$/i.test(email)
-  ) {
+  if (/oss-sync@inkeep\.com$/i.test(email) || /public-pr-bridge@inkeep\.com$/i.test(email)) {
     return null;
   }
   if (/\[bot\]$/i.test(name) || /\[bot\]@users\.noreply\.github\.com$/i.test(email)) {
