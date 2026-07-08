@@ -9,7 +9,7 @@ packages:
   - "packages/*"
 
 catalog:
-  better-auth: 1.6.9
+  better-auth: 1.6.13
   "@better-auth/sso": 1.6.9
   "@better-auth/infra": 0.2.5
   "@better-auth/oauth-provider": 1.6.9
