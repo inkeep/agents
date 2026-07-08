@@ -10,7 +10,7 @@ packages:
 
 catalog:
   better-auth: 1.6.9
-  "@better-auth/sso": 1.6.9
+  "@better-auth/sso": 1.6.11
   "@better-auth/infra": 0.2.5
   "@better-auth/oauth-provider": 1.6.9
   "@opentelemetry/api": ^1.9.0
