@@ -55,13 +55,17 @@ jobs:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
 
+      # Pinned to the 11.x line (registry tag next-11), not latest: npm 12.0.0
+      # ships without the bundled sigstore module libnpmpublish requires, so
+      # provenance publishes fail with MODULE_NOT_FOUND. Bump only after
+      # verifying a provenance publish works on the new major.
       - name: Ensure npm 11.5.1+ for OIDC support
         run: |
-          if npm install -g npm@latest 2>/dev/null; then
+          if npm install -g npm@11 2>/dev/null; then
             echo "npm upgraded via bundled npm"
           else
             echo "::warning::Bundled npm broken, bootstrapping from tarball"
-            NPM_VER=$(node -e "fetch('https://registry.npmjs.org/npm/latest').then(r=>r.json()).then(d=>console.log(d.version))")
+            NPM_VER=$(node -e "fetch('https://registry.npmjs.org/npm/next-11').then(r=>r.json()).then(d=>console.log(d.version))")
             curl -fsSL "https://registry.npmjs.org/npm/-/npm-${NPM_VER}.tgz" | tar xz -C /tmp
             node /tmp/package/bin/npm-cli.js install -g "npm@${NPM_VER}"
             rm -rf /tmp/package
