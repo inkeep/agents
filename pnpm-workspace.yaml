@@ -12,7 +12,7 @@ catalog:
   better-auth: 1.6.9
   "@better-auth/sso": 1.6.9
   "@better-auth/infra": 0.2.5
-  "@better-auth/oauth-provider": 1.6.9
+  "@better-auth/oauth-provider": 1.6.23
   "@opentelemetry/api": ^1.9.0
   "@opentelemetry/auto-instrumentations-node": ^0.75.0
   "@opentelemetry/baggage-span-processor": ^0.5.0
