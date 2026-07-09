@@ -152,6 +152,13 @@ export interface BetterAuthConfig {
   advanced?: BetterAuthAdvancedOptions;
   emailService?: EmailServiceConfig;
   recaptcha?: RecaptchaConfig;
+  /**
+   * Skips the haveIBeenPwned plugin, which calls the external
+   * pwnedpasswords.com API on every password creation. Only for offline-safe
+   * bootstrap contexts (db:auth:init); server instances that accept real
+   * sign-ups must leave this unset.
+   */
+  disablePasswordCompromiseCheck?: boolean;
 }
 
 export interface UserAuthConfig {

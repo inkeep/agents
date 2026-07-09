@@ -84,12 +84,18 @@ async function init() {
     process.exit(1);
   }
 
-  // 2. Create the auth instance
+  // 2. Create the auth instance.
+  // disablePasswordCompromiseCheck: the haveIBeenPwned plugin calls the
+  // external pwnedpasswords.com API during signUpEmail, so bootstrap fails
+  // whenever that API is unreachable (CI network flake, offline dev,
+  // firewalled self-hosted installs). Password strength is already enforced
+  // locally by the validatePasswordPolicy pre-flight gate above.
   const apiUrl = process.env.INKEEP_AGENTS_API_URL || 'http://localhost:3002';
   const auth = createAuth({
     baseURL: apiUrl,
     secret: authSecret,
     dbClient,
+    disablePasswordCompromiseCheck: true,
   });
 
   // 3. Upsert organization - get existing or create new with TENANT_ID as the ID
