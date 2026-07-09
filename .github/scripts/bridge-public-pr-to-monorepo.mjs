@@ -472,13 +472,13 @@ ${buildBridgeMetadata(publicPr, mirrorPath)}`;
 function buildPublicComment({ publicPr, status, details }) {
   if (status === 'synced') {
     return `${BRIDGE_COMMENT_MARKER}
-Thanks for the contribution! A maintainer will review and merge your PR. Your contribution will be credited with a Co-authored-by trailer for @${publicPr.user.login} (you'll appear as a co-author on the merged commit).
+Thanks for the contribution! A maintainer will review and merge your PR. Your commit attribution is preserved as @${publicPr.user.login}.
 
 **What happens next:**
 
 - A maintainer will review your PR.
 - If you don't hear back within a few business days, please comment here to nudge — that's the right thing to do, not annoying.
-- When your change is accepted, this PR closes automatically. Don't be alarmed when it closes — that's how it lands here, with your contribution credited.
+- When your change is accepted, this PR closes automatically. Don't be alarmed when it closes — that's how it merges, and your authorship is preserved.
 
 This comment will be updated as the status changes.`;
   }
