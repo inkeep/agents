@@ -1,5 +1,15 @@
 # @inkeep/agents-api
 
+## 0.80.4
+
+### Patch Changes
+
+- 5bd4b90: Fix self-hosted playground startup so factory-created API apps register the playground public key from environment configuration.
+  - @inkeep/agents-core@0.80.4
+  - @inkeep/agents-email@0.80.4
+  - @inkeep/agents-mcp@0.80.4
+  - @inkeep/agents-work-apps@0.80.4
+
 ## 0.80.3
 
 ### Patch Changes
