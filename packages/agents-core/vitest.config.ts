@@ -12,6 +12,10 @@ export default defineProject({
     exclude: ['node_modules', 'dist', '**/integration/**'],
     // Enable parallelism with in-memory databases - each worker gets isolated database
     fileParallelism: true,
+    // Without this, vitest defaults to the forks pool: poolOptions.threads is
+    // silently ignored and CI intermittently dies at teardown with tinypool
+    // ERR_IPC_CHANNEL_CLOSED despite 0 failed tests (PRD-6963).
+    pool: 'threads',
     poolOptions: {
       threads: {
         maxThreads: 8, // Increased for better CPU utilization

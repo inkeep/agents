@@ -13,6 +13,10 @@ export default defineProject({
     // Enable parallelism with in-memory databases - each worker gets isolated database
     fileParallelism: true,
     isolate: true, // Ensure test isolation to prevent state leakage
+    // Without this, vitest defaults to the forks pool: poolOptions.threads is
+    // silently ignored and CI intermittently dies at teardown with tinypool
+    // ERR_IPC_CHANNEL_CLOSED despite 0 failed tests (PRD-6963).
+    pool: 'threads',
     poolOptions: {
       threads: {
         maxThreads: 10, // Increase for GitHub Actions runners (have more cores)
