@@ -472,13 +472,13 @@ ${buildBridgeMetadata(publicPr, mirrorPath)}`;
 function buildPublicComment({ publicPr, status, details }) {
   if (status === 'synced') {
     return `${BRIDGE_COMMENT_MARKER}
-Thanks for the contribution! A maintainer will review and merge your PR. Your commit attribution is preserved as @${publicPr.user.login}.
+Thanks for the contribution! A maintainer will review and merge your PR. Your contribution will be credited with a Co-authored-by trailer for @${publicPr.user.login} (you'll appear as a co-author on the merged commit).
 
 **What happens next:**
 
 - A maintainer will review your PR.
 - If you don't hear back within a few business days, please comment here to nudge — that's the right thing to do, not annoying.
-- When your change is accepted, this PR closes automatically. Don't be alarmed when it closes — that's how it merges, and your authorship is preserved.
+- When your change is accepted, this PR closes automatically. Don't be alarmed when it closes — that's how it lands here, with your contribution credited.
 
 This comment will be updated as the status changes.`;
   }
@@ -616,8 +616,8 @@ async function syncPublicPr() {
     //      when public-mirror-sync is stalled and agents-private/main has
     //      drifted from `inkeep/<repo>/main`. Without this, every conflicting
     //      hunk fails with "repository lacks the necessary blob to perform
-    //      3-way merge" — the dominant bridge-failure pattern observed on
-    //      `inkeep/open-knowledge-legacy#411`, `#396`, `#374`.
+    //      3-way merge" — the dominant bridge-failure pattern for drifted
+    //      public PRs.
     //   2. Provides the baseline pair of refs for the local-git-diff fallback
     //      when the GitHub diff endpoint rejects the PR as too large.
     const sourceRemote = `bridge-public-${publicPrNumber}`;
@@ -634,8 +634,7 @@ async function syncPublicPr() {
 
     try {
       // Initial fetch: --depth=10000 covers the long-running branches that
-      // trip the size-fallback (e.g. inkeep/open-knowledge-legacy#377 with 78
-      // commits). On the rare branch whose merge-base is deeper, the
+      // trip the size-fallback. On the rare branch whose merge-base is deeper, the
       // subsequent `git diff base...head` errors clearly with "no merge
       // base" rather than producing a wrong diff — so we re-fetch with
       // increasing depth before giving up.
