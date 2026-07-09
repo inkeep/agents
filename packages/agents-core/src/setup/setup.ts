@@ -541,6 +541,14 @@ async function initAuth(authInitCommand: string) {
       await execAsync(authInitCommand);
       logSuccess('Auth initialization complete');
     } catch (error) {
+      // In CI a missing admin user/org poisons every downstream login-based
+      // test with misleading timeouts, so fail the setup step itself.
+      if (process.env.CI) {
+        logError('Auth initialization failed', error);
+        throw new Error(
+          `Auth initialization failed (${authInitCommand}) - aborting because CI is set`
+        );
+      }
       logWarning(`Auth initialization failed - you may need to run manually: ${authInitCommand}`);
       logInfo(`Error: ${error instanceof Error ? error.message : String(error)}`);
     }
