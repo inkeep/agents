@@ -588,9 +588,13 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
         interval: '5s', // 5 second polling interval
         userCodeLength: 8, // e.g., "ABCD-EFGH"
       }),
-      haveIBeenPwned({
-        customPasswordCompromisedMessage: 'Please choose a more secure password.',
-      }),
+      ...(config.disablePasswordCompromiseCheck
+        ? []
+        : [
+            haveIBeenPwned({
+              customPasswordCompromisedMessage: 'Please choose a more secure password.',
+            }),
+          ]),
       ...(config.recaptcha
         ? [
             captcha({
