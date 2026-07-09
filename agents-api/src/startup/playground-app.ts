@@ -4,6 +4,7 @@ import { env } from '../env';
 import { getLogger } from '../logger';
 
 const logger = getLogger('playground-app');
+let playgroundConfigScheduled = false;
 
 function derivePlaygroundDomains(): string[] {
   const manageUiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL;
@@ -134,4 +135,17 @@ export async function ensurePlaygroundAppConfig(): Promise<void> {
       'Playground app configuration updated'
     );
   }
+}
+
+export function scheduleEnsurePlaygroundAppConfig(delayMs = 3000): void {
+  if (playgroundConfigScheduled) return;
+  playgroundConfigScheduled = true;
+
+  setTimeout(async () => {
+    try {
+      await ensurePlaygroundAppConfig();
+    } catch (err) {
+      logger.error({ error: err }, 'Failed to configure playground app');
+    }
+  }, delayMs);
 }

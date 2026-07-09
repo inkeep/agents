@@ -10,6 +10,7 @@ import { createAgentsHono } from './createApp';
 import manageDbPool from './data/db/manageDbPool';
 import runDbClient from './data/db/runDbClient';
 import { env } from './env';
+import { scheduleEnsurePlaygroundAppConfig } from './startup/playground-app';
 import type { SandboxConfig } from './types';
 
 export type { UserAuthConfig, SSOProviderConfig };
@@ -51,6 +52,8 @@ export function createAgentsApp(config?: {
   sandboxConfig?: SandboxConfig;
   emailService?: EmailServiceConfig;
 }) {
+  scheduleEnsurePlaygroundAppConfig();
+
   const serverConfig = config?.serverConfig ?? defaultConfig;
   const stores = config?.credentialStores ?? createDefaultCredentialStores();
   const registry = new CredentialStoreRegistry(stores);
