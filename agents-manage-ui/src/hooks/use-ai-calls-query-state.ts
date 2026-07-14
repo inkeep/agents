@@ -15,7 +15,7 @@ export type TimeRange = (typeof timeRanges)[number];
 export function useAICallsQueryState() {
   const [queryState, setQueryState] = useQueryStates({
     // Time range selection with default
-    timeRange: parseAsStringLiteral(timeRanges).withDefault('30d'),
+    timeRange: parseAsStringLiteral(timeRanges).withDefault('7d'),
 
     // Custom date range - using descriptive names instead of 'cs'/'ce'
     customStartDate: parseAsString.withDefault(''),
@@ -47,7 +47,7 @@ export function useAICallsQueryState() {
       setQueryState({
         selectedAgent: 'all',
         selectedModel: 'all',
-        timeRange: '30d',
+        timeRange: '7d',
         customStartDate: '',
         customEndDate: '',
       }),

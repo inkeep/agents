@@ -57,7 +57,7 @@ export default function TracesOverview({
     setHasErrorsFilter,
     setOriginFilter: setSelectedOrigin,
     setSpanFilter,
-  } = useTracesQueryState();
+  } = useTracesQueryState('7d');
 
   // Check if Signoz is configured
   const { isLoading: isSignozConfigLoading, configError: signozConfigError } = useSignozConfig();
@@ -88,8 +88,7 @@ export default function TracesOverview({
           endTime: clampedEndMs,
         };
       }
-      // Default to 30 days if custom dates not set
-      const hoursBack = TIME_RANGES['30d'].hours;
+      const hoursBack = TIME_RANGES['7d'].hours;
       return {
         startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
         endTime: currentEndTime,
@@ -272,7 +271,7 @@ export default function TracesOverview({
         {/* Time Range Filter */}
         <DatePickerWithPresets
           label="Time range"
-          onRemove={() => setSelectedTimeRange('30d')}
+          onRemove={() => setSelectedTimeRange('7d')}
           value={
             selectedTimeRange === CUSTOM
               ? { from: customStartDate, to: customEndDate }
