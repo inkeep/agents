@@ -113,15 +113,14 @@ export default function AICallsBreakdown({
           endTime: clampedEndMs,
         };
       }
-      // Default to 30 days if custom dates not set
-      const hoursBack = TIME_RANGES['30d'].hours;
+      const hoursBack = TIME_RANGES['7d'].hours;
       return {
         startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
         endTime: currentEndTime,
       };
     }
 
-    const hoursBack = TIME_RANGES[timeRange as keyof typeof TIME_RANGES]?.hours || 24 * 30;
+    const hoursBack = TIME_RANGES[timeRange as keyof typeof TIME_RANGES]?.hours || 24 * 7;
     return {
       startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
       endTime: currentEndTime,
@@ -259,7 +258,7 @@ export default function AICallsBreakdown({
         {/* Time Range Filter */}
         <DatePickerWithPresets
           label="Time range"
-          onRemove={() => setTimeRange('30d')}
+          onRemove={() => setTimeRange('7d')}
           value={timeRange === CUSTOM ? { from: customStartDate, to: customEndDate } : timeRange}
           onAdd={(value: TimeRange) => handleTimeRangeChange(value)}
           setCustomDateRange={(start: string, end: string) => setCustomDateRange(start, end)}

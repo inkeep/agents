@@ -49,10 +49,10 @@ export interface SpanAttribute {
  * - Span filtering (name and attributes)
  * - Agent filtering (agentId)
  */
-export function useTracesQueryState() {
+export function useTracesQueryState(defaultTimeRange: TimeRange = '30d') {
   const [queryState, setQueryState] = useQueryStates({
     // Time range selection with default
-    timeRange: parseAsStringLiteral(timeRanges).withDefault('30d'),
+    timeRange: parseAsStringLiteral(timeRanges).withDefault(defaultTimeRange),
 
     // Custom date range - using descriptive names
     customStartDate: parseAsString.withDefault(''),
@@ -111,7 +111,7 @@ export function useTracesQueryState() {
         hasErrors: false,
         spanName: '',
         spanAttributes: [],
-        timeRange: '30d',
+        timeRange: defaultTimeRange,
         customStartDate: '',
         customEndDate: '',
       }),

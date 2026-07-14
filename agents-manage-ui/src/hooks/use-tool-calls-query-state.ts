@@ -5,7 +5,7 @@ export type TimeRange = (typeof timeRanges)[number];
 
 export function useToolCallsQueryState() {
   const [queryState, setQueryState] = useQueryStates({
-    timeRange: parseAsStringLiteral(timeRanges).withDefault('30d'),
+    timeRange: parseAsStringLiteral(timeRanges).withDefault('7d'),
     customStartDate: parseAsString.withDefault(''),
     customEndDate: parseAsString.withDefault(''),
     selectedServer: parseAsString.withDefault('all'),
@@ -30,7 +30,7 @@ export function useToolCallsQueryState() {
       setQueryState({
         selectedServer: 'all',
         selectedTool: 'all',
-        timeRange: '30d',
+        timeRange: '7d',
         customStartDate: '',
         customEndDate: '',
       }),
