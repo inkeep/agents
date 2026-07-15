@@ -50,6 +50,19 @@ vim .env
 pnpm dev
 ```
 
+### 2. Desktop Dev Instance Isolation
+
+When running the OpenKnowledge desktop app in dev mode, instance isolation is handled automatically based on your git branch or worktree. These variables let you customize that behavior:
+
+| Variable | Description |
+|----------|-------------|
+| `OK_INSTANCE` | Explicit instance name. When set, this takes precedence over auto-derivation and isolates userData to `OpenKnowledge (<name>)`. |
+| `OK_AUTO_INSTANCE` | Set to `0` to disable automatic instance derivation from git. When disabled, dev builds on non-default branches will share the default userData. |
+
+<Note>
+These variables only affect dev builds (`!app.isPackaged`). Packaged releases are unaffected.
+</Note>
+
 ## Troubleshooting
 
 ### Auto-login not working
