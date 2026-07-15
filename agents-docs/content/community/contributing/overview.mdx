@@ -50,6 +50,10 @@ If another Docker Compose project is using the required ports, setup tells you e
 
 Need to run multiple dev environments in parallel (e.g., working on two features, or running AI agent sessions side-by-side)? See [Isolated Environments](/community/contributing/isolated-environments).
 
+<Tip>
+When running the OpenKnowledge desktop app from multiple git worktrees, dev instances are now automatically isolated per branch. The instance name is derived from your current git branch or worktree directory, so you can run multiple dev builds side-by-side without manual configuration. Set `OK_AUTO_INSTANCE=0` to disable this behavior, or use `OK_INSTANCE=<name>` for explicit naming.
+</Tip>
+
 Add API keys for the AI providers you want to use in the root `.env` or `~/.inkeep/config`. `ANTHROPIC_API_KEY` is required.
 
 ```dotenv
