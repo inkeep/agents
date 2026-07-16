@@ -1,6 +1,12 @@
+import crypto from 'node:crypto';
 import { getLogger } from '../../../logger';
-import type { SandboxConfig, VercelSandboxConfig } from '../types/executionContext';
+import type {
+  SandboxConfig,
+  TenkiSandboxConfig,
+  VercelSandboxConfig,
+} from '../types/executionContext';
 import { type FunctionToolConfig, NativeSandboxExecutor } from './NativeSandboxExecutor';
+import { TenkiSandboxExecutor } from './TenkiSandboxExecutor';
 import { VercelSandboxExecutor } from './VercelSandboxExecutor';
 
 const logger = getLogger('SandboxExecutorFactory');
@@ -14,6 +20,7 @@ export class SandboxExecutorFactory {
   private static sessionFactories: Map<string, SandboxExecutorFactory> = new Map();
   private nativeExecutor: NativeSandboxExecutor | null = null;
   private vercelExecutors: Map<string, VercelSandboxExecutor> = new Map();
+  private tenkiExecutors: Map<string, TenkiSandboxExecutor> = new Map();
 
   public constructor() {
     logger.info('SandboxExecutorFactory initialized');
@@ -71,6 +78,10 @@ export class SandboxExecutorFactory {
 
     if (sandboxConfig.provider === 'vercel') {
       return this.executeInVercelSandbox(functionId, args, config);
+    }
+
+    if (sandboxConfig.provider === 'tenki') {
+      return this.executeInTenkiSandbox(functionId, args, config);
     }
 
     throw new Error(`Unknown sandbox provider: ${(sandboxConfig as SandboxConfig).provider}`);
@@ -133,6 +144,60 @@ export class SandboxExecutorFactory {
   }
 
   /**
+   * Execute in Tenki sandbox
+   */
+  private async executeInTenkiSandbox(
+    functionId: string,
+    args: Record<string, unknown>,
+    config: FunctionToolConfig
+  ): Promise<unknown> {
+    const tenkiConfig = config.sandboxConfig as TenkiSandboxConfig;
+
+    // Key executors by the full configuration so distinct credentials,
+    // projects, or resource settings never share a client (token is hashed,
+    // never stored raw)
+    const configKey = crypto
+      .createHash('sha256')
+      .update(
+        JSON.stringify([
+          tenkiConfig.authToken,
+          tenkiConfig.baseUrl,
+          tenkiConfig.projectId,
+          tenkiConfig.runtime,
+          tenkiConfig.timeout,
+          tenkiConfig.vcpus,
+        ])
+      )
+      .digest('hex')
+      .substring(0, 16);
+
+    // Get or create Tenki executor for this configuration
+    if (!this.tenkiExecutors.has(configKey)) {
+      const executor = new TenkiSandboxExecutor(tenkiConfig);
+      this.tenkiExecutors.set(configKey, executor);
+      logger.info(
+        {
+          baseUrl: tenkiConfig.baseUrl,
+        },
+        'Tenki sandbox executor created'
+      );
+    }
+
+    const executor = this.tenkiExecutors.get(configKey);
+    if (!executor) {
+      throw new Error(`Failed to get Tenki executor for config: ${configKey}`);
+    }
+
+    const result = await executor.executeFunctionTool(functionId, args, config);
+
+    if (!result.success) {
+      throw new Error(result.error || 'Tenki sandbox execution failed');
+    }
+
+    return result.result;
+  }
+
+  /**
    * Clean up all sandbox executors
    */
   public async cleanup(): Promise<void> {
@@ -146,6 +211,11 @@ export class SandboxExecutorFactory {
     for (const [key, executor] of this.vercelExecutors.entries()) {
       await executor.cleanup();
       this.vercelExecutors.delete(key);
+    }
+
+    for (const [key, executor] of this.tenkiExecutors.entries()) {
+      await executor.cleanup();
+      this.tenkiExecutors.delete(key);
     }
 
     logger.info('Sandbox executor cleanup completed');
