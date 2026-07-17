@@ -91,3 +91,19 @@ enable it.
 ### How on-demand skills work
 
 On-demand skills appear as an outline in the system prompt. When the agent determines a skill is relevant based on its description, it calls the built-in `load_skill` tool to retrieve the full content and any synced nested files. This keeps prompts compact while still giving agents access to specialized instructions and templates when needed.
+
+## Sharing skills in local-only projects
+
+When a project uses **local-only** sharing mode, the `.ok/` directory is excluded from git to keep machine-local config and PII files private. By default this also excludes `.ok/skills/`, which prevents you from committing and sharing project skills with your team.
+
+To enable skills sharing while keeping other configuration private:
+
+1. Go to **Skills** in the left sidebar.
+2. If skills are currently hidden from git, an amber banner appears with a **Share skills** button.
+3. Click **Share skills** to update the git exclusion pattern.
+
+After enabling, `.ok/skills/` becomes committable and you can push your project skills to the repository. Other `.ok/` contents (`.ok/local/`, `.ok/worktrees/`, `config.yml`, and PII files) remain hidden from git.
+
+<Note>
+This option only appears when your project uses local-only sharing mode and skills are currently excluded from git. Projects using full shared mode don't need this step since the entire `.ok/` directory is already tracked.
+</Note>
