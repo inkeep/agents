@@ -18,33 +18,52 @@ import { TenkiSandboxExecutor } from '../TenkiSandboxExecutor';
 
 const encoder = new TextEncoder();
 
-function runHandle(result: { exitCode: number; stdout: Uint8Array; stderr: Uint8Array }) {
+function streamOf(...chunks: Uint8Array[]) {
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (const chunk of chunks) controller.enqueue(chunk);
+      controller.close();
+    },
+  });
+}
+
+function openStream() {
+  return new ReadableStream<Uint8Array>({ start() {} });
+}
+
+function runHandle(
+  result: { exitCode: number },
+  output?: { stdout?: Uint8Array[]; stderr?: Uint8Array[] }
+) {
   return Object.assign(Promise.resolve(result), {
     kill: vi.fn(async () => {}),
+    stdout: streamOf(...(output?.stdout ?? [])),
+    stderr: streamOf(...(output?.stderr ?? [])),
   });
 }
 
 function createSessionMock(writtenPaths: string[]) {
   return {
     id: 'sbx_test',
+    waitReady: vi.fn(async () => {}),
     writeFile: vi.fn(async (path: string, _content: string) => {
       writtenPaths.push(path);
     }),
     run: vi.fn((argv: string[]) => {
-      if (argv[0] === 'node') {
-        return runHandle({
-          exitCode: 0,
-          stdout: encoder.encode(
-            `ok\n${JSON.stringify({ success: true, result: { ok: true } })}\n`
-          ),
-          stderr: new Uint8Array(),
-        });
+      if (argv[0] === 'node' && argv[1] !== '--version') {
+        return runHandle(
+          { exitCode: 0 },
+          {
+            stdout: [
+              encoder.encode(`ok\n${JSON.stringify({ success: true, result: { ok: true } })}\n`),
+            ],
+          }
+        );
       }
-      return runHandle({
-        exitCode: 0,
-        stdout: new Uint8Array(),
-        stderr: new Uint8Array(),
-      });
+      if (argv[1] === '--version') {
+        return runHandle({ exitCode: 0 }, { stdout: [encoder.encode('v22.11.0\n')] });
+      }
+      return runHandle({ exitCode: 0 });
     }),
     close: vi.fn(async () => {}),
   };
@@ -79,6 +98,7 @@ describe('TenkiSandboxExecutor concurrency', () => {
     const [r1, r2] = await Promise.all([res1, res2]);
 
     expect(r1.success).toBe(true);
+    expect(r1.result).toEqual({ ok: true });
     expect(r2.success).toBe(true);
     expect(createMock).toHaveBeenCalledTimes(1);
     expect(writtenPaths.length).toBe(2);
@@ -106,8 +126,14 @@ describe('TenkiSandboxExecutor concurrency', () => {
 
     expect(result.success).toBe(true);
     expect(createMock).toHaveBeenCalledWith(
-      expect.objectContaining({ allowOutbound: true, cpuCores: 2, projectId: 'prj_1' })
+      expect.objectContaining({
+        allowOutbound: true,
+        cpuCores: 2,
+        projectId: 'prj_1',
+        waitReady: false,
+      })
     );
+    expect(session.waitReady).toHaveBeenCalled();
     const createOptions = createMock.mock.calls[0][0];
     expect(createOptions.maxDurationMs).toBeGreaterThan(60000);
     expect(session.writeFile).toHaveBeenCalledWith(
@@ -117,6 +143,33 @@ describe('TenkiSandboxExecutor concurrency', () => {
     expect(session.run).toHaveBeenCalledWith(['npm', 'install', '--omit=dev'], expect.anything());
   });
 
+  it('closes the session when readiness fails after the VM was created', async () => {
+    createMock.mockReset();
+    const executor = new TenkiSandboxExecutor({ ...baseConfig });
+
+    const writtenPaths: string[] = [];
+    const session = {
+      ...createSessionMock(writtenPaths),
+      waitReady: vi.fn(async () => {
+        throw new Error('runtime failed to become ready');
+      }),
+    };
+    createMock.mockResolvedValue(session);
+
+    const toolConfig = {
+      name: 'tool',
+      executeCode: 'async (args) => args',
+      dependencies: {},
+      sandboxConfig: { ...baseConfig },
+    };
+
+    const result = await executor.executeFunctionTool('fn', {}, toolConfig as any);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/failed to become ready/);
+    expect(session.close).toHaveBeenCalled();
+  });
+
   it('kills a timed-out command, evicts the sandbox, and creates a fresh one next call', async () => {
     createMock.mockReset();
     const executor = new TenkiSandboxExecutor({ ...baseConfig, timeout: 100 });
@@ -124,12 +177,20 @@ describe('TenkiSandboxExecutor concurrency', () => {
     const killMock = vi.fn(async () => {});
     const hangingSession = {
       id: 'sbx_hang',
+      waitReady: vi.fn(async () => {}),
       writeFile: vi.fn(async () => {}),
       run: vi.fn((argv: string[]) => {
-        if (argv[0] === 'node') {
-          return Object.assign(new Promise(() => {}), { kill: killMock });
+        if (argv[0] === 'node' && argv[1] !== '--version') {
+          return Object.assign(new Promise(() => {}), {
+            kill: killMock,
+            stdout: openStream(),
+            stderr: openStream(),
+          });
         }
-        return runHandle({ exitCode: 0, stdout: new Uint8Array(), stderr: new Uint8Array() });
+        if (argv[1] === '--version') {
+          return runHandle({ exitCode: 0 }, { stdout: [encoder.encode('v22.11.0\n')] });
+        }
+        return runHandle({ exitCode: 0 });
       }),
       close: vi.fn(async () => {}),
     };
@@ -162,6 +223,75 @@ describe('TenkiSandboxExecutor concurrency', () => {
 
     expect(retry.success).toBe(true);
     expect(createMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('kills a command whose output exceeds the size limit and retires the sandbox', async () => {
+    createMock.mockReset();
+    const executor = new TenkiSandboxExecutor({ ...baseConfig });
+
+    const bigChunk = new Uint8Array(600 * 1024);
+    const killMock = vi.fn(async () => {});
+    const session = {
+      id: 'sbx_flood',
+      waitReady: vi.fn(async () => {}),
+      writeFile: vi.fn(async () => {}),
+      run: vi.fn((argv: string[]) => {
+        if (argv[0] === 'node' && argv[1] !== '--version') {
+          return Object.assign(Promise.resolve({ exitCode: 0 }), {
+            kill: killMock,
+            stdout: streamOf(bigChunk, bigChunk),
+            stderr: streamOf(),
+          });
+        }
+        if (argv[1] === '--version') {
+          return runHandle({ exitCode: 0 }, { stdout: [encoder.encode('v22.11.0\n')] });
+        }
+        return runHandle({ exitCode: 0 });
+      }),
+      close: vi.fn(async () => {}),
+    };
+    createMock.mockResolvedValue(session);
+
+    const toolConfig = {
+      name: 'tool',
+      executeCode: "async () => 'x'.repeat(10_000_000)",
+      dependencies: {},
+      sandboxConfig: { ...baseConfig },
+    };
+
+    const result = await executor.executeFunctionTool('fn', {}, toolConfig as any);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Output size exceeded limit/);
+    expect(killMock).toHaveBeenCalled();
+    await vi.waitFor(() => expect(session.close).toHaveBeenCalled());
+  });
+
+  it('retires the sandbox when infrastructure fails mid-execution', async () => {
+    createMock.mockReset();
+    const executor = new TenkiSandboxExecutor({ ...baseConfig });
+
+    const writtenPaths: string[] = [];
+    const session = {
+      ...createSessionMock(writtenPaths),
+      writeFile: vi.fn(async () => {
+        throw new Error('transport closed');
+      }),
+    };
+    createMock.mockResolvedValue(session);
+
+    const toolConfig = {
+      name: 'tool',
+      executeCode: 'async (args) => args',
+      dependencies: {},
+      sandboxConfig: { ...baseConfig },
+    };
+
+    const result = await executor.executeFunctionTool('fn', {}, toolConfig as any);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/transport closed/);
+    await vi.waitFor(() => expect(session.close).toHaveBeenCalled());
   });
 
   it('closes a sandbox whose initialization completes after cleanup starts', async () => {
@@ -300,22 +430,27 @@ describe('TenkiSandboxExecutor concurrency', () => {
     let releaseSlowNode: (() => void) | undefined;
     const session = {
       id: 'sbx_active',
+      waitReady: vi.fn(async () => {}),
       writeFile: vi.fn(async () => {}),
       run: vi.fn((argv: string[]) => {
-        if (argv[0] === 'node') {
+        if (argv[0] === 'node' && argv[1] !== '--version') {
           return Object.assign(
             new Promise((resolve) => {
-              releaseSlowNode = () =>
-                resolve({
-                  exitCode: 0,
-                  stdout: encoder.encode(`${JSON.stringify({ success: true, result: null })}\n`),
-                  stderr: new Uint8Array(),
-                });
+              releaseSlowNode = () => resolve({ exitCode: 0 });
             }),
-            { kill: vi.fn(async () => {}) }
+            {
+              kill: vi.fn(async () => {}),
+              stdout: streamOf(
+                encoder.encode(`${JSON.stringify({ success: true, result: null })}\n`)
+              ),
+              stderr: streamOf(),
+            }
           );
         }
-        return runHandle({ exitCode: 0, stdout: new Uint8Array(), stderr: new Uint8Array() });
+        if (argv[1] === '--version') {
+          return runHandle({ exitCode: 0 }, { stdout: [encoder.encode('v22.11.0\n')] });
+        }
+        return runHandle({ exitCode: 0 });
       }),
       close: vi.fn(async () => {}),
     };

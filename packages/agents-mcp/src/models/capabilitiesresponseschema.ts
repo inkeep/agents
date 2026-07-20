@@ -12,6 +12,7 @@ import { ClosedEnum } from "../types/enums.js";
 export const Provider = {
   Native: "native",
   Vercel: "vercel",
+  Tenki: "tenki",
 } as const;
 /**
  * The configured sandbox provider, if enabled.
@@ -21,6 +22,7 @@ export type Provider = ClosedEnum<typeof Provider>;
 export const Provider$zodSchema = z.enum([
   "native",
   "vercel",
+  "tenki",
 ]).describe("The configured sandbox provider, if enabled.");
 
 /**

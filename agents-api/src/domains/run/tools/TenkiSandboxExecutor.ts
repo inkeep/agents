@@ -3,6 +3,7 @@ import { type Session, TenkiSandbox } from '@tenkicloud/sandbox';
 import { getLogger } from '../../../logger';
 import {
   FUNCTION_TOOL_SANDBOX_CLEANUP_INTERVAL_MS,
+  FUNCTION_TOOL_SANDBOX_MAX_OUTPUT_SIZE_BYTES,
   FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT,
   FUNCTION_TOOL_SANDBOX_POOL_TTL_MS,
 } from '../constants/execution-limits';
@@ -17,10 +18,13 @@ const TENKI_GUEST_WORKDIR = '/home/tenki';
 const DEFAULT_EXEC_TIMEOUT_MS = 60_000;
 const SESSION_LIFETIME_BUFFER_MS = 10_000;
 const KILL_GRACE_PERIOD_MS = 5_000;
+const SESSION_READY_TIMEOUT_MS = 180_000;
 
 const decoder = new TextDecoder();
 
 class CommandTimeoutError extends Error {}
+
+class CommandOutputLimitError extends Error {}
 
 interface CommandResult {
   exitCode: number;
@@ -39,6 +43,17 @@ interface CachedSandbox {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function concatChunks(chunks: Uint8Array[]): Uint8Array {
+  const total = chunks.reduce((size, chunk) => size + chunk.byteLength, 0);
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return out;
 }
 
 /**
@@ -93,11 +108,13 @@ export class TenkiSandboxExecutor {
   }
 
   /**
-   * Run a command in the sandbox with a client-side timeout. The SDK's
-   * Session.exec() does not enforce timeoutMs in 0.3.x and kill() only
-   * enqueues the signal, so the timeout is enforced here: on expiry the
-   * process is killed, termination is awaited for a bounded grace period,
-   * and the call rejects with CommandTimeoutError regardless of late exit.
+   * Run a command in the sandbox with a client-side timeout and output cap.
+   * The SDK's Session.exec() does not enforce timeoutMs in 0.3.x and kill()
+   * only enqueues the signal, so both limits are enforced here: on timeout or
+   * output overflow the process is killed, termination is awaited for a
+   * bounded grace period, and the call rejects with a typed error. Output is
+   * consumed incrementally from the process streams so an untrusted tool
+   * cannot buffer unbounded stdout/stderr into API memory.
    */
   private async runCommand(
     session: Session,
@@ -107,7 +124,45 @@ export class TenkiSandboxExecutor {
     const handle = session.run(argv, options?.env !== undefined ? { env: options.env } : {});
     const timeoutMs = this.execTimeoutMs;
 
-    return await new Promise<CommandResult>((resolve, reject) => {
+    const stdoutChunks: Uint8Array[] = [];
+    const stderrChunks: Uint8Array[] = [];
+    let totalBytes = 0;
+    let overflow = false;
+
+    const readCapped = async (
+      stream: ReadableStream<Uint8Array>,
+      sink: Uint8Array[]
+    ): Promise<void> => {
+      const reader = stream.getReader();
+      try {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done || value === undefined) break;
+          totalBytes += value.byteLength;
+          if (totalBytes > FUNCTION_TOOL_SANDBOX_MAX_OUTPUT_SIZE_BYTES) {
+            overflow = true;
+            try {
+              await handle.kill();
+            } catch {
+              // ignore
+            }
+            break;
+          }
+          sink.push(value);
+        }
+      } catch {
+        // stream failures surface through the process result
+      } finally {
+        reader.releaseLock();
+      }
+    };
+
+    const consumed = Promise.all([
+      readCapped(handle.stdout, stdoutChunks),
+      readCapped(handle.stderr, stderrChunks),
+    ]);
+
+    const result = await new Promise<{ exitCode: number }>((resolve, reject) => {
       let expired = false;
       const timer = setTimeout(async () => {
         expired = true;
@@ -127,10 +182,10 @@ export class TenkiSandboxExecutor {
       }, timeoutMs);
 
       Promise.resolve(handle).then(
-        (result) => {
+        (value) => {
           if (!expired) {
             clearTimeout(timer);
-            resolve(result);
+            resolve(value);
           }
         },
         (error) => {
@@ -141,6 +196,20 @@ export class TenkiSandboxExecutor {
         }
       );
     });
+
+    await Promise.race([consumed, sleep(KILL_GRACE_PERIOD_MS)]);
+
+    if (overflow) {
+      throw new CommandOutputLimitError(
+        `Output size exceeded limit of ${FUNCTION_TOOL_SANDBOX_MAX_OUTPUT_SIZE_BYTES} bytes: ${argv[0]}`
+      );
+    }
+
+    return {
+      exitCode: result.exitCode,
+      stdout: concatChunks(stdoutChunks),
+      stderr: concatChunks(stderrChunks),
+    };
   }
 
   private async getOrCreateSandbox(params: {
@@ -166,13 +235,18 @@ export class TenkiSandboxExecutor {
       let session: Session | null = null;
       try {
         const projectId = await this.resolveProjectId();
+        // waitReady: false so the session handle is captured before readiness;
+        // if the VM comes up but never turns ready, the catch below can still
+        // close it instead of leaking a running cloud session
         session = await this.client.create({
           name: `inkeep-fn-${params.dependencyHash}`,
           cpuCores: this.config.vcpus || 1,
           allowOutbound: true,
           maxDurationMs: this.sessionLifetimeMs,
+          waitReady: false,
           ...(projectId !== undefined ? { projectId } : {}),
         });
+        await session.waitReady(SESSION_READY_TIMEOUT_MS);
 
         logger.info(
           {
@@ -183,6 +257,17 @@ export class TenkiSandboxExecutor {
           },
           'New sandbox created'
         );
+
+        if (this.config.runtime === 'node22') {
+          const versionResult = await this.runCommand(session, ['node', '--version']);
+          const nodeVersion = decoder.decode(versionResult.stdout).trim();
+          if (!nodeVersion.startsWith('v22.')) {
+            logger.warn(
+              { nodeVersion, configuredRuntime: this.config.runtime },
+              'Guest Node.js version does not match the configured runtime; the Tenki base image controls the Node version — use a custom image to pin it'
+            );
+          }
+        }
 
         if (Object.keys(params.dependencies).length > 0) {
           logger.debug(
@@ -599,9 +684,7 @@ export class TenkiSandboxExecutor {
         try {
           executeResult = await this.runCommand(session, argv, { env });
         } catch (error) {
-          if (error instanceof CommandTimeoutError) {
-            cleanupRunDir = false;
-          }
+          cleanupRunDir = false;
           throw error;
         }
 
@@ -632,7 +715,20 @@ export class TenkiSandboxExecutor {
           };
         }
 
-        const result = parseExecutionResult(executeStdout, functionId, logger);
+        const parsed = parseExecutionResult(executeStdout, functionId, logger);
+        let result: unknown = parsed;
+        if (typeof parsed === 'object' && parsed !== null && 'success' in parsed) {
+          const wrapper = parsed as { success: boolean; result?: unknown; error?: string };
+          if (!wrapper.success) {
+            return {
+              success: false,
+              error: wrapper.error || 'Function execution failed',
+              logs,
+              executionTime,
+            };
+          }
+          result = wrapper.result;
+        }
 
         logger.info(
           {
@@ -662,10 +758,14 @@ export class TenkiSandboxExecutor {
       const executionTime = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : String(error);
 
-      if (error instanceof CommandTimeoutError && session) {
+      // Any exception after a session is leased is infrastructure-shaped
+      // (timeout, output overflow, transport/stream/write failure) — retire
+      // the session by identity rather than risk reusing a bad VM. Ordinary
+      // user-code failures return via exit codes and never reach this path.
+      if (session) {
         logger.warn(
-          { functionId, dependencyHash },
-          'Command timed out; retiring sandbox from pool'
+          { functionId, dependencyHash, error: errorMessage },
+          'Execution infrastructure error; retiring sandbox from pool'
         );
         this.retireSandbox(dependencyHash, session);
       }
