@@ -489,29 +489,28 @@ export class IncrementalStreamParser {
     }
 
     if (this.buffer) {
-      const part: StreamPart = {
-        kind: 'text',
-        text: this.buffer,
-      };
-      await this.streamPart(part);
+      this.pendingTextBuffer += this.buffer;
+      this.buffer = '';
     }
 
     if (this.pendingTextBuffer) {
       const cleanedText = this.pendingTextBuffer
-        .replace(/<\/?artifact:ref(?:\s[^>]*)?>\/?>/g, '') // Remove artifact:ref tags safely
-        .replace(/<\/?artifact(?:\s[^>]*)?>\/?>/g, '') // Remove artifact tags safely
-        .replace(/<\/artifact:ref>/g, '') // Remove closing artifact:ref tags
-        .replace(/<\/(?:\w+:)?artifact>/g, ''); // Remove closing artifact tags safely
+        .replace(/<\/?artifact:ref(?:\s[^>]*)?>\/?>/g, '')
+        .replace(/<\/?artifact(?:\s[^>]*)?>\/?>/g, '')
+        .replace(/<\/artifact:ref>/g, '')
+        .replace(/<\/(?:\w+:)?artifact>/g, '');
 
       if (cleanedText) {
+        if (!this.hasStartedRole) {
+          await this.streamHelper.writeRole('assistant');
+          this.hasStartedRole = true;
+        }
         const textPart: StreamPart = {
           kind: 'text',
           text: cleanedText,
         };
         this.collectedParts.push(textPart);
-
         this.allStreamedContent.push(textPart);
-
         await this.streamHelper.streamText(cleanedText, 0);
       }
       this.pendingTextBuffer = '';

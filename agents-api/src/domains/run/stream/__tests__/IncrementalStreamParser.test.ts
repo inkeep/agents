@@ -703,6 +703,66 @@ describe('IncrementalStreamParser', () => {
     });
   });
 
+  describe('finalize', () => {
+    it('does not duplicate collected parts when buffer has content alongside pendingTextBuffer', async () => {
+      (parser as any).buffer = ' more text';
+      (parser as any).pendingTextBuffer = 'initial';
+      (parser as any).hasStartedRole = true;
+
+      await parser.finalize();
+
+      const collected = parser.getCollectedParts();
+      const textParts = collected.filter((p) => p.kind === 'text');
+      const allText = textParts.map((p) => p.text).join('');
+
+      expect(allText).toBe('initial more text');
+      expect(textParts).toHaveLength(1);
+    });
+
+    it('removes complete artifact tags from buffer+pendingTextBuffer at finalize', async () => {
+      (parser as any).buffer = ' after tag';
+      (parser as any).pendingTextBuffer = 'before </artifact:ref>';
+      (parser as any).hasStartedRole = true;
+
+      await parser.finalize();
+
+      const collected = parser.getCollectedParts();
+      const textParts = collected.filter((p) => p.kind === 'text');
+      const allText = textParts.map((p) => p.text).join('');
+
+      expect(allText).toBe('before  after tag');
+      expect(textParts).toHaveLength(1);
+
+      const streamCalls = (mockStreamHelper.streamText as ReturnType<typeof vi.fn>).mock.calls;
+      expect(streamCalls).toHaveLength(1);
+      expect(streamCalls[0][0]).toBe('before  after tag');
+    });
+
+    it('writes role before streaming if not yet started', async () => {
+      (parser as any).buffer = 'hello';
+      (parser as any).hasStartedRole = false;
+
+      await parser.finalize();
+
+      expect(mockStreamHelper.writeRole).toHaveBeenCalledWith('assistant');
+      expect(mockStreamHelper.streamText).toHaveBeenCalledWith('hello', 0);
+    });
+
+    it('flushes remaining non-Text data components at finalization', async () => {
+      await parser.processObjectDelta({
+        dataComponents: [{ id: 'card1', name: 'Card', props: { title: 'Test Card' } }],
+      });
+
+      await parser.finalize();
+
+      expect(mockArtifactParser.parseObject).toHaveBeenCalledWith(
+        { dataComponents: [{ id: 'card1', name: 'Card', props: { title: 'Test Card' } }] },
+        expect.any(Map),
+        expect.any(String)
+      );
+    });
+  });
+
   describe('internal tool_result artifact suppression (live SSE)', () => {
     it('does not stream an internal tool_result artifact to the end user', async () => {
       const internalArtifactPart = {
