@@ -16,9 +16,9 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
       - name: Check for changes
-        uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2
+        uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
         id: changes
         with:
           filters: |
@@ -26,7 +26,7 @@ jobs:
               - 'agents-docs/**'
       - name: Sync Source
         if: steps.changes.outputs.docs == 'true'
-        uses: inkeep/pr-commenter-action@84ccc7c74b72f628ec7e2b572e0cb7afd5898594 # v10
+        uses: inkeep/pr-commenter-action@bac203359f0328cbb89cca8f9ead7a7176f39a61 # v11
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
         with:
