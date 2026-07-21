@@ -793,3 +793,12 @@ This repository keeps one canonical source for agent guidance and skills, mirror
 | `.agents/skills/` | `.codex/skills/` |
 
 Cursor reads `.agents/skills/` natively and Claude Code loads skills via plugins, so neither needs a generated mirror. AGENTS.md is always loaded by the Agent Harness, and Skills provide on-demand expertise for specific development tasks. They are auto-discovered — no need to document them here.
+
+## Cursor Cloud specific instructions
+
+Non-obvious caveats for Cursor Cloud agents bringing this subtree up in an ephemeral Linux VM (standard commands are documented above):
+
+- Node: `nvm use default` (22.22.2) before pnpm; the VM base `/exec-daemon/node` (22.14.0) fails `engine-strict` (`agents-core` needs `>=22.18.0`). Login shells select it via `~/.bashrc`.
+- Docker (Doltgres `:5432`, Postgres `:5433`, SpiceDB `:50051`, Mailpit) is preinstalled but not auto-started: `sudo dockerd &` then `sudo chmod 666 /var/run/docker.sock`. `/etc/docker/daemon.json` is preset for `fuse-overlayfs` (containerd snapshotter disabled, required on this kernel).
+- Build `@inkeep/agents-core` before `pnpm setup-dev` (setup imports its `dist/setup`). Then `pnpm dev` serves API `:3002` (`/health` 204) and Manage UI `:3000` (local-dev auto-login `admin@example.com`).
+- `.env` needs `ANTHROPIC_API_KEY`; a placeholder unblocks DB/API/UI + project CRUD, real agent chat needs a valid key. `setup-dev`'s sample-project push may fail (`inkeep` bin not resolvable) but is non-fatal.
