@@ -226,7 +226,7 @@
     "exit-hook": "^4.0.0",
     "file-type": "^21.3.1",
     "find-up": "^7.0.0",
-    "hono": "^4.12.7",
+    "hono": "^4.12.27",
     "ipaddr.js": "^2.3.0",
     "iwanthue": "^2.0.0",
     "jmespath": "^0.16.0",
