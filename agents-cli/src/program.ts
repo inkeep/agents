@@ -15,6 +15,11 @@ import {
 } from './commands/profile';
 import { pullV4Command } from './commands/pull-v4/introspect';
 import { pushCommand } from './commands/push';
+import {
+  recentProjectsListCommand,
+  recentProjectsPruneCommand,
+  recentProjectsRemoveCommand,
+} from './commands/recent-projects';
 import { statusCommand } from './commands/status';
 import { updateCommand } from './commands/update';
 import { whoamiCommand } from './commands/whoami';
@@ -231,6 +236,25 @@ export function createProgram(): Command {
     .command('remove <name>')
     .description('Remove a profile')
     .action(profileRemoveCommand);
+
+  const recentProjectsCommand = program
+    .command('recent-projects')
+    .description('Manage recent project history');
+
+  recentProjectsCommand
+    .command('list')
+    .description('List recent projects and flag missing directories')
+    .action(recentProjectsListCommand);
+
+  recentProjectsCommand
+    .command('remove <path>')
+    .description('Remove a project from recent history by its directory path')
+    .action(recentProjectsRemoveCommand);
+
+  recentProjectsCommand
+    .command('prune')
+    .description('Remove all recent projects whose directories no longer exist')
+    .action(recentProjectsPruneCommand);
 
   return program;
 }
