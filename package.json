@@ -137,7 +137,6 @@
     "overrides": {
       "@hono/node-server": ">=1.19.13",
       "@modelcontextprotocol/sdk": ">=1.26.0",
-      "@workflow/core": ">=4.2.0-beta.64",
       "dompurify": ">=3.4.0",
       "fast-xml-parser": ">=5.7.0",
       "serialize-javascript": ">=7.0.5",

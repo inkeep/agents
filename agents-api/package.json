@@ -76,10 +76,10 @@
     "@vercel/functions": "^3.5.1",
     "@vercel/queue": "^0.1.6",
     "@vercel/sandbox": "^0.0.24",
-    "@workflow/builders": "^4.0.1-beta.58",
-    "@workflow/world-local": "^4.1.0-beta.40",
-    "@workflow/world-postgres": "^4.1.0-beta.42",
-    "@workflow/world-vercel": "^4.1.0-beta.41",
+    "@workflow/builders": "^4.1.1",
+    "@workflow/world-local": "^4.2.1",
+    "@workflow/world-postgres": "^4.3.0",
+    "@workflow/world-vercel": "^4.5.0",
     "ai": "6.0.191",
     "ajv": "^8.18.0",
     "cron-parser": "^5.5.0",
@@ -91,7 +91,7 @@
     "jose": "^6.1.0",
     "llm-info": "^1.0.69",
     "pg": "^8.16.3",
-    "workflow": "4.2.0-beta.67"
+    "workflow": "4.6.0"
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^1.1.5",
