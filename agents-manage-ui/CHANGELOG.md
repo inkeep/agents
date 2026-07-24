@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-ui
 
+## 0.80.5
+
+### Patch Changes
+
+- a24910f: Adjusting conversations per day graph due to changed timestamp parsing
+- e738843: Update @inkeep/agents-ui to 0.17.7 for chat error messaging and search bar fixes
+- Updated dependencies [bf54e9e]
+- Updated dependencies [f160b29]
+  - @inkeep/agents-core@0.80.5
+
 ## 0.80.4
 
 ### Patch Changes
