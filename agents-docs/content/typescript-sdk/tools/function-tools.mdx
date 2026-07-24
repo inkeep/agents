@@ -182,6 +182,7 @@ The framework supports multiple sandbox providers:
 
 - **Native** (default) - Uses Node.js child processes, works in most environments including cloud VMs, Docker, Kubernetes, and traditional hosting
 - **Vercel** - Uses Vercel Sandbox MicroVMs for serverless environments where child process spawning is restricted (Vercel, AWS Lambda, etc.)
+- **Tenki** - Uses [Tenki Sandbox](https://tenki.cloud) microVMs, a hosted sandbox provider that works from any deployment environment. Set `SANDBOX_TENKI_API_KEY` (a Tenki API key, `tk_...`) to enable it
 
 The sandbox provider is configured at the application level when deploying. See [Deploy to Vercel](/deployment/vercel#step-2-configure-sandbox-in-your-application) for serverless deployment configuration.
 
@@ -194,10 +195,24 @@ import { createAgentsApp } from "@inkeep/agents-api";
 
 const app = createAgentsApp({
   sandboxConfig: {
-    provider: "native", // or 'vercel' for serverless
+    provider: "native", // or 'vercel' / 'tenki' for hosted microVMs
     runtime: "node22", // Node.js 22 or 'typescript'
     timeout: 30000, // 30 second timeout
     vcpus: 2, // Max 2 concurrent executions
+  },
+});
+```
+
+For the Tenki provider, pass the API key (or set `TENKI_API_KEY` in the environment):
+
+```typescript
+const app = createAgentsApp({
+  sandboxConfig: {
+    provider: "tenki",
+    runtime: "node22",
+    timeout: 60000, // per-command execution timeout
+    vcpus: 2, // CPU cores per sandbox microVM
+    authToken: process.env.SANDBOX_TENKI_API_KEY,
   },
 });
 ```

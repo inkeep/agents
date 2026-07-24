@@ -72,6 +72,7 @@
     "@opentelemetry/sdk-trace-base": "catalog:",
     "@opentelemetry/semantic-conventions": "catalog:",
     "@smithy/node-http-handler": "^4.4.0",
+    "@tenkicloud/sandbox": "^0.3.6",
     "@vercel/blob": "^2.3.0",
     "@vercel/functions": "^3.5.1",
     "@vercel/queue": "^0.1.6",

@@ -25,7 +25,14 @@ export interface VercelSandboxConfig extends CommonSandboxConfig {
   token: string;
 }
 
-export type SandboxConfig = NativeSandboxConfig | VercelSandboxConfig;
+export interface TenkiSandboxConfig extends CommonSandboxConfig {
+  provider: 'tenki';
+  authToken?: string;
+  baseUrl?: string;
+  projectId?: string;
+}
+
+export type SandboxConfig = NativeSandboxConfig | VercelSandboxConfig | TenkiSandboxConfig;
 
 type BaseAppVariables = {
   requestId: string;
