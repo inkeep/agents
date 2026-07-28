@@ -159,13 +159,9 @@ const timestampMsFromSeries = (s: { values?: Array<{ value?: string }> }): numbe
   const raw = s.values?.[0]?.value;
   if (!raw || raw === '0') return 0;
 
-  const truncated = raw.replace(/(\.\d{3})\d+/, '$1');
-  const d = new Date(truncated);
-  if (!Number.isNaN(d.getTime()) && d.getTime() > 0) return d.getTime();
-
+  // SigNoz returns min(timestamp) as epoch seconds.
   const num = Number(raw);
-  if (!Number.isNaN(num) && num > 1e15) return nsToMs(num);
-  if (!Number.isNaN(num) && num > 0) return num;
+  if (!Number.isNaN(num) && num > 0) return Math.round(num * 1000);
   return 0;
 };
 

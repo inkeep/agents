@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.80.5
+
+### Patch Changes
+
+- bf54e9e: Fix `pnpm db:auth:init` failing when the haveIBeenPwned API is unreachable. The bootstrap script now skips the external password-compromise lookup (strength is still enforced locally by the password policy), and `setup-dev` fails fast in CI when auth initialization fails instead of continuing with a half-initialized environment.
+- f160b29: Fix AI Gateway timeout retries by updating the Gateway provider to correctly classify retryable errors.
+
 ## 0.80.4
 
 ## 0.80.3
