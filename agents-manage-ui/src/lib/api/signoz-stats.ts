@@ -155,14 +155,26 @@ const buildScopedFilterItems = (
 
 const nsToMs = (ns: number) => Math.floor(ns / 1_000_000);
 
+function timestampMsFromValue(raw: unknown): number {
+  if (raw == null) return 0;
+  if (typeof raw === 'number') {
+    if (raw > 1e15) return nsToMs(raw);
+    if (raw > 1e12) return raw;
+    if (raw > 0) return raw * 1000;
+    return 0;
+  }
+  if (typeof raw === 'string') {
+    const num = Number(raw);
+    if (!Number.isNaN(num)) return timestampMsFromValue(num);
+    const parsed = new Date(raw).getTime();
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+  return 0;
+}
+
 const timestampMsFromSeries = (s: { values?: Array<{ value?: string }> }): number => {
   const raw = s.values?.[0]?.value;
-  if (!raw || raw === '0') return 0;
-
-  // SigNoz returns min(timestamp) as epoch seconds.
-  const num = Number(raw);
-  if (!Number.isNaN(num) && num > 0) return Math.round(num * 1000);
-  return 0;
+  return timestampMsFromValue(raw);
 };
 
 const asNumberIfNumeric = (v: string) => (/^-?\d+(\.\d+)?$/.test(v) ? Number(v) : v);
@@ -212,23 +224,6 @@ const HOUR_IN_SECONDS = 3600;
 const dateKeyFromMs = (ms: number) => {
   const d = new Date(ms);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
-
-const timestampMsFromValue = (raw: unknown): number => {
-  if (raw == null) return 0;
-  if (typeof raw === 'number') {
-    if (raw > 1e15) return nsToMs(raw);
-    if (raw > 1e12) return raw;
-    if (raw > 0) return raw * 1000;
-    return 0;
-  }
-  if (typeof raw === 'string') {
-    const num = Number(raw);
-    if (!Number.isNaN(num)) return timestampMsFromValue(num);
-    const parsed = new Date(raw).getTime();
-    return Number.isNaN(parsed) ? 0 : parsed;
-  }
-  return 0;
 };
 
 const extractTimeSeriesBuckets = (resp: any, name: string): Map<string, number> => {
