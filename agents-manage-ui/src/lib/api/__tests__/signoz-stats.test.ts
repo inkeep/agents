@@ -1,5 +1,50 @@
 import { SPAN_KEYS } from '@/constants/signoz';
-import { USAGE_COST_AGGREGATION_ORDER } from '../signoz-stats';
+import { getSigNozStatsClient, USAGE_COST_AGGREGATION_ORDER } from '../signoz-stats';
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe('getConversationsPerDay', () => {
+  const activityTime = new Date(2026, 7, 6, 12);
+
+  it.each([
+    ['RFC 3339', activityTime.toISOString()],
+    ['epoch seconds', String(activityTime.getTime() / 1000)],
+  ])('buckets %s timestamps returned by SigNoz aggregations', async (_format, timestamp) => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        Response.json({
+          data: {
+            data: {
+              results: [
+                {
+                  queryName: 'lastActivity',
+                  columns: [
+                    { name: SPAN_KEYS.CONVERSATION_ID, columnType: 'group' },
+                    { name: `min(${SPAN_KEYS.TIMESTAMP})`, columnType: 'aggregation' },
+                  ],
+                  data: [['conversation-1', timestamp]],
+                },
+              ],
+            },
+          },
+        })
+      )
+    );
+
+    const client = getSigNozStatsClient('test-tenant');
+
+    await expect(
+      client.getConversationsPerDay(new Date(2026, 7, 5).getTime(), new Date(2026, 7, 7).getTime())
+    ).resolves.toEqual([
+      { date: '2026-08-05', count: 0 },
+      { date: '2026-08-06', count: 1 },
+      { date: '2026-08-07', count: 0 },
+    ]);
+  });
+});
 
 describe('USAGE_COST_AGGREGATION_ORDER positional contract', () => {
   it('preserves existing positions for the original 4 dimensions', () => {
