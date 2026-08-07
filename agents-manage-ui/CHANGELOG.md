@@ -1,5 +1,13 @@
 # @inkeep/agents-manage-ui
 
+## 0.80.6
+
+### Patch Changes
+
+- 3855540: Bump @inkeep/agents-ui to ^0.17.8
+- c95983c: Fix conversations per day charts after SigNoz timestamp format changes
+  - @inkeep/agents-core@0.80.6
+
 ## 0.80.5
 
 ### Patch Changes

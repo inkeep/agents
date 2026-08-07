@@ -1,5 +1,15 @@
 # @inkeep/agents-api
 
+## 0.80.6
+
+### Patch Changes
+
+- 8a8b5b1: Fix context-window overflows after tools return large results by checking the current message size before the next model call.
+  - @inkeep/agents-core@0.80.6
+  - @inkeep/agents-email@0.80.6
+  - @inkeep/agents-mcp@0.80.6
+  - @inkeep/agents-work-apps@0.80.6
+
 ## 0.80.5
 
 ### Patch Changes
