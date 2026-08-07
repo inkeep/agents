@@ -110,11 +110,13 @@ export async function handlePrepareStepCompression(
     let usageSource: 'actual_sdk_usage' | 'estimated';
 
     if (hasReliableUsage) {
-      // Use actual token counts from the last completed step
-      // Next step's context ≈ last step's input + last step's output (assistant response appended)
-      totalTokens = actualInputTokens + (actualOutputTokens ?? 0);
+      const previousStepTokens = actualInputTokens + (actualOutputTokens ?? 0);
+      const allMessages = [...originalMessages, ...generatedMessages];
+      const estimatedCurrentTokens = compressor.calculateContextSize(allMessages);
+
+      totalTokens = Math.max(previousStepTokens, estimatedCurrentTokens);
       compressionNeeded = compressor.isCompressionNeededFromActualUsage(totalTokens);
-      usageSource = 'actual_sdk_usage';
+      usageSource = estimatedCurrentTokens > previousStepTokens ? 'estimated' : 'actual_sdk_usage';
     } else {
       // No reliable usage data — fall back to estimate-based check
       logger.warn(
