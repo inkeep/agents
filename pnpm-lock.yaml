@@ -44,7 +44,7 @@ catalogs:
       version: 1.6.11
 
 overrides:
-  '@hono/node-server': '>=1.19.13'
+  '@hono/node-server': '>=2.0.10'
   '@modelcontextprotocol/sdk': '>=1.26.0'
   dompurify: '>=3.4.0'
   fast-xml-parser: '>=5.7.0'
@@ -3484,8 +3484,8 @@ packages:
       '@modelcontextprotocol/sdk': '>=1.26.0'
       hono: '>=4.0.0'
 
-  '@hono/node-server@2.0.2':
-    resolution: {integrity: sha512-tXlTi1h/4V7sDe7i97IVP+9re9ZU7wXZZggnR5ucCRclf1+AX6YhGStrR5w8bLj+3Mlyl0pKfBh9gqTqqnGKfQ==}
+  '@hono/node-server@2.1.0':
+    resolution: {integrity: sha512-XovyyCCnBzW+zKu+z/zq8hwNs4KOR5rEMAOxo2f40Q5xoOI37IMm6MIg2COOUtUApo0i6850MTBKH2u4QLGIqg==}
     engines: {node: '>=20'}
     peerDependencies:
       hono: ^4
@@ -18748,7 +18748,7 @@ snapshots:
       '@modelcontextprotocol/sdk': 1.26.0(zod@4.3.6)
       hono: 4.12.7
 
-  '@hono/node-server@2.0.2(hono@4.12.7)':
+  '@hono/node-server@2.1.0(hono@4.12.7)':
     dependencies:
       hono: 4.12.7
 
@@ -18758,7 +18758,7 @@ snapshots:
 
   '@hono/vite-dev-server@0.20.1(hono@4.12.7)':
     dependencies:
-      '@hono/node-server': 2.0.2(hono@4.12.7)
+      '@hono/node-server': 2.1.0(hono@4.12.7)
       hono: 4.12.7
       minimatch: 10.2.4
 
@@ -19512,7 +19512,7 @@ snapshots:
 
   '@modelcontextprotocol/sdk@1.26.0(zod@4.3.6)':
     dependencies:
-      '@hono/node-server': 2.0.2(hono@4.12.7)
+      '@hono/node-server': 2.1.0(hono@4.12.7)
       ajv: 8.18.0
       ajv-formats: 3.0.1(ajv@8.18.0)
       content-type: 1.0.5
