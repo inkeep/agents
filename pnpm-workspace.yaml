@@ -68,7 +68,7 @@ overrides:
   tar: ">=7.5.11" # symlink/hardlink path traversal
   node-forge: ">=1.4.0" # signature forgery + DoS
   defu: ">=6.1.5" # prototype pollution via __proto__
-  "@hono/node-server": ">=1.19.13" # middleware bypass via repeated slashes
+  "@hono/node-server": ">=2.0.10" # middleware bypass via repeated slashes
   dompurify: ">=3.4.0" # FORBID_TAGS bypass via ADD_TAGS
   serialize-javascript: ">=7.0.5" # CPU exhaustion DoS
   "@babel/plugin-transform-modules-systemjs": ">=7.29.4" # arbitrary code gen from malicious input

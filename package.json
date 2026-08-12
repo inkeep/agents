@@ -135,7 +135,7 @@
   },
   "pnpm": {
     "overrides": {
-      "@hono/node-server": ">=1.19.13",
+      "@hono/node-server": ">=2.0.10",
       "@modelcontextprotocol/sdk": ">=1.26.0",
       "dompurify": ">=3.4.0",
       "fast-xml-parser": ">=5.7.0",
