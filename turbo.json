@@ -71,6 +71,26 @@
       "passThroughEnv": ["PW_TEST_CONNECT_WS_ENDPOINT", "INKEEP_PRIVATE_MONOREPO"],
       "outputs": ["coverage/**"]
     },
+    // Visual regression suite. Separate task rather than chained into `test`
+    // so the canonical `pnpm test` stays runnable without the Dockerised
+    // Playwright server (see public/agents/AGENTS.md). It keeps `test`'s
+    // `dependsOn: build` edge because agents-manage-ui's *.browser.test.tsx
+    // import `@inkeep/agents-core/client-exports`, which resolves only to
+    // `dist/` — running this against an unbuilt workspace fails module
+    // resolution rather than skipping. `cache: false` because the suite's
+    // real dependency is the external Playwright server, which turbo cannot
+    // hash; a cache hit would report green without exercising it.
+    //
+    // `inputs` is NOT inert under `cache: false`: turbo hashes every task in the
+    // graph whether or not it stores outputs, so this bounds the file scan and
+    // scopes `turbo watch`. What it does NOT do is gate whether the task RUNS —
+    // the CI step's `--filter` does that.
+    "test:visual": {
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.browser.test.tsx", "src/__screenshots__/**"],
+      "passThroughEnv": ["PW_TEST_CONNECT_WS_ENDPOINT", "INKEEP_PRIVATE_MONOREPO"],
+      "cache": false
+    },
     "@inkeep/agents-mcp#build": {
       "dependsOn": ["^build", "sync:licenses"],
       "inputs": [
