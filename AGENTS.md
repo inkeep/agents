@@ -169,6 +169,8 @@ The base lives at `public/agents/tsconfig.base.json`. After Copybara mirrors the
 ### Visual Regression Tests
 Browser-based visual tests (screenshot comparisons) run Chromium inside a Docker container so screenshots are identical across macOS and Linux CI.
 
+Deliberately **not** chained into the default `test` script (that made `pnpm test` fail with an opaque `ws://127.0.0.1:3100 code=1006` on any machine without the server). CI runs them as an explicit step in `Agents Extended Validation`.
+
 ```bash
 # Start the Playwright Docker server (one-time, stays running)
 docker compose -f docker-compose.visual.yml up -d
