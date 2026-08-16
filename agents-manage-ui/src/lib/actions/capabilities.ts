@@ -6,7 +6,7 @@ import type { ActionResult } from './types';
 export type Capabilities = {
   sandbox: {
     configured: boolean;
-    provider?: 'native' | 'vercel';
+    provider?: 'native' | 'vercel' | 'tenki';
     runtime?: 'node22' | 'typescript';
   };
   modelFallback: {

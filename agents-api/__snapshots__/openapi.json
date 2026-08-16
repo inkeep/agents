@@ -2023,7 +2023,8 @@
                 "description": "The configured sandbox provider, if enabled.",
                 "enum": [
                   "native",
-                  "vercel"
+                  "vercel",
+                  "tenki"
                 ],
                 "type": "string"
               },

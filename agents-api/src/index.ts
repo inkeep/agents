@@ -62,7 +62,21 @@ const sandboxConfig: SandboxConfig =
         projectId: process.env.SANDBOX_VERCEL_PROJECT_ID,
         token: process.env.SANDBOX_VERCEL_TOKEN,
       }
-    : { provider: 'native', runtime: 'node22', timeout: 30000, vcpus: 2 };
+    : process.env.SANDBOX_TENKI_API_KEY
+      ? {
+          provider: 'tenki',
+          runtime: 'node22',
+          timeout: 60000,
+          vcpus: 2,
+          authToken: process.env.SANDBOX_TENKI_API_KEY,
+          ...(process.env.SANDBOX_TENKI_BASE_URL
+            ? { baseUrl: process.env.SANDBOX_TENKI_BASE_URL }
+            : {}),
+          ...(process.env.SANDBOX_TENKI_PROJECT_ID
+            ? { projectId: process.env.SANDBOX_TENKI_PROJECT_ID }
+            : {}),
+        }
+      : { provider: 'native', runtime: 'node22', timeout: 30000, vcpus: 2 };
 
 const googleProvider =
   process.env.PUBLIC_GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET

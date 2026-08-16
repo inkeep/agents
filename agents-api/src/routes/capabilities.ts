@@ -15,7 +15,7 @@ const CapabilitiesResponseSchema = z
             'Whether a sandbox provider is configured. Required for Function Tools execution.'
           ),
         provider: z
-          .enum(['native', 'vercel'])
+          .enum(['native', 'vercel', 'tenki'])
           .optional()
           .describe('The configured sandbox provider, if enabled.'),
         runtime: z
