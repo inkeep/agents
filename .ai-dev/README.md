@@ -44,6 +44,8 @@ docker compose -p ai-dev-auth -f .ai-dev/docker-compose.yml exec sandbox bash
 docker compose -p ai-dev-auth -f .ai-dev/docker-compose.yml down
 ```
 
+For parallel `/ship` instances working on different features, see [Running parallel instances](#running-parallel-instances) below.
+
 ## When to use Docker vs host execution
 
 | Scenario | Recommended | Why |
@@ -73,8 +75,7 @@ When passed, Ralph runs `ralph.sh` inside the Docker sandbox instead of on the h
 ## Prerequisites
 
 - Docker and Docker Compose
-- The `/ralph` skill installed (for Phase 1-2 on host)
-- `ANTHROPIC_API_KEY` set in your environment
+- `ANTHROPIC_API_KEY` or Claude Code OAuth login (see auth setup below)
 
 ## Quick start
 
@@ -82,9 +83,22 @@ When passed, Ralph runs `ralph.sh` inside the Docker sandbox instead of on the h
 
 ```bash
 cd .ai-dev
-cp .env.example .env
-# Edit .env — add your ANTHROPIC_API_KEY
 
+# Auth — choose one:
+# Option A: API key
+echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
+
+# Option B: Extract OAuth token from macOS Keychain (if logged into Claude Code)
+TOKEN=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null | \
+  python3 -c 'import sys,json; print(json.loads(sys.stdin.read())["claudeAiOauth"]["accessToken"])' 2>/dev/null)
+echo "CLAUDE_CODE_OAUTH_TOKEN=$TOKEN" > .env
+
+# Plugin setup — REQUIRED for local marketplace plugins (/ship, /implement, etc.)
+# Local directory marketplaces are symlinks that break inside Docker.
+# Copy them to make them real directories:
+cp -r ~/team-skills ~/.claude/plugins/marketplaces/inkeep-team-skills 2>/dev/null || true
+
+# Build
 docker compose build
 ```
 
@@ -180,6 +194,82 @@ claude
 
 Note: Interactive spec work is less convenient inside Docker (no browser tools, no macOS computer use). Pattern A is preferred for most workflows.
 
+#### Pattern D: Headless /ship (fully autonomous)
+
+Launch `/ship` inside a detachable tmux session for fully autonomous execution. The process persists independently of the `docker exec` connection.
+
+```bash
+# Create feature branch + spec on host, then launch headless:
+docker compose exec -d sandbox tmux new-session -d -s ship \
+  'cd /workspace && claude -p "/eng:ship specs/my-feature/SPEC.md" \
+    --dangerously-skip-permissions --max-turns 150 \
+    --output-format stream-json --verbose \
+    2>&1 | tee /workspace/tmp/ship/stream.jsonl; \
+    echo $? > /workspace/tmp/ship/exit-code'
+```
+
+**Gotchas:**
+- `--output-format stream-json` **requires** the `--verbose` flag when used with `-p` (Claude Code errors without it)
+- Always use `claude` (not a full path) — the Dockerfile `ENV PATH` fix ensures it's found in all contexts
+- `tmp/ship/state.json` is the primary monitoring channel (readable from host via bind mount)
+
+**Monitoring:**
+
+```bash
+# Attach to the tmux session for live output:
+docker compose exec sandbox tmux attach -t ship
+
+# Check if ship is still running:
+docker compose exec sandbox tmux has-session -t ship 2>/dev/null && echo "Running" || echo "Done"
+
+# Read current phase from host:
+jq -r '.currentPhase // "waiting"' tmp/ship/state.json
+
+# Monitor loop (run on host):
+while true; do
+  echo "=== $(date '+%H:%M:%S') ==="
+  jq -r '.currentPhase // "waiting"' tmp/ship/state.json 2>/dev/null
+  docker compose -f .ai-dev/docker-compose.yml exec sandbox \
+    tmux has-session -t ship 2>/dev/null \
+    && echo "Status: running" \
+    || echo "Status: DONE (exit: $(cat tmp/ship/exit-code 2>/dev/null))"
+  docker stats --no-stream --format "Memory: {{.MemUsage}}" \
+    "$(docker compose -f .ai-dev/docker-compose.yml ps -q sandbox)" 2>/dev/null
+  echo "---"
+  sleep 30
+done
+```
+
+### Running parallel instances
+
+Git worktrees don't work with Docker bind mounts — `.git/worktrees/` references break when only the worktree is mounted. Use full repo copies instead.
+
+```bash
+# Create isolated copies
+cp -r ~/agents ~/agents-a && cd ~/agents-a && git checkout -b feat/task-a
+cp -r ~/agents ~/agents-b && cd ~/agents-b && git checkout -b feat/task-b
+
+# Launch with separate project names
+# Instance A (uses ~/agents as workspace by default):
+docker compose -p ship-a -f ~/agents/.ai-dev/docker-compose.yml up -d
+
+# Instance B (override workspace volume):
+docker compose -p ship-b \
+  -f ~/agents/.ai-dev/docker-compose.yml \
+  -f <(cat <<'EOF'
+services:
+  sandbox:
+    volumes:
+      - ~/agents-b:/workspace
+      - claude-data:/home/agent/.claude
+      - squid-certs:/certs:ro
+      - ${HOME}/.claude/plugins:/host-plugins:ro
+EOF
+) up -d
+```
+
+Each instance gets its own containers, volumes, and network. Use the same `-p <name>` for all follow-up commands (`exec`, `logs`, `down`).
+
 ## What the sandbox can and cannot access
 
 ### Network (controlled by squid.conf)
@@ -189,11 +279,17 @@ Note: Interactive spec work is less convenient inside Docker (no browser tools, 
 | `*.anthropic.com` | Full | Claude API calls |
 | `*.claude.com` | Full | Claude Code authentication |
 | `registry.npmjs.org` | Full | pnpm install |
+| `*.sentry.io` | Full | Claude Code error reporting (startup hangs without) |
+| `*.statsig.com` | Full | Claude Code feature flags / telemetry |
+| `*.googleapis.com` | Full | Google Fonts (Next.js build), Claude Code updates |
+| `*.gstatic.com` | Full | Font file CDN |
 | `*.inkeep.com` | Full | Organization services |
 | `api.github.com` | Full | GitHub API (PR, reviews, CI) |
-| `github.com/inkeep/*` | Path-restricted | Git push/pull (org repos only) |
-| `*.githubusercontent.com/inkeep/*` | Path-restricted | GitHub raw content |
+| `github.com/(inkeep\|anthropics)/*` | Path-restricted | Git push/pull (org + Anthropic repos) |
+| `*.githubusercontent.com/(inkeep\|anthropics)/*` | Path-restricted | GitHub raw content + security.json |
 | Everything else | **Blocked** | |
+
+**Note on web tools:** Claude Code's `WebSearch` tool works inside the container (it's server-side, routes through `api.anthropic.com`). `WebFetch` is client-side — it makes direct HTTP requests from the container, so it's blocked for non-allowed domains. This means agents can search the web but can't fetch arbitrary URLs.
 
 ### Filesystem
 
@@ -201,7 +297,7 @@ Note: Interactive spec work is less convenient inside Docker (no browser tools, 
 |------|-----------------|-------|
 | `/workspace/` | Read-write | Bind mount of repo root — same files, same `.git` |
 | `/home/agent/.claude/` | Read-write | Docker volume — persists Claude auth across restarts |
-| `/host-plugins/` | Read-only | Host's `~/.claude/plugins/` — copied to container on startup by entrypoint |
+| `/host-plugins/` | Read-only | Host's `~/.claude/plugins/` — used by `CLAUDE_CODE_PLUGIN_SEED_DIR` for plugin discovery at runtime (no copy) |
 | Everything else | Container-only | Lost when container is removed |
 
 ### What the container CANNOT do
@@ -244,7 +340,7 @@ Edit `docker-compose.yml`:
 deploy:
   resources:
     limits:
-      memory: 16G  # Default: 14G
+      memory: 24G  # Default: 20G
 ```
 
 ### Pushing from inside the container
@@ -254,10 +350,9 @@ To enable git push and PR creation from inside the container:
 1. Set `GITHUB_TOKEN` in `.env`
 2. The `gh` CLI and git are pre-installed in the container
 3. The GitHub API is already in the allowlist
+4. The entrypoint auto-configures a git credential helper and SSH→HTTPS rewrite when `GITHUB_TOKEN` is set
 
-**Note:** `gh` CLI reads `GITHUB_TOKEN` from the environment and works out of the box. For `git push` to authenticate, you would also need a git credential helper configured — this is not set up by default. A future enhancement could add `git config --global credential.helper '!f() { echo "password=$GITHUB_TOKEN"; }; f'` to `entrypoint.sh`.
-
-This changes the trust model — the container can now push code and create PRs on your behalf.
+Both `gh` and `git push` work out of the box when the token is set. This changes the trust model — the container can push code and create PRs on your behalf.
 
 ## ralph.sh
 
@@ -295,8 +390,9 @@ Run `.claude/ralph.sh --help` for CLI options.
 
 The container runs `entrypoint.sh` on startup, which:
 
-1. **Copies host plugins** — If `~/.claude/plugins/` is mounted at `/host-plugins/`, copies them into the container's `~/.claude/plugins/` so skills and hooks are available inside Docker.
-2. **Configures sandbox** — Sets `enableWeakerNestedSandbox: true` in Claude Code's settings. Claude Code's bubblewrap sandbox cannot run in unprivileged Docker; this flag tells it to use a weaker sandbox and rely on the Docker container + Squid proxy as the security boundary.
+1. **Configures sandbox** — Sets `enableWeakerNestedSandbox: true` in Claude Code's settings. Claude Code's bubblewrap sandbox cannot run in unprivileged Docker; this flag tells it to use a weaker sandbox and rely on the Docker container + Squid proxy as the security boundary.
+2. **Enables plugins** — Reads `installed_plugins.json` from the `CLAUDE_CODE_PLUGIN_SEED_DIR` mount and sets `enabledPlugins` in `settings.json`. The seed directory mechanism handles path resolution at runtime (no copy needed), but plugins must still be explicitly enabled.
+3. **Configures git** — Sets `safe.directory /workspace` (required for bind-mounted repos with UID mismatch) and, if `GITHUB_TOKEN` is set, configures a credential helper and SSH→HTTPS rewrite for git push through the proxy.
 
 ## Container image
 
@@ -351,20 +447,25 @@ Run `pnpm install` on the host before starting Docker. The container accesses `n
 
 If a story requires a NEW dependency, the container can install it (npm registry is in the allowlist). But run `pnpm install` on the host afterward to ensure the lockfile is consistent.
 
+### `pnpm test --run` doubles the `--run` flag
+
+If the package.json script already includes `vitest --run`, passing `--run` again causes an error. Use `pnpm vitest --run` or `npx vitest --run` directly instead.
+
+### `docker compose` commands fail
+
+All `docker compose` commands must be run from the `.ai-dev/` directory or use `-f .ai-dev/docker-compose.yml`.
+
 ## Future work
 
-The current sandbox is **execution-only** — ralph.sh iterates inside Docker, host handles everything else (spec, push, PR, review). A future upgrade could enable full autonomous operation inside the container:
+The sandbox now supports full autonomous `/ship` execution inside Docker, including headless mode, plugin loading, git push, and parallel instances. Remaining enhancements:
 
 | Item | What it enables | Trigger to revisit |
 |------|----------------|-------------------|
-| Git credential helper in entrypoint | `git push` from inside the container | Want to push/PR from Docker instead of host |
+| Lean seed directory builder script | Mounts only referenced plugin versions instead of full `~/.claude/plugins/` | Container startup slow due to large host plugin directory |
+| Parallel automation script | Automates repo copy + compose launch for N parallel instances | Running 3+ parallel `/ship` instances regularly |
+| `NODE_OPTIONS=--max-old-space-size` tuning | Better OOM diagnostics and control | OOM still occurs at 20GB |
 | `CLAUDE_SPECS_DIR=/workspace/.claude/specs` | `/spec` output persists via bind mount | Want to run `/spec` inside the container |
-| `gh` auth config (`GH_TOKEN` export) | `gh pr create`, `gh api` from inside | Want full `/ship` review loop inside Docker |
-| Git URL HTTPS rewrite (`insteadOf ssh`) | Prevents SSH attempts through the proxy | If tools default to SSH and silently fail |
-| Health checks in docker-compose | Proxy readiness before sandbox starts | Intermittent startup failures |
 | Convenience start script | Pre-flight checks (token set, plugins exist) | Team onboarding friction |
-
-See `~/.claude/specs/docker-sandbox-upgrade/SPEC.md` for the full analysis that drove these decisions.
 
 ## Security notes
 

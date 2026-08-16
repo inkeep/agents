@@ -10,6 +10,12 @@ services:
       - external-net
       - internal-net
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/127.0.0.1/3128'"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     entrypoint: ["/bin/bash", "-c", "cp /etc/squid/ssl/squid-ca.crt /certs/ && chmod 644 /certs/squid-ca.crt && exec squid -N"]
 
   sandbox:
@@ -25,10 +31,14 @@ services:
       - NODE_EXTRA_CA_CERTS=/certs/squid-ca.crt
       - REQUESTS_CA_BUNDLE=/certs/squid-ca.crt
       - SSL_CERT_FILE=/certs/squid-ca.crt
-      # API key — required for Claude Code
+      # Auth — at least one must be set. API key is simplest.
+      # OAuth token is for Max subscription users without an API key.
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - CLAUDE_CODE_OAUTH_TOKEN=${CLAUDE_CODE_OAUTH_TOKEN:-}
       # GitHub token — optional, only if pushing/creating PRs from inside container
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - CLAUDE_PROJECT_DIR=/workspace
+      - CLAUDE_CODE_PLUGIN_SEED_DIR=/host-plugins
     volumes:
       - ..:/workspace
       - claude-data:/home/agent/.claude
@@ -38,13 +48,14 @@ services:
     networks:
       - internal-net
     depends_on:
-      - proxy
+      proxy:
+        condition: service_healthy
     stdin_open: true
     tty: true
     deploy:
       resources:
         limits:
-          memory: 14G
+          memory: 20G
 
 networks:
   internal-net:
