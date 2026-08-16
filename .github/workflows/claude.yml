@@ -10,6 +10,9 @@ on:
   pull_request_review:
     types: [submitted]
 
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+
 jobs:
   claude:
     if: |
