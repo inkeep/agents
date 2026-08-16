@@ -9,6 +9,9 @@ concurrency:
   group: model-sync
   cancel-in-progress: false
 
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+
 jobs:
   sync-models:
     runs-on: ubuntu-latest
