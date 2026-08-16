@@ -164,23 +164,19 @@ async function applyExecutionLimitsInheritance(
       );
 
       for (const [subAgentId, subAgentData] of Object.entries(agentData.subAgents)) {
-        if (subAgentData.canTransferTo && Array.isArray(subAgentData.canTransferTo)) {
-          const agent = agentData as any;
+        if (!subAgentData.stopWhen) {
+          subAgentData.stopWhen = {};
+        }
 
-          if (!agent.stopWhen) {
-            agent.stopWhen = {};
-          }
-
-          if (agent.stopWhen.stepCountIs === undefined) {
-            agent.stopWhen.stepCountIs = projectStopWhen.stepCountIs;
-            logger.info(
-              {
-                subAgentId,
-                inheritedValue: projectStopWhen.stepCountIs,
-              },
-              'Agent inherited stepCountIs from project'
-            );
-          }
+        if (subAgentData.stopWhen.stepCountIs === undefined) {
+          subAgentData.stopWhen.stepCountIs = projectStopWhen.stepCountIs;
+          logger.info(
+            {
+              subAgentId,
+              inheritedValue: projectStopWhen.stepCountIs,
+            },
+            'SubAgent inherited stepCountIs from project'
+          );
         }
       }
     }
