@@ -752,7 +752,7 @@ export class SubAgent implements SubAgentInterface {
       const functionData = functionTool.serializeFunction();
       const toolData = functionTool.serializeTool();
 
-      const functionUrl = `${this.baseURL}/manage/tenants/${this.tenantId}/crud/projects/${this.projectId}/functions`;
+      const functionUrl = `${this.baseURL}/manage/tenants/${this.tenantId}/projects/${this.projectId}/functions`;
       logger.info(
         {
           agentId: this.getId(),
@@ -801,7 +801,7 @@ export class SubAgent implements SubAgentInterface {
       }
 
       // Create a tool with type 'function' at project level
-      const toolUrl = `${this.baseURL}/manage/tenants/${this.tenantId}/crud/projects/${this.projectId}/tools`;
+      const toolUrl = `${this.baseURL}/manage/tenants/${this.tenantId}/projects/${this.projectId}/tools`;
       logger.info(
         {
           agentId: this.getId(),

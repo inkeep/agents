@@ -1,5 +1,6 @@
 import type { JsonSchemaForLlmSchemaType } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { FunctionTool } from '../../function-tool';
 import { SubAgent } from '../../subAgent';
 import { Tool } from '../../tool';
 import type { SubAgentConfig } from '../../types';
@@ -349,6 +350,39 @@ describe('Agent Builder', () => {
             call[0]?.toString().includes('/agent-data-components')
         );
       expect(dataComponentCalls.length).toBeGreaterThan(0);
+    });
+
+    it('should create function tools without /crud/ in URL', async () => {
+      const funcTool = new FunctionTool({
+        name: 'testFunction',
+        description: 'Test function description',
+        inputSchema: { type: 'object', properties: {} },
+        dependencies: {},
+        execute: async () => ({ ok: true }),
+      });
+
+      const agentWithFunc = new SubAgent({
+        id: 'func-agent',
+        name: 'Func Agent',
+        prompt: 'Instructions',
+        canUse: () => [funcTool],
+      });
+      agentWithFunc.setContext('test-tenant', 'test-project');
+
+      await agentWithFunc.init();
+
+      const fetchUrls = vi.mocked(fetch).mock.calls.map((call) => call[0]?.toString());
+      expect(
+        fetchUrls.some((url) =>
+          url?.includes('/manage/tenants/test-tenant/projects/test-project/functions')
+        )
+      ).toBe(true);
+      expect(
+        fetchUrls.some((url) =>
+          url?.includes('/manage/tenants/test-tenant/projects/test-project/tools')
+        )
+      ).toBe(true);
+      expect(fetchUrls.some((url) => url?.includes('/crud/'))).toBe(false);
     });
   });
 
