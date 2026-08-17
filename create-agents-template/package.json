@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "@inkeep/agents-core": "^0.59.4",
-    "@inkeep/agents-manage-ui": "^0.59.4",
+    "@inkeep/agents-manage-ui": "^0.80.6",
     "@inkeep/agents-sdk": "^0.59.4",
     "@tailwindcss/vite": "^4.1.14",
     "dotenv": "^17.2.3",
