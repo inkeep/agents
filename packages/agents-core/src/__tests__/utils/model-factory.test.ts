@@ -16,6 +16,7 @@ describe('ModelFactory', () => {
     delete process.env.AZURE_OPENAI_API_KEY;
     delete process.env.CUSTOM_LLM_API_KEY;
     delete process.env.NIM_API_KEY;
+    delete process.env.ORCAROUTER_API_KEY;
   });
 
   describe('parseModelString', () => {
@@ -72,6 +73,14 @@ describe('ModelFactory', () => {
       expect(result).toEqual({
         provider: 'nim',
         modelName: 'nvidia/llama-3.3-nemotron',
+      });
+    });
+
+    test('should parse orcarouter model string', () => {
+      const result = ModelFactory.parseModelString('orcarouter/auto');
+      expect(result).toEqual({
+        provider: 'orcarouter',
+        modelName: 'auto',
       });
     });
 

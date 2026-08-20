@@ -839,6 +839,14 @@ describe('ModelFactory', () => {
         });
       });
 
+      test('should support orcarouter provider', () => {
+        const result = ModelFactory.parseModelString('orcarouter/auto');
+        expect(result).toEqual({
+          provider: 'orcarouter',
+          modelName: 'auto',
+        });
+      });
+
       test('should support custom provider', () => {
         const result = ModelFactory.parseModelString('custom/my-custom-model');
         expect(result).toEqual({
@@ -890,6 +898,23 @@ describe('ModelFactory', () => {
         'nim/nvidia/llama-3.3-nemotron-super-49b-v1.5',
         'nim/nvidia/nemotron-4-340b-instruct',
         'nim/meta/llama-3.1-8b-instruct',
+      ];
+
+      for (const modelString of customModels) {
+        const config: ModelSettings = { model: modelString };
+        const model = ModelFactory.createModel(config);
+        expect(model).toBeDefined();
+        expect(model).toHaveProperty('modelId');
+      }
+    });
+
+    test('should create OrcaRouter models without provider options', () => {
+      // OrcaRouter can route to ANY model via its OpenAI-compatible gateway
+      const customModels = [
+        'orcarouter/auto',
+        'orcarouter/fusion',
+        'orcarouter/fusion-flash',
+        'orcarouter/fusion-mini',
       ];
 
       for (const modelString of customModels) {

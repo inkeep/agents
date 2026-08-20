@@ -27,6 +27,15 @@ const nimDefault = createOpenAICompatible({
   },
 });
 
+// OrcaRouter default provider instance
+const orcarouterDefault = createOpenAICompatible({
+  name: 'orcarouter',
+  baseURL: 'https://api.orcarouter.ai/v1',
+  headers: {
+    Authorization: `Bearer ${process.env.ORCAROUTER_API_KEY}`,
+  },
+});
+
 /**
  * Factory for creating AI SDK language models from configuration
  * Supports multiple providers and AI Gateway integration
@@ -77,6 +86,17 @@ export class ModelFactory {
           ...config,
         };
         return createOpenAICompatible(nimConfig);
+      }
+      case 'orcarouter': {
+        const orcarouterConfig = {
+          name: 'orcarouter',
+          baseURL: 'https://api.orcarouter.ai/v1',
+          headers: {
+            Authorization: `Bearer ${process.env.ORCAROUTER_API_KEY}`,
+          },
+          ...config,
+        };
+        return createOpenAICompatible(orcarouterConfig);
       }
       case 'custom': {
         if (!config.baseURL && !config.baseUrl) {
@@ -261,6 +281,9 @@ export class ModelFactory {
         case 'nim':
           model = nimDefault(modelName);
           break;
+        case 'orcarouter':
+          model = orcarouterDefault(`orcarouter/${modelName}`);
+          break;
         case 'mock':
           return createMockModel(modelName) as unknown as LanguageModel;
         case 'custom':
@@ -271,7 +294,7 @@ export class ModelFactory {
           throw new Error(
             `Unsupported provider: ${provider}. ` +
               `Supported providers are: ${ModelFactory.BUILT_IN_PROVIDERS.join(', ')}. ` +
-              `To access other models, use OpenRouter (openrouter/model-id), Vercel AI Gateway (gateway/model-id), NVIDIA NIM (nim/model-id), or Custom OpenAI-compatible (custom/model-id).`
+              `To access other models, use OpenRouter (openrouter/model-id), Vercel AI Gateway (gateway/model-id), NVIDIA NIM (nim/model-id), OrcaRouter (orcarouter/model-id), or Custom OpenAI-compatible (custom/model-id).`
           );
       }
     }
@@ -293,6 +316,7 @@ export class ModelFactory {
     'openrouter',
     'gateway',
     'nim',
+    'orcarouter',
     'custom',
     'mock',
   ] as const;
@@ -312,7 +336,7 @@ export class ModelFactory {
         throw new Error(
           `Unsupported provider: ${normalizedProvider}. ` +
             `Supported providers are: ${ModelFactory.BUILT_IN_PROVIDERS.join(', ')}. ` +
-            `To access other models, use OpenRouter (openrouter/model-id), Vercel AI Gateway (gateway/model-id), NVIDIA NIM (nim/model-id), or Custom OpenAI-compatible (custom/model-id).`
+            `To access other models, use OpenRouter (openrouter/model-id), Vercel AI Gateway (gateway/model-id), NVIDIA NIM (nim/model-id), OrcaRouter (orcarouter/model-id), or Custom OpenAI-compatible (custom/model-id).`
         );
       }
 
