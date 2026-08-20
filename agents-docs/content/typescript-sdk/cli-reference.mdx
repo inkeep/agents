@@ -855,6 +855,37 @@ inkeep logout
 </SkillRule>
 
 <SkillRule
+  id="cli-status-command"
+  skills="typescript-sdk"
+  title="CLI inkeep status Command"
+  description="Check the status of the CLI and authentication state"
+>
+
+### `inkeep status`
+
+Check the status of your CLI connection to the Inkeep API, including authentication state and active profile.
+
+```bash
+inkeep status
+```
+
+**Options:**
+
+- `--profile <name>` - Use a specific CLI profile (overrides the active profile)
+
+**Examples:**
+
+```bash
+# Check status with active profile
+inkeep status
+
+# Check status with specific profile
+inkeep status --profile staging
+```
+
+</SkillRule>
+
+<SkillRule
   id="cli-add-command"
   skills="typescript-sdk"
   title="CLI inkeep add Command"
