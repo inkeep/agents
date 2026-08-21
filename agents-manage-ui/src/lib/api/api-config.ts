@@ -61,13 +61,9 @@ async function makeApiRequestInternal<T>(
     }
   }
 
-  const hasBypassSecret = Boolean(process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET);
-  const authMode = hasBypassSecret ? 'bypass-secret' : cookieHeader ? 'cookie' : 'none';
-
-  if (authMode === 'none') {
+  if (!cookieHeader) {
     console.warn(
-      `[api-config] No auth credentials for ${endpoint} - ` +
-        'set INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET or ensure session cookies are forwarded'
+      `[api-config] No session cookie for ${endpoint} - request will be rejected by agents-api`
     );
   }
 
@@ -75,9 +71,6 @@ async function makeApiRequestInternal<T>(
     'Content-Type': 'application/json',
     ...options.headers,
     ...(cookieHeader && { Cookie: cookieHeader }),
-    ...(hasBypassSecret && {
-      Authorization: `Bearer ${process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`,
-    }),
   };
 
   try {
@@ -137,7 +130,7 @@ async function makeApiRequestInternal<T>(
         errorData,
         errorMessage,
         errorCode,
-        authMode,
+        hasCookie: Boolean(cookieHeader),
       });
 
       throw new ApiError(
