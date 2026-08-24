@@ -5,7 +5,6 @@
       "main": false
     }
   },
-  "ignoreCommand": "bash ../../../scripts/vercel-skip-unless-changed.sh ..",
   "framework": "hono",
   "installCommand": "pnpm install",
   "buildCommand": "turbo build --filter=@inkeep/agents-api && pnpm --dir ../ prepack",
