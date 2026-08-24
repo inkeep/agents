@@ -5,7 +5,6 @@
       "main": false
     }
   },
-  "ignoreCommand": "bash ../../../scripts/vercel-skip-unless-changed.sh ..",
   "headers": [
     {
       "source": "/(.*)",
