@@ -101,7 +101,7 @@ jobs:
 
       - name: Checkout
         if: steps.pr.outputs.draft != 'true'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0  # Full history for merge-base
           ref: refs/pull/${{ steps.pr.outputs.number }}/head
@@ -724,7 +724,7 @@ jobs:
         # Pinned to SDK 0.2.25 (last working version) due to AJV validation crash in 0.2.27+
         # Tracking: https://github.com/anthropics/claude-code-action/issues/892
         # Remove pin when issue is resolved and @v1 is stable again
-        uses: anthropics/claude-code-action@01e756b34ef7a1447e9508f674143b07d20c2631
+        uses: anthropics/claude-code-action@01e756b34ef7a1447e9508f674143b07d20c2631 # v1.0.39
         env:
           CLAUDE_CODE_DEBUG_LOGS_DIR: ${{ runner.temp }}/claude-debug
         with:
