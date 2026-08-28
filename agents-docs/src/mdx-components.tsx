@@ -29,7 +29,6 @@ import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
 import { ComparisonTable } from '@/components/comparisons-table';
 import { AutoTypeTable, type TypeLinksInput } from '@/components/mdx/auto-type-table';
-import { BigVideo } from '@/components/mdx/big-video';
 import { Card } from '@/components/mdx/card';
 import { NumberedStepsTOC } from '@/components/mdx/numbered-steps-toc';
 import { OptionCard, OptionCards } from '@/components/mdx/option-cards';
@@ -95,7 +94,6 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     ),
     Accordions,
     Accordion,
-    BigVideo,
     Note,
     Warning,
     Tip,
