@@ -52,11 +52,6 @@ updates:
     cooldown:
       default-days: 3
     groups:
-      high-frequency:
-        patterns:
-          - 'pullfrog/*'
       github-actions:
         patterns:
           - '*'
-        exclude-patterns:
-          - 'pullfrog/*'
