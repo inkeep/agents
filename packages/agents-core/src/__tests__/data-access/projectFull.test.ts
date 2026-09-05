@@ -7,6 +7,7 @@ import {
   getFullProject,
   updateFullProjectServerSide,
 } from '../../data-access/manage/projectFull';
+import { listSkills } from '../../data-access/manage/skills';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { createTestOrganization } from '../../db/runtime/test-runtime-client';
@@ -893,6 +894,71 @@ Always check alerts.`,
       expect(Object.keys(result?.artifactComponents || {})).toHaveLength(1);
       expect(result?.artifactComponents?.[artifact1Id]).toBeDefined();
       expect(result?.artifactComponents?.[artifact2Id]).toBeUndefined();
+    });
+
+    it('should delete orphaned skills when removed from project', async () => {
+      const projectId = `project-${generateId()}`;
+      const skill1Id = `skill-${generateId()}`;
+      const skill2Id = `skill-${generateId()}`;
+
+      const projectWithSkills: FullProjectDefinition = {
+        ...createTestProjectDefinition(projectId),
+        skills: {
+          [skill1Id]: {
+            name: skill1Id,
+            description: 'Skill 1 description',
+            content: 'Skill 1 content',
+            metadata: null,
+            files: [
+              {
+                filePath: 'SKILL.md',
+                content: `---\nname: ${skill1Id}\ndescription: Skill 1 description\n---\nSkill 1 content`,
+              },
+            ],
+          },
+          [skill2Id]: {
+            name: skill2Id,
+            description: 'Skill 2 description',
+            content: 'Skill 2 content',
+            metadata: null,
+            files: [
+              {
+                filePath: 'SKILL.md',
+                content: `---\nname: ${skill2Id}\ndescription: Skill 2 description\n---\nSkill 2 content`,
+              },
+            ],
+          },
+        },
+      };
+
+      await createFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: projectWithSkills,
+      });
+
+      let skillsResult = await listSkills(db)({
+        scopes: { tenantId, projectId },
+      });
+      expect(skillsResult.data).toHaveLength(2);
+
+      const updatedProjectWithOneSkill: FullProjectDefinition = {
+        ...projectWithSkills,
+        skills: {
+          // biome-ignore lint/style/noNonNullAssertion: ignore in test
+          [skill1Id]: projectWithSkills.skills![skill1Id],
+        },
+      };
+
+      await updateFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: updatedProjectWithOneSkill,
+      });
+
+      skillsResult = await listSkills(db)({
+        scopes: { tenantId, projectId },
+      });
+      expect(skillsResult.data).toHaveLength(1);
+      expect(skillsResult.data[0]?.name).toBe(skill1Id);
     });
 
     it('should delete orphaned agents when removed from project', async () => {
