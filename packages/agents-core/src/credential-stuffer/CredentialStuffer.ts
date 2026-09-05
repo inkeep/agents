@@ -244,14 +244,10 @@ export class CredentialStuffer {
       credentialStoreHeaders = await this.getCredentials(context, storeReference, mcpType);
     }
 
-    if (!credentialStoreHeaders) {
-      return credentialsFromHeaders ? credentialsFromHeaders.headers : { ...headers };
-    }
-
-    const combinedHeaders = {
-      ...credentialStoreHeaders.headers,
-      ...credentialStoreHeaders.metadata,
-      ...credentialsFromHeaders?.headers,
+    const combinedHeaders: Record<string, string> = {
+      ...(headers ?? {}),
+      ...(credentialStoreHeaders?.headers ?? {}),
+      ...(credentialsFromHeaders?.headers ?? {}),
     };
 
     return combinedHeaders;
