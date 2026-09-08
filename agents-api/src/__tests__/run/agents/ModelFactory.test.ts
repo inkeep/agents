@@ -839,6 +839,14 @@ describe('ModelFactory', () => {
         });
       });
 
+      test('should support litellm provider', () => {
+        const result = ModelFactory.parseModelString('litellm/anthropic/claude-sonnet-4-5');
+        expect(result).toEqual({
+          provider: 'litellm',
+          modelName: 'anthropic/claude-sonnet-4-5',
+        });
+      });
+
       test('should support custom provider', () => {
         const result = ModelFactory.parseModelString('custom/my-custom-model');
         expect(result).toEqual({
@@ -898,6 +906,36 @@ describe('ModelFactory', () => {
         expect(model).toBeDefined();
         expect(model).toHaveProperty('modelId');
       }
+    });
+
+    test('should create LiteLLM models without provider options', () => {
+      // LiteLLM proxy exposes any provider model via an OpenAI-compatible API
+      const litellmModels = [
+        'litellm/anthropic/claude-sonnet-4-5',
+        'litellm/gpt-4o',
+        'litellm/bedrock/anthropic.claude-3-5-sonnet',
+        'litellm/my-team-alias',
+      ];
+
+      for (const modelString of litellmModels) {
+        const config: ModelSettings = { model: modelString };
+        const model = ModelFactory.createModel(config);
+        expect(model).toBeDefined();
+        expect(model).toHaveProperty('modelId');
+      }
+    });
+
+    test('should create LiteLLM model with a custom base URL override', () => {
+      const config: ModelSettings = {
+        model: 'litellm/my-team-alias',
+        providerOptions: {
+          baseURL: 'https://litellm.internal.example.com/v1',
+        },
+      };
+
+      const model = ModelFactory.createModel(config);
+      expect(model).toBeDefined();
+      expect(model).toHaveProperty('modelId', 'my-team-alias');
     });
 
     test('should create Custom models with provider options', () => {

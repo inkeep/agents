@@ -75,6 +75,14 @@ describe('ModelFactory', () => {
       });
     });
 
+    test('should parse litellm model string', () => {
+      const result = ModelFactory.parseModelString('litellm/anthropic/claude-sonnet-4-5');
+      expect(result).toEqual({
+        provider: 'litellm',
+        modelName: 'anthropic/claude-sonnet-4-5',
+      });
+    });
+
     test('should parse custom model string', () => {
       const result = ModelFactory.parseModelString('custom/my-custom-model');
       expect(result).toEqual({
