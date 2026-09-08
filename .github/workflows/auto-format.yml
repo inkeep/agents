@@ -146,14 +146,27 @@ jobs:
             exit 0
           fi
 
+          pushed=false
           for i in 1 2 3; do
-            git push && break
-            echo "Push failed, attempting pull --rebase and retry ($i/3)"
-            # Check branch still exists before retry
+            if git push; then
+              pushed=true
+              break
+            fi
             if ! git ls-remote --exit-code --heads origin "$PUSH_REF" > /dev/null 2>&1; then
               echo "::notice::Remote branch '$PUSH_REF' was deleted during retry. Skipping."
               exit 0
             fi
-            git pull --rebase origin "$PUSH_REF" || exit 1
-            sleep $((i * 2))
+            if [ "$i" -lt 3 ]; then
+              echo "::warning::Push failed, attempting pull --rebase and retry ($i/3)"
+              if ! git pull --rebase origin "$PUSH_REF"; then
+                echo "::error::Rebase onto '$PUSH_REF' failed on attempt $i/3. The formatting commit was not pushed."
+                exit 1
+              fi
+              sleep $((i * 2))
+            fi
           done
+
+          if [ "$pushed" != "true" ]; then
+            echo "::error::All 3 push attempts to '$PUSH_REF' failed. The formatting commit was not pushed."
+            exit 1
+          fi
