@@ -120,7 +120,7 @@ importers:
     dependencies:
       tsdown:
         specifier: ^0.19.0
-        version: 0.19.0(oxc-resolver@11.16.0)(typescript@6.0.2)
+        version: 0.19.0(oxc-resolver@11.16.0)(typescript@6.0.3)
     devDependencies:
       '@biomejs/biome':
         specifier: 2.3.11
@@ -136,7 +136,7 @@ importers:
         version: 9.1.7
       knip:
         specifier: 5.82.0
-        version: 5.82.0(@types/node@24.10.4)(typescript@6.0.2)
+        version: 5.82.0(@types/node@24.10.4)(typescript@6.0.3)
       lint-staged:
         specifier: ^16.1.5
         version: 16.2.7
@@ -149,6 +149,9 @@ importers:
       turbo:
         specifier: ^2.7.0
         version: 2.7.1
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.3
       unique-names-generator:
         specifier: ^4.7.1
         version: 4.7.1
@@ -250,7 +253,7 @@ importers:
         version: 4.2.1(@opentelemetry/api@1.9.0)
       '@workflow/world-postgres':
         specifier: ^4.3.0
-        version: 4.3.0(@electric-sql/pglite@0.3.14)(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(bun-types@1.3.5)(kysely@0.28.17)(postgres@3.4.8)(typescript@6.0.2)
+        version: 4.3.0(@electric-sql/pglite@0.3.14)(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(bun-types@1.3.5)(kysely@0.28.17)(postgres@3.4.8)(typescript@6.0.3)
       '@workflow/world-vercel':
         specifier: ^4.5.0
         version: 4.5.0(@opentelemetry/api@1.9.0)
@@ -289,7 +292,7 @@ importers:
         version: 8.20.0
       workflow:
         specifier: 4.6.0
-        version: 4.6.0(@nestjs/common@11.1.13(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.13(@nestjs/common@11.1.13(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.0)(@swc/cli@0.8.0(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(magicast@0.5.2)(next@16.2.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0(patch_hash=fb57ddbf6d253ca059e800cec47d55e177a15be89f100146c8ed5e4ba56697ed))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(typescript@6.0.2)
+        version: 4.6.0(@nestjs/common@11.1.13(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.13(@nestjs/common@11.1.13(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.0)(@swc/cli@0.8.0(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(magicast@0.5.2)(next@16.2.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0(patch_hash=fb57ddbf6d253ca059e800cec47d55e177a15be89f100146c8ed5e4ba56697ed))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(typescript@6.0.3)
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -314,13 +317,13 @@ importers:
         version: 4.21.0
       typescript:
         specifier: ^6.0.2
-        version: 6.0.2
+        version: 6.0.3
       vite:
         specifier: ^7.3.2
         version: 7.3.3(@types/node@20.19.27)(jiti@2.7.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0)
       vite-tsconfig-paths:
         specifier: ^5.1.4
-        version: 5.1.4(typescript@6.0.2)(vite@7.3.3(@types/node@20.19.27)(jiti@2.7.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0))
+        version: 5.1.4(typescript@6.0.3)(vite@7.3.3(@types/node@20.19.27)(jiti@2.7.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0))
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@20.19.27)(jiti@2.7.0)(jsdom@29.0.2(@noble/hashes@2.0.1))(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0)
@@ -418,7 +421,7 @@ importers:
         version: 8.0.3
       typescript:
         specifier: ^6.0.2
-        version: 6.0.2
+        version: 6.0.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.19.3)(jiti@2.7.0)(jsdom@29.0.2(@noble/hashes@2.0.1))(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0)
@@ -443,7 +446,7 @@ importers:
         version: 22.19.3
       typescript:
         specifier: ^6.0.2
-        version: 6.0.2
+        version: 6.0.3
 
   agents-docs:
     dependencies:
@@ -494,7 +497,7 @@ importers:
         version: 10.2.6(ee614f684bf60356deda7dc77aa126d6)
       fumadocs-typescript:
         specifier: ~4.0.13
-        version: 4.0.14(@types/react@19.2.7)(fumadocs-core@16.1.0(patch_hash=db62f64eaff5e3e95f0cd473420b62bf88653ec5c32447e00de571b56f018a71)(@types/react@19.2.7)(lucide-react@0.503.0(react@19.2.4))(next@16.2.6(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0(patch_hash=fb57ddbf6d253ca059e800cec47d55e177a15be89f100146c8ed5e4ba56697ed))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react-router@7.13.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4))(fumadocs-ui@16.1.0(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(lucide-react@0.503.0(react@19.2.4))(next@16.2.6(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0(patch_hash=fb57ddbf6d253ca059e800cec47d55e177a15be89f100146c8ed5e4ba56697ed))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react-router@7.13.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(tailwindcss@4.1.18))(typescript@6.0.2)
+        version: 4.0.14(@types/react@19.2.7)(fumadocs-core@16.1.0(patch_hash=db62f64eaff5e3e95f0cd473420b62bf88653ec5c32447e00de571b56f018a71)(@types/react@19.2.7)(lucide-react@0.503.0(react@19.2.4))(next@16.2.6(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0(patch_hash=fb57ddbf6d253ca059e800cec47d55e177a15be89f100146c8ed5e4ba56697ed))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react-router@7.13.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4))(fumadocs-ui@16.1.0(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(lucide-react@0.503.0(react@19.2.4))(next@16.2.6(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0(patch_hash=fb57ddbf6d253ca059e800cec47d55e177a15be89f100146c8ed5e4ba56697ed))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react-router@7.13.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(tailwindcss@4.1.18))(typescript@6.0.3)
       fumadocs-ui:
         specifier: ~16.1.0
         version: 16.1.0(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(lucide-react@0.503.0(react@19.2.4))(next@16.2.6(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0(patch_hash=fb57ddbf6d253ca059e800cec47d55e177a15be89f100146c8ed5e4ba56697ed))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react-router@7.13.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(tailwindcss@4.1.18)
@@ -597,7 +600,7 @@ importers:
         version: 1.0.7(tailwindcss@4.1.18)
       typescript:
         specifier: ^6.0.2
-        version: 6.0.2
+        version: 6.0.3
       unist-util-visit:
         specifier: ^5.1.0
         version: 5.1.0
@@ -790,7 +793,7 @@ importers:
     devDependencies:
       '@svgr/webpack':
         specifier: ^8.1.0
-        version: 8.1.0(typescript@6.0.2)
+        version: 8.1.0(typescript@6.0.3)
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.1.18
@@ -859,10 +862,10 @@ importers:
         version: 1.4.0
       typescript:
         specifier: ^6.0.2
-        version: 6.0.2
+        version: 6.0.3
       vite-plugin-svgr:
         specifier: ^4.5.0
-        version: 4.5.0(rollup@4.59.0)(typescript@6.0.2)(vite@7.3.3(@types/node@22.19.3)(jiti@2.7.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0))
+        version: 4.5.0(rollup@4.59.0)(typescript@6.0.3)(vite@7.3.3(@types/node@22.19.3)(jiti@2.7.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0))
       vitest:
         specifier: ^4.1.4
         version: 4.1.4(@edge-runtime/vm@3.2.0)(@opentelemetry/api@1.9.0)(@types/node@22.19.3)(@vitest/browser-playwright@4.1.2)(@vitest/coverage-v8@4.1.2)(jsdom@29.0.2(@noble/hashes@2.0.1))(vite@7.3.3(@types/node@22.19.3)(jiti@2.7.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0))
@@ -906,7 +909,7 @@ importers:
         version: 5.2.0(vite@7.3.3(@types/node@24.10.4)(jiti@2.7.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0))
       typescript:
         specifier: ^6.0.2
-        version: 6.0.2
+        version: 6.0.3
       vite:
         specifier: ^7.3.2
         version: 7.3.3(@types/node@24.10.4)(jiti@2.7.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0)
@@ -1087,7 +1090,7 @@ importers:
         version: 4.21.0
       typescript:
         specifier: ^6.0.2
-        version: 6.0.2
+        version: 6.0.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@20.19.27)(jiti@2.7.0)(jsdom@29.0.2(@noble/hashes@2.0.1))(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0)
@@ -1149,7 +1152,7 @@ importers:
         version: 19.2.4(react@19.2.4)
       typescript:
         specifier: ^6.0.2
-        version: 6.0.2
+        version: 6.0.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@20.19.27)(jiti@2.7.0)(jsdom@29.0.2(@noble/hashes@2.0.1))(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0)
@@ -1219,7 +1222,7 @@ importers:
         version: 4.1.1
       typescript:
         specifier: ^6.0.2
-        version: 6.0.2
+        version: 6.0.3
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -1302,7 +1305,7 @@ importers:
         version: 20.19.27
       typescript:
         specifier: ^6.0.2
-        version: 6.0.2
+        version: 6.0.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@20.19.27)(jiti@2.7.0)(jsdom@29.0.2(@noble/hashes@2.0.1))(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0)
@@ -1330,7 +1333,7 @@ importers:
         version: 3.2.4(vitest@3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@20.19.27)(jiti@2.7.0)(jsdom@29.0.2(@noble/hashes@2.0.1))(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0))
       typescript:
         specifier: ^6.0.2
-        version: 6.0.2
+        version: 6.0.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@20.19.27)(jiti@2.7.0)(jsdom@29.0.2(@noble/hashes@2.0.1))(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0)
@@ -1376,7 +1379,7 @@ importers:
         version: 4.21.0
       typescript:
         specifier: ^6.0.2
-        version: 6.0.2
+        version: 6.0.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@20.19.27)(jiti@2.7.0)(jsdom@29.0.2(@noble/hashes@2.0.1))(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0)
@@ -15482,8 +15485,8 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
-  typescript@6.0.2:
-    resolution: {integrity: sha512-bGdAIrZ0wiGDo5l8c++HWtbaNCWTS4UTv7RaTH/ThVIgjkveJt83m74bBHMJkuCbslY8ixgLBVZJIOiQlQTjfQ==}
+  typescript@6.0.3:
+    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -26091,12 +26094,12 @@ snapshots:
       '@svgr/babel-plugin-transform-react-native-svg': 8.1.0(@babel/core@7.29.0)
       '@svgr/babel-plugin-transform-svg-component': 8.0.0(@babel/core@7.29.0)
 
-  '@svgr/core@8.1.0(typescript@6.0.2)':
+  '@svgr/core@8.1.0(typescript@6.0.3)':
     dependencies:
       '@babel/core': 7.29.0
       '@svgr/babel-preset': 8.1.0(@babel/core@7.29.0)
       camelcase: 6.3.0
-      cosmiconfig: 8.3.6(typescript@6.0.2)
+      cosmiconfig: 8.3.6(typescript@6.0.3)
       snake-case: 3.0.4
     transitivePeerDependencies:
       - supports-color
@@ -26107,35 +26110,35 @@ snapshots:
       '@babel/types': 7.29.0
       entities: 4.5.0
 
-  '@svgr/plugin-jsx@8.1.0(@svgr/core@8.1.0(typescript@6.0.2))':
+  '@svgr/plugin-jsx@8.1.0(@svgr/core@8.1.0(typescript@6.0.3))':
     dependencies:
       '@babel/core': 7.29.0
       '@svgr/babel-preset': 8.1.0(@babel/core@7.29.0)
-      '@svgr/core': 8.1.0(typescript@6.0.2)
+      '@svgr/core': 8.1.0(typescript@6.0.3)
       '@svgr/hast-util-to-babel-ast': 8.0.0
       svg-parser: 2.0.4
     transitivePeerDependencies:
       - supports-color
 
-  '@svgr/plugin-svgo@8.1.0(@svgr/core@8.1.0(typescript@6.0.2))(typescript@6.0.2)':
+  '@svgr/plugin-svgo@8.1.0(@svgr/core@8.1.0(typescript@6.0.3))(typescript@6.0.3)':
     dependencies:
-      '@svgr/core': 8.1.0(typescript@6.0.2)
-      cosmiconfig: 8.3.6(typescript@6.0.2)
+      '@svgr/core': 8.1.0(typescript@6.0.3)
+      cosmiconfig: 8.3.6(typescript@6.0.3)
       deepmerge: 4.3.1
       svgo: 4.0.1
     transitivePeerDependencies:
       - typescript
 
-  '@svgr/webpack@8.1.0(typescript@6.0.2)':
+  '@svgr/webpack@8.1.0(typescript@6.0.3)':
     dependencies:
       '@babel/core': 7.29.0
       '@babel/plugin-transform-react-constant-elements': 7.27.1(@babel/core@7.29.0)
       '@babel/preset-env': 7.28.5(@babel/core@7.29.0)
       '@babel/preset-react': 7.28.5(@babel/core@7.29.0)
       '@babel/preset-typescript': 7.28.5(@babel/core@7.29.0)
-      '@svgr/core': 8.1.0(typescript@6.0.2)
-      '@svgr/plugin-jsx': 8.1.0(@svgr/core@8.1.0(typescript@6.0.2))
-      '@svgr/plugin-svgo': 8.1.0(@svgr/core@8.1.0(typescript@6.0.2))(typescript@6.0.2)
+      '@svgr/core': 8.1.0(typescript@6.0.3)
+      '@svgr/plugin-jsx': 8.1.0(@svgr/core@8.1.0(typescript@6.0.3))
+      '@svgr/plugin-svgo': 8.1.0(@svgr/core@8.1.0(typescript@6.0.3))(typescript@6.0.3)
     transitivePeerDependencies:
       - supports-color
       - typescript
@@ -27541,9 +27544,9 @@ snapshots:
     dependencies:
       '@swc/core': 1.15.3
 
-  '@workflow/typescript-plugin@4.0.3(typescript@6.0.2)':
+  '@workflow/typescript-plugin@4.0.3(typescript@6.0.3)':
     dependencies:
-      typescript: 6.0.2
+      typescript: 6.0.3
 
   '@workflow/utils@4.1.3':
     dependencies:
@@ -27576,7 +27579,7 @@ snapshots:
     optionalDependencies:
       '@opentelemetry/api': 1.9.0
 
-  '@workflow/world-postgres@4.3.0(@electric-sql/pglite@0.3.14)(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(bun-types@1.3.5)(kysely@0.28.17)(postgres@3.4.8)(typescript@6.0.2)':
+  '@workflow/world-postgres@4.3.0(@electric-sql/pglite@0.3.14)(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(bun-types@1.3.5)(kysely@0.28.17)(postgres@3.4.8)(typescript@6.0.3)':
     dependencies:
       '@vercel/queue': 0.3.1
       '@workflow/errors': 4.1.4
@@ -27586,7 +27589,7 @@ snapshots:
       cbor-x: 1.6.0
       dotenv: 17.3.1
       drizzle-orm: 0.45.2(@electric-sql/pglite@0.3.14)(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(bun-types@1.3.5)(kysely@0.28.17)(pg@8.20.0)(postgres@3.4.8)
-      graphile-worker: 0.16.6(typescript@6.0.2)
+      graphile-worker: 0.16.6(typescript@6.0.3)
       pg: 8.20.0
       ulid: 3.0.1
       zod: 4.3.6
@@ -28839,14 +28842,14 @@ snapshots:
     dependencies:
       layout-base: 2.0.1
 
-  cosmiconfig@8.3.6(typescript@6.0.2):
+  cosmiconfig@8.3.6(typescript@6.0.3):
     dependencies:
       import-fresh: 3.3.1
       js-yaml: 4.1.1
       parse-json: 5.2.0
       path-type: 4.0.0
     optionalDependencies:
-      typescript: 6.0.2
+      typescript: 6.0.3
 
   cron-parser@5.5.0:
     dependencies:
@@ -30312,7 +30315,7 @@ snapshots:
       - prettier
       - supports-color
 
-  fumadocs-typescript@4.0.14(@types/react@19.2.7)(fumadocs-core@16.1.0(patch_hash=db62f64eaff5e3e95f0cd473420b62bf88653ec5c32447e00de571b56f018a71)(@types/react@19.2.7)(lucide-react@0.503.0(react@19.2.4))(next@16.2.6(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0(patch_hash=fb57ddbf6d253ca059e800cec47d55e177a15be89f100146c8ed5e4ba56697ed))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react-router@7.13.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4))(fumadocs-ui@16.1.0(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(lucide-react@0.503.0(react@19.2.4))(next@16.2.6(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0(patch_hash=fb57ddbf6d253ca059e800cec47d55e177a15be89f100146c8ed5e4ba56697ed))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react-router@7.13.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(tailwindcss@4.1.18))(typescript@6.0.2):
+  fumadocs-typescript@4.0.14(@types/react@19.2.7)(fumadocs-core@16.1.0(patch_hash=db62f64eaff5e3e95f0cd473420b62bf88653ec5c32447e00de571b56f018a71)(@types/react@19.2.7)(lucide-react@0.503.0(react@19.2.4))(next@16.2.6(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0(patch_hash=fb57ddbf6d253ca059e800cec47d55e177a15be89f100146c8ed5e4ba56697ed))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react-router@7.13.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4))(fumadocs-ui@16.1.0(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(lucide-react@0.503.0(react@19.2.4))(next@16.2.6(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0(patch_hash=fb57ddbf6d253ca059e800cec47d55e177a15be89f100146c8ed5e4ba56697ed))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react-router@7.13.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)(tailwindcss@4.1.18))(typescript@6.0.3):
     dependencies:
       estree-util-value-to-estree: 3.5.0
       fumadocs-core: 16.1.0(patch_hash=db62f64eaff5e3e95f0cd473420b62bf88653ec5c32447e00de571b56f018a71)(@types/react@19.2.7)(lucide-react@0.503.0(react@19.2.4))(next@16.2.6(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0(patch_hash=fb57ddbf6d253ca059e800cec47d55e177a15be89f100146c8ed5e4ba56697ed))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react-router@7.13.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)
@@ -30322,7 +30325,7 @@ snapshots:
       remark-rehype: 11.1.2
       tinyglobby: 0.2.15
       ts-morph: 27.0.2
-      typescript: 6.0.2
+      typescript: 6.0.3
       unist-util-visit: 5.1.0
     optionalDependencies:
       '@types/react': 19.2.7
@@ -30559,12 +30562,12 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  graphile-worker@0.16.6(typescript@6.0.2):
+  graphile-worker@0.16.6(typescript@6.0.3):
     dependencies:
       '@graphile/logger': 0.2.0
       '@types/debug': 4.1.12
       '@types/pg': 8.16.0
-      cosmiconfig: 8.3.6(typescript@6.0.2)
+      cosmiconfig: 8.3.6(typescript@6.0.3)
       graphile-config: 0.0.1-beta.18
       json5: 2.2.3
       pg: 8.20.0
@@ -31412,7 +31415,7 @@ snapshots:
 
   klona@2.0.6: {}
 
-  knip@5.82.0(@types/node@24.10.4)(typescript@6.0.2):
+  knip@5.82.0(@types/node@24.10.4)(typescript@6.0.3):
     dependencies:
       '@nodelib/fs.walk': 1.2.8
       '@types/node': 24.10.4
@@ -31426,7 +31429,7 @@ snapshots:
       picomatch: 4.0.4
       smol-toml: 1.6.0
       strip-json-comments: 5.0.3
-      typescript: 6.0.2
+      typescript: 6.0.3
       zod: 4.3.6
 
   knitwork@1.3.0: {}
@@ -34008,7 +34011,7 @@ snapshots:
 
   robust-predicates@3.0.2: {}
 
-  rolldown-plugin-dts@0.20.0(oxc-resolver@11.16.0)(rolldown@1.0.0-beta.59)(typescript@6.0.2):
+  rolldown-plugin-dts@0.20.0(oxc-resolver@11.16.0)(rolldown@1.0.0-beta.59)(typescript@6.0.3):
     dependencies:
       '@babel/generator': 7.29.1
       '@babel/parser': 7.29.0
@@ -34020,7 +34023,7 @@ snapshots:
       obug: 2.1.1
       rolldown: 1.0.0-beta.59
     optionalDependencies:
-      typescript: 6.0.2
+      typescript: 6.0.3
     transitivePeerDependencies:
       - oxc-resolver
 
@@ -35037,11 +35040,11 @@ snapshots:
 
   ts-pattern@5.9.0: {}
 
-  tsconfck@3.1.6(typescript@6.0.2):
+  tsconfck@3.1.6(typescript@6.0.3):
     optionalDependencies:
-      typescript: 6.0.2
+      typescript: 6.0.3
 
-  tsdown@0.19.0(oxc-resolver@11.16.0)(typescript@6.0.2):
+  tsdown@0.19.0(oxc-resolver@11.16.0)(typescript@6.0.3):
     dependencies:
       ansis: 4.2.0
       cac: 6.7.14
@@ -35052,7 +35055,7 @@ snapshots:
       obug: 2.1.1
       picomatch: 4.0.4
       rolldown: 1.0.0-beta.59
-      rolldown-plugin-dts: 0.20.0(oxc-resolver@11.16.0)(rolldown@1.0.0-beta.59)(typescript@6.0.2)
+      rolldown-plugin-dts: 0.20.0(oxc-resolver@11.16.0)(rolldown@1.0.0-beta.59)(typescript@6.0.3)
       semver: 7.7.4
       tinyexec: 1.0.2
       tinyglobby: 0.2.15
@@ -35060,7 +35063,7 @@ snapshots:
       unconfig-core: 7.4.2
       unrun: 0.2.25
     optionalDependencies:
-      typescript: 6.0.2
+      typescript: 6.0.3
     transitivePeerDependencies:
       - '@ts-macro/tsc'
       - '@typescript/native-preview'
@@ -35200,7 +35203,7 @@ snapshots:
 
   typescript@5.9.3: {}
 
-  typescript@6.0.2: {}
+  typescript@6.0.3: {}
 
   ua-parser-js@1.0.41: {}
 
@@ -35581,22 +35584,22 @@ snapshots:
       - tsx
       - yaml
 
-  vite-plugin-svgr@4.5.0(rollup@4.59.0)(typescript@6.0.2)(vite@7.3.3(@types/node@22.19.3)(jiti@2.7.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0)):
+  vite-plugin-svgr@4.5.0(rollup@4.59.0)(typescript@6.0.3)(vite@7.3.3(@types/node@22.19.3)(jiti@2.7.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0)):
     dependencies:
       '@rollup/pluginutils': 5.3.0(rollup@4.59.0)
-      '@svgr/core': 8.1.0(typescript@6.0.2)
-      '@svgr/plugin-jsx': 8.1.0(@svgr/core@8.1.0(typescript@6.0.2))
+      '@svgr/core': 8.1.0(typescript@6.0.3)
+      '@svgr/plugin-jsx': 8.1.0(@svgr/core@8.1.0(typescript@6.0.3))
       vite: 7.3.3(@types/node@22.19.3)(jiti@2.7.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0)
     transitivePeerDependencies:
       - rollup
       - supports-color
       - typescript
 
-  vite-tsconfig-paths@5.1.4(typescript@6.0.2)(vite@7.3.3(@types/node@20.19.27)(jiti@2.7.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0)):
+  vite-tsconfig-paths@5.1.4(typescript@6.0.3)(vite@7.3.3(@types/node@20.19.27)(jiti@2.7.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0)):
     dependencies:
       debug: 4.4.3(supports-color@8.1.1)
       globrex: 0.1.2
-      tsconfck: 3.1.6(typescript@6.0.2)
+      tsconfck: 3.1.6(typescript@6.0.3)
     optionalDependencies:
       vite: 7.3.3(@types/node@20.19.27)(jiti@2.7.0)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.9.0)
     transitivePeerDependencies:
@@ -36065,7 +36068,7 @@ snapshots:
 
   wordwrap@1.0.0: {}
 
-  workflow@4.6.0(@nestjs/common@11.1.13(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.13(@nestjs/common@11.1.13(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.0)(@swc/cli@0.8.0(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(magicast@0.5.2)(next@16.2.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0(patch_hash=fb57ddbf6d253ca059e800cec47d55e177a15be89f100146c8ed5e4ba56697ed))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(typescript@6.0.2):
+  workflow@4.6.0(@nestjs/common@11.1.13(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.13(@nestjs/common@11.1.13(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.0)(@swc/cli@0.8.0(@swc/core@1.15.3)(chokidar@5.0.0))(@swc/core@1.15.3)(magicast@0.5.2)(next@16.2.6(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0(patch_hash=fb57ddbf6d253ca059e800cec47d55e177a15be89f100146c8ed5e4ba56697ed))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(typescript@6.0.3):
     dependencies:
       '@workflow/astro': 4.0.11(@opentelemetry/api@1.9.0)
       '@workflow/cli': 4.3.0(@opentelemetry/api@1.9.0)
@@ -36077,7 +36080,7 @@ snapshots:
       '@workflow/nuxt': 4.0.12(@opentelemetry/api@1.9.0)(magicast@0.5.2)
       '@workflow/rollup': 4.0.11(@opentelemetry/api@1.9.0)
       '@workflow/sveltekit': 4.0.11(@opentelemetry/api@1.9.0)
-      '@workflow/typescript-plugin': 4.0.3(typescript@6.0.2)
+      '@workflow/typescript-plugin': 4.0.3(typescript@6.0.3)
       '@workflow/utils': 4.1.3
       ms: 2.1.3
     optionalDependencies:

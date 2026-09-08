@@ -112,6 +112,8 @@ pnpm build           # Build documentation for production
 
 ## TypeScript Configuration
 
+The root `typescript` devDependency in `public/agents/package.json` is a peer anchor, not a stray pin: it keeps `tsdown`, `rolldown-plugin-dts` and `knip` resolved against TypeScript 6 while another importer in the shared root lockfile declares `typescript@^7`. Do not remove it, and do not bump it past 6.x, without re-running `pnpm build` for every `public/agents` package first.
+
 All TypeScript packages under `public/agents/packages/` and `public/agents/agents-*/` should extend the shared strict baseline at `public/agents/tsconfig.base.json`. This file defines the monorepo's strictness contract: `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, `noFallthroughCasesInSwitch`, `forceConsistentCasingInFileNames`, `skipLibCheck`, `esModuleInterop`, `resolveJsonModule`, `isolatedModules`, `moduleDetection: force`, and `verbatimModuleSyntax: false`.
 
 ### New packages
