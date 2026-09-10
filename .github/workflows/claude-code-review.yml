@@ -491,6 +491,8 @@ jobs:
             SINCE_REVIEW_STATE=unavailable-base
             # STOP: restrict endpoint diffs to author paths; merged hunks in shared files remain.
             # UPSTREAM_COMMITS counts absorbed base ancestry (LAST..MERGE_BASE).
+            # A rebase strands the reviewed commit off every fetched ref while the remote still serves it by SHA.
+            git cat-file -e "$LAST_REVIEW_SHA" 2>/dev/null || git fetch --no-tags -q origin -- "$LAST_REVIEW_SHA" 2>/dev/null || :
             if git cat-file -e "$LAST_REVIEW_SHA" 2>/dev/null && MERGE_BASE=$(git merge-base "$PR_HEAD" "origin/$BASE_REF" 2>/dev/null); then
               UPSTREAM_COMMITS=$(git rev-list --count "$LAST_REVIEW_SHA".."$MERGE_BASE")
               SINCE_REVIEW_COUNT=$(git rev-list --count --no-merges "$PR_HEAD" --not "$LAST_REVIEW_SHA" "origin/$BASE_REF")
@@ -775,6 +777,13 @@ jobs:
           printf '| **Size** | %s commits · +%s/-%s · %s files |\n' "$COMMIT_COUNT" "$FILTERED_ADDITIONS" "$FILTERED_DELETIONS" "$FILTERED_FILE_COUNT"
           printf '| **Labels** | %s |\n' "${LABELS:-_None_}"
           printf '| **Review state** | %s |\n' "$REVIEW_DECISION"
+          # A delta round is scoped to the delta sections below, which carry its hunks; the
+          # whole-PR hunks were inlined for the review that already covered them.
+          DELTA_DIFF_SUMMARY=false
+          if [ "$REVIEW_SCOPE" = "delta" ] && [ "$DIFF_MODE" != "summary" ]; then
+            DIFF_MODE=summary
+            DELTA_DIFF_SUMMARY=true
+          fi
           if [ "$DIFF_MODE" = "summary" ]; then
             printf "| **Diff mode** | \`%s\` — reviewers must read file diffs on-demand via \`git diff\` |\n" "$DIFF_MODE"
           else
@@ -848,7 +857,15 @@ jobs:
           ## Diff
 
           TPL
-          section diff_content.md
+          if [ "$DELTA_DIFF_SUMMARY" = "true" ]; then
+            BASE_Q="$(printf '%q' "origin/$BASE_REF")"
+            begin_region diff_content.md
+            # shellcheck disable=SC2016
+            printf '> %s **Re-review pass (summary mode)** — the full branch diff (~%s files) was reviewed on the previous pass and is not inlined again; the changes this round is scoped to are under "Changes Since Last Review" below.\n>\n> **How to read diffs on-demand:**\n> - Specific file: `git diff %s...HEAD -- path/to/file.ts`\n> - Full PR diff: `gh pr diff %s`\n>\n> **Prioritize** using the Changed Files diff stats above. Focus on files most relevant to your review domain.\n' "$CONTEXT_MARKER" "$FILTERED_FILE_COUNT" "$BASE_Q" "$PR_NUMBER"
+            end_region diff_content.md
+          else
+            section diff_content.md
+          fi
           cat <<'TPL'
 
           ## Changes Since Last Review
