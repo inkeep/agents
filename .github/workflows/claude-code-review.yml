@@ -41,6 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: read
       pull-requests: write
       issues: read
       id-token: write
@@ -61,6 +62,7 @@ jobs:
           AUTHOR_LOGIN=$(echo "$PR_JSON" | jq -r '.user.login')
           BASE_REF=$(echo "$PR_JSON" | jq -r '.base.ref')
           HEAD_SHA=$(echo "$PR_JSON" | jq -r '.head.sha')
+          HEAD_REF=$(echo "$PR_JSON" | jq -r '.head.ref')
           ADDITIONS=$(echo "$PR_JSON" | jq -r '.additions')
           DELETIONS=$(echo "$PR_JSON" | jq -r '.deletions')
           CHANGED_FILES_COUNT=$(echo "$PR_JSON" | jq -r '.changed_files')
@@ -103,6 +105,7 @@ jobs:
           echo "author_login=$AUTHOR_LOGIN" >> "$GITHUB_OUTPUT"
           echo "base_ref=$BASE_REF" >> "$GITHUB_OUTPUT"
           echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          echo "head_ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
           echo "additions=$ADDITIONS" >> "$GITHUB_OUTPUT"
           echo "deletions=$DELETIONS" >> "$GITHUB_OUTPUT"
           echo "changed_files_count=$CHANGED_FILES_COUNT" >> "$GITHUB_OUTPUT"
@@ -279,6 +282,7 @@ jobs:
         id: review_context
         env:
           BASE_REF: ${{ steps.pr.outputs.base_ref }}
+          PR_HEAD_REF: ${{ steps.pr.outputs.head_ref }}
           CONTEXT_MARKER: ${{ steps.pr.outputs.context_marker }}
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -468,18 +472,38 @@ jobs:
 
           printf '%s\n' "$PREV_REVIEWS" > "$SECTIONS/previous_reviews.md"
 
-          # Uses commit { oid } from the GraphQL reviews query to find the exact SHA
-          # the last automated review was made against, then computes the delta.
           PR_HEAD="${{ steps.pr.outputs.head_sha }}"
           # COUPLED: The regex below must match the heading in team-skills ci/pr-review/agents/pr-review.md Phase 6.2.
           # The pr-review agent is constrained to always start its review body with "## PR Review Summary".
-          LAST_REVIEW_SHA=$(echo "$REVIEWS" | jq -r '
+          LAST_REVIEW=$(echo "$REVIEWS" | jq -c '
             [.[] | select(
               (.author.login == "claude" or .author.login == "claude[bot]") and
               ((.body // "") | test("^## PR Review Summary"))
             )] |
-            sort_by(.submittedAt) | last | .commit.oid // ""
+            sort_by(.submittedAt) | last
           ')
+          LAST_REVIEW_SHA=$(printf '%s' "$LAST_REVIEW" | jq -r '.commit.oid // ""')
+          LAST_REVIEW_ANCHOR=commit
+          REVIEW_RUN=$(printf '%s' "$LAST_REVIEW" | jq -r '(.body // "") | [capture("<!-- claude-review run=(?<run>[0-9]+) attempt=[0-9]+ -->")] | first | .run // ""')
+          if [ -n "$REVIEW_RUN" ]; then
+            # STOP: only a pull_request run of THIS head branch has the reviewed head as its
+            # head_sha; an issue_comment run carries the default branch's commit instead.
+            MARKER_REJECT="run unreadable"
+            if REVIEW_RUN_JSON=$(gh api "repos/${{ github.repository }}/actions/runs/${REVIEW_RUN}" --jq '{event, head_branch, head_sha}') &&
+              REVIEW_RUN_FIELDS=$(printf '%s' "$REVIEW_RUN_JSON" | jq -r '[.event, .head_branch, .head_sha] | map(if type == "string" then . else "" end) | @tsv'); then
+              IFS=$'\t' read -r REVIEW_EVENT REVIEW_BRANCH REVIEW_HEAD <<<"$REVIEW_RUN_FIELDS"
+              if [ "$REVIEW_EVENT" != pull_request ]; then
+                MARKER_REJECT="manual-run marker"
+              elif [ "$REVIEW_BRANCH" != "$PR_HEAD_REF" ]; then
+                MARKER_REJECT="foreign-branch marker"
+              elif [[ "$REVIEW_HEAD" =~ ^[0-9a-fA-F]{40}$ ]]; then
+                LAST_REVIEW_SHA="$REVIEW_HEAD"
+                LAST_REVIEW_ANCHOR=marker
+                MARKER_REJECT=""
+              fi
+            fi
+            [ -z "$MARKER_REJECT" ] || echo "::warning::${CONTEXT_MARKER} review marker ${MARKER_REJECT}; using commit anchor (possibly full PR scope)"
+          fi
 
           SINCE_REVIEW_COUNT=0
           SINCE_REVIEW_FILE_COUNT=0
@@ -584,6 +608,7 @@ jobs:
             echo "upstream_commits=$UPSTREAM_COMMITS"
             echo "merge_base=$MERGE_BASE"
             echo "last_review_sha=$LAST_REVIEW_SHA"
+            echo "last_review_anchor=$LAST_REVIEW_ANCHOR"
           } >> "$GITHUB_OUTPUT"
 
           # review_scope is the single source of truth for delta vs full scoping.
@@ -784,6 +809,9 @@ jobs:
             DIFF_MODE=summary
             DELTA_DIFF_SUMMARY=true
           fi
+          # The env value above is the size-based input; this is the mode the context carries.
+          echo "diff mode: ${DIFF_MODE} (delta-round summary: ${DELTA_DIFF_SUMMARY})" >&2
+          echo "diff_mode_effective=${DIFF_MODE}" >> "$GITHUB_OUTPUT"
           if [ "$DIFF_MODE" = "summary" ]; then
             printf "| **Diff mode** | \`%s\` — reviewers must read file diffs on-demand via \`git diff\` |\n" "$DIFF_MODE"
           else
