@@ -163,6 +163,7 @@ jobs:
             ':!**/drizzle/*/meta/*_snapshot.json'
             ':!**/drizzle/*/meta/_journal.json'
             ':!**/CHANGELOG.md'
+            ':!CHANGELOG.md'
           )
 
           BASE="origin/${BASE_REF}"
@@ -283,6 +284,7 @@ jobs:
         env:
           BASE_REF: ${{ steps.pr.outputs.base_ref }}
           PR_HEAD_REF: ${{ steps.pr.outputs.head_ref }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
           CONTEXT_MARKER: ${{ steps.pr.outputs.context_marker }}
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -484,18 +486,48 @@ jobs:
           ')
           LAST_REVIEW_SHA=$(printf '%s' "$LAST_REVIEW" | jq -r '.commit.oid // ""')
           LAST_REVIEW_ANCHOR=commit
-          REVIEW_RUN=$(printf '%s' "$LAST_REVIEW" | jq -r '(.body // "") | [capture("<!-- claude-review run=(?<run>[0-9]+) attempt=[0-9]+ -->")] | first | .run // ""')
-          if [ -n "$REVIEW_RUN" ]; then
-            # STOP: only a pull_request run of THIS head branch has the reviewed head as its
-            # head_sha; an issue_comment run carries the default branch's commit instead.
+          # Distinct run ids, not the first match: a body naming two runs says
+          # which head was reviewed ambiguously, and taking the first silently
+          # picks one. A rerun repeats the SAME id, which is not ambiguous.
+          REVIEW_RUNS=$(printf '%s' "$LAST_REVIEW" | jq -c '[(.body // "") | scan("<!-- claude-review run=([0-9]+) attempt=[0-9]+ -->") | .[0]] | unique')
+          REVIEW_RUN=$(printf '%s' "$REVIEW_RUNS" | jq -r 'if length == 1 then .[0] else "" end')
+          if [ "$(printf '%s' "$REVIEW_RUNS" | jq -r 'length')" -gt 1 ]; then
+            MARKER_REJECT="ambiguous marker"
+            echo "::warning::${CONTEXT_MARKER} review marker ${MARKER_REJECT}; using commit anchor (possibly full PR scope)"
+          elif [ -n "$REVIEW_RUN" ]; then
+            # STOP: only a pull_request run of THIS repository, THIS workflow,
+            # THIS pull request and THIS head branch has the reviewed head as its
+            # head_sha. Run ids resolve across the whole repository, and branch
+            # names are not unique across a fork network; an issue_comment run
+            # carries the default branch's commit instead. The marker itself is
+            # model-authored prose.
+            #
+            # KNOWN GAP, deliberate: the root workflow's staged helper ALSO binds
+            # the marker run's start time at or before the review it names, and
+            # fetches the run's head before testing that it is not a strict
+            # descendant of this head. Neither is reproduced here. The mirrors
+            # have no trusted-helper staging and do not carry
+            # .github/scripts/since-review-delta.sh, so reaching full parity
+            # means hand-copying a predicate that the root deliberately moved OUT
+            # of its workflow; the residue costs delta SCOPE (a wrong baseline
+            # widens or narrows a round) rather than cross-boundary confusion,
+            # which the arms below close. Documented in
+            # .github/CI_ARCHITECTURE.md, "Workflow-owned review context".
             MARKER_REJECT="run unreadable"
-            if REVIEW_RUN_JSON=$(gh api "repos/${{ github.repository }}/actions/runs/${REVIEW_RUN}" --jq '{event, head_branch, head_sha}') &&
-              REVIEW_RUN_FIELDS=$(printf '%s' "$REVIEW_RUN_JSON" | jq -r '[.event, .head_branch, .head_sha] | map(if type == "string" then . else "" end) | @tsv'); then
-              IFS=$'\t' read -r REVIEW_EVENT REVIEW_BRANCH REVIEW_HEAD <<<"$REVIEW_RUN_FIELDS"
+            if REVIEW_RUN_JSON=$(gh api "repos/${{ github.repository }}/actions/runs/${REVIEW_RUN}" --jq '{event, head_branch, head_sha, path, head_repository: .head_repository.full_name, pull_requests: [.pull_requests[]?.number]}') &&
+              REVIEW_RUN_FIELDS=$(printf '%s' "$REVIEW_RUN_JSON" | jq -r '[.event, .head_branch, .head_sha, .path, .head_repository] | map(if type == "string" then . else "" end) | @tsv'); then
+              IFS=$'\t' read -r REVIEW_EVENT REVIEW_BRANCH REVIEW_HEAD REVIEW_PATH REVIEW_REPO <<<"$REVIEW_RUN_FIELDS"
+              REVIEW_PR_MATCH=$(printf '%s' "$REVIEW_RUN_JSON" | jq -r --arg pr "$PR_NUMBER" 'if ((.pull_requests // []) | map(tostring) | index($pr)) then "yes" else "no" end')
               if [ "$REVIEW_EVENT" != pull_request ]; then
                 MARKER_REJECT="manual-run marker"
+              elif [ "$REVIEW_REPO" != "${{ github.repository }}" ]; then
+                MARKER_REJECT="foreign-repository marker"
+              elif [ "$REVIEW_PATH" != ".github/workflows/claude-code-review.yml" ]; then
+                MARKER_REJECT="foreign-workflow marker"
               elif [ "$REVIEW_BRANCH" != "$PR_HEAD_REF" ]; then
                 MARKER_REJECT="foreign-branch marker"
+              elif [ "$REVIEW_PR_MATCH" != yes ]; then
+                MARKER_REJECT="foreign-pull-request marker"
               elif [[ "$REVIEW_HEAD" =~ ^[0-9a-fA-F]{40}$ ]]; then
                 LAST_REVIEW_SHA="$REVIEW_HEAD"
                 LAST_REVIEW_ANCHOR=marker
@@ -531,6 +563,7 @@ jobs:
                 ':!**/drizzle/*/meta/*_snapshot.json'
                 ':!**/drizzle/*/meta/_journal.json'
                 ':!**/CHANGELOG.md'
+                ':!CHANGELOG.md'
               )
               SINCE_REVIEW_LOG=$(git log --oneline --no-merges "$PR_HEAD" --not "$LAST_REVIEW_SHA" "origin/$BASE_REF")
               # STOP: history keeps reverted paths; --no-renames keeps rename pre-images.
