@@ -331,6 +331,8 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
       }),
       organization({
         allowUserToCreateOrganization: false,
+        // UPSTREAM(better-auth/better-auth#9877): 1.6.11 gates all four invitation recipient endpoints (accept, reject, get, list) on emailVerified; 1.6.14 restores by-ID actions for opaque IDs. Required on the pinned 1.6.11; kept after the bump so the posture stays explicit.
+        requireEmailVerificationOnInvitation: false,
         ac,
         roles: {
           member: memberRole,
