@@ -9,7 +9,7 @@ on:
 jobs:
   pr-review:
     env:
-      TEAM_SKILLS_REV: 344466ac5c82ababb37244c729ee04c07bde4ff1
+      TEAM_SKILLS_REV: 5a97b0a1e6f73b16d3eef83138e8d15693e4bb12
     if: |
       (github.event_name == 'pull_request' &&
         (github.event.sender.type != 'Bot' || github.event.sender.login == 'inkeep-internal-ci[bot]' || github.event.sender.login == 'github-actions[bot]') &&
@@ -1162,7 +1162,7 @@ jobs:
             --plugin-dir /tmp/team-skills/ci/pr-review
             --agent pr-review:pr-review
             --mcp-config '{"mcpServers":{"exa":{"command":"npx","args":["-y","exa-mcp-server"],"env":{"EXA_API_KEY":"${{ secrets.EXA_API_KEY }}"}}}}'
-            --allowedTools "Task,Read,Write,Grep,Glob,mcp__exa__web_search_exa,mcp__github__create_pending_pull_request_review,mcp__github__add_comment_to_pending_review,mcp__github__submit_pending_pull_request_review,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git merge-base:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api:*),Bash(mkdir:*)"
+            --allowedTools "Task,Read,Write,Grep,Glob,mcp__exa__web_search_exa,mcp__github__create_pending_pull_request_review,mcp__github__submit_pending_pull_request_review,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git merge-base:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api:*),Bash(mkdir:*)"
           prompt: |
             Review PR #${{ steps.pr.outputs.number }}. Begin Phase 1.
 
