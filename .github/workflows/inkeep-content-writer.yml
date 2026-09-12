@@ -31,6 +31,6 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Trigger Inkeep Agent
-              uses: inkeep/inkeep-agents-action@267e6185c8b1b69dfba85d7ea1c31066891ee2a6 # v0
+              uses: inkeep/inkeep-agents-action@fbbc92842bd025f044cb7e4d827882fd85914f26 # v0
               with:
                   trigger-url: ${{ secrets.INKEEP_CONTENT_WRITER_TRIGGER_URL }}
