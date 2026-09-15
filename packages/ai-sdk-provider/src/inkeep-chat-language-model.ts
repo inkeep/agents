@@ -179,6 +179,17 @@ export class InkeepChatLanguageModel implements LanguageModelV2 {
       });
     }
 
+    if (choice.message.tool_calls) {
+      for (const toolCall of choice.message.tool_calls) {
+        content.push({
+          type: 'tool-call',
+          toolCallId: toolCall.id,
+          toolName: toolCall.function.name,
+          input: toolCall.function.arguments || '{}',
+        });
+      }
+    }
+
     return {
       content,
       finishReason: mapInkeepFinishReason(choice.finish_reason as InkeepFinishReason),
@@ -349,9 +360,21 @@ const inkeepChatCompletionSchema = z.object({
       index: z.number(),
       message: z.object({
         role: z.literal('assistant'),
-        content: z.string(),
+        content: z.string().nullable().optional(),
+        tool_calls: z
+          .array(
+            z.object({
+              id: z.string(),
+              type: z.literal('function'),
+              function: z.object({
+                name: z.string(),
+                arguments: z.string(),
+              }),
+            })
+          )
+          .optional(),
       }),
-      finish_reason: z.string(),
+      finish_reason: z.string().nullable().optional(),
     })
   ),
   usage: z

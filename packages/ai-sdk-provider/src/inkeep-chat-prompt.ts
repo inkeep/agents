@@ -7,6 +7,15 @@ export interface InkeepChatMessage {
         text?: string;
       }>;
   name?: string;
+  tool_call_id?: string;
+  tool_calls?: Array<{
+    id: string;
+    type: 'function';
+    function: {
+      name: string;
+      arguments: string;
+    };
+  }>;
 }
 
 export interface InkeepChatRequest {
@@ -65,7 +74,7 @@ export interface InkeepChatCompletion {
     index: number;
     message: {
       role: 'assistant';
-      content: string;
+      content?: string | null;
       tool_calls?: Array<{
         id: string;
         type: 'function';
@@ -75,7 +84,7 @@ export interface InkeepChatCompletion {
         };
       }>;
     };
-    finish_reason: string;
+    finish_reason?: string | null;
   }>;
   usage?: {
     prompt_tokens?: number;
