@@ -14,13 +14,9 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 
 ### Verification
 
-**Pre-push** (run both, in order):
-```bash
-pnpm format     # auto-fix formatting
-pnpm check      # lint + typecheck + test + format:check + env-descriptions + route-handler-patterns + dal-boundary + knip
-```
+**Iteration:** Fresh regression: `cd <pkg> && pnpm test --run <file>`; then touched lint/typecheck/guards, widened for inputs/consumers.
 
-**Single-command iteration:** `pnpm typecheck`, `pnpm lint` (`lint:fix`), `pnpm test`, `cd <pkg> && pnpm test --run <file>`
+**Pre-push:** `pnpm format`, then `pnpm check`; covers lint/typecheck/test/format:check/env-descriptions/route-handler-patterns/dal-boundary/knip.
 
 ### Database Operations (run from monorepo root)
 - **Generate migrations**: `pnpm db:generate` - Generate Drizzle migrations from schema changes
@@ -464,7 +460,7 @@ This product has **50+ customer-facing** and **100+ internal tooling/devops** su
 - Documentation should be in MDX format (`.mdx` files)
 - Follow the **write-docs** skill whenever creating or modifying documentation
 
-**Before marking any feature complete, verify:**
+Diagnose a red from its inputs and base; repair only an in-scope cause. Log an unrelated red as an environment blocker with its log/owner; keep the quality result false and make no green claim. Before marking any feature complete, verify:
 - [ ] `pnpm check` passes
 - [ ] **Changeset created** via `pnpm bump` for every published package with runtime behavior changes (see [Creating Changelog Entries](#creating-changelog-entries-changesets))
 - [ ] UI components implemented in agents-manage-ui
