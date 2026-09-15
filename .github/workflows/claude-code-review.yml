@@ -9,7 +9,7 @@ on:
 jobs:
   pr-review:
     env:
-      TEAM_SKILLS_REV: 5a97b0a1e6f73b16d3eef83138e8d15693e4bb12
+      TEAM_SKILLS_REV: d78c38b4b5e882131bf9877b7060bd1088a44b3f
     if: |
       (github.event_name == 'pull_request' &&
         (github.event.sender.type != 'Bot' || github.event.sender.login == 'inkeep-internal-ci[bot]' || github.event.sender.login == 'github-actions[bot]') &&
