@@ -652,5 +652,153 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
       expect(result?.subAgents).not.toHaveProperty('non-existent-agent');
       expect(Object.keys(result?.subAgents || {})).toHaveLength(1);
     });
+
+    it('should properly propagate stepCountIs to subAgents from project stopWhen during createFullAgentServerSide', async () => {
+      const mockProject = {
+        id: testProjectId,
+        name: 'Test Project',
+        stopWhen: {
+          stepCountIs: 25,
+          transferCountIs: 5,
+        },
+      };
+
+      const mockAgent = {
+        id: testAgentId,
+        name: 'Test Agent',
+        defaultSubAgentId: 'agent-1',
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+        description: null,
+        models: null,
+        contextConfigId: null,
+        stopWhen: {
+          transferCountIs: 5,
+        },
+      };
+
+      const mockSubAgent = {
+        id: 'agent-1',
+        name: 'Agent 1',
+        description: 'First agent',
+        prompt: 'Instructions 1',
+        models: null,
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        agentId: testAgentId,
+        stopWhen: {
+          stepCountIs: 25,
+        },
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+      };
+
+      const mockQuery = {
+        projects: {
+          findFirst: vi.fn().mockResolvedValue(mockProject),
+        },
+        agents: {
+          findFirst: vi.fn().mockResolvedValue(mockAgent),
+        },
+        subAgents: {
+          findFirst: vi.fn().mockResolvedValue(mockSubAgent),
+          findMany: vi.fn().mockResolvedValue([mockSubAgent]),
+        },
+        subAgentRelations: {
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+        subAgentExternalAgentRelations: {
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+        subAgentTeamAgentRelations: {
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+        subAgentDataComponents: {
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+        subAgentArtifactComponents: {
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+        dataComponents: {
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+        artifactComponents: {
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+      };
+
+      const mockDelete = vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([]),
+      });
+
+      const mockUpdate = vi.fn().mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([mockAgent]),
+          }),
+        }),
+      });
+
+      const mockTx = {
+        query: mockQuery,
+        insert: vi.fn().mockReturnValue({
+          values: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([
+              {
+                id: testAgentId,
+                name: 'Test Agent',
+                defaultSubAgentId: 'agent-1',
+                tenantId: testTenantId,
+                projectId: testProjectId,
+              },
+            ]),
+          }),
+        }),
+        update: mockUpdate,
+        delete: mockDelete,
+        select: vi.fn().mockReturnValue(createSelectMock([])),
+        selectDistinct: vi.fn().mockReturnValue(createSelectMock([])),
+      };
+
+      const mockDb = {
+        query: mockQuery,
+        insert: mockTx.insert,
+        update: mockUpdate,
+        delete: mockDelete,
+        select: mockTx.select,
+        selectDistinct: mockTx.selectDistinct,
+        transaction: vi.fn(async (cb) => cb(mockTx)),
+      } as any;
+
+      const agentData: any = {
+        id: testAgentId,
+        name: 'Test Agent',
+        defaultSubAgentId: 'agent-1',
+        subAgents: {
+          'agent-1': {
+            id: 'agent-1',
+            name: 'Agent 1',
+            description: 'First agent',
+            prompt: 'Instructions 1',
+            type: 'internal',
+            canDelegateTo: [],
+            canUse: [],
+            dataComponents: [],
+            artifactComponents: [],
+          },
+        },
+      };
+
+      const { createFullAgentServerSide } = await import('../../data-access/manage/agentFull');
+      const result = await createFullAgentServerSide(mockDb)(
+        { tenantId: testTenantId, projectId: testProjectId },
+        agentData
+      );
+
+      expect(result.stopWhen?.transferCountIs).toBe(5);
+      expect(result.subAgents['agent-1']?.stopWhen?.stepCountIs).toBe(25);
+    });
   });
 });

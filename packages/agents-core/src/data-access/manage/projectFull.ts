@@ -41,7 +41,7 @@ import { deleteDataComponent, listDataComponents, upsertDataComponent } from './
 import { deleteExternalAgent, listExternalAgents, upsertExternalAgent } from './externalAgents';
 import { deleteFunction, listFunctions, upsertFunction } from './functions';
 import { createProject, deleteProject, getProject, updateProject } from './projects';
-import { listSkillsWithFiles, upsertSkill } from './skills';
+import { deleteSkill, listSkills, listSkillsWithFiles, upsertSkill } from './skills';
 import { deleteTool, listTools, upsertTool } from './tools';
 
 const logger = getLogger('projectFull');
@@ -1097,6 +1097,39 @@ export const updateFullProjectServerSide =
             projectId: typed.id,
           },
           'Deleted orphaned artifactComponents from project'
+        );
+      }
+
+      const incomingSkillIds = new Set(Object.keys(typed.skills || {}));
+      const existingSkillsResult = await listSkills(db)({
+        scopes: { tenantId, projectId: typed.id },
+        pagination: { page: 1, limit: 1000 },
+      });
+      const existingSkills = existingSkillsResult.data;
+
+      let deletedSkillCount = 0;
+      for (const skill of existingSkills) {
+        if (!incomingSkillIds.has(skill.id)) {
+          try {
+            await deleteSkill(db)({
+              skillId: skill.id,
+              scopes: { tenantId, projectId: typed.id },
+            });
+            deletedSkillCount++;
+            logger.info({ skillId: skill.id }, 'Deleted orphaned skill from project');
+          } catch (error) {
+            logger.error({ skillId: skill.id, error }, 'Failed to delete orphaned skill from project');
+          }
+        }
+      }
+
+      if (deletedSkillCount > 0) {
+        logger.info(
+          {
+            deletedSkillCount,
+            projectId: typed.id,
+          },
+          'Deleted orphaned skills from project'
         );
       }
 
