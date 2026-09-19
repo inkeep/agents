@@ -1186,5 +1186,5 @@ jobs:
             ${{ runner.temp }}/claude-debug/
             ${{ steps.claude.outputs.execution_file }}
             ${{ runner.temp }}/claude-debug/pr-context.md
-          retention-days: 7
+          retention-days: 30
           if-no-files-found: ignore
