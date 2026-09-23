@@ -482,10 +482,10 @@ Git worktrees allow you to work on multiple features simultaneously without swit
 
 #### Creating a Worktree
 
-To spin off a new scope of work in a separate directory using git worktrees:
+Cut each worktree from a fresh base:
 
 ```bash
-git worktree add ../pull-instrument -b feat/pull-instrument
+git fetch origin main && git worktree add ../pull-instrument -b feat/pull-instrument origin/main
 ```
 
 **Important Conventions:**
@@ -497,12 +497,12 @@ git worktree add ../pull-instrument -b feat/pull-instrument
 
 ```bash
 # Create a new worktree for a feature
-git worktree add ../my-feature -b feat/ENG-123-my-feature
+git fetch origin main && git worktree add ../my-feature -b feat/ENG-123-my-feature origin/main
 
-# Navigate to the worktree directory
+# Enter it
 cd ../my-feature
 
-# Work on your feature normally
+# Work normally
 # ... make changes, commit, push, create PR ...
 
 # List all worktrees
