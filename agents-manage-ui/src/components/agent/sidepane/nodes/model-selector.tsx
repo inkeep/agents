@@ -57,7 +57,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
   const [open, setOpen] = useState(defaultOpen);
 
   const [showCustomInput, setShowCustomInput] = useState<
-    'openrouter' | 'gateway' | 'nim' | 'custom' | 'azure' | null
+    'openrouter' | 'gateway' | 'nim' | 'litellm' | 'custom' | 'azure' | null
   >(null);
   const [azureDeploymentName, setAzureDeploymentName] = useState('');
   const [azureResourceName, setAzureResourceName] = useState('');
@@ -89,6 +89,10 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
     if (value.startsWith('nim/')) {
       const modelName = value.replace('nim/', '');
       return { value, label: modelName, prefix: 'nim/' };
+    }
+    if (value.startsWith('litellm/')) {
+      const modelName = value.replace('litellm/', '');
+      return { value, label: modelName, prefix: 'litellm/' };
     }
     if (value.startsWith('custom/')) {
       const modelName = value.replace('custom/', '');
@@ -203,6 +207,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                               !modelValue.startsWith('openrouter/') &&
                               !modelValue.startsWith('gateway/') &&
                               !modelValue.startsWith('nim/') &&
+                              !modelValue.startsWith('litellm/') &&
                               !modelValue.startsWith('custom/')
                             ) {
                               // Could be openrouter format, let user decide or add logic here
@@ -312,6 +317,18 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                   </CommandItem>
                   <CommandItem
                     className="flex items-center justify-between cursor-pointer text-foreground"
+                    value="__litellm__"
+                    onSelect={() => {
+                      setShowCustomInput('litellm');
+                      setOpen(false);
+                      setCustomModelInput('');
+                      onValueChange('litellm/...');
+                    }}
+                  >
+                    LiteLLM ...
+                  </CommandItem>
+                  <CommandItem
+                    className="flex items-center justify-between cursor-pointer text-foreground"
                     value="__azure__"
                     onSelect={() => {
                       setShowCustomInput('azure');
@@ -338,6 +355,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
               openrouter: 'OpenRouter Model ID',
               gateway: 'Vercel AI Gateway Model ID',
               nim: 'NVIDIA NIM Model ID',
+              litellm: 'LiteLLM Model ID',
               custom: '',
             }[showCustomInput] || 'Custom Model ID'}
           </div>
@@ -347,6 +365,8 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                 'Examples: anthropic/claude-3-5-sonnet, meta-llama/llama-3.1-405b-instruct',
               gateway: 'Examples: openai/gpt-4o, anthropic/claude-3-5-sonnet',
               nim: 'Examples: nvidia/llama-3.3-nemotron-super-49b-v1.5, nvidia/nemotron-4-340b-instruct',
+              litellm:
+                'Examples: anthropic/claude-sonnet-4-5, gpt-4o, or a model alias configured on your LiteLLM proxy',
               custom: '',
             }[showCustomInput] || 'Examples: my-custom-model, llama-3-custom, custom-finetuned'}
           </div>
@@ -357,6 +377,7 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                   openrouter: 'anthropic/claude-3-5-sonnet',
                   gateway: 'openai/gpt-4o',
                   nim: 'nvidia/llama-3.3-nemotron-super-49b-v1.5',
+                  litellm: 'anthropic/claude-sonnet-4-5',
                   custom: '',
                 }[showCustomInput] || 'my-custom-model'
               }
@@ -371,7 +392,9 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                         ? 'gateway/'
                         : showCustomInput === 'nim'
                           ? 'nim/'
-                          : 'custom/';
+                          : showCustomInput === 'litellm'
+                            ? 'litellm/'
+                            : 'custom/';
                   onValueChange(`${prefix}${customModelInput.trim()}`);
                   setShowCustomInput(null);
                   setCustomModelInput('');
@@ -394,7 +417,9 @@ export const ModelSelector: FC<ModelSelectorProps> = ({
                         ? 'gateway/'
                         : showCustomInput === 'nim'
                           ? 'nim/'
-                          : 'custom/';
+                          : showCustomInput === 'litellm'
+                            ? 'litellm/'
+                            : 'custom/';
                   onValueChange(`${prefix}${customModelInput.trim()}`);
                   setShowCustomInput(null);
                   setCustomModelInput('');
