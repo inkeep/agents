@@ -204,5 +204,59 @@ describe('InkeepChatLanguageModel', () => {
       expect(requestBody.messages).toBeDefined();
       expect(Array.isArray(requestBody.messages)).toBe(true);
     });
+
+    it('should extract tool calls in doGenerate', async () => {
+      const mockResponse = {
+        id: 'response-2',
+        object: 'chat.completion',
+        created: Date.now(),
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: null,
+              tool_calls: [
+                {
+                  id: 'call-abc',
+                  type: 'function',
+                  function: {
+                    name: 'calculator',
+                    arguments: JSON.stringify({ a: 1, b: 2 }),
+                  },
+                },
+              ],
+            },
+            finish_reason: 'tool_calls',
+          },
+        ],
+      };
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => mockResponse,
+        text: async () => JSON.stringify(mockResponse),
+      });
+
+      const model = new InkeepChatLanguageModel({}, mockConfig);
+
+      const options: LanguageModelV2CallOptions = {
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'Calculate 1 + 2' }] }],
+      };
+
+      const result = await model.doGenerate(options);
+
+      expect(result.content).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-abc',
+          toolName: 'calculator',
+          input: JSON.stringify({ a: 1, b: 2 }),
+        },
+      ]);
+      expect(result.finishReason).toBe('tool-calls');
+    });
   });
 });
