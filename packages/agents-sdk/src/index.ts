@@ -54,6 +54,7 @@ export {
   externalAgents,
 } from './external-agent';
 export { FunctionTool } from './function-tool';
+export { govern, type GovernanceOptions } from './governance';
 export { Project, type ProjectConfig } from './project';
 export {
   createFullProjectViaAPI,
