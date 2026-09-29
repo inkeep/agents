@@ -7,18 +7,16 @@ export default defineProject({
     setupFiles: './src/__tests__/setup.ts',
     globals: true,
     environment: 'node',
-    testTimeout: 60000, // 60 seconds for database operations
-    hookTimeout: 60000, // 60 seconds for setup/teardown hooks
+    testTimeout: 60000,
+    hookTimeout: 60000,
     exclude: [
       'node_modules',
       'dist',
       'src/__tests__/manage/integration/**/*.test.ts',
       'src/domains/run/services/__tests__/ArtifactService.test.ts',
-      'src/domains/run/services/__tests__/blob-storage-factory.test.ts',
     ],
-    // Enable parallelism with in-memory databases - each worker gets isolated database
     fileParallelism: true,
-    isolate: true, // Ensure test isolation to prevent state leakage
+    isolate: true,
     poolOptions: {
       threads: {
         maxThreads: 8,

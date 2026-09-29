@@ -1,6 +1,4 @@
-import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import path from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('blob storage factory', () => {
@@ -31,10 +29,9 @@ describe('blob storage factory', () => {
   });
 
   it('prefers S3 provider when S3 and Vercel config are both set', async () => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'blob-s3-precedence-'));
     vi.doMock('../../../../env', () => ({
       env: {
-        BLOB_STORAGE_LOCAL_PATH: dir,
+        BLOB_STORAGE_LOCAL_PATH: tmpdir(),
         BLOB_STORAGE_S3_ENDPOINT: 'http://localhost:9000',
         BLOB_STORAGE_S3_BUCKET: 'bucket',
         BLOB_STORAGE_S3_REGION: 'us-east-1',
@@ -53,10 +50,9 @@ describe('blob storage factory', () => {
   });
 
   it('uses Vercel provider when S3 is not configured and token is set', async () => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'blob-vercel-precedence-'));
     vi.doMock('../../../../env', () => ({
       env: {
-        BLOB_STORAGE_LOCAL_PATH: dir,
+        BLOB_STORAGE_LOCAL_PATH: tmpdir(),
         BLOB_READ_WRITE_TOKEN: 'token',
       },
     }));
@@ -69,10 +65,9 @@ describe('blob storage factory', () => {
   });
 
   it('falls back to local provider when no remote config is set', async () => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'blob-local-fallback-'));
     vi.doMock('../../../../env', () => ({
       env: {
-        BLOB_STORAGE_LOCAL_PATH: dir,
+        BLOB_STORAGE_LOCAL_PATH: tmpdir(),
       },
     }));
 
@@ -84,10 +79,9 @@ describe('blob storage factory', () => {
   });
 
   it('returns the same singleton instance across calls', async () => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'blob-singleton-'));
     vi.doMock('../../../../env', () => ({
       env: {
-        BLOB_STORAGE_LOCAL_PATH: dir,
+        BLOB_STORAGE_LOCAL_PATH: tmpdir(),
       },
     }));
 
