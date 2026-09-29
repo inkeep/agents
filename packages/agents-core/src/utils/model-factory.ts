@@ -6,6 +6,7 @@ import { createOpenAI, openai } from '@ai-sdk/openai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { JSONObject } from '@ai-sdk/provider';
 import { createOpenRouter, openrouter } from '@openrouter/ai-sdk-provider';
+import { createRequesty } from '@requesty/ai-sdk';
 import type { LanguageModel } from 'ai';
 import { wrapLanguageModel } from 'ai';
 
@@ -65,6 +66,10 @@ export class ModelFactory {
         return createGoogleGenerativeAI(config);
       case 'openrouter':
         return createOpenRouter(config);
+      case 'requesty':
+        return createRequesty(config) as unknown as {
+          languageModel: (modelId: string) => LanguageModel;
+        };
       case 'gateway':
         return createGateway(config);
       case 'nim': {
