@@ -3,5 +3,8 @@
 # Pre-push hook: Format check + changeset validation
 # Full validation runs in CI
 
+_hsn_script="$(dirname "$0")/../scripts/select-hook-node.sh"
+[ -f "$_hsn_script" ] && . "$_hsn_script"
+
 pnpm format
 pnpm check:changeset-packages
