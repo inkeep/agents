@@ -20,6 +20,9 @@
 #    where project-root resolution misfires under the husky env. `pnpm exec`
 #    always uses node_modules/.bin from the repo root.
 
+_hsn_script="$(dirname "$0")/../scripts/select-hook-node.sh"
+[ -f "$_hsn_script" ] && . "$_hsn_script"
+
 if [ ! -x ./node_modules/.bin/lint-staged ]; then
   echo "pre-commit: lint-staged is not installed in this worktree." >&2
   echo "  Run 'pnpm install' in the worktree root before committing." >&2
