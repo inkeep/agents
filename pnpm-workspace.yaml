@@ -100,3 +100,5 @@ overrides:
   "path-to-regexp@>=8 <8.4.0": "8.4.2" # ReDoS via sequential optional groups
   "picomatch@<2.3.2": ">=2.3.2" # ReDoS via extglob quantifiers + POSIX injection
   "picomatch@>=4 <4.0.4": ">=4.0.4" # ReDoS via extglob quantifiers
+  better-auth: 1.6.11 # OAuth refresh-token replay on oidc-provider/mcp plugins (CRITICAL)
+  "@better-auth/sso": 1.6.11 # SSRF via unvalidated OIDC endpoints in provider registration (CRITICAL)
