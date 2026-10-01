@@ -107,7 +107,9 @@
       "path-to-regexp@>=4 <6.3.0": "6.3.0",
       "path-to-regexp@>=8 <8.4.0": "8.4.2",
       "picomatch@<2.3.2": ">=2.3.2",
-      "picomatch@>=4 <4.0.4": ">=4.0.4"
+      "picomatch@>=4 <4.0.4": ">=4.0.4",
+      "better-auth": "1.6.11",
+      "@better-auth/sso": "1.6.11"
     }
   }
 }
