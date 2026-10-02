@@ -90,20 +90,45 @@ export function convertToInkeepChatMessages(
           }
         }
 
-        messages.push({
+        const assistantMessage: InkeepChatMessage = {
           role: 'assistant',
           content: text || '',
-        });
+        };
+
+        if (toolCalls.length > 0) {
+          assistantMessage.tool_calls = toolCalls;
+        }
+
+        messages.push(assistantMessage);
 
         break;
       }
 
       case 'tool': {
         for (const toolResponse of content) {
+          let contentStr: string;
+          const output = toolResponse.output as any;
+
+          if (output && typeof output === 'object' && 'type' in output) {
+            if (output.type === 'text' || output.type === 'error-text') {
+              contentStr = String(output.value ?? '');
+            } else if (output.type === 'json' || output.type === 'error-json') {
+              contentStr =
+                typeof output.value === 'string' ? output.value : JSON.stringify(output.value);
+            } else {
+              contentStr = JSON.stringify(output);
+            }
+          } else if (typeof output === 'string') {
+            contentStr = output;
+          } else {
+            contentStr = JSON.stringify(output);
+          }
+
           messages.push({
             role: 'tool',
-            content: JSON.stringify(toolResponse.output),
+            content: contentStr,
             name: toolResponse.toolName,
+            tool_call_id: toolResponse.toolCallId,
           });
         }
         break;
