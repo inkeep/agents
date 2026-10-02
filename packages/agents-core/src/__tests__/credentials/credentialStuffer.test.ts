@@ -271,6 +271,49 @@ describe('CredentialStuffer', () => {
 
       expect(result).toEqual({});
     });
+
+    test('should preserve tool base headers and not spread arbitrary metadata into headers', async () => {
+      const storeReference: CredentialStoreReference = {
+        credentialStoreId: 'nango-default',
+        retrievalParams: {
+          connectionId: 'test-conn',
+          providerConfigKey: 'test-provider',
+        },
+      };
+
+      const nangoStorePayload = {
+        connectionId: 'test-conn',
+        providerConfigKey: 'test-provider',
+        secretKey: 'secret-key',
+        provider: 'test',
+        metadata: {
+          rawUserInfo: { id: 123, roles: ['admin'] },
+          retryCount: 3,
+          isActive: true,
+        },
+      };
+
+      vi.mocked(mockNangoStore.get).mockResolvedValue(JSON.stringify(nangoStorePayload));
+
+      const result = await credentialStuffer.getCredentialHeaders({
+        context: mockContext,
+        mcpType: MCPServerType.nango,
+        storeReference,
+        headers: {
+          'X-Custom-Header': 'custom-val',
+        },
+      });
+
+      expect(result).toEqual({
+        'X-Custom-Header': 'custom-val',
+        Authorization: 'Bearer secret-key',
+        'provider-config-key': 'test-provider',
+        'connection-id': 'test-conn',
+      });
+      expect(result).not.toHaveProperty('rawUserInfo');
+      expect(result).not.toHaveProperty('retryCount');
+      expect(result).not.toHaveProperty('isActive');
+    });
   });
 
   describe('buildMcpServerConfig', () => {
