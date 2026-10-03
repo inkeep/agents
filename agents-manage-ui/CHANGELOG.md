@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.80.7
+
+### Patch Changes
+
+- 80e8ef9: Raise the minimum `@hookform/resolvers` dependency to ^5.4.2 to require the upstream Zod peer declaration and schema type compatibility fix.
+- 08addba: Fix Manage UI requests to authenticate only with user sessions
+- Updated dependencies [192e761]
+  - @inkeep/agents-core@0.80.7
+
 ## 0.80.6
 
 ### Patch Changes

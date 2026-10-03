@@ -1,5 +1,17 @@
 # @inkeep/agents-cli
 
+## 0.80.7
+
+### Patch Changes
+
+- c9c633b: Raise the minimum `yaml` dependency to ^2.8.2. No CLI behavior change.
+- Updated dependencies [80e8ef9]
+- Updated dependencies [192e761]
+- Updated dependencies [08addba]
+  - @inkeep/agents-manage-ui@0.80.7
+  - @inkeep/agents-core@0.80.7
+  - @inkeep/agents-sdk@0.80.7
+
 ## 0.80.6
 
 ### Patch Changes
