@@ -28,31 +28,58 @@ publicHoistPattern:
   - "@types/react"
   - "@types/react-dom"
 
-ignorePatchFailures: false
+# CI, Vercel and Corepack supply the exact packageManager pin. Skip pnpm's own
+# bootstrap, which would otherwise prepend an environment document to
+# pnpm-lock.yaml that single-document lockfile readers cannot parse.
+pmOnFail: ignore
+
+# Bootstrap is explicit; running a script must not trigger an implicit install.
+verifyDepsBeforeRun: false
+
 # Supply-chain cooldown (admission-time): refuse versions published less than 3
-# days ago. Unit = MINUTES (4320 = 3 days). Own-org (@inkeep/*) exempt.
+# days ago. Unit = MINUTES (4320 = 3 days). Own-org (@inkeep/*) exempt. pnpm 12
+# also re-checks locked entries on frozen installs.
 minimumReleaseAge: 4320
+minimumReleaseAgeStrict: true
 minimumReleaseAgeExclude:
   - '@inkeep/*'
+
+# pnpm 12 fails the install on any dependency build script that is not listed
+# here (strictDepBuilds). pnpm 10 ran none of them in this workspace, so each is
+# denied to keep that behavior.
+allowBuilds:
+  '@nestjs/core': false
+  '@sentry/cli': false
+  '@swc/core': false
+  bun: false
+  cbor-extract: false
+  core-js: false
+  cypress: false
+  esbuild: false
+  keytar: false
+  protobufjs: false
+  sharp: false
 
 patchedDependencies:
   "@changesets/assemble-release-plan@6.0.9": patches/@changesets__assemble-release-plan.patch
   fumadocs-core: patches/fumadocs-core.patch
-  babel-plugin-react-compiler: patches/babel-plugin-react-compiler.patch
+  # pnpm 12 applies patches without fuzz, and in 1.0.0 these lines moved and
+  # their context changed, so each compiler version carries its own copy: the
+  # experimental build agents-manage-ui pins, and 1.0.0, which next pulls in as
+  # an optional peer for agents-docs.
+  babel-plugin-react-compiler@0.0.0-experimental-a8e64ef-20260402: patches/babel-plugin-react-compiler.patch
+  babel-plugin-react-compiler@1.0.0: patches/babel-plugin-react-compiler@1.0.0.patch
   # Adds ZIP-based document (docx/xlsx/pptx/odt/ods/odp/pages/numbers/key) passthrough for
   # Chat and Responses APIs. Patch authored against
   # @ai-sdk/openai@3.0.7 (dist/index.mjs). Remove once upstream Vercel AI SDK supports office MIME types natively.
   "@ai-sdk/openai@3.0.7": patches/@ai-sdk__openai@3.0.7.patch
 
 overrides:
-  # NOTE: pnpm 10 silently ignores overrides here when public/agents/package.json
-  # declares pnpm.overrides at the same workspace root. The block below is kept
-  # as documentation only; the source of truth is public/agents/package.json.
-  next: ">=16.2.6" # https://github.com/advisories/GHSA-5f7q-jpqc-wp7h + middleware bypass follow-up
-  esbuild: 0.25.9 # we pin it for Cypress
-  "@modelcontextprotocol/sdk>zod": ^3.25.7
-  "@anthropic-ai/mcpb>zod": ^3.25.7
-  preact: "-" # we don't use preact, this removes pnpm audit warnings from posthog-js>preact
+  # pnpm 11+ no longer reads package.json#pnpm, so this block is the only source
+  # of overrides for public/agents and for the inkeep/agents mirror. The root
+  # pnpm-workspace.yaml must declare every entry here with the same value
+  # (pnpm check:overrides).
+  next: ^16.2.6 # https://github.com/advisories/GHSA-5f7q-jpqc-wp7h + middleware bypass follow-up
   # Security overrides — upstream packages haven't released fixes
   devalue: ">=5.6.3" # @workflow/core pins 5.6.0; DoS + prototype pollution
   rollup: ">=4.59.0" # vite lockfile pins 4.54.0; arbitrary file write
@@ -80,8 +107,8 @@ overrides:
   fast-xml-builder: ">=1.1.7" # attribute injection bypass
   mermaid: ">=11.15.0" # CSS injection via improper config sanitization
   uuid: ">=13.0.1" # buffer bounds check in v3/v5/v6
-  file-type: ">=21.3.2" # ZIP decompression bomb DoS
-  nodemailer: ">=8.0.5" # SMTP command injection via CRLF
+  file-type: 21.3.2 # ZIP decompression bomb DoS
+  nodemailer: 8.0.5 # SMTP command injection via CRLF
   "@protobufjs/utf8": ">=1.1.1" # overlong UTF-8 decoding
   ip-address: ">=10.1.1" # XSS in Address6 HTML-emitting methods
   postcss: ">=8.5.10" # XSS via unescaped </style>
@@ -102,3 +129,11 @@ overrides:
   "picomatch@>=4 <4.0.4": ">=4.0.4" # ReDoS via extglob quantifiers
   better-auth: 1.6.11 # OAuth refresh-token replay on oidc-provider/mcp plugins (CRITICAL)
   "@better-auth/sso": 1.6.11 # SSRF via unvalidated OIDC endpoints in provider registration (CRITICAL)
+  "@modelcontextprotocol/sdk": ">=1.26.0"
+  svgo: ">=3.3.3"
+  minimatch: ">=5.1.8"
+  lodash: ">=4.18.0"
+  lodash-es: ">=4.18.0"
+  express-rate-limit: ">=8.2.2"
+  "samlify>uuid": ^11.1.1
+  ws: ">=8.20.1" # https://github.com/advisories/GHSA-2cgr-x39w-9j6w

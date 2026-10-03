@@ -17,7 +17,7 @@
     }
   },
   "scripts": {
-    "build": "bun i && bun src/mcp-server/build.mts && tsc",
+    "build": "tsc",
     "mcpb:build": "bun i && bun src/mcp-server/build.mts --pack && tsc",
     "check": "npm run lint",
     "lint": "eslint --cache --max-warnings=0 src",

@@ -1,5 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "agentGuidance": false,
   "ui": "tui",
   "concurrency": "15",
   "globalEnv": [

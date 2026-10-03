@@ -4,7 +4,7 @@
  * Validates that the monorepo root and public/agents packageManager fields
  * are in sync. Drift between these causes:
  * - Vercel deploy failures (ERR_PNPM_OUTDATED_LOCKFILE)
- * - CI pnpm/action-setup v5 conflicts
+ * - CI pnpm/setup installing a different pnpm than Vercel
  * - Lockfile format mismatches
  *
  * Also checks that pnpm-lock.yaml exists in both locations and that the
