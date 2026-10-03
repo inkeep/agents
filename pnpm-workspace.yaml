@@ -113,7 +113,9 @@ overrides:
   ip-address: ">=10.1.1" # XSS in Address6 HTML-emitting methods
   postcss: ">=8.5.10" # XSS via unescaped </style>
   follow-redirects: ">=1.16.0" # leaks custom auth headers
-  "@nestjs/core": ">=11.1.18" # improper special-element neutralization
+  # A caret, not a >= floor: an open floor resolves @nestjs/core 12 beside the
+  # @nestjs/common 11 that workflow's peer brings.
+  "@nestjs/core": "^11.1.18" # improper special-element neutralization
   yaml: ">=2.8.3" # stack overflow via deeply nested collections
   brace-expansion: ">=5.0.5" # zero-step sequence process hang
   "ajv@>=6 <6.14.0": ">=6.14.0 <7" # eslint resolves 6.12.6; ReDoS with $data option
