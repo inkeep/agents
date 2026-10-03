@@ -1,0 +1,8 @@
+# Marks this example as its own pnpm install boundary, so its lockfile and the
+# settings below apply when it is cloned on its own or installed in place.
+packages: []
+
+# pnpm 12 fails the install on a dependency build script that is not listed
+# here; pnpm 10 skipped this one.
+allowBuilds:
+  esbuild: false

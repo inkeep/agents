@@ -1,5 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "npx --yes corepack@0.35.0 pnpm install",
+  "buildCommand": "npx --yes corepack@0.35.0 enable pnpm --install-directory ../node_modules/.bin && ../node_modules/.bin/pnpm exec turbo run build --filter=@inkeep/agents-manage-ui...",
   "git": {
     "deploymentEnabled": {
       "main": false
