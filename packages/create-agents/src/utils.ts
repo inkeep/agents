@@ -549,6 +549,11 @@ export const createAgents = async (
 
     if (!skipInstall) {
       s.message('Installing dependencies (this may take a while)...');
+      const pnpmProblem = await pnpmPinProblem();
+      if (pnpmProblem) {
+        s.stop();
+        return displayPnpmPinError(pnpmProblem);
+      }
       await installDependencies();
     }
 
@@ -704,6 +709,44 @@ async function installInkeepCLIGlobally() {
       console.warn('  pnpm add -g @inkeep/agents-cli\n');
     }
   }
+}
+
+async function pinnedPnpmVersion(): Promise<string | null> {
+  const { packageManager } = (await fs.readJson('package.json').catch(() => ({}))) ?? {};
+  if (typeof packageManager !== 'string' || !packageManager.startsWith('pnpm@')) return null;
+  return packageManager.slice('pnpm@'.length).split('+')[0];
+}
+
+async function pnpmPinProblem(): Promise<{ pinned: string; problem: string } | null> {
+  const pinned = await pinnedPnpmVersion();
+  if (!pinned) return null;
+  let reported: string;
+  try {
+    reported = (await execAsync('pnpm --version')).stdout.trim();
+  } catch (error: any) {
+    const cause = String(error.stderr || error.message || '')
+      .split('\n')
+      .map((line) => line.trim())
+      .find(Boolean);
+    return { pinned, problem: `could not run it${cause ? ` (${cause})` : ''}` };
+  }
+  return Number.parseInt(reported, 10) < Number.parseInt(pinned, 10)
+    ? { pinned, problem: `is ${reported}` }
+    : null;
+}
+
+function displayPnpmPinError({ pinned, problem }: { pinned: string; problem: string }): never {
+  const dir = process.cwd();
+  p.cancel(
+    `\n${color.red(`✗ pnpm ${pinned} is required`)}\n\n` +
+      `${dir} was created, but its dependencies were not installed: the pnpm on your PATH ${problem}.\n\n` +
+      `${color.yellow(`Install pnpm ${pinned}:`)}\n` +
+      `  npm install -g pnpm@${pinned}\n` +
+      `  For a standalone pnpm, run pnpm self-update ${pinned} outside ${dir} instead.\n` +
+      `  If Corepack provides pnpm, run corepack disable pnpm first.\n\n` +
+      `Then check that pnpm --version in ${dir} prints ${pinned}, and run pnpm install there.\n`
+  );
+  process.exit(1);
 }
 
 async function installDependencies() {
