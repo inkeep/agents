@@ -59,6 +59,10 @@ services:
       - SMTP_FROM_ADDRESS
       - SMTP_FROM_NAME
       - SMTP_REPLY_TO
+      - WORKFLOW_TARGET_WORLD
+      - WORKFLOW_POSTGRES_URL
+      - WORKFLOW_POSTGRES_JOB_PREFIX
+      - WORKFLOW_POSTGRES_WORKER_CONCURRENCY
     ports:
       - "3002:3002"
     depends_on:
@@ -85,6 +89,8 @@ services:
       - INKEEP_AGENTS_MANAGE_UI_USERNAME
       - INKEEP_AGENTS_MANAGE_UI_PASSWORD
       - BETTER_AUTH_SECRET
+      - WORKFLOW_TARGET_WORLD
+      - WORKFLOW_POSTGRES_URL
     depends_on:
       inkeep-agents-doltgres-db:
         condition: service_healthy

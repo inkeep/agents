@@ -16,10 +16,8 @@ const logger = getLogger('agents-api-init');
 import { createEmailService } from '@inkeep/agents-email';
 import { Hono } from 'hono';
 import { createAgentsHono } from './createApp';
-import { startSchedulerWorkflow } from './domains/run/services/SchedulerService';
 import { createAgentsAuth } from './factory';
 import type { SandboxConfig } from './types';
-import { recoverOrphanedWorkflows, world } from './workflow/world';
 
 export type { AppConfig, AppVariables } from './types';
 
@@ -113,60 +111,11 @@ import { scheduleEnsurePlaygroundAppConfig } from './startup/playground-app';
 
 scheduleEnsurePlaygroundAppConfig();
 
-// Start the workflow world worker and recover orphaned workflows.
-const workflowWorld = process.env.WORKFLOW_TARGET_WORLD || 'local';
-if (workflowWorld === '@workflow/world-postgres' || workflowWorld === 'local') {
-  const STARTUP_DELAY_MS = 3000; // Wait for Vite/server to start
-  logger.info(
-    { targetWorld: workflowWorld, delayMs: STARTUP_DELAY_MS },
-    'Scheduling workflow world worker start'
-  );
+// Start the workflow world worker, recover orphaned workflows, and schedule cleanups.
+// Shared with createAgentsApp() so factory-based apps (e.g. Docker) get the same behavior.
+import { scheduleWorkflowWorldStartup } from './startup/workflow-world';
 
-  setTimeout(async () => {
-    try {
-      if (workflowWorld === '@workflow/world-postgres') {
-        await world.start();
-        logger.info({}, 'Workflow world worker started successfully');
-      } else {
-        logger.info(
-          { targetWorld: workflowWorld },
-          'Workflow world does not require explicit start'
-        );
-      }
-      const recoveredCount = await recoverOrphanedWorkflows();
-      if (recoveredCount > 0) {
-        logger.info({ recoveredCount }, 'Recovered orphaned workflow(s)');
-      }
-      await startSchedulerWorkflow();
-      logger.info({}, 'Scheduler workflow started');
-    } catch (err) {
-      logger.error({ error: err }, 'Failed to start workflow world');
-    }
-  }, STARTUP_DELAY_MS);
-}
-
-import {
-  cleanupExpiredStreamChunks,
-  cleanupExpiredToolApprovalDecisions,
-} from '@inkeep/agents-core';
-import runDbClient from './data/db/runDbClient';
-
-if (!process.env.VERCEL) {
-  const STREAM_CHUNK_CLEANUP_INTERVAL_MS = 60_000;
-  const streamChunkCleanupTimer = setInterval(async () => {
-    try {
-      await cleanupExpiredStreamChunks(runDbClient)();
-    } catch (err) {
-      logger.error({ error: err }, 'Failed to cleanup expired stream chunks');
-    }
-    try {
-      await cleanupExpiredToolApprovalDecisions(runDbClient)();
-    } catch (err) {
-      logger.error({ error: err }, 'Failed to cleanup expired tool approval decisions');
-    }
-  }, STREAM_CHUNK_CLEANUP_INTERVAL_MS);
-  streamChunkCleanupTimer.unref();
-}
+scheduleWorkflowWorldStartup();
 
 // Start Slack Socket Mode client for local development (when configured)
 if (env.ENVIRONMENT === 'development' && env.SLACK_APP_TOKEN) {

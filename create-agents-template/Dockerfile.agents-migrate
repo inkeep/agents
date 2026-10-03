@@ -14,4 +14,4 @@ COPY scripts/ ./scripts/
 
 RUN pnpm install --frozen-lockfile --offline
 
-CMD pnpm db:migrate && pnpm db:auth:init
+CMD pnpm db:migrate && pnpm db:auth:init && pnpm db:workflow:setup

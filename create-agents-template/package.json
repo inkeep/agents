@@ -15,6 +15,7 @@
     "db:drop": "tsx scripts/db-drop.ts",
     "db:manage:migrate": "tsx scripts/migrate-dolt.ts",
     "db:run:migrate": "drizzle-kit migrate --config=drizzle.run.config.ts",
+    "db:workflow:setup": "node scripts/setup-workflow-world.js",
     "upgrade-agents": "node --experimental-strip-types scripts/upgrade.ts",
     "postinstall": "node --experimental-strip-types scripts/postinstall.ts",
     "setup-dev": "node scripts/setup.js",
