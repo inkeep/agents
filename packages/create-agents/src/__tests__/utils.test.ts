@@ -599,6 +599,95 @@ describe('createAgents - Template and Project ID Logic', () => {
     });
   });
 
+  describe('pnpm version check before installing', () => {
+    const scaffold = () =>
+      createAgents({
+        dirName: 'test-dir',
+        openAiKey: 'test-openai-key',
+        disableGit: true,
+        skipInkeepCli: true,
+        skipInkeepMcp: true,
+      });
+    const commands = () => mockExecAsync.mock.calls.map(([command]) => command);
+    const cancelMessage = () => String(vi.mocked(p.cancel).mock.calls.at(-1)?.[0]);
+    const spinnerStoppedBeforeCancel = () => {
+      const cancelledAt = vi.mocked(p.cancel).mock.invocationCallOrder.at(-1) ?? 0;
+      return mockSpinner.stop.mock.invocationCallOrder.some((order) => order < cancelledAt);
+    };
+
+    beforeEach(() => {
+      vi.mocked(fs.readJson).mockImplementation((async (path: string) =>
+        path === 'package.json' ? { packageManager: 'pnpm@12.8.1+sha512.abc' } : {}) as any);
+    });
+
+    it.each([
+      '12.8.1',
+      '12.9.0',
+      '13.0.0',
+    ])('installs when the pnpm on PATH reports %s, at or above the pinned major', async (version) => {
+      mockExecAsync.mockImplementation(async (command: string) => ({
+        stdout: command === 'pnpm --version' ? `${version}\n` : '',
+        stderr: '',
+      }));
+
+      await scaffold();
+
+      expect(commands()).toContain('pnpm install');
+      expect(p.cancel).not.toHaveBeenCalled();
+    });
+
+    it('stops before installing when the pnpm on PATH is an older major', async () => {
+      mockExecAsync.mockImplementation(async (command: string) => ({
+        stdout: command === 'pnpm --version' ? '10.33.0\n' : '',
+        stderr: '',
+      }));
+
+      await scaffold();
+
+      expect(commands()).not.toContain('pnpm install');
+      expect(processExitSpy).toHaveBeenCalledWith(1);
+      expect(cancelMessage()).toContain('pnpm 12.8.1 is required');
+      expect(cancelMessage()).toContain(
+        'was created, but its dependencies were not installed: the pnpm on your PATH is 10.33.0.'
+      );
+      expect(cancelMessage()).toContain('npm install -g pnpm@12.8.1');
+      expect(cancelMessage()).toContain('pnpm self-update 12.8.1');
+      expect(cancelMessage()).toContain('corepack disable pnpm');
+      expect(cancelMessage()).toContain('check that pnpm --version in');
+      expect(cancelMessage()).not.toContain('Error creating directory');
+      expect(spinnerStoppedBeforeCancel()).toBe(true);
+    });
+
+    it('stops before installing when the pnpm on PATH cannot start the pinned version', async () => {
+      mockExecAsync.mockImplementation(async (command: string) => {
+        if (command === 'pnpm --version') {
+          throw Object.assign(new Error('Command failed: pnpm --version'), {
+            stderr: '\n ERROR  Failed to switch pnpm to v12.8.1.\nspawnSync pnpm ENOEXEC\n',
+          });
+        }
+        return { stdout: '', stderr: '' };
+      });
+
+      await scaffold();
+
+      expect(commands()).not.toContain('pnpm install');
+      expect(cancelMessage()).toContain(
+        'could not run it (ERROR  Failed to switch pnpm to v12.8.1.)'
+      );
+      expect(cancelMessage()).toContain('npm install -g pnpm@12.8.1');
+      expect(spinnerStoppedBeforeCancel()).toBe(true);
+    });
+
+    it('skips the check when the project pins no pnpm', async () => {
+      vi.mocked(fs.readJson).mockResolvedValue({});
+
+      await scaffold();
+
+      expect(commands()).not.toContain('pnpm --version');
+      expect(commands()).toContain('pnpm install');
+    });
+  });
+
   describe('Security - Password input for API keys', () => {
     it('should use password input instead of text input for API keys', async () => {
       // Mock the select to return 'anthropic' to trigger the API key prompt
