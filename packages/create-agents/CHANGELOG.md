@@ -1,5 +1,13 @@
 # @inkeep/create-agents
 
+## 0.80.7
+
+### Patch Changes
+
+- bfee0d4: Improve dependency installation for new projects by checking first that the pnpm on PATH can run the project's pinned pnpm version. When it cannot, create-agents stops before installing and shows how to install the pinned version.
+- Updated dependencies [192e761]
+  - @inkeep/agents-core@0.80.7
+
 ## 0.80.6
 
 ### Patch Changes
