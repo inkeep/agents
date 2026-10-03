@@ -13,3 +13,7 @@ To build and run locally:
 docker compose build
 docker compose up -d
 ```
+
+## Durable execution
+
+To use [durable execution mode](/visual-builder/execution-modes#durable-mode-when-self-hosting) with your own images, set `WORKFLOW_TARGET_WORLD=@workflow/world-postgres` and `WORKFLOW_POSTGRES_URL` for both the API and migrate services. The migrate image bootstraps the workflow schema, and the API image starts the Postgres workflow worker on boot.

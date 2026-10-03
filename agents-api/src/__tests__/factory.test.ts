@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
     this.stores = stores;
   }),
   scheduleEnsurePlaygroundAppConfig: vi.fn(),
+  scheduleWorkflowWorldStartup: vi.fn(),
 }));
 
 vi.mock('@inkeep/agents-core', () => ({
@@ -45,6 +46,10 @@ vi.mock('../startup/playground-app', () => ({
   scheduleEnsurePlaygroundAppConfig: mocks.scheduleEnsurePlaygroundAppConfig,
 }));
 
+vi.mock('../startup/workflow-world', () => ({
+  scheduleWorkflowWorldStartup: mocks.scheduleWorkflowWorldStartup,
+}));
+
 describe('createAgentsApp', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -57,5 +62,13 @@ describe('createAgentsApp', () => {
 
     expect(mocks.scheduleEnsurePlaygroundAppConfig).toHaveBeenCalledTimes(1);
     expect(mocks.createAgentsHono).toHaveBeenCalledTimes(1);
+  });
+
+  it('schedules workflow world startup for factory-created apps', async () => {
+    const { createAgentsApp } = await import('../factory');
+
+    createAgentsApp();
+
+    expect(mocks.scheduleWorkflowWorldStartup).toHaveBeenCalledTimes(1);
   });
 });

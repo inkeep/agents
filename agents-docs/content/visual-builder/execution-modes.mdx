@@ -61,3 +61,37 @@ Clients can override the agent's default execution mode by passing `executionMod
 ```
 
 When provided, `executionMode` in the request takes precedence over the agent's configured default. This allows the same agent to handle both low-latency interactive chat (classic) and crash-recoverable workflows (durable) depending on the client's needs.
+
+## Durable mode when self-hosting
+
+Durable mode persists workflow state in a **workflow world**, selected with the `WORKFLOW_TARGET_WORLD` environment variable on the Agents API:
+
+| `WORKFLOW_TARGET_WORLD` | Use for |
+|---|---|
+| `local` (default) | Local development only. State lives on the API's local filesystem and in-process queues. |
+| `vercel` | Deployments on Vercel. |
+| `@workflow/world-postgres` | Self-hosted deployments (Docker, VMs). State and the job queue live in Postgres, so paused runs (for example, a pending tool approval) survive API restarts. |
+
+To enable durable mode on a self-hosted Docker deployment:
+
+1. Create an empty database for the workflow world. You can reuse the run database server:
+
+   ```sh
+   docker compose exec inkeep-agents-postgres-db createdb -U appuser inkeep_workflow
+   ```
+
+2. Add the following to your `.env`:
+
+   ```sh
+   WORKFLOW_TARGET_WORLD=@workflow/world-postgres
+   WORKFLOW_POSTGRES_URL=postgresql://appuser:password@inkeep-agents-postgres-db:5432/inkeep_workflow
+   # Optional
+   # WORKFLOW_POSTGRES_JOB_PREFIX=
+   # WORKFLOW_POSTGRES_WORKER_CONCURRENCY=10
+   ```
+
+3. Restart the stack with `docker compose up -d`. The migrate container creates the workflow schema (`pnpm db:workflow:setup`, a no-op unless `WORKFLOW_TARGET_WORLD=@workflow/world-postgres`), and the API starts the Postgres worker and re-enqueues any runs that were in progress before the restart. Look for `Workflow world worker started successfully` and `No orphaned workflows found` (or `Recovered orphaned workflow(s)`) in the API logs.
+
+<Note>
+If you build your own API image with `createAgentsApp()`, `@workflow/world-postgres` must be a direct dependency of your app package. The workflow runtime resolves the world package by name from the process working directory, so it is not enough for it to be a transitive dependency of `@inkeep/agents-api`. The quick start template already includes it.
+</Note>

@@ -11,6 +11,7 @@ import manageDbPool from './data/db/manageDbPool';
 import runDbClient from './data/db/runDbClient';
 import { env } from './env';
 import { scheduleEnsurePlaygroundAppConfig } from './startup/playground-app';
+import { scheduleWorkflowWorldStartup } from './startup/workflow-world';
 import type { SandboxConfig } from './types';
 
 export type { UserAuthConfig, SSOProviderConfig };
@@ -53,6 +54,7 @@ export function createAgentsApp(config?: {
   emailService?: EmailServiceConfig;
 }) {
   scheduleEnsurePlaygroundAppConfig();
+  scheduleWorkflowWorldStartup();
 
   const serverConfig = config?.serverConfig ?? defaultConfig;
   const stores = config?.credentialStores ?? createDefaultCredentialStores();
