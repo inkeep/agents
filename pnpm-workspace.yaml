@@ -79,7 +79,7 @@ overrides:
   # of overrides for public/agents and for the inkeep/agents mirror. The root
   # pnpm-workspace.yaml must declare every entry here with the same value
   # (pnpm check:overrides).
-  next: ^16.2.6 # https://github.com/advisories/GHSA-5f7q-jpqc-wp7h + middleware bypass follow-up
+  next: ^16.3.8 # https://github.com/advisories/GHSA-cjq9-62q9-8jv4 + the rest of the September 2026 security release
   # Security overrides — upstream packages haven't released fixes
   devalue: ">=5.6.3" # @workflow/core pins 5.6.0; DoS + prototype pollution
   rollup: ">=4.59.0" # vite lockfile pins 4.54.0; arbitrary file write
