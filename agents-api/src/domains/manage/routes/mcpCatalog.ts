@@ -186,6 +186,16 @@ const PREBUILT_MCP_SERVERS: PrebuiltMCPServer[] = [
     description: 'Meeting notes and transcription',
   },
   {
+    id: 'fxmacrodata',
+    name: 'FXMacroData',
+    url: 'https://mcp.fxmacrodata.com/mcp',
+    transport: MCPTransportType.streamableHttp,
+    imageUrl: 'https://fxmacrodata.com/static/images/logo-icon.png',
+    isOpen: true,
+    category: 'finance',
+    description: 'FX rates, macroeconomic releases and central bank data',
+  },
+  {
     id: 'globalping',
     name: 'Globalping',
     url: 'https://mcp.globalping.dev/mcp',
