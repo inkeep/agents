@@ -194,5 +194,17 @@
       "semicolons": "always",
       "arrowParentheses": "always"
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["create-agents-template/apps/*/package.json"],
+      "linter": {
+        "rules": {
+          "nursery": {
+            "useRequiredScripts": "off"
+          }
+        }
+      }
+    }
+  ]
 }
