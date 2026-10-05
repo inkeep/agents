@@ -26,6 +26,7 @@ overrides:
   node-forge: '>=1.4.0'
   rollup: '>=4.59.0'
   tar: '>=7.5.11'
+  '@xhmikosr/decompress': '>=10.2.2 <11'
   undici: '>=6.24.0'
   next: ^16.3.8
   qs: '>=6.14.2'
@@ -6520,8 +6521,8 @@ packages:
     resolution: {integrity: sha512-oqTYAcObqTlg8owulxFTqiaJkfv2SHsxxxz9Wg4krJAHVzGWlZsU8tAB30R6ow+aHrfv4Kub6WQ8u04NWVPUpA==}
     engines: {node: '>=18'}
 
-  '@xhmikosr/decompress@10.2.0':
-    resolution: {integrity: sha512-MmDBvu0+GmADyQWHolcZuIWffgfnuTo4xpr2I/Qw5Ox0gt+e1Be7oYqJM4te5ylL6mzlcoicnHVDvP27zft8tg==}
+  '@xhmikosr/decompress@10.2.2':
+    resolution: {integrity: sha512-naYc2D/KCUDBx5VkohXp++TQB0IxLlUh8lbPX8DBTXB3HsDOsrp4pWP4V0cxBNEIhXEeN+Xma1hr9nuEGGW4TQ==}
     engines: {node: '>=18'}
 
   '@xhmikosr/downloader@15.2.0':
@@ -19788,7 +19789,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@xhmikosr/decompress@10.2.0':
+  '@xhmikosr/decompress@10.2.2':
     dependencies:
       '@xhmikosr/decompress-tar': 8.1.0
       '@xhmikosr/decompress-tarbz2': 8.1.0
@@ -19805,7 +19806,7 @@ snapshots:
   '@xhmikosr/downloader@15.2.0':
     dependencies:
       '@xhmikosr/archive-type': 7.1.0
-      '@xhmikosr/decompress': 10.2.0
+      '@xhmikosr/decompress': 10.2.2
       content-disposition: 0.5.4
       defaults: 2.0.2
       ext-name: 5.0.0

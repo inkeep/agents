@@ -93,6 +93,7 @@ overrides:
   kysely: ">=0.28.17 <0.29.0"
   "kysely@>=0.29.0": "0.28.17" # SQL injection via JSON path keys + JSON-path traversal
   tar: ">=7.5.11" # symlink/hardlink path traversal
+  "@xhmikosr/decompress": ">=10.2.2 <11" # path traversal via symlink chain + extraction outside target dir
   node-forge: ">=1.4.0" # signature forgery + DoS
   defu: ">=6.1.5" # prototype pollution via __proto__
   "@hono/node-server": ">=2.0.10" # middleware bypass via repeated slashes
