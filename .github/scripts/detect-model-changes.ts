@@ -184,6 +184,13 @@ async function main(): Promise<void> {
     }
   }
 
+  const branch = process.env.MODEL_SYNC_BRANCH;
+  if (!branch) {
+    throw new Error(
+      'MODEL_SYNC_BRANCH is not set, so the prompt cannot name the branch the agent may push.'
+    );
+  }
+
   const today = new Date().toISOString().split('T')[0];
   const modelList = newModels
     .map((m) => {
@@ -205,7 +212,7 @@ ${modelList}
 ## CRITICAL: Branch and git rules
 - You are already on a feature branch. DO NOT create a new branch. DO NOT run git checkout.
 - DO NOT push to main under any circumstances.
-- When pushing, always use: git push --set-upstream origin $(git branch --show-current)
+- Push with exactly this command and no other form, because it is the only push your tool permissions allow: git push --set-upstream origin ${branch}
 - Use a single commit with message: "chore: add new models [model-sync]"
 
 ## Step 1: Research
@@ -286,10 +293,10 @@ Run these in order and fix any issues before committing:
 ## Step 6: Commit, push, and open PR
 1. git add all changed files (source files + the changeset)
 2. git commit -m "chore: add new models [model-sync]"
-3. git push --set-upstream origin $(git branch --show-current)
+3. git push --set-upstream origin ${branch}
 4. Create a PR targeting main with:
    - Title: "chore: add new models from provider APIs [model-sync]"
-   - Label: "model-sync" (create it if it doesn't exist, color #0075ca)
+   - Label: "model-sync", passed as --label model-sync to gh pr create. The label already exists in this repository, so do not check for it first. Only if gh pr create fails because the label is not found, run gh label create model-sync --color 0075ca --description "Automated model sync from provider APIs" and then run gh pr create again.
    - Body: for each provider that had activity, include only the tables that apply — omit a table if there is nothing to show:
      - **[Provider] — Added**: columns: Model | Released | API Deprecated? (yes/no/unknown) | Constants | UI
      - **[Provider] — Removed from UI**: columns: Model | Reason (deprecated / specialty pruned)
