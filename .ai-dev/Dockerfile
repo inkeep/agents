@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     sudo \
     jq \
+    tmux \
     && rm -rf /var/lib/apt/lists/*
 
 # Install GitHub CLI
@@ -35,7 +36,7 @@ WORKDIR /home/agent
 RUN curl -fsSL https://claude.ai/install.sh | bash
 
 # Add Claude Code to PATH
-ENV PATH="/home/agent/.claude/bin:$PATH"
+ENV PATH="/home/agent/.local/bin:${PATH}"
 
 WORKDIR /workspace
 
