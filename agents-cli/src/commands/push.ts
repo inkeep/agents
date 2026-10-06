@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, statSync } from 'node:fs';
-import { basename, dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
 import { ManagementApiClient } from '../api';
@@ -490,7 +490,7 @@ async function pushAllProjects(options: PushOptions): Promise<void> {
 
   console.log(chalk.gray(`Found ${projectDirs.length} project(s) to push:\n`));
   for (const dir of projectDirs) {
-    const relativePath = dir === process.cwd() ? '.' : dir.replace(`${process.cwd()}/`, '');
+    const relativePath = relative(process.cwd(), dir) || '.';
     console.log(chalk.gray(`  • ${relativePath}`));
   }
   console.log();
@@ -500,8 +500,7 @@ async function pushAllProjects(options: PushOptions): Promise<void> {
 
   for (let i = 0; i < projectDirs.length; i++) {
     const projectDir = projectDirs[i];
-    const relativePath =
-      projectDir === process.cwd() ? '.' : projectDir.replace(`${process.cwd()}/`, '');
+    const relativePath = relative(process.cwd(), projectDir) || '.';
     const progress = `[${i + 1}/${total}]`;
 
     console.log(chalk.cyan(`${progress} Pushing ${relativePath}...`));
@@ -530,10 +529,7 @@ async function pushAllProjects(options: PushOptions): Promise<void> {
     console.log(chalk.red('\nFailed projects:'));
     for (const result of results) {
       if (!result.success) {
-        const relativePath =
-          result.projectDir === process.cwd()
-            ? '.'
-            : result.projectDir.replace(`${process.cwd()}/`, '');
+        const relativePath = relative(process.cwd(), result.projectDir) || '.';
         console.log(chalk.red(`  • ${relativePath}: ${result.error}`));
       }
     }
