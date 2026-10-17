@@ -14,8 +14,7 @@
 
 services:
   doltgres-db:
-    image: dolthub/doltgresql:latest
-    pull_policy: always
+    image: dolthub/doltgresql:0.56.7
     restart: unless-stopped
     environment:
       DOLTGRES_USER: appuser
