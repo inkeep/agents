@@ -792,7 +792,7 @@ This repository keeps one canonical source for agent guidance and skills, mirror
 | `AGENTS.md` | `CLAUDE.md` |
 | `.agents/skills/` | `.codex/skills/` |
 
-Cursor reads `.agents/skills/` natively and Claude Code loads skills via plugins, so neither needs a generated mirror. AGENTS.md is always loaded by the Agent Harness, and Skills provide on-demand expertise for specific development tasks. They are auto-discovered — no need to document them here.
+AGENTS.md may load in part or not at all. Cursor reads `.agents/skills/` natively and Claude Code loads skills via plugins, so neither needs a generated mirror. Skills provide on-demand expertise for specific development tasks. They are auto-discovered — no need to document them here.
 
 ## Cursor Cloud specific instructions
 
