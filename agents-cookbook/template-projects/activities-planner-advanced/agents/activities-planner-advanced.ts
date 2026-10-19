@@ -51,7 +51,7 @@ const timeFetcher = fetchDefinition({
      * For this example, a free API key is used directly for simplicity.
      */
     headers: {
-      'x-rapidapi-key': '590c52974dmsh0da44377420ef4bp1c64ebjsnf8d55149e28d',
+      'x-rapidapi-key': '590c52974dmsh0da44377420ef4bp1c64ebjsnf8d55149e28d', // content-policy: allow vendor-key -- a free RapidAPI demo key, public by design since inkeep/agents#1023
     },
   },
   responseSchema: z.object({
