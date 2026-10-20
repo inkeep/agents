@@ -5,7 +5,7 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 ## Essential Commands - Quick Reference
 
 ### Build & Development
-- **Build**: `pnpm build` (root) or `turbo build`
+- **Build**: `pnpm build` (root) or `turbo build`; in `agents-private` (this file at `public/agents/`), `pnpm build:agents` from that repo's root
 - **Dev**: `pnpm dev` (root) or navigate to package and run `pnpm dev`
 - **Setup (core)**: `pnpm setup-dev` — core DBs (Doltgres, Postgres, SpiceDB), env config, migrations, admin user
 - **Setup (isolated)**: `pnpm setup-dev --isolated <name>` — same as above but in a parallel environment (see [Isolated Environments](#isolated-parallel-environments))
@@ -16,7 +16,7 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 
 **Iteration:** Fresh regression: `cd <pkg> && pnpm test --run <file>`; then touched lint/typecheck/guards, widened for inputs/consumers.
 
-**Pre-push:** `pnpm format`, then `pnpm check`; covers lint/typecheck/test/format:check/env-descriptions/route-handler-patterns/dal-boundary/knip.
+**Pre-push:** `pnpm format`, then `pnpm check` (in `agents-private`, `pnpm check:agents` from its root, since `public/agents`' `precheck`/`prebuild` hooks and a real `install` there move links into a second store); covers lint/typecheck/test/format:check/env-descriptions/route-handler-patterns/dal-boundary/knip.
 
 ### Database Operations (run from monorepo root)
 - **Generate migrations**: `pnpm db:generate` - Generate Drizzle migrations from schema changes
@@ -200,7 +200,7 @@ docker compose -f docker-compose.visual.yml down
    ```bash
    git checkout main -- pnpm-lock.yaml
    ```
-2. **Re-install to layer your branch's dependency changes on top:**
+2. **Re-install to layer your branch's dependency changes on top** (in `agents-private`, `pnpm install:all` from its root, after step 1 for each conflicted lockfile):
    ```bash
    pnpm install
    ```
@@ -404,13 +404,13 @@ This repo is a product with multiple user-facing surfaces and shared contracts. 
 
 **Rule:** Do NOT implement additional work beyond what the user requested. If you identify likely cross-surface impacts, **flag them** and **ask** the user to get full clarity and ensure high degree of product-level thinking. You can flag prior to starting new work/tasks, but also if you identify ambiguities or additional things to consider mid-execution. 
 
-**If the request is NOT backed by a PRD, a well-specced artifact, or clearly scoped small task**, pause and ask targeted, highly relevant questions when the blast radius is unclear. When applicable, suggest user make a PRD; offer to help by leveraging the `prd` skill.
+**If the request is NOT backed by a PRD, a well-specced artifact, or clearly scoped small task**, pause and ask targeted, highly relevant questions when the blast radius is unclear. When applicable, suggest user make a PRD; offer to help with the `spec` skill if it is installed.
 
 Your goal is to **AVOID**:
 - locking in unintended behavior
 - making changes without thinking through all potential interaction points for how a user may consume or interact with a product change
 - breaking changes or breaking data contracts without clear acknowledgement and plan
-- missing critical dimensions to feautre development relevant, like authorization or security
+- missing critical dimensions of feature development, like authorization or security
 - identify any side effects of the work that is being asked
 - implementations that contradict or duplicate existing patterns/abstractions
 
@@ -461,15 +461,15 @@ This product has **50+ customer-facing** and **100+ internal tooling/devops** su
 - Follow the **write-docs** skill whenever creating or modifying documentation
 
 Diagnose a red from its inputs and base; repair only an in-scope cause. Log an unrelated red as an environment blocker with its log/owner; keep the quality result false and make no green claim. Before marking any feature complete, verify:
-- [ ] `pnpm check` passes
+- [ ] The [pre-push check](#verification) passes
 - [ ] **Changeset created** via `pnpm bump` for every published package with runtime behavior changes (see [Creating Changelog Entries](#creating-changelog-entries-changesets))
 - [ ] UI components implemented in agents-manage-ui
 - [ ] Documentation added to `/agents-docs/`
-- [ ] Surface area and breaking changes have been addressed as agreed with the user (see “Clarify scope and surface area before implementing”).
+- [ ] Surface area and breaking changes have been addressed as agreed with the user (see “High Product-level Thinking”).
 
 ### 📋 Standard Development Workflow
 
-1. Create a branch: `git checkout -b feature/your-feature-name`
+1. Create a branch: `git checkout -b feat/your-feature-name` (in `agents-private`, create it in a new worktree, as below)
 2. Create a changeset: `pnpm bump <patch|minor> --pkg <package> "<message>"` (required for any runtime behavior change to a published package — see [Creating Changelog Entries](#creating-changelog-entries-changesets))
 3. Run [Verification](#verification) before pushing
 4. Commit, then `gh pr create`
@@ -482,7 +482,7 @@ Git worktrees allow you to work on multiple features simultaneously without swit
 
 #### Creating a Worktree
 
-Cut each worktree from a fresh base:
+Cut each worktree from a fresh base (in `agents-private`, run every worktree command below from its root):
 
 ```bash
 git fetch origin main && git worktree add ../pull-instrument -b feat/pull-instrument origin/main
@@ -700,7 +700,7 @@ export function NewFeatureForm() {
 ```
 
 #### 3. Documentation Example
-```mdx
+````mdx
 // agents-docs/content/docs/features/new-feature.mdx
 ---
 title: New Feature
@@ -727,7 +727,7 @@ await feature.execute();
 
 ## Examples
 [Include practical examples here]
-```
+````
 
 // Also update agents-docs/source.config.ts to include the new page in navigation
 
@@ -785,14 +785,7 @@ curl "http://localhost:16686/api/traces?service=inkeep-agents-api&start=16409952
 
 ## AI Coding Assistant Guidance
 
-This repository keeps one canonical source for agent guidance and skills, mirrored into each tool's native location.
-
-| Source (edit this) | Generated mirror (don't edit) |
-|--------------------|----------------------|
-| `AGENTS.md` | `CLAUDE.md` |
-| `.agents/skills/` | `.codex/skills/` |
-
-AGENTS.md may load in part or not at all. Cursor reads `.agents/skills/` natively and Claude Code loads skills via plugins, so neither needs a generated mirror. Skills provide on-demand expertise for specific development tasks. They are auto-discovered — no need to document them here.
+`CLAUDE.md` is a symlink to `AGENTS.md`: edit `AGENTS.md`. AGENTS.md may load in part or not at all.
 
 ## Cursor Cloud specific instructions
 
