@@ -7,23 +7,23 @@ runs:
     - name: Installing pnpm
       id: pnpm-setup
       uses: pnpm/setup@84cb39b217b10273981911c288cd62326dc7c6d2 # v2.0.2
-      continue-on-error: ${{ github.event_name != 'merge_group' }}
+      continue-on-error: true
       with:
         install: false
     - name: Waiting before retrying the pnpm download
-      if: steps.pnpm-setup.outcome == 'failure' && github.event_name != 'merge_group'
+      if: steps.pnpm-setup.outcome == 'failure'
       shell: bash
       run: |
         echo "::warning::pnpm-setup-retry=started. The first pnpm/setup attempt failed; its error is in the Installing pnpm step. Retrying once in 20s."
         sleep 20
     - name: Installing pnpm (retry after a failed download)
       id: pnpm-setup-retry
-      if: steps.pnpm-setup.outcome == 'failure' && github.event_name != 'merge_group'
+      if: steps.pnpm-setup.outcome == 'failure'
       uses: pnpm/setup@84cb39b217b10273981911c288cd62326dc7c6d2 # v2.0.2
       with:
         install: false
     - name: Recording the pnpm download retry result
-      if: ${{ !cancelled() && steps.pnpm-setup.outcome == 'failure' && github.event_name != 'merge_group' }}
+      if: ${{ !cancelled() && steps.pnpm-setup.outcome == 'failure' }}
       shell: bash
       env:
         RETRY_OUTCOME: ${{ steps.pnpm-setup-retry.outcome }}
