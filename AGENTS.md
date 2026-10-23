@@ -527,11 +527,6 @@ git worktree prune
 - Running long-running processes (tests, builds) while working on something else
 - Comparing implementations across different branches side-by-side
 
-❌ **Use regular branches when:**
-- Working on a single feature at a time
-- Making quick hotfixes or small changes
-- The overhead of managing multiple directories isn't worth it
-
 **Reference**: [git-worktree documentation](https://git-scm.com/docs/git-worktree)
 
 ### When Working with Agents
