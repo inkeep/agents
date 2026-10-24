@@ -113,7 +113,13 @@ jobs:
       - name: Get pnpm store directory
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
         shell: bash
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_ENV"
+        run: |
+          STORE_PATH=$(pnpm store path --silent) || exit $?
+          if [ -z "$STORE_PATH" ]; then
+            printf '%s\n' '::error::pnpm store path returned an empty path' >&2
+            exit 1
+          fi
+          printf 'STORE_PATH=%s\n' "$STORE_PATH" >>"$GITHUB_ENV"
 
       - name: Prepare directories
         if: steps.pr-check.outputs.skip != 'true' && steps.checkout.outcome == 'success'
