@@ -27,6 +27,20 @@ const nimDefault = createOpenAICompatible({
   },
 });
 
+// LiteLLM proxy default endpoint (LiteLLM's documented default proxy port)
+const LITELLM_DEFAULT_BASE_URL = 'http://localhost:4000/v1';
+
+// LiteLLM default provider instance
+const litellmDefault = createOpenAICompatible({
+  name: 'litellm',
+  baseURL: process.env.LITELLM_API_BASE || LITELLM_DEFAULT_BASE_URL,
+  headers: {
+    ...(process.env.LITELLM_API_KEY && {
+      Authorization: `Bearer ${process.env.LITELLM_API_KEY}`,
+    }),
+  },
+});
+
 /**
  * Factory for creating AI SDK language models from configuration
  * Supports multiple providers and AI Gateway integration
@@ -77,6 +91,19 @@ export class ModelFactory {
           ...config,
         };
         return createOpenAICompatible(nimConfig);
+      }
+      case 'litellm': {
+        const litellmConfig = {
+          name: 'litellm',
+          baseURL: process.env.LITELLM_API_BASE || LITELLM_DEFAULT_BASE_URL,
+          headers: {
+            ...(process.env.LITELLM_API_KEY && {
+              Authorization: `Bearer ${process.env.LITELLM_API_KEY}`,
+            }),
+          },
+          ...config,
+        };
+        return createOpenAICompatible(litellmConfig);
       }
       case 'custom': {
         if (!config.baseURL && !config.baseUrl) {
@@ -261,6 +288,9 @@ export class ModelFactory {
         case 'nim':
           model = nimDefault(modelName);
           break;
+        case 'litellm':
+          model = litellmDefault(modelName);
+          break;
         case 'mock':
           return createMockModel(modelName) as unknown as LanguageModel;
         case 'custom':
@@ -271,7 +301,7 @@ export class ModelFactory {
           throw new Error(
             `Unsupported provider: ${provider}. ` +
               `Supported providers are: ${ModelFactory.BUILT_IN_PROVIDERS.join(', ')}. ` +
-              `To access other models, use OpenRouter (openrouter/model-id), Vercel AI Gateway (gateway/model-id), NVIDIA NIM (nim/model-id), or Custom OpenAI-compatible (custom/model-id).`
+              `To access other models, use OpenRouter (openrouter/model-id), Vercel AI Gateway (gateway/model-id), NVIDIA NIM (nim/model-id), LiteLLM (litellm/model-id), or Custom OpenAI-compatible (custom/model-id).`
           );
       }
     }
@@ -293,6 +323,7 @@ export class ModelFactory {
     'openrouter',
     'gateway',
     'nim',
+    'litellm',
     'custom',
     'mock',
   ] as const;
