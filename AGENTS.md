@@ -16,7 +16,7 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 
 **Iteration:** Fresh regression: `cd <pkg> && pnpm test --run <file>`; then touched lint/typecheck/guards, widened for inputs/consumers.
 
-**Pre-push:** `pnpm format`, then `pnpm check` (in `agents-private`, `pnpm check:agents` from its root, since `public/agents`' `precheck`/`prebuild` hooks and a real `install` there move links into a second store); covers lint/typecheck/test/format:check/env-descriptions/route-handler-patterns/dal-boundary/knip.
+**Pre-push:** `pnpm format`. Optional: `pnpm check` (in `agents-private`, `pnpm check:agents` from its root, since `public/agents`' `precheck`/`prebuild` hooks and a real `install` there move links into a second store) runs lint, typecheck, tests, format:check, knip and the repo's guards; `agents-private` CI runs its parts.
 
 ### Database Operations (run from monorepo root)
 - **Generate migrations**: `pnpm db:generate` - Generate Drizzle migrations from schema changes
@@ -460,8 +460,8 @@ This product has **50+ customer-facing** and **100+ internal tooling/devops** su
 - Documentation should be in MDX format (`.mdx` files)
 - Follow the **write-docs** skill whenever creating or modifying documentation
 
-Diagnose a red from its inputs and base; repair only an in-scope cause. Log an unrelated red as an environment blocker with its log/owner; keep the quality result false and make no green claim. Before marking any feature complete, verify:
-- [ ] The [pre-push check](#verification) passes
+Fix a red in a test you added or edited, or naming a file you changed, at its cause; note any other in one line without chasing it, and make no green claim. Before marking any feature complete, verify:
+- [ ] Your change's tests, lint and typecheck pass, bar noted reds
 - [ ] **Changeset created** via `pnpm bump` for every published package with runtime behavior changes (see [Creating Changelog Entries](#creating-changelog-entries-changesets))
 - [ ] UI components implemented in agents-manage-ui
 - [ ] Documentation added to `/agents-docs/`
