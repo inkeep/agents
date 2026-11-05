@@ -68,9 +68,9 @@ const BaseAgentSchema = z.strictObject({
       models: z.preprocess((v) => v ?? undefined, SubAgentSchema.shape.models),
       stopWhen: z.preprocess((v) => v ?? undefined, SubAgentSchema.shape.stopWhen),
       // Unrecognized keys: "name", "description", "content", "metadata", "subAgentSkillId", "subAgentId", "createdAt", "updatedAt"
-      skills: z.unknown(),
+      skills: z.unknown().optional(),
       // Invalid input
-      canDelegateTo: z.unknown(),
+      canDelegateTo: z.unknown().optional(),
     })
   ),
   tools: z

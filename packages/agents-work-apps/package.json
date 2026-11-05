@@ -40,17 +40,17 @@
     "@slack/socket-mode": "^2.0.5",
     "@slack/types": "^2.18.0",
     "@slack/web-api": "^7.9.1",
-    "drizzle-orm": "^0.44.7",
+    "drizzle-orm": "^0.45.2",
     "fetch-to-node": "^2.1.0",
     "hono": "^4.12.7",
-    "jose": "^6.1.0",
+    "jose": "^6.2.15",
     "minimatch": "^10.2.1",
     "oxfmt": "^0.42.0",
     "slack-block-builder": "^2.8.0"
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^1.1.5",
-    "zod": "^4.3.6"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^20.11.24",

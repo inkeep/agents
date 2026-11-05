@@ -83,19 +83,19 @@
     "ai": "6.0.191",
     "ajv": "^8.18.0",
     "cron-parser": "^5.5.0",
-    "drizzle-orm": "^0.44.4",
+    "drizzle-orm": "^0.45.2",
     "fetch-to-node": "^2.1.0",
     "hono": "^4.12.7",
     "hono-pino": "^0.10.1",
     "jmespath": "^0.16.0",
-    "jose": "^6.1.0",
+    "jose": "^6.2.15",
     "llm-info": "^1.0.69",
     "pg": "^8.16.3",
     "workflow": "4.6.0"
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^1.1.5",
-    "zod": "^4.3.6"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@hono/vite-dev-server": "^0.20.1",

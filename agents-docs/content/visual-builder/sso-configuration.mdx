@@ -44,7 +44,7 @@ The **Authentication Methods** card lists every sign-in option available to your
 |-------|:--------:|-------------|
 | **Provider Name** | ✓ | Display name shown to users on the login page (e.g., `Okta`) |
 | **Email Domain** | ✓ | Users whose email matches this domain are automatically routed to this IdP (e.g., `acmecorp.com`) |
-| **Issuer URL** | ✓ | Your IdP's OIDC discovery base URL (e.g., `https://your-org.okta.com`). OIDC metadata is auto-detected from this URL. |
+| **Issuer URL** | ✓ | Your IdP's issuer, exactly as the `issuer` value in its OIDC discovery document (`<issuer>/.well-known/openid-configuration`), including any trailing slash (e.g., `https://your-org.okta.com`, or `https://your-tenant.us.auth0.com/` for Auth0). OIDC metadata is auto-detected from this URL. |
 | **Client ID** | ✓ | The OAuth client ID from your IdP application |
 | **Client Secret** | ✓ | The OAuth client secret from your IdP application |
 | **Scopes** | | Comma-separated OIDC scopes. Defaults to `openid, email, profile, offline_access` |
@@ -83,6 +83,10 @@ The **Auto-provision members** toggle controls what happens when a user signs in
   If a pending invitation exists for a user, auto-provisioning is skipped and the invitation's role assignment is preserved instead.
 </Note>
 
+### Users who already have an account
+
+A first SSO sign-in does not attach to an existing account with the same email, such as one created with Google or a password. That sign-in fails, and the login page explains that the email already has an account with a different sign-in method. The user can keep signing in with that method. Linking an existing account to an SSO provider is not available in **Settings**, so users who will sign in through SSO should use it from their first sign-in.
+
 ## Editing an SSO Provider
 
 1. Go to **Settings** → **Authentication Methods**
@@ -91,7 +95,7 @@ The **Auto-provision members** toggle controls what happens when a user signs in
 4. Update any fields — leave **Client ID** or **Client Secret** blank to keep the existing values
 5. Click **Save Changes**
 
-You can update the display name, email domain, issuer URL, credentials, scopes, and auto-provision setting at any time.
+You can update the display name, email domain, scopes, and auto-provision setting at any time. The issuer URL, client ID, and endpoints can only be changed while no user has signed in through the provider yet. After that, the change is refused. Removing the provider and adding it again does not get around this, because removing a provider unlinks its members (see [Removing an SSO Provider](#removing-an-sso-provider)).
 
 ## Removing an SSO Provider
 
@@ -101,5 +105,5 @@ You can update the display name, email domain, issuer URL, credentials, scopes, 
 4. Confirm the removal in the dialog
 
 <Warning>
-  Removing a provider deletes its configuration permanently. Members who relied solely on this provider to sign in will need to use another authentication method. Ensure at least one other method is enabled before removing.
+  Removing a provider deletes its configuration and unlinks every member who signed in through it. Adding a provider again, even for the same IdP, does not reconnect them: their accounts already exist, so their next SSO sign-in fails as described in [Users who already have an account](#users-who-already-have-an-account). Members who signed in only through this provider can no longer sign in, and there is no way to reconnect them in **Settings**. Make sure members have another sign-in method before removing a provider.
 </Warning>

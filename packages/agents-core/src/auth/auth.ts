@@ -107,24 +107,21 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
     baseURL: config.baseURL,
     secret: config.secret,
     disabledPaths: ['/token'],
-    // Wrap the drizzle adapter so explicit `id` values on organization creates
-    // are honored. The dash plugin's /dash/organization/create endpoint does
-    // not pass `forceAllowId: true` to adapter.create (vanilla /organization/create
-    // does), so without this wrapper an `id` set in beforeCreateOrganization
-    // gets stripped. Track upstream resolution in @better-auth/infra.
+    // UPSTREAM(@better-auth/infra@0.4.26): /dash/organization/create drops the id beforeCreateOrganization sets.
     database: ((options) => {
       const adapter = drizzleAdapter(config.dbClient, { provider: 'pg' })(options);
       return {
         ...adapter,
         create: (params: Parameters<typeof adapter.create>[0]) => {
-          if (
-            params.model === 'organization' &&
-            (params.data as { id?: string }).id &&
-            !params.forceAllowId
-          ) {
-            return adapter.create({ ...params, forceAllowId: true });
+          if (params.model !== 'organization' || params.forceAllowId) {
+            return adapter.create(params);
           }
-          return adapter.create(params);
+          const data = params.data as { id?: string; slug?: string };
+          const id = data.id ?? data.slug;
+          if (!id) {
+            return adapter.create(params);
+          }
+          return adapter.create({ ...params, data: { ...params.data, id }, forceAllowId: true });
         },
       };
     }) as ReturnType<typeof drizzleAdapter>,
@@ -276,7 +273,9 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
         scopes: ['openid', 'profile', 'email', 'offline_access'],
         allowDynamicClientRegistration: true,
         allowUnauthenticatedClientRegistration: true,
-        validAudiences: [config.baseURL, `${config.baseURL}/`, `${config.baseURL}/mcp`],
+        resources: [config.baseURL, `${config.baseURL}/`, `${config.baseURL}/mcp`],
+        enforcePerClientResources: false,
+        clientRegistrationDefaultApplicationType: 'infer',
         customAccessTokenClaims: async ({ user }) => {
           if (!user) return {};
           const org = await getInitialOrganization(config.dbClient, user.id);

@@ -72,11 +72,16 @@ type OmitTenantScope<T> = Omit<T, 'tenantId'>;
 type OmitTimestamps<T> = Omit<T, 'createdAt' | 'updatedAt'>;
 type OmitGeneratedFields<T> = Omit<T, 'id' | 'createdAt' | 'updatedAt'>;
 
+const omitPresentKeys = (schema: z.ZodObject<z.ZodRawShape>, keys: readonly string[]) =>
+  schema.omit(
+    Object.fromEntries(keys.filter((key) => key in schema.shape).map((key) => [key, true]))
+  );
+
 // Generic helper for tenant-scoped entities (omits only tenantId, not projectId)
 const omitTenantScope = <T extends z.ZodRawShape>(
   schema: z.ZodObject<T>
 ): z.ZodObject<OmitTenantScope<T>> =>
-  (schema as z.ZodObject<z.ZodRawShape>).omit({ tenantId: true }) as z.ZodObject<
+  omitPresentKeys(schema as z.ZodObject<z.ZodRawShape>, ['tenantId']) as z.ZodObject<
     OmitTenantScope<T>
   >;
 
@@ -84,38 +89,37 @@ const omitTenantScope = <T extends z.ZodRawShape>(
 const omitTimestamps = <T extends z.ZodRawShape>(
   schema: z.ZodObject<T>
 ): z.ZodObject<OmitTimestamps<T>> =>
-  (schema as z.ZodObject<z.ZodRawShape>).omit({
-    createdAt: true,
-    updatedAt: true,
-  }) as z.ZodObject<OmitTimestamps<T>>;
+  omitPresentKeys(schema as z.ZodObject<z.ZodRawShape>, ['createdAt', 'updatedAt']) as z.ZodObject<
+    OmitTimestamps<T>
+  >;
 
 // Generic helper for omitting auto-generated fields (common for API insert schemas)
 const omitGeneratedFields = <T extends z.ZodRawShape>(
   schema: z.ZodObject<T>
 ): z.ZodObject<OmitGeneratedFields<T>> =>
-  (schema as z.ZodObject<z.ZodRawShape>).omit({
-    id: true,
-    createdAt: true,
-    updatedAt: true,
-  }) as z.ZodObject<OmitGeneratedFields<T>>;
+  omitPresentKeys(schema as z.ZodObject<z.ZodRawShape>, [
+    'id',
+    'createdAt',
+    'updatedAt',
+  ]) as z.ZodObject<OmitGeneratedFields<T>>;
 
 const createApiSchema = <T extends z.ZodRawShape>(
   schema: z.ZodObject<T>
 ): z.ZodObject<OmitProjectScope<T>> =>
-  (schema as z.ZodObject<z.ZodRawShape>).omit({ tenantId: true, projectId: true }) as z.ZodObject<
+  omitPresentKeys(schema as z.ZodObject<z.ZodRawShape>, ['tenantId', 'projectId']) as z.ZodObject<
     OmitProjectScope<T>
   >;
 
 const createApiInsertSchema = <T extends z.ZodRawShape>(
   schema: z.ZodObject<T>
 ): z.ZodObject<OmitProjectScope<T>> =>
-  (schema as z.ZodObject<z.ZodRawShape>).omit({ tenantId: true, projectId: true }) as z.ZodObject<
+  omitPresentKeys(schema as z.ZodObject<z.ZodRawShape>, ['tenantId', 'projectId']) as z.ZodObject<
     OmitProjectScope<T>
   >;
 
 const createApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
   (
-    (schema as z.ZodObject<z.ZodRawShape>).omit({ tenantId: true, projectId: true }) as z.ZodObject<
+    omitPresentKeys(schema as z.ZodObject<z.ZodRawShape>, ['tenantId', 'projectId']) as z.ZodObject<
       OmitProjectScope<T>
     >
   ).partial();
@@ -123,28 +127,28 @@ const createApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) 
 const createAgentScopedApiSchema = <T extends z.ZodRawShape>(
   schema: z.ZodObject<T>
 ): z.ZodObject<OmitAgentScope<T>> =>
-  (schema as z.ZodObject<z.ZodRawShape>).omit({
-    tenantId: true,
-    projectId: true,
-    agentId: true,
-  }) as z.ZodObject<OmitAgentScope<T>>;
+  omitPresentKeys(schema as z.ZodObject<z.ZodRawShape>, [
+    'tenantId',
+    'projectId',
+    'agentId',
+  ]) as z.ZodObject<OmitAgentScope<T>>;
 
 const createAgentScopedApiInsertSchema = <T extends z.ZodRawShape>(
   schema: z.ZodObject<T>
 ): z.ZodObject<OmitAgentScope<T>> =>
-  (schema as z.ZodObject<z.ZodRawShape>).omit({
-    tenantId: true,
-    projectId: true,
-    agentId: true,
-  }) as z.ZodObject<OmitAgentScope<T>>;
+  omitPresentKeys(schema as z.ZodObject<z.ZodRawShape>, [
+    'tenantId',
+    'projectId',
+    'agentId',
+  ]) as z.ZodObject<OmitAgentScope<T>>;
 
 const createAgentScopedApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
   (
-    (schema as z.ZodObject<z.ZodRawShape>).omit({
-      tenantId: true,
-      projectId: true,
-      agentId: true,
-    }) as z.ZodObject<OmitAgentScope<T>>
+    omitPresentKeys(schema as z.ZodObject<z.ZodRawShape>, [
+      'tenantId',
+      'projectId',
+      'agentId',
+    ]) as z.ZodObject<OmitAgentScope<T>>
   ).partial();
 
 export {

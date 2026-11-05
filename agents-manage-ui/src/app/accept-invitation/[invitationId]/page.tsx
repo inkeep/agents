@@ -49,6 +49,13 @@ export default function AcceptInvitationPage({
     return `${baseURL}/?${params.toString()}`;
   }
 
+  function getErrorCallbackURL() {
+    return getFullCallbackURL().replace(
+      `${window.location.origin}/?`,
+      `${window.location.origin}/login?`
+    );
+  }
+
   // Redirect after successful acceptance
   function onSuccess(orgId?: string) {
     setSuccess(true);
@@ -230,11 +237,13 @@ export default function AcceptInvitationPage({
           ? await authClient.signIn.social({
               provider: identifier as 'google' | 'microsoft',
               callbackURL: getFullCallbackURL(),
+              errorCallbackURL: getErrorCallbackURL(),
               ...(emailFromUrl && { loginHint: emailFromUrl }),
             })
           : await authClient.signIn.sso({
               providerId: identifier,
               callbackURL: getFullCallbackURL(),
+              errorCallbackURL: getErrorCallbackURL(),
               ...(emailFromUrl && { loginHint: emailFromUrl }),
             });
       if (result?.error) {

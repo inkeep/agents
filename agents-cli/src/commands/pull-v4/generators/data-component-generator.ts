@@ -23,7 +23,7 @@ const DataComponentSchema = z.strictObject({
   ...MySchema.shape,
   description: z.preprocess((v) => v || undefined, MySchema.shape.description),
   // Each property must have a "description" for LLM compatibility
-  props: z.unknown(),
+  props: z.unknown().optional(),
 });
 
 type DataComponentInput = z.input<typeof DataComponentSchema>;

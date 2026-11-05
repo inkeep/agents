@@ -29,7 +29,7 @@
     "@yarnpkg/lockfile": "^1.1.0",
     "js-yaml": "^4.1.0",
     "typescript": "^6.0.2",
-    "zod": "^4.3.6"
+    "zod": "^4.6.7"
   },
   "peerDependencies": {
     "@opentelemetry/api": "^1.0.0"

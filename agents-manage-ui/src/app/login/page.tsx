@@ -21,6 +21,7 @@ import { usePostHog } from '@/contexts/posthog';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useAuthSession } from '@/hooks/use-auth';
 import { CAPTCHA_ERROR_MESSAGE, getCaptchaErrorMessage } from '@/lib/captcha-errors';
+import { getSignInErrorMessage } from '@/lib/sign-in-errors';
 import { getSafeReturnUrl, isValidReturnUrl } from '@/lib/utils/auth-redirect';
 
 type LoginState =
@@ -48,7 +49,7 @@ function LoginForm() {
 
   const urlError = searchParams.get('error');
   const urlErrorDescription = searchParams.get('error_description');
-  const initialError = urlError ? `${urlErrorDescription || urlError}`.replace(/_/g, ' ') : null;
+  const initialError = getSignInErrorMessage(urlError, urlErrorDescription);
   const [error, setError] = useState<string | null>(initialError);
 
   const lastMethod = authClient.getLastUsedLoginMethod();
@@ -101,6 +102,17 @@ function LoginForm() {
     return queryString ? `${baseURL}/?${queryString}` : `${baseURL}/`;
   }
 
+  function getErrorCallbackURL() {
+    if (typeof window === 'undefined') return '/login';
+    if (oauthAuthorizeUrl) return getFullCallbackURL();
+    const params = new URLSearchParams();
+    if (invitationId) params.set('invitation', invitationId);
+    if (returnUrl && isValidReturnUrl(returnUrl) && returnUrl !== '/')
+      params.set('returnUrl', returnUrl);
+    const queryString = params.toString();
+    return `${window.location.origin}/login${queryString ? `?${queryString}` : ''}`;
+  }
+
   const executeMethodSignIn = async (method: MethodOption) => {
     setError(null);
     setIsLoading(true);
@@ -114,6 +126,7 @@ function LoginForm() {
           email,
           providerId: method.providerId,
           callbackURL: getFullCallbackURL(),
+          errorCallbackURL: getErrorCallbackURL(),
         });
         if (result?.error) {
           setError(result.error.message || 'SSO sign in failed');
@@ -123,6 +136,7 @@ function LoginForm() {
         const result = await authClient.signIn.social({
           provider: 'google',
           callbackURL: getFullCallbackURL(),
+          errorCallbackURL: getErrorCallbackURL(),
           loginHint: email,
         });
         if (result?.error) {
@@ -133,6 +147,7 @@ function LoginForm() {
         const result = await authClient.signIn.social({
           provider: 'microsoft',
           callbackURL: getFullCallbackURL(),
+          errorCallbackURL: getErrorCallbackURL(),
           loginHint: email,
         });
         if (result?.error) {

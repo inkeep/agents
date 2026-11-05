@@ -211,7 +211,7 @@ const server = new McpServer({
 const parameterSchema = z.object({${
       server.toolFunction.parameters
         ? `${Object.keys(server.toolFunction.parameters)
-            .map((key) => `\n    ${key}: z.any()`)
+            .map((key) => `\n    ${key}: z.any().optional()`)
             .join(',')}\n`
         : ''
     }});

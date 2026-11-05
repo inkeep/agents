@@ -39,7 +39,7 @@
     "@ai-sdk/provider": "3.0.2",
     "@ai-sdk/provider-utils": "4.0.4",
     "@inkeep/agents-core": "workspace:*",
-    "zod": "^4.3.6"
+    "zod": "^4.6.7"
   },
   "publishConfig": {
     "access": "public",

@@ -5,7 +5,9 @@ import { createAuth } from '../auth';
 type OAuthProviderOptions = {
   allowDynamicClientRegistration?: boolean;
   allowUnauthenticatedClientRegistration?: boolean;
-  validAudiences?: string[];
+  resources?: string[];
+  enforcePerClientResources?: boolean;
+  clientRegistrationDefaultApplicationType?: string;
 };
 
 function getOAuthProviderOptions(auth: ReturnType<typeof createAuth>): OAuthProviderOptions {
@@ -39,18 +41,24 @@ describe('createAuth oauth-provider configuration', () => {
     expect(options.allowUnauthenticatedClientRegistration).toBe(true);
   });
 
-  it('declares the baseURL and the /mcp resource as valid audiences for RFC 8707 resource binding', () => {
+  it('declares the baseURL and the /mcp resource as RFC 8707 resources', () => {
     const options = getOAuthProviderOptions(createAuth(baseConfig));
-    expect(options.validAudiences).toEqual([baseURL, `${baseURL}/`, `${baseURL}/mcp`]);
+    expect(options.resources).toEqual([baseURL, `${baseURL}/`, `${baseURL}/mcp`]);
+  });
+
+  it('lets every client request every resource, since existing DCR clients have no resource links', () => {
+    const options = getOAuthProviderOptions(createAuth(baseConfig));
+    expect(options.enforcePerClientResources).toBe(false);
+  });
+
+  it('treats DCR clients with loopback redirects and no application_type as native apps', () => {
+    const options = getOAuthProviderOptions(createAuth(baseConfig));
+    expect(options.clientRegistrationDefaultApplicationType).toBe('infer');
   });
 
   it('tracks the baseURL passed to createAuth when it differs from the default', () => {
     const customBaseURL = 'https://api.example.com';
     const options = getOAuthProviderOptions(createAuth({ ...baseConfig, baseURL: customBaseURL }));
-    expect(options.validAudiences).toEqual([
-      customBaseURL,
-      `${customBaseURL}/`,
-      `${customBaseURL}/mcp`,
-    ]);
+    expect(options.resources).toEqual([customBaseURL, `${customBaseURL}/`, `${customBaseURL}/mcp`]);
   });
 });

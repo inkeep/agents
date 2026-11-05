@@ -4029,7 +4029,7 @@ export const ImprovementFeedbackItemSchema = z
   .object({
     id: z.string(),
     type: z.string().nullable(),
-    details: z.unknown().nullable(),
+    details: z.unknown().nullable().optional(),
     createdAt: z.string().nullable(),
   })
   .openapi('ImprovementFeedbackItem');
@@ -4059,7 +4059,7 @@ export const EvalSummaryResultSchema = z
     evaluatorName: z.string(),
     conversationId: z.string(),
     input: z.string().nullable(),
-    output: z.unknown().nullable(),
+    output: z.unknown().nullable().optional(),
     passed: z.enum(['passed', 'failed', 'no_criteria', 'pending']),
     createdAt: z.string(),
   })

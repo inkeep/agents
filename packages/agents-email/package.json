@@ -30,7 +30,7 @@
   },
   "peerDependencies": {
     "react": "^19",
-    "zod": "^4.3.6"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^20.11.24",
@@ -40,7 +40,7 @@
     "react-dom": "^19.2.4",
     "typescript": "^6.0.2",
     "vitest": "^3.2.4",
-    "zod": "^4.3.6"
+    "zod": "^4.6.7"
   },
   "engines": {
     "node": ">=22.18.0"
