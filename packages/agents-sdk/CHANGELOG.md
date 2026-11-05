@@ -1,5 +1,13 @@
 # @inkeep/agents-sdk
 
+## 0.81.0
+
+### Patch Changes
+
+- 7053c07: Require zod ^4.6.7, the version Better Auth 1.7.16 needs, so Inkeep packages share one zod. Schemas that relied on zod 4.3 treating `z.unknown()` and `z.any()` object keys as optional now mark those keys `.optional()` explicitly, so validation behavior is unchanged.
+- Updated dependencies [7053c07]
+  - @inkeep/agents-core@0.81.0
+
 ## 0.80.7
 
 ### Patch Changes
