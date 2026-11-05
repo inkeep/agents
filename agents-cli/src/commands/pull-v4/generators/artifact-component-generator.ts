@@ -25,7 +25,7 @@ const ArtifactComponentSchema = z.strictObject({
   description: z.preprocess((v) => v || undefined, MySchema.shape.description),
   render: z.preprocess((v) => v ?? undefined, MySchema.shape.render),
   // Invalid input
-  props: z.unknown(),
+  props: z.unknown().optional(),
 });
 
 type ArtifactComponentInput = z.input<typeof ArtifactComponentSchema>;

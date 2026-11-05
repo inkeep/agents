@@ -9,10 +9,10 @@ packages:
   - "packages/*"
 
 catalog:
-  better-auth: 1.6.11
-  "@better-auth/sso": 1.6.11
-  "@better-auth/infra": 0.2.5
-  "@better-auth/oauth-provider": 1.6.9
+  better-auth: 1.7.16
+  "@better-auth/sso": 1.7.16
+  "@better-auth/infra": 0.4.26
+  "@better-auth/oauth-provider": 1.7.16
   "@opentelemetry/api": ^1.9.0
   "@opentelemetry/auto-instrumentations-node": ^0.75.0
   "@opentelemetry/baggage-span-processor": ^0.5.0
@@ -43,6 +43,19 @@ minimumReleaseAge: 4320
 minimumReleaseAgeStrict: true
 minimumReleaseAgeExclude:
   - '@inkeep/*'
+  # Emergency-CVE exception for the Better Auth 2026-11-03 security release; remove after 2026-11-06T21:30Z.
+  - 'better-auth@1.7.16'
+  - 'better-call@1.4.5'
+  - '@better-auth/core@1.7.16'
+  - '@better-auth/drizzle-adapter@1.7.16'
+  - '@better-auth/infra@0.4.26'
+  - '@better-auth/kysely-adapter@1.7.16'
+  - '@better-auth/memory-adapter@1.7.16'
+  - '@better-auth/mongo-adapter@1.7.16'
+  - '@better-auth/oauth-provider@1.7.16'
+  - '@better-auth/prisma-adapter@1.7.16'
+  - '@better-auth/sso@1.7.16'
+  - '@better-auth/telemetry@1.7.16'
 
 # pnpm 12 fails the install on any dependency build script that is not listed
 # here (strictDepBuilds). pnpm 10 ran none of them in this workspace, so each is
@@ -130,8 +143,8 @@ overrides:
   "path-to-regexp@>=8 <8.4.0": "8.4.2" # ReDoS via sequential optional groups
   "picomatch@<2.3.2": ">=2.3.2" # ReDoS via extglob quantifiers + POSIX injection
   "picomatch@>=4 <4.0.4": ">=4.0.4" # ReDoS via extglob quantifiers
-  better-auth: 1.6.11 # OAuth refresh-token replay on oidc-provider/mcp plugins (CRITICAL)
-  "@better-auth/sso": 1.6.11 # SSRF via unvalidated OIDC endpoints in provider registration (CRITICAL)
+  better-auth: 1.7.16 # Better Auth security release 2026-11-03 (GHSA-c85h-5mrr-mgx4 and others)
+  "@better-auth/sso": 1.7.16 # Better Auth security release 2026-11-03
   "@modelcontextprotocol/sdk": ">=1.26.0"
   svgo: ">=3.3.3"
   minimatch: ">=5.1.8"

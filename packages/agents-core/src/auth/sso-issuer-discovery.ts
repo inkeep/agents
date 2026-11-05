@@ -14,7 +14,9 @@ type OidcEndpointPatch = {
   tokenEndpoint: string;
   jwksEndpoint: string;
   userInfoEndpoint?: string;
-  tokenEndpointAuthentication?: 'client_secret_basic' | 'client_secret_post';
+  tokenEndpointAuthentication?: NonNullable<
+    Awaited<ReturnType<typeof discoverOIDCConfig>>['tokenEndpointAuthentication']
+  >;
 };
 
 type RediscoveryContext = {

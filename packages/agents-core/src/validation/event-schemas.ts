@@ -51,7 +51,7 @@ export type DelegationReturnedData = z.infer<typeof DelegationReturnedDataSchema
 export const DataOperationDetailsSchema = z.object({
   timestamp: z.number().describe('Unix timestamp in milliseconds'),
   subAgentId: z.string().describe('ID of the sub-agent that generated this data'),
-  data: z.any().describe('The actual data payload'),
+  data: z.any().optional().describe('The actual data payload'),
 });
 
 export type DataOperationDetails = z.infer<typeof DataOperationDetailsSchema>;

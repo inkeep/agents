@@ -55,12 +55,12 @@ const BaseContextConfigSchema = z.strictObject({
   // TODO check these fields
   headers: z.string().optional(),
   headersReference: z.string().optional(),
-  schema: z.unknown(),
+  schema: z.unknown().optional(),
   name: z.string().nullish(),
-  trigger: z.unknown(),
+  trigger: z.unknown().optional(),
   fetchConfig: z.record(z.string(), z.unknown()).optional(),
-  defaultValue: z.unknown(),
-  responseSchema: z.unknown(),
+  defaultValue: z.unknown().optional(),
+  responseSchema: z.unknown().optional(),
 });
 
 const ContextConfigSchema = BaseContextConfigSchema.transform((data) => ({

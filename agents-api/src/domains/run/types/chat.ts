@@ -231,7 +231,7 @@ export const VercelAudioVideoPartSchema = z.object({
 export const VercelToolApprovalPartSchema = z.object({
   type: z.string().regex(/^tool-/, 'Type must start with "tool-"'),
   toolCallId: z.string(),
-  state: z.any(),
+  state: z.any().optional(),
   approval: z
     .object({
       id: z.string(),
@@ -272,7 +272,7 @@ export const MessageIdSchema = z
 export const VercelMessageSchema = z.object({
   id: MessageIdSchema.optional(),
   role: z.enum(['system', 'user', 'assistant', 'function', 'tool']),
-  content: z.any(),
+  content: z.any().optional(),
   parts: z.array(VercelMessagePartSchema).optional(),
 });
 

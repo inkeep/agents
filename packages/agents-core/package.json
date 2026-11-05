@@ -216,11 +216,12 @@
     "ajv": "^8.18.0",
     "altcha-lib": "^1.4.1",
     "better-auth": "catalog:",
+    "better-call": "1.4.5",
     "cron-parser": "^5.5.0",
     "destr": "^2.0.3",
     "dotenv": "^17.2.1",
     "dotenv-expand": "^12.0.3",
-    "drizzle-orm": "^0.44.4",
+    "drizzle-orm": "^0.45.2",
     "drizzle-zod": "^0.8.2",
     "exit-hook": "^4.0.0",
     "file-type": "^21.3.1",
@@ -229,7 +230,7 @@
     "ipaddr.js": "^2.3.0",
     "iwanthue": "^2.0.0",
     "jmespath": "^0.16.0",
-    "jose": "^6.1.0",
+    "jose": "^6.2.15",
     "nanoid": "^5.0.9",
     "pg": "^8.16.3",
     "pino": "^9.11.0",
@@ -243,7 +244,7 @@
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^1.1.5",
-    "zod": "^4.3.6"
+    "zod": "^4.6.7"
   },
   "optionalDependencies": {
     "@napi-rs/keyring": "^1.2.0",

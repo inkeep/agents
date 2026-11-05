@@ -116,6 +116,7 @@ describe('JsonSchemaForLlmSchema', () => {
           discriminator: 'type',
           errors: [],
           note: 'No matching discriminator',
+          options: ['string', 'number', 'integer', 'boolean', 'null', 'array', 'object'],
           path: ['properties', 'name', 'type'],
           message: 'Each property must have a valid "type"',
         },

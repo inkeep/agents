@@ -47,7 +47,7 @@ export const TextEndEventSchema = z.object({
 export const DataComponentStreamEventSchema = z.object({
   type: z.literal('data-component'),
   id: z.string(),
-  data: z.any(),
+  data: z.any().optional(),
 });
 
 /**
@@ -56,7 +56,7 @@ export const DataComponentStreamEventSchema = z.object({
  */
 export const DataOperationStreamEventSchema = z.object({
   type: z.literal('data-operation'),
-  data: z.any(), // Contains OperationEvent types (AgentInitializingEvent, CompletionEvent, etc.)
+  data: z.any().optional(), // Contains OperationEvent types (AgentInitializingEvent, CompletionEvent, etc.)
 });
 
 /**
@@ -64,7 +64,7 @@ export const DataOperationStreamEventSchema = z.object({
  */
 export const DataSummaryStreamEventSchema = z.object({
   type: z.literal('data-summary'),
-  data: z.any(), // Contains SummaryEvent from entities.ts
+  data: z.any().optional(), // Contains SummaryEvent from entities.ts
 });
 
 // =============================================================================
@@ -123,7 +123,7 @@ export const ToolInputAvailableEventSchema = z.object({
   type: z.literal('tool-input-available'),
   toolCallId: z.string(),
   toolName: z.string(),
-  input: z.any(),
+  input: z.any().optional(),
   providerMetadata: z.any().optional(),
 });
 
@@ -133,7 +133,7 @@ export const ToolInputAvailableEventSchema = z.object({
 export const ToolOutputAvailableEventSchema = z.object({
   type: z.literal('tool-output-available'),
   toolCallId: z.string(),
-  output: z.any(),
+  output: z.any().optional(),
 });
 
 /**

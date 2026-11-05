@@ -1312,7 +1312,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
       } else if (value.type === 'object') {
         zodType = z.record(z.string(), z.any());
       } else {
-        zodType = z.any();
+        zodType = z.any().optional();
       }
 
       if (value.description) {

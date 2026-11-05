@@ -65,3 +65,45 @@ describe('dash organization-create endpoint gating', () => {
     expect(response.status).toBe(401);
   });
 });
+
+describe('organization ids', () => {
+  const authAdapter = async () =>
+    (
+      await createAuth({
+        baseURL: 'http://localhost:3002',
+        secret: 'test-secret-test-secret-test-secret',
+        dbClient: testRunDbClient,
+      }).$context
+    ).adapter;
+
+  it('uses the slug as the id when a create arrives without one, as the dash create endpoint sends it', async () => {
+    const adapter = await authAdapter();
+    const created = await adapter.create<
+      { name: string; slug: string; createdAt: Date },
+      { id: string }
+    >({
+      model: 'organization',
+      data: { name: 'Dash Org', slug: 'dash-org-id-test', createdAt: new Date() },
+    });
+    expect(created.id).toBe('dash-org-id-test');
+  });
+
+  it('keeps the id the organization plugin sets, which it sends with forceAllowId', async () => {
+    const adapter = await authAdapter();
+    const data = {
+      id: 'explicit-org-id',
+      name: 'Explicit Org',
+      slug: 'explicit-org-slug',
+      createdAt: new Date(),
+    };
+    const created = await adapter.create<
+      { name: string; slug: string; createdAt: Date },
+      { id: string }
+    >({
+      model: 'organization',
+      data,
+      forceAllowId: true,
+    });
+    expect(created.id).toBe('explicit-org-id');
+  });
+});

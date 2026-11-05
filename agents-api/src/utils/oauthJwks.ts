@@ -36,7 +36,7 @@ export function getOAuthIssuer(): string {
  * `/mcp` and when that route forwards it to the manage/run domains.
  *
  * INVARIANT: this triplet must stay in sync with the authorization server's
- * `validAudiences`, which the oauthProvider plugin derives from `config.baseURL`
+ * `resources`, which the oauthProvider plugin derives from `config.baseURL`
  * (see `auth.ts`). Both produce `[base, base + '/', base + '/mcp']`, but from
  * independent sources (`INKEEP_AGENTS_API_URL` here vs `config.baseURL` there). A
  * deployment MUST point both at the same origin or the AS will mint tokens this
