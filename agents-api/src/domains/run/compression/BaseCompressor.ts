@@ -850,6 +850,7 @@ export abstract class BaseCompressor {
   }
 
   async safeCompress(messages: any[], fullContextSize?: number): Promise<CompressionResult> {
+    const compressionType = this.getCompressionType();
     const hardLimit = this.getHardLimit();
     const triggerAt = hardLimit - this.config.safetyBuffer;
     const generatedTokens = this.calculateContextSize(messages);
@@ -860,7 +861,7 @@ export abstract class BaseCompressor {
       'compressor.safe_compress',
       {
         attributes: {
-          [SPAN_KEYS.COMPRESSION_TYPE]: this.getCompressionType(),
+          [SPAN_KEYS.COMPRESSION_TYPE]: compressionType,
           [SPAN_KEYS.COMPRESSION_SESSION_ID]: this.sessionId,
           [SPAN_KEYS.COMPRESSION_MESSAGE_COUNT]: messages.length,
           [SPAN_KEYS.COMPRESSION_BASE_CONTEXT_TOKENS]: baseContextTokens,
@@ -916,15 +917,18 @@ export abstract class BaseCompressor {
             const fallbackTokens = Array.isArray(fallbackResult.summary)
               ? this.calculateContextSize(fallbackResult.summary)
               : this.estimateTokens(fallbackResult.summary);
+            const fallbackIsSuccess = compressionType !== 'conversation_level';
             compressionSpan.setAttributes({
-              [SPAN_KEYS.COMPRESSION_SUCCESS]: true,
+              [SPAN_KEYS.COMPRESSION_SUCCESS]: fallbackIsSuccess,
               [SPAN_KEYS.COMPRESSION_RESULT_ARTIFACT_COUNT]: fallbackResult.artifactIds.length,
               [SPAN_KEYS.COMPRESSION_RESULT_ARTIFACT_IDS]: fallbackResult.artifactIds.join(','),
               [SPAN_KEYS.COMPRESSION_RESULT_OUTPUT_TOKENS]: fallbackTokens,
               [SPAN_KEYS.COMPRESSION_RESULT_COMPRESSION_RATIO]:
                 generatedTokens > 0 ? (generatedTokens - fallbackTokens) / generatedTokens : 0,
             });
-            compressionSpan.setStatus({ code: SpanStatusCode.OK });
+            compressionSpan.setStatus({
+              code: fallbackIsSuccess ? SpanStatusCode.OK : SpanStatusCode.ERROR,
+            });
             return fallbackResult;
           } catch (fallbackError) {
             logger.error(

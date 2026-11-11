@@ -95,11 +95,14 @@ export class ConversationCompressor extends BaseCompressor {
       'CONVERSATION COMPRESSION: Starting compression'
     );
 
-    // For conversation-level compression, process ALL messages (no partial processing)
-    const toolCallToArtifactMap = await this.saveToolResultsAsArtifacts(messages, 0);
+    const messagesForDistillation = messages.map((message) => ({ ...message }));
+    const toolCallToArtifactMap = await this.saveToolResultsAsArtifacts(messagesForDistillation, 0);
 
     // Create comprehensive conversation summary
-    const summary = await this.createConversationSummary(messages, toolCallToArtifactMap);
+    const summary = await this.createConversationSummary(
+      messagesForDistillation,
+      toolCallToArtifactMap
+    );
 
     // Calculate context size after compression
     const contextSizeAfter = this.estimateTokens(JSON.stringify(summary));

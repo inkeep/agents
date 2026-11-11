@@ -1,9 +1,6 @@
 import type { GenerationType, ModelSettings } from '@inkeep/agents-core';
 import { z } from 'zod';
-import { getLogger } from '../../../logger';
 import { distillWithTruncation } from './distill-utils';
-
-const logger = getLogger('distill-conversation-history-tool');
 
 export const ConversationHistorySummarySchema = z.object({
   type: z.literal('conversation_history_summary_v1'),
@@ -95,15 +92,14 @@ export async function distillConversationHistory(params: {
     ? `**Prior summary (build on this — the new summary must incorporate everything from here plus the new messages below):**\n\n\`\`\`json\n${JSON.stringify(currentSummary, null, 2)}\n\`\`\`\n\n**New messages to incorporate:**`
     : '**Complete Conversation to Summarize:**';
 
-  try {
-    const output = await distillWithTruncation({
-      conversationId,
-      summarizerModel,
-      schema: ConversationHistorySummarySchema,
-      usageContext,
-      buildPrompt: (
-        formattedMessages
-      ) => `You are a conversation history summarization assistant. Your job is to create a comprehensive summary that can COMPLETELY REPLACE the original conversation history while preserving all essential context.
+  const output = await distillWithTruncation({
+    conversationId,
+    summarizerModel,
+    schema: ConversationHistorySummarySchema,
+    usageContext,
+    buildPrompt: (
+      formattedMessages
+    ) => `You are a conversation history summarization assistant. Your job is to create a comprehensive summary that can COMPLETELY REPLACE the original conversation history while preserving all essential context.
 
 ${priorSummarySection}
 
@@ -189,47 +185,11 @@ Create a comprehensive summary using this exact JSON schema:
 **REMEMBER**: This summary is REPLACING the entire conversation history. Include everything essential for context continuation.
 
 Return **only** valid JSON.`,
-      messageFormatter,
-    });
-    output.session_id = conversationId;
-    return output;
-  } catch (error) {
-    logger.error(
-      { conversationId, error: error instanceof Error ? error.message : 'Unknown error' },
-      'Failed to distill conversation history'
-    );
-
-    return {
-      type: 'conversation_history_summary_v1',
-      session_id: conversationId,
-      _fallback: true,
-      conversation_overview: 'Conversation session with technical discussion and problem-solving',
-      user_goals: {
-        primary: 'Technical assistance and problem-solving',
-        secondary: [],
-      },
-      key_outcomes: {
-        completed: [],
-        partial: ['Ongoing technical work'],
-        discoveries: [],
-      },
-      technical_context: {
-        technologies: [],
-        configurations: [],
-        issues_encountered: [],
-        solutions_applied: [],
-      },
-      conversation_artifacts: [],
-      conversation_flow: {
-        major_phases: ['Initial discussion', 'Technical exploration'],
-        decision_points: [],
-        topic_shifts: [],
-      },
-      context_for_continuation: {
-        current_state: 'In progress - technical work ongoing',
-        next_logical_steps: ['Continue with current technical objectives'],
-        important_context: ['Review previous discussion for technical context'],
-      },
-    };
+    messageFormatter,
+  });
+  if (output._fallback === true) {
+    throw new Error('Conversation history distillation returned a fallback summary');
   }
+  output.session_id = conversationId;
+  return output;
 }
