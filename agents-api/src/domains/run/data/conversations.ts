@@ -30,6 +30,14 @@ const logger = getLogger('conversations');
 // In-memory lock to prevent concurrent compression for the same conversation
 export const compressionLocks = new Map<string, Promise<any>>();
 
+function isConversationHistorySummary(message: MessageSelect): boolean {
+  return (
+    message.messageType === 'compression_summary' &&
+    (message.metadata?.a2a_metadata?.compressionType === 'conversation_history' ||
+      message.metadata?.compressionType === 'conversation_history')
+  );
+}
+
 /**
  * Creates default conversation history configuration
  * @param mode - The conversation history mode ('full' | 'scoped' | 'none')
@@ -156,19 +164,26 @@ export async function getScopedHistory({
   try {
     // First, get ALL messages to find the latest compression summary
     // IMPORTANT: Always include internal messages and disable truncation to ensure tool results are available
-    const allMessages = await getConversationHistory(runDbClient)({
-      scopes: { tenantId, projectId },
-      conversationId,
-      options: { ...options, limit: 10000, includeInternal: true, maxOutputTokens: undefined }, // Disable truncation
+    const allMessages = (
+      await getConversationHistory(runDbClient)({
+        scopes: { tenantId, projectId },
+        conversationId,
+        options: { ...options, limit: 10000, includeInternal: true, maxOutputTokens: undefined }, // Disable truncation
+      })
+    ).filter((message) => {
+      if (!isConversationHistorySummary(message)) return true;
+      const summary = message.metadata?.a2a_metadata?.summaryData;
+      if (Array.isArray(summary)) return false;
+      return !(
+        summary &&
+        typeof summary === 'object' &&
+        '_fallback' in summary &&
+        summary._fallback === true
+      );
     });
 
     // Find the latest compression summary (highest order/createdAt)
-    const compressionSummaries = allMessages.filter(
-      (msg) =>
-        msg.messageType === 'compression_summary' &&
-        (msg.metadata?.a2a_metadata?.compressionType === 'conversation_history' ||
-          msg.metadata?.compressionType === 'conversation_history')
-    );
+    const compressionSummaries = allMessages.filter(isConversationHistorySummary);
 
     const latestCompressionSummary =
       compressionSummaries.length > 0
@@ -537,12 +552,7 @@ export async function getConversationHistoryWithCompression({
 
   if (summarizerModel) {
     const firstMsg = messagesToFormat[0];
-    const compressionSummary =
-      firstMsg?.messageType === 'compression_summary' &&
-      (firstMsg?.metadata?.a2a_metadata?.compressionType === 'conversation_history' ||
-        firstMsg?.metadata?.compressionType === 'conversation_history')
-        ? firstMsg
-        : null;
+    const compressionSummary = firstMsg && isConversationHistorySummary(firstMsg) ? firstMsg : null;
 
     if (compressionSummary) {
       const priorSummary = compressionSummary.metadata?.a2a_metadata?.summaryData ?? null;
@@ -673,6 +683,10 @@ async function performActualCompression(
   try {
     const compressionResult = await compressor.safeCompress(messages, params.fullContextSize);
 
+    if (Array.isArray(compressionResult.summary)) {
+      return compressionResult.summary;
+    }
+
     // Save compression summary as a message in the database with proper ordering
     if (compressionResult.summary) {
       const compressionMessage = await createMessage(runDbClient)({
@@ -712,11 +726,9 @@ async function performActualCompression(
       );
 
       // Return just the compression summary message
-      compressor.fullCleanup();
       return [compressionMessage];
     }
 
-    compressor.fullCleanup();
     return messages;
   } catch (error) {
     logger.error(
@@ -726,8 +738,9 @@ async function performActualCompression(
       },
       'Conversation compression failed, using original messages'
     );
-    compressor.fullCleanup();
     return messages;
+  } finally {
+    compressor.fullCleanup();
   }
 }
 
