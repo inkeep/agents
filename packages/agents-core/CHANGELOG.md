@@ -1,5 +1,14 @@
 # @inkeep/agents-core
 
+## 0.81.1
+
+### Patch Changes
+
+- 0cd3815: Trust default localhost origins only in development.
+- 0cd3815: Implement `INKEEP_ENABLE_ENVIRONMENT_CREDENTIALS`, defaulting to `false`.
+- 0cd3815: Revoke existing sessions after password reset.
+- 0cd3815: Update Better Auth to 1.7.25.
+
 ## 0.81.0
 
 ### Minor Changes

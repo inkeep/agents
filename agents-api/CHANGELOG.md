@@ -1,5 +1,20 @@
 # @inkeep/agents-api
 
+## 0.81.1
+
+### Patch Changes
+
+- 0cd3815: Implement `INKEEP_ENABLE_ENVIRONMENT_CREDENTIALS`, defaulting to `false`.
+- 0cd3815: Update Better Auth to 1.7.25.
+- Updated dependencies [0cd3815]
+- Updated dependencies [0cd3815]
+- Updated dependencies [0cd3815]
+- Updated dependencies [0cd3815]
+  - @inkeep/agents-core@0.81.1
+  - @inkeep/agents-work-apps@0.81.1
+  - @inkeep/agents-email@0.81.1
+  - @inkeep/agents-mcp@0.81.1
+
 ## 0.81.0
 
 ### Minor Changes
