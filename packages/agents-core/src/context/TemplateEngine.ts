@@ -1,3 +1,4 @@
+import { getTemplateEnvironmentVariables } from '../utils/env-detection';
 import { normalizeJMESPath, searchJMESPath } from '../utils/jmespath-utils';
 import { getLogger } from '../utils/logger';
 
@@ -216,7 +217,7 @@ export class TemplateEngine {
     // Check for environment variables like $env.NODE_ENV
     if (variable.startsWith('$env.')) {
       const envVar = variable.substring(5);
-      return process.env[envVar] || '';
+      return getTemplateEnvironmentVariables()[envVar] || '';
     }
 
     logger.warn(

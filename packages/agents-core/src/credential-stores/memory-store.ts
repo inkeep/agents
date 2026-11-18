@@ -1,5 +1,6 @@
 import { CredentialStoreType } from '../types';
 import type { CredentialStore } from '../types/server';
+import { isEnvironmentCredentialAccessEnabled } from '../utils/env-detection';
 
 /**
  * In-memory credential store implementation
@@ -23,6 +24,10 @@ export class InMemoryCredentialStore implements CredentialStore {
    * @returns The credential value or null if not found
    */
   async get(key: string): Promise<string | null> {
+    if (!isEnvironmentCredentialAccessEnabled()) {
+      return null;
+    }
+
     const credential = this.credentials.get(key);
 
     if (!credential) {
@@ -70,6 +75,13 @@ export class InMemoryCredentialStore implements CredentialStore {
    * Check if the credential store is available and functional
    */
   async checkAvailability(): Promise<{ available: boolean; reason?: string }> {
+    if (!isEnvironmentCredentialAccessEnabled()) {
+      return {
+        available: false,
+        reason: 'Memory credential stores require INKEEP_ENABLE_ENVIRONMENT_CREDENTIALS=true',
+      };
+    }
+
     return {
       available: true,
     };

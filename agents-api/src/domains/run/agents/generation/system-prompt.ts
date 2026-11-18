@@ -5,6 +5,7 @@ import {
   TemplateEngine,
   TRANSFER_TOOL_PREFIX,
 } from '@inkeep/agents-core';
+import { getTemplateEnvironmentVariables } from '@inkeep/agents-core/utils/env-detection';
 import type { ToolSet } from 'ai';
 import { getLogger } from '../../../../logger';
 import { getModelAwareCompressionConfig } from '../../compression/BaseCompressor';
@@ -61,7 +62,7 @@ export async function getResolvedContext(
 
     const contextWithBuiltins = {
       ...result.resolvedContext,
-      $env: process.env,
+      $env: getTemplateEnvironmentVariables(),
     };
 
     logger.debug(

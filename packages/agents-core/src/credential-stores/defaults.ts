@@ -1,4 +1,5 @@
 import type { CredentialStore } from '../types/server';
+import { isEnvironmentCredentialAccessEnabled } from '../utils/env-detection';
 import { ComposioCredentialStore } from './composio-store';
 import { DEFAULT_COMPOSIO_STORE_ID, DEFAULT_NANGO_STORE_ID } from './default-constants';
 import { createKeyChainStore } from './keychain-store';
@@ -11,8 +12,9 @@ import { createNangoCredentialStore } from './nango-store';
 export function createDefaultCredentialStores(): CredentialStore[] {
   const stores: CredentialStore[] = [];
 
-  // Always include in-memory store
-  stores.push(new InMemoryCredentialStore('memory-default'));
+  if (isEnvironmentCredentialAccessEnabled()) {
+    stores.push(new InMemoryCredentialStore('memory-default'));
+  }
 
   // Include Nango store if NANGO_SECRET_KEY is set
   if (process.env.NANGO_SECRET_KEY) {

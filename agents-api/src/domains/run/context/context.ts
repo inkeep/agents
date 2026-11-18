@@ -8,6 +8,7 @@ import {
   updateConversation,
   type WebhookDestinationSelect,
 } from '@inkeep/agents-core';
+import { getTemplateEnvironmentVariables } from '@inkeep/agents-core/utils/env-detection';
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import runDbClient from '../../../data/db/runDbClient';
 import { emitWebhookEventFireAndForget } from '../services/WebhookDeliveryService';
@@ -119,7 +120,7 @@ async function handleContextResolution({
 
         const resolvedContext = {
           ...contextResult.resolvedContext,
-          $env: process.env,
+          $env: getTemplateEnvironmentVariables(),
         };
 
         await updateConversation(runDbClient)({
