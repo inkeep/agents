@@ -1,5 +1,17 @@
 # @inkeep/agents-manage-ui
 
+## 0.81.1
+
+### Patch Changes
+
+- 9fcbb33: Raise the minimum `next` dependency to `^16.4.6` so agent-started dev servers can start normally. Projects created with `@inkeep/create-agents` should raise `pnpm.overrides.next` in their `package.json` to `^16.4.6`.
+- 0cd3815: Update Better Auth to 1.7.25.
+- Updated dependencies [0cd3815]
+- Updated dependencies [0cd3815]
+- Updated dependencies [0cd3815]
+- Updated dependencies [0cd3815]
+  - @inkeep/agents-core@0.81.1
+
 ## 0.81.0
 
 ### Minor Changes

@@ -1,5 +1,16 @@
 # @inkeep/create-agents
 
+## 0.81.1
+
+### Patch Changes
+
+- 0cd3815: Update Better Auth to 1.7.25.
+- Updated dependencies [0cd3815]
+- Updated dependencies [0cd3815]
+- Updated dependencies [0cd3815]
+- Updated dependencies [0cd3815]
+  - @inkeep/agents-core@0.81.1
+
 ## 0.81.0
 
 ### Patch Changes
