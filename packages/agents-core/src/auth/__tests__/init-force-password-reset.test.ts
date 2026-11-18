@@ -26,6 +26,7 @@ describe('init.ts INKEEP_AUTH_INIT_FORCE_PASSWORD_RESET branch', () => {
       baseURL: 'http://localhost:3002',
       secret: BETTER_AUTH_SECRET,
       dbClient: testRunDbClient,
+      disablePasswordCompromiseCheck: true,
     });
 
     const signUp = await auth.api.signUpEmail({

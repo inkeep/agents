@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { InMemoryCredentialStore } from '../../credential-stores/memory-store';
 import { CredentialStoreType } from '../../types';
 
@@ -7,6 +7,7 @@ describe('InMemoryCredentialStore', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
+    vi.stubEnv('INKEEP_ENABLE_ENVIRONMENT_CREDENTIALS', 'true');
     // Clear test environment variables to ensure clean state
     delete process.env.TEST_KEY;
     delete process.env.API_KEY;
@@ -19,6 +20,7 @@ describe('InMemoryCredentialStore', () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     process.env = originalEnv;
   });
 

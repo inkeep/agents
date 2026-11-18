@@ -28,9 +28,11 @@ export async function getTrustedOrigins(
   dbClient: AgentsRunDatabaseClient,
   request: Request | undefined
 ): Promise<string[]> {
+  const developmentOrigins =
+    env.ENVIRONMENT === 'development' ? ['http://localhost:3000', 'http://localhost:3002'] : [];
+
   const staticOrigins = [
-    'http://localhost:3000',
-    'http://localhost:3002',
+    ...developmentOrigins,
     env.INKEEP_AGENTS_MANAGE_UI_URL,
     env.INKEEP_AGENTS_API_URL,
     env.TRUSTED_ORIGIN,

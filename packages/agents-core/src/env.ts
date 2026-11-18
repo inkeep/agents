@@ -47,6 +47,12 @@ const envSchema = z.object({
     .enum(['development', 'production', 'pentest', 'test'])
     .optional()
     .describe('Application environment mode'),
+  INKEEP_ENABLE_ENVIRONMENT_CREDENTIALS: z
+    .enum(['true', 'false'])
+    .default('false')
+    .describe(
+      'Enable memory credential stores and server environment variable templates when true, disabled by default'
+    ),
 
   // Database
   INKEEP_AGENTS_MANAGE_DATABASE_URL: z

@@ -131,6 +131,7 @@ export function createAuth(config: BetterAuthConfig): AuthInstance {
       maxPasswordLength: 256,
       requireEmailVerification: false,
       autoSignIn: true,
+      revokeSessionsOnPasswordReset: true,
       resetPasswordTokenExpiresIn: 60 * 30,
       sendResetPassword: async ({
         user,

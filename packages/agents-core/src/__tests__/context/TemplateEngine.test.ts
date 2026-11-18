@@ -1,7 +1,15 @@
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 import { type TemplateContext, TemplateEngine } from '../../context/TemplateEngine';
 
 describe('TemplateEngine', () => {
+  beforeEach(() => {
+    vi.stubEnv('INKEEP_ENABLE_ENVIRONMENT_CREDENTIALS', 'true');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   const sampleContext: TemplateContext = {
     user: {
       name: 'John Doe',
