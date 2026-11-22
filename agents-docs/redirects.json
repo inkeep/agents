@@ -60,7 +60,7 @@
   },
   {
     "source": "/typescript-sdk/create-mcp-servers",
-    "destination": "/typescript-sdk/tools/create-mcp-servers",
+    "destination": "/typescript-sdk/tools/mcp-tools",
     "permanent": true
   },
   {
@@ -220,7 +220,7 @@
   },
   {
     "source": "/guides/agent-engineering/failure-modes",
-    "destination": "/guides/agent-engineering/prompt-troubleshooting",
+    "destination": "/guides/agent-engineering/troubleshooting",
     "permanent": true
   },
   {
