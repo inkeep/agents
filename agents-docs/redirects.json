@@ -55,7 +55,7 @@
   },
   {
     "source": "/typescript-sdk/tools-and-mcp-servers",
-    "destination": "/typescript-sdk/tools/mcp-servers",
+    "destination": "/typescript-sdk/tools/mcp-tools",
     "permanent": true
   },
   {
@@ -80,7 +80,7 @@
   },
   {
     "source": "/typescript-sdk/credentials",
-    "destination": "/typescript-sdk/tools/credentials",
+    "destination": "/typescript-sdk/credentials/nango",
     "permanent": true
   },
   {
@@ -90,22 +90,22 @@
   },
   {
     "source": "/self-hosting/add-sentry",
-    "destination": "/self-hosting/add-other-services/sentry",
+    "destination": "/deployment/add-other-services/sentry",
     "permanent": true
   },
   {
     "source": "/self-hosting/add-datadog-apm",
-    "destination": "/self-hosting/add-other-services/datadog-apm",
+    "destination": "/deployment/add-other-services/datadog-apm",
     "permanent": true
   },
   {
     "source": "/self-hosting/add-other-services/add-sentry",
-    "destination": "/self-hosting/add-other-services/sentry",
+    "destination": "/deployment/add-other-services/sentry",
     "permanent": true
   },
   {
     "source": "/self-hosting/add-other-services/add-datadog-apm",
-    "destination": "/self-hosting/add-other-services/datadog-apm",
+    "destination": "/deployment/add-other-services/datadog-apm",
     "permanent": true
   },
   {
