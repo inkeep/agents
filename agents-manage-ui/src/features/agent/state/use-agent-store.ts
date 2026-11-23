@@ -22,7 +22,7 @@ interface AgentStateData {
   isSidebarSessionOpen: boolean;
   variableSuggestions: string[];
   /**
-   * Tracks if any model configuration modal is currently open (azure, openrouter, gateway, nim).
+   * Tracks if any model configuration modal is currently open (azure, openrouter, gateway, nim, litellm).
    * Used to disable save button while configuration is in progress.
    */
   hasOpenModelConfig: boolean;

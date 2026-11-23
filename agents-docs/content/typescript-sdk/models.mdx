@@ -75,6 +75,7 @@ Each model type inherits independently through the project → agent → sub age
 | **OpenRouter** | `openrouter/anthropic/claude-sonnet-4-0`<br/>`openrouter/meta-llama/llama-3.1-405b` | `OPENROUTER_API_KEY` |
 | **Gateway** | `gateway/openai/gpt-4.1-mini` | `AI_GATEWAY_API_KEY` |
 | **NVIDIA NIM** | `nim/nvidia/llama-3.3-nemotron-super-49b-v1.5`<br/>`nim/nvidia/nemotron-4-340b-instruct` | `NIM_API_KEY` |
+| **LiteLLM** | `litellm/anthropic/claude-sonnet-4-5`<br/>`litellm/gpt-4o` | `LITELLM_API_KEY` |
 | **Custom OpenAI-compatible** | `custom/my-custom-model`<br/>`custom/llama-3-custom` | `CUSTOM_LLM_API_KEY` |
 | **Mock** | `mock/default` | None required |
 
@@ -307,6 +308,39 @@ models: {
 
 <Note>
 Azure OpenAI **requires** either `resourceName` (for standard Azure OpenAI deployments) or `baseURL` (for custom endpoints) in `providerOptions`. The `AZURE_API_KEY` environment variable must be set for authentication. Note that only one Azure OpenAI resource can be used at a time since authentication is handled via a single environment variable.
+</Note>
+
+**LiteLLM provider:**
+
+[LiteLLM](https://docs.litellm.ai/docs/simple_proxy) exposes 100+ providers (OpenAI, Anthropic, Bedrock, Vertex, Azure, and more) behind a single OpenAI-compatible proxy. Use the `litellm/` prefix with any model name or alias configured on your proxy.
+
+<Tabs>
+<Tab title="TypeScript">
+```typescript
+models: {
+  base: {
+    model: "litellm/anthropic/claude-sonnet-4-5",
+    providerOptions: {
+      // Optional: overrides LITELLM_API_BASE (defaults to http://localhost:4000/v1)
+      baseURL: "https://my-litellm-proxy.example.com/v1",
+      temperature: 0.7
+    }
+  }
+}
+```
+</Tab>
+<Tab title="JSON">
+```json
+{
+  "baseUrl": "https://my-litellm-proxy.example.com/v1",
+  "temperature": 0.7
+}
+```
+</Tab>
+</Tabs>
+
+<Note>
+The LiteLLM provider points at your LiteLLM proxy. The base URL resolves from `providerOptions.baseURL`, then the `LITELLM_API_BASE` environment variable, then `http://localhost:4000/v1`. Set `LITELLM_API_KEY` to your proxy's virtual/master key; it is sent as a bearer token when present. Model names after the `litellm/` prefix are passed through to the proxy, so any provider model string or configured alias works.
 </Note>
 
 **Custom OpenAI-compatible provider:**
